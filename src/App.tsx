@@ -22,7 +22,7 @@ import { updateAllTripMileage } from './utils/storage';
 
 function App() {
   useEffect(() => {
-    // trying to edit from second account
+    // trying to edit from second account second time
     // Update all trip mileage calculations when the app starts
     updateAllTripMileage();
   }, []);
