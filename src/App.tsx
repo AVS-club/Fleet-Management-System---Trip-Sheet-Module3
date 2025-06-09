@@ -22,6 +22,7 @@ import { updateAllTripMileage } from './utils/storage';
 
 function App() {
   useEffect(() => {
+    // tryying to edit
     // Update all trip mileage calculations when the app starts
     updateAllTripMileage();
   }, []);
