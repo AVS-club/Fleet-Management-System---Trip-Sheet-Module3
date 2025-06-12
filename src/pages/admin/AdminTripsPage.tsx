@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
-import ExportOptionsModal from '../../components/admin/ExportOptionsModal';
-import { Trip, Vehicle, Driver } from '../../types';
+import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
+import { Trip, Vehicle, Driver, Warehouse } from '../../types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import * as XLSX from 'xlsx';
@@ -14,21 +14,35 @@ const AdminTripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [pageSize, setPageSize] = useState(50);
+  // const [pageSize, setPageSize] = useState(50); // This state is not used by TripsTable, consider removing if not needed elsewhere.
 
   useEffect(() => {
-    setTrips(getTrips());
-    setVehicles(getVehicles());
-    setDrivers(getDrivers());
-    setWarehouses(getWarehouses());
+    const fetchData = async () => {
+      try {
+        const tripsData = await getTrips();
+        const vehiclesData = await getVehicles();
+        const driversData = await getDrivers();
+        const warehousesData = await getWarehouses();
+        setTrips(tripsData);
+        setVehicles(vehiclesData);
+        setDrivers(driversData);
+        setWarehouses(warehousesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        // Optionally, set some error state here to display to the user
+      }
+    };
+    fetchData();
   }, []);
 
-  const handleUpdateTrip = (tripId: string, updates: Partial<Trip>) => {
-    const updatedTrip = updateTrip(tripId, updates);
+  const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
+    const updatedTrip = await updateTrip(tripId, updates);
     if (updatedTrip) {
-      setTrips(trips.map(trip => 
-        trip.id === tripId ? updatedTrip : trip
-      ));
+      setTrips(prevTrips => 
+        prevTrips.map(trip => 
+          trip.id === tripId ? updatedTrip : trip
+        )
+      );
     }
   };
 
@@ -38,57 +52,57 @@ const AdminTripsPage: React.FC = () => {
 
     if (options.dateRange.start) {
       filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.tripStartDate) >= new Date(options.dateRange.start)
+        new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
       );
     }
 
     if (options.dateRange.end) {
       filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.tripEndDate) <= new Date(options.dateRange.end)
+        new Date(trip.trip_end_date) <= new Date(options.dateRange.end)
       );
     }
 
     if (options.vehicleId) {
-      filteredTrips = filteredTrips.filter(trip => trip.vehicleId === options.vehicleId);
+      filteredTrips = filteredTrips.filter(trip => trip.vehicle_id === options.vehicleId);
     }
 
     if (options.driverId) {
-      filteredTrips = filteredTrips.filter(trip => trip.driverId === options.driverId);
+      filteredTrips = filteredTrips.filter(trip => trip.driver_id === options.driverId);
     }
 
     if (options.warehouseId) {
-      filteredTrips = filteredTrips.filter(trip => trip.warehouseId === options.warehouseId);
+      filteredTrips = filteredTrips.filter(trip => trip.warehouse_id === options.warehouseId);
     }
 
     if (options.tripType) {
       filteredTrips = filteredTrips.filter(trip => {
-        if (options.tripType === 'local') return trip.shortTrip;
+        if (options.tripType === 'local') return trip.short_trip;
         if (options.tripType === 'two_way') return trip.destinations.length > 1;
-        return !trip.shortTrip && trip.destinations.length === 1;
+        return !trip.short_trip && trip.destinations.length === 1;
       });
     }
 
     // Prepare data for export
     const exportData = filteredTrips.map(trip => {
-      const vehicle = vehicles.find(v => v.id === trip.vehicleId);
-      const driver = drivers.find(d => d.id === trip.driverId);
-      const warehouse = warehouses.find(w => w.id === trip.warehouseId);
+      const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+      const driver = drivers.find(d => d.id === trip.driver_id);
+      const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
 
       return {
-        'Trip ID': trip.tripSerialNumber,
-        'Start Date': new Date(trip.tripStartDate).toLocaleDateString(),
-        'End Date': new Date(trip.tripEndDate).toLocaleDateString(),
-        'Vehicle': vehicle?.registrationNumber,
+        'Trip ID': trip.trip_serial_number,
+        'Start Date': new Date(trip.trip_start_date).toLocaleDateString(),
+        'End Date': new Date(trip.trip_end_date).toLocaleDateString(),
+        'Vehicle': vehicle?.registration_number,
         'Driver': driver?.name,
         'Source': warehouse?.name,
-        'Start KM': trip.startKm,
-        'End KM': trip.endKm,
-        'Distance': trip.endKm - trip.startKm,
-        'Mileage': trip.calculatedKmpl?.toFixed(2) || '-',
-        'Fuel Cost': trip.totalFuelCost || 0,
-        'Road Expenses': trip.totalRoadExpenses,
-        'Total Cost': (trip.totalFuelCost || 0) + trip.totalRoadExpenses,
-        'Type': trip.shortTrip ? 'Local' : trip.destinations.length > 1 ? 'Two Way' : 'One Way'
+        'Start KM': trip.start_km,
+        'End KM': trip.end_km,
+        'Distance': trip.end_km - trip.start_km,
+        'Mileage': trip.calculated_kmpl?.toFixed(2) || '-',
+        'Fuel Cost': trip.total_fuel_cost || 0,
+        'Road Expenses': trip.total_road_expenses,
+        'Total Cost': (trip.total_fuel_cost || 0) + trip.total_road_expenses,
+        'Type': trip.short_trip ? 'Local' : trip.destinations.length > 1 ? 'Two Way' : 'One Way'
       };
     });
 
@@ -155,8 +169,8 @@ const AdminTripsPage: React.FC = () => {
         onExport={() => setShowExportModal(true)}
         onImport={handleImport}
         onDownloadFormat={handleDownloadFormat}
-        pageSize={pageSize}
-        onPageSizeChange={setPageSize}
+        // pageSize={pageSize} // pageSize is not a prop of TripsTable
+        // onPageSizeChange={setPageSize} // onPageSizeChange is not a prop of TripsTable
       />
 
       {showExportModal && (

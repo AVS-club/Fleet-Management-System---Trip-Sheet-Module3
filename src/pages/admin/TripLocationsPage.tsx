@@ -8,7 +8,8 @@ import DestinationForm from '../../components/admin/DestinationForm';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
 import { getWarehouses, getDestinations, createWarehouse, createDestination } from '../../utils/storage';
-import { getMaterialTypes } from '../../utils/materialTypes';
+import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
+import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ const TripLocationsPage: React.FC = () => {
 
   const handleAddWarehouse = async (data: any) => {
     try {
+      // The createWarehouse function in storage.ts will handle converting keys to snake_case
       const newWarehouse = await createWarehouse(data);
       if (newWarehouse === null) {
         throw new Error('Failed to create warehouse');
@@ -64,7 +66,12 @@ const TripLocationsPage: React.FC = () => {
 
   const handleAddDestination = async (data: any) => {
     try {
-      const newDestination = await createDestination(data);
+      const destinationDataForSupabase = {
+        ...data,
+        historical_deviation: data.historical_deviation === undefined ? 0 : data.historical_deviation,
+        active: data.active === undefined ? true : data.active,
+      };
+      const newDestination = await createDestination(destinationDataForSupabase);
       if (!newDestination) {
         throw new Error('Failed to create destination');
       }
@@ -188,9 +195,13 @@ const TripLocationsPage: React.FC = () => {
                                   </div>
                                 </div>
                               </div>
-                              {warehouse.latitude !== undefined && warehouse.longitude !== undefined && (
+                              {typeof warehouse.latitude === 'number' && typeof warehouse.longitude === 'number' ? (
                                 <div className="mt-3 text-sm text-gray-500">
                                   Coordinates: {warehouse.latitude.toFixed(6)}, {warehouse.longitude.toFixed(6)}
+                                </div>
+                              ) : warehouse.latitude !== undefined && warehouse.longitude !== undefined && (
+                                <div className="mt-3 text-sm text-gray-500">
+                                  Coordinates: {warehouse.latitude}, {warehouse.longitude} (Invalid)
                                 </div>
                               )}
                             </div>
@@ -251,9 +262,15 @@ const TripLocationsPage: React.FC = () => {
                                   </div>
                                 </div>
                               </div>
-                              <div className="mt-3 text-sm text-gray-500">
-                                Coordinates: {destination.latitude}, {destination.longitude}
-                              </div>
+                              {typeof destination.latitude === 'number' && typeof destination.longitude === 'number' ? (
+                                <div className="mt-3 text-sm text-gray-500">
+                                  Coordinates: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
+                                </div>
+                              ) : destination.latitude !== undefined && destination.longitude !== undefined && (
+                                <div className="mt-3 text-sm text-gray-500">
+                                  Coordinates: {destination.latitude}, {destination.longitude} (Invalid)
+                                </div>
+                              )}
                             </div>
                           ))
                         )}

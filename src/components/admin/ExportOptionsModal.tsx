@@ -3,6 +3,7 @@ import { X, Download } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import { Vehicle, Driver, Warehouse } from '../../types';
 
 interface ExportOptionsProps {
   onExport: (options: ExportOptions) => void;
@@ -12,7 +13,7 @@ interface ExportOptionsProps {
   warehouses: Warehouse[];
 }
 
-interface ExportOptions {
+export interface ExportOptions {
   dateRange: {
     start: string;
     end: string;
@@ -56,6 +57,7 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
               <button
                 onClick={onClose}
                 className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                aria-label="Close export options"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -89,7 +91,7 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
                   { value: '', label: 'All Vehicles' },
                   ...vehicles.map(v => ({
                     value: v.id,
-                    label: v.registrationNumber
+                    label: v.registration_number
                   }))
                 ]}
                 value={options.vehicleId || ''}

@@ -16,11 +16,12 @@ import DestinationSelector from './DestinationSelector';
 import TripMap from '../maps/TripMap';
 import RouteAnalysisComponent from './RouteAnalysis';
 
-export interface TripFormData extends Omit<Trip, 'id' | 'createdAt' | 'updatedAt' | 'tripSerialNumber'> {
-  fuel_bill_file?: File;
-  alert_accepted?: boolean;
-  alert_notes?: string;
-}
+// Removed local TripFormData to use the one from ../../types
+// export interface TripFormData extends Omit<Trip, 'id' | 'createdAt' | 'updatedAt' | 'tripSerialNumber'> {
+//   fuel_bill_file?: File;
+//   alert_accepted?: boolean;
+//   alert_notes?: string;
+// }
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -198,7 +199,7 @@ const TripForm: React.FC<TripFormProps> = ({
         setRouteAnalysis(updatedAnalysis);
 
         // Generate alerts based on current trip data
-        const tripData = {
+        const tripData: Trip = { // Added Trip type and missing fields
           id: nanoid(),
           vehicle_id: vehicleId,
           driver_id: watch('driver_id'),
@@ -206,11 +207,28 @@ const TripForm: React.FC<TripFormProps> = ({
           destinations: selectedDestinations,
           trip_start_date: watch('trip_start_date'),
           trip_end_date: watch('trip_end_date'),
+          trip_duration: watch('trip_duration') || 0,
+          trip_serial_number: '', // This will be generated on submit, pass empty for analysis
+          manual_trip_id: watch('manual_trip_id') || false,
           start_km: startKm,
           end_km: endKm,
+          gross_weight: watch('gross_weight') || 0,
+          // station: watch('station'), // Assuming station is optional or not used here
           refueling_done: watch('refueling_done'),
           fuel_quantity: watch('fuel_quantity'),
-          calculated_kmpl: watch('calculated_kmpl')
+          fuel_cost: watch('fuel_cost'),
+          total_fuel_cost: watch('total_fuel_cost'),
+          unloading_expense: watch('unloading_expense') || 0,
+          driver_expense: watch('driver_expense') || 0,
+          road_rto_expense: watch('road_rto_expense') || 0,
+          breakdown_expense: watch('breakdown_expense') || 0,
+          total_road_expenses: watch('total_road_expenses') || 0,
+          short_trip: watch('short_trip') || false,
+          remarks: watch('remarks'),
+          calculated_kmpl: watch('calculated_kmpl'),
+          // route_deviation: watch('route_deviation'), // This is part of analysis result
+          created_at: new Date().toISOString(), // Add dummy created_at
+          updated_at: new Date().toISOString(), // Add dummy updated_at
         };
 
         // Fetch trips for alert generation
@@ -258,16 +276,22 @@ const TripForm: React.FC<TripFormProps> = ({
   };
 
   // Handle adding and selecting a new destination from Google Maps
-  const handleAddAndSelectDestination = (destination: Destination) => {
+  const handleAddAndSelectDestination = async (destination: Destination) => { // Made async
     // First, save the destination to storage
-    const savedDestination = createDestination(destination);
+    const savedDestination = await createDestination(destination); // Added await
     
-    // Update the list of all destinations
-    setAllDestinations(getDestinations());
-    
-    // Add the new destination to the selected destinations
-    const currentSelected = watch('destinations') || [];
-    setValue('destinations', [...currentSelected, savedDestination.id]);
+    if (savedDestination) { // Check if destination was saved
+      // Update the list of all destinations
+      const updatedDestinations = await getDestinations(); // Added await
+      setAllDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : []);
+      
+      // Add the new destination to the selected destinations
+      const currentSelected = watch('destinations') || [];
+      setValue('destinations', [...currentSelected, savedDestination.id]);
+    } else {
+      console.error("Failed to save the new destination.");
+      // Optionally, show an error to the user
+    }
   };
 
   if (loading) {
@@ -365,10 +389,13 @@ const TripForm: React.FC<TripFormProps> = ({
           render={({ field }) => (
             <Select
               label="Vehicle"
-              options={vehicles.map(vehicle => ({
-                value: vehicle.id,
-                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-              }))}
+              options={[
+                { value: '', label: 'Select Vehicle*' },
+                ...vehicles.map(vehicle => ({
+                  value: vehicle.id,
+                  label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+                }))
+              ]}
               error={errors.vehicle_id?.message}
               required
               {...field}
@@ -384,10 +411,13 @@ const TripForm: React.FC<TripFormProps> = ({
             <Select
               key={field.value} // Add key to force re-render on value change
               label="Driver"
-              options={drivers.map(driver => ({
-                value: driver.id,
-                label: driver.name
-              }))}
+              options={[
+                { value: '', label: 'Select Driver*' },
+                ...drivers.map(driver => ({
+                  value: driver.id,
+                  label: driver.name
+                }))
+              ]}
               error={errors.driver_id?.message}
               required
               {...field}
@@ -533,7 +563,7 @@ const TripForm: React.FC<TripFormProps> = ({
               label="Refueling Done"
               checked={value}
               onChange={e => onChange(e.target.checked)}
-              icon={<Fuel className="h-4 w-4" />}
+              // icon prop removed
               {...field}
             />
           )}
@@ -608,6 +638,7 @@ const TripForm: React.FC<TripFormProps> = ({
             label="Short/Local Trip (exclude from mileage)"
             checked={value}
             onChange={e => onChange(e.target.checked)}
+            // icon prop removed
             {...field}
           />
         )}

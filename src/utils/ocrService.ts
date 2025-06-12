@@ -1,4 +1,5 @@
 import { RCDetails } from '../types';
+import { supabase } from './supabaseClient';
 
 // Custom error classes for better error handling
 class DocumentAIError extends Error {
@@ -205,9 +206,28 @@ async function fileToBase64(file: File): Promise<string> {
 }
 
 async function getAccessToken(): Promise<string> {
-  const response = await fetch('/api/auth/document-ai-token');
+  // Get the current user's session token
+  const { data: { session } } = await supabase.auth.getSession();
+  const authToken = session?.access_token;
+  
+  if (!authToken) {
+    throw new Error('User not authenticated');
+  }
+  
+  // Call the Supabase Edge Function with the auth token
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-ai-token`,
+    {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+  
   if (!response.ok) {
-    throw new Error('Failed to get Document AI access token');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Failed to get Document AI access token: ${errorData.error || response.statusText}`);
   }
   const data = await response.json();
   if (!data.token) {

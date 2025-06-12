@@ -39,9 +39,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
 }) => {
   const [columns, setColumns] = useState<Column[]>([
     {
-      id: 'tripSerialNumber',
+      id: 'trip_serial_number',
       label: 'Trip ID',
-      accessor: (trip) => trip.tripSerialNumber,
+      accessor: (trip) => trip.trip_serial_number,
       sortable: true,
       width: '120px',
       description: 'Unique identifier for the trip (e.g., T0001)'
@@ -50,13 +50,13 @@ const TripsTable: React.FC<TripsTableProps> = ({
       id: 'vehicle',
       label: 'Vehicle',
       accessor: (trip, vehicles) => 
-        vehicles.find(v => v.id === trip.vehicleId)?.registrationNumber || 'Unknown',
+        vehicles.find(v => v.id === trip.vehicle_id)?.registration_number || 'Unknown',
       sortable: true,
       editable: true,
       type: 'select',
-      options: vehicles.map(v => ({
+      options: (vehicles || []).map(v => ({
         value: v.id,
-        label: v.registrationNumber
+        label: v.registration_number
       })),
       width: '150px',
       description: 'Vehicle registration number'
@@ -65,7 +65,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
       id: 'driver',
       label: 'Driver',
       accessor: (trip, vehicles, drivers) => 
-        drivers.find(d => d.id === trip.driverId)?.name || 'Unknown',
+        drivers.find(d => d.id === trip.driver_id)?.name || 'Unknown',
       sortable: true,
       editable: true,
       type: 'select',
@@ -77,9 +77,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
       description: 'Driver name'
     },
     {
-      id: 'startDate',
+      id: 'start_date',
       label: 'Start Date',
-      accessor: (trip) => format(new Date(trip.tripStartDate), 'dd/MM/yyyy'),
+      accessor: (trip) => format(new Date(trip.trip_start_date), 'dd/MM/yyyy'),
       sortable: true,
       editable: true,
       type: 'date',
@@ -87,9 +87,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
       description: 'Trip start date (DD/MM/YYYY)'
     },
     {
-      id: 'endDate',
+      id: 'end_date',
       label: 'End Date',
-      accessor: (trip) => format(new Date(trip.tripEndDate), 'dd/MM/yyyy'),
+      accessor: (trip) => format(new Date(trip.trip_end_date), 'dd/MM/yyyy'),
       sortable: true,
       editable: true,
       type: 'date',
@@ -97,9 +97,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
       description: 'Trip end date (DD/MM/YYYY)'
     },
     {
-      id: 'startKm',
+      id: 'start_km',
       label: 'Start KM',
-      accessor: (trip) => trip.startKm,
+      accessor: (trip) => trip.start_km,
       sortable: true,
       editable: true,
       type: 'number',
@@ -107,9 +107,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
       description: 'Starting odometer reading'
     },
     {
-      id: 'endKm',
+      id: 'end_km',
       label: 'End KM',
-      accessor: (trip) => trip.endKm,
+      accessor: (trip) => trip.end_km,
       sortable: true,
       editable: true,
       type: 'number',
@@ -119,7 +119,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
     {
       id: 'distance',
       label: 'Distance (km)',
-      accessor: (trip) => trip.endKm - trip.startKm,
+      accessor: (trip) => trip.end_km - trip.start_km,
       sortable: true,
       width: '120px',
       description: 'Total distance covered (calculated)'
@@ -127,7 +127,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
     {
       id: 'mileage',
       label: 'Mileage',
-      accessor: (trip) => trip.calculatedKmpl?.toFixed(2) || '-',
+      accessor: (trip) => trip.calculated_kmpl?.toFixed(2) || '-',
       sortable: true,
       width: '100px',
       description: 'Fuel efficiency in km/L (calculated)'
@@ -135,7 +135,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
     {
       id: 'expenses',
       label: 'Total Expenses',
-      accessor: (trip) => trip.totalRoadExpenses + (trip.totalFuelCost || 0),
+      accessor: (trip) => trip.total_road_expenses + (trip.total_fuel_cost || 0),
       sortable: true,
       width: '120px',
       description: 'Combined road and fuel expenses'
@@ -190,12 +190,12 @@ const TripsTable: React.FC<TripsTableProps> = ({
     return sortedTrips.filter(trip => {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        const vehicle = vehicles.find(v => v.id === trip.vehicleId);
-        const driver = drivers.find(d => d.id === trip.driverId);
+        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+        const driver = drivers.find(d => d.id === trip.driver_id);
         
         const searchFields = [
-          trip.tripSerialNumber,
-          vehicle?.registrationNumber,
+          trip.trip_serial_number,
+          vehicle?.registration_number,
           driver?.name,
           trip.station
         ].map(field => field?.toLowerCase());
@@ -205,18 +205,18 @@ const TripsTable: React.FC<TripsTableProps> = ({
         }
       }
 
-      if (filters.vehicle && trip.vehicleId !== filters.vehicle) {
+      if (filters.vehicle && trip.vehicle_id !== filters.vehicle) {
         return false;
       }
 
-      if (filters.driver && trip.driverId !== filters.driver) {
+      if (filters.driver && trip.driver_id !== filters.driver) {
         return false;
       }
 
-      if (filters.dateRange.start && new Date(trip.tripStartDate) < new Date(filters.dateRange.start)) {
+      if (filters.dateRange.start && new Date(trip.trip_start_date) < new Date(filters.dateRange.start)) {
         return false;
       }
-      if (filters.dateRange.end && new Date(trip.tripEndDate) > new Date(filters.dateRange.end)) {
+      if (filters.dateRange.end && new Date(trip.trip_end_date) > new Date(filters.dateRange.end)) {
         return false;
       }
 
@@ -241,22 +241,22 @@ const TripsTable: React.FC<TripsTableProps> = ({
     
     switch (columnId) {
       case 'vehicle':
-        updates.vehicleId = value;
+        updates.vehicle_id = value;
         break;
       case 'driver':
-        updates.driverId = value;
+        updates.driver_id = value;
         break;
-      case 'startDate':
-        updates.tripStartDate = value;
+      case 'start_date':
+        updates.trip_start_date = value;
         break;
-      case 'endDate':
-        updates.tripEndDate = value;
+      case 'end_date':
+        updates.trip_end_date = value;
         break;
-      case 'startKm':
-        updates.startKm = Number(value);
+      case 'start_km':
+        updates.start_km = Number(value);
         break;
-      case 'endKm':
-        updates.endKm = Number(value);
+      case 'end_km':
+        updates.end_km = Number(value);
         break;
     }
 
@@ -286,9 +286,9 @@ const TripsTable: React.FC<TripsTableProps> = ({
         <Select
           options={[
             { value: '', label: 'All Vehicles' },
-            ...vehicles.map(v => ({
+            ...(vehicles || []).map(v => ({
               value: v.id,
-              label: v.registrationNumber
+              label: v.registration_number
             }))
           ]}
           value={filters.vehicle}
@@ -349,6 +349,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
               onChange={handleFileImport}
               className="hidden"
               id="file-import"
+              aria-label="Import trips file"
             />
             <Button
               variant="outline"
@@ -405,7 +406,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
                       column.type === 'select' ? (
                         <Select
                           options={column.options || []}
-                          value={column.id === 'vehicle' ? trip.vehicleId : trip.driverId}
+                          value={column.id === 'vehicle' ? trip.vehicle_id : trip.driver_id}
                           onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
                           autoFocus
                         />

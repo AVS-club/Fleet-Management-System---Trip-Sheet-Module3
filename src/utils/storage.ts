@@ -28,7 +28,7 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
   if (!vehicle) throw new Error('Vehicle not found');
 
   // Extract last 4 digits from registration number
-  const regMatch = vehicle.registrationNumber.match(/\d{4}$/);
+  const regMatch = vehicle.registration_number.match(/\d{4}$/);
   if (!regMatch) throw new Error('Invalid vehicle registration format');
   
   const prefix = regMatch[0];
@@ -82,7 +82,7 @@ export const getTrip = async (id: string): Promise<Trip | null> => {
 };
 
 export const createTrip = async (trip: Omit<Trip, 'id' | 'trip_serial_number'>): Promise<Trip | null> => {
-  const tripId = await generateTripId(trip.vehicleId);
+  const tripId = await generateTripId(trip.vehicle_id);
   
   const { data, error } = await supabase
     .from('trips')
@@ -285,7 +285,7 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
 export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver | null> => {
   const { data, error } = await supabase
     .from('drivers')
-    .insert(driver)
+    .insert(convertKeysToSnakeCase(driver))
     .select()
     .single();
 
@@ -363,7 +363,7 @@ export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
 export const createWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise<Warehouse | null> => {
   const { data, error } = await supabase
     .from('warehouses')
-    .insert(warehouse)
+    .insert(convertKeysToSnakeCase(warehouse))
     .select()
     .single();
 
@@ -441,7 +441,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
 export const createDestination = async (destination: Omit<Destination, 'id'>): Promise<Destination | null> => {
   const { data, error } = await supabase
     .from('destinations')
-    .insert(destination)
+    .insert(convertKeysToSnakeCase(destination)) // Use convertKeysToSnakeCase
     .select()
     .single();
 
@@ -514,10 +514,10 @@ export const analyzeRoute = async (
   });
 
   return {
-    totalDistance,
-    standardDistance: totalDistance,
+    total_distance: totalDistance,
+    standard_distance: totalDistance,
     deviation: 0, // This will be calculated when actual distance is known
-    estimatedTime: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+    estimated_time: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
     waypoints: [
       { lat: warehouse.latitude, lng: warehouse.longitude },
       ...destinations.map(d => ({ lat: d.latitude, lng: d.longitude }))

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { getDrivers, getTrips, getVehicle, createDriver } from '../utils/storage';
+import { getDrivers, getTrips, createDriver } from '../utils/storage'; // Removed getVehicle as it's not used
 import { User, Truck, MapPin, PlusCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverForm from '../components/drivers/DriverForm';
+import { Driver, Trip } from '../types'; // Added import for Driver and Trip types
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,14 +38,27 @@ const DriversPage: React.FC = () => {
   const handleAddDriver = async (data: Omit<Driver, 'id'>) => {
     setIsSubmitting(true);
     try {
-      // Handle file uploads here in a real app
-      const newDriver = createDriver(data);
+      // Handle file uploads here in a real app (e.g., to Supabase Storage)
+      // For 'photo' and 'licenseDocument', if they are File objects,
+      // they would need to be uploaded and their URLs stored in the 'data' object
+      // before calling createDriver.
+      // This example assumes 'photo' and 'licenseDocument' in 'data' are already URLs or string paths.
+
+      const newDriver = await createDriver(data);
       if (newDriver) {
+        // Add the new driver to the local state for immediate UI update
+        setDrivers((prevDrivers: Driver[]) => [newDriver, ...prevDrivers]);
         setIsAddingDriver(false);
-        navigate(`/drivers/${newDriver.id}`);
+        // Optionally, show a success message
+        navigate(`/drivers/${newDriver.id}`); // Navigate to the new driver's detail page
+      } else {
+        // Handle case where driver creation failed (e.g., show an error message to the user)
+        console.error('Failed to create driver: createDriver returned null or undefined.');
+        // alert('Failed to add driver. Please try again.'); // Example user feedback
       }
     } catch (error) {
       console.error('Error adding driver:', error);
+      // alert(`An error occurred: ${error.message}`); // Example user feedback
     } finally {
       setIsSubmitting(false);
     }
@@ -98,11 +112,10 @@ const DriversPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {drivers.map(driver => {
+          {drivers.map((driver: Driver) => {
             const driverTrips = Array.isArray(trips) ? trips.filter(trip => trip.driver_id === driver.id) : [];
-            const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.endKm - trip.startKm), 0);
+            const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
             // Note: This would need to be async in a real app
-            const primaryVehicle = undefined; // We'll skip this for now as it would require async
 
             return (
               <div
@@ -113,7 +126,7 @@ const DriversPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{driver.name}</h3>
-                    <p className="text-sm text-gray-500">{driver.licenseNumber}</p>
+                    <p className="text-sm text-gray-500">{driver.license_number}</p>
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
                     driver.status === 'active'
@@ -160,7 +173,7 @@ const DriversPage: React.FC = () => {
                     <div className="text-center">
                       <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Vehicle</span>
-                      <p className="font-medium">{primaryVehicle?.registration_number || '-'}</p>
+                      <p className="font-medium">{'-'}</p>
                     </div>
                   </div>
                 </div>

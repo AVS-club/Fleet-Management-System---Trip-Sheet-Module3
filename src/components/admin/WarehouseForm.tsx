@@ -6,7 +6,7 @@ import Select from '../ui/Select';
 import Button from '../ui/Button';
 import { Loader } from '@googlemaps/js-api-loader';
 import { useState, useEffect, useRef } from 'react';
-import { getMaterialTypes } from '../../utils/materialTypes';
+import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Import MaterialType
 
 interface WarehouseFormData {
   name: string;
@@ -32,7 +32,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [isManualEntry, setIsManualEntry] = useState(!!initialData?.name);
-  const [materialTypes, setMaterialTypes] = useState(getMaterialTypes());
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]); // Initialize as empty array
   const placesRef = useRef<HTMLDivElement>(null);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<WarehouseFormData>({
@@ -61,6 +61,18 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     }).catch(err => {
       console.error('Error loading Google Maps:', err);
     });
+
+    // Fetch material types
+    const fetchMaterials = async () => {
+      try {
+        const types = await getMaterialTypes();
+        setMaterialTypes(Array.isArray(types) ? types : []);
+      } catch (error) {
+        console.error("Error fetching material types:", error);
+        setMaterialTypes([]);
+      }
+    };
+    fetchMaterials();
   }, []);
 
   // Handle search input changes
@@ -158,6 +170,9 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-50 rounded-lg p-6">
       <div ref={placesRef} className="hidden"></div>
       
+      {/* Always register pincode, but hide it if not in manual mode and Google search is active */}
+      <input type="hidden" {...register('pincode')} />
+
       {!isManualEntry ? (
         <div className="space-y-4">
           <div className="relative">

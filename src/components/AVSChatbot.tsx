@@ -61,7 +61,7 @@ const predefinedResponses: Record<string, string> = {
 
 const AVSChatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
-    { sender: 'bot', text: 'Hello! I am Bot.Ji. Please ask me about your vehicles.' }
+    { sender: 'bot', text: 'Hello! I am your Auto Vital Solution assistant. How can I help you with your fleet today?' }
   ]);
   const [input, setInput] = useState('');
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
@@ -197,10 +197,10 @@ const AVSChatbot: React.FC = () => {
         <div className="p-4 bg-primary-600 text-white flex items-center justify-between">
         <div className="flex items-center">
           <MessageSquare className="h-5 w-5 mr-2" />
-          <h3 className="font-medium">Bot.Ji</h3>
+          <h3 className="font-medium">AVS Assistant</h3>
         </div>
           <div className="flex items-center space-x-4">
-            <p className="text-xs opacity-75">Poora AVS data, ek sawaal par – Ji.</p>
+            <p className="text-xs opacity-75">Your fleet management assistant</p>
             <button
               onClick={() => setIsChatbotOpen(false)}
               className="text-white hover:text-gray-200"

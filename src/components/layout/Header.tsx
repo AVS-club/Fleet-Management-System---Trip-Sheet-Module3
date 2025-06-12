@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../../utils/supabaseClient';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/login');
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -49,11 +56,13 @@ const Header: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
-              <img
-                src="/assets/android-chrome-192x192.png"
-                alt="AutoVital Logo"
-                className="h-10 w-auto object-contain"
-              />
+              <div className="flex items-center">
+                <img
+                  src="/assets/logo.png"
+                  alt="Auto Vital Solution Logo"
+                  className="h-12 w-auto object-contain"
+                />
+              </div>
             </Link>
           </div>
 
@@ -72,6 +81,13 @@ const Header: React.FC = () => {
                 <span>{link.name}</span>
               </Link>
             ))}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
           </div>
 
           <button
@@ -107,6 +123,13 @@ const Header: React.FC = () => {
               <span>{link.name}</span>
             </Link>
           ))}
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors w-full"
+          >
+            <LogOut className="h-5 w-5" />
+            <span>Logout</span>
+          </button>
         </div>
       </div>
     </header>
