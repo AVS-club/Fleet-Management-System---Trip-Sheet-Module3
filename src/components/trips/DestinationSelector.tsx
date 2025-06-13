@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Destination, Warehouse } from '../../types';
 import { MapPin, Clock, TrendingUp, AlertTriangle, ArrowLeftRight, CheckCircle } from 'lucide-react';
-import { createDestination } from '../../utils/storage';
+import { createDestination, getDestination } from '../../utils/storage';
 import { Loader } from '@googlemaps/js-api-loader';
 import Button from '../ui/Button';
 import { checkRouteOptimization } from '../../utils/routeOptimizer';
@@ -37,6 +37,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [googlePredictions, setGooglePredictions] = useState<GooglePrediction[]>([]);
   const [routeWarning, setRouteWarning] = useState<string>();
+  const [selectedDestinationDetails, setSelectedDestinationDetails] = useState<Destination[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Ensure destinations is an array
@@ -129,6 +130,37 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
     }
   }, [selectedDestinations, warehouse, destinations]);
 
+  // Load destination details when selectedDestinations changes
+  useEffect(() => {
+    const loadDestinationDetails = async () => {
+      if (!Array.isArray(selectedDestinations) || selectedDestinations.length === 0) {
+        setSelectedDestinationDetails([]);
+        return;
+      }
+
+      const details = await Promise.all(
+        selectedDestinations.map(async (id) => {
+          // First try to find in the destinations array
+          const existingDest = destinationsArray.find(d => d.id === id);
+          if (existingDest) return existingDest;
+          
+          // If not found, fetch from storage
+          try {
+            const dest = await getDestination(id);
+            return dest;
+          } catch (error) {
+            console.error(`Error fetching destination ${id}:`, error);
+            return null;
+          }
+        })
+      );
+
+      setSelectedDestinationDetails(details.filter((d): d is Destination => d !== null));
+    };
+
+    loadDestinationDetails();
+  }, [selectedDestinations, destinationsArray]);
+
   // Focus input when dropdown opens
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
@@ -153,18 +185,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
     let newSelection: string[];
     
     if (Array.isArray(selectedDestinations) && selectedDestinations.includes(id)) {
-      // Remove the destination and its return journey if it exists
+      // Remove the destination
       newSelection = selectedDestinations.filter(d => d !== id);
-      const returnIndex = newSelection.indexOf(id);
-      if (returnIndex !== -1) {
-        newSelection.splice(returnIndex, 1);
-      }
     } else {
-      // Add the destination and its return journey if two-way is enabled
+      // Add the destination
       newSelection = [...(Array.isArray(selectedDestinations) ? selectedDestinations : []), id];
-      if (isTwoWay) {
-        newSelection.push(id); // Add the same destination again for return journey
-      }
     }
     
     onChange(newSelection);
@@ -229,18 +254,23 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
   const toggleTwoWay = () => {
     setIsTwoWay(!isTwoWay);
     if (!isTwoWay && Array.isArray(selectedDestinations)) {
-      // Add return destinations when enabling two-way
-      const withReturns = selectedDestinations.reduce((acc, id) => {
-        acc.push(id);
-        acc.push(id); // Add each destination twice
-        return acc;
-      }, [] as string[]);
+      // Add return journey (reverse the destinations)
+      const withReturns = [...selectedDestinations, ...selectedDestinations.slice(0).reverse()];
       onChange(withReturns);
     } else if (Array.isArray(selectedDestinations)) {
-      // Remove return destinations when disabling two-way
-      const withoutReturns = selectedDestinations.filter((_, index) => index % 2 === 0);
+      // Keep only the first half when disabling two-way
+      const withoutReturns = selectedDestinations.slice(0, Math.ceil(selectedDestinations.length / 2));
       onChange(withoutReturns);
     }
+  };
+
+  // Remove a destination at a specific index
+  const removeDestinationAtIndex = (index: number) => {
+    if (!Array.isArray(selectedDestinations)) return;
+    
+    const newSelection = [...selectedDestinations];
+    newSelection.splice(index, 1);
+    onChange(newSelection);
   };
 
   return (
@@ -250,15 +280,8 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           Destinations
           <span className="text-error-500 ml-1">*</span>
         </label>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={toggleTwoWay}
-          icon={<ArrowLeftRight className="h-4 w-4" />}
-        >
-          {isTwoWay ? 'Two-way Trip' : 'One-way Trip'}
-        </Button>
       </div>
+      <p className="text-xs text-gray-500 -mt-1">Select in the order of actual delivery route</p>
 
       <div className="relative" ref={dropdownRef}>
         <div
@@ -267,29 +290,27 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         >
           {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {selectedDestinations.map((id, index) => {
-                const dest = destinationsArray.find(d => d.id === id);
-                return dest ? (
-                  <span
-                    key={`${dest.id}-${index}`}
-                    className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-100 text-primary-700"
+              {selectedDestinationDetails.map((dest, index) => (
+                <span
+                  key={`${dest.id}-${index}`}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-100 text-primary-700"
+                >
+                  <div className="flex items-center justify-center bg-primary-200 text-primary-800 rounded-full w-4 h-4 mr-1 text-xs font-medium">
+                    {index + 1}
+                  </div>
+                  {dest.name}
+                  <button
+                    type="button"
+                    className="ml-1 hover:text-primary-900"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeDestinationAtIndex(index);
+                    }}
                   >
-                    <MapPin className="h-3 w-3 mr-1" />
-                    {dest.name}
-                    {isTwoWay && index % 2 === 1 && " (Return)"}
-                    <button
-                      type="button"
-                      className="ml-1 hover:text-primary-900"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleDestination(dest.id);
-                      }}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ) : null;
-              })}
+                    ×
+                  </button>
+                </span>
+              ))}
             </div>
           ) : (
             <div className="text-gray-500">Select destinations</div>

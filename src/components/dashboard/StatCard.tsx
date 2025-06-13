@@ -13,6 +13,7 @@ interface StatCardProps {
     isPositive?: boolean;
   };
   className?: string;
+  warning?: boolean;
 }
 
 const StatCard: React.FC<StatCardProps> = ({
@@ -22,9 +23,10 @@ const StatCard: React.FC<StatCardProps> = ({
   icon,
   trend,
   className,
+  warning = false,
 }) => {
   return (
-    <div className={twMerge(clsx("card p-5", className))}>
+    <div className={twMerge(clsx("card p-5", warning && "border-l-4 border-warning-500", className))}>
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-gray-500 text-sm font-medium">{title}</h3>

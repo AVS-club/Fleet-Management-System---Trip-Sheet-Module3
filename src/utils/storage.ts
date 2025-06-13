@@ -24,12 +24,23 @@ import { calculateMileage } from './mileageCalculator';
 
 // Generate Trip ID based on vehicle registration
 const generateTripId = async (vehicleId: string): Promise<string> => {
+  // Validate vehicleId
+  if (!vehicleId) {
+    throw new Error('Vehicle ID is required to generate a trip ID');
+  }
+
   const vehicle = await getVehicle(vehicleId);
-  if (!vehicle) throw new Error('Vehicle not found');
+  if (!vehicle) {
+    console.error(`Vehicle with ID ${vehicleId} not found`);
+    throw new Error(`Vehicle with ID ${vehicleId} not found`);
+  }
 
   // Extract last 4 digits from registration number
   const regMatch = vehicle.registration_number.match(/\d{4}$/);
-  if (!regMatch) throw new Error('Invalid vehicle registration format');
+  if (!regMatch) {
+    console.error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
+    throw new Error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
+  }
   
   const prefix = regMatch[0];
   
@@ -82,14 +93,23 @@ export const getTrip = async (id: string): Promise<Trip | null> => {
 };
 
 export const createTrip = async (trip: Omit<Trip, 'id' | 'trip_serial_number'>): Promise<Trip | null> => {
+  // Validate required fields
+  if (!trip.vehicle_id) {
+    console.error('Vehicle ID is missing for trip creation');
+    throw new Error('Vehicle ID is required to create a trip');
+  }
+
   const tripId = await generateTripId(trip.vehicle_id);
+  
+  // Ensure material_type_ids is properly handled
+  const tripData = {
+    ...trip,
+    trip_serial_number: tripId
+  };
   
   const { data, error } = await supabase
     .from('trips')
-    .insert({
-    trip_serial_number: tripId,
-    ...trip,
-    })
+    .insert(tripData)
     .select()
     .single();
 
@@ -361,9 +381,20 @@ export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
 };
 
 export const createWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise<Warehouse | null> => {
+  // Ensure material_type_ids is an array
+  const warehouseData = {
+    ...warehouse,
+    material_type_ids: warehouse.materialTypeIds || []
+  };
+  
+  // Delete the camelCase property as we're using the snake_case version
+  if ('materialTypeIds' in warehouseData) {
+    delete (warehouseData as any).materialTypeIds;
+  }
+
   const { data, error } = await supabase
     .from('warehouses')
-    .insert(convertKeysToSnakeCase(warehouse))
+    .insert(convertKeysToSnakeCase(warehouseData))
     .select()
     .single();
 
@@ -376,12 +407,21 @@ export const createWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise
 };
 
 export const updateWarehouse = async (id: string, updates: Partial<Warehouse>): Promise<Warehouse | null> => {
+  // Ensure material_type_ids is an array
+  const warehouseUpdates = {
+    ...updates,
+    material_type_ids: updates.materialTypeIds || updates.material_type_ids,
+    updated_at: new Date().toISOString()
+  };
+  
+  // Delete the camelCase property as we're using the snake_case version
+  if ('materialTypeIds' in warehouseUpdates) {
+    delete (warehouseUpdates as any).materialTypeIds;
+  }
+
   const { data, error } = await supabase
     .from('warehouses')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
+    .update(warehouseUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -439,9 +479,17 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
 };
 
 export const createDestination = async (destination: Omit<Destination, 'id'>): Promise<Destination | null> => {
+  // Prepare the data for insertion, removing empty id field if present
+  const destinationData = convertKeysToSnakeCase(destination);
+  
+  // Remove id field if it's empty or undefined to let Supabase auto-generate it
+  if ('id' in destinationData && (!destinationData.id || destinationData.id === '')) {
+    delete destinationData.id;
+  }
+
   const { data, error } = await supabase
     .from('destinations')
-    .insert(convertKeysToSnakeCase(destination)) // Use convertKeysToSnakeCase
+    .insert(destinationData)
     .select()
     .single();
 
@@ -505,7 +553,7 @@ export const analyzeRoute = async (
 
   destinations.forEach(dest => {
     totalDistance += dest.standardDistance;
-    const timeMatch = dest.estimatedTime.match(/(\d+)h\s*(?:(\d+)m)?/);
+    const timeMatch = dest.estimated_time.match(/(\d+)h\s*(?:(\d+)m)?/);
     if (timeMatch) {
       const hours = parseInt(timeMatch[1] || '0');
       const minutes = parseInt(timeMatch[2] || '0');

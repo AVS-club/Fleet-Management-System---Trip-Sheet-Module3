@@ -13,7 +13,7 @@ interface WarehouseFormData {
   pincode: string;
   latitude?: number;
   longitude?: number;
-  materialTypeIds?: string[];
+  materialType?: string;
 }
 
 interface WarehouseFormProps {
@@ -252,39 +252,19 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             
             <Controller
               control={control}
-              name="materialTypeIds"
+              name="materialType"
               render={({ field }) => (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Material Types
-                  </label>
-                  <div className="space-y-2 border rounded-md p-3">
-                    {materialTypes.length === 0 ? (
-                      <p className="text-sm text-gray-500">No material types available</p>
-                    ) : (
-                      materialTypes.map(type => (
-                        <div key={type.id} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id={`material-${type.id}`}
-                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                            checked={field.value?.includes(type.id) || false}
-                            onChange={(e) => {
-                              const currentValues = field.value || [];
-                              const newValues = e.target.checked
-                                ? [...currentValues, type.id]
-                                : currentValues.filter(id => id !== type.id);
-                              field.onChange(newValues);
-                            }}
-                          />
-                          <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
-                            {type.name}
-                          </label>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                <Select
+                  label="Material Type"
+                  options={[
+                    { value: '', label: 'Select Material Type' },
+                    ...materialTypes.map(type => ({
+                      value: type.id,
+                      label: type.name.charAt(0).toUpperCase() + type.name.slice(1)
+                    }))
+                  ]}
+                  {...field}
+                />
               )}
             />
           </div>

@@ -10,6 +10,7 @@ interface MaterialTypeManagerProps {
 }
 
 const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) => {
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTypeName, setNewTypeName] = useState('');
   const [editingType, setEditingType] = useState<{ id: string; name: string } | null>(null);
@@ -122,7 +123,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
           </div>
 
           <div className="border rounded-lg divide-y min-h-[200px]">
-            {Array.isArray(materialTypes) && materialTypes.length > 0 ? (
+            {materialTypes && Array.isArray(materialTypes) && materialTypes.length > 0 ? (
               materialTypes.map((type) => (
                 <div key={type.id} className="p-3 flex items-center justify-between">
                   {editingType?.id === type.id ? (

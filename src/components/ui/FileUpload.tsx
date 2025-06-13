@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Upload, File, X } from 'lucide-react';
+import { Upload, File, X, Paperclip } from 'lucide-react';
 
 export interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   label?: string;
@@ -10,6 +10,7 @@ export interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInpu
   icon?: React.ReactNode;
   value: File | null;
   onChange: (file: File | null) => void;
+  buttonMode?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -23,6 +24,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   disabled,
   required,
   className,
+  buttonMode = false,
   ...props
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -110,10 +112,12 @@ const FileUpload: React.FC<FileUploadProps> = ({
       <div
         className={twMerge(
           clsx(
-            'relative border-2 border-dashed rounded-lg p-4 transition-colors',
-            isDragging ? 'border-primary-500 bg-primary-50' : 'border-gray-300',
-            disabled && 'opacity-50 cursor-not-allowed',
-            error && 'border-error-500',
+            buttonMode 
+              ? "inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" 
+              : "relative border-2 border-dashed rounded-lg p-4 transition-colors",
+            !buttonMode && isDragging ? 'border-primary-500 bg-primary-50' : !buttonMode && 'border-gray-300',
+            disabled && 'opacity-50 cursor-not-allowed', 
+            !buttonMode && error && 'border-error-500',
             className
           )
         )}
@@ -124,14 +128,40 @@ const FileUpload: React.FC<FileUploadProps> = ({
         <input
           ref={fileInputRef}
           type="file"
-          className="hidden"
+          className={buttonMode ? "hidden" : "hidden"}
           onChange={handleFileSelect}
           accept={accept}
           disabled={disabled}
           {...props}
         />
 
-        {value ? (
+        {buttonMode && !value ? (
+          <div 
+            className="flex items-center cursor-pointer"
+            onClick={() => !disabled && fileInputRef.current?.click()}
+          >
+            <Paperclip className="h-4 w-4 mr-2" />
+            <span>{label || "Upload File"}</span>
+          </div>
+        ) : buttonMode && value ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
+              <File className="h-4 w-4 text-primary-600 mr-2" />
+              <span className="text-sm text-gray-700 truncate max-w-[150px]">{value.name}</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveFile();
+              }}
+              className="text-gray-400 hover:text-gray-600 ml-2"
+              disabled={disabled}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : value ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <File className="h-5 w-5 text-gray-400 mr-2" />

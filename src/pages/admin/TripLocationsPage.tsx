@@ -187,10 +187,14 @@ const TripLocationsPage: React.FC = () => {
                                   <h3 className="font-medium text-gray-900">{warehouse.name}</h3>
                                   <div className="flex items-center space-x-2">
                                     <p className="text-sm text-gray-500">{warehouse.pincode}</p>
-                                    {warehouse.material_type_id && (
-                                      <span className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs rounded-full">
-                                        {materialTypes.find(t => t.id === warehouse.material_type_id)?.name || 'Unknown'}
-                                      </span>
+                                    {warehouse.material_type_ids && warehouse.material_type_ids.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {warehouse.material_type_ids.map(typeId => (
+                                          <span key={typeId} className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs rounded-full">
+                                            {materialTypes.find(t => t.id === typeId)?.name || 'Unknown'}
+                                          </span>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 </div>

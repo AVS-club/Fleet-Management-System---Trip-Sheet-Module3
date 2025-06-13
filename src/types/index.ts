@@ -29,26 +29,69 @@ export interface InsuranceDetails {
 // Add Vehicle interface
 export interface Vehicle {
   id: string;
-  registration_number: string;
+  registration_number: string;  // Basic Information
   make: string;
   model: string;
   year: number;
-  type: 'truck' | 'tempo' | 'trailer';
-  fuel_type: 'diesel' | 'petrol' | 'cng';
+  type: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van';
+  fuel_type: 'diesel' | 'petrol' | 'cng' | 'ev';
   current_odometer: number;
   status: 'active' | 'maintenance' | 'inactive' | 'stood';
   chassis_number?: string;
   engine_number?: string;
   owner_name?: string;
-  rc_copy?: boolean;
-  insurance_document?: boolean;
+  tyre_size?: string;
+  number_of_tyres?: number;
+  registration_date?: string;
+  rc_expiry_date?: string;
+  rc_copy?: boolean | File;
+  
+  // Insurance Details
+  policy_number?: string;
+  insurer_name?: string;
+  insurance_start_date?: string;
   insurance_end_date?: string;
-  fitness_document?: boolean;
+  insurance_premium_amount?: number;
+  insurance_document?: boolean | File;
+  
+  // Fitness Certificate
+  fitness_certificate_number?: string;
+  fitness_issue_date?: string;
   fitness_expiry_date?: string;
-  permit_document?: boolean;
+  fitness_cost?: number;
+  fitness_document?: boolean | File;
+  
+  // Tax Details
+  tax_receipt_number?: string;
+  tax_amount?: number;
+  tax_period?: 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
+  tax_receipt_document?: boolean | File;
+  
+  // Permit Details
+  permit_number?: string;
+  issuing_state?: string;
+  permit_type?: 'national' | 'state' | 'contract' | 'tourist';
+  permit_issue_date?: string;
   permit_expiry_date?: string;
-  puc_document?: boolean;
+  permit_cost?: number;
+  permit_document?: boolean | File;
+  
+  // PUC Details
+  puc_certificate_number?: string;
+  puc_issue_date?: string;
   puc_expiry_date?: string;
+  puc_cost?: number;
+  puc_document?: boolean | File;
+  
+  // Other Documents
+  other_documents?: Array<{
+    name: string;
+    file?: File;
+    issue_date?: string;
+    expiry_date?: string;
+    cost?: number;
+  }>;
+  
   created_at?: string;
   updated_at?: string;
 }
@@ -129,17 +172,21 @@ export interface Trip {
   driver_expense: number;
   road_rto_expense: number;
   breakdown_expense: number;
+  miscellaneous_expense?: number;
   total_road_expenses: number;
   short_trip: boolean;
   remarks?: string;
   calculated_kmpl?: number;
   route_deviation?: number;
+  fuel_bill_url?: string;
+  material_type_ids?: string[];
   created_at: string;
   updated_at: string;
 }
 
 export interface TripFormData extends Omit<Trip, 'id' | 'created_at' | 'updated_at' | 'trip_serial_number'> {
   fuel_bill_file?: File;
+  is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;
 }

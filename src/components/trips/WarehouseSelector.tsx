@@ -6,6 +6,7 @@ import { getWarehouses } from '../../utils/storage';
 
 interface WarehouseSelectorProps {
   warehouses?: Warehouse[] | null;
+  frequentWarehouses?: Warehouse[] | null;
   selectedWarehouse?: string;
   onChange: (warehouseId: string) => void;
   error?: string;
@@ -13,11 +14,13 @@ interface WarehouseSelectorProps {
 
 const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
   warehouses,
+  frequentWarehouses,
   selectedWarehouse,
   onChange,
   error
 }) => {
   const [warehouseData, setWarehouseData] = useState<Warehouse[]>([]);
+  const [frequentWarehouseData, setFrequentWarehouseData] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +43,12 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
     };
 
     fetchWarehouses();
-  }, [warehouses]);
+    
+    // Set frequent warehouses if provided
+    if (Array.isArray(frequentWarehouses) && frequentWarehouses.length > 0) {
+      setFrequentWarehouseData(frequentWarehouses);
+    }
+  }, [warehouses, frequentWarehouses]);
 
   if (loading) {
     return (
@@ -61,6 +69,32 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
         <span className="text-error-500 ml-1">*</span>
       </label>
       
+      {/* Frequent warehouses as pills */}
+      {Array.isArray(frequentWarehouseData) && frequentWarehouseData.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {frequentWarehouseData.map((warehouse) => (
+            <button
+              key={`frequent-${warehouse.id}`}
+              type="button"
+              className={`flex items-center px-3 py-1.5 rounded-full text-sm transition-colors ${
+                selectedWarehouse === warehouse.id
+                  ? 'bg-primary-100 text-primary-700 border border-primary-300'
+                  : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
+              }`}
+              onClick={() => onChange(warehouse.id)}
+            >
+              <MapPin className={`h-3.5 w-3.5 mr-1 ${
+                selectedWarehouse === warehouse.id
+                  ? 'text-primary-500'
+                  : 'text-gray-500'
+              }`} />
+              {warehouse.name}
+            </button>
+          ))}
+        </div>
+      )}
+      
+      {/* All warehouses as grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {Array.isArray(warehouseData) && warehouseData.length > 0 ? warehouseData.map((warehouse) => (
           <button

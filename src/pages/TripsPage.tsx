@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import TripList from '../components/trips/TripList';
+import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
@@ -16,6 +17,7 @@ const TripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(true);
   
   // Load data
   useEffect(() => {
@@ -40,6 +42,14 @@ const TripsPage: React.FC = () => {
   
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
+    
+    // Validate vehicle_id is present
+    if (!data.vehicle_id) {
+      console.error("vehicle_id is missing at trip submission.");
+      toast.error("Vehicle selection is required");
+      setIsSubmitting(false);
+      return;
+    }
     
     // Extract destination IDs
     const destinationIds = data.destinations;
@@ -89,12 +99,27 @@ const TripsPage: React.FC = () => {
       title="Trip Management"
       subtitle="Log and track all vehicle trips"
       actions={
-        !isAddingTrip && (
+        !isAddingTrip ? (
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowDashboard(!showDashboard)}
+            >
+              {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
+            </Button>
+            <Button
+              onClick={() => setIsAddingTrip(true)}
+              icon={<PlusCircle className="h-4 w-4" />}
+            >
+              Add New Trip
+            </Button>
+          </div>
+        ) : (
           <Button
-            onClick={() => setIsAddingTrip(true)}
-            icon={<PlusCircle className="h-4 w-4" />}
+            variant="outline"
+            onClick={() => setIsAddingTrip(false)}
           >
-            Add New Trip
+            Cancel
           </Button>
         )
       }
@@ -121,12 +146,22 @@ const TripsPage: React.FC = () => {
           />
         </div>
       ) : (
-        <TripList 
-          trips={trips} 
-          vehicles={vehicles} 
-          drivers={drivers}
-          onSelectTrip={handleTripSelect}
-        />
+        <div className="space-y-6">
+          {showDashboard && (
+            <TripDashboard 
+              trips={trips}
+              vehicles={vehicles}
+              drivers={drivers}
+            />
+          )}
+          
+          <TripList 
+            trips={trips} 
+            vehicles={vehicles} 
+            drivers={drivers}
+            onSelectTrip={handleTripSelect}
+          />
+        </div>
       )}
     </Layout>
   );

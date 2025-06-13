@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
 import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, getTrips, createDestination, getVehicle } from '../../utils/storage';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
-import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle } from 'lucide-react';
+import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -15,13 +15,7 @@ import WarehouseSelector from './WarehouseSelector';
 import DestinationSelector from './DestinationSelector';
 import TripMap from '../maps/TripMap';
 import RouteAnalysisComponent from './RouteAnalysis';
-
-// Removed local TripFormData to use the one from ../../types
-// export interface TripFormData extends Omit<Trip, 'id' | 'createdAt' | 'updatedAt' | 'tripSerialNumber'> {
-//   fuel_bill_file?: File;
-//   alert_accepted?: boolean;
-//   alert_notes?: string;
-// }
+import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -38,12 +32,15 @@ const TripForm: React.FC<TripFormProps> = ({
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [frequentWarehouses, setFrequentWarehouses] = useState<Warehouse[]>([]);
   const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
   const [lastTripMileage, setLastTripMileage] = useState<number | undefined>();
   const [tripIdPreview, setTripIdPreview] = useState<string>('');
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | undefined>();
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
 
   const {
     register,
@@ -63,9 +60,11 @@ const TripForm: React.FC<TripFormProps> = ({
       driver_expense: 0,
       road_rto_expense: 0,
       breakdown_expense: 0,
+      miscellaneous_expense: 0,
       gross_weight: 0,
       warehouse_id: '',
       destinations: [],
+      material_type_ids: [],
       ...initialData
     }
   });
@@ -82,6 +81,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const driverExpense = watch('driver_expense') || 0;
   const roadRtoExpense = watch('road_rto_expense') || 0;
   const breakdownExpense = watch('breakdown_expense') || 0;
+  const miscellaneousExpense = watch('miscellaneous_expense') || 0;
   const warehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
 
@@ -99,16 +99,39 @@ const TripForm: React.FC<TripFormProps> = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
+        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData, tripsData] = await Promise.all([
           getVehicles(),
           getDrivers(),
           getWarehouses(),
-          getDestinations()
+          getDestinations(),
+          getMaterialTypes(),
+          getTrips()
         ]);
+        
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setDrivers(Array.isArray(driversData) ? driversData : []);
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
+        setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+        
+        // Calculate frequent warehouses
+        if (Array.isArray(tripsData) && Array.isArray(warehousesData)) {
+          const warehouseCounts = tripsData.reduce((acc, trip) => {
+            if (trip.warehouse_id) {
+              acc[trip.warehouse_id] = (acc[trip.warehouse_id] || 0) + 1;
+            }
+            return acc;
+          }, {} as Record<string, number>);
+          
+          // Sort warehouses by frequency and take top 5
+          const topWarehouses = Object.entries(warehouseCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([id]) => warehousesData.find(w => w.id === id))
+            .filter((w): w is Warehouse => w !== undefined);
+          
+          setFrequentWarehouses(topWarehouses);
+        }
       } catch (error) {
         console.error('Error fetching form data:', error);
       } finally {
@@ -138,22 +161,30 @@ const TripForm: React.FC<TripFormProps> = ({
             setSelectedVehicle(vehicle);
           }
 
-          // Get all trips for this vehicle
-          const tripsData = await getTrips();
-          const vehicleTrips = Array.isArray(tripsData) 
-            ? tripsData
-                .filter(trip => trip.vehicle_id === vehicleId)
-                .sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime())
-            : [];
+          // If this is a refueling trip, get the last trip's end_km
+          if (refuelingDone) {
+            // Get all trips for this vehicle
+            const tripsData = await getTrips();
+            const vehicleTrips = Array.isArray(tripsData) 
+              ? tripsData
+                  .filter(trip => trip.vehicle_id === vehicleId)
+                  .sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime())
+              : [];
 
-          // Get the most recent trip
-          const lastTrip = vehicleTrips[0];
-          if (lastTrip) {
-            setLastTripMileage(lastTrip.end_km);
-            setValue('start_km', lastTrip.end_km);
-          } else if (vehicle) {
-            setLastTripMileage(vehicle.current_odometer);
-            setValue('start_km', vehicle.current_odometer);
+            // Get the most recent trip
+            const lastTrip = vehicleTrips[0];
+            if (lastTrip) {
+              setLastTripMileage(lastTrip.end_km);
+              setValue('start_km', lastTrip.end_km);
+            } else if (vehicle) {
+              setLastTripMileage(vehicle.current_odometer);
+              setValue('start_km', vehicle.current_odometer);
+            }
+          }
+          
+          // Auto-fill driver if vehicle has a primary driver
+          if (vehicle && vehicle.primary_driver_id) {
+            setValue('driver_id', vehicle.primary_driver_id);
           }
         } catch (error) {
           console.error('Error fetching vehicle data:', error);
@@ -162,7 +193,7 @@ const TripForm: React.FC<TripFormProps> = ({
       
       fetchVehicleData();
     }
-  }, [vehicleId, vehicles, setValue]);
+  }, [vehicleId, vehicles, refuelingDone, setValue]);
 
   useEffect(() => {
     if (tripStartDate && tripEndDate) {
@@ -172,9 +203,9 @@ const TripForm: React.FC<TripFormProps> = ({
   }, [tripStartDate, tripEndDate, setValue]);
 
   useEffect(() => {
-    const total = unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense;
+    const total = unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense + miscellaneousExpense;
     setValue('total_road_expenses', total);
-  }, [unloadingExpense, driverExpense, roadRtoExpense, breakdownExpense, setValue]);
+  }, [unloadingExpense, driverExpense, roadRtoExpense, breakdownExpense, miscellaneousExpense, setValue]);
 
   useEffect(() => {
     if (fuelQuantity && fuelCost) {
@@ -199,7 +230,7 @@ const TripForm: React.FC<TripFormProps> = ({
         setRouteAnalysis(updatedAnalysis);
 
         // Generate alerts based on current trip data
-        const tripData: Trip = { // Added Trip type and missing fields
+        const tripData: Trip = {
           id: nanoid(),
           vehicle_id: vehicleId,
           driver_id: watch('driver_id'),
@@ -208,12 +239,11 @@ const TripForm: React.FC<TripFormProps> = ({
           trip_start_date: watch('trip_start_date'),
           trip_end_date: watch('trip_end_date'),
           trip_duration: watch('trip_duration') || 0,
-          trip_serial_number: '', // This will be generated on submit, pass empty for analysis
+          trip_serial_number: '', // This will be generated on submit
           manual_trip_id: watch('manual_trip_id') || false,
           start_km: startKm,
           end_km: endKm,
           gross_weight: watch('gross_weight') || 0,
-          // station: watch('station'), // Assuming station is optional or not used here
           refueling_done: watch('refueling_done'),
           fuel_quantity: watch('fuel_quantity'),
           fuel_cost: watch('fuel_cost'),
@@ -226,9 +256,9 @@ const TripForm: React.FC<TripFormProps> = ({
           short_trip: watch('short_trip') || false,
           remarks: watch('remarks'),
           calculated_kmpl: watch('calculated_kmpl'),
-          // route_deviation: watch('route_deviation'), // This is part of analysis result
-          created_at: new Date().toISOString(), // Add dummy created_at
-          updated_at: new Date().toISOString(), // Add dummy updated_at
+          material_type_ids: watch('material_type_ids'),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         };
 
         // Fetch trips for alert generation
@@ -276,13 +306,13 @@ const TripForm: React.FC<TripFormProps> = ({
   };
 
   // Handle adding and selecting a new destination from Google Maps
-  const handleAddAndSelectDestination = async (destination: Destination) => { // Made async
+  const handleAddAndSelectDestination = async (destination: Destination) => {
     // First, save the destination to storage
-    const savedDestination = await createDestination(destination); // Added await
+    const savedDestination = await createDestination(destination);
     
-    if (savedDestination) { // Check if destination was saved
+    if (savedDestination) {
       // Update the list of all destinations
-      const updatedDestinations = await getDestinations(); // Added await
+      const updatedDestinations = await getDestinations();
       setAllDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : []);
       
       // Add the new destination to the selected destinations
@@ -290,7 +320,16 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('destinations', [...currentSelected, savedDestination.id]);
     } else {
       console.error("Failed to save the new destination.");
-      // Optionally, show an error to the user
+    }
+  };
+
+  const handleReturnTripToggle = (checked: boolean) => {
+    setIsReturnTrip(checked);
+    if (checked && Array.isArray(selectedDestinations) && selectedDestinations.length > 0) {
+      // Create a return trip by adding the destinations in reverse order
+      // Skip the first destination (origin) to avoid duplication
+      const returnDestinations = [...selectedDestinations, ...selectedDestinations.slice(0, -1).reverse()];
+      setValue('destinations', returnDestinations);
     }
   };
 
@@ -300,6 +339,30 @@ const TripForm: React.FC<TripFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Trip Type Toggles */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold text-gray-900">New Trip Details</h2>
+        <div className="flex space-x-4">
+          <Controller
+            control={control}
+            name="refueling_done"
+            render={({ field: { value, onChange, ...field } }) => (
+              <Checkbox
+                label="Refueling Trip"
+                checked={value}
+                onChange={e => onChange(e.target.checked)}
+                {...field}
+              />
+            )}
+          />
+          <Checkbox
+            label="Return Trip to Origin"
+            checked={isReturnTrip}
+            onChange={e => handleReturnTripToggle(e.target.checked)}
+          />
+        </div>
+      </div>
+
       {/* Smart Suggestions */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <h3 className="text-blue-800 text-sm font-medium flex items-center mb-2">
@@ -323,8 +386,87 @@ const TripForm: React.FC<TripFormProps> = ({
         </p>
       </div>
 
+      {/* Basic Info */}
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <Truck className="h-5 w-5 mr-2 text-primary-500" />
+          Basic Information
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <Controller
+            control={control}
+            name="vehicle_id"
+            rules={{ required: 'Vehicle is required' }}
+            render={({ field }) => (
+              <Select
+                label="Vehicle"
+                options={[
+                  { value: '', label: 'Select Vehicle*' },
+                  ...vehicles.map(vehicle => ({
+                    value: vehicle.id,
+                    label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+                  }))
+                ]}
+                error={errors.vehicle_id?.message}
+                required
+                {...field}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="driver_id"
+            rules={{ required: 'Driver is required' }}
+            render={({ field }) => (
+              <Select
+                key={field.value} // Add key to force re-render on value change
+                label="Driver"
+                options={[
+                  { value: '', label: 'Select Driver*' },
+                  ...drivers.map(driver => ({
+                    value: driver.id,
+                    label: driver.name
+                  }))
+                ]}
+                error={errors.driver_id?.message}
+                required
+                {...field}
+              />
+            )}
+          />
+        </div>
+
+        {/* Trip Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Trip Start Date"
+            type="date"
+            icon={<Calendar className="h-4 w-4" />}
+            error={errors.trip_start_date?.message}
+            required
+            {...register('trip_start_date', { required: 'Trip start date is required' })}
+          />
+
+          <Input
+            label="Trip End Date"
+            type="date"
+            icon={<Calendar className="h-4 w-4" />}
+            error={errors.trip_end_date?.message}
+            required
+            {...register('trip_end_date', { required: 'Trip end date is required' })}
+          />
+        </div>
+      </div>
+
       {/* Warehouse and Destination Selection */}
-      <div className="space-y-6">
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <MapPin className="h-5 w-5 mr-2 text-primary-500" />
+          Origin & Destinations
+        </h3>
+
         <Controller
           control={control}
           name="warehouse_id"
@@ -332,6 +474,7 @@ const TripForm: React.FC<TripFormProps> = ({
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <WarehouseSelector
               warehouses={warehouses}
+              frequentWarehouses={frequentWarehouses}
               selectedWarehouse={value}
               onChange={onChange}
               error={error?.message}
@@ -380,197 +523,107 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </div>
 
-      {/* Basic Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <Controller
-          control={control}
-          name="vehicle_id"
-          rules={{ required: 'Vehicle is required' }}
-          render={({ field }) => (
-            <Select
-              label="Vehicle"
-              options={[
-                { value: '', label: 'Select Vehicle*' },
-                ...vehicles.map(vehicle => ({
-                  value: vehicle.id,
-                  label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-                }))
-              ]}
-              error={errors.vehicle_id?.message}
-              required
-              {...field}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="driver_id"
-          rules={{ required: 'Driver is required' }}
-          render={({ field }) => (
-            <Select
-              key={field.value} // Add key to force re-render on value change
-              label="Driver"
-              options={[
-                { value: '', label: 'Select Driver*' },
-                ...drivers.map(driver => ({
-                  value: driver.id,
-                  label: driver.name
-                }))
-              ]}
-              error={errors.driver_id?.message}
-              required
-              {...field}
-            />
-          )}
-        />
-      </div>
-
-      {/* Trip Dates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Trip Start Date"
-          type="date"
-          icon={<Calendar className="h-4 w-4" />}
-          error={errors.trip_start_date?.message}
-          required
-          {...register('trip_start_date', { required: 'Trip start date is required' })}
-        />
-
-        <Input
-          label="Trip End Date"
-          type="date"
-          icon={<Calendar className="h-4 w-4" />}
-          error={errors.trip_end_date?.message}
-          required
-          {...register('trip_end_date', { required: 'Trip end date is required' })}
-        />
-      </div>
-
-      {/* Trip Details */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input
-          label="Start KM"
-          type="number"
-          error={errors.start_km?.message}
-          required
-          {...register('start_km', {
-            required: 'Start KM is required',
-            valueAsNumber: true,
-            min: {
-              value: 0,
-              message: 'Start KM must be a positive number'
-            }
-          })}
-        />
-
-        <Input
-          label="End KM"
-          type="number"
-          error={errors.end_km?.message}
-          required
-          {...register('end_km', {
-            required: 'End KM is required',
-            valueAsNumber: true,
-            validate: validateEndKm,
-            min: {
-              value: 0,
-              message: 'End KM must be a positive number'
-            }
-          })}
-        />
-
-        <Input
-          label="Gross Weight (Kgs)"
-          type="number"
-          icon={<Weight className="h-4 w-4" />}
-          error={errors.gross_weight?.message}
-          required
-          {...register('gross_weight', {
-            required: 'Gross weight is required',
-            valueAsNumber: true,
-            min: {
-              value: 0,
-              message: 'Gross weight must be a positive number'
-            }
-          })}
-        />
-      </div>
-
-      {/* Expenses Section */}
-      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+      {/* Material Types Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <IndianRupee className="h-5 w-5 mr-2" />
-          Trip Expenses
+          <Package className="h-5 w-5 mr-2 text-primary-500" />
+          Material Carried
+        </h3>
+        <p className="text-sm text-gray-500">Select the types of materials being transported</p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+          {materialTypes.length === 0 ? (
+            <p className="text-sm text-gray-500 col-span-full">No material types available</p>
+          ) : (
+            materialTypes.map(type => (
+              <div key={type.id} className="flex items-center">
+                <Controller
+                  control={control}
+                  name="material_type_ids"
+                  render={({ field }) => (
+                    <input
+                      type="checkbox"
+                      id={`material-${type.id}`}
+                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      checked={field.value?.includes(type.id) || false}
+                      onChange={(e) => {
+                        const currentValues = field.value || [];
+                        const newValues = e.target.checked
+                          ? [...currentValues, type.id]
+                          : currentValues.filter(id => id !== type.id);
+                        field.onChange(newValues);
+                      }}
+                    />
+                  )}
+                />
+                <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
+                  {type.name}
+                </label>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Odometer & Fuel Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <Truck className="h-5 w-5 mr-2 text-primary-500" />
+          Odometer & Weight
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
-            label="Unloading Expense (₹)"
+            label="Start KM"
             type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('unloading_expense', {
+            error={errors.start_km?.message}
+            required
+            {...register('start_km', {
+              required: 'Start KM is required',
               valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
+              min: {
+                value: 0,
+                message: 'Start KM must be a positive number'
+              }
             })}
           />
 
           <Input
-            label="Driver Expense (₹)"
+            label="End KM"
             type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('driver_expense', {
+            error={errors.end_km?.message}
+            required
+            {...register('end_km', {
+              required: 'End KM is required',
               valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
+              validate: validateEndKm,
+              min: {
+                value: 0,
+                message: 'End KM must be a positive number'
+              }
             })}
           />
 
           <Input
-            label="Road/RTO Expense (₹)"
+            label="Gross Weight (Kgs)"
             type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('road_rto_expense', {
+            icon={<Weight className="h-4 w-4" />}
+            error={errors.gross_weight?.message}
+            required
+            {...register('gross_weight', {
+              required: 'Gross weight is required',
               valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
-            })}
-          />
-
-          <Input
-            label="Breakdown Expense (₹)"
-            type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('breakdown_expense', {
-              valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
+              min: {
+                value: 0,
+                message: 'Gross weight must be a positive number'
+              }
             })}
           />
         </div>
-
-        <div className="bg-primary-50 p-3 rounded-md">
-          <p className="text-primary-700 font-medium">
-            Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense).toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      {/* Fuel Section */}
-      <div className="space-y-4">
-        <Controller
-          control={control}
-          name="refueling_done"
-          render={({ field: { value, onChange, ...field } }) => (
-            <Checkbox
-              label="Refueling Done"
-              checked={value}
-              onChange={e => onChange(e.target.checked)}
-              // icon prop removed
-              {...field}
-            />
-          )}
-        />
 
         {refuelingDone && (
           <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <h4 className="font-medium text-gray-900">Fuel Details</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Fuel Quantity (Litres)"
@@ -612,22 +665,105 @@ const TripForm: React.FC<TripFormProps> = ({
                 </p>
               </div>
             )}
-
-            <Controller
-              control={control}
-              name="fuel_bill_file"
-              render={({ field: { value, onChange, ...field } }) => (
-                <FileUpload
-                  label="Fuel Bill"
-                  value={value as File | null}
-                  onChange={onChange}
-                  accept=".jpg,.jpeg,.png,.pdf"
-                  {...field}
-                />
-              )}
-            />
           </div>
         )}
+      </div>
+
+      {/* Expenses Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
+          Trip Expenses
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Input
+            label="Unloading Expense (₹)"
+            type="number"
+            icon={<IndianRupee className="h-4 w-4" />}
+            {...register('unloading_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Driver Expense (₹)"
+            type="number"
+            icon={<IndianRupee className="h-4 w-4" />}
+            {...register('driver_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Road/RTO Expense (₹)"
+            type="number"
+            icon={<IndianRupee className="h-4 w-4" />}
+            {...register('road_rto_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Breakdown Expense (₹)"
+            type="number"
+            icon={<IndianRupee className="h-4 w-4" />}
+            {...register('breakdown_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Miscellaneous Expense (₹)"
+            type="number"
+            icon={<IndianRupee className="h-4 w-4" />}
+            {...register('miscellaneous_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+        </div>
+
+        <div className="bg-primary-50 p-3 rounded-md">
+          <p className="text-primary-700 font-medium">
+            Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense + miscellaneousExpense).toLocaleString()}
+          </p>
+        </div>
+      </div>
+
+      {/* Trip Slip Upload */}
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <FileText className="h-5 w-5 mr-2 text-primary-500" />
+          Trip Slip & Notes
+        </h3>
+
+        <Controller
+          control={control}
+          name="fuel_bill_file"
+          render={({ field: { value, onChange, ...field } }) => (
+            <FileUpload
+              label="Trip Slip / Fuel Bill"
+              value={value as File | null}
+              onChange={onChange}
+              accept=".jpg,.jpeg,.png,.pdf"
+              helperText="Upload trip slip or fuel bill (JPG, PNG, PDF)"
+              {...field}
+            />
+          )}
+        />
+
+        <Input
+          label="Remarks/Notes"
+          placeholder="Enter any additional information about this trip"
+          icon={<FileText className="h-4 w-4" />}
+          error={errors.remarks?.message}
+          {...register('remarks')}
+        />
       </div>
 
       <Controller
@@ -638,18 +774,9 @@ const TripForm: React.FC<TripFormProps> = ({
             label="Short/Local Trip (exclude from mileage)"
             checked={value}
             onChange={e => onChange(e.target.checked)}
-            // icon prop removed
             {...field}
           />
         )}
-      />
-
-      <Input
-        label="Remarks/Notes"
-        placeholder="Enter any additional information about this trip"
-        icon={<FileText className="h-4 w-4" />}
-        error={errors.remarks?.message}
-        {...register('remarks')}
       />
 
       <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
