@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingScreen from './components/LoadingScreen';
+import { ThemeProvider } from './utils/themeContext';
 
 const rootElement = document.getElementById('root')!;
 const root = createRoot(rootElement);
@@ -11,7 +12,9 @@ const root = createRoot(rootElement);
 // Show loading screen first
 root.render(
   <StrictMode>
-    <LoadingScreen isLoading={true} />
+    <ThemeProvider>
+      <LoadingScreen isLoading={true} />
+    </ThemeProvider>
   </StrictMode>
 );
 
@@ -19,10 +22,12 @@ root.render(
 setTimeout(() => {
   root.render(
     <StrictMode>
-      <ErrorBoundary>
-        <LoadingScreen isLoading={false} />
-        <App />
-      </ErrorBoundary>
+      <ThemeProvider>
+        <ErrorBoundary>
+          <LoadingScreen isLoading={false} />
+          <App />
+        </ErrorBoundary>
+      </ThemeProvider>
     </StrictMode>
   );
 }, 1500); // Show loader for 1.5 seconds

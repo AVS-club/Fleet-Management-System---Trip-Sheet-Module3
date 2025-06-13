@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
-import { Input } from '../ui/Input';
-import { Button } from '../ui/Button';
+import Input from '../ui/Input';
+import Button from '../ui/Button';
+import { Mail, Lock } from 'lucide-react';
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
@@ -31,28 +32,32 @@ const LoginForm: React.FC = () => {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <p className="text-error-500 dark:text-error-400 text-sm bg-error-50 dark:bg-error-900/30 p-3 rounded-md">{error}</p>}
       <div>
-        <label htmlFor="email">Email</label>
         <Input
           id="email"
           type="email"
+          label="Email"
+          icon={<Mail className="h-4 w-4" />}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
+          placeholder="Enter your email"
         />
       </div>
       <div>
-        <label htmlFor="password">Password</label>
         <Input
           id="password"
           type="password"
+          label="Password"
+          icon={<Lock className="h-4 w-4" />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          placeholder="Enter your password"
         />
       </div>
-      <Button type="submit" disabled={loading}>
+      <Button type="submit" disabled={loading} fullWidth isLoading={loading}>
         {loading ? 'Logging in...' : 'Login'}
       </Button>
     </form>

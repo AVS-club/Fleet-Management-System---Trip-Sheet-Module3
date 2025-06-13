@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
 import { format, parseISO, isValid, subMonths } from 'date-fns';
+import Button from '../../ui/Button';
+import { ChevronRight } from 'lucide-react';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -9,29 +11,35 @@ interface FuelConsumedByVehicleChartProps {
 }
 
 const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({ trips, vehicles }) => {
+  const [showAllVehicles, setShowAllVehicles] = useState(false);
+
   // Calculate fuel consumption by vehicle for the last 12 months
   const chartData = useMemo(() => {
     if (!Array.isArray(trips) || !Array.isArray(vehicles)) return [];
 
     // Get date 12 months ago
     const twelveMonthsAgo = subMonths(new Date(), 12);
+    const threeMonthsAgo = subMonths(new Date(), 3);
 
     // Calculate fuel consumption for each vehicle
-    const vehicleFuelMap: Record<string, { vehicleId: string, fuelLiters: number }> = {};
+    const vehicleFuelMap: Record<string, { vehicleId: string, fuelLiters: number, totalDistance: number }> = {};
 
     trips.forEach(trip => {
       if (trip.refueling_done && trip.fuel_quantity && trip.vehicle_id) {
         const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
+        const dateToCompare = showAllVehicles ? twelveMonthsAgo : threeMonthsAgo;
         
-        if (tripDate && isValid(tripDate) && tripDate >= twelveMonthsAgo) {
+        if (tripDate && isValid(tripDate) && tripDate >= dateToCompare) {
           if (!vehicleFuelMap[trip.vehicle_id]) {
             vehicleFuelMap[trip.vehicle_id] = {
               vehicleId: trip.vehicle_id,
-              fuelLiters: 0
+              fuelLiters: 0,
+              totalDistance: 0
             };
           }
           
           vehicleFuelMap[trip.vehicle_id].fuelLiters += trip.fuel_quantity;
+          vehicleFuelMap[trip.vehicle_id].totalDistance += (trip.end_km - trip.start_km);
         }
       }
     });
@@ -44,29 +52,29 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
         return {
           vehicleId: item.vehicleId,
           vehicleNumber: vehicle?.registration_number || 'Unknown',
-          fuelLiters: Math.round(item.fuelLiters)
+          fuelLiters: Math.round(item.fuelLiters),
+          totalDistance: Math.round(item.totalDistance)
         };
       });
 
-    return sortedData;
-  }, [trips, vehicles]);
-
-  // Generate color scale from light to dark green
-  const getBarColor = (index: number) => {
-    const baseColors = [
-      '#81C784', // Light green
-      '#66BB6A',
-      '#4CAF50',
-      '#43A047',
-      '#388E3C',
-      '#2E7D32', // Dark green
-    ];
-    
-    return baseColors[index % baseColors.length];
-  };
+    // Limit to top 5 vehicles if not showing all
+    return showAllVehicles ? sortedData : sortedData.slice(0, 5);
+  }, [trips, vehicles, showAllVehicles]);
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-base font-medium text-gray-700">Fuel Consumption by Vehicle</h3>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowAllVehicles(!showAllVehicles)}
+          icon={<ChevronRight className="h-4 w-4" />}
+        >
+          {showAllVehicles ? 'Show Top 5 Vehicles' : 'Show All Vehicles'}
+        </Button>
+      </div>
+      
       <div className="h-80 overflow-y-auto">
         <div className="min-h-[400px] h-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -97,7 +105,12 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
                 width={60}
               />
               <Tooltip
-                formatter={(value: number) => [`${value} L`, 'Fuel Consumed']}
+                formatter={(value: number, name: string, props: any) => {
+                  if (name === 'Fuel Consumed') {
+                    return [`${value} L`, name];
+                  }
+                  return [value, name];
+                }}
                 labelStyle={{ fontWeight: 'bold' }}
                 contentStyle={{ 
                   backgroundColor: 'white', 
@@ -112,21 +125,23 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
                 label={{ 
                   position: 'right', 
                   formatter: (value: number) => `${value} L`,
-                  fontSize: 11
+                  fontSize: 11,
+                  fill: '#4B5563'
                 }}
                 barSize={20}
-              >
-                {chartData.map((entry, index) => (
-                  <rect 
-                    key={`bar-${index}`} 
-                    fill={getBarColor(index)} 
-                  />
-                ))}
-              </Bar>
+                fill="#0277BD"
+                radius={[0, 4, 4, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
+      
+      {chartData.length === 0 && (
+        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+          No fuel consumption data available for the selected period
+        </div>
+      )}
     </div>
   );
 };

@@ -44,10 +44,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label 
             htmlFor={selectId} 
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             {label}
-            {required && <span className="text-error-500 ml-1">*</span>}
+            {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
           </label>
         )}
         
@@ -57,8 +57,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             className={twMerge(
               clsx(
-                "block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200 focus:ring-opacity-50 transition-colors duration-200 appearance-none pr-8",
-                error && "border-error-500 focus:ring-error-200 focus:border-error-500",
+                "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 appearance-none pr-8 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+                error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
                 sizeClasses[size],
                 className
               )
@@ -75,7 +75,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
             <ChevronDown className="h-4 w-4" />
           </div>
         </div>
@@ -83,7 +83,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {(helperText || error) && (
           <p className={clsx(
             "mt-1 text-sm",
-            error ? "text-error-500" : "text-gray-500"
+            error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>
             {error || helperText}
           </p>

@@ -34,8 +34,8 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             ref={ref}
             className={twMerge(
               clsx(
-                "h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded transition-colors",
-                error && "border-error-500 focus:ring-error-200",
+                "h-4 w-4 text-primary-600 dark:text-primary-500 focus:ring-primary-500 dark:focus:ring-primary-400 border-gray-300 dark:border-gray-600 rounded transition-colors",
+                error && "border-error-500 dark:border-error-400 focus:ring-error-200 dark:focus:ring-error-800",
                 className
               )
             )}
@@ -46,7 +46,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             <label 
               htmlFor={checkboxId} 
               className={clsx(
-                "text-sm font-medium text-gray-700",
+                "text-sm font-medium text-gray-700 dark:text-gray-300",
                 labelPlacement === 'start' ? 'mr-2' : 'ml-2'
               )}
             >
@@ -58,7 +58,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         {(helperText || error) && (
           <p className={clsx(
             "mt-1 text-sm ml-6",
-            error ? "form-error" : "text-gray-500"
+            error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>
             {error || helperText}
           </p>

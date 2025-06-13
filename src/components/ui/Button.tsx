@@ -24,11 +24,11 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const variants = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm',
-    secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white shadow-sm',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
-    ghost: 'bg-transparent hover:bg-gray-100 text-gray-700',
-    danger: 'bg-error-500 hover:bg-error-600 text-white shadow-sm',
+    primary: 'bg-primary-600 hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 text-white shadow-sm',
+    secondary: 'bg-secondary-600 hover:bg-secondary-700 dark:bg-secondary-700 dark:hover:bg-secondary-600 text-white shadow-sm',
+    outline: 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700',
+    ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200',
+    danger: 'bg-error-500 hover:bg-error-600 dark:bg-error-600 dark:hover:bg-error-500 text-white shadow-sm',
   };
 
   const sizes = {
@@ -39,7 +39,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   const buttonClasses = twMerge(
     clsx(
-      'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-60 disabled:pointer-events-none',
+      'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900 disabled:opacity-60 disabled:pointer-events-none',
       variants[variant],
       sizes[size],
       fullWidth ? 'w-full' : '',

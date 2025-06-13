@@ -5,6 +5,7 @@ import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip } from '../utils/storage';
+import { toast } from 'react-toastify';
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,10 +38,12 @@ const TripDetailsPage: React.FC = () => {
             setDriver(driverData || undefined);
           } else {
             // Trip not found, redirect back to trips page
+            toast.error('Trip not found');
             navigate('/trips');
           }
         } catch (error) {
           console.error('Error loading trip details:', error);
+          toast.error('Failed to load trip details');
         } finally {
           setLoading(false);
         }
@@ -62,9 +65,11 @@ const TripDetailsPage: React.FC = () => {
     if (trip && window.confirm('Are you sure you want to delete this trip?')) {
       try {
         deleteTrip(trip.id);
+        toast.success('Trip deleted successfully');
         navigate('/trips');
       } catch (error) {
         console.error('Error deleting trip:', error);
+        toast.error('Failed to delete trip');
       }
     }
   };
@@ -98,6 +103,7 @@ const TripDetailsPage: React.FC = () => {
       
       if (updatedTrip) {
         setTrip(updatedTrip);
+        toast.success('Trip updated successfully');
         
         // Update related vehicle and driver if they changed
         if (updatedTrip.vehicle_id !== trip.vehicle_id) {
@@ -109,11 +115,14 @@ const TripDetailsPage: React.FC = () => {
           const updatedDriver = await getDriver(updatedTrip.driver_id);
           setDriver(updatedDriver);
         }
+      } else {
+        toast.error('Failed to update trip');
       }
       
       setIsEditing(false);
     } catch (error) {
       console.error('Error updating trip:', error);
+      toast.error('Error updating trip');
     } finally {
       setIsSubmitting(false);
     }
@@ -123,7 +132,7 @@ const TripDetailsPage: React.FC = () => {
     return (
       <Layout title="Loading...">
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       </Layout>
     );
@@ -133,7 +142,7 @@ const TripDetailsPage: React.FC = () => {
     return (
       <Layout title="Trip Not Found">
         <div className="text-center py-12">
-          <p className="text-gray-500">The requested trip could not be found.</p>
+          <p className="text-gray-500 dark:text-gray-400">The requested trip could not be found.</p>
           <Button
             variant="outline"
             className="mt-4"
@@ -152,11 +161,11 @@ const TripDetailsPage: React.FC = () => {
       subtitle={`Created on ${new Date(trip.created_at).toLocaleDateString()}`}
     >
       {isEditing ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Trip</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Trip</h2>
             <button
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               onClick={() => setIsEditing(false)}
             >
               Cancel
@@ -182,8 +191,11 @@ const TripDetailsPage: React.FC = () => {
               driver_expense: trip.driver_expense,
               road_rto_expense: trip.road_rto_expense,
               breakdown_expense: trip.breakdown_expense,
+              miscellaneous_expense: trip.miscellaneous_expense,
               short_trip: trip.short_trip,
               remarks: trip.remarks,
+              material_type_ids: trip.material_type_ids,
+              is_return_trip: trip.is_return_trip,
               trip_serial_number: trip.trip_serial_number // Pass the original serial number
             }}
             onSubmit={handleUpdate}

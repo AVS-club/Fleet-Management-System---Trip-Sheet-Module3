@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import ThemeToggle from '../ui/ThemeToggle';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,7 +50,7 @@ const Header: React.FC = () => {
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
-        scrolled ? 'bg-white shadow-md' : 'bg-transparent'
+        scrolled ? 'bg-white dark:bg-gray-900 shadow-md' : 'bg-transparent'
       }`}
     >
       <div className="container mx-auto px-4">
@@ -73,17 +74,20 @@ const Header: React.FC = () => {
                 to={link.path}
                 className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   location.pathname === link.path
-                    ? 'text-primary-700 bg-primary-50'
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                    ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
               >
                 {link.icon}
                 <span>{link.name}</span>
               </Link>
             ))}
+            <div className="flex items-center ml-4">
+              <ThemeToggle />
+            </div>
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <LogOut className="h-5 w-5" />
               <span>Logout</span>
@@ -91,7 +95,7 @@ const Header: React.FC = () => {
           </div>
 
           <button
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-primary-600 hover:bg-gray-50 focus:outline-none"
+            className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none"
             onClick={toggleMenu}
           >
             {isMenuOpen ? (
@@ -104,7 +108,7 @@ const Header: React.FC = () => {
       </div>
 
       <div
-        className={`md:hidden bg-white shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`md:hidden bg-white dark:bg-gray-900 shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
           isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
@@ -115,21 +119,24 @@ const Header: React.FC = () => {
               to={link.path}
               className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
                 location.pathname === link.path
-                  ? 'text-primary-700 bg-primary-50'
-                  : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                  ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {link.icon}
               <span>{link.name}</span>
             </Link>
           ))}
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 hover:text-primary-600 hover:bg-gray-50 transition-colors w-full"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </button>
+          <div className="flex items-center justify-between px-3 py-3">
+            <ThemeToggle />
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>

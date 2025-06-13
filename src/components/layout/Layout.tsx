@@ -1,5 +1,6 @@
 import React from 'react';
 import Header from './Header';
+import { Truck } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,20 +16,20 @@ const Layout: React.FC<LayoutProps> = ({
   actions 
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Header />
       
       <main className="pt-16 pb-10">
         {(title || actions) && (
-          <div className="bg-white shadow-sm border-b">
+          <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
             <div className="container mx-auto px-4 py-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   {title && (
-                    <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
                   )}
                   {subtitle && (
-                    <p className="mt-1 text-gray-500">{subtitle}</p>
+                    <p className="mt-1 text-gray-500 dark:text-gray-400">{subtitle}</p>
                   )}
                 </div>
                 {actions && (
@@ -46,12 +47,12 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
       </main>
       
-      <footer className="bg-gray-800 text-white py-6 mt-auto">
+      <footer className="bg-gray-800 dark:bg-gray-950 text-white py-6 mt-auto">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center">
               <Truck className="h-6 w-6 text-white mr-2" />
-              <p className="text-sm">FleetWise © {new Date().getFullYear()}</p>
+              <p className="text-sm">Auto Vital Solution © {new Date().getFullYear()}</p>
             </div>
             <p className="text-gray-400 text-sm mt-2 md:mt-0">
               Intelligent fleet management and analytics
@@ -62,7 +63,5 @@ const Layout: React.FC<LayoutProps> = ({
     </div>
   );
 };
-
-import { Truck } from 'lucide-react';
 
 export default Layout;

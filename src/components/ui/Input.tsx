@@ -45,16 +45,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label 
             htmlFor={inputId} 
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             {label}
-            {required && <span className="text-error-500 ml-1">*</span>}
+            {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
           </label>
         )}
         
         <div className={clsx("relative", fullWidth && "w-full")}>
           {icon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-gray-400">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
@@ -64,8 +64,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             className={twMerge(
               clsx(
-                "block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-200 focus:ring-opacity-50 transition-colors duration-200",
-                error && "border-error-500 focus:ring-error-200 focus:border-error-500",
+                "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
+                error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
                 icon && iconPosition === 'left' && iconSizeClasses[size],
                 icon && iconPosition === 'right' && "pr-9",
                 sizeClasses[size],
@@ -76,7 +76,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
           
           {icon && iconPosition === 'right' && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
@@ -85,7 +85,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {(helperText || error) && (
           <p className={clsx(
             "mt-1 text-sm",
-            error ? "text-error-500" : "text-gray-500"
+            error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>
             {error || helperText}
           </p>

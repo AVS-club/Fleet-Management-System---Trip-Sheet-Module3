@@ -23,6 +23,7 @@ import DriverPage from './pages/DriverPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { updateAllTripMileage } from './utils/storage';
+import { ThemeProvider } from './utils/themeContext';
 
 interface ProtectedRouteProps {
   session: Session | null;
@@ -106,7 +107,9 @@ function App() {
 // Wrap App with Router to use useNavigate within App
 const AppWrapper: React.FC = () => (
   <Router>
-    <App />
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
   </Router>
 );
 

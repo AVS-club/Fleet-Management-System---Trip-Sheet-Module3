@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { format, parseISO, isValid, subDays, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns';
+import { format, parseISO, isValid, subDays, startOfMonth, endOfMonth, startOfYear, subMonths, endOfYear } from 'date-fns';
 import Select from '../../ui/Select';
 import Input from '../../ui/Input';
+import Button from '../../ui/Button';
+import { ChevronRight } from 'lucide-react';
 
 interface AverageMileagePerVehicleChartProps {
   trips: Trip[];
@@ -16,10 +18,18 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
   const [filterType, setFilterType] = useState<MileageFilterType>('last7');
   const [customStartDate, setCustomStartDate] = useState<string>(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [showFullYear, setShowFullYear] = useState<boolean>(false);
   
-  // Calculate date range based on filter type
+  // Calculate date range based on filter type or full year toggle
   const dateRange = useMemo(() => {
     const now = new Date();
+    
+    if (showFullYear) {
+      return {
+        start: startOfYear(now),
+        end: now
+      };
+    }
     
     switch (filterType) {
       case 'today':
@@ -81,7 +91,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           end: now
         };
     }
-  }, [filterType, customStartDate, customEndDate]);
+  }, [filterType, customStartDate, customEndDate, showFullYear]);
   
   // Calculate average mileage per vehicle
   const chartData = useMemo(() => {
@@ -160,6 +170,8 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           vehicleId: item.vehicleId,
           vehicleNumber: vehicle?.registration_number || 'Unknown',
           mileage: parseFloat(item.mileage.toFixed(2)),
+          totalDistance: Math.round(item.totalDistance),
+          totalFuel: Math.round(item.totalFuel),
           lowMileage: item.mileage < 6.0
         };
       });
@@ -184,16 +196,18 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
               ]}
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as MileageFilterType)}
+              disabled={showFullYear}
             />
           </div>
           
-          {filterType === 'custom' && (
+          {filterType === 'custom' && !showFullYear && (
             <>
               <div className="w-32">
                 <Input
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
+                  disabled={showFullYear}
                 />
               </div>
               <div className="w-32">
@@ -201,11 +215,21 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
+                  disabled={showFullYear}
                 />
               </div>
             </>
           )}
         </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFullYear(!showFullYear)}
+          icon={<ChevronRight className="h-4 w-4" />}
+        >
+          {showFullYear ? 'Custom Date Range' : 'Show Full Year'}
+        </Button>
       </div>
       
       <div className="h-80 overflow-x-auto">
@@ -233,13 +257,38 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                 }}
               />
               <Tooltip
-                formatter={(value: number) => [`${value} km/L`, 'Mileage']}
-                labelStyle={{ fontWeight: 'bold' }}
+                formatter={(value: number, name: string, props: any) => {
+                  if (name === 'Mileage') {
+                    return [`${value.toFixed(2)} km/L`, name];
+                  }
+                  return [value, name];
+                }}
+                labelFormatter={(label) => `Vehicle: ${label}`}
                 contentStyle={{ 
                   backgroundColor: 'white', 
                   borderRadius: '0.5rem',
                   border: '1px solid #e5e7eb',
                   boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                }}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
+                        <p className="font-medium text-gray-900">{label}</p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Mileage:</span> {data.mileage.toFixed(2)} km/L
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Distance:</span> {data.totalDistance.toLocaleString()} km
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Fuel:</span> {data.totalFuel.toLocaleString()} L
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
                 }}
               />
               <Bar 
@@ -247,11 +296,13 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                 name="Mileage"
                 label={{ 
                   position: 'top', 
-                  formatter: (value: number) => `${value} km/L`,
-                  fontSize: 11
+                  formatter: (value: number) => `${value.toFixed(1)} km/L`,
+                  fontSize: 11,
+                  fill: '#4B5563'
                 }}
                 barSize={30}
-                fill={(entry: any) => entry.lowMileage ? '#F59E0B' : '#4CAF50'}
+                fill={(entry: any) => entry.lowMileage ? '#F59E0B' : '#0277BD'}
+                radius={[4, 4, 0, 0]}
               />
             </BarChart>
           </ResponsiveContainer>

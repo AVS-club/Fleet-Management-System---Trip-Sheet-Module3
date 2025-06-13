@@ -8,7 +8,7 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -30,31 +30,31 @@
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900;
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500;
+    @apply bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 focus:ring-primary-500 dark:focus:ring-primary-400;
   }
 
   .btn-secondary {
-    @apply bg-secondary-600 text-white hover:bg-secondary-700 focus:ring-secondary-500;
+    @apply bg-secondary-600 text-white hover:bg-secondary-700 dark:bg-secondary-700 dark:hover:bg-secondary-600 focus:ring-secondary-500 dark:focus:ring-secondary-400;
   }
 
   .btn-outline {
-    @apply border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-primary-500;
+    @apply border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-primary-500 dark:focus:ring-primary-400;
   }
 
   .input {
-    @apply block w-full rounded-lg border-gray-300 shadow-sm px-4 py-2 bg-white border focus:border-primary-400 focus:ring-2 focus:ring-primary-200 focus:ring-opacity-50 transition-colors duration-200;
+    @apply block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200;
   }
 
   .select {
-    @apply block w-full rounded-lg border-gray-300 shadow-sm px-4 py-2 bg-white border focus:border-primary-400 focus:ring-2 focus:ring-primary-200 focus:ring-opacity-50 transition-colors duration-200;
+    @apply block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-300 overflow-hidden;
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-300 overflow-hidden;
   }
 
   .form-group {
@@ -62,11 +62,11 @@
   }
 
   .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }
   
   .form-error {
-    @apply text-error-500 text-sm mt-1;
+    @apply text-error-500 dark:text-error-400 text-sm mt-1;
   }
 
   .container {

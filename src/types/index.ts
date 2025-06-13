@@ -180,6 +180,7 @@ export interface Trip {
   route_deviation?: number;
   fuel_bill_url?: string;
   material_type_ids?: string[];
+  is_return_trip?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -235,6 +236,7 @@ export interface Warehouse {
   active?: boolean;
   allocated_vehicles?: string[];
   material_type_id?: string;
+  material_type_ids?: string[];
   created_at?: string;
   updated_at?: string;
 }
