@@ -16,33 +16,15 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
-      if (error) {
-        // Handle specific Supabase auth errors
-        if (error.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please check your credentials and try again.');
-        } else if (error.message.includes('Email not confirmed')) {
-          setError('Please check your email and click the confirmation link before logging in.');
-        } else if (error.message.includes('Too many requests')) {
-          setError('Too many login attempts. Please wait a few minutes before trying again.');
-        } else {
-          setError(error.message || 'An error occurred during login. Please try again.');
-        }
-        return;
-      }
-
-      if (data.user) {
-        navigate('/'); // Navigate to dashboard on successful login
-      }
+      if (error) throw error;
+      navigate('/'); // Navigate to dashboard
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      setError(error.error_description || error.message);
     } finally {
       setLoading(false);
     }
@@ -50,11 +32,7 @@ const LoginForm: React.FC = () => {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && (
-        <div className="text-error-500 dark:text-error-400 text-sm bg-error-50 dark:bg-error-900/30 p-3 rounded-md border border-error-200 dark:border-error-800">
-          {error}
-        </div>
-      )}
+      {error && <p className="text-error-500 dark:text-error-400 text-sm bg-error-50 dark:bg-error-900/30 p-3 rounded-md">{error}</p>}
       <div>
         <Input
           id="email"

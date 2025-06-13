@@ -8,8 +8,8 @@ import DestinationForm from '../../components/admin/DestinationForm';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
 import { getWarehouses, getDestinations, createWarehouse, createDestination } from '../../utils/storage';
-import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
-import { Warehouse, Destination } from '../../types';
+import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
+import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();

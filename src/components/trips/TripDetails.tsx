@@ -3,8 +3,7 @@ import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
 import Button from '../ui/Button';
 import { Calendar, MapPin, Truck, User, FileText, Fuel, AlertTriangle, ChevronLeft, Trash2, Edit, Package, Weight, IndianRupee, ArrowRight, Paperclip, ArrowLeftRight } from 'lucide-react';
-import { getWarehouse, getDestination } from '../../utils/storage';
-import { getMaterialTypes } from '../../utils/materialTypes';
+import { getWarehouse, getDestination, getMaterialTypes } from '../../utils/storage';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
 interface TripDetailsProps {

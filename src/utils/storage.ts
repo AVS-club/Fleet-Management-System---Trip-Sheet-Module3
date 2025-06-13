@@ -22,18 +22,24 @@ const convertKeysToSnakeCase = (obj: Record<string, any>): Record<string, any> =
 };
 import { calculateMileage } from './mileageCalculator';
 
-// Generate Trip ID based on vehicle number
-const generateTripId = async (vehicleNumber: string): Promise<string> => {
-  // Validate vehicleNumber
-  if (!vehicleNumber) {
-    throw new Error('Vehicle number is required to generate a trip ID');
+// Generate Trip ID based on vehicle registration
+const generateTripId = async (vehicleId: string): Promise<string> => {
+  // Validate vehicleId
+  if (!vehicleId) {
+    throw new Error('Vehicle ID is required to generate a trip ID');
+  }
+
+  const vehicle = await getVehicle(vehicleId);
+  if (!vehicle) {
+    console.error(`Vehicle with ID ${vehicleId} not found`);
+    throw new Error(`Vehicle with ID ${vehicleId} not found`);
   }
 
   // Extract last 4 digits from registration number
-  const regMatch = vehicleNumber.match(/\d{4}$/);
+  const regMatch = vehicle.registration_number.match(/\d{4}$/);
   if (!regMatch) {
-    console.error(`Invalid registration format for vehicle: ${vehicleNumber}`);
-    throw new Error(`Invalid registration format for vehicle: ${vehicleNumber}`);
+    console.error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
+    throw new Error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
   }
   
   const prefix = regMatch[0];
@@ -41,12 +47,15 @@ const generateTripId = async (vehicleNumber: string): Promise<string> => {
   // Get latest trip number for this vehicle
   const { data: latestTrip } = await supabase
     .from('trips')
-    .select('id')
-    .eq('vehicle_number', vehicleNumber)
-    .order('created_at', { ascending: false })
+    .select('trip_serial_number')
+    .eq('vehicle_id', vehicleId)
+    .order('trip_serial_number', { ascending: false })
     .limit(1);
 
-  const lastNum = latestTrip && latestTrip.length > 0 ? 1 : 0;
+  const lastNum = latestTrip?.[0]?.trip_serial_number 
+    ? parseInt(latestTrip[0].trip_serial_number.slice(-4))
+    : 0;
+
   const nextNum = lastNum + 1;
 
   // Format: XXXX0001 where XXXX is last 4 digits of registration
@@ -58,7 +67,7 @@ export const getTrips = async (): Promise<Trip[]> => {
   const { data, error } = await supabase
     .from('trips')
     .select('*')
-    .order('start_date', { ascending: false });
+    .order('trip_start_date', { ascending: false });
 
   if (error) {
     console.error('Error fetching trips:', error);
@@ -83,15 +92,19 @@ export const getTrip = async (id: string): Promise<Trip | null> => {
   return data;
 };
 
-export const createTrip = async (trip: Omit<Trip, 'id'>): Promise<Trip | null> => {
+export const createTrip = async (trip: Omit<Trip, 'id' | 'trip_serial_number'>): Promise<Trip | null> => {
   // Validate required fields
-  if (!trip.vehicle_number) {
-    console.error('Vehicle number is missing for trip creation');
-    throw new Error('Vehicle number is required to create a trip');
+  if (!trip.vehicle_id) {
+    console.error('Vehicle ID is missing for trip creation');
+    throw new Error('Vehicle ID is required to create a trip');
   }
 
+  const tripId = await generateTripId(trip.vehicle_id);
+  
+  // Ensure material_type_ids is properly handled
   const tripData = {
     ...trip,
+    trip_serial_number: tripId
   };
   
   const { data, error } = await supabase
@@ -156,17 +169,17 @@ export const recalculateMileageForAffectedTrips = async (changedTrip: Trip): Pro
   const { data: trips } = await supabase
     .from('trips')
     .select('*')
-    .eq('vehicle_number', changedTrip.vehicle_number)
-    .gte('end_date', changedTrip.end_date)
-    .order('end_date', { ascending: true });
+    .eq('vehicle_id', changedTrip.vehicle_id)
+    .gte('trip_end_date', changedTrip.trip_end_date)
+    .order('trip_end_date', { ascending: true });
 
   if (!trips || !Array.isArray(trips) || trips.length === 0) return;
 
   // Find all refueling trips for the same vehicle that occurred after the changed trip
   const affectedTrips = trips.filter(trip => 
-    trip.is_refueling_trip &&
-    trip.fueling_liters &&
-    trip.fueling_liters > 0 &&
+    trip.refueling_done &&
+    trip.fuel_quantity &&
+    trip.fuel_quantity > 0 &&
     trip.id !== changedTrip.id
   );
 
@@ -186,7 +199,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
-    .order('vehicle_number');
+    .order('registration_number');
 
   if (error) {
     console.error('Error fetching vehicles:', error);
@@ -577,20 +590,25 @@ export const generateAlerts = async (analysis: RouteAnalysis): Promise<Alert[]> 
 };
 
 // Vehicle stats
-export const getVehicleStats = async (vehicleNumber: string) => {
+export const getVehicleStats = async (vehicleId: string) => {
   const { data: trips } = await supabase
     .from('trips')
     .select('*')
-    .eq('vehicle_number', vehicleNumber);
+    .eq('vehicle_id', vehicleId);
 
   if (!trips || !Array.isArray(trips)) return { totalTrips: 0, totalDistance: 0 };
 
   const totalTrips = trips.length;
-  const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_kilometer - trip.start_kilometer), 0);
+  const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+  const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
+  const averageKmpl = tripsWithKmpl.length > 0
+    ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
+    : undefined;
 
   return {
     totalTrips,
-    totalDistance
+    totalDistance,
+    averageKmpl
   };
 };
 
@@ -599,12 +617,12 @@ export const updateAllTripMileage = async (): Promise<void> => {
   const { data: trips } = await supabase
     .from('trips')
     .select('*')
-    .order('end_date', { ascending: true });
+    .order('trip_end_date', { ascending: true });
 
   if (!trips || !Array.isArray(trips)) return;
 
   for (const trip of trips) {
-    if (trip.is_refueling_trip && trip.fueling_liters && trip.fueling_liters > 0) {
+    if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
       const calculatedKmpl = calculateMileage(trip, trips);
       await supabase
         .from('trips')
