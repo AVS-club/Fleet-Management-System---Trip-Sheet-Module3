@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
 import { DEMO_VENDORS, PART_BRANDS, DEMO_GARAGES } from '../../types/maintenance';
+import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -72,6 +73,57 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const taskType = watch('task_type');
   const title = watch('title');
   const serviceGroupsWatch = watch('service_groups');
+  const downtimePeriod = watch('downtime_period');
+
+  // Calculate end date based on start date and downtime period
+  useEffect(() => {
+    if (startDate && downtimePeriod && downtimePeriod !== 'custom') {
+      try {
+        // Parse the start date
+        const parsedStartDate = new Date(startDate);
+        if (isNaN(parsedStartDate.getTime())) {
+          console.error('Invalid start date');
+          return;
+        }
+
+        let newEndDate: Date;
+
+        // Calculate end date based on downtime period
+        if (downtimePeriod.includes('hr')) {
+          // Extract hours from the period (e.g., "4hr" → 4)
+          const hours = parseInt(downtimePeriod.replace('hr', ''), 10);
+          newEndDate = addHours(parsedStartDate, hours);
+        } else if (downtimePeriod === '1day') {
+          newEndDate = addDays(parsedStartDate, 1);
+        } else if (downtimePeriod === '2days') {
+          newEndDate = addDays(parsedStartDate, 2);
+        } else if (downtimePeriod === '3days') {
+          newEndDate = addDays(parsedStartDate, 3);
+        } else if (downtimePeriod === '1week') {
+          newEndDate = addDays(parsedStartDate, 7);
+        } else {
+          // For any other case, don't modify the end date
+          return;
+        }
+
+        // Format the end date as YYYY-MM-DD
+        const formattedEndDate = format(newEndDate, 'yyyy-MM-dd');
+        setValue('end_date', formattedEndDate);
+
+        // Calculate downtime days
+        const downtimeDays = downtimePeriod.includes('day') || downtimePeriod === '1week'
+          ? Math.round((newEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+        setValue('downtime_days', downtimeDays);
+      } catch (error) {
+        console.error('Error calculating end date:', error);
+      }
+    } else if (downtimePeriod === 'custom') {
+      // If custom is selected, clear the end date to let the user set it manually
+      setValue('end_date', '');
+      setValue('downtime_days', 0);
+    }
+  }, [startDate, downtimePeriod, setValue]);
 
   // Auto-fill odometer reading based on vehicle and start date
   useEffect(() => {
