@@ -233,24 +233,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         />
       </div>
 
-      {/* Service Provider Info */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-        <h3 className="text-lg font-medium text-gray-900">Service Provider Details</h3>
-
-        <Controller
-          control={control}
-          name="garage_id"
-          rules={{ required: 'Service location is required' }}
-          render={({ field: { value, onChange }, fieldState: { error } }) => (
-            <GarageSelector
-              selectedGarage={value}
-              onChange={onChange}
-              error={error?.message}
-            />
-          )}
-        />
-      </div>
-
       {/* Maintenance Tasks */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -380,7 +362,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
       {/* Complaint & Resolution */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900">Complaint & Resolution</h3>
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
+          <Tool className="h-5 w-5 mr-2 text-primary-500" />
+          Complaint & Resolution
+        </h3>
         
         <div className="space-y-4">
           <div>
