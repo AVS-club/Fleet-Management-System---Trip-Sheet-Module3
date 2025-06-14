@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
 import { DEMO_VENDORS, PART_BRANDS, DEMO_GARAGES } from '../../types/maintenance';
@@ -98,7 +98,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         try {
           const logs = await getAuditLogs();
           if (Array.isArray(logs)) {
-            setAuditLogs(logs.filter(log => log.taskId === initialData.id));
+            setAuditLogs(logs.filter(log => log.task_id === initialData.id));
           } else {
             setAuditLogs([]);
           }
@@ -715,7 +715,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       )}
 
       {/* Audit Log */}
-      {initialData?.id && auditLogs.length > 0 && (
+      {initialData?.id && auditLogs && auditLogs.length > 0 && (
         <div className="mt-8">
           <MaintenanceAuditLog taskId={initialData.id} logs={auditLogs} />
         </div>

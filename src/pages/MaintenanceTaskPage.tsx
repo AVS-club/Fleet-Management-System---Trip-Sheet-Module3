@@ -202,35 +202,6 @@ const MaintenanceTaskPage: React.FC = () => {
         console.log("Updating task with:", JSON.stringify(updatePayload, null, 2));
 
         try {
-          // First try direct Supabase update for debugging
-          const result = await supabase
-            .from('maintenance_tasks')
-            .update({
-              vehicle_id: updatePayload.vehicle_id,
-              task_type: updatePayload.task_type,
-              title: updatePayload.title,
-              status: updatePayload.status,
-              priority: updatePayload.priority,
-              garage_id: updatePayload.garage_id,
-              start_date: updatePayload.start_date,
-              end_date: updatePayload.end_date,
-              odometer_reading: updatePayload.odometer_reading,
-              downtime_days: updatePayload.downtime_days || 0,
-              complaint_description: updatePayload.complaint_description,
-              resolution_summary: updatePayload.resolution_summary,
-              estimated_cost: updatePayload.estimated_cost,
-              actual_cost: updatePayload.actual_cost,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-          if (result.error) {
-            console.error("Update error:", result.error);
-            toast.error("Error updating maintenance task: " + result.error.message);
-            setIsSubmitting(false);
-            return;
-          }
-
           // Now try our utility function
           const updatedTask = await updateTask(id, updatePayload);
           if (updatedTask) {
@@ -274,7 +245,7 @@ const MaintenanceTaskPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error submitting maintenance task:', error);
-      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task`);
+      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
