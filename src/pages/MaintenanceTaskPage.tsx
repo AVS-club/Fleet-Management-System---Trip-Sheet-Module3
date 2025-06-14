@@ -15,7 +15,7 @@ import { toast } from 'react-toastify';
 interface MaintenanceFormData {
   // Fields from react-hook-form, typically camelCase
   vehicleId?: string;
-  taskType?: 'general_scheduled' | 'emergency_breakdown' | 'driver_damage' | 'warranty_claim';
+  task_type?: 'general_scheduled_service' | 'wear_and_tear_replacement_repairs' | 'accidental' | 'others';
   title?: string[] | string; // Main title for service group 1
   description?: string; // Overall task description
   status?: 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework';
@@ -119,7 +119,7 @@ const MaintenanceTaskPage: React.FC = () => {
         // Transform formData for update (camelCase from form to snake_case for DB)
         const updatePayload: Partial<MaintenanceTask> = {
           ...(formData.vehicleId && { vehicle_id: formData.vehicleId }),
-          ...(formData.taskType && { task_type: formData.taskType }),
+          ...(formData.task_type && { task_type: formData.task_type }),
           ...(formData.title && { title: Array.isArray(formData.title) ? formData.title : [formData.title] }),
           ...(formData.description && { description: formData.description }),
           ...(formData.status && { status: formData.status }),
@@ -205,7 +205,7 @@ const MaintenanceTaskPage: React.FC = () => {
 
         const newTaskPayload: Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'> = {
           vehicle_id: formData.vehicleId || '',
-          task_type: formData.taskType || 'general_scheduled',
+          task_type: formData.task_type || 'general_scheduled_service',
           title: Array.isArray(formData.title) ? formData.title : (formData.title ? [formData.title] : []),
           description: formData.description || '',
           status: formData.status || 'open',

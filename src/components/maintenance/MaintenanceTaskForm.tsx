@@ -41,7 +41,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
-      taskType: 'general_scheduled',
+      task_type: 'general_scheduled_service',
       priority: 'medium',
       status: 'open',
       estimatedCost: 0,
@@ -60,7 +60,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const endDate = watch('endDate');
   const vehicleId = watch('vehicleId');
   const odometerReading = watch('odometerReading');
-  const taskType = watch('taskType');
+  const taskType = watch('task_type');
   const partReplaced = watch('partReplaced');
   const billGroup1 = watch('billGroup1') || 0;
   const billGroup2 = watch('billGroup2') || 0;
@@ -123,7 +123,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 icon={<Truck className="h-4 w-4" />}
                 options={vehicles.map(vehicle => ({
                   value: vehicle.id,
-                  label: `${vehicle.registrationNumber} - ${vehicle.make} ${vehicle.model}`
+                  label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
                 }))}
                 error={errors.vehicleId?.message}
                 required
@@ -134,19 +134,21 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
           <Controller
             control={control}
-            name="taskType"
-            rules={{ required: 'Task type is required' }}
+            name="task_type"
+            rules={{ required: 'Maintenance type is required' }}
             render={({ field }) => (
               <Select
                 label="Maintenance Type"
+                placeholder="Select maintenance type"
                 icon={<Tool className="h-4 w-4" />}
                 options={[
-                  { value: 'general_scheduled', label: 'General Scheduled' },
-                  { value: 'emergency_breakdown', label: 'Emergency Breakdown' },
-                  { value: 'driver_damage', label: 'Driver Damage' },
-                  { value: 'warranty_claim', label: 'Warranty Claim' }
+                  { value: '', label: 'Select maintenance type', disabled: true },
+                  { value: 'general_scheduled_service', label: 'General Scheduled Service' },
+                  { value: 'wear_and_tear_replacement_repairs', label: 'Wear and Tear / Replacement Repairs' },
+                  { value: 'accidental', label: 'Accidental' },
+                  { value: 'others', label: 'Others' }
                 ]}
-                error={errors.taskType?.message}
+                error={errors.task_type?.message}
                 required
                 {...field}
               />

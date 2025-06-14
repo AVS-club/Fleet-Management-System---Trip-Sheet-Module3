@@ -29,7 +29,7 @@ export interface MaintenanceBill {
 export interface MaintenanceTask {
   id: string;
   vehicle_id: string;
-  task_type: 'general_scheduled' | 'emergency_breakdown' | 'driver_damage' | 'warranty_claim';
+  task_type: 'general_scheduled_service' | 'wear_and_tear_replacement_repairs' | 'accidental' | 'others';
   title: string[];
   title_group2?: string[];
   description: string;
