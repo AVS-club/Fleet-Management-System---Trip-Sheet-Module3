@@ -53,8 +53,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         : [{ 
             vendor_id: '', 
             tasks: [], 
-            cost: 0, 
-            parts_replaced: false 
+            cost: 0
           }],
       ...initialData
     }
@@ -340,7 +339,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   />
                 </div>
 
-                <div className="grid grid-cols-[3fr_1fr] gap-4 items-end">
+                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Bill upload */}
                   <Controller
                     control={control}
@@ -356,19 +355,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       />
                     )}
                   />
-
-                  {/* Parts replaced checkbox */}
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.parts_replaced` as const}
-                    render={({ field: { value, onChange } }) => (
-                      <Checkbox
-                        label="Parts Replaced?"
-                        checked={value}
-                        onChange={(e) => onChange(e.target.checked)}
-                      />
-                    )}
-                  />
                 </div>
               </div>
             </div>
@@ -381,8 +367,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             onClick={() => append({
               vendor_id: '',
               tasks: [],
-              cost: 0,
-              parts_replaced: false
+              cost: 0
             })}
             icon={<Plus className="h-4 w-4" />}
           >

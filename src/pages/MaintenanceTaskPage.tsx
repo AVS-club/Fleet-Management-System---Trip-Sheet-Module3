@@ -33,7 +33,6 @@ interface MaintenanceFormData {
     cost: number;
     bill_url?: string;
     bill_file?: File;
-    parts_replaced?: boolean;
   }>;
   
   // Other fields
@@ -42,7 +41,6 @@ interface MaintenanceFormData {
   warranty_expiry?: string;
   warranty_status?: 'valid' | 'expired' | 'not_applicable';
   warranty_claimed?: boolean;
-  part_replaced?: boolean;
   
   start_date?: string;
   end_date?: string;

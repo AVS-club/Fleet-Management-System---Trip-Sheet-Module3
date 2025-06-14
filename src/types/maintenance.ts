@@ -24,7 +24,6 @@ export interface MaintenanceServiceGroup {
   cost: number;
   bill_url?: string;
   bill_file?: File; // For frontend handling before upload
-  parts_replaced?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -58,7 +57,6 @@ export interface MaintenanceTask {
   warranty_expiry?: string;
   warranty_status?: 'valid' | 'expired' | 'not_applicable';
   warranty_claimed: boolean;
-  part_replaced: boolean;
   part_details?: {
     name: string;
     serial_number: string;
