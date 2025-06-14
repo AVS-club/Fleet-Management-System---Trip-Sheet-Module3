@@ -10,6 +10,7 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
+import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
@@ -221,6 +222,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
+      if (!data.garage_id) {
+        toast.error("Please select a garage");
+        return;
+      }
+      
       if (!data.start_date) {
         toast.error("Please set a start date");
         return;
@@ -296,26 +302,41 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           />
         </div>
 
-        <Controller
-          control={control}
-          name="priority"
-          rules={{ required: 'Priority is required' }}
-          render={({ field }) => (
-            <Select
-              label="Priority"
-              icon={<AlertTriangle className="h-4 w-4" />}
-              options={[
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' },
-                { value: 'critical', label: 'Critical' }
-              ]}
-              error={errors.priority?.message}
-              required
-              {...field}
-            />
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Controller
+            control={control}
+            name="garage_id"
+            rules={{ required: 'Garage is required' }}
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <GarageSelector
+                selectedGarage={value}
+                onChange={onChange}
+                error={error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="priority"
+            rules={{ required: 'Priority is required' }}
+            render={({ field }) => (
+              <Select
+                label="Priority"
+                icon={<AlertTriangle className="h-4 w-4" />}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'critical', label: 'Critical' }
+                ]}
+                error={errors.priority?.message}
+                required
+                {...field}
+              />
+            )}
+          />
+        </div>
       </div>
 
       {/* Maintenance Tasks */}
