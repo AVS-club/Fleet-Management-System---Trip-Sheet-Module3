@@ -96,6 +96,20 @@ const MaintenanceTaskPage: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
+  // Function to clean up timestamp fields
+  const cleanTimestampFields = (data: any) => {
+    const timestampFields = ['start_date', 'end_date', 'warranty_expiry'];
+    const cleanedData = { ...data };
+
+    timestampFields.forEach(field => {
+      if (cleanedData[field] === '' || cleanedData[field] === undefined) {
+        cleanedData[field] = null;
+      }
+    });
+
+    return cleanedData;
+  };
+
   // Handle file uploads for service group bills
   const handleFileUploads = async (
     serviceGroups: Array<Partial<MaintenanceServiceGroup>>, 
@@ -169,6 +183,9 @@ const MaintenanceTaskPage: React.FC = () => {
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
       
+      // Clean up timestamp fields to prevent empty string errors
+      const cleanedTaskData = cleanTimestampFields(taskData);
+      
       // Validate service groups if they exist
       if (service_groups && service_groups.length > 0) {
         for (const group of service_groups) {
@@ -200,7 +217,7 @@ const MaintenanceTaskPage: React.FC = () => {
         }
 
         const updatePayload: Partial<MaintenanceTask> = {
-          ...taskData,
+          ...cleanedTaskData,
           service_groups: updatedServiceGroups
         };
 
@@ -215,8 +232,8 @@ const MaintenanceTaskPage: React.FC = () => {
       } else {
         // Create new task
         try {
-          console.log("Creating new maintenance task with:", taskData);
-          const newTask = await createTask(taskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
+          console.log("Creating new maintenance task with:", cleanedTaskData);
+          const newTask = await createTask(cleanedTaskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
           
           if (newTask && newTask.id) {
             console.log("Task created successfully:", newTask);
