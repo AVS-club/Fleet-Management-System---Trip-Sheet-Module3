@@ -73,7 +73,8 @@ const Header: React.FC = () => {
                 key={link.path}
                 to={link.path}
                 className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  location.pathname === link.path
+                  location.pathname === link.path || 
+                  (link.path !== '/' && location.pathname.startsWith(link.path))
                     ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
                     : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
@@ -118,7 +119,8 @@ const Header: React.FC = () => {
               key={link.path}
               to={link.path}
               className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
-                location.pathname === link.path
+                location.pathname === link.path || 
+                (link.path !== '/' && location.pathname.startsWith(link.path))
                   ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
                   : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
