@@ -12,7 +12,7 @@ import VendorSelector from './VendorSelector';
 import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2 } from 'lucide-react';
+import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -30,7 +30,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   initialData,
   isSubmitting
 }) => {
-  const [showPartDetails, setShowPartDetails] = useState(false);
   const [setReminder, setSetReminder] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<{
     averageReplacementKm?: number;
@@ -50,7 +49,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       start_date: new Date().toISOString().split('T')[0],
       title: [],
       warranty_claimed: false,
-      part_replaced: false,
       service_groups: initialData?.service_groups && initialData.service_groups.length > 0 
         ? initialData.service_groups 
         : [{ 
@@ -74,7 +72,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const vehicleId = watch('vehicle_id');
   const odometerReading = watch('odometer_reading');
   const taskType = watch('task_type');
-  const partReplaced = watch('part_replaced');
   const title = watch('title');
   const serviceGroupsWatch = watch('service_groups');
 
@@ -243,99 +240,104 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <div className="space-y-4">
           {serviceGroups.map((field, index) => (
-            <CollapsibleSection
-              key={field.id}
-              title={`Service Group ${index + 1}`}
-              defaultExpanded={index === 0}
-            >
-              <div className="space-y-4">
-                <Controller
-                  control={control}
-                  name={`service_groups.${index}.vendor_id` as const}
-                  rules={{ required: 'Service vendor is required' }}
-                  render={({ field: { value, onChange }, fieldState: { error } }) => (
-                    <VendorSelector
-                      selectedVendor={value}
-                      onChange={onChange}
-                      error={error?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name={`service_groups.${index}.tasks` as const}
-                  rules={{ required: 'At least one task must be selected' }}
-                  render={({ field: { value, onChange }, fieldState: { error } }) => (
-                    <MaintenanceSelector
-                      selectedItems={value || []}
-                      onChange={onChange}
-                      showGroupView={true}
-                      error={error?.message}
-                    />
-                  )}
-                />
-
-                <Input
-                  label="Cost (₹)"
-                  type="number"
-                  icon={<IndianRupee className="h-4 w-4" />}
-                  error={errors.service_groups?.[index]?.cost?.message}
-                  required
-                  {...register(`service_groups.${index}.cost` as const, {
-                    required: 'Cost is required',
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Cost must be positive' }
-                  })}
-                />
-
-                <Controller
-                  control={control}
-                  name={`service_groups.${index}.bill_file` as const}
-                  render={({ field: { value, onChange } }) => (
-                    <FileUpload
-                      label="Upload Bill"
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      value={value as File | null}
-                      onChange={onChange}
-                      helperText="Upload invoice or bill receipt (PDF, JPG, PNG)"
-                      icon={<FileText className="h-4 w-4" />}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={control}
-                  name={`service_groups.${index}.parts_replaced` as const}
-                  render={({ field: { value, onChange } }) => (
-                    <Checkbox
-                      label="Parts Replaced?"
-                      checked={value}
-                      onChange={(e) => onChange(e.target.checked)}
-                    />
-                  )}
-                />
-
+            <div key={field.id} className="border rounded-lg relative overflow-hidden">
+              <div className="bg-gray-50 p-3 pr-10 border-b flex items-center justify-between">
+                <h4 className="font-medium text-gray-800">Service Group {index + 1}</h4>
                 {serviceGroups.length > 1 && (
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => remove(index)}
-                      icon={<Trash2 className="h-4 w-4" />}
-                    >
-                      Remove Service Group
-                    </Button>
-                  </div>
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 text-gray-400 hover:text-error-500 transition-colors"
+                    onClick={() => remove(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 )}
               </div>
-            </CollapsibleSection>
+              
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Vendor selector */}
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.vendor_id` as const}
+                    rules={{ required: 'Vendor is required' }}
+                    render={({ field: { value, onChange }, fieldState: { error } }) => (
+                      <VendorSelector
+                        selectedVendor={value}
+                        onChange={onChange}
+                        error={error?.message}
+                      />
+                    )}
+                  />
+
+                  {/* Maintenance tasks */}
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.tasks` as const}
+                    rules={{ required: 'At least one task must be selected' }}
+                    render={({ field: { value, onChange }, fieldState: { error } }) => (
+                      <MaintenanceSelector
+                        selectedItems={value || []}
+                        onChange={onChange}
+                        showGroupView={true}
+                        error={error?.message}
+                      />
+                    )}
+                  />
+
+                  {/* Cost input */}
+                  <Input
+                    label="Cost (₹)"
+                    type="number"
+                    icon={<IndianRupee className="h-4 w-4" />}
+                    error={errors.service_groups?.[index]?.cost?.message}
+                    required
+                    {...register(`service_groups.${index}.cost` as const, {
+                      required: 'Cost is required',
+                      valueAsNumber: true,
+                      min: { value: 0, message: 'Cost must be positive' }
+                    })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-[3fr_1fr] gap-4 items-end">
+                  {/* Bill upload */}
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.bill_file` as const}
+                    render={({ field: { value, onChange } }) => (
+                      <FileUpload
+                        buttonMode={true}
+                        label="Upload Bill"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        value={value as File | null}
+                        onChange={onChange}
+                        icon={<Paperclip className="h-4 w-4" />}
+                      />
+                    )}
+                  />
+
+                  {/* Parts replaced checkbox */}
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.parts_replaced` as const}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        label="Parts Replaced?"
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
           ))}
 
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => append({
               vendor_id: '',
               tasks: [],
@@ -344,7 +346,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             })}
             icon={<Plus className="h-4 w-4" />}
           >
-            Add Another Service Group
+            + Add Service Group
           </Button>
 
           {serviceGroupsWatch && serviceGroupsWatch.length > 0 && (
