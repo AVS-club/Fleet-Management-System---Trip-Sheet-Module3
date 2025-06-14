@@ -72,14 +72,19 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
   // Extract service groups to handle separately
   const { service_groups, ...taskData } = task as any;
 
+  console.log("Creating maintenance task with data:", taskData);
+
+  // Ensure task data is properly formatted
+  const formattedTask = {
+    ...taskData,
+    bills: taskData.bills || [],
+    parts_required: taskData.parts_required || []
+  };
+
   // Insert the main task
   const { data, error } = await supabase
     .from('maintenance_tasks')
-    .insert({
-      ...taskData,
-      bills: taskData.bills || [],
-      parts_required: taskData.parts_required || []
-    })
+    .insert(formattedTask)
     .select()
     .single();
 
@@ -87,6 +92,8 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
     console.error('Error creating maintenance task:', error);
     return null;
   }
+
+  console.log("Maintenance task created:", data);
 
   // Create audit log for task creation
   if (data) {
@@ -139,6 +146,8 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
   // Extract service groups to handle separately
   const { service_groups, ...updateData } = updates as any;
 
+  console.log("Updating task:", id, "with data:", updateData);
+
   // Get the old task first to compare changes
   const { data: oldTask } = await supabase
     .from('maintenance_tasks')
@@ -166,6 +175,8 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
     console.error('Error updating maintenance task:', error);
     return null;
   }
+
+  console.log("Task updated successfully:", updatedTask);
 
   // Create audit log for changes
   const changes: Record<string, { previousValue: any; updatedValue: any }> = {};
@@ -204,9 +215,17 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
           bill_file: undefined
         }));
 
-        await supabase
+        console.log("Inserting service groups:", serviceGroupsWithTaskId);
+
+        const { data: insertResult, error: insertError } = await supabase
           .from('maintenance_service_tasks')
           .insert(serviceGroupsWithTaskId);
+          
+        if (insertError) {
+          console.error('Error inserting service groups:', insertError);
+        } else {
+          console.log("Service groups inserted successfully:", insertResult);
+        }
       }
       
       // Fetch the inserted service groups

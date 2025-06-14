@@ -16,6 +16,7 @@ import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, In
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
+import { toast } from 'react-toastify';
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -210,8 +211,42 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   // Get audit logs for this task
   const auditLogs = initialData?.id ? getAuditLogs().filter(log => log.taskId === initialData.id) : [];
 
+  const handleFormSubmit = (data: any) => {
+    try {
+      console.log("Form submission data:", data);
+      
+      // Basic validation
+      if (!data.vehicle_id) {
+        toast.error("Please select a vehicle");
+        return;
+      }
+      
+      if (!data.start_date) {
+        toast.error("Please set a start date");
+        return;
+      }
+      
+      if ((!Array.isArray(data.title) || data.title.length === 0) && 
+          (!Array.isArray(data.service_groups) || !data.service_groups.length || 
+           !data.service_groups[0].tasks || !data.service_groups[0].tasks.length)) {
+        toast.error("Please select at least one maintenance task");
+        return;
+      }
+      
+      if (!data.service_groups?.[0]?.vendor_id) {
+        toast.error("Please select a vendor for the service");
+        return;
+      }
+      
+      onSubmit(data);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Form submission failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Vehicle & Basic Info */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">

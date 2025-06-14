@@ -148,9 +148,24 @@ const MaintenanceTaskPage: React.FC = () => {
 
   const handleSubmit = async (formData: MaintenanceFormData) => {
     setIsSubmitting(true);
+    console.log("Submitting maintenance task payload:", formData);
+    
     try {
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
+      
+      // Validate required fields
+      if (!taskData.vehicle_id) {
+        throw new Error("Vehicle selection is required");
+      }
+      
+      if (!taskData.task_type) {
+        throw new Error("Maintenance type is required");
+      }
+      
+      if (!taskData.start_date) {
+        throw new Error("Start date is required");
+      }
       
       if (id && id !== 'new') {
         // Update existing task
@@ -171,40 +186,61 @@ const MaintenanceTaskPage: React.FC = () => {
           service_groups: updatedServiceGroups
         };
 
+        console.log("Update payload:", updatePayload);
         const updatedTask = await updateTask(id, updatePayload);
+        
         if (updatedTask) {
           setTask(updatedTask);
           toast.success('Maintenance task updated successfully');
           navigate('/maintenance');
         } else {
-          toast.error('Failed to update task');
+          console.error("Failed to update task - no data returned from API");
+          toast.error('Failed to update task: No data returned from server');
         }
       } else {
         // Create new task
+        console.log("Create payload:", taskData);
         const newTask = await createTask(taskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
         
-        if (newTask) {
-          // Handle service group file uploads
-          if (service_groups && service_groups.length > 0 && newTask.id) {
+        if (!newTask) {
+          console.error("Failed to create task - no data returned from API");
+          toast.error('Failed to create task: No data returned from server');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        console.log("Task created successfully:", newTask);
+        
+        // Handle service group file uploads
+        if (service_groups && service_groups.length > 0 && newTask.id) {
+          try {
             const updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
             
             // Update the task with the service groups
             if (updatedServiceGroups.length > 0) {
-              await updateTask(newTask.id, {
+              console.log("Updating task with service groups:", updatedServiceGroups);
+              const updatedTask = await updateTask(newTask.id, {
                 service_groups: updatedServiceGroups
               });
+              
+              if (!updatedTask) {
+                console.error("Failed to update task with service groups");
+                toast.warning('Task created, but service groups may not have been saved correctly');
+              }
             }
+          } catch (serviceGroupError) {
+            console.error('Error processing service groups:', serviceGroupError);
+            toast.warning('Task created, but there was a problem with service group attachments');
           }
-          
-          toast.success('Maintenance task created successfully');
-          navigate('/maintenance');
-        } else {
-          toast.error('Failed to create task');
         }
+        
+        toast.success('Maintenance task created successfully');
+        navigate('/maintenance');
       }
     } catch (error) {
       console.error('Error submitting maintenance task:', error);
-      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
