@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getDriver, getVehicle, getTrips, updateDriver, getDriverStats } from '../utils/storage';
-import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield, Edit2, Phone, Mail, Clock, Download, IdCard, Award } from 'lucide-react';
+import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield, Edit2, Phone, Mail, Clock, Download, Car as IdCard, Award } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverMetrics from '../components/drivers/DriverMetrics';
 import { getAIAlerts } from '../utils/aiAnalytics';
