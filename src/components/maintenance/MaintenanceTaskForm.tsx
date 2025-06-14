@@ -9,9 +9,7 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
-import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
-import CollapsibleSection from '../ui/CollapsibleSection';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
@@ -115,25 +113,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     fetchLastOdometer();
   }, [vehicleId, startDate, setValue, vehicles]);
 
-  useEffect(() => {
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setValue('downtime_days', diffDays);
-    }
-  }, [startDate, endDate, setValue]);
-
-  useEffect(() => {
-    if (vehicleId && odometerReading) {
-      const prediction = predictNextService(vehicleId, odometerReading);
-      if (prediction) {
-        setValue('next_predicted_service', prediction);
-      }
-    }
-  }, [vehicleId, odometerReading, setValue]);
-
   // Calculate total cost from service groups
   useEffect(() => {
     if (serviceGroupsWatch && serviceGroupsWatch.length > 0) {
@@ -143,6 +122,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       setValue('actual_cost', totalCost);
     }
   }, [serviceGroupsWatch, setValue]);
+
+  useEffect(() => {
+    if (vehicleId && odometerReading) {
+      const prediction = predictNextService(vehicleId, odometerReading);
+      if (prediction) {
+        setValue('next_predicted_service', prediction);
+      }
+    }
+  }, [vehicleId, odometerReading, setValue]);
 
   useEffect(() => {
     if (vehicleId && odometerReading && title?.length > 0) {
@@ -416,34 +404,28 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             {...register('end_date')}
           />
 
-          {startDate && endDate && startDate === endDate ? (
-            <Controller
-              control={control}
-              name="service_hours"
-              render={({ field }) => (
-                <Select
-                  label="Service Hours"
-                  icon={<Clock className="h-4 w-4" />}
-                  options={[
-                    { value: '4', label: '4 Hours' },
-                    { value: '6', label: '6 Hours' },
-                    { value: '8', label: '8 Hours' },
-                    { value: '12', label: '12 Hours' }
-                  ]}
-                  {...field}
-                />
-              )}
-            />
-          ) : (
-            <Input
-              label="Downtime (Days)"
-              type="number"
-              icon={<Clock className="h-4 w-4" />}
-              error={errors.downtime_days?.message}
-              readOnly
-              {...register('downtime_days')}
-            />
-          )}
+          <Controller
+            control={control}
+            name="downtime_period"
+            render={({ field }) => (
+              <Select
+                label="Downtime Period"
+                icon={<Clock className="h-4 w-4" />}
+                options={[
+                  { value: '2hr', label: '2 Hours' },
+                  { value: '4hr', label: '4 Hours' },
+                  { value: '6hr', label: '6 Hours' },
+                  { value: '12hr', label: '12 Hours' },
+                  { value: '1day', label: '1 Day' },
+                  { value: '2days', label: '2 Days' },
+                  { value: '3days', label: '3 Days' },
+                  { value: '1week', label: '1 Week' },
+                  { value: 'custom', label: 'Custom' }
+                ]}
+                {...field}
+              />
+            )}
+          />
         </div>
 
         <Input
