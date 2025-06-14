@@ -5,7 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
-import { User, Phone, Mail, Calendar, FileText, IdCard, Truck, Upload } from 'lucide-react';
+import { User, Phone, Mail, Calendar, FileText, Car as IdCard, Truck, Upload } from 'lucide-react';
 import { getVehicles } from '../../utils/storage';
 
 interface DriverFormProps {
