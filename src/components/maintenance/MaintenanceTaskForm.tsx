@@ -44,26 +44,26 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       task_type: 'general_scheduled_service',
       priority: 'medium',
       status: 'open',
-      estimatedCost: 0,
-      partsRequired: [],
-      startDate: new Date().toISOString().split('T')[0],
+      estimated_cost: 0,
+      parts_required: [],
+      start_date: new Date().toISOString().split('T')[0],
       title: [],
-      warrantyClaimed: false,
-      partReplaced: false,
-      billGroup1: 0,
-      billGroup2: 0,
+      warranty_claimed: false,
+      part_replaced: false,
+      bill_group1: 0,
+      bill_group2: 0,
       ...initialData
     }
   });
 
-  const startDate = watch('startDate');
-  const endDate = watch('endDate');
-  const vehicleId = watch('vehicleId');
-  const odometerReading = watch('odometerReading');
+  const startDate = watch('start_date');
+  const endDate = watch('end_date');
+  const vehicleId = watch('vehicle_id');
+  const odometerReading = watch('odometer_reading');
   const taskType = watch('task_type');
-  const partReplaced = watch('partReplaced');
-  const billGroup1 = watch('billGroup1') || 0;
-  const billGroup2 = watch('billGroup2') || 0;
+  const partReplaced = watch('part_replaced');
+  const billGroup1 = watch('bill_group1') || 0;
+  const billGroup2 = watch('bill_group2') || 0;
   const title = watch('title');
 
   useEffect(() => {
@@ -72,7 +72,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       const end = new Date(endDate);
       const diffTime = Math.abs(end.getTime() - start.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setValue('downtimeDays', diffDays);
+      setValue('downtime_days', diffDays);
     }
   }, [startDate, endDate, setValue]);
 
@@ -80,14 +80,14 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     if (vehicleId && odometerReading) {
       const prediction = predictNextService(vehicleId, odometerReading);
       if (prediction) {
-        setValue('nextPredictedService', prediction);
+        setValue('next_predicted_service', prediction);
       }
     }
   }, [vehicleId, odometerReading, setValue]);
 
   useEffect(() => {
     const total = billGroup1 + (showGroupUp ? billGroup2 : 0);
-    setValue('totalBillAmount', total);
+    setValue('total_bill_amount', total);
   }, [billGroup1, billGroup2, showGroupUp, setValue]);
 
   useEffect(() => {
@@ -115,7 +115,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Controller
             control={control}
-            name="vehicleId"
+            name="vehicle_id"
             rules={{ required: 'Vehicle is required' }}
             render={({ field }) => (
               <Select
@@ -125,7 +125,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   value: vehicle.id,
                   label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
                 }))}
-                error={errors.vehicleId?.message}
+                error={errors.vehicle_id?.message}
                 required
                 {...field}
               />
@@ -135,14 +135,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           <Controller
             control={control}
             name="task_type"
-            rules={{ required: 'Maintenance type is required' }}
+            rules={{ required: 'Task type is required' }}
             render={({ field }) => (
               <Select
                 label="Maintenance Type"
-                placeholder="Select maintenance type"
                 icon={<Tool className="h-4 w-4" />}
                 options={[
-                  { value: '', label: 'Select maintenance type', disabled: true },
                   { value: 'general_scheduled_service', label: 'General Scheduled Service' },
                   { value: 'wear_and_tear_replacement_repairs', label: 'Wear and Tear / Replacement Repairs' },
                   { value: 'accidental', label: 'Accidental' },
@@ -184,7 +182,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <Controller
           control={control}
-          name="vendorId"
+          name="vendor_id"
           rules={{ required: 'Service vendor is required' }}
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <VendorSelector
@@ -197,7 +195,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <Controller
           control={control}
-          name="garageId"
+          name="garage_id"
           rules={{ required: 'Service location is required' }}
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <GarageSelector
@@ -240,7 +238,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <div className="mt-4">
               <Controller
                 control={control}
-                name="partReplaced"
+                name="part_replaced"
                 render={({ field: { value, onChange } }) => (
                   <Checkbox
                     label="Parts Replaced?"
@@ -258,23 +256,23 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-white rounded-lg border border-gray-200">
                 <Input
                   label="Part Name"
-                  {...register('partDetails.name', {
+                  {...register('part_details.name', {
                     required: partReplaced ? 'Part name is required' : false
                   })}
-                  error={errors.partDetails?.name?.message}
+                  error={errors.part_details?.name?.message}
                 />
 
                 <Input
                   label="Serial Number"
-                  {...register('partDetails.serialNumber', {
+                  {...register('part_details.serial_number', {
                     required: partReplaced ? 'Serial number is required' : false
                   })}
-                  error={errors.partDetails?.serialNumber?.message}
+                  error={errors.part_details?.serial_number?.message}
                 />
 
                 <Controller
                   control={control}
-                  name="partDetails.brand"
+                  name="part_details.brand"
                   rules={{ required: partReplaced ? 'Brand is required' : false }}
                   render={({ field }) => (
                     <Select
@@ -283,7 +281,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                         value: brand,
                         label: brand
                       }))}
-                      error={errors.partDetails?.brand?.message}
+                      error={errors.part_details?.brand?.message}
                       {...field}
                     />
                   )}
@@ -292,7 +290,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 <Input
                   label="Warranty Expiry Date"
                   type="date"
-                  {...register('partDetails.warrantyExpiryDate')}
+                  {...register('part_details.warranty_expiry_date')}
                 />
               </div>
             )}
@@ -302,11 +300,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 label="Cost (₹)"
                 type="number"
                 icon={<IndianRupee className="h-4 w-4" />}
-                {...register('billGroup1', {
+                {...register('bill_group1', {
                   valueAsNumber: true,
                   min: { value: 0, message: 'Cost must be positive' }
                 })}
-                error={errors.billGroup1?.message}
+                error={errors.bill_group1?.message}
               />
             </div>
           </div>
@@ -316,7 +314,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               <h4 className="font-medium text-gray-700 mb-4">Service Group 2</h4>
               <Controller
                 control={control}
-                name="titleGroup2"
+                name="title_group2"
                 render={({ field: { value, onChange }, fieldState: { error } }) => (
                   <MaintenanceSelector
                     selectedItems={value || []}
@@ -332,11 +330,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   label="Cost (₹)"
                   type="number"
                   icon={<IndianRupee className="h-4 w-4" />}
-                  {...register('billGroup2', {
+                  {...register('bill_group2', {
                     valueAsNumber: true,
                     min: { value: 0, message: 'Cost must be positive' }
                   })}
-                  error={errors.billGroup2?.message}
+                  error={errors.bill_group2?.message}
                 />
               </div>
             </div>
@@ -365,7 +363,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <textarea
               className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Detailed description of the complaint or issue..."
-              {...register('complaintDescription')}
+              {...register('complaint_description')}
             />
           </div>
 
@@ -376,7 +374,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <textarea
               className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Summary of the resolution or fix applied..."
-              {...register('resolutionSummary')}
+              {...register('resolution_summary')}
             />
           </div>
         </div>
@@ -391,23 +389,23 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             label="Start Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
-            error={errors.startDate?.message}
+            error={errors.start_date?.message}
             required
-            {...register('startDate', { required: 'Start date is required' })}
+            {...register('start_date', { required: 'Start date is required' })}
           />
 
           <Input
             label="End Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
-            error={errors.endDate?.message}
-            {...register('endDate')}
+            error={errors.end_date?.message}
+            {...register('end_date')}
           />
 
           {startDate && endDate && startDate === endDate ? (
             <Controller
               control={control}
-              name="serviceHours"
+              name="service_hours"
               render={({ field }) => (
                 <Select
                   label="Service Hours"
@@ -427,9 +425,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               label="Downtime (Days)"
               type="number"
               icon={<Clock className="h-4 w-4" />}
-              error={errors.downtimeDays?.message}
+              error={errors.downtime_days?.message}
               readOnly
-              {...register('downtimeDays')}
+              {...register('downtime_days')}
             />
           )}
         </div>
@@ -438,9 +436,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           label="Odometer Reading"
           type="number"
           icon={<Tool className="h-4 w-4" />}
-          error={errors.odometerReading?.message}
+          error={errors.odometer_reading?.message}
           required
-          {...register('odometerReading', {
+          {...register('odometer_reading', {
             required: 'Odometer reading is required',
             valueAsNumber: true,
             min: { value: 0, message: 'Odometer reading must be positive' }
@@ -490,14 +488,14 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               label="Next Service Date"
               type="date"
               icon={<Calendar className="h-4 w-4" />}
-              {...register('nextServiceDue.date')}
+              {...register('next_service_due.date')}
             />
 
             <Input
               label="Next Service Odometer"
               type="number"
               icon={<Tool className="h-4 w-4" />}
-              {...register('nextServiceDue.odometer', {
+              {...register('next_service_due.odometer', {
                 valueAsNumber: true,
                 min: { value: odometerReading || 0, message: 'Must be greater than current reading' }
               })}
