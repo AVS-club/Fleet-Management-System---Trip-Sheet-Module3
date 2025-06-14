@@ -14,6 +14,7 @@ import MaintenanceAuditLog from './MaintenanceAuditLog';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
+import { supabase } from '../../utils/supabaseClient';
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -65,6 +66,46 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const billGroup1 = watch('bill_group1') || 0;
   const billGroup2 = watch('bill_group2') || 0;
   const title = watch('title');
+
+  // Auto-fill odometer reading based on vehicle and start date
+  useEffect(() => {
+    const fetchLastOdometer = async () => {
+      if (!vehicleId || !startDate) return;
+      
+      try {
+        // Query the trips table to find the latest trip for this vehicle before the start date
+        const { data, error } = await supabase
+          .from('trips')
+          .select('end_km')
+          .eq('vehicle_id', vehicleId)
+          .lt('trip_end_date', startDate)
+          .order('trip_end_date', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error('Error fetching last odometer reading:', error);
+          return;
+        }
+        
+        if (data && data.length > 0 && data[0].end_km) {
+          // Set the odometer reading to the end_km of the last trip
+          setValue('odometer_reading', data[0].end_km);
+          console.log(`Auto-filled odometer reading with ${data[0].end_km} from previous trip`);
+        } else {
+          // If no trips found, try to use the current_odometer from the vehicle
+          const vehicle = vehicles.find(v => v.id === vehicleId);
+          if (vehicle && vehicle.current_odometer) {
+            setValue('odometer_reading', vehicle.current_odometer);
+            console.log(`Auto-filled odometer reading with ${vehicle.current_odometer} from vehicle data`);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch last odometer reading:', err);
+      }
+    };
+    
+    fetchLastOdometer();
+  }, [vehicleId, startDate, setValue, vehicles]);
 
   useEffect(() => {
     if (startDate && endDate) {
