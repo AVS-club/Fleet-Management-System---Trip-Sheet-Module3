@@ -11,7 +11,8 @@ import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
-import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip } from 'lucide-react';
+import SpeechToTextButton from '../ui/SpeechToTextButton';
+import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -73,6 +74,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const title = watch('title');
   const serviceGroupsWatch = watch('service_groups');
   const downtimePeriod = watch('downtime_period');
+  
+  // Get current values of the text areas for speech-to-text functionality
+  const complaintDescription = watch('complaint_description') || '';
+  const resolutionSummary = watch('resolution_summary') || '';
+
+  // Handle speech-to-text transcripts
+  const handleComplaintTranscript = (text: string) => {
+    setValue('complaint_description', complaintDescription ? `${complaintDescription} ${text}` : text);
+  };
+
+  const handleResolutionTranscript = (text: string) => {
+    setValue('resolution_summary', resolutionSummary ? `${resolutionSummary} ${text}` : text);
+  };
 
   // Calculate end date based on start date and downtime period
   useEffect(() => {
@@ -396,9 +410,30 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Complaint Description
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Complaint Description
+              </label>
+              <div className="flex">
+                <SpeechToTextButton 
+                  onTranscript={handleComplaintTranscript} 
+                  language="hi-IN" 
+                  title="Dictate in Hindi"
+                />
+                <SpeechToTextButton 
+                  onTranscript={handleComplaintTranscript} 
+                  language="mr-IN" 
+                  title="Dictate in Marathi"
+                  buttonClassName="ml-2"
+                />
+                <SpeechToTextButton 
+                  onTranscript={handleComplaintTranscript} 
+                  language="en-IN" 
+                  title="Dictate in English"
+                  buttonClassName="ml-2"
+                />
+              </div>
+            </div>
             <textarea
               className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Detailed description of the complaint or issue..."
@@ -407,9 +442,30 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Resolution Summary
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Resolution Summary
+              </label>
+              <div className="flex">
+                <SpeechToTextButton 
+                  onTranscript={handleResolutionTranscript} 
+                  language="hi-IN" 
+                  title="Dictate in Hindi"
+                />
+                <SpeechToTextButton 
+                  onTranscript={handleResolutionTranscript} 
+                  language="mr-IN" 
+                  title="Dictate in Marathi"
+                  buttonClassName="ml-2"
+                />
+                <SpeechToTextButton 
+                  onTranscript={handleResolutionTranscript} 
+                  language="en-IN" 
+                  title="Dictate in English"
+                  buttonClassName="ml-2"
+                />
+              </div>
+            </div>
             <textarea
               className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Summary of the resolution or fix applied..."
