@@ -33,6 +33,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   isSubmitting
 }) => {
   const [setReminder, setSetReminder] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<{
     averageReplacementKm?: number;
     averageReplacementDays?: number;
@@ -89,6 +90,29 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const handleResolutionTranscript = (text: string) => {
     setValue('resolution_summary', resolutionSummary ? `${resolutionSummary} ${text}` : text);
   };
+
+  // Fetch audit logs asynchronously
+  useEffect(() => {
+    const fetchAuditLogs = async () => {
+      if (initialData?.id) {
+        try {
+          const logs = await getAuditLogs();
+          if (Array.isArray(logs)) {
+            setAuditLogs(logs.filter(log => log.taskId === initialData.id));
+          } else {
+            setAuditLogs([]);
+          }
+        } catch (error) {
+          console.error('Error fetching audit logs:', error);
+          setAuditLogs([]);
+        }
+      } else {
+        setAuditLogs([]);
+      }
+    };
+
+    fetchAuditLogs();
+  }, [initialData?.id]);
 
   // Calculate end date based on start date and downtime period
   useEffect(() => {
@@ -208,9 +232,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       }
     }
   }, [vehicleId, odometerReading, title]);
-
-  // Get audit logs for this task
-  const auditLogs = initialData?.id ? getAuditLogs().filter(log => log.taskId === initialData.id) : [];
 
   const handleFormSubmit = (data: any) => {
     try {
