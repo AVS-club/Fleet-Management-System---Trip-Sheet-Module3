@@ -9,7 +9,6 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
-import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
@@ -228,19 +227,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           render={({ field: { value, onChange }, fieldState: { error } }) => (
             <VendorSelector
               selectedVendor={value}
-              onChange={onChange}
-              error={error?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
-          name="garage_id"
-          rules={{ required: 'Service location is required' }}
-          render={({ field: { value, onChange }, fieldState: { error } }) => (
-            <GarageSelector
-              selectedGarage={value}
               onChange={onChange}
               error={error?.message}
             />
