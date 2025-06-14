@@ -72,6 +72,20 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
   // Extract service groups to handle separately
   const { service_groups, ...taskData } = task as any;
 
+  // Make sure start_date is not empty string
+  if (taskData.start_date === '') {
+    console.error('Empty start_date detected in createTask');
+    throw new Error('Start date cannot be empty');
+  }
+
+  // Make sure required fields are present
+  if (!taskData.garage_id) {
+    console.error('Missing garage_id in createTask');
+    throw new Error('Garage ID is required');
+  }
+
+  console.log("Creating task with data:", JSON.stringify(taskData, null, 2));
+
   // Insert the main task
   const { data, error } = await supabase
     .from('maintenance_tasks')
@@ -85,7 +99,7 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
 
   if (error) {
     console.error('Error creating maintenance task:', error);
-    return null;
+    throw new Error(`Error creating maintenance task: ${error.message}`);
   }
 
   // Create audit log for task creation
@@ -141,6 +155,9 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
 };
 
 export const updateTask = async (id: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask | null> => {
+  // Debug log
+  console.log("updateTask called with id:", id, "and updates:", JSON.stringify(updates, null, 2));
+  
   // Extract service groups to handle separately
   const { service_groups, ...updateData } = updates as any;
 
@@ -156,7 +173,19 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
     return null;
   }
 
+  // Make sure start_date is not empty string
+  if (updateData.start_date === '') {
+    console.error('Empty start_date detected in updateTask');
+    throw new Error('Start date cannot be empty');
+  }
+
+  // Make sure required fields are preserved
+  if (updateData.garage_id === undefined && oldTask.garage_id) {
+    updateData.garage_id = oldTask.garage_id;
+  }
+
   // Update the task
+  console.log("Sending update:", JSON.stringify(updateData, null, 2));
   const { data: updatedTask, error } = await supabase
     .from('maintenance_tasks')
     .update({
@@ -169,7 +198,7 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
 
   if (error) {
     console.error('Error updating maintenance task:', error);
-    return null;
+    throw new Error(`Error updating maintenance task: ${error.message}`);
   }
 
   // Create audit log for changes
@@ -261,17 +290,11 @@ export const deleteTask = async (id: string): Promise<boolean> => {
 };
 
 // Audit log operations
-export const getAuditLogs = async (taskId?: string): Promise<MaintenanceAuditLog[]> => {
-  let query = supabase
+export const getAuditLogs = async (): Promise<MaintenanceAuditLog[]> => {
+  const { data, error } = await supabase
     .from('maintenance_audit_logs')
     .select('*')
     .order('timestamp', { ascending: false });
-
-  if (taskId) {
-    query = query.eq('task_id', taskId);
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching audit logs:', error);
@@ -420,13 +443,12 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   // Calculate expenditure by vendor (using service groups)
   const expenditure_by_vendor = Array.isArray(serviceGroups)
     ? serviceGroups.reduce((acc, group) => {
-        acc[group.vendor_id] = (acc[group.vendor_id] || 0) + (group.cost || 0);
+        if (group.vendor_id) {
+          acc[group.vendor_id] = (acc[group.vendor_id] || 0) + (group.cost || 0);
+        }
         return acc;
       }, {} as Record<string, number>)
-    : tasks.reduce((acc, task) => {
-        acc[task.vendor_id] = (acc[task.vendor_id] || 0) + (task.actual_cost || task.estimated_cost || 0);
-        return acc;
-      }, {} as Record<string, number>);
+    : {};
   
   // Calculate KM reading differences
   const km_reading_difference = tasks.reduce((acc, task) => {

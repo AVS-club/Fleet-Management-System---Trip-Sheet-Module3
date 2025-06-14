@@ -169,6 +169,13 @@ const MaintenanceTaskPage: React.FC = () => {
         return;
       }
 
+      // Ensure odometer_reading is provided
+      if (!formData.odometer_reading) {
+        toast.error("Odometer reading is required");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
       
@@ -191,7 +198,40 @@ const MaintenanceTaskPage: React.FC = () => {
           service_groups: updatedServiceGroups
         };
 
+        // Debug logging - log the payload before submission
+        console.log("Updating task with:", JSON.stringify(updatePayload, null, 2));
+
         try {
+          // First try direct Supabase update for debugging
+          const result = await supabase
+            .from('maintenance_tasks')
+            .update({
+              vehicle_id: updatePayload.vehicle_id,
+              task_type: updatePayload.task_type,
+              title: updatePayload.title,
+              status: updatePayload.status,
+              priority: updatePayload.priority,
+              garage_id: updatePayload.garage_id,
+              start_date: updatePayload.start_date,
+              end_date: updatePayload.end_date,
+              odometer_reading: updatePayload.odometer_reading,
+              downtime_days: updatePayload.downtime_days || 0,
+              complaint_description: updatePayload.complaint_description,
+              resolution_summary: updatePayload.resolution_summary,
+              estimated_cost: updatePayload.estimated_cost,
+              actual_cost: updatePayload.actual_cost,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (result.error) {
+            console.error("Update error:", result.error);
+            toast.error("Error updating maintenance task: " + result.error.message);
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Now try our utility function
           const updatedTask = await updateTask(id, updatePayload);
           if (updatedTask) {
             setTask(updatedTask);
