@@ -16,6 +16,7 @@ import AdminTripsPage from './pages/admin/AdminTripsPage';
 import AlertSettingsPage from './pages/admin/AlertSettingsPage';
 import MaintenanceTasksAdmin from './pages/admin/MaintenanceTasksAdmin';
 import TripLocationsPage from './pages/admin/TripLocationsPage';
+import RemindersPage from './pages/admin/RemindersPage';
 import VehiclesPage from './pages/VehiclesPage';
 import VehiclePage from './pages/VehiclePage';
 import DriversPage from './pages/DriversPage';
@@ -91,6 +92,7 @@ function App() {
             <Route path="/admin/alert-settings" element={<AlertSettingsPage />} />
             <Route path="/admin/maintenance-tasks" element={<MaintenanceTasksAdmin />} />
             <Route path="/admin/trip-locations" element={<TripLocationsPage />} />
+            <Route path="/admin/reminders" element={<RemindersPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/:id" element={<VehiclePage />} />
             <Route path="/drivers" element={<DriversPage />} />

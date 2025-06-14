@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText } from 'lucide-react';
+import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '../../types';
@@ -194,6 +194,23 @@ const AdminDashboard: React.FC = () => {
                     <h3 className="text-lg font-medium text-gray-900">Alert Settings</h3>
                     <p className="mt-1 text-sm text-gray-500">
                       Configure alert rules and notifications
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/reminders"
+                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-4">
+                  <div className="bg-primary-50 p-3 rounded-lg">
+                    <Calendar className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Reminders</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Configure reminder contacts and timing rules
                     </p>
                   </div>
                 </div>
