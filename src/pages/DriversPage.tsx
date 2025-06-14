@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getDrivers, getTrips, createDriver, getVehicle, getDriverStats } from '../utils/storage';
-import { User, Truck, MapPin, PlusCircle, Phone, Mail, IdCard, Calendar, Edit2, FileText, AlertTriangle } from 'lucide-react';
+import { User, Truck, MapPin, PlusCircle, Phone, Mail, Car as IdCard, Calendar, Edit2, FileText, AlertTriangle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverForm from '../components/drivers/DriverForm';
 import { Driver, Trip, Vehicle } from '../types';
