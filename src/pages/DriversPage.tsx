@@ -1,30 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { getDrivers, getTrips, createDriver, getVehicle, getDriverStats } from '../utils/storage';
-import { User, Truck, MapPin, PlusCircle, Phone, Mail, Car as IdCard, Calendar, Edit2, FileText, AlertTriangle } from 'lucide-react';
+import { getDrivers, getTrips, createDriver } from '../utils/storage'; // Removed getVehicle as it's not used
+import { User, Truck, MapPin, PlusCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverForm from '../components/drivers/DriverForm';
-import { Driver, Trip, Vehicle } from '../types';
-import { format, isBefore, differenceInDays } from 'date-fns';
-import { toast } from 'react-toastify';
-
-interface DriverWithStats extends Driver {
-  stats: {
-    totalTrips: number;
-    totalDistance: number;
-    lastTripDate?: string;
-    averageMileage?: number;
-  };
-  assignedVehicle?: {
-    id: string;
-    registrationNumber: string;
-  };
-}
+import { Driver, Trip } from '../types'; // Added import for Driver and Trip types
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
-  const [drivers, setDrivers] = useState<DriverWithStats[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingDriver, setIsAddingDriver] = useState(false);
@@ -38,40 +23,10 @@ const DriversPage: React.FC = () => {
           getDrivers(),
           getTrips()
         ]);
-        
-        // Fetch stats for each driver
-        const driversWithStatsPromises = Array.isArray(driversData) ? driversData.map(async (driver) => {
-          // Get driver stats
-          const stats = await getDriverStats(driver.id);
-          
-          // Get assigned vehicle if any
-          let assignedVehicle;
-          if (driver.primary_vehicle_id) {
-            const vehicle = await getVehicle(driver.primary_vehicle_id);
-            if (vehicle) {
-              assignedVehicle = {
-                id: vehicle.id,
-                registrationNumber: vehicle.registration_number
-              };
-            }
-          }
-          
-          return {
-            ...driver,
-            stats: stats || { 
-              totalTrips: 0, 
-              totalDistance: 0 
-            },
-            assignedVehicle
-          };
-        }) : [];
-        
-        const driversWithStats = await Promise.all(driversWithStatsPromises);
-        setDrivers(driversWithStats);
+        setDrivers(Array.isArray(driversData) ? driversData : []);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
       } catch (error) {
         console.error('Error fetching drivers data:', error);
-        toast.error('Failed to load drivers data');
       } finally {
         setLoading(false);
       }
@@ -80,57 +35,33 @@ const DriversPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleAddDriver = async (driverData: Omit<Driver, 'id'>, documents: any) => {
+  const handleAddDriver = async (data: Omit<Driver, 'id'>) => {
     setIsSubmitting(true);
     try {
-      const newDriver = await createDriver(driverData, documents);
-      
+      // Handle file uploads here in a real app (e.g., to Supabase Storage)
+      // For 'photo' and 'licenseDocument', if they are File objects,
+      // they would need to be uploaded and their URLs stored in the 'data' object
+      // before calling createDriver.
+      // This example assumes 'photo' and 'licenseDocument' in 'data' are already URLs or string paths.
+
+      const newDriver = await createDriver(data);
       if (newDriver) {
-        // Add new driver to state with default stats
-        const driverWithStats: DriverWithStats = {
-          ...newDriver,
-          stats: {
-            totalTrips: 0,
-            totalDistance: 0
-          }
-        };
-        
-        // If a vehicle was assigned, fetch it
-        if (newDriver.primary_vehicle_id) {
-          const vehicle = await getVehicle(newDriver.primary_vehicle_id);
-          if (vehicle) {
-            driverWithStats.assignedVehicle = {
-              id: vehicle.id,
-              registrationNumber: vehicle.registration_number
-            };
-          }
-        }
-        
-        setDrivers(prev => [driverWithStats, ...prev]);
+        // Add the new driver to the local state for immediate UI update
+        setDrivers((prevDrivers: Driver[]) => [newDriver, ...prevDrivers]);
         setIsAddingDriver(false);
-        toast.success('Driver added successfully');
+        // Optionally, show a success message
+        navigate(`/drivers/${newDriver.id}`); // Navigate to the new driver's detail page
       } else {
-        toast.error('Failed to add driver');
+        // Handle case where driver creation failed (e.g., show an error message to the user)
+        console.error('Failed to create driver: createDriver returned null or undefined.');
+        // alert('Failed to add driver. Please try again.'); // Example user feedback
       }
     } catch (error) {
       console.error('Error adding driver:', error);
-      toast.error('Error adding driver');
+      // alert(`An error occurred: ${error.message}`); // Example user feedback
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  // Helper function to check if license is expired
-  const isLicenseExpired = (expiryDate: string | undefined) => {
-    if (!expiryDate) return false;
-    return isBefore(new Date(expiryDate), new Date());
-  };
-  
-  // Helper function to check if license is expiring soon
-  const isLicenseExpiringSoon = (expiryDate: string | undefined) => {
-    if (!expiryDate) return false;
-    const daysUntilExpiry = differenceInDays(new Date(expiryDate), new Date());
-    return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
   };
 
   return (
@@ -181,88 +112,49 @@ const DriversPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {drivers.map((driver: DriverWithStats) => {
-            const licenseExpired = isLicenseExpired(driver.license_expiry_date);
-            const licenseExpiringSoon = isLicenseExpiringSoon(driver.license_expiry_date);
-            
+          {drivers.map((driver: Driver) => {
+            const driverTrips = Array.isArray(trips) ? trips.filter(trip => trip.driver_id === driver.id) : [];
+            const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+            // Note: This would need to be async in a real app
+
             return (
               <div
                 key={driver.id}
-                className="bg-white rounded-lg shadow-sm p-6 relative cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/drivers/${driver.id}`)}
               >
-                {/* Edit button (shows on hover) */}
-                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={<Edit2 className="h-4 w-4" />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/drivers/${driver.id}`);
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </div>
-                
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{driver.name}</h3>
-                    <div className="flex items-center space-x-2">
-                      <IdCard className="h-4 w-4 text-gray-400" />
-                      <p className="text-sm text-gray-500">{driver.license_number}</p>
-                    </div>
+                    <p className="text-sm text-gray-500">{driver.license_number}</p>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
-                      driver.status === 'active'
-                        ? 'bg-success-100 text-success-800'
-                        : driver.status === 'onLeave'
-                        ? 'bg-warning-100 text-warning-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {driver.status.replace('_', ' ')}
-                    </span>
-                    
-                    {licenseExpired && (
-                      <span className="mt-2 px-2 py-1 text-xs font-medium rounded-full bg-error-100 text-error-800 flex items-center">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        License Expired
-                      </span>
-                    )}
-                    
-                    {!licenseExpired && licenseExpiringSoon && (
-                      <span className="mt-2 px-2 py-1 text-xs font-medium rounded-full bg-warning-100 text-warning-800 flex items-center">
-                        <AlertTriangle className="h-3 w-3 mr-1" />
-                        License Expiring Soon
-                      </span>
-                    )}
-                  </div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
+                    driver.status === 'active'
+                      ? 'bg-success-100 text-success-800'
+                      : driver.status === 'onLeave'
+                      ? 'bg-warning-100 text-warning-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {driver.status.replace('_', ' ')}
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm text-gray-500">Experience</span>
-                    <p className="font-medium">{driver.experience_years} years</p>
+                    <p className="font-medium">{driver.experience} years</p>
                   </div>
                   <div>
                     <span className="text-sm text-gray-500">Join Date</span>
-                    <p className="font-medium">{format(new Date(driver.join_date), 'dd/MM/yyyy')}</p>
+                    <p className="font-medium">{new Date(driver.join_date).toLocaleDateString()}</p>
                   </div>
                   <div>
                     <span className="text-sm text-gray-500">Contact</span>
-                    <div className="flex items-center">
-                      <Phone className="h-3 w-3 text-gray-400 mr-1" />
-                      <p className="font-medium">{driver.contact_number}</p>
-                    </div>
+                    <p className="font-medium">{driver.contact_number}</p>
                   </div>
                   <div>
                     <span className="text-sm text-gray-500">Email</span>
-                    <div className="flex items-center">
-                      <Mail className="h-3 w-3 text-gray-400 mr-1" />
-                      <p className="font-medium">{driver.email || '-'}</p>
-                    </div>
+                    <p className="font-medium">{driver.email || '-'}</p>
                   </div>
                 </div>
 
@@ -271,35 +163,25 @@ const DriversPage: React.FC = () => {
                     <div className="text-center">
                       <User className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Trips</span>
-                      <p className="font-medium">{driver.stats.totalTrips}</p>
+                      <p className="font-medium">{driverTrips.length}</p>
                     </div>
                     <div className="text-center">
                       <MapPin className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Distance</span>
-                      <p className="font-medium">{driver.stats.totalDistance.toLocaleString()} km</p>
+                      <p className="font-medium">{totalDistance.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Vehicle</span>
-                      <p className="font-medium">{driver.assignedVehicle ? driver.assignedVehicle.registrationNumber : '-'}</p>
+                      <p className="font-medium">{'-'}</p>
                     </div>
                   </div>
                 </div>
-                
-                {driver.driver_photo_url && (
-                  <div className="absolute bottom-0 left-0 w-full h-1 bg-primary-500 opacity-50"></div>
-                )}
-                
-                {driver.license_doc_url && (
-                  <div className="absolute top-0 left-6 -mt-1">
-                    <FileText className="h-4 w-4 text-primary-500" />
-                  </div>
-                )}
               </div>
             );
           })}
-        </div>)
-      )}
+        </div>
+      ))}
     </Layout>
   );
 };

@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
-import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, getTrips, createDestination, getVehicle, getDriver } from '../../utils/storage';
+import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, getTrips, createDestination, getVehicle } from '../../utils/storage';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat } from 'lucide-react';
 import Button from '../ui/Button';
@@ -29,7 +29,6 @@ const TripForm: React.FC<TripFormProps> = ({
   isSubmitting = false
 }) => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | undefined>();
-  const [selectedDriver, setSelectedDriver] = useState<Driver | undefined>();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -185,18 +184,7 @@ const TripForm: React.FC<TripFormProps> = ({
           
           // Auto-fill driver if vehicle has a primary driver
           if (vehicle && vehicle.primary_driver_id) {
-            // Check if the driver is already set from initialData
-            const currentDriverId = watch('driver_id');
-            
-            // Only auto-fill if no driver is currently selected
-            if (!currentDriverId) {
-              // Fetch the driver details
-              const driverData = await getDriver(vehicle.primary_driver_id);
-              if (driverData) {
-                setValue('driver_id', vehicle.primary_driver_id);
-                setSelectedDriver(driverData);
-              }
-            }
+            setValue('driver_id', vehicle.primary_driver_id);
           }
         } catch (error) {
           console.error('Error fetching vehicle data:', error);
@@ -205,7 +193,7 @@ const TripForm: React.FC<TripFormProps> = ({
       
       fetchVehicleData();
     }
-  }, [vehicleId, vehicles, refuelingDone, setValue, watch]);
+  }, [vehicleId, vehicles, refuelingDone, setValue]);
 
   useEffect(() => {
     if (tripStartDate && tripEndDate) {
@@ -390,9 +378,6 @@ const TripForm: React.FC<TripFormProps> = ({
               )}
               {distance && distance > 0 && (
                 <> This trip will add <span className="font-medium">{distance.toLocaleString()}</span> km.</>
-              )}
-              {selectedDriver && (
-                <> Driver <span className="font-medium">{selectedDriver.name}</span> is assigned to this vehicle.</>
               )}
             </>
           ) : (
