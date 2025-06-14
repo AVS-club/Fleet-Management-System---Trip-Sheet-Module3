@@ -70,9 +70,7 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
 
 export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>): Promise<MaintenanceTask | null> => {
   // Extract service groups to handle separately
-  const { service_groups, next_predicted_service, ...taskData } = task as any;
-
-  console.log("Creating maintenance task with data:", { ...taskData });
+  const { service_groups, ...taskData } = task as any;
 
   // Insert the main task
   const { data, error } = await supabase
@@ -92,15 +90,20 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
 
   // Create audit log for task creation
   if (data) {
-    await createAuditLog({
-      task_id: data.id,
-      changes: {
-        status: {
-          previousValue: null,
-          updatedValue: data.status
+    try {
+      await createAuditLog({
+        task_id: data.id,
+        changes: {
+          status: {
+            previousValue: null,
+            updatedValue: data.status
+          }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error creating audit log:', error);
+      // Continue even if audit log creation fails
+    }
 
     // Insert service groups if any
     if (service_groups && service_groups.length > 0) {
@@ -139,7 +142,7 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
 
 export const updateTask = async (id: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask | null> => {
   // Extract service groups to handle separately
-  const { service_groups, next_predicted_service, ...updateData } = updates as any;
+  const { service_groups, ...updateData } = updates as any;
 
   // Get the old task first to compare changes
   const { data: oldTask } = await supabase
@@ -182,10 +185,15 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
   });
 
   if (Object.keys(changes).length > 0) {
-    await createAuditLog({
-      task_id: id,
-      changes
-    });
+    try {
+      await createAuditLog({
+        task_id: id,
+        changes
+      });
+    } catch (error) {
+      console.error('Error creating audit log:', error);
+      // Continue even if audit log creation fails
+    }
   }
 
   // Handle service groups update
@@ -287,7 +295,7 @@ export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'time
 
   if (error) {
     console.error('Error creating audit log:', error);
-    return null;
+    throw new Error(`Error creating audit log: ${error.message}`);
   }
 
   return data;

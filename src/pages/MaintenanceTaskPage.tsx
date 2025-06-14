@@ -96,20 +96,6 @@ const MaintenanceTaskPage: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
-  // Function to clean up timestamp fields
-  const cleanTimestampFields = (data: any) => {
-    const timestampFields = ['start_date', 'end_date', 'warranty_expiry'];
-    const cleanedData = { ...data };
-
-    timestampFields.forEach(field => {
-      if (cleanedData[field] === '' || cleanedData[field] === undefined) {
-        cleanedData[field] = null;
-      }
-    });
-
-    return cleanedData;
-  };
-
   // Handle file uploads for service group bills
   const handleFileUploads = async (
     serviceGroups: Array<Partial<MaintenanceServiceGroup>>, 
@@ -124,6 +110,7 @@ const MaintenanceTaskPage: React.FC = () => {
       if (group.bill_file) {
         try {
           // Generate a unique file name
+          const tempId = `temp-${Date.now()}`;
           const fileExt = group.bill_file.name.split('.').pop();
           const fileName = `${taskId}-group${i}-${Date.now()}.${fileExt}`;
           const filePath = `maintenance-bills/${fileName}`;
@@ -162,45 +149,28 @@ const MaintenanceTaskPage: React.FC = () => {
 
   const handleSubmit = async (formData: MaintenanceFormData) => {
     setIsSubmitting(true);
-    
-    // Validate required fields
-    if (!formData.vehicle_id) {
-      toast.error("Vehicle selection is required");
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!formData.start_date) {
-      toast.error("Start date is required");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Log the complete data being submitted for debugging
-    console.log("Submitting maintenance task:", formData);
-
     try {
+      // Make sure required fields are present
+      if (!formData.vehicle_id) {
+        toast.error("Vehicle selection is required");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!formData.start_date || formData.start_date === "") {
+        toast.error("Start date is required");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      if (!formData.garage_id) {
+        toast.error("Service location is required");
+        setIsSubmitting(false);
+        return;
+      }
+
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
-      
-      // Clean up timestamp fields to prevent empty string errors
-      const cleanedTaskData = cleanTimestampFields(taskData);
-      
-      // Validate service groups if they exist
-      if (service_groups && service_groups.length > 0) {
-        for (const group of service_groups) {
-          if (!group.vendor_id) {
-            toast.error("Vendor selection is required for all service groups");
-            setIsSubmitting(false);
-            return;
-          }
-          if (!group.tasks || group.tasks.length === 0) {
-            toast.error("At least one task is required for each service group");
-            setIsSubmitting(false);
-            return;
-          }
-        }
-      }
       
       if (id && id !== 'new') {
         // Update existing task
@@ -217,59 +187,54 @@ const MaintenanceTaskPage: React.FC = () => {
         }
 
         const updatePayload: Partial<MaintenanceTask> = {
-          ...cleanedTaskData,
+          ...taskData,
           service_groups: updatedServiceGroups
         };
 
-        const updatedTask = await updateTask(id, updatePayload);
-        if (updatedTask) {
-          setTask(updatedTask);
-          toast.success('Maintenance task updated successfully');
-          navigate('/maintenance');
-        } else {
-          toast.error('Failed to update task - no data returned from API');
+        try {
+          const updatedTask = await updateTask(id, updatePayload);
+          if (updatedTask) {
+            setTask(updatedTask);
+            toast.success('Maintenance task updated successfully');
+            navigate('/maintenance');
+          } else {
+            toast.error('Failed to update task');
+          }
+        } catch (error) {
+          console.error('Error updating task:', error);
+          toast.error(`Error updating task: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       } else {
         // Create new task
         try {
-          console.log("Creating new maintenance task with:", cleanedTaskData);
-          const newTask = await createTask(cleanedTaskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
+          const newTask = await createTask(taskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
           
-          if (newTask && newTask.id) {
-            console.log("Task created successfully:", newTask);
-            
+          if (newTask) {
             // Handle service group file uploads
-            if (service_groups && service_groups.length > 0) {
-              try {
-                const updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
-                
-                // Update the task with the service groups
-                if (updatedServiceGroups.length > 0) {
-                  console.log("Updating task with service groups:", updatedServiceGroups);
-                  await updateTask(newTask.id, {
-                    service_groups: updatedServiceGroups
-                  });
-                }
-              } catch (groupError) {
-                console.error("Error handling service groups:", groupError);
-                toast.warning("Task created but there was an issue with service groups");
+            if (service_groups && service_groups.length > 0 && newTask.id) {
+              const updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
+              
+              // Update the task with the service groups
+              if (updatedServiceGroups.length > 0) {
+                await updateTask(newTask.id, {
+                  service_groups: updatedServiceGroups
+                });
               }
             }
             
             toast.success('Maintenance task created successfully');
             navigate('/maintenance');
           } else {
-            console.error("Task creation failed - no data returned");
-            toast.error('Failed to create task - no data returned from API');
+            toast.error('Task creation failed - no data returned');
           }
-        } catch (error: any) {
-          console.error('Error creating maintenance task:', error);
-          toast.error(`Error creating maintenance task: ${error.message || 'Unknown error'}`);
+        } catch (error) {
+          console.error('Error creating task:', error);
+          toast.error(`Error creating task: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error submitting maintenance task:', error);
-      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task`);
     } finally {
       setIsSubmitting(false);
     }
