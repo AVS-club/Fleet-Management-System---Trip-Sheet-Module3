@@ -1,5 +1,8 @@
 import { Trip, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../types'; 
 import { supabase } from './supabaseClient';
+import { calculateMileage } from './mileageCalculator';
+import { uploadDriverDocuments } from './fileStorage';
+import { generateLicenseExpiryAlert } from './aiAnalytics';
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) => 
@@ -20,7 +23,6 @@ const convertKeysToSnakeCase = (obj: Record<string, any>): Record<string, any> =
   
   return newObj;
 };
-import { calculateMileage } from './mileageCalculator';
 
 // Generate Trip ID based on vehicle registration
 const generateTripId = async (vehicleId: string): Promise<string> => {
@@ -302,38 +304,159 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
   return data;
 };
 
-export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver | null> => {
-  const { data, error } = await supabase
-    .from('drivers')
-    .insert(convertKeysToSnakeCase(driver))
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating driver:', error);
+export const createDriver = async (
+  driver: Omit<Driver, 'id'>, 
+  documents: {
+    photo?: File;
+    license?: File;
+    aadhar?: File;
+    police?: File;
+    bank?: File;
+  }
+): Promise<Driver | null> => {
+  try {
+    // First, upload any documents
+    const dummyId = 'temp_' + Date.now(); // Used for file path organization before we get the real ID
+    const docUrls = await uploadDriverDocuments(documents, dummyId);
+    
+    // Ensure license_number is uppercase and email is lowercase
+    const formattedDriver = {
+      ...driver,
+      license_number: driver.license_number?.toUpperCase(),
+      email: driver.email?.toLowerCase(),
+      ...docUrls
+    };
+    
+    // Insert driver data
+    const { data, error } = await supabase
+      .from('drivers')
+      .insert(convertKeysToSnakeCase(formattedDriver))
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error creating driver:', error);
+      return null;
+    }
+    
+    // If driver is assigned to a vehicle, update the vehicle's primary_driver_id
+    if (formattedDriver.primary_vehicle_id) {
+      await updateVehicle(formattedDriver.primary_vehicle_id, {
+        primary_driver_id: data.id
+      });
+    }
+    
+    // Move files from temporary path to permanent path
+    if (documents.photo || documents.license || documents.aadhar || documents.police || documents.bank) {
+      // In a real implementation, this would move files from the temp location to a permanent one
+      // For simplicity, we'll skip this step in this demo
+    }
+    
+    // Generate license expiry alert if needed
+    if (formattedDriver.license_expiry_date) {
+      const expiryDate = new Date(formattedDriver.license_expiry_date);
+      const now = new Date();
+      const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiry <= 30) {
+        await generateLicenseExpiryAlert(data.id, data.name, daysUntilExpiry);
+      }
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in createDriver:', error);
     return null;
   }
-
-  return data;
 };
 
-export const updateDriver = async (id: string, updatedDriver: Partial<Driver>): Promise<Driver | null> => {
-  const { data, error } = await supabase
-    .from('drivers')
-    .update({
+export const updateDriver = async (
+  id: string, 
+  updatedDriver: Partial<Driver>,
+  documents?: {
+    photo?: File;
+    license?: File;
+    aadhar?: File;
+    police?: File;
+    bank?: File;
+  }
+): Promise<Driver | null> => {
+  try {
+    // Upload any new documents
+    let docUrls = {};
+    if (documents && (documents.photo || documents.license || documents.aadhar || documents.police || documents.bank)) {
+      docUrls = await uploadDriverDocuments(documents, id);
+    }
+    
+    // Ensure license_number is uppercase and email is lowercase
+    const formattedDriver = {
       ...updatedDriver,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating driver:', error);
+      license_number: updatedDriver.license_number?.toUpperCase(),
+      email: updatedDriver.email?.toLowerCase(),
+      ...docUrls
+    };
+    
+    // Get old vehicle assignment
+    let oldVehicleId: string | null = null;
+    if (updatedDriver.primary_vehicle_id) {
+      const { data: oldData } = await supabase
+        .from('drivers')
+        .select('primary_vehicle_id')
+        .eq('id', id)
+        .single();
+        
+      oldVehicleId = oldData?.primary_vehicle_id || null;
+    }
+    
+    // Update driver data
+    const { data, error } = await supabase
+      .from('drivers')
+      .update({
+        ...formattedDriver,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating driver:', error);
+      return null;
+    }
+    
+    // Handle vehicle assignment changes
+    if (formattedDriver.primary_vehicle_id && formattedDriver.primary_vehicle_id !== oldVehicleId) {
+      // Unassign driver from old vehicle
+      if (oldVehicleId) {
+        await supabase
+          .from('vehicles')
+          .update({ primary_driver_id: null })
+          .eq('id', oldVehicleId)
+          .eq('primary_driver_id', id);
+      }
+      
+      // Assign driver to new vehicle
+      await updateVehicle(formattedDriver.primary_vehicle_id, {
+        primary_driver_id: id
+      });
+    }
+    
+    // Generate license expiry alert if needed
+    if (formattedDriver.license_expiry_date) {
+      const expiryDate = new Date(formattedDriver.license_expiry_date);
+      const now = new Date();
+      const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilExpiry <= 30) {
+        await generateLicenseExpiryAlert(id, data.name, daysUntilExpiry);
+      }
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in updateDriver:', error);
     return null;
   }
-
-  return data;
 };
 
 export const deleteDriver = async (id: string): Promise<boolean> => {
@@ -632,6 +755,51 @@ export const updateAllTripMileage = async (): Promise<void> => {
   }
 };
 
+// Get driver trips
+export const getDriverTrips = async (driverId: string): Promise<Trip[]> => {
+  const { data, error } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('driver_id', driverId)
+    .order('trip_start_date', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching driver trips:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Get driver stats
+export const getDriverStats = async (driverId: string) => {
+  const { data: trips } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('driver_id', driverId);
+
+  if (!trips || !Array.isArray(trips)) return { totalTrips: 0, totalDistance: 0 };
+
+  const totalTrips = trips.length;
+  const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+  const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
+  const averageKmpl = tripsWithKmpl.length > 0
+    ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
+    : undefined;
+  
+  // Get the most recent trip
+  const lastTrip = trips.length > 0 
+    ? trips.sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime())[0]
+    : null;
+    
+  return {
+    totalTrips,
+    totalDistance,
+    averageKmpl,
+    lastTripDate: lastTrip?.trip_end_date
+  };
+};
+
 export default {
   getTrips,
   getTrip,
@@ -654,5 +822,7 @@ export default {
   analyzeRoute,
   generateAlerts,
   getVehicleStats,
-  updateAllTripMileage
+  updateAllTripMileage,
+  getDriverTrips,
+  getDriverStats
 };
