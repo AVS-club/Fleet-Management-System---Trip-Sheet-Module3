@@ -47,7 +47,6 @@ export interface MaintenanceTask {
   description: string;
   status: 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  vendor_id: string;
   garage_id: string;
   estimated_cost: number;
   actual_cost?: number;
