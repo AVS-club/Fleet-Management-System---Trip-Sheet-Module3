@@ -2,71 +2,64 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import MaintenanceTaskForm from '../components/maintenance/MaintenanceTaskForm';
-import { Vehicle } from '../types'; // Vehicle can stay from ../types if it's in index.ts
-import { MaintenanceTask, MaintenanceBill } from '../types/maintenance'; // Correct import for MaintenanceTask and MaintenanceBill
-// Import createTask
-import { getTask, createTask, updateTask, deleteTask } from '../utils/maintenanceStorage';
+import { Vehicle, MaintenanceServiceGroup } from '../types'; 
+import { MaintenanceTask } from '../types/maintenance';
+import { getTask, createTask, updateTask, deleteTask, uploadServiceBill } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
+import { supabase } from '../utils/supabaseClient';
 import Button from '../components/ui/Button';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
-  // Fields from react-hook-form, typically camelCase
-  vehicleId?: string;
+  // Basic fields
+  vehicle_id?: string;
   task_type?: 'general_scheduled_service' | 'wear_and_tear_replacement_repairs' | 'accidental' | 'others';
-  title?: string[] | string; // Main title for service group 1
-  description?: string; // Overall task description
+  title?: string[] | string; 
+  description?: string;
   status?: 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework';
   priority?: 'low' | 'medium' | 'high' | 'critical';
-  vendorId?: string; // Form field for vendor ID
-  garageId?: string; // Form field for garage ID
-  estimatedCost?: number;
-  actualCost?: number;
+  garage_id?: string;
+  estimated_cost?: number;
+  actual_cost?: number;
   
-  billGroup1?: number; // Cost for service group 1
-  billGroup2?: number; // Cost for service group 2
-  titleGroup2?: string[] | string; // Title for service group 2
-
-  complaintDescription?: string;
-  resolutionSummary?: string;
+  // Service groups
+  service_groups?: Array<{
+    id?: string;
+    maintenance_task_id?: string;
+    vendor_id: string;
+    tasks: string[];
+    cost: number;
+    bill_url?: string;
+    bill_file?: File;
+    parts_replaced?: boolean;
+  }>;
   
-  warrantyExpiry?: string; // These might be part of partDetails in the final MaintenanceTask
-  warrantyStatus?: 'valid' | 'expired' | 'not_applicable';
-  warrantyClaimed?: boolean;
+  // Other fields
+  complaint_description?: string;
+  resolution_summary?: string;
+  warranty_expiry?: string;
+  warranty_status?: 'valid' | 'expired' | 'not_applicable';
+  warranty_claimed?: boolean;
+  part_replaced?: boolean;
   
-  partReplaced?: boolean;
-  partDetails?: { // This structure should match what the form provides
-    name?: string;
-    serialNumber?: string;
-    brand?: string;
-    warrantyExpiryDate?: string;
-  };
-  partsRequired?: MaintenanceTask['parts_required']; // Use the type from MaintenanceTask
+  start_date?: string;
+  end_date?: string;
+  service_hours?: '4' | '6' | '8' | '12';
+  downtime_days?: number;
+  odometer_reading?: number;
 
-  startDate?: string;
-  endDate?: string;
-  serviceHours?: '4' | '6' | '8' | '12';
-  downtimeDays?: number;
-  odometerReading?: number;
-  odometerImage?: string; // Assuming form might provide this
-
-  nextServiceDue?: { // Structure from form
+  next_service_due?: {
     date?: string;
     odometer?: number;
-    reminderSet?: boolean; // Form might use reminderSet
+    reminder_set?: boolean;
   };
-  // nextPredictedService is usually calculated, not directly from form
-  // overdueStatus is also calculated
 
-  attachments?: string[]; // Or File[] depending on FileUpload component
+  attachments?: File[] | string[];
   notes?: string;
-
-  // Include any other fields that MaintenanceTaskForm might submit
-  // This interface should accurately reflect the output of the form
+  category?: string;
 }
-
 
 const MaintenanceTaskPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -105,9 +98,62 @@ const MaintenanceTaskPage: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
+  // Handle file uploads for service group bills
+  const handleFileUploads = async (
+    serviceGroups: Array<Partial<MaintenanceServiceGroup>>, 
+    taskId: string
+  ): Promise<Array<Partial<MaintenanceServiceGroup>>> => {
+    if (!serviceGroups || serviceGroups.length === 0) return [];
+
+    const updatedGroups = [...serviceGroups];
+    
+    for (let i = 0; i < updatedGroups.length; i++) {
+      const group = updatedGroups[i];
+      if (group.bill_file) {
+        try {
+          // Generate a unique file name
+          const fileExt = group.bill_file.name.split('.').pop();
+          const fileName = `${taskId}-group${i}-${Date.now()}.${fileExt}`;
+          const filePath = `maintenance-bills/${fileName}`;
+          
+          // Upload the file
+          const { error: uploadError } = await supabase.storage
+            .from('maintenance')
+            .upload(filePath, group.bill_file, {
+              upsert: true,
+              contentType: group.bill_file.type
+            });
+            
+          if (uploadError) {
+            throw uploadError;
+          }
+          
+          // Get the public URL
+          const { data } = supabase.storage
+            .from('maintenance')
+            .getPublicUrl(filePath);
+          
+          // Update the group with the URL
+          updatedGroups[i].bill_url = data.publicUrl;
+          
+          // Remove the file object as we don't need it in the database
+          delete updatedGroups[i].bill_file;
+        } catch (error) {
+          console.error('Error uploading bill:', error);
+          toast.error(`Failed to upload bill for service group ${i+1}`);
+        }
+      }
+    }
+    
+    return updatedGroups;
+  };
+
   const handleSubmit = async (formData: MaintenanceFormData) => {
     setIsSubmitting(true);
     try {
+      // Extract service groups for separate handling
+      const { service_groups, ...taskData } = formData;
+      
       if (id && id !== 'new') {
         // Update existing task
         const confirmUpdate = window.confirm('Are you sure you want to update this maintenance task?');
@@ -116,151 +162,46 @@ const MaintenanceTaskPage: React.FC = () => {
           return;
         }
 
-        // Transform formData for update (camelCase from form to snake_case for DB)
+        // Handle service group file uploads
+        let updatedServiceGroups: Array<Partial<MaintenanceServiceGroup>> = [];
+        if (service_groups && service_groups.length > 0) {
+          updatedServiceGroups = await handleFileUploads(service_groups, id);
+        }
+
         const updatePayload: Partial<MaintenanceTask> = {
-          ...(formData.vehicleId && { vehicle_id: formData.vehicleId }),
-          ...(formData.task_type && { task_type: formData.task_type }),
-          ...(formData.title && { title: Array.isArray(formData.title) ? formData.title : [formData.title] }),
-          ...(formData.description && { description: formData.description }),
-          ...(formData.status && { status: formData.status }),
-          ...(formData.priority && { priority: formData.priority }),
-          ...(formData.vendorId && { vendor_id: formData.vendorId }),
-          ...(formData.garageId && { garage_id: formData.garageId }),
-          ...(formData.estimatedCost !== undefined && { estimated_cost: formData.estimatedCost }),
-          ...(formData.actualCost !== undefined && { actual_cost: formData.actualCost }),
-          ...(formData.complaintDescription && { complaint_description: formData.complaintDescription }),
-          ...(formData.resolutionSummary && { resolution_summary: formData.resolutionSummary }),
-          ...(formData.warrantyExpiry && { warranty_expiry: formData.warrantyExpiry }),
-          ...(formData.warrantyStatus && { warranty_status: formData.warrantyStatus }),
-          ...(typeof formData.warrantyClaimed === 'boolean' && { warranty_claimed: formData.warrantyClaimed }),
-          ...(typeof formData.partReplaced === 'boolean' && { part_replaced: formData.partReplaced }),
-          ...(formData.partDetails && { 
-            part_details: {
-              name: formData.partDetails.name || '',
-              serial_number: formData.partDetails.serialNumber || '',
-              brand: formData.partDetails.brand || '',
-              warranty_expiry_date: formData.partDetails.warrantyExpiryDate || ''
-            }
-          }),
-          ...(formData.partsRequired && { parts_required: formData.partsRequired }),
-          ...(formData.startDate && { start_date: formData.startDate }),
-          ...(formData.endDate && { end_date: formData.endDate }),
-          ...(formData.serviceHours && { service_hours: formData.serviceHours }),
-          ...(formData.downtimeDays !== undefined && { downtime_days: formData.downtimeDays }),
-          ...(formData.odometerReading !== undefined && { odometer_reading: formData.odometerReading }),
-          ...(formData.odometerImage && { odometer_image: formData.odometerImage }),
-          ...(formData.nextServiceDue && { 
-            next_service_due: {
-              date: formData.nextServiceDue.date || '',
-              odometer: formData.nextServiceDue.odometer || 0,
-              reminder_set: typeof formData.nextServiceDue.reminderSet === 'boolean' ? formData.nextServiceDue.reminderSet : false
-            }
-          }),
-          ...(formData.attachments && { attachments: formData.attachments }),
-          ...(formData.notes && { notes: formData.notes }),
+          ...taskData,
+          service_groups: updatedServiceGroups
         };
-         // Remove undefined properties from updatePayload
-        Object.keys(updatePayload).forEach(key => {
-          const K = key as keyof typeof updatePayload;
-          if (updatePayload[K] === undefined) {
-            delete updatePayload[K];
-          }
-        });
 
         const updatedTask = await updateTask(id, updatePayload);
         if (updatedTask) {
           setTask(updatedTask);
           toast.success('Maintenance task updated successfully');
           navigate('/maintenance');
+        } else {
+          toast.error('Failed to update task');
         }
       } else {
         // Create new task
-        const billsToCreate: MaintenanceBill[] = [];
-        // Corrected: use formData.startDate (camelCase from form)
-        const defaultBillDate = formData.startDate || new Date().toISOString().split('T')[0];
-        // Corrected: use formData.vendorId (camelCase from form)
-        const vendorNamePlaceholder = formData.vendorId ? `Vendor ID: ${formData.vendorId}` : 'N/A';
-
-        if (formData.billGroup1 && typeof formData.billGroup1 === 'number' && formData.billGroup1 > 0) {
-          billsToCreate.push({
-            id: crypto.randomUUID(),
-            description: Array.isArray(formData.title) ? formData.title.join(', ') : (formData.title || 'Service Group 1'),
-            amount: formData.billGroup1,
-            vendor_name: vendorNamePlaceholder,
-            bill_date: defaultBillDate,
-          });
-        }
-
-        if (formData.billGroup2 && typeof formData.billGroup2 === 'number' && formData.billGroup2 > 0 && formData.titleGroup2) {
-          billsToCreate.push({
-            id: crypto.randomUUID(),
-            description: Array.isArray(formData.titleGroup2) ? formData.titleGroup2.join(', ') : (formData.titleGroup2 || 'Service Group 2'),
-            amount: formData.billGroup2,
-            vendor_name: vendorNamePlaceholder,
-            bill_date: defaultBillDate,
-          });
-        }
+        const newTask = await createTask(taskData as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
         
-        // Removed duplicate declarations that were here
-
-        const newTaskPayload: Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'> = {
-          vehicle_id: formData.vehicleId || '',
-          task_type: formData.task_type || 'general_scheduled_service',
-          title: Array.isArray(formData.title) ? formData.title : (formData.title ? [formData.title] : []),
-          description: formData.description || '',
-          status: formData.status || 'open',
-          priority: formData.priority || 'medium',
-          vendor_id: formData.vendorId || '',
-          garage_id: formData.garageId || '',
-          estimated_cost: formData.estimatedCost || 0,
-          actual_cost: formData.actualCost, // optional
-          bills: billsToCreate,
-          complaint_description: formData.complaintDescription,
-          resolution_summary: formData.resolutionSummary,
-          warranty_expiry: formData.warrantyExpiry,
-          warranty_status: formData.warrantyStatus,
-          warranty_claimed: typeof formData.warrantyClaimed === 'boolean' ? formData.warrantyClaimed : false,
-          part_replaced: typeof formData.partReplaced === 'boolean' ? formData.partReplaced : false,
-          part_details: formData.partDetails ? { 
-              name: formData.partDetails.name || '',
-              // Corrected: map form's camelCase to type's snake_case for part_details
-              serial_number: formData.partDetails.serialNumber || '', 
-              brand: formData.partDetails.brand || '',
-              warranty_expiry_date: formData.partDetails.warrantyExpiryDate || ''
-          } : undefined,
-          parts_required: formData.partsRequired || [],
-          start_date: formData.startDate || defaultBillDate, // Ensure start_date is correctly used
-          end_date: formData.endDate,
-          service_hours: formData.serviceHours,
-          downtime_days: formData.downtimeDays || 0,
-          odometer_reading: formData.odometerReading || 0,
-          odometer_image: formData.odometerImage,
-          next_service_due: formData.nextServiceDue ? {
-              date: formData.nextServiceDue.date || '',
-              odometer: formData.nextServiceDue.odometer || 0,
-              reminder_set: typeof formData.nextServiceDue.reminderSet === 'boolean' ? formData.nextServiceDue.reminderSet : false,
-          } : undefined,
-          // next_predicted_service and overdue_status are typically not set from form directly
-          attachments: formData.attachments,
-          notes: formData.notes,
-        };
-        
-        // Clean up undefined values from payload that are optional in DB
-        // This also helps ensure we don't send fields like billGroup1 to Supabase
-        const cleanedPayload = { ...newTaskPayload };
-        Object.keys(cleanedPayload).forEach(key => {
-          const K = key as keyof typeof cleanedPayload;
-          if (cleanedPayload[K] === undefined) {
-            delete cleanedPayload[K];
+        if (newTask) {
+          // Handle service group file uploads
+          if (service_groups && service_groups.length > 0 && newTask.id) {
+            const updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
+            
+            // Update the task with the service groups
+            if (updatedServiceGroups.length > 0) {
+              await updateTask(newTask.id, {
+                service_groups: updatedServiceGroups
+              });
+            }
           }
-        });
-
-        const createdTask = await createTask(cleanedPayload as Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>);
-        if (createdTask) {
+          
           toast.success('Maintenance task created successfully');
           navigate('/maintenance');
         } else {
-          toast.error('Failed to create maintenance task. Please check console for errors.');
+          toast.error('Failed to create task');
         }
       }
     } catch (error) {

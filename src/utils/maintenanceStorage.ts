@@ -1,7 +1,8 @@
 import { 
   MaintenanceTask, 
   MaintenanceStats,
-  MaintenanceAuditLog
+  MaintenanceAuditLog,
+  MaintenanceServiceGroup
 } from '../types/maintenance';
 import { supabase } from './supabaseClient';
 
@@ -17,7 +18,25 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
     return [];
   }
 
-  return data || [];
+  // Fetch service groups for each task
+  const tasks = await Promise.all((data || []).map(async (task) => {
+    const { data: serviceGroups, error: serviceGroupsError } = await supabase
+      .from('maintenance_service_tasks')
+      .select('*')
+      .eq('maintenance_task_id', task.id);
+    
+    if (serviceGroupsError) {
+      console.error('Error fetching service groups:', serviceGroupsError);
+      return task;
+    }
+    
+    return {
+      ...task,
+      service_groups: serviceGroups || []
+    };
+  }));
+
+  return tasks;
 };
 
 export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
@@ -32,16 +51,34 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
     return null;
   }
 
-  return data;
+  // Fetch service groups
+  const { data: serviceGroups, error: serviceGroupsError } = await supabase
+    .from('maintenance_service_tasks')
+    .select('*')
+    .eq('maintenance_task_id', id);
+
+  if (serviceGroupsError) {
+    console.error('Error fetching service groups:', serviceGroupsError);
+    return data;
+  }
+
+  return {
+    ...data,
+    service_groups: serviceGroups || []
+  };
 };
 
 export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at' | 'updated_at'>): Promise<MaintenanceTask | null> => {
+  // Extract service groups to handle separately
+  const { service_groups, ...taskData } = task as any;
+
+  // Insert the main task
   const { data, error } = await supabase
     .from('maintenance_tasks')
     .insert({
-      ...task,
-      bills: task.bills || [],
-      parts_required: task.parts_required || []
+      ...taskData,
+      bills: taskData.bills || [],
+      parts_required: taskData.parts_required || []
     })
     .select()
     .single();
@@ -62,12 +99,46 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
         }
       }
     });
+
+    // Insert service groups if any
+    if (service_groups && service_groups.length > 0) {
+      try {
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
+          ...group,
+          maintenance_task_id: data.id,
+          // Remove bill_file as it's not for database storage
+          bill_file: undefined
+        }));
+
+        await supabase
+          .from('maintenance_service_tasks')
+          .insert(serviceGroupsWithTaskId);
+          
+        // Fetch the inserted service groups
+        const { data: insertedGroups } = await supabase
+          .from('maintenance_service_tasks')
+          .select('*')
+          .eq('maintenance_task_id', data.id);
+          
+        return {
+          ...data,
+          service_groups: insertedGroups || []
+        };
+      } catch (error) {
+        console.error('Error creating service groups:', error);
+        // Return the task even if service groups failed
+        return data;
+      }
+    }
   }
 
   return data;
 };
 
 export const updateTask = async (id: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask | null> => {
+  // Extract service groups to handle separately
+  const { service_groups, ...updateData } = updates as any;
+
   // Get the old task first to compare changes
   const { data: oldTask } = await supabase
     .from('maintenance_tasks')
@@ -84,7 +155,7 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
   const { data: updatedTask, error } = await supabase
     .from('maintenance_tasks')
     .update({
-      ...updates,
+      ...updateData,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -98,12 +169,12 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
 
   // Create audit log for changes
   const changes: Record<string, { previousValue: any; updatedValue: any }> = {};
-  Object.keys(updates).forEach(key => {
+  Object.keys(updateData).forEach(key => {
     const updateKey = key as keyof MaintenanceTask;
-    if (updates[updateKey] !== oldTask[updateKey]) {
+    if (updateData[updateKey] !== oldTask[updateKey]) {
       changes[key] = {
         previousValue: oldTask[updateKey],
-        updatedValue: updates[updateKey]
+        updatedValue: updateData[updateKey]
       };
     }
   });
@@ -115,10 +186,57 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
     });
   }
 
+  // Handle service groups update
+  if (service_groups && updatedTask) {
+    try {
+      // First delete existing service groups
+      await supabase
+        .from('maintenance_service_tasks')
+        .delete()
+        .eq('maintenance_task_id', id);
+      
+      // Then insert the updated ones
+      if (service_groups.length > 0) {
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
+          ...group,
+          maintenance_task_id: id,
+          // Remove bill_file as it's not for database storage
+          bill_file: undefined
+        }));
+
+        await supabase
+          .from('maintenance_service_tasks')
+          .insert(serviceGroupsWithTaskId);
+      }
+      
+      // Fetch the inserted service groups
+      const { data: insertedGroups } = await supabase
+        .from('maintenance_service_tasks')
+        .select('*')
+        .eq('maintenance_task_id', id);
+        
+      return {
+        ...updatedTask,
+        service_groups: insertedGroups || []
+      };
+    } catch (error) {
+      console.error('Error updating service groups:', error);
+      // Return the task even if service groups failed
+      return updatedTask;
+    }
+  }
+
   return updatedTask || null;
 };
 
 export const deleteTask = async (id: string): Promise<boolean> => {
+  // First delete the service groups (should cascade, but let's be explicit)
+  await supabase
+    .from('maintenance_service_tasks')
+    .delete()
+    .eq('maintenance_task_id', id);
+
+  // Then delete the main task
   const { error } = await supabase
     .from('maintenance_tasks')
     .delete()
@@ -173,13 +291,60 @@ export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'time
   return data;
 };
 
+// Service groups operations
+export const getServiceGroups = async (taskId: string): Promise<MaintenanceServiceGroup[]> => {
+  const { data, error } = await supabase
+    .from('maintenance_service_tasks')
+    .select('*')
+    .eq('maintenance_task_id', taskId);
+
+  if (error) {
+    console.error('Error fetching service groups:', error);
+    return [];
+  }
+
+  return data || [];
+};
+
+// Upload service group bill
+export const uploadServiceBill = async (file: File, taskId: string, groupId?: string): Promise<string | null> => {
+  if (!file) return null;
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${taskId}-${groupId || Date.now()}.${fileExt}`;
+  const filePath = `maintenance-bills/${fileName}`;
+  
+  const { error: uploadError } = await supabase.storage
+    .from('maintenance')
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type
+    });
+
+  if (uploadError) {
+    console.error('Error uploading bill:', uploadError);
+    return null;
+  }
+
+  const { data } = supabase.storage
+    .from('maintenance')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
 // Statistics
 export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   const { data: tasks } = await supabase
     .from('maintenance_tasks')
     .select('*');
 
-  if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+  // Also fetch service groups to get accurate cost data
+  const { data: serviceGroups } = await supabase
+    .from('maintenance_service_tasks')
+    .select('*');
+
+  if (!tasks || !Array.isArray(tasks)) {
     return {
       total_expenditure: 0,
       record_count: 0,
@@ -198,17 +363,25 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   
-  // Calculate total expenditure using actual or estimated cost
-  const total_expenditure = tasks.reduce((sum, task) => 
-    sum + (task.actual_cost || task.estimated_cost || 0), 
-    0
-  );
+  // Calculate total expenditure from service groups
+  const total_expenditure = Array.isArray(serviceGroups)
+    ? serviceGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+    : tasks.reduce((sum, task) => sum + (task.actual_cost || task.estimated_cost || 0), 0);
   
   // Calculate monthly expenses
   const monthlyExpenses = tasks.reduce((acc, task) => {
     const taskDate = new Date(task.start_date);
     const monthKey = `${taskDate.getFullYear()}-${taskDate.getMonth()}`;
-    const taskCost = task.actual_cost || task.estimated_cost || 0;
+    
+    // Get costs from service groups for this task
+    const taskGroups = Array.isArray(serviceGroups) 
+      ? serviceGroups.filter(group => group.maintenance_task_id === task.id)
+      : [];
+    
+    const taskCost = taskGroups.length > 0
+      ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+      : task.actual_cost || task.estimated_cost || 0;
+      
     acc[monthKey] = (acc[monthKey] || 0) + taskCost;
     return acc;
   }, {} as Record<string, number>);
@@ -221,17 +394,29 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   
   // Calculate expenditure by vehicle
   const expenditure_by_vehicle = tasks.reduce((acc, task) => {
-    const taskCost = task.actual_cost || task.estimated_cost || 0;
+    // Get costs from service groups for this task
+    const taskGroups = Array.isArray(serviceGroups) 
+      ? serviceGroups.filter(group => group.maintenance_task_id === task.id)
+      : [];
+    
+    const taskCost = taskGroups.length > 0
+      ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+      : task.actual_cost || task.estimated_cost || 0;
+      
     acc[task.vehicle_id] = (acc[task.vehicle_id] || 0) + taskCost;
     return acc;
   }, {} as Record<string, number>);
   
-  // Calculate expenditure by vendor
-  const expenditure_by_vendor = tasks.reduce((acc, task) => {
-    const taskCost = task.actual_cost || task.estimated_cost || 0;
-    acc[task.vendor_id] = (acc[task.vendor_id] || 0) + taskCost;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate expenditure by vendor (using service groups)
+  const expenditure_by_vendor = Array.isArray(serviceGroups)
+    ? serviceGroups.reduce((acc, group) => {
+        acc[group.vendor_id] = (acc[group.vendor_id] || 0) + (group.cost || 0);
+        return acc;
+      }, {} as Record<string, number>)
+    : tasks.reduce((acc, task) => {
+        acc[task.vendor_id] = (acc[task.vendor_id] || 0) + (task.actual_cost || task.estimated_cost || 0);
+        return acc;
+      }, {} as Record<string, number>);
   
   // Calculate KM reading differences
   const km_reading_difference = tasks.reduce((acc, task) => {

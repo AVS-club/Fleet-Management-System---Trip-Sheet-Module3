@@ -15,6 +15,20 @@ export interface MaintenanceAuditLog {
   created_at?: string;
 }
 
+// Add service group interface
+export interface MaintenanceServiceGroup {
+  id?: string;
+  maintenance_task_id?: string;
+  vendor_id: string;
+  tasks: string[];
+  cost: number;
+  bill_url?: string;
+  bill_file?: File; // For frontend handling before upload
+  parts_replaced?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Add new interfaces for maintenance form
 export interface MaintenanceBill {
   id: string;
@@ -31,7 +45,6 @@ export interface MaintenanceTask {
   vehicle_id: string;
   task_type: 'general_scheduled_service' | 'wear_and_tear_replacement_repairs' | 'accidental' | 'others';
   title: string[];
-  title_group2?: string[];
   description: string;
   status: 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework';
   priority: 'low' | 'medium' | 'high' | 'critical';
@@ -76,6 +89,8 @@ export interface MaintenanceTask {
   };
   attachments?: string[];
   notes?: string;
+  category?: string;
+  service_groups?: MaintenanceServiceGroup[];
   created_at: string;
   updated_at: string;
 }
@@ -145,6 +160,17 @@ export interface MaintenancePart {
 }
 
 // Define maintenance items
+export interface MaintenanceItem {
+  id: string;
+  name: string;
+  group: string;
+  standardLifeKm?: number;
+  standardLifeDays?: number;
+  averageCost?: number;
+  warrantyPeriod?: number;
+  inactive?: boolean;
+}
+
 export const MAINTENANCE_ITEMS = [
   { 
     id: 'eng1', 
@@ -266,21 +292,24 @@ export const DEMO_GARAGES = [
     name: 'City Central Garage',
     contact: '+91 98765 43213',
     address: '321 Workshop Avenue, Central District, City',
-    active: true
+    active: true,
+    type: 'authorized'
   },
   {
     id: 'g2',
     name: 'Highway Auto Service',
     contact: '+91 98765 43214',
     address: '654 Highway Road, Industrial Area, City',
-    active: true
+    active: true,
+    type: 'independent'
   },
   {
     id: 'g3',
     name: 'Express Repair Center',
     contact: '+91 98765 43215',
     address: '987 Service Street, Business Park, City',
-    active: true
+    active: true,
+    type: 'company_owned'
   }
 ];
 
