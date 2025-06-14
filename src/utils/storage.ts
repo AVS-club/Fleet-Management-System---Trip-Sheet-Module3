@@ -350,6 +350,38 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
   return true;
 };
 
+// Driver stats
+export const getDriverStats = async (driverId: string) => {
+  // First get the driver to get their name
+  const driver = await getDriver(driverId);
+  if (!driver) return { totalTrips: 0, totalDistance: 0 };
+
+  const { data: trips } = await supabase
+    .from('trips')
+    .select('*')
+    .eq('driver_name', driver.name);
+
+  if (!trips || !Array.isArray(trips)) return { totalTrips: 0, totalDistance: 0 };
+
+  const totalTrips = trips.length;
+  const totalDistance = trips.reduce((sum, trip) => {
+    const startKm = parseFloat(trip.start_kilometer) || 0;
+    const endKm = parseFloat(trip.end_kilometer) || 0;
+    return sum + (endKm - startKm);
+  }, 0);
+
+  const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
+  const averageKmpl = tripsWithKmpl.length > 0
+    ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
+    : undefined;
+
+  return {
+    totalTrips,
+    totalDistance,
+    averageKmpl
+  };
+};
+
 // Warehouses CRUD operations with Supabase
 export const getWarehouses = async (): Promise<Warehouse[]> => {
   const { data, error } = await supabase
@@ -648,6 +680,7 @@ export default {
   createDriver,
   updateDriver,
   deleteDriver,
+  getDriverStats,
   getWarehouses,
   getWarehouse,
   getDestinations,
