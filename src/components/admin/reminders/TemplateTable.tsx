@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Clock, Bell, User } from 'lucide-react';
+import { Edit2, Trash2, Clock, Bell, User, Globe } from 'lucide-react';
 import { ReminderTemplate, ReminderContact } from '../../../types/reminders';
 import Button from '../../ui/Button';
 import Input from '../../ui/Input';
@@ -194,18 +194,28 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
                         .filter(contact => contact.is_active)
                         .map(contact => ({
                           value: contact.id,
-                          label: contact.full_name
+                          label: `${contact.full_name}${contact.is_global ? ' (Global Receiver)' : ''}`
                         }))
                     ]}
                   />
                 ) : (
                   <div className="flex items-center">
                     <User className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>
-                      {template.default_contact_id
-                        ? contacts.find(c => c.id === template.default_contact_id)?.full_name || 'Unknown'
-                        : 'None'}
-                    </span>
+                    {template.default_contact_id ? (
+                      (() => {
+                        const contact = contacts.find(c => c.id === template.default_contact_id);
+                        return (
+                          <div className="flex items-center">
+                            <span>{contact?.full_name || 'Unknown'}</span>
+                            {contact?.is_global && (
+                              <Globe className="h-3 w-3 text-blue-500 ml-1" title="Global Receiver" />
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <span>None</span>
+                    )}
                   </div>
                 )}
               </td>

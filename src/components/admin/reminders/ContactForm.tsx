@@ -23,7 +23,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
 }) => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   
-  const { register, handleSubmit, control, formState: { errors } } = useForm<ReminderContactFormData>({
+  const { register, handleSubmit, control, formState: { errors }, watch } = useForm<ReminderContactFormData>({
     defaultValues: {
       full_name: '',
       position: '',
@@ -33,9 +33,12 @@ const ContactForm: React.FC<ContactFormProps> = ({
       preferred_contact_mode: ReminderContactMode.SMS,
       is_active: true,
       assigned_types: [],
+      is_global: false, // Default value for is_global
       ...initialData
     }
   });
+
+  const isGlobal = watch('is_global');
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -194,8 +197,22 @@ const ContactForm: React.FC<ContactFormProps> = ({
         />
 
         <div className="md:col-span-2">
+          <Controller
+            control={control}
+            name="is_global"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Global Contact (Receives all reminders regardless of category)"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                className="mb-4"
+              />
+            )}
+          />
+
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Assigned Reminder Types
+            {isGlobal && <span className="text-xs text-gray-500 ml-2">(Optional when Global Contact is enabled)</span>}
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {Object.values(ReminderAssignedType).map((type) => (

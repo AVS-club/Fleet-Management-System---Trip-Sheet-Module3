@@ -68,7 +68,8 @@ const ReminderManager: React.FC = () => {
         preferred_contact_mode: data.preferred_contact_mode,
         is_active: data.is_active,
         photo_url: photoUrl,
-        assigned_types: data.assigned_types
+        assigned_types: data.assigned_types,
+        is_global: data.is_global // Include is_global field
       });
 
       // If we uploaded with a temp ID, update the photo with the real ID
@@ -108,7 +109,8 @@ const ReminderManager: React.FC = () => {
         preferred_contact_mode: data.preferred_contact_mode,
         is_active: data.is_active,
         photo_url: photoUrl,
-        assigned_types: data.assigned_types
+        assigned_types: data.assigned_types,
+        is_global: data.is_global // Include is_global field
       });
 
       setContacts(contacts.map(c => c.id === editingContact.id ? updatedContact : c));

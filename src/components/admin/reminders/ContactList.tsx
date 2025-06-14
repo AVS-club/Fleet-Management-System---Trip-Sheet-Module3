@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Edit, Trash2, Mail, Phone, Check, X } from 'lucide-react';
+import { User, Edit, Trash2, Mail, Phone, Check, X, Globe } from 'lucide-react';
 import Button from '../../ui/Button';
 import { ReminderContact, ReminderContactMode } from '../../../types/reminders';
 import { toast } from 'react-toastify';
@@ -75,9 +75,17 @@ const ContactList: React.FC<ContactListProps> = ({ contacts, onEdit, onDelete })
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-gray-900 truncate">
-                  {contact.full_name}
-                </h3>
+                <div className="flex items-center">
+                  <h3 className="text-sm font-medium text-gray-900 truncate">
+                    {contact.full_name}
+                  </h3>
+                  {contact.is_global && (
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      <Globe className="h-3 w-3 mr-1" />
+                      Global
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-gray-500 truncate">{contact.position}</p>
               </div>
               <div className="flex-shrink-0 flex space-x-1">
@@ -137,7 +145,7 @@ const ContactList: React.FC<ContactListProps> = ({ contacts, onEdit, onDelete })
               </div>
             </div>
 
-            {contact.assigned_types && contact.assigned_types.length > 0 && (
+            {!contact.is_global && contact.assigned_types && contact.assigned_types.length > 0 && (
               <div className="mt-3">
                 <span className="text-xs text-gray-500 block mb-1">Assigned to:</span>
                 <div className="flex flex-wrap gap-1">

@@ -26,6 +26,7 @@ export interface ReminderContact {
   is_active: boolean;
   photo_url?: string;
   assigned_types: ReminderAssignedType[];
+  is_global: boolean; // Added is_global field
   created_at?: string;
   updated_at?: string;
 }
@@ -52,6 +53,7 @@ export interface ReminderContactFormData {
   is_active: boolean;
   photo?: File | null;
   assigned_types: ReminderAssignedType[];
+  is_global: boolean; // Added is_global field
 }
 
 export interface ReminderTemplateFormData {

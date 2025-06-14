@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Bell, Clock, RefreshCw, User } from 'lucide-react';
+import { Bell, Clock, RefreshCw, User, Globe } from 'lucide-react';
 import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';
@@ -96,7 +96,7 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
                   .filter(contact => contact.is_active)
                   .map(contact => ({
                     value: contact.id,
-                    label: contact.full_name
+                    label: `${contact.full_name}${contact.is_global ? ' (Global Receiver)' : ''}`
                   }))
               ]}
               {...field}
