@@ -92,6 +92,37 @@ export interface Vehicle {
     cost?: number;
   }>;
   
+  // Reminder fields for Insurance
+  remind_insurance?: boolean;
+  insurance_reminder_contact_id?: string;
+  insurance_reminder_days_before?: number;
+  
+  // Reminder fields for Fitness
+  remind_fitness?: boolean;
+  fitness_reminder_contact_id?: string;
+  fitness_reminder_days_before?: number;
+  
+  // Reminder fields for PUC
+  remind_puc?: boolean;
+  puc_reminder_contact_id?: string;
+  puc_reminder_days_before?: number;
+  
+  // Reminder fields for Tax
+  remind_tax?: boolean;
+  tax_reminder_contact_id?: string;
+  tax_reminder_days_before?: number;
+  
+  // Reminder fields for Permit
+  remind_permit?: boolean;
+  permit_reminder_contact_id?: string;
+  permit_reminder_days_before?: number;
+  
+  // Reminder fields for Service
+  remind_service?: boolean;
+  service_reminder_contact_id?: string;
+  service_reminder_days_before?: number;
+  service_reminder_km?: number;
+  
   created_at?: string;
   updated_at?: string;
 }

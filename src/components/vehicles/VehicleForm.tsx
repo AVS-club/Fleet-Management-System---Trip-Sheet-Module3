@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Vehicle } from '../../types';
+import { ReminderContact, ReminderTemplate, ReminderAssignedType } from '../../types/reminders';
+import { getReminderContacts, getReminderTemplates } from '../../utils/reminderService';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
+import Checkbox from '../ui/Checkbox';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { 
   Truck, 
@@ -18,7 +21,8 @@ import {
   Plus, 
   Trash2,
   Upload,
-  Paperclip
+  Paperclip,
+  Bell
 } from 'lucide-react';
 
 interface VehicleFormProps {
@@ -56,16 +60,55 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [taxFile, setTaxFile] = useState<File | null>(null);
   const [permitFile, setPermitFile] = useState<File | null>(null);
   const [pucFile, setPucFile] = useState<File | null>(null);
+  const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>([]);
+  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
+  const [loadingReminders, setLoadingReminders] = useState(false);
 
-  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<Omit<Vehicle, 'id'>>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Omit<Vehicle, 'id'>>({
     defaultValues: {
       status: 'active',
       fuel_type: 'diesel',
       type: 'truck',
       current_odometer: 0,
+      // Reminder defaults
+      remind_insurance: false,
+      remind_fitness: false,
+      remind_puc: false,
+      remind_tax: false,
+      remind_permit: false,
+      remind_service: false,
       ...initialData
     }
   });
+
+  // Watch reminder checkbox values to conditionally show reminder settings
+  const remindInsurance = watch('remind_insurance');
+  const remindFitness = watch('remind_fitness');
+  const remindPuc = watch('remind_puc');
+  const remindTax = watch('remind_tax');
+  const remindPermit = watch('remind_permit');
+  const remindService = watch('remind_service');
+
+  // Fetch reminder contacts and templates
+  useEffect(() => {
+    const fetchReminderData = async () => {
+      setLoadingReminders(true);
+      try {
+        const [contacts, templates] = await Promise.all([
+          getReminderContacts(),
+          getReminderTemplates()
+        ]);
+        setReminderContacts(contacts);
+        setReminderTemplates(templates);
+      } catch (error) {
+        console.error('Error fetching reminder data:', error);
+      } finally {
+        setLoadingReminders(false);
+      }
+    };
+
+    fetchReminderData();
+  }, []);
 
   const handleFormSubmit = (data: any) => {
     // Convert file objects to boolean flags for database storage
@@ -122,6 +165,79 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     setOtherDocuments(otherDocuments.map(doc => 
       doc.id === id ? { ...doc, [field]: value } : doc
     ));
+  };
+
+  // Helper function to get default days before from template
+  const getDefaultDaysBefore = (reminderType: ReminderAssignedType): number => {
+    const template = reminderTemplates.find(t => t.reminder_type === reminderType);
+    return template?.default_days_before || 14; // Default to 14 days if no template found
+  };
+
+  // Get contacts for a specific reminder type or global contacts
+  const getContactsForType = (reminderType: ReminderAssignedType): ReminderContact[] => {
+    // First, get all global contacts
+    const globalContacts = reminderContacts.filter(c => c.is_global && c.is_active);
+    
+    // Then, get contacts assigned to this specific type
+    const typeContacts = reminderContacts.filter(
+      c => c.is_active && !c.is_global && c.assigned_types.includes(reminderType)
+    );
+    
+    // Return global contacts first, then type-specific contacts
+    return [...globalContacts, ...typeContacts];
+  };
+
+  // Render reminder settings for a specific document type
+  const renderReminderSettings = (
+    documentType: ReminderAssignedType,
+    remindField: string,
+    contactIdField: string,
+    daysBeforeField: string
+  ) => {
+    const contacts = getContactsForType(documentType);
+    const defaultDaysBefore = getDefaultDaysBefore(documentType);
+    
+    return (
+      <div className="mt-3 pl-6 border-l-2 border-gray-100">
+        <div className="flex items-center mb-2">
+          <Bell className="h-4 w-4 text-primary-500 mr-2" />
+          <span className="text-sm font-medium text-primary-600">Reminder Settings</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Controller
+            control={control}
+            name={contactIdField as any}
+            render={({ field }) => (
+              <Select
+                label="Contact"
+                options={[
+                  { value: '', label: 'Select Contact' },
+                  ...contacts.map(contact => ({
+                    value: contact.id,
+                    label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
+                  }))
+                ]}
+                {...field}
+              />
+            )}
+          />
+          
+          <Input
+            label={`Days Before (Default: ${defaultDaysBefore})`}
+            type="number"
+            min="1"
+            max="365"
+            placeholder={defaultDaysBefore.toString()}
+            {...register(daysBeforeField as any, {
+              valueAsNumber: true,
+              min: { value: 1, message: 'Must be at least 1 day' },
+              max: { value: 365, message: 'Cannot exceed 365 days' }
+            })}
+          />
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -375,6 +491,29 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             icon={<Paperclip className="h-4 w-4" />}
           />
         </div>
+
+        {/* Insurance Reminder Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Controller
+            control={control}
+            name="remind_insurance"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Set Insurance Expiry Reminder"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                icon={<Bell className="h-4 w-4" />}
+              />
+            )}
+          />
+          
+          {remindInsurance && renderReminderSettings(
+            ReminderAssignedType.Insurance,
+            'remind_insurance',
+            'insurance_reminder_contact_id',
+            'insurance_reminder_days_before'
+          )}
+        </div>
       </CollapsibleSection>
 
       {/* Fitness Certificate Section */}
@@ -426,6 +565,29 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onChange={setFitnessFile}
             icon={<Paperclip className="h-4 w-4" />}
           />
+        </div>
+
+        {/* Fitness Reminder Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Controller
+            control={control}
+            name="remind_fitness"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Set Fitness Certificate Expiry Reminder"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                icon={<Bell className="h-4 w-4" />}
+              />
+            )}
+          />
+          
+          {remindFitness && renderReminderSettings(
+            ReminderAssignedType.Fitness,
+            'remind_fitness',
+            'fitness_reminder_contact_id',
+            'fitness_reminder_days_before'
+          )}
         </div>
       </CollapsibleSection>
 
@@ -483,6 +645,29 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onChange={setTaxFile}
             icon={<Paperclip className="h-4 w-4" />}
           />
+        </div>
+
+        {/* Tax Reminder Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Controller
+            control={control}
+            name="remind_tax"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Set Tax Expiry Reminder"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                icon={<Bell className="h-4 w-4" />}
+              />
+            )}
+          />
+          
+          {remindTax && renderReminderSettings(
+            ReminderAssignedType.Tax,
+            'remind_tax',
+            'tax_reminder_contact_id',
+            'tax_reminder_days_before'
+          )}
         </div>
       </CollapsibleSection>
 
@@ -559,6 +744,29 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             icon={<Paperclip className="h-4 w-4" />}
           />
         </div>
+
+        {/* Permit Reminder Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Controller
+            control={control}
+            name="remind_permit"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Set Permit Expiry Reminder"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                icon={<Bell className="h-4 w-4" />}
+              />
+            )}
+          />
+          
+          {remindPermit && renderReminderSettings(
+            ReminderAssignedType.Permit,
+            'remind_permit',
+            'permit_reminder_contact_id',
+            'permit_reminder_days_before'
+          )}
+        </div>
       </CollapsibleSection>
 
       {/* PUC Section */}
@@ -611,6 +819,105 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             icon={<Paperclip className="h-4 w-4" />}
           />
         </div>
+
+        {/* PUC Reminder Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <Controller
+            control={control}
+            name="remind_puc"
+            render={({ field: { value, onChange } }) => (
+              <Checkbox
+                label="Set Pollution Certificate Expiry Reminder"
+                checked={value}
+                onChange={(e) => onChange(e.target.checked)}
+                icon={<Bell className="h-4 w-4" />}
+              />
+            )}
+          />
+          
+          {remindPuc && renderReminderSettings(
+            ReminderAssignedType.Pollution,
+            'remind_puc',
+            'puc_reminder_contact_id',
+            'puc_reminder_days_before'
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Service Reminder Section */}
+      <CollapsibleSection 
+        title="Service Reminder" 
+        icon={<Bell className="h-5 w-5" />}
+        iconColor="text-blue-600"
+      >
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p className="text-sm text-blue-700">
+            Configure reminders for regular service intervals based on time or odometer reading.
+          </p>
+        </div>
+
+        <Controller
+          control={control}
+          name="remind_service"
+          render={({ field: { value, onChange } }) => (
+            <Checkbox
+              label="Enable Service Due Reminders"
+              checked={value}
+              onChange={(e) => onChange(e.target.checked)}
+              icon={<Bell className="h-4 w-4" />}
+            />
+          )}
+        />
+        
+        {remindService && (
+          <div className="mt-3 pl-6 border-l-2 border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Controller
+                control={control}
+                name="service_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Contact"
+                    options={[
+                      { value: '', label: 'Select Contact' },
+                      ...getContactsForType(ReminderAssignedType.ServiceDue).map(contact => ({
+                        value: contact.id,
+                        label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
+                      }))
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+              
+              <Input
+                label={`Days Before (Default: ${getDefaultDaysBefore(ReminderAssignedType.ServiceDue)})`}
+                type="number"
+                min="1"
+                max="365"
+                placeholder={getDefaultDaysBefore(ReminderAssignedType.ServiceDue).toString()}
+                {...register('service_reminder_days_before', {
+                  valueAsNumber: true,
+                  min: { value: 1, message: 'Must be at least 1 day' },
+                  max: { value: 365, message: 'Cannot exceed 365 days' }
+                })}
+              />
+              
+              <Input
+                label="Kilometers Before Service Due"
+                type="number"
+                min="500"
+                max="50000"
+                placeholder="e.g., 5000"
+                {...register('service_reminder_km', {
+                  valueAsNumber: true,
+                  min: { value: 500, message: 'Must be at least 500 km' },
+                  max: { value: 50000, message: 'Cannot exceed 50000 km' }
+                })}
+              />
+            </div>
+          </div>
+        )}
       </CollapsibleSection>
 
       {/* Other Documents Section */}
