@@ -393,7 +393,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <div className="space-y-4">
           {serviceGroups.map((field, index) => (
-            <div key={field.id} className="border rounded-lg relative overflow-hidden border-gray-300">
+            <div key={field.id} className="border rounded-lg relative overflow-hidden">
               <div className="bg-gray-50 p-3 pr-10 border-b flex items-center justify-between">
                 <h4 className="font-medium text-gray-800">Service Group {index + 1}</h4>
                 {serviceGroups.length > 1 && (
@@ -519,13 +519,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Complaint & Resolution */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Tool className="h-5 w-5 mr-2 text-primary-500" />
           Complaint & Resolution
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">
@@ -552,7 +552,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
             </div>
             <textarea
-              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Detailed description of the complaint or issue..."
               {...register('complaint_description')}
             />
@@ -584,7 +584,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
             </div>
             <textarea
-              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Summary of the resolution or fix applied..."
               {...register('resolution_summary')}
             />
