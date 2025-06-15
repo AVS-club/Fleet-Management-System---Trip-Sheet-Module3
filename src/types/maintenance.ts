@@ -47,7 +47,8 @@ export interface MaintenanceTask {
   description: string;
   status: 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework';
   priority: 'low' | 'medium' | 'high' | 'critical';
-  garage_id: string;
+  vendor_id?: string; // Optional vendor ID for backward compatibility
+  garage_id?: string; // Making this optional as we'll use vendor_id from service groups
   estimated_cost: number;
   actual_cost?: number;
   bills: MaintenanceBill[];
@@ -65,7 +66,7 @@ export interface MaintenanceTask {
   parts_required: MaintenancePart[];
   start_date: string;
   end_date?: string;
-  service_hours?: '4' | '6' | '8' | '12';
+  downtime_period?: string; // Added for downtime period selection
   downtime_days: number;
   odometer_reading: number;
   odometer_image?: string;
@@ -86,7 +87,7 @@ export interface MaintenanceTask {
   };
   attachments?: string[];
   notes?: string;
-  category?: string;
+  category?: string; // Added for task category
   service_groups?: MaintenanceServiceGroup[];
   created_at: string;
   updated_at: string;
@@ -156,6 +157,20 @@ export interface MaintenancePart {
   warranty_period?: string;
 }
 
+// Define maintenance categories
+export const MAINTENANCE_CATEGORIES = {
+  engine: 'Engine & Oil',
+  brakes: 'Brakes & Suspension',
+  electrical: 'Electrical',
+  tyres: 'Tyres',
+  battery: 'Battery',
+  transmission: 'Transmission & Clutch',
+  cooling: 'Cooling & AC',
+  body: 'Body & Cabin',
+  fuel: 'Fuel & Exhaust',
+  general: 'General Service & Others'
+};
+
 // Define maintenance items
 export interface MaintenanceItem {
   id: string;
@@ -168,92 +183,411 @@ export interface MaintenanceItem {
   inactive?: boolean;
 }
 
-export const MAINTENANCE_ITEMS = [
+export const MAINTENANCE_ITEMS: MaintenanceItem[] = [
+  // Engine & Oil
   { 
     id: 'eng1', 
     name: 'Engine Oil Change', 
     group: 'engine',
-    standard_life_km: 5000,
-    standard_life_days: 90,
-    average_cost: 3000,
-    warranty_period: 30
+    standardLifeKm: 5000,
+    standardLifeDays: 90,
+    averageCost: 3000,
+    warrantyPeriod: 30
   },
   { 
     id: 'eng2', 
     name: 'Air Filter Replacement', 
     group: 'engine',
-    standard_life_km: 15000,
-    standard_life_days: 180,
-    average_cost: 800,
-    warranty_period: 90
+    standardLifeKm: 15000,
+    standardLifeDays: 180,
+    averageCost: 800,
+    warrantyPeriod: 90
   },
+  { 
+    id: 'eng3', 
+    name: 'Oil Filter Replacement', 
+    group: 'engine',
+    standardLifeKm: 5000,
+    standardLifeDays: 90,
+    averageCost: 500,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'eng4', 
+    name: 'Fuel Filter Replacement', 
+    group: 'engine',
+    standardLifeKm: 20000,
+    standardLifeDays: 180,
+    averageCost: 1200,
+    warrantyPeriod: 90
+  },
+  
+  // Brakes & Suspension
   { 
     id: 'brk1', 
     name: 'Brake Pad Replacement', 
     group: 'brakes',
-    standard_life_km: 40000,
-    standard_life_days: 365,
-    average_cost: 2000,
-    warranty_period: 180
+    standardLifeKm: 40000,
+    standardLifeDays: 365,
+    averageCost: 2000,
+    warrantyPeriod: 180
   },
   { 
-    id: 'tyr1', 
-    name: 'Tyre Replacement', 
-    group: 'tyres',
-    standard_life_km: 60000,
-    standard_life_days: 730,
-    average_cost: 12000,
-    warranty_period: 365
+    id: 'brk2', 
+    name: 'Brake Disc Replacement', 
+    group: 'brakes',
+    standardLifeKm: 80000,
+    standardLifeDays: 730,
+    averageCost: 4000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'brk3', 
+    name: 'Brake Fluid Change', 
+    group: 'brakes',
+    standardLifeKm: 40000,
+    standardLifeDays: 730,
+    averageCost: 1000,
+    warrantyPeriod: 180
   },
   { 
     id: 'sus1', 
     name: 'Suspension Check & Service', 
-    group: 'suspension',
-    standard_life_km: 20000,
-    standard_life_days: 180,
-    average_cost: 1500,
-    warranty_period: 90
+    group: 'brakes',
+    standardLifeKm: 20000,
+    standardLifeDays: 180,
+    averageCost: 1500,
+    warrantyPeriod: 90
   },
+  { 
+    id: 'sus2', 
+    name: 'Shock Absorber Replacement', 
+    group: 'brakes',
+    standardLifeKm: 80000,
+    standardLifeDays: 1095,
+    averageCost: 6000,
+    warrantyPeriod: 365
+  },
+  
+  // Tyres
+  { 
+    id: 'tyr1', 
+    name: 'Tyre Replacement (Front Left)', 
+    group: 'tyres',
+    standardLifeKm: 60000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'tyr2', 
+    name: 'Tyre Replacement (Front Right)', 
+    group: 'tyres',
+    standardLifeKm: 60000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'tyr3', 
+    name: 'Tyre Replacement (Rear Left)', 
+    group: 'tyres',
+    standardLifeKm: 60000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'tyr4', 
+    name: 'Tyre Replacement (Rear Right)', 
+    group: 'tyres',
+    standardLifeKm: 60000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'tyr5', 
+    name: 'Tyre Rotation', 
+    group: 'tyres',
+    standardLifeKm: 10000,
+    standardLifeDays: 180,
+    averageCost: 500,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'tyr6', 
+    name: 'Wheel Alignment', 
+    group: 'tyres',
+    standardLifeKm: 10000,
+    standardLifeDays: 180,
+    averageCost: 800,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'tyr7', 
+    name: 'Puncture Repair', 
+    group: 'tyres',
+    standardLifeKm: 0,
+    standardLifeDays: 0,
+    averageCost: 200,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'tyr8', 
+    name: 'Spare Tyre Mount', 
+    group: 'tyres',
+    standardLifeKm: 0,
+    standardLifeDays: 0,
+    averageCost: 300,
+    warrantyPeriod: 30
+  },
+  
+  // Battery
   { 
     id: 'ele1', 
     name: 'Battery Replacement', 
+    group: 'battery',
+    standardLifeKm: 0,
+    standardLifeDays: 730,
+    averageCost: 5000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'ele2', 
+    name: 'Battery Terminal Cleaning', 
+    group: 'battery',
+    standardLifeKm: 10000,
+    standardLifeDays: 180,
+    averageCost: 300,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'ele3', 
+    name: 'Battery Voltage Check', 
+    group: 'battery',
+    standardLifeKm: 5000,
+    standardLifeDays: 90,
+    averageCost: 200,
+    warrantyPeriod: 0
+  },
+  
+  // Electrical
+  { 
+    id: 'ele4', 
+    name: 'Alternator Replacement', 
     group: 'electrical',
-    standard_life_km: 0,
-    standard_life_days: 730,
-    average_cost: 5000,
-    warranty_period: 365
+    standardLifeKm: 100000,
+    standardLifeDays: 1825,
+    averageCost: 8000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'ele5', 
+    name: 'Starter Motor Replacement', 
+    group: 'electrical',
+    standardLifeKm: 100000,
+    standardLifeDays: 1825,
+    averageCost: 7000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'ele6', 
+    name: 'Headlight Bulb Replacement', 
+    group: 'electrical',
+    standardLifeKm: 0,
+    standardLifeDays: 365,
+    averageCost: 500,
+    warrantyPeriod: 90
+  },
+  
+  // Transmission & Clutch
+  { 
+    id: 'tra1', 
+    name: 'Transmission Fluid Change', 
+    group: 'transmission',
+    standardLifeKm: 40000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 180
+  },
+  { 
+    id: 'tra2', 
+    name: 'Clutch Replacement', 
+    group: 'transmission',
+    standardLifeKm: 80000,
+    standardLifeDays: 1825,
+    averageCost: 12000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'tra3', 
+    name: 'Gearbox Repair', 
+    group: 'transmission',
+    standardLifeKm: 100000,
+    standardLifeDays: 1825,
+    averageCost: 15000,
+    warrantyPeriod: 365
+  },
+  
+  // Cooling & AC
+  { 
+    id: 'cool1', 
+    name: 'Coolant Replacement', 
+    group: 'cooling',
+    standardLifeKm: 40000,
+    standardLifeDays: 730,
+    averageCost: 1500,
+    warrantyPeriod: 180
+  },
+  { 
+    id: 'cool2', 
+    name: 'Radiator Flush', 
+    group: 'cooling',
+    standardLifeKm: 40000,
+    standardLifeDays: 730,
+    averageCost: 2000,
+    warrantyPeriod: 180
+  },
+  { 
+    id: 'cool3', 
+    name: 'AC Gas Refill', 
+    group: 'cooling',
+    standardLifeKm: 0,
+    standardLifeDays: 365,
+    averageCost: 2500,
+    warrantyPeriod: 90
+  },
+  
+  // Body & Cabin
+  { 
+    id: 'body1', 
+    name: 'Windshield Replacement', 
+    group: 'body',
+    standardLifeKm: 0,
+    standardLifeDays: 0,
+    averageCost: 8000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'body2', 
+    name: 'Wiper Blade Replacement', 
+    group: 'body',
+    standardLifeKm: 0,
+    standardLifeDays: 365,
+    averageCost: 800,
+    warrantyPeriod: 90
+  },
+  { 
+    id: 'body3', 
+    name: 'Body Repair', 
+    group: 'body',
+    standardLifeKm: 0,
+    standardLifeDays: 0,
+    averageCost: 10000,
+    warrantyPeriod: 365
+  },
+  
+  // Fuel & Exhaust
+  { 
+    id: 'fuel1', 
+    name: 'Fuel Injector Cleaning', 
+    group: 'fuel',
+    standardLifeKm: 30000,
+    standardLifeDays: 730,
+    averageCost: 3000,
+    warrantyPeriod: 180
+  },
+  { 
+    id: 'fuel2', 
+    name: 'Exhaust System Repair', 
+    group: 'fuel',
+    standardLifeKm: 80000,
+    standardLifeDays: 1825,
+    averageCost: 5000,
+    warrantyPeriod: 365
+  },
+  { 
+    id: 'fuel3', 
+    name: 'Catalytic Converter Replacement', 
+    group: 'fuel',
+    standardLifeKm: 100000,
+    standardLifeDays: 3650,
+    averageCost: 12000,
+    warrantyPeriod: 730
+  },
+  
+  // General Service
+  { 
+    id: 'gen1', 
+    name: 'Regular Service', 
+    group: 'general',
+    standardLifeKm: 5000,
+    standardLifeDays: 90,
+    averageCost: 3000,
+    warrantyPeriod: 30
+  },
+  { 
+    id: 'gen2', 
+    name: 'Major Service', 
+    group: 'general',
+    standardLifeKm: 15000,
+    standardLifeDays: 365,
+    averageCost: 8000,
+    warrantyPeriod: 90
+  },
+  { 
+    id: 'gen3', 
+    name: 'Other Maintenance', 
+    group: 'general',
+    standardLifeKm: 0,
+    standardLifeDays: 0,
+    averageCost: 2000,
+    warrantyPeriod: 30
   }
 ];
 
 // Define maintenance groups
 export const MAINTENANCE_GROUPS = {
   engine: {
-    title: 'Engine Maintenance',
+    title: 'Engine & Oil',
     items: MAINTENANCE_ITEMS.filter(item => item.group === 'engine')
   },
-  transmission: {
-    title: 'Transmission Service',
-    items: MAINTENANCE_ITEMS.filter(item => item.group === 'transmission')
-  },
   brakes: {
-    title: 'Brake System',
+    title: 'Brakes & Suspension',
     items: MAINTENANCE_ITEMS.filter(item => item.group === 'brakes')
   },
   electrical: {
-    title: 'Electrical System',
+    title: 'Electrical',
     items: MAINTENANCE_ITEMS.filter(item => item.group === 'electrical')
   },
-  suspension: {
-    title: 'Suspension & Steering',
-    items: MAINTENANCE_ITEMS.filter(item => item.group === 'suspension')
-  },
   tyres: {
-    title: 'Tyres & Wheels',
+    title: 'Tyres',
     items: MAINTENANCE_ITEMS.filter(item => item.group === 'tyres')
   },
-  other: {
-    title: 'Other Services',
-    items: MAINTENANCE_ITEMS.filter(item => item.group === 'other')
+  battery: {
+    title: 'Battery',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'battery')
+  },
+  transmission: {
+    title: 'Transmission & Clutch',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'transmission')
+  },
+  cooling: {
+    title: 'Cooling & AC',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'cooling')
+  },
+  body: {
+    title: 'Body & Cabin',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'body')
+  },
+  fuel: {
+    title: 'Fuel & Exhaust',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'fuel')
+  },
+  general: {
+    title: 'General Service & Others',
+    items: MAINTENANCE_ITEMS.filter(item => item.group === 'general')
   }
 };
 

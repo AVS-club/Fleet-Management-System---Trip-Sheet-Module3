@@ -78,6 +78,11 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
     throw new Error('Start date cannot be empty');
   }
 
+  // If garage_id is not provided, use vendor_id from the first service group
+  if (!taskData.garage_id && service_groups && service_groups.length > 0 && service_groups[0].vendor_id) {
+    taskData.garage_id = service_groups[0].vendor_id;
+  }
+
   // Make sure required fields are present
   if (!taskData.garage_id) {
     console.error('Missing garage_id in createTask');
@@ -177,6 +182,11 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
   if (updateData.start_date === '') {
     console.error('Empty start_date detected in updateTask');
     throw new Error('Start date cannot be empty');
+  }
+
+  // If garage_id is not provided, use vendor_id from the first service group
+  if (!updateData.garage_id && service_groups && service_groups.length > 0 && service_groups[0].vendor_id) {
+    updateData.garage_id = service_groups[0].vendor_id;
   }
 
   // Make sure required fields are preserved
@@ -344,7 +354,7 @@ export const uploadServiceBill = async (file: File, taskId: string, groupId?: st
   if (!file) return null;
 
   const fileExt = file.name.split('.').pop();
-  const fileName = `${taskId}-${groupId || Date.now()}.${fileExt}`;
+  const fileName = `${taskId}-group${groupId || Date.now()}.${fileExt}`;
   const filePath = `maintenance-bills/${fileName}`;
   
   const { error: uploadError } = await supabase.storage

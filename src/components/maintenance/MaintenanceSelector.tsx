@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PenTool as Tool } from 'lucide-react';
-import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance';
+import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS, MAINTENANCE_CATEGORIES } from '../../types/maintenance';
 
 interface MaintenanceSelectorProps {
   selectedItems: string[];
   onChange: (items: string[]) => void;
   showGroupView: boolean;
+  selectedCategory?: string;
   error?: string;
 }
 
@@ -13,6 +14,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   selectedItems,
   onChange,
   showGroupView,
+  selectedCategory,
   error
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,9 +39,17 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
     onChange(newSelection);
   };
 
-  const filteredItems = MAINTENANCE_ITEMS.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter items based on search term and selected category
+  const filteredItems = MAINTENANCE_ITEMS.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || item.group === selectedCategory;
+    return matchesSearch && matchesCategory && !item.inactive;
+  });
+
+  // Get the groups to display based on selected category
+  const groupsToDisplay = selectedCategory 
+    ? { [selectedCategory]: MAINTENANCE_GROUPS[selectedCategory as keyof typeof MAINTENANCE_GROUPS] }
+    : MAINTENANCE_GROUPS;
 
   return (
     <div className="space-y-2">
@@ -50,7 +60,9 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
 
       <div className="relative" ref={dropdownRef}>
         <div
-          className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text"
+          className={`min-h-[42px] p-2 border rounded-lg bg-white cursor-text ${
+            error ? 'border-error-500' : 'border-gray-300'
+          }`}
           onClick={() => setIsOpen(true)}
         >
           {selectedItems.length > 0 ? (
@@ -84,7 +96,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
         </div>
 
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
+          <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg">
             <input
               type="text"
               className="w-full p-2 border-b"
@@ -97,13 +109,13 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
             <div className="max-h-60 overflow-y-auto">
               {showGroupView ? (
                 // Grouped View
-                Object.entries(MAINTENANCE_GROUPS).map(([groupKey, group]) => (
+                Object.entries(groupsToDisplay).map(([groupKey, group]) => (
                   <div key={groupKey} className="border-b last:border-b-0">
                     <div className="p-2 bg-gray-50 font-medium text-sm text-gray-700">
                       {group.title}
                     </div>
                     {group.items
-                      .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()) && !item.inactive)
                       .map(item => (
                         <div
                           key={item.id}

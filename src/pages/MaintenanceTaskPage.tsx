@@ -23,6 +23,7 @@ interface MaintenanceFormData {
   garage_id?: string;
   estimated_cost?: number;
   actual_cost?: number;
+  category?: string;
   
   // Service groups
   service_groups?: Array<{
@@ -44,7 +45,7 @@ interface MaintenanceFormData {
   
   start_date?: string;
   end_date?: string;
-  service_hours?: '4' | '6' | '8' | '12';
+  downtime_period?: string;
   downtime_days?: number;
   odometer_reading?: number;
 
@@ -56,7 +57,6 @@ interface MaintenanceFormData {
 
   attachments?: File[] | string[];
   notes?: string;
-  category?: string;
 }
 
 const MaintenanceTaskPage: React.FC = () => {
@@ -163,12 +163,6 @@ const MaintenanceTaskPage: React.FC = () => {
         return;
       }
       
-      if (!formData.garage_id) {
-        toast.error("Service location is required");
-        setIsSubmitting(false);
-        return;
-      }
-
       // Ensure odometer_reading is provided
       if (!formData.odometer_reading) {
         toast.error("Odometer reading is required");
@@ -178,6 +172,11 @@ const MaintenanceTaskPage: React.FC = () => {
 
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
+      
+      // If garage_id is not provided, use vendor_id from the first service group
+      if (!taskData.garage_id && service_groups && service_groups.length > 0 && service_groups[0].vendor_id) {
+        taskData.garage_id = service_groups[0].vendor_id;
+      }
       
       if (id && id !== 'new') {
         // Update existing task
