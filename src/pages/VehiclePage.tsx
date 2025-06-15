@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
-import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
+import { generateVehiclePDF, downloadVehicleDocuments, createShareableVehicleLink } from '../utils/exportUtils';
+import { toast } from 'react-toastify';
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +16,9 @@ const VehiclePage: React.FC = () => {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   const [stats, setStats] = useState<{ totalTrips: number; totalDistance: number; averageKmpl?: number }>({
     totalTrips: 0,
     totalDistance: 0
@@ -95,19 +100,93 @@ const VehiclePage: React.FC = () => {
     vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) < new Date() ||
     vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) < new Date();
 
+  // Handle export as PDF
+  const handleExportPDF = async () => {
+    try {
+      setExportLoading(true);
+      const doc = await generateVehiclePDF(vehicle, stats);
+      doc.save(`${vehicle.registration_number}_profile.pdf`);
+      toast.success('Vehicle profile exported successfully');
+    } catch (error) {
+      console.error('Error exporting vehicle profile:', error);
+      toast.error('Failed to export vehicle profile');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // Handle download documents
+  const handleDownloadDocuments = async () => {
+    try {
+      setDownloadLoading(true);
+      await downloadVehicleDocuments(vehicle);
+      toast.success('Vehicle documents downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading vehicle documents:', error);
+      toast.error('Failed to download vehicle documents');
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
+  // Handle create shareable link
+  const handleCreateShareableLink = async () => {
+    try {
+      setShareLoading(true);
+      const link = await createShareableVehicleLink(vehicle.id);
+      
+      // Copy link to clipboard
+      await navigator.clipboard.writeText(link);
+      toast.success('Shareable link copied to clipboard (valid for 7 days)');
+    } catch (error) {
+      console.error('Error creating shareable link:', error);
+      toast.error('Failed to create shareable link');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   return (
     <Layout
       title={`Vehicle: ${vehicle.registration_number}`}
       subtitle={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}
       actions={
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => navigate('/vehicles')}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
-            Back to Vehicles
+            Back
           </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            isLoading={exportLoading}
+            icon={<FileDown className="h-4 w-4" />}
+          >
+            Export PDF
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleDownloadDocuments}
+            isLoading={downloadLoading}
+            icon={<Download className="h-4 w-4" />}
+          >
+            Download Docs
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleCreateShareableLink}
+            isLoading={shareLoading}
+            icon={<Share2 className="h-4 w-4" />}
+          >
+            Share
+          </Button>
+          
           <Button
             onClick={() => setIsEditing(true)}
             icon={<PenToolIcon className="h-4 w-4" />}

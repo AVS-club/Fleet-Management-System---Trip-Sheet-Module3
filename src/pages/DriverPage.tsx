@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getDriver, getVehicle, getTrips } from '../utils/storage';
-import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield } from 'lucide-react';
+import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield, FileDown, Share2 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverMetrics from '../components/drivers/DriverMetrics';
 import { getAIAlerts } from '../utils/aiAnalytics';
+import { generateDriverPDF, createShareableDriverLink } from '../utils/exportUtils';
+import { toast } from 'react-toastify';
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,8 @@ const DriverPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
   
   useEffect(() => {
     const fetchData = async () => {
@@ -56,6 +60,42 @@ const DriverPage: React.FC = () => {
     
     fetchData();
   }, [id]);
+
+  // Handle export as PDF
+  const handleExportPDF = async () => {
+    if (!driver) return;
+    
+    try {
+      setExportLoading(true);
+      const doc = await generateDriverPDF(driver, trips, primaryVehicle);
+      doc.save(`${driver.name.replace(/\s+/g, '_')}_profile.pdf`);
+      toast.success('Driver profile exported successfully');
+    } catch (error) {
+      console.error('Error exporting driver profile:', error);
+      toast.error('Failed to export driver profile');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // Handle create shareable link
+  const handleCreateShareableLink = async () => {
+    if (!driver) return;
+    
+    try {
+      setShareLoading(true);
+      const link = await createShareableDriverLink(driver.id);
+      
+      // Copy link to clipboard
+      await navigator.clipboard.writeText(link);
+      toast.success('Shareable link copied to clipboard (valid for 7 days)');
+    } catch (error) {
+      console.error('Error creating shareable link:', error);
+      toast.error('Failed to create shareable link');
+    } finally {
+      setShareLoading(false);
+    }
+  };
   
   if (!driver) {
     return (
@@ -84,13 +124,33 @@ const DriverPage: React.FC = () => {
       title={`Driver: ${driver.name}`}
       subtitle={`License: ${driver.license_number}`}
       actions={
-        <Button
-          variant="outline"
-          onClick={() => navigate('/drivers')}
-          icon={<ChevronLeft className="h-4 w-4" />}
-        >
-          Back to Drivers
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/drivers')}
+            icon={<ChevronLeft className="h-4 w-4" />}
+          >
+            Back
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            isLoading={exportLoading}
+            icon={<FileDown className="h-4 w-4" />}
+          >
+            Export PDF
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={handleCreateShareableLink}
+            isLoading={shareLoading}
+            icon={<Share2 className="h-4 w-4" />}
+          >
+            Share
+          </Button>
+        </div>
       }
     >
       {loading ? (
