@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PenTool as Tool } from 'lucide-react';
-import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS, MAINTENANCE_CATEGORIES } from '../../types/maintenance';
+import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance';
 
 interface MaintenanceSelectorProps {
   selectedItems: string[];
   onChange: (items: string[]) => void;
   showGroupView: boolean;
-  selectedCategory?: string;
   error?: string;
 }
 
@@ -14,7 +13,6 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   selectedItems,
   onChange,
   showGroupView,
-  selectedCategory,
   error
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,17 +66,11 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
     onChange(newSelection);
   };
 
-  // Filter items based on search term and selected category
+  // Filter items based on search term
   const filteredItems = MAINTENANCE_ITEMS.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || item.group === selectedCategory;
-    return matchesSearch && matchesCategory && !item.inactive;
+    return matchesSearch && !item.inactive;
   });
-
-  // Get the groups to display based on selected category
-  const groupsToDisplay = selectedCategory 
-    ? { [selectedCategory]: MAINTENANCE_GROUPS[selectedCategory as keyof typeof MAINTENANCE_GROUPS] }
-    : MAINTENANCE_GROUPS;
 
   return (
     <div className="space-y-2">
@@ -147,7 +139,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
             <div className="max-h-[250px] overflow-y-auto">
               {showGroupView ? (
                 // Grouped View
-                Object.entries(groupsToDisplay).map(([groupKey, group]) => (
+                Object.entries(MAINTENANCE_GROUPS).map(([groupKey, group]) => (
                   <div key={groupKey} className="border-b last:border-b-0">
                     <div className="p-2 bg-gray-50 font-medium text-sm text-gray-700 sticky top-[41px] z-10">
                       {group.title}

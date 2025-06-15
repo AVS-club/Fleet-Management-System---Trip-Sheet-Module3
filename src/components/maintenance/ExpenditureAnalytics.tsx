@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
@@ -7,6 +7,7 @@ interface ExpenditureAnalyticsProps {
   monthlyExpenditure: { month: string; cost: number }[];
   expenditureByVehicle: { vehicleId: string; registration: string; cost: number }[];
   expenditureByVendor: { vendorId: string; name: string; cost: number }[];
+  taskTypeDistribution?: { type: string; count: number }[];
   previousPeriodComparison?: {
     totalExpenditure: number;
     percentChange: number;
@@ -22,6 +23,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
   monthlyExpenditure,
   expenditureByVehicle,
   expenditureByVendor,
+  taskTypeDistribution,
   previousPeriodComparison
 }) => {
   const [showFullVehicleList, setShowFullVehicleList] = useState(false);
@@ -204,6 +206,40 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
               </ResponsiveContainer>
             </div>
           </div>
+          
+          {/* Task Type Distribution Chart */}
+          {taskTypeDistribution && taskTypeDistribution.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-medium text-gray-900">Task Type Distribution</h3>
+              </div>
+              <div className="h-64 overflow-y-auto">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={taskTypeDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="count"
+                      nameKey="type"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {taskTypeDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => [`${value} tasks`, 'Count']}
+                      labelFormatter={(name) => `Type: ${name}`}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </div>
       </CollapsibleSection>
     </div>

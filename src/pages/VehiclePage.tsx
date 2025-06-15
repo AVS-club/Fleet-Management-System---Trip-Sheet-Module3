@@ -140,7 +140,7 @@ const VehiclePage: React.FC = () => {
       toast.success('Shareable link copied to clipboard (valid for 7 days)');
     } catch (error) {
       console.error('Error creating shareable link:', error);
-      toast.error('Failed to create shareable link');
+      toast.error('Error creating shareable link: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setShareLoading(false);
     }
@@ -286,43 +286,6 @@ const VehiclePage: React.FC = () => {
                   {vehicle.documents_verified ? 'Verified' : 'Pending'}
                 </span>
               </div>
-
-              {vehicle.rc_copy && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">RC Copy</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
-                </div>
-              )}
-              {vehicle.insurance_document && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">Insurance Document</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
-                </div>
-              )}
-              {vehicle.fitness_document && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">Fitness Certificate</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
-                </div>
-              )}
-              {vehicle.permit_document && (
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center">
-                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">Permit Document</span>
-                  </div>
-                  <Button variant="outline" size="sm">View</Button>
-                </div>
-              )}
             </div>
           </div>
 
@@ -377,42 +340,149 @@ const VehiclePage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Documents</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {vehicle.rc_copy && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-gray-700">RC Copy</span>
-                </div>
-                <Button variant="outline" size="sm">View</Button>
+            {/* RC Copy */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">RC Copy</span>
               </div>
-            )}
-            {vehicle.insurance_document && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-gray-700">Insurance Document</span>
-                </div>
-                <Button variant="outline" size="sm">View</Button>
+              {vehicle.rc_document_url ? (
+                <a 
+                  href={vehicle.rc_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* Insurance Document */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">Insurance Document</span>
               </div>
-            )}
-            {vehicle.fitness_document && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-gray-700">Fitness Certificate</span>
-                </div>
-                <Button variant="outline" size="sm">View</Button>
+              {vehicle.insurance_document_url ? (
+                <a 
+                  href={vehicle.insurance_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* Fitness Certificate */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">Fitness Certificate</span>
               </div>
-            )}
-            {vehicle.permit_document && (
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-gray-700">Permit Document</span>
-                </div>
-                <Button variant="outline" size="sm">View</Button>
+              {vehicle.fitness_document_url ? (
+                <a 
+                  href={vehicle.fitness_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* Tax Receipt */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">Tax Receipt</span>
               </div>
-            )}
+              {vehicle.tax_document_url ? (
+                <a 
+                  href={vehicle.tax_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* Permit Document */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">Permit Document</span>
+              </div>
+              {vehicle.permit_document_url ? (
+                <a 
+                  href={vehicle.permit_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* PUC Certificate */}
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-700">PUC Certificate</span>
+              </div>
+              {vehicle.puc_document_url ? (
+                <a 
+                  href={vehicle.puc_document_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                >
+                  View
+                </a>
+              ) : (
+                <span className="text-sm text-gray-500">Not Added</span>
+              )}
+            </div>
+            
+            {/* Other Documents */}
+            {vehicle.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && 
+              vehicle.other_documents.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center">
+                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                    <span className="text-gray-700">{doc.name || `Other Document ${index + 1}`}</span>
+                  </div>
+                  {doc.file ? (
+                    <a 
+                      href={typeof doc.file === 'string' ? doc.file : '#'} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      View
+                    </a>
+                  ) : (
+                    <span className="text-sm text-gray-500">Not Added</span>
+                  )}
+                </div>
+              ))
+            }
           </div>
         </div>
       </div>

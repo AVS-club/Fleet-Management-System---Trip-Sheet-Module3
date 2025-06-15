@@ -11,10 +11,8 @@ interface VehicleWithStats extends Vehicle {
   };
 }
 
-// Remove Omit as Vehicle is now fully defined
-// import { Omit } from '../types'; // This line might not be necessary if Omit is a global utility or not used directly for Vehicle
 import { getVehicles, getVehicleStats, createVehicle } from '../utils/storage';
-import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText } from 'lucide-react';
 import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 
@@ -86,6 +84,21 @@ const VehiclesPage: React.FC = () => {
     }
   };
 
+  // Helper function to count uploaded documents
+  const countDocuments = (vehicle: Vehicle): { uploaded: number, total: number } => {
+    let uploaded = 0;
+    const total = 6; // RC, Insurance, Fitness, Tax, Permit, PUC
+    
+    if (vehicle.rc_copy) uploaded++;
+    if (vehicle.insurance_document) uploaded++;
+    if (vehicle.fitness_document) uploaded++;
+    if (vehicle.tax_receipt_document) uploaded++;
+    if (vehicle.permit_document) uploaded++;
+    if (vehicle.puc_document) uploaded++;
+    
+    return { uploaded, total };
+  };
+
   return (
     <Layout
       title="Vehicles"
@@ -135,8 +148,9 @@ const VehiclesPage: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vehicles.map(vehicle => {
-            // The 'vehicle' object from state should already have 'stats' populated.
-            // The line 'const stats = getVehicleStats(vehicle.id);' was redundant and incorrect here.
+            // Count documents
+            const { uploaded, total } = countDocuments(vehicle);
+            
             return (
               <div
                 key={vehicle.id}
@@ -144,9 +158,24 @@ const VehiclesPage: React.FC = () => {
                 onClick={() => navigate(`/vehicles/${vehicle.id}`)}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{vehicle.registration_number}</h3>
-                    <p className="text-sm text-gray-500">{vehicle.make} {vehicle.model}</p>
+                  <div className="flex items-center">
+                    {/* Vehicle Photo (circular) */}
+                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200 mr-3 flex-shrink-0">
+                      {vehicle.photo_url ? (
+                        <img 
+                          src={vehicle.photo_url} 
+                          alt={vehicle.registration_number}
+                          className="h-full w-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <Truck className="h-6 w-6 text-gray-400" />
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">{vehicle.registration_number}</h3>
+                      <p className="text-sm text-gray-500">{vehicle.make} {vehicle.model}</p>
+                    </div>
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
                     vehicle.status === 'active'
@@ -203,6 +232,25 @@ const VehiclesPage: React.FC = () => {
                       <PenToolIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Avg KMPL</span>
                       <p className="font-medium">{vehicle.stats.averageKmpl?.toFixed(1) || '-'}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Document Status */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-1" />
+                      <span className="text-sm text-gray-500">Docs:</span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                        uploaded === total 
+                          ? 'bg-success-100 text-success-800' 
+                          : uploaded === 0 
+                          ? 'bg-error-100 text-error-800'
+                          : 'bg-warning-100 text-warning-800'
+                      }`}>
+                        {uploaded}/{total}
+                      </span>
                     </div>
                   </div>
                 </div>

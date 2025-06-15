@@ -227,19 +227,37 @@ export const calculateMaintenanceMetrics = (
     }))
     .sort((a, b) => b.cost - a.cost); // Sort by highest cost first
   
-  // Calculate task type distribution
+  // Calculate task type distribution - improved to use service_groups.tasks
   const taskTypeMap: Record<string, number> = {};
   
   filteredTasks.forEach(task => {
-    const taskType = task.task_type;
-    taskTypeMap[taskType] = (taskTypeMap[taskType] || 0) + 1;
+    // First try to get tasks from service_groups
+    if (Array.isArray(task.service_groups) && task.service_groups.length > 0) {
+      task.service_groups.forEach(group => {
+        if (Array.isArray(group.tasks)) {
+          group.tasks.forEach(taskId => {
+            // Find the task in MAINTENANCE_ITEMS to get its group
+            const maintenanceItem = MAINTENANCE_ITEMS.find(item => item.id === taskId);
+            if (maintenanceItem) {
+              const groupName = MAINTENANCE_GROUPS[maintenanceItem.group]?.title || maintenanceItem.group;
+              taskTypeMap[groupName] = (taskTypeMap[groupName] || 0) + 1;
+            }
+          });
+        }
+      });
+    } else {
+      // Fallback to task_type if no service_groups
+      const taskType = task.task_type;
+      taskTypeMap[taskType] = (taskTypeMap[taskType] || 0) + 1;
+    }
   });
   
   const taskTypeDistribution = Object.entries(taskTypeMap)
     .map(([type, count]) => ({
       type,
       count
-    }));
+    }))
+    .sort((a, b) => b.count - a.count); // Sort by highest count first
   
   // Calculate vehicle downtime
   const vehicleDowntimeMap: Record<string, number> = {};
@@ -427,3 +445,6 @@ export const exportMaintenanceReport = (
   console.log(`Exporting maintenance report in ${format} format`);
   // Implementation details would depend on the specific libraries used
 };
+
+// Import MAINTENANCE_ITEMS and MAINTENANCE_GROUPS for task type distribution
+import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../types/maintenance';

@@ -154,12 +154,13 @@ const MaintenancePage = () => {
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
           
-          {/* Expenditure Analytics */}
+          {/* Expenditure Analytics with Task Distribution Chart */}
           <ExpenditureAnalytics
             monthlyExpenditure={metrics.monthlyExpenditure}
             expenditureByVehicle={metrics.expenditureByVehicle}
             expenditureByVendor={metrics.expenditureByVendor}
             previousPeriodComparison={metrics.previousPeriodComparison}
+            taskTypeDistribution={metrics.taskTypeDistribution}
           />
           
           {/* Vehicle Maintenance Intensity */}
@@ -170,11 +171,6 @@ const MaintenancePage = () => {
           {/* Vehicle Downtime Chart */}
           <VehicleDowntimeChart
             vehicleDowntime={metrics.vehicleDowntime}
-          />
-          
-          {/* Task Distribution Chart */}
-          <TaskDistributionChart
-            taskTypeDistribution={metrics.taskTypeDistribution}
           />
           
           {/* Enhanced Maintenance Table */}
