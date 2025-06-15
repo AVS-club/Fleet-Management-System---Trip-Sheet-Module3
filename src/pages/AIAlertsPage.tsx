@@ -7,7 +7,7 @@ import { AlertTriangle, CheckCircle, XCircle, Bell, Search } from 'lucide-react'
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import AlertActionModal from '../components/alerts/AlertActionModal';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 const AIAlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
@@ -74,6 +74,11 @@ const AIAlertsPage: React.FC = () => {
     }
   };
 
+  const formatAlertDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return isValid(date) ? format(date, 'dd MMM HH:mm') : '-';
+  };
+
   const filteredAlerts = alerts.filter(alert => {
     if (filters.search && alert.affected_entity) {
       const vehicle = alert.affected_entity.type === 'vehicle' ? getVehicle(alert.affected_entity.id) : null;
@@ -94,7 +99,17 @@ const AIAlertsPage: React.FC = () => {
     if (filters.status !== 'all' && alert.status !== filters.status) return false;
 
     return true;
-  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }).sort((a, b) => {
+    const dateA = new Date(a.createdAt);
+    const dateB = new Date(b.createdAt);
+    
+    // Handle invalid dates by putting them at the end
+    if (!isValid(dateA) && !isValid(dateB)) return 0;
+    if (!isValid(dateA)) return 1;
+    if (!isValid(dateB)) return -1;
+    
+    return dateB.getTime() - dateA.getTime();
+  });
 
   return (
     <Layout title="AI AVS Alerts" subtitle="Review and manage AI-generated alerts">
@@ -188,7 +203,7 @@ const AIAlertsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                      {format(new Date(alert.createdAt), 'dd MMM HH:mm')}
+                      {formatAlertDate(alert.createdAt)}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-right">
                       {alert.status === 'pending' && (
