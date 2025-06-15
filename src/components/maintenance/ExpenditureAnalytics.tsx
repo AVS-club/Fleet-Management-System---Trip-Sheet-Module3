@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, BarChart, Bar } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
@@ -28,18 +28,6 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
   topMaintenanceCategories,
   previousPeriodComparison
 }) => {
-  const [showFullVehicleList, setShowFullVehicleList] = useState(false);
-  const [showFullVendorList, setShowFullVendorList] = useState(false);
-
-  // Limit data for initial view
-  const topVehicles = showFullVehicleList 
-    ? expenditureByVehicle 
-    : expenditureByVehicle.slice(0, 5);
-
-  const topVendors = showFullVendorList 
-    ? expenditureByVendor 
-    : expenditureByVendor.slice(0, 5);
-
   // Custom tooltip for monthly expenditure
   const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -62,9 +50,9 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
         defaultExpanded={true}
         iconColor="text-green-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Monthly Expenditure Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-4 lg:col-span-2">
+          <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure Over Time</h3>
               {previousPeriodComparison && (
@@ -115,18 +103,11 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vehicle</h3>
-              <button 
-                className="text-xs text-primary-600 flex items-center"
-                onClick={() => setShowFullVehicleList(!showFullVehicleList)}
-              >
-                {showFullVehicleList ? 'Show Top 5' : 'View All'} 
-                <ChevronRight className="h-3 w-3 ml-1" />
-              </button>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={topVehicles}
+                  data={expenditureByVehicle.slice(0, 5)}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
@@ -157,7 +138,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     }}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {topVehicles.map((entry, index) => (
+                    {expenditureByVehicle.slice(0, 5).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -170,18 +151,11 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vendor</h3>
-              <button 
-                className="text-xs text-primary-600 flex items-center"
-                onClick={() => setShowFullVendorList(!showFullVendorList)}
-              >
-                {showFullVendorList ? 'Show Top 5' : 'View All'} 
-                <ChevronRight className="h-3 w-3 ml-1" />
-              </button>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={topVendors}
+                  data={expenditureByVendor.slice(0, 5)}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
@@ -212,7 +186,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     }}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {topVendors.map((entry, index) => (
+                    {expenditureByVendor.slice(0, 5).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
