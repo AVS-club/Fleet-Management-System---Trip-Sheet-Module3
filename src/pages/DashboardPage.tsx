@@ -9,7 +9,7 @@ import StatCard from '../components/dashboard/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
-import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Info, HelpCircle } from 'lucide-react';
+import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 
 const DashboardPage: React.FC = () => {
@@ -137,18 +137,11 @@ const DashboardPage: React.FC = () => {
   const handleSelectVehicle = (vehicle: Vehicle) => {
     navigate(`/vehicles/${vehicle.id}`);
   };
-
-  // Tooltip content
-  const tooltips = {
-    avgMileage: "Average kilometers per liter across all trips with refueling data",
-    bestDriver: "Driver with the highest average fuel efficiency across all trips",
-    potentialSavings: "Estimated monthly savings if all drivers achieved the efficiency of your best driver"
-  };
   
   return (
     <Layout 
       title="Dashboard" 
-      subtitle={`Updated hourly · Fleet-level summary · Last updated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`}
+      subtitle={`Last updated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`}
     >
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -156,7 +149,7 @@ const DashboardPage: React.FC = () => {
         </div>
       ) : (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Trips"
             value={stats.totalTrips}
@@ -166,7 +159,6 @@ const DashboardPage: React.FC = () => {
               label: "vs last month",
               isPositive: true
             }}
-            className="bg-white"
           />
           
           <StatCard
@@ -174,7 +166,6 @@ const DashboardPage: React.FC = () => {
             value={stats.totalDistance.toLocaleString()}
             subtitle="km"
             icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
-            className="bg-white"
           />
           
           <StatCard
@@ -182,8 +173,6 @@ const DashboardPage: React.FC = () => {
             value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
             subtitle="km/L"
             icon={<Calculator className="h-5 w-5 text-primary-600" />}
-            tooltip={tooltips.avgMileage}
-            className="bg-white"
           />
           
           <StatCard
@@ -191,22 +180,21 @@ const DashboardPage: React.FC = () => {
             value={stats.totalFuel.toLocaleString()}
             subtitle="L"
             icon={<Fuel className="h-5 w-5 text-primary-600" />}
-            className="bg-white"
           />
         </div>
 
         {/* Mileage Insights */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {bestVehicle && (
-            <div className="bg-white p-6 rounded-lg shadow-sm min-h-[180px]">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-medium text-gray-900">Best Vehicle</h3>
+                <h3 className="text-lg font-medium text-gray-900">Best Vehicle</h3>
                 <Truck className="h-6 w-6 text-success-500" />
               </div>
-              <div className="mt-3">
-                <p className="text-xl font-semibold text-gray-900">{bestVehicle.registration_number}</p>
-                <p className="text-xs text-gray-500">{bestVehicle.make} {bestVehicle.model}</p>
-                <p className="mt-2 text-teal-500 font-medium">
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-gray-900">{bestVehicle.registration_number}</p>
+                <p className="text-sm text-gray-500">{bestVehicle.make} {bestVehicle.model}</p>
+                <p className="mt-2 text-success-600 font-medium">
                   {stats.bestVehicleMileage?.toFixed(2)} km/L
                 </p>
               </div>
@@ -214,42 +202,29 @@ const DashboardPage: React.FC = () => {
           )}
 
           {bestDriver && (
-            <div className="bg-white p-6 rounded-lg shadow-sm min-h-[180px]">
+            <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <h3 className="text-base font-medium text-gray-900">Best Driver</h3>
-                  <button className="ml-1 text-gray-400 hover:text-gray-600" title={tooltips.bestDriver}>
-                    <HelpCircle className="h-4 w-4" />
-                  </button>
-                </div>
+                <h3 className="text-lg font-medium text-gray-900">Best Driver</h3>
                 <Users className="h-6 w-6 text-success-500" />
               </div>
-              <div className="mt-3">
-                <p className="text-xl font-semibold text-gray-900">{bestDriver.name}</p>
-                <p className="text-xs text-gray-500">License: {bestDriver.license_number}</p>
-                <p className="mt-2 text-teal-500 font-medium">
+              <div className="mt-4">
+                <p className="text-2xl font-bold text-gray-900">{bestDriver.name}</p>
+                <p className="text-sm text-gray-500">License: {bestDriver.license_number}</p>
+                <p className="mt-2 text-success-600 font-medium">
                   {stats.bestDriverMileage?.toFixed(2)} km/L
                 </p>
               </div>
             </div>
           )}
 
-          <div className="bg-white p-6 rounded-lg shadow-sm min-h-[180px]">
+          <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <h3 className="text-base font-medium text-gray-900">Potential Savings</h3>
-                <button className="ml-1 text-gray-400 hover:text-gray-600" title={tooltips.potentialSavings}>
-                  <HelpCircle className="h-4 w-4" />
-                </button>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900">Potential Savings</h3>
               <IndianRupee className="h-6 w-6 text-success-500" />
             </div>
-            <div className="mt-3">
-              <p className="text-xl font-semibold text-green-600">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-              <p className="text-xs text-gray-500">Estimated monthly savings with best practices</p>
-              <p className="mt-2 text-xs text-gray-500">
-                Based on fleet average vs. best driver performance
-              </p>
+            <div className="mt-4">
+              <p className="text-2xl font-bold text-success-600">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
+              <p className="text-sm text-gray-500">Estimated monthly savings with best practices</p>
             </div>
           </div>
         </div>
@@ -276,43 +251,31 @@ const DashboardPage: React.FC = () => {
         </div>
         
         {Array.isArray(trips) && trips.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 bg-gray-50 p-4 rounded-lg shadow-sm">
-            <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-blue-800 font-medium">AI Insights</h3>
-                  <div className="mt-2 text-blue-700 text-sm">
-                    <p>
-                      Our AI analysis suggests the following insights:
-                    </p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li className="flex items-start">
-                        <Calculator className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                        <span>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</span>
-                      </li>
-                      {bestDriver && (
-                        <li className="flex items-start">
-                          <Users className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                          <span>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</span>
-                        </li>
-                      )}
-                      {bestVehicle && (
-                        <li className="flex items-start">
-                          <Truck className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                          <span>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</span>
-                        </li>
-                      )}
-                      {stats.estimatedFuelSaved > 0 && (
-                        <li className="flex items-start">
-                          <IndianRupee className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                          <span>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</span>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div className="lg:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex">
+              <AlertTriangle className="h-5 w-5 text-blue-600" />
+              <div className="ml-3">
+                <h3 className="text-blue-800 font-medium">AI Insights</h3>
+                <div className="mt-2 text-blue-700 text-sm">
+                  <p>
+                    Our AI analysis suggests the following insights:
+                  </p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
+                    {bestDriver && (
+                      <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
+                    )}
+                    {bestVehicle && (
+                      <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
+                    )}
+                    {stats.estimatedFuelSaved > 0 && (
+                      <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
+                    )}
+                  </ul>
                 </div>
               </div>
+            </div>
             </div>
             
             <div className="lg:col-span-1">
@@ -327,3 +290,4 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+<AVSChatbot />
