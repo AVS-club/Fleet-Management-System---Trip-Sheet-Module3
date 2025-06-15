@@ -82,7 +82,7 @@ const DriverPage: React.FC = () => {
   return (
     <Layout
       title={`Driver: ${driver.name}`}
-      subtitle={`License: ${driver.licenseNumber}`}
+      subtitle={`License: ${driver.license_number}`}
       actions={
         <Button
           variant="outline"
@@ -181,11 +181,11 @@ const DriverPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-sm text-gray-500">Join Date:</span>
-                <p className="font-medium">{new Date(driver.joinDate).toLocaleDateString()}</p>
+                <p className="font-medium">{new Date(driver.join_date).toLocaleDateString()}</p>
               </div>
               <div>
                 <span className="text-sm text-gray-500">Experience:</span>
-                <p className="font-medium">{driver.experience} years</p>
+                <p className="font-medium">{driver.experience_years} years</p>
               </div>
               <div>
                 <span className="text-sm text-gray-500">Status:</span>
@@ -201,10 +201,10 @@ const DriverPage: React.FC = () => {
                   {driver.status.replace('_', ' ')}
                 </span>
               </div>
-              {driver.driverStatusReason && (
+              {driver.driver_status_reason && (
                 <div>
                   <span className="text-sm text-gray-500">Status Reason:</span>
-                  <p className="text-sm text-error-600">{driver.driverStatusReason}</p>
+                  <p className="text-sm text-error-600">{driver.driver_status_reason}</p>
                 </div>
               )}
             </div>
@@ -239,20 +239,20 @@ const DriverPage: React.FC = () => {
                 </div>
                 {driver.license_expiry_date && (
                   <p className="text-sm mt-1">
-                    Expires: {new Date(driver.licenseExpiryDate).toLocaleDateString()}
+                    Expires: {new Date(driver.license_expiry_date).toLocaleDateString()}
                   </p>
                 )}
               </div>
 
-              {driver.documentsVerified !== undefined && (
+              {driver.documents_verified !== undefined && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-500">Documents Verified:</span>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    driver.documentsVerified
+                    driver.documents_verified
                       ? 'bg-success-100 text-success-700'
                       : 'bg-warning-100 text-warning-700'
                   }`}>
-                    {driver.documentsVerified ? 'Verified' : 'Pending'}
+                    {driver.documents_verified ? 'Verified' : 'Pending'}
                   </span>
                 </div>
               )}
@@ -282,7 +282,7 @@ const DriverPage: React.FC = () => {
               <div className="mt-4 space-y-2">
                 <div>
                   <span className="text-sm text-gray-500">Registration:</span>
-                  <p className="font-medium">{primaryVehicle.registrationNumber}</p>
+                  <p className="font-medium">{primaryVehicle.registration_number}</p>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Make & Model:</span>

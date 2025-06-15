@@ -9,7 +9,7 @@ interface DriverProfileModalProps {
 }
 
 const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose }) => {
-  const primaryVehicle = driver.primaryVehicleId ? getVehicle(driver.primaryVehicleId) : undefined;
+  const primaryVehicle = driver.primary_vehicle_id ? getVehicle(driver.primary_vehicle_id) : undefined;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -25,7 +25,7 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
                 </div>
                 <div className="ml-3">
                   <h3 className="text-lg font-medium text-gray-900">{driver.name}</h3>
-                  <p className="text-sm text-gray-500">{driver.licenseNumber}</p>
+                  <p className="text-sm text-gray-500">{driver.license_number}</p>
                 </div>
               </div>
               <button
@@ -42,17 +42,17 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
                 <dl className="mt-2 grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm text-gray-500">Experience</dt>
-                    <dd className="text-sm font-medium text-gray-900">{driver.experience} years</dd>
+                    <dd className="text-sm font-medium text-gray-900">{driver.experience_years} years</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Join Date</dt>
                     <dd className="text-sm font-medium text-gray-900">
-                      {new Date(driver.joinDate).toLocaleDateString()}
+                      {new Date(driver.join_date).toLocaleDateString()}
                     </dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Contact</dt>
-                    <dd className="text-sm font-medium text-gray-900">{driver.contactNumber}</dd>
+                    <dd className="text-sm font-medium text-gray-900">{driver.contact_number}</dd>
                   </div>
                   <div>
                     <dt className="text-sm text-gray-500">Email</dt>
@@ -67,7 +67,7 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
                   <div className="mt-2 p-3 bg-gray-50 rounded-lg flex items-center">
                     <Truck className="h-5 w-5 text-gray-400" />
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">{primaryVehicle.registrationNumber}</p>
+                      <p className="text-sm font-medium text-gray-900">{primaryVehicle.registration_number}</p>
                       <p className="text-sm text-gray-500">
                         {primaryVehicle.make} {primaryVehicle.model}
                       </p>

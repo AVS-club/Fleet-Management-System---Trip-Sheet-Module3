@@ -136,7 +136,7 @@ export interface Driver {
   email: string;
   join_date: string;
   status: 'active' | 'inactive' | 'onLeave' | 'suspended' | 'blacklisted';
-  experience: number;
+  experience_years: number;
   primary_vehicle_id?: string;
   photo?: File | null;
   driver_photo_url?: string;

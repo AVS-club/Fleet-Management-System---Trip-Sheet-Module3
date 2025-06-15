@@ -135,9 +135,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
           <Input
             label="Experience (Years)"
             type="number"
-            error={errors.experience?.message}
+            error={errors.experience_years?.message}
             required
-            {...register('experience', {
+            {...register('experience_years', {
               required: 'Experience is required',
               valueAsNumber: true,
               min: { value: 0, message: 'Experience must be positive' }
