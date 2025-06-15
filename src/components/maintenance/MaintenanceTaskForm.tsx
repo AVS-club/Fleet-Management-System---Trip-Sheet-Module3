@@ -10,11 +10,12 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
+import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
-import { getAuditLogs, getMaintenanceTasksCatalog } from '../../utils/maintenanceStorage';
+import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
 
@@ -40,8 +41,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   }>({
     confidence: 0
   });
-  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
-  const [maintenanceCategories, setMaintenanceCategories] = useState<string[]>([]);
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -57,8 +56,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         ? initialData.service_groups 
         : [{ 
             tasks: [], 
-            cost: 0,
-            vendor_id: ''
+            cost: 0
           }],
       ...initialData
     }
@@ -91,25 +89,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const handleResolutionTranscript = (text: string) => {
     setValue('resolution_summary', resolutionSummary ? `${resolutionSummary} ${text}` : text);
   };
-
-  // Fetch maintenance tasks catalog
-  useEffect(() => {
-    const fetchMaintenanceTasks = async () => {
-      try {
-        const tasks = await getMaintenanceTasksCatalog();
-        
-        // Extract unique categories
-        const categories = [...new Set(tasks.map(task => task.task_category))];
-        
-        setMaintenanceTasks(tasks);
-        setMaintenanceCategories(categories);
-      } catch (error) {
-        console.error('Error fetching maintenance tasks catalog:', error);
-      }
-    };
-    
-    fetchMaintenanceTasks();
-  }, []);
 
   // Fetch audit logs asynchronously
   useEffect(() => {
@@ -263,6 +242,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
+      if (!data.garage_id) {
+        toast.error("Please select a garage");
+        return;
+      }
+      
       if (!data.start_date) {
         toast.error("Please set a start date");
         return;
@@ -353,26 +337,41 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           />
         </div>
 
-        <Controller
-          control={control}
-          name="priority"
-          rules={{ required: 'Priority is required' }}
-          render={({ field }) => (
-            <Select
-              label="Priority"
-              icon={<AlertTriangle className="h-4 w-4" />}
-              options={[
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' },
-                { value: 'critical', label: 'Critical' }
-              ]}
-              error={errors.priority?.message}
-              required
-              {...field}
-            />
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Controller
+            control={control}
+            name="garage_id"
+            rules={{ required: 'Garage is required' }}
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <GarageSelector
+                selectedGarage={value}
+                onChange={onChange}
+                error={error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name="priority"
+            rules={{ required: 'Priority is required' }}
+            render={({ field }) => (
+              <Select
+                label="Priority"
+                icon={<AlertTriangle className="h-4 w-4" />}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'critical', label: 'Critical' }
+                ]}
+                error={errors.priority?.message}
+                required
+                {...field}
+              />
+            )}
+          />
+        </div>
       </div>
 
       {/* Maintenance Tasks */}
@@ -400,7 +399,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
               
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Vendor selector */}
                   <Controller
                     control={control}
@@ -429,9 +428,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       />
                     )}
                   />
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Cost input */}
                   <Input
                     label="Cost (₹)"
@@ -445,7 +442,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       min: { value: 0, message: 'Cost must be positive' }
                     })}
                   />
+                </div>
 
+                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Bill upload */}
                   <Controller
                     control={control}
@@ -472,8 +471,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             size="sm"
             onClick={() => append({
               tasks: [],
-              cost: 0,
-              vendor_id: ''
+              cost: 0
             })}
             icon={<Plus className="h-4 w-4" />}
           >

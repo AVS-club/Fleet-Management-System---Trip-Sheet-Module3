@@ -19,10 +19,10 @@ export interface MaintenanceAuditLog {
 export interface MaintenanceServiceGroup {
   id?: string;
   maintenance_task_id?: string;
-  vendor_id: string;
   tasks: string[];
   cost: number;
   bill_url?: string;
+  bill_file?: File; // For frontend handling before upload
   created_at?: string;
   updated_at?: string;
 }
@@ -253,50 +253,6 @@ export const MAINTENANCE_GROUPS = {
   other: {
     title: 'Other Services',
     items: MAINTENANCE_ITEMS.filter(item => item.group === 'other')
-  }
-};
-
-// Define maintenance categories for the chart
-export const MAINTENANCE_CATEGORIES = {
-  'Engine & Oil': {
-    color: '#4CAF50', // Green
-    icon: 'Engine'
-  },
-  'Battery & Electrical': {
-    color: '#2196F3', // Blue
-    icon: 'Battery'
-  },
-  'Brakes & Suspension': {
-    color: '#F44336', // Red
-    icon: 'Brakes'
-  },
-  'Tyre & Wheel': {
-    color: '#FF9800', // Orange
-    icon: 'Tyre'
-  },
-  'Transmission & Clutch': {
-    color: '#9C27B0', // Purple
-    icon: 'Transmission'
-  },
-  'AC & Cooling System': {
-    color: '#00BCD4', // Cyan
-    icon: 'AC'
-  },
-  'Body, Cabin & Fitment': {
-    color: '#795548', // Brown
-    icon: 'Body'
-  },
-  'Exhaust & Emissions': {
-    color: '#607D8B', // Blue Grey
-    icon: 'Exhaust'
-  },
-  'Axle, Hub, Chassis': {
-    color: '#FF5722', // Deep Orange
-    icon: 'Axle'
-  },
-  'General Service / Multi-System': {
-    color: '#3F51B5', // Indigo
-    icon: 'Service'
   }
 };
 

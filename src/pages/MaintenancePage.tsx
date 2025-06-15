@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
-import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../types';
+import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
@@ -38,7 +38,6 @@ const MaintenancePage = () => {
     taskTypeDistribution: [],
     vehicleDowntime: [],
     kmBetweenMaintenance: [],
-    topMaintenanceCategories: [],
     previousPeriodComparison: {
       totalTasks: 0,
       totalExpenditure: 0,
@@ -85,7 +84,7 @@ const MaintenancePage = () => {
     if (tasks.length > 0 && vehicles.length > 0) {
       calculateMetrics(tasks, vehicles, dateRangeFilter);
     }
-  }, [dateRangeFilter, customDateRange, tasks, vehicles]);
+  }, [dateRangeFilter, customDateRange]);
   
   const calculateMetrics = async (tasksData: MaintenanceTask[], vehiclesData: Vehicle[], filter: string) => {
     try {
@@ -96,61 +95,8 @@ const MaintenancePage = () => {
       );
       
       // Get metrics with comparison to previous period
-      const metricsData = await getMaintenanceMetricsWithComparison(dateRange, tasksData, vehiclesData);
-      
-      // Process maintenance categories by aggregating service group costs
-      const categorySpendMap: Record<string, number> = {};
-      
-      // Use the filtered tasks from metricsData
-      metricsData.filteredTasks.forEach(task => {
-        if (Array.isArray(task.service_groups) && task.service_groups.length > 0) {
-          // Get the total cost for this task's service groups
-          const taskCost = task.service_groups.reduce((sum, group) => 
-            sum + (typeof group.cost === 'number' ? group.cost : 0), 0);
-          
-          // Map task titles to their categories
-          if (Array.isArray(task.title) && task.title.length > 0) {
-            // Try to find the category from the task's category field first
-            let category = task.category;
-            
-            // If no category is set, try to determine it from the task type
-            if (!category) {
-              switch (task.task_type) {
-                case 'general_scheduled_service':
-                  category = 'General Service / Multi-System';
-                  break;
-                case 'wear_and_tear_replacement_repairs':
-                  category = 'Repair/Replacement';
-                  break;
-                case 'accidental':
-                  category = 'Accidental';
-                  break;
-                default:
-                  category = 'Others';
-              }
-            }
-            
-            // Add the cost to the category
-            categorySpendMap[category] = (categorySpendMap[category] || 0) + taskCost;
-          } else {
-            // If no specific titles, use the task type as a fallback
-            const category = task.category || 'General Service / Multi-System';
-            categorySpendMap[category] = (categorySpendMap[category] || 0) + taskCost;
-          }
-        }
-      });
-      
-      // Convert to array and sort by cost
-      const topMaintenanceCategories = Object.entries(categorySpendMap)
-        .map(([category, cost]) => ({ category, cost }))
-        .sort((a, b) => b.cost - a.cost)
-        .slice(0, 20); // Limit to top 20
-      
-      // Set the metrics state with the new data
-      setMetrics({
-        ...metricsData,
-        topMaintenanceCategories
-      });
+      const metricsData = await getMaintenanceMetricsWithComparison(dateRange);
+      setMetrics(metricsData);
     } catch (error) {
       console.error('Error calculating maintenance metrics:', error);
     }
@@ -213,7 +159,6 @@ const MaintenancePage = () => {
             monthlyExpenditure={metrics.monthlyExpenditure}
             expenditureByVehicle={metrics.expenditureByVehicle}
             expenditureByVendor={metrics.expenditureByVendor}
-            topMaintenanceCategories={metrics.topMaintenanceCategories}
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
           

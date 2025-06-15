@@ -35,18 +35,7 @@ export const predictNextService = async (
     / (1000 * 60 * 60 * 24)
   );
   const kmDiff = Math.abs(latestTask.odometer_reading - previousTask.odometer_reading);
-  
-  // Check for invalid calculations
-  if (daysDiff === 0 || !isFinite(daysDiff) || !isFinite(kmDiff)) {
-    return undefined;
-  }
-  
   const avgKmPerDay = kmDiff / daysDiff;
-  
-  // Check if avgKmPerDay is valid
-  if (!isFinite(avgKmPerDay) || avgKmPerDay <= 0) {
-    return undefined;
-  }
 
   // Find the maintenance item with the earliest due date/km
   let nextDueKm = Infinity;
@@ -56,44 +45,22 @@ export const predictNextService = async (
   taskTitles.forEach(taskId => {
     const item = MAINTENANCE_ITEMS.find(i => i.id === taskId);
     if (item) {
-      if (item.standardLifeKm && isFinite(item.standardLifeKm)) {
-        const kmUntilDue = item.standardLifeKm;
+      if (item.standard_life_km) {
+        const kmUntilDue = item.standard_life_km;
         nextDueKm = Math.min(nextDueKm, kmUntilDue);
       }
-      if (item.standardLifeDays && isFinite(item.standardLifeDays)) {
-        nextDueDays = Math.min(nextDueDays, item.standardLifeDays);
+      if (item.standard_life_days) {
+        nextDueDays = Math.min(nextDueDays, item.standard_life_days);
       }
     }
   });
 
-  // Check if we have valid due dates/km
-  if (!isFinite(nextDueKm) && !isFinite(nextDueDays)) {
-    return undefined;
-  }
-
   // Calculate prediction
-  const daysUntilDue = isFinite(nextDueKm) ? nextDueKm / avgKmPerDay : nextDueDays;
-  const finalDaysUntilDue = isFinite(nextDueDays) ? Math.min(daysUntilDue, nextDueDays) : daysUntilDue;
-  
-  // Check if final calculation is valid
-  if (!isFinite(finalDaysUntilDue) || finalDaysUntilDue <= 0) {
-    return undefined;
-  }
-
+  const daysUntilDue = nextDueKm / avgKmPerDay;
   const predictedDate = new Date();
-  predictedDate.setDate(predictedDate.getDate() + finalDaysUntilDue);
-  
-  // Check if the predicted date is valid
-  if (!isFinite(predictedDate.getTime())) {
-    return undefined;
-  }
+  predictedDate.setDate(predictedDate.getDate() + Math.min(daysUntilDue, nextDueDays));
 
-  const predictedOdometer = currentOdometer + (avgKmPerDay * finalDaysUntilDue);
-  
-  // Check if predicted odometer is valid
-  if (!isFinite(predictedOdometer)) {
-    return undefined;
-  }
+  const predictedOdometer = currentOdometer + (avgKmPerDay * daysUntilDue);
 
   // Calculate confidence based on data consistency
   const confidence = Math.min(
@@ -129,23 +96,23 @@ export const isMaintenanceOverdue = async (
     if (!item) return;
 
     // Check days
-    if (item.standardLifeDays) {
+    if (item.standard_life_days) {
       const lastServiceDate = new Date(task.start_date);
       const daysElapsed = Math.floor(
         (new Date().getTime() - lastServiceDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      if (daysElapsed > item.standardLifeDays) {
+      if (daysElapsed > item.standard_life_days) {
         isOverdue = true;
-        daysOverdue = daysElapsed - item.standardLifeDays;
+        daysOverdue = daysElapsed - item.standard_life_days;
       }
     }
 
     // Check kilometers
-    if (item.standardLifeKm) {
+    if (item.standard_life_km) {
       const kmElapsed = vehicle.current_odometer - task.odometer_reading;
-      if (kmElapsed > item.standardLifeKm) {
+      if (kmElapsed > item.standard_life_km) {
         isOverdue = true;
-        kmOverdue = kmElapsed - item.standardLifeKm;
+        kmOverdue = kmElapsed - item.standard_life_km;
       }
     }
   });

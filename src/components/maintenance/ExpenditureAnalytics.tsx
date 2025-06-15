@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, BarChart, Bar } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import Button from '../ui/Button';
-import TopMaintenanceCategoriesChart from './TopMaintenanceCategoriesChart';
 
 interface ExpenditureAnalyticsProps {
   monthlyExpenditure: { month: string; cost: number }[];
   expenditureByVehicle: { vehicleId: string; registration: string; cost: number }[];
   expenditureByVendor: { vendorId: string; name: string; cost: number }[];
-  topMaintenanceCategories: { category: string; cost: number }[];
   previousPeriodComparison?: {
     totalExpenditure: number;
     percentChange: number;
@@ -25,9 +22,20 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
   monthlyExpenditure,
   expenditureByVehicle,
   expenditureByVendor,
-  topMaintenanceCategories,
   previousPeriodComparison
 }) => {
+  const [showFullVehicleList, setShowFullVehicleList] = useState(false);
+  const [showFullVendorList, setShowFullVendorList] = useState(false);
+
+  // Limit data for initial view
+  const topVehicles = showFullVehicleList 
+    ? expenditureByVehicle 
+    : expenditureByVehicle.slice(0, 5);
+
+  const topVendors = showFullVendorList 
+    ? expenditureByVendor 
+    : expenditureByVendor.slice(0, 5);
+
   // Custom tooltip for monthly expenditure
   const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -50,7 +58,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
         defaultExpanded={true}
         iconColor="text-green-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Monthly Expenditure Chart */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
@@ -87,9 +95,9 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                   />
                   <Tooltip content={<CustomMonthlyTooltip />} />
                   <Line
-                    type="monotone" 
-                    dataKey="cost" 
-                    stroke="#4CAF50" 
+                    type="monotone"
+                    dataKey="cost"
+                    stroke="#4CAF50"
                     strokeWidth={2}
                     dot={{ r: 4, strokeWidth: 2, fill: "white" }}
                     activeDot={{ r: 6 }}
@@ -103,11 +111,18 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vehicle</h3>
+              <button 
+                className="text-xs text-primary-600 flex items-center"
+                onClick={() => setShowFullVehicleList(!showFullVehicleList)}
+              >
+                {showFullVehicleList ? 'Show Top 5' : 'View All'} 
+                <ChevronRight className="h-3 w-3 ml-1" />
+              </button>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={expenditureByVehicle.slice(0, 5)}
+                  data={topVehicles}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
@@ -128,17 +143,11 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={80}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
-                    labelStyle={{ fontWeight: 'bold' }}
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
-                      borderRadius: '0.5rem',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                    }}
+                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    labelFormatter={(label) => `Vehicle: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {expenditureByVehicle.slice(0, 5).map((entry, index) => (
+                    {topVehicles.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -151,11 +160,18 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vendor</h3>
+              <button 
+                className="text-xs text-primary-600 flex items-center"
+                onClick={() => setShowFullVendorList(!showFullVendorList)}
+              >
+                {showFullVendorList ? 'Show Top 5' : 'View All'} 
+                <ChevronRight className="h-3 w-3 ml-1" />
+              </button>
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={expenditureByVendor.slice(0, 5)}
+                  data={topVendors}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
@@ -176,28 +192,17 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={100}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
-                    labelStyle={{ fontWeight: 'bold' }}
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
-                      borderRadius: '0.5rem',
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                    }}
+                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    labelFormatter={(label) => `Vendor: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {expenditureByVendor.slice(0, 5).map((entry, index) => (
+                    {topVendors.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-
-          {/* Top Maintenance Categories Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <TopMaintenanceCategoriesChart data={topMaintenanceCategories} />
           </div>
         </div>
       </CollapsibleSection>

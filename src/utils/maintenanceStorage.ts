@@ -22,7 +22,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
   const tasks = await Promise.all((data || []).map(async (task) => {
     const { data: serviceGroups, error: serviceGroupsError } = await supabase
       .from('maintenance_service_tasks')
-      .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id')
+      .select('*')
       .eq('maintenance_task_id', task.id);
     
     if (serviceGroupsError) {
@@ -54,7 +54,7 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
   // Fetch service groups
   const { data: serviceGroups, error: serviceGroupsError } = await supabase
     .from('maintenance_service_tasks')
-    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id')
+    .select('*')
     .eq('maintenance_task_id', id);
 
   if (serviceGroupsError) {
@@ -126,9 +126,9 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
           maintenance_task_id: data.id,
           tasks: group.tasks || [],
           cost: group.cost || 0,
-          vendor_id: group.vendor_id,
+          // Map vendor_id to the correct column name in the database
           // Remove bill_file as it's not for database storage
-          bill_url: group.bill_url
+          bill_file: undefined
         }));
 
         await supabase
@@ -138,7 +138,7 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
         // Fetch the inserted service groups
         const { data: insertedGroups } = await supabase
           .from('maintenance_service_tasks')
-          .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id')
+          .select('*')
           .eq('maintenance_task_id', data.id);
           
         return {
@@ -242,8 +242,9 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
           maintenance_task_id: id,
           tasks: group.tasks || [],
           cost: group.cost || 0,
-          vendor_id: group.vendor_id,
-          bill_url: group.bill_url
+          // Map vendor_id to the correct column name in the database
+          // Remove bill_file as it's not for database storage
+          bill_file: undefined
         }));
 
         await supabase
@@ -254,7 +255,7 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
       // Fetch the inserted service groups
       const { data: insertedGroups } = await supabase
         .from('maintenance_service_tasks')
-        .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id')
+        .select('*')
         .eq('maintenance_task_id', id);
         
       return {
@@ -331,29 +332,11 @@ export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'time
 export const getServiceGroups = async (taskId: string): Promise<MaintenanceServiceGroup[]> => {
   const { data, error } = await supabase
     .from('maintenance_service_tasks')
-    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id')
+    .select('*')
     .eq('maintenance_task_id', taskId);
 
   if (error) {
     console.error('Error fetching service groups:', error);
-    return [];
-  }
-
-  return data || [];
-};
-
-// Get maintenance tasks catalog
-export const getMaintenanceTasksCatalog = async () => {
-  const { data, error } = await supabase
-    .from('maintenance_tasks_catalog')
-    .select('*')
-    .eq('active', true)
-    .order('task_category', { ascending: true })
-    .order('is_category', { ascending: false })
-    .order('task_name', { ascending: true });
-
-  if (error) {
-    console.error('Error fetching maintenance tasks catalog:', error);
     return [];
   }
 
@@ -396,7 +379,7 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   // Also fetch service groups to get accurate cost data
   const { data: serviceGroups } = await supabase
     .from('maintenance_service_tasks')
-    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at, vendor_id');
+    .select('*');
 
   if (!tasks || !Array.isArray(tasks)) {
     return {
