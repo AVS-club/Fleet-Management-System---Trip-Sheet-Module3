@@ -306,9 +306,18 @@ export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver |
   // Remove photo property if it exists (we handle it separately)
   const { photo, ...driverData } = driver as any;
   
+  // Map experience to experience_years to match database schema
+  const mappedDriverData = {
+    ...driverData,
+    experience_years: driverData.experience
+  };
+  
+  // Remove the original experience field
+  delete mappedDriverData.experience;
+  
   const { data, error } = await supabase
     .from('drivers')
-    .insert(convertKeysToSnakeCase(driverData))
+    .insert(convertKeysToSnakeCase(mappedDriverData))
     .select()
     .single();
 
@@ -324,12 +333,21 @@ export const updateDriver = async (id: string, updatedDriver: Partial<Driver>): 
   // Remove photo property if it exists (we handle it separately)
   const { photo, ...driverData } = updatedDriver as any;
   
+  // Map experience to experience_years to match database schema
+  const mappedDriverData = {
+    ...driverData,
+    updated_at: new Date().toISOString()
+  };
+  
+  // If experience is provided, map it to experience_years
+  if ('experience' in mappedDriverData) {
+    mappedDriverData.experience_years = mappedDriverData.experience;
+    delete mappedDriverData.experience;
+  }
+  
   const { data, error } = await supabase
     .from('drivers')
-    .update({
-      ...driverData,
-      updated_at: new Date().toISOString()
-    })
+    .update(mappedDriverData)
     .eq('id', id)
     .select()
     .single();

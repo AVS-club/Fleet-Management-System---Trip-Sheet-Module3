@@ -68,9 +68,15 @@ const DriversPage: React.FC = () => {
         // Update existing driver
         const updatedDriver = await updateDriver(editingDriver.id, driverData);
         if (updatedDriver) {
+          // Map experience_years back to experience for frontend consistency
+          const mappedDriver = {
+            ...updatedDriver,
+            experience: updatedDriver.experience_years || updatedDriver.experience
+          };
+          
           // Update the drivers list
           setDrivers(prevDrivers => 
-            prevDrivers.map(d => d.id === updatedDriver.id ? updatedDriver : d)
+            prevDrivers.map(d => d.id === mappedDriver.id ? mappedDriver : d)
           );
           setEditingDriver(null);
           toast.success('Driver updated successfully');
@@ -93,7 +99,13 @@ const DriversPage: React.FC = () => {
             }
           }
           
-          setDrivers(prevDrivers => [newDriver, ...prevDrivers]);
+          // Map experience_years back to experience for frontend consistency
+          const mappedDriver = {
+            ...newDriver,
+            experience: newDriver.experience_years || newDriver.experience
+          };
+          
+          setDrivers(prevDrivers => [mappedDriver, ...prevDrivers]);
           setIsAddingDriver(false);
           toast.success('Driver added successfully');
         } else {
@@ -109,7 +121,12 @@ const DriversPage: React.FC = () => {
   };
 
   const handleEditDriver = (driver: Driver) => {
-    setEditingDriver(driver);
+    // Map experience_years to experience for form compatibility
+    const mappedDriver = {
+      ...driver,
+      experience: driver.experience_years || driver.experience
+    };
+    setEditingDriver(mappedDriver);
     setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
   };
 
@@ -204,6 +221,9 @@ const DriversPage: React.FC = () => {
               const driverTrips = Array.isArray(trips) ? trips.filter(trip => trip.driver_id === driver.id) : [];
               const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
               const licenseStatus = getLicenseStatus(driver.license_expiry_date);
+              
+              // Use experience_years if available, fallback to experience
+              const experience = driver.experience_years || driver.experience || 0;
 
               return (
                 <div
@@ -264,7 +284,7 @@ const DriversPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <span className="text-sm text-gray-500 block">Experience</span>
-                      <p className="font-medium">{driver.experience} years</p>
+                      <p className="font-medium">{experience} years</p>
                     </div>
                     <div>
                       <span className="text-sm text-gray-500 block">Join Date</span>
