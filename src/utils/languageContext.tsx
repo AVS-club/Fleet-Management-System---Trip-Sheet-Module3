@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 // Available languages in the application
 export const LANGUAGES = {
@@ -49,17 +49,17 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLanguage);
   }, [currentLanguage]);
   
-  // Change language
-  const setLanguage = (code: LanguageCode) => {
+  // Change language - wrapped with useCallback for stable reference
+  const setLanguage = useCallback((code: LanguageCode) => {
     if (Object.keys(LANGUAGES).includes(code)) {
       setCurrentLanguage(code);
     } else {
       console.error(`Unsupported language code: ${code}`);
     }
-  };
+  }, []);
 
-  // Translate text using Supabase Edge Function
-  const translate = async (text: string): Promise<string> => {
+  // Translate text using Supabase Edge Function - wrapped with useCallback for stable reference
+  const translate = useCallback(async (text: string): Promise<string> => {
     // Return the original text if we're using English or text is empty
     if (currentLanguage === 'en' || !text || text.trim() === '') {
       return text;
@@ -107,16 +107,16 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentLanguage, translationCache]);
   
-  // Synchronous translation (returns cached translation or original text)
-  const translateImmediate = (text: string): string => {
+  // Synchronous translation - wrapped with useCallback for stable reference
+  const translateImmediate = useCallback((text: string): string => {
     if (currentLanguage === 'en' || !text || text.trim() === '') {
       return text;
     }
     
     return translationCache[text]?.[currentLanguage] || text;
-  };
+  }, [currentLanguage, translationCache]);
   
   return (
     <LanguageContext.Provider 
