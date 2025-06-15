@@ -35,7 +35,18 @@ export const predictNextService = async (
     / (1000 * 60 * 60 * 24)
   );
   const kmDiff = Math.abs(latestTask.odometer_reading - previousTask.odometer_reading);
+  
+  // Check for invalid calculations
+  if (daysDiff === 0 || !isFinite(daysDiff) || !isFinite(kmDiff)) {
+    return undefined;
+  }
+  
   const avgKmPerDay = kmDiff / daysDiff;
+  
+  // Check if avgKmPerDay is valid
+  if (!isFinite(avgKmPerDay) || avgKmPerDay <= 0) {
+    return undefined;
+  }
 
   // Find the maintenance item with the earliest due date/km
   let nextDueKm = Infinity;
@@ -45,22 +56,44 @@ export const predictNextService = async (
   taskTitles.forEach(taskId => {
     const item = MAINTENANCE_ITEMS.find(i => i.id === taskId);
     if (item) {
-      if (item.standard_life_km) {
+      if (item.standard_life_km && isFinite(item.standard_life_km)) {
         const kmUntilDue = item.standard_life_km;
         nextDueKm = Math.min(nextDueKm, kmUntilDue);
       }
-      if (item.standard_life_days) {
+      if (item.standard_life_days && isFinite(item.standard_life_days)) {
         nextDueDays = Math.min(nextDueDays, item.standard_life_days);
       }
     }
   });
 
-  // Calculate prediction
-  const daysUntilDue = nextDueKm / avgKmPerDay;
-  const predictedDate = new Date();
-  predictedDate.setDate(predictedDate.getDate() + Math.min(daysUntilDue, nextDueDays));
+  // Check if we have valid due dates/km
+  if (!isFinite(nextDueKm) && !isFinite(nextDueDays)) {
+    return undefined;
+  }
 
-  const predictedOdometer = currentOdometer + (avgKmPerDay * daysUntilDue);
+  // Calculate prediction
+  const daysUntilDue = isFinite(nextDueKm) ? nextDueKm / avgKmPerDay : nextDueDays;
+  const finalDaysUntilDue = isFinite(nextDueDays) ? Math.min(daysUntilDue, nextDueDays) : daysUntilDue;
+  
+  // Check if final calculation is valid
+  if (!isFinite(finalDaysUntilDue) || finalDaysUntilDue <= 0) {
+    return undefined;
+  }
+
+  const predictedDate = new Date();
+  predictedDate.setDate(predictedDate.getDate() + finalDaysUntilDue);
+  
+  // Check if the predicted date is valid
+  if (!isFinite(predictedDate.getTime())) {
+    return undefined;
+  }
+
+  const predictedOdometer = currentOdometer + (avgKmPerDay * finalDaysUntilDue);
+  
+  // Check if predicted odometer is valid
+  if (!isFinite(predictedOdometer)) {
+    return undefined;
+  }
 
   // Calculate confidence based on data consistency
   const confidence = Math.min(

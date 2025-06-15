@@ -23,7 +23,6 @@ export interface MaintenanceServiceGroup {
   tasks: string[];
   cost: number;
   bill_url?: string;
-  bill_file?: File; // For frontend handling before upload
   created_at?: string;
   updated_at?: string;
 }

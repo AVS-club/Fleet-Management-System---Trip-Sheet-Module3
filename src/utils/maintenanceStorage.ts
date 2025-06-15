@@ -22,7 +22,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
   const tasks = await Promise.all((data || []).map(async (task) => {
     const { data: serviceGroups, error: serviceGroupsError } = await supabase
       .from('maintenance_service_tasks')
-      .select('*')
+      .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at')
       .eq('maintenance_task_id', task.id);
     
     if (serviceGroupsError) {
@@ -54,7 +54,7 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
   // Fetch service groups
   const { data: serviceGroups, error: serviceGroupsError } = await supabase
     .from('maintenance_service_tasks')
-    .select('*')
+    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at')
     .eq('maintenance_task_id', id);
 
   if (serviceGroupsError) {
@@ -138,7 +138,7 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
         // Fetch the inserted service groups
         const { data: insertedGroups } = await supabase
           .from('maintenance_service_tasks')
-          .select('*')
+          .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at')
           .eq('maintenance_task_id', data.id);
           
         return {
@@ -255,7 +255,7 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
       // Fetch the inserted service groups
       const { data: insertedGroups } = await supabase
         .from('maintenance_service_tasks')
-        .select('*')
+        .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at')
         .eq('maintenance_task_id', id);
         
       return {
@@ -332,7 +332,7 @@ export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'time
 export const getServiceGroups = async (taskId: string): Promise<MaintenanceServiceGroup[]> => {
   const { data, error } = await supabase
     .from('maintenance_service_tasks')
-    .select('*')
+    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at')
     .eq('maintenance_task_id', taskId);
 
   if (error) {
@@ -379,7 +379,7 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   // Also fetch service groups to get accurate cost data
   const { data: serviceGroups } = await supabase
     .from('maintenance_service_tasks')
-    .select('*');
+    .select('id, maintenance_task_id, tasks, cost, bill_url, created_at, updated_at');
 
   if (!tasks || !Array.isArray(tasks)) {
     return {
