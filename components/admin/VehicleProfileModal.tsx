@@ -1,6 +1,6 @@
 import React from 'react';
 import { Vehicle, Driver } from '../../types';
-import { X, Truck, User, FileText, PenTool as Tool, Calendar } from 'lucide-react';
+import { X, Truck, User, FileText, PenTool as PenToolIcon, Calendar } from 'lucide-react';
 import { getDriver } from '../../utils/storage';
 
 interface VehicleProfileModalProps {
@@ -101,7 +101,7 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ vehicle, onCl
                 <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <Tool className="h-5 w-5 text-gray-400" />
+                      <PenToolIcon className="h-5 w-5 text-gray-400" />
                       <span className="ml-2 text-sm text-gray-900">Last Service</span>
                     </div>
                     <span className="text-sm text-gray-500">2 months ago</span>

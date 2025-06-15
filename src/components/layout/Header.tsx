@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as PenToolIcon, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -40,7 +40,7 @@ const Header: React.FC = () => {
   const navLinks = [
     { name: 'Dashboard', path: '/', icon: <BarChart2 className="h-5 w-5" /> },
     { name: 'Trips', path: '/trips', icon: <FileText className="h-5 w-5" /> },
-    { name: 'Maintenance', path: '/maintenance', icon: <Tool className="h-5 w-5" /> },
+    { name: 'Maintenance', path: '/maintenance', icon: <PenToolIcon className="h-5 w-5" /> },
     { name: 'Vehicles', path: '/vehicles', icon: <Truck className="h-5 w-5" /> },
     { name: 'Drivers', path: '/drivers', icon: <User className="h-5 w-5" /> },
     { name: 'AI Alerts', path: '/alerts', icon: <AlertTriangle className="h-5 w-5" /> },

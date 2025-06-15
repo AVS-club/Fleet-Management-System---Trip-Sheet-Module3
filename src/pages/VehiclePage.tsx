@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
-import { Truck, Calendar, PenTool as Tool, AlertTriangle, ChevronLeft, Fuel, FileText, Shield } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
@@ -110,7 +110,7 @@ const VehiclePage: React.FC = () => {
           </Button>
           <Button
             onClick={() => setIsEditing(true)}
-            icon={<Tool className="h-4 w-4" />}
+            icon={<PenToolIcon className="h-4 w-4" />}
           >
             Edit Vehicle
           </Button>

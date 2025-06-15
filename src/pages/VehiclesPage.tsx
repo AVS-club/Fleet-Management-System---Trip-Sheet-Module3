@@ -14,7 +14,7 @@ interface VehicleWithStats extends Vehicle {
 // Remove Omit as Vehicle is now fully defined
 // import { Omit } from '../types'; // This line might not be necessary if Omit is a global utility or not used directly for Vehicle
 import { getVehicles, getVehicleStats, createVehicle } from '../utils/storage';
-import { Truck, Calendar, PenTool as Tool, PlusCircle } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 
@@ -200,7 +200,7 @@ const VehiclesPage: React.FC = () => {
                       </p>
                     </div>
                     <div className="text-center">
-                      <Tool className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                      <PenToolIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Avg KMPL</span>
                       <p className="font-medium">{vehicle.stats.averageKmpl?.toFixed(1) || '-'}</p>
                     </div>
