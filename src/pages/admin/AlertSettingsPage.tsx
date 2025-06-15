@@ -4,14 +4,20 @@ import AlertSettings from '../../components/alerts/AlertSettings';
 import { ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { useTranslation } from '../../utils/translationUtils';
 
 const AlertSettingsPage: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Translate UI text
+  const title = useTranslation('Alert Settings');
+  const subtitle = useTranslation('Configure system-wide alert preferences');
+  const backToAdminText = useTranslation('Back to Admin');
 
   return (
     <Layout
-      title="Alert Settings"
-      subtitle="Configure system-wide alert preferences"
+      title={title}
+      subtitle={subtitle}
       actions={
         <Button
           variant="outline"
@@ -19,7 +25,7 @@ const AlertSettingsPage: React.FC = () => {
           onClick={() => navigate('/admin')}
           icon={<ChevronLeft className="h-4 w-4" />}
         >
-          Back to Admin
+          {backToAdminText}
         </Button>
       }
     >

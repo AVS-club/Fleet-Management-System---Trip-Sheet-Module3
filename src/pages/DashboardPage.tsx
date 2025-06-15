@@ -1,4 +1,3 @@
-import AVSChatbot from '../components/AVSChatbot';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -11,6 +10,7 @@ import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
+import { useTranslation } from '../utils/translationUtils';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +19,18 @@ const DashboardPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [showChatbot, setShowChatbot] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Translate page title and subtitle
+  const dashboardTitle = useTranslation('Dashboard');
+  const lastUpdatedText = useTranslation('Last updated');
+  const totalTripsLabel = useTranslation('Total Trips');
+  const totalDistanceLabel = useTranslation('Total Distance');
+  const averageMileageLabel = useTranslation('Average Mileage');
+  const totalFuelUsedLabel = useTranslation('Total Fuel Used');
+  const bestVehicleLabel = useTranslation('Best Vehicle');
+  const bestDriverLabel = useTranslation('Best Driver');
+  const potentialSavingsLabel = useTranslation('Potential Savings');
+  const aiInsightsLabel = useTranslation('AI Insights');
   
   useEffect(() => {
     const fetchData = async () => {
@@ -137,11 +149,15 @@ const DashboardPage: React.FC = () => {
   const handleSelectVehicle = (vehicle: Vehicle) => {
     navigate(`/vehicles/${vehicle.id}`);
   };
+
+  // Translation for formatted date
+  const formattedDate = format(new Date(), 'MMMM dd, yyyy HH:mm');
+  const formattedDateWithLabel = `${lastUpdatedText}: ${formattedDate}`;
   
   return (
     <Layout 
-      title="Dashboard" 
-      subtitle={`Last updated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`}
+      title={dashboardTitle}
+      subtitle={formattedDateWithLabel}
     >
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -151,32 +167,32 @@ const DashboardPage: React.FC = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Total Trips"
+            title={totalTripsLabel}
             value={stats.totalTrips}
             icon={<BarChart className="h-5 w-5 text-primary-600" />}
             trend={{
               value: 12,
-              label: "vs last month",
+              label: useTranslation("vs last month"),
               isPositive: true
             }}
           />
           
           <StatCard
-            title="Total Distance"
+            title={totalDistanceLabel}
             value={stats.totalDistance.toLocaleString()}
             subtitle="km"
             icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
           />
           
           <StatCard
-            title="Average Mileage"
+            title={averageMileageLabel}
             value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
             subtitle="km/L"
             icon={<Calculator className="h-5 w-5 text-primary-600" />}
           />
           
           <StatCard
-            title="Total Fuel Used"
+            title={totalFuelUsedLabel}
             value={stats.totalFuel.toLocaleString()}
             subtitle="L"
             icon={<Fuel className="h-5 w-5 text-primary-600" />}
@@ -188,7 +204,7 @@ const DashboardPage: React.FC = () => {
           {bestVehicle && (
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Best Vehicle</h3>
+                <h3 className="text-lg font-medium text-gray-900">{bestVehicleLabel}</h3>
                 <Truck className="h-6 w-6 text-success-500" />
               </div>
               <div className="mt-4">
@@ -204,12 +220,12 @@ const DashboardPage: React.FC = () => {
           {bestDriver && (
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Best Driver</h3>
+                <h3 className="text-lg font-medium text-gray-900">{bestDriverLabel}</h3>
                 <Users className="h-6 w-6 text-success-500" />
               </div>
               <div className="mt-4">
                 <p className="text-2xl font-bold text-gray-900">{bestDriver.name}</p>
-                <p className="text-sm text-gray-500">License: {bestDriver.license_number}</p>
+                <p className="text-sm text-gray-500">{useTranslation("License")}: {bestDriver.license_number}</p>
                 <p className="mt-2 text-success-600 font-medium">
                   {stats.bestDriverMileage?.toFixed(2)} km/L
                 </p>
@@ -219,12 +235,12 @@ const DashboardPage: React.FC = () => {
 
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Potential Savings</h3>
+              <h3 className="text-lg font-medium text-gray-900">{potentialSavingsLabel}</h3>
               <IndianRupee className="h-6 w-6 text-success-500" />
             </div>
             <div className="mt-4">
               <p className="text-2xl font-bold text-success-600">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-              <p className="text-sm text-gray-500">Estimated monthly savings with best practices</p>
+              <p className="text-sm text-gray-500">{useTranslation("Estimated monthly savings with best practices")}</p>
             </div>
           </div>
         </div>
@@ -256,21 +272,21 @@ const DashboardPage: React.FC = () => {
             <div className="flex">
               <AlertTriangle className="h-5 w-5 text-blue-600" />
               <div className="ml-3">
-                <h3 className="text-blue-800 font-medium">AI Insights</h3>
+                <h3 className="text-blue-800 font-medium">{aiInsightsLabel}</h3>
                 <div className="mt-2 text-blue-700 text-sm">
                   <p>
-                    Our AI analysis suggests the following insights:
+                    {useTranslation("Our AI analysis suggests the following insights:")}
                   </p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
+                    <li>{useTranslation("The average fuel efficiency across your fleet is")} {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
                     {bestDriver && (
-                      <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
+                      <li>{bestDriver.name} {useTranslation("is your most efficient driver with")} {stats.bestDriverMileage?.toFixed(2)} km/L {useTranslation("average")}</li>
                     )}
                     {bestVehicle && (
-                      <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
+                      <li>{bestVehicle.registration_number} {useTranslation("shows the best fuel economy at")} {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
                     )}
                     {stats.estimatedFuelSaved > 0 && (
-                      <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
+                      <li>{useTranslation("Potential monthly savings of")} ₹{stats.estimatedFuelSaved.toLocaleString()} {useTranslation("by adopting best practices")}</li>
                     )}
                   </ul>
                 </div>
@@ -279,7 +295,7 @@ const DashboardPage: React.FC = () => {
             </div>
             
             <div className="lg:col-span-1">
-              <AVSChatbot />
+              {/* Chatbot placeholder */}
             </div>
           </div>
         )}
@@ -290,4 +306,3 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
-<AVSChatbot />

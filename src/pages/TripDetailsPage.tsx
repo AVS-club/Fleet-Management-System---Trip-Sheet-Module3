@@ -5,6 +5,7 @@ import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip } from '../utils/storage';
+import { useTranslation } from '../utils/translationUtils';
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +17,12 @@ const TripDetailsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Translate UI text
+  const tripNotFoundText = useTranslation('Trip Not Found');
+  const loadingText = useTranslation('Loading...');
+  const backToTripsText = useTranslation('Back to Trips');
+  const editTripText = useTranslation('Edit Trip');
   
   // Load trip data
   useEffect(() => {
@@ -59,7 +66,7 @@ const TripDetailsPage: React.FC = () => {
   };
   
   const handleDelete = () => {
-    if (trip && window.confirm('Are you sure you want to delete this trip?')) {
+    if (trip && window.confirm(useTranslation('Are you sure you want to delete this trip?'))) {
       try {
         deleteTrip(trip.id);
         navigate('/trips');
@@ -121,7 +128,7 @@ const TripDetailsPage: React.FC = () => {
   
   if (loading) {
     return (
-      <Layout title="Loading...">
+      <Layout title={loadingText}>
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
@@ -131,15 +138,15 @@ const TripDetailsPage: React.FC = () => {
 
   if (!trip) {
     return (
-      <Layout title="Trip Not Found">
+      <Layout title={tripNotFoundText}>
         <div className="text-center py-12">
-          <p className="text-gray-500">The requested trip could not be found.</p>
+          <p className="text-gray-500">{useTranslation('The requested trip could not be found.')}</p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => navigate('/trips')}
           >
-            Back to Trips
+            {backToTripsText}
           </Button>
         </div>
       </Layout>
@@ -148,18 +155,18 @@ const TripDetailsPage: React.FC = () => {
   
   return (
     <Layout
-      title={`Trip ${trip.trip_serial_number}`}
-      subtitle={`Created on ${new Date(trip.created_at).toLocaleDateString()}`}
+      title={`${useTranslation('Trip')} ${trip.trip_serial_number}`}
+      subtitle={`${useTranslation('Created on')} ${new Date(trip.created_at).toLocaleDateString()}`}
     >
       {isEditing ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Trip</h2>
+            <h2 className="text-xl font-semibold text-gray-900">{editTripText}</h2>
             <button
               className="text-gray-500 hover:text-gray-700"
               onClick={() => setIsEditing(false)}
             >
-              Cancel
+              {useTranslation('Cancel')}
             </button>
           </div>
           

@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../../utils/translationUtils';
 
 const MaintenanceTasksAdmin: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,25 @@ const MaintenanceTasksAdmin: React.FC = () => {
   const [newItem, setNewItem] = useState<Partial<MaintenanceItem>>({
     group: 'engine'
   });
+
+  // Translate UI text
+  const title = useTranslation('Maintenance Tasks Management');
+  const subtitle = useTranslation('Manage maintenance task types and configurations');
+  const backToAdminText = useTranslation('Back to Admin');
+  const editTaskText = useTranslation('Edit Task');
+  const addNewTaskText = useTranslation('Add New Task');
+  const taskNameLabel = useTranslation('Task Name');
+  const categoryLabel = useTranslation('Category');
+  const standardLifeKmLabel = useTranslation('Standard Life (KM)');
+  const standardLifeDaysLabel = useTranslation('Standard Life (Days)');
+  const averageCostLabel = useTranslation('Average Cost (₹)');
+  const warrantyPeriodLabel = useTranslation('Warranty Period (Days)');
+  const cancelText = useTranslation('Cancel');
+  const updateTaskText = useTranslation('Update Task');
+  const addTaskText = useTranslation('Add Task');
+  const maintenanceTasksText = useTranslation('Maintenance Tasks');
+  const importantNoteText = useTranslation('Important Note');
+  const noteDetailsText = useTranslation('Existing maintenance records will retain their original task types even if they are disabled here. Only new maintenance tasks will be affected by these changes.');
 
   useEffect(() => {
     // Load tasks from localStorage or use defaults
@@ -42,7 +62,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to disable this maintenance task? Existing records will not be affected.')) {
+    if (confirm(useTranslation('Are you sure you want to disable this maintenance task? Existing records will not be affected.'))) {
       const updatedItems = items.map(item => 
         item.id === id ? { ...item, inactive: true } : item
       );
@@ -53,15 +73,15 @@ const MaintenanceTasksAdmin: React.FC = () => {
 
   return (
     <Layout
-      title="Maintenance Tasks Management"
-      subtitle="Manage maintenance task types and configurations"
+      title={title}
+      subtitle={subtitle}
       actions={
         <Button
           variant="outline"
           onClick={() => navigate('/admin')}
           icon={<ChevronLeft className="h-4 w-4" />}
         >
-          Back to Admin
+          {backToAdminText}
         </Button>
       }
     >
@@ -69,12 +89,12 @@ const MaintenanceTasksAdmin: React.FC = () => {
         {/* Add/Edit Task Form */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {editingItem ? 'Edit Task' : 'Add New Task'}
+            {editingItem ? editTaskText : addNewTaskText}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Task Name"
+              label={taskNameLabel}
               value={editingItem?.name || newItem.name || ''}
               onChange={e => editingItem 
                 ? setEditingItem({ ...editingItem, name: e.target.value })
@@ -84,10 +104,10 @@ const MaintenanceTasksAdmin: React.FC = () => {
             />
 
             <Select
-              label="Category"
+              label={categoryLabel}
               options={Object.entries(MAINTENANCE_GROUPS).map(([key, group]) => ({
                 value: key,
-                label: group.title
+                label: useTranslation(group.title)
               }))}
               value={editingItem?.group || newItem.group}
               onChange={e => editingItem
@@ -98,7 +118,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
             />
 
             <Input
-              label="Standard Life (KM)"
+              label={standardLifeKmLabel}
               type="number"
               value={editingItem?.standardLifeKm || newItem.standardLifeKm || ''}
               onChange={e => {
@@ -110,7 +130,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
             />
 
             <Input
-              label="Standard Life (Days)"
+              label={standardLifeDaysLabel}
               type="number"
               value={editingItem?.standardLifeDays || newItem.standardLifeDays || ''}
               onChange={e => {
@@ -122,7 +142,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
             />
 
             <Input
-              label="Average Cost (₹)"
+              label={averageCostLabel}
               type="number"
               value={editingItem?.averageCost || newItem.averageCost || ''}
               onChange={e => {
@@ -134,7 +154,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
             />
 
             <Input
-              label="Warranty Period (Days)"
+              label={warrantyPeriodLabel}
               type="number"
               value={editingItem?.warrantyPeriod || newItem.warrantyPeriod || ''}
               onChange={e => {
@@ -154,14 +174,14 @@ const MaintenanceTasksAdmin: React.FC = () => {
                 setNewItem({ group: 'engine' });
               }}
             >
-              Cancel
+              {cancelText}
             </Button>
             <Button
               onClick={() => handleSave(editingItem || newItem as MaintenanceItem)}
               disabled={!editingItem?.name && !newItem.name}
               icon={<PlusCircle className="h-4 w-4" />}
             >
-              {editingItem ? 'Update Task' : 'Add Task'}
+              {editingItem ? updateTaskText : addTaskText}
             </Button>
           </div>
         </div>
@@ -169,7 +189,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
         {/* Task List */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Maintenance Tasks</h3>
+            <h3 className="text-lg font-medium text-gray-900">{maintenanceTasksText}</h3>
           </div>
 
           <div className="divide-y divide-gray-200">
@@ -180,7 +200,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
 
               return (
                 <div key={groupKey} className="p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">{group.title}</h4>
+                  <h4 className="font-medium text-gray-900 mb-3">{useTranslation(group.title)}</h4>
                   <div className="space-y-3">
                     {groupItems.map(item => (
                       <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
@@ -226,10 +246,9 @@ const MaintenanceTasksAdmin: React.FC = () => {
           <div className="flex">
             <AlertTriangle className="h-5 w-5 text-warning-400 mt-0.5" />
             <div className="ml-3">
-              <h3 className="text-warning-800 font-medium">Important Note</h3>
+              <h3 className="text-warning-800 font-medium">{importantNoteText}</h3>
               <p className="text-warning-700 text-sm mt-1">
-                Existing maintenance records will retain their original task types even if they are disabled here.
-                Only new maintenance tasks will be affected by these changes.
+                {noteDetailsText}
               </p>
             </div>
           </div>

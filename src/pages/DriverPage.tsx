@@ -6,6 +6,7 @@ import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileTe
 import Button from '../components/ui/Button';
 import DriverMetrics from '../components/drivers/DriverMetrics';
 import { getAIAlerts } from '../utils/aiAnalytics';
+import { useTranslation } from '../utils/translationUtils';
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,27 @@ const DriverPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Translate UI text
+  const driverNotFoundTitle = useTranslation('Driver Not Found');
+  const driverNotFoundText = useTranslation('The requested driver could not be found.');
+  const backToDriversText = useTranslation('Back to Drivers');
+  const loadingText = useTranslation('Loading driver data...');
+  const activeAlertsText = useTranslation('Active Alerts');
+  const licenseExpiredText = useTranslation('License Expired');
+  const licenseExpiringText = useTranslation('License Expiring Soon');
+  const licenseRenewalText = useTranslation('Driver\'s license has expired. Please renew immediately.');
+  const licenseExpiringMessageText = useTranslation('Driver\'s license will expire in less than 30 days. Please plan for renewal.');
+  const driverDetailsText = useTranslation('Driver Details');
+  const personalInfoText = useTranslation('Personal Information');
+  const nameText = useTranslation('Name');
+  const licenseNumberText = useTranslation('License Number');
+  const contactText = useTranslation('Contact');
+  const emailText = useTranslation('Email');
+  const joinDateText = useTranslation('Join Date');
+  const experienceText = useTranslation('Experience');
+  const statusText = useTranslation('Status');
+  const statusReasonText = useTranslation('Status Reason');
   
   useEffect(() => {
     const fetchData = async () => {
@@ -59,16 +81,16 @@ const DriverPage: React.FC = () => {
   
   if (!driver) {
     return (
-      <Layout title="Driver Not Found">
+      <Layout title={driverNotFoundTitle}>
         <div className="text-center py-12">
-          <p className="text-gray-500">The requested driver could not be found.</p>
+          <p className="text-gray-500">{driverNotFoundText}</p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => navigate('/drivers')}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
-            Back to Drivers
+            {backToDriversText}
           </Button>
         </div>
       </Layout>
@@ -81,22 +103,22 @@ const DriverPage: React.FC = () => {
 
   return (
     <Layout
-      title={`Driver: ${driver.name}`}
-      subtitle={`License: ${driver.licenseNumber}`}
+      title={`${useTranslation('Driver')}: ${driver.name}`}
+      subtitle={`${useTranslation('License')}: ${driver.licenseNumber}`}
       actions={
         <Button
           variant="outline"
           onClick={() => navigate('/drivers')}
           icon={<ChevronLeft className="h-4 w-4" />}
         >
-          Back to Drivers
+          {backToDriversText}
         </Button>
       }
     >
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 text-gray-600">Loading driver data...</p>
+          <p className="ml-3 text-gray-600">{loadingText}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -105,7 +127,7 @@ const DriverPage: React.FC = () => {
           <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
             <div className="flex items-center mb-2">
               <AlertTriangle className="h-5 w-5 text-warning-500 mr-2" />
-              <h3 className="text-warning-700 font-medium">Active Alerts</h3>
+              <h3 className="text-warning-700 font-medium">{activeAlertsText}</h3>
             </div>
             <div className="space-y-2">
               {alerts.map(alert => (
@@ -138,14 +160,14 @@ const DriverPage: React.FC = () => {
                 <h4 className={`font-medium ${
                   hasExpiredLicense ? 'text-error-700' : 'text-warning-700'
                 }`}>
-                  {hasExpiredLicense ? 'License Expired' : 'License Expiring Soon'}
+                  {hasExpiredLicense ? licenseExpiredText : licenseExpiringText}
                 </h4>
                 <p className={`text-sm mt-1 ${
                   hasExpiredLicense ? 'text-error-600' : 'text-warning-600'
                 }`}>
                   {hasExpiredLicense
-                    ? 'Driver\'s license has expired. Please renew immediately.'
-                    : 'Driver\'s license will expire in less than 30 days. Please plan for renewal.'}
+                    ? licenseRenewalText
+                    : licenseExpiringMessageText}
                 </p>
               </div>
             </div>
@@ -157,38 +179,38 @@ const DriverPage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Driver Details</h3>
-                <p className="text-sm text-gray-500">Personal Information</p>
+                <h3 className="text-lg font-medium text-gray-900">{driverDetailsText}</h3>
+                <p className="text-sm text-gray-500">{personalInfoText}</p>
               </div>
               <User className="h-8 w-8 text-primary-500" />
             </div>
             <div className="mt-4 space-y-2">
               <div>
-                <span className="text-sm text-gray-500">Name:</span>
+                <span className="text-sm text-gray-500">{nameText}:</span>
                 <p className="font-medium">{driver.name}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">License Number:</span>
+                <span className="text-sm text-gray-500">{licenseNumberText}:</span>
                 <p className="font-medium">{driver.license_number}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Contact:</span>
+                <span className="text-sm text-gray-500">{contactText}:</span>
                 <p className="font-medium">{driver.contact_number}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Email:</span>
+                <span className="text-sm text-gray-500">{emailText}:</span>
                 <p className="font-medium">{driver.email}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Join Date:</span>
+                <span className="text-sm text-gray-500">{joinDateText}:</span>
                 <p className="font-medium">{new Date(driver.joinDate).toLocaleDateString()}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Experience:</span>
-                <p className="font-medium">{driver.experience} years</p>
+                <span className="text-sm text-gray-500">{experienceText}:</span>
+                <p className="font-medium">{driver.experience} {useTranslation('years')}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-500">Status:</span>
+                <span className="text-sm text-gray-500">{statusText}:</span>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                   driver.status === 'active' 
                     ? 'bg-success-100 text-success-800'
@@ -198,12 +220,12 @@ const DriverPage: React.FC = () => {
                     ? 'bg-error-100 text-error-800'
                     : 'bg-gray-100 text-gray-800'
                 }`}>
-                  {driver.status.replace('_', ' ')}
+                  {useTranslation(driver.status.replace('_', ' '))}
                 </span>
               </div>
               {driver.driverStatusReason && (
                 <div>
-                  <span className="text-sm text-gray-500">Status Reason:</span>
+                  <span className="text-sm text-gray-500">{statusReasonText}:</span>
                   <p className="text-sm text-error-600">{driver.driverStatusReason}</p>
                 </div>
               )}
@@ -214,15 +236,15 @@ const DriverPage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Document Status</h3>
-                <p className="text-sm text-gray-500">License Information</p>
+                <h3 className="text-lg font-medium text-gray-900">{useTranslation('Document Status')}</h3>
+                <p className="text-sm text-gray-500">{useTranslation('License Information')}</p>
               </div>
               <Shield className="h-8 w-8 text-primary-500" />
             </div>
             <div className="mt-4 space-y-4">
               <div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">License Status:</span>
+                  <span className="text-sm text-gray-500">{useTranslation('License Status')}:</span>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                     hasExpiredLicense
                       ? 'bg-error-100 text-error-700'
@@ -231,28 +253,28 @@ const DriverPage: React.FC = () => {
                       : 'bg-success-100 text-success-700'
                   }`}>
                     {hasExpiredLicense
-                      ? 'Expired'
+                      ? useTranslation('Expired')
                       : licenseExpiringIn30Days
-                      ? 'Expiring Soon'
-                      : 'Valid'}
+                      ? useTranslation('Expiring Soon')
+                      : useTranslation('Valid')}
                   </span>
                 </div>
                 {driver.license_expiry_date && (
                   <p className="text-sm mt-1">
-                    Expires: {new Date(driver.licenseExpiryDate).toLocaleDateString()}
+                    {useTranslation('Expires')}: {new Date(driver.licenseExpiryDate).toLocaleDateString()}
                   </p>
                 )}
               </div>
 
               {driver.documentsVerified !== undefined && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Documents Verified:</span>
+                  <span className="text-sm text-gray-500">{useTranslation('Documents Verified')}:</span>
                   <span className={`text-xs font-medium px-2 py-1 rounded-full ${
                     driver.documentsVerified
                       ? 'bg-success-100 text-success-700'
                       : 'bg-warning-100 text-warning-700'
                   }`}>
-                    {driver.documentsVerified ? 'Verified' : 'Pending'}
+                    {driver.documentsVerified ? useTranslation('Verified') : useTranslation('Pending')}
                   </span>
                 </div>
               )}
@@ -261,9 +283,9 @@ const DriverPage: React.FC = () => {
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center">
                     <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">License Document</span>
+                    <span className="text-gray-700">{useTranslation('License Document')}</span>
                   </div>
-                  <Button variant="outline" size="sm">View</Button>
+                  <Button variant="outline" size="sm">{useTranslation('View')}</Button>
                 </div>
               )}
             </div>
@@ -273,27 +295,27 @@ const DriverPage: React.FC = () => {
           <div className="bg-white p-6 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Primary Vehicle</h3>
-                <p className="text-sm text-gray-500">Assigned Vehicle Details</p>
+                <h3 className="text-lg font-medium text-gray-900">{useTranslation('Primary Vehicle')}</h3>
+                <p className="text-sm text-gray-500">{useTranslation('Assigned Vehicle Details')}</p>
               </div>
               <Truck className="h-8 w-8 text-primary-500" />
             </div>
             {primaryVehicle ? (
               <div className="mt-4 space-y-2">
                 <div>
-                  <span className="text-sm text-gray-500">Registration:</span>
+                  <span className="text-sm text-gray-500">{useTranslation('Registration')}:</span>
                   <p className="font-medium">{primaryVehicle.registrationNumber}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Make & Model:</span>
+                  <span className="text-sm text-gray-500">{useTranslation('Make & Model')}:</span>
                   <p className="font-medium">{primaryVehicle.make} {primaryVehicle.model}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Type:</span>
-                  <p className="font-medium capitalize">{primaryVehicle.type}</p>
+                  <span className="text-sm text-gray-500">{useTranslation('Type')}:</span>
+                  <p className="font-medium capitalize">{useTranslation(primaryVehicle.type)}</p>
                 </div>
                 <div>
-                  <span className="text-sm text-gray-500">Status:</span>
+                  <span className="text-sm text-gray-500">{useTranslation('Status')}:</span>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                     primaryVehicle.status === 'active' 
                       ? 'bg-success-100 text-success-800'
@@ -301,13 +323,13 @@ const DriverPage: React.FC = () => {
                       ? 'bg-warning-100 text-warning-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {primaryVehicle.status}
+                    {useTranslation(primaryVehicle.status)}
                   </span>
                 </div>
               </div>
             ) : (
               <div className="mt-4 text-gray-500">
-                No primary vehicle assigned
+                {useTranslation('No primary vehicle assigned')}
               </div>
             )}
           </div>
