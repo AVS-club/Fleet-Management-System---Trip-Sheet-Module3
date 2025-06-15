@@ -35,9 +35,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     };
 
     const iconSizeClasses = {
-      sm: 'pl-7',
-      md: 'pl-9',
-      lg: 'pl-11'
+      sm: 'pl-8',
+      md: 'pl-10',
+      lg: 'pl-12'
     };
 
     return (
@@ -54,7 +54,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         
         <div className={clsx("relative", fullWidth && "w-full")}>
           {icon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-2 pointer-events-none text-gray-400 dark:text-gray-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
@@ -76,7 +76,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
           
           {icon && iconPosition === 'right' && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400 dark:text-gray-500">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
