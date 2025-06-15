@@ -10,7 +10,6 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
-import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
@@ -84,6 +83,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const complaintDescription = watch('complaint_description') || '';
   const resolutionSummary = watch('resolution_summary') || '';
 
+  // Handle speech-to-text transcripts
+  const handleComplaintTranscript = (text: string) => {
+    setValue('complaint_description', complaintDescription ? `${complaintDescription} ${text}` : text);
+  };
+
+  const handleResolutionTranscript = (text: string) => {
+    setValue('resolution_summary', resolutionSummary ? `${resolutionSummary} ${text}` : text);
+  };
+
   // Fetch maintenance tasks catalog
   useEffect(() => {
     const fetchMaintenanceTasks = async () => {
@@ -102,15 +110,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     
     fetchMaintenanceTasks();
   }, []);
-
-  // Handle speech-to-text transcripts
-  const handleComplaintTranscript = (text: string) => {
-    setValue('complaint_description', complaintDescription ? `${complaintDescription} ${text}` : text);
-  };
-
-  const handleResolutionTranscript = (text: string) => {
-    setValue('resolution_summary', resolutionSummary ? `${resolutionSummary} ${text}` : text);
-  };
 
   // Fetch audit logs asynchronously
   useEffect(() => {
@@ -354,41 +353,26 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Controller
-            control={control}
-            name="garage_id"
-            rules={{ required: 'Garage is required' }}
-            render={({ field: { value, onChange }, fieldState: { error } }) => (
-              <GarageSelector
-                selectedGarage={value}
-                onChange={onChange}
-                error={error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="priority"
-            rules={{ required: 'Priority is required' }}
-            render={({ field }) => (
-              <Select
-                label="Priority"
-                icon={<AlertTriangle className="h-4 w-4" />}
-                options={[
-                  { value: 'low', label: 'Low' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'high', label: 'High' },
-                  { value: 'critical', label: 'Critical' }
-                ]}
-                error={errors.priority?.message}
-                required
-                {...field}
-              />
-            )}
-          />
-        </div>
+        <Controller
+          control={control}
+          name="priority"
+          rules={{ required: 'Priority is required' }}
+          render={({ field }) => (
+            <Select
+              label="Priority"
+              icon={<AlertTriangle className="h-4 w-4" />}
+              options={[
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+                { value: 'critical', label: 'Critical' }
+              ]}
+              error={errors.priority?.message}
+              required
+              {...field}
+            />
+          )}
+        />
       </div>
 
       {/* Maintenance Tasks */}
@@ -416,7 +400,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
               
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Vendor selector */}
                   <Controller
                     control={control}
@@ -431,26 +415,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     )}
                   />
 
-                  {/* Category selector for filtering tasks */}
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.category` as const}
-                    render={({ field: { value, onChange } }) => (
-                      <Select
-                        label="Category Filter"
-                        options={[
-                          { value: '', label: 'All Categories' },
-                          ...maintenanceCategories.map(category => ({
-                            value: category,
-                            label: category
-                          }))
-                        ]}
-                        value={value || ''}
-                        onChange={onChange}
-                      />
-                    )}
-                  />
-
                   {/* Maintenance tasks */}
                   <Controller
                     control={control}
@@ -461,12 +425,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                         selectedItems={value || []}
                         onChange={onChange}
                         showGroupView={true}
-                        selectedCategory={watch(`service_groups.${index}.category`)}
                         error={error?.message}
                       />
                     )}
                   />
+                </div>
 
+                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Cost input */}
                   <Input
                     label="Cost (₹)"
@@ -480,9 +445,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       min: { value: 0, message: 'Cost must be positive' }
                     })}
                   />
-                </div>
 
-                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Bill upload */}
                   <Controller
                     control={control}
