@@ -303,9 +303,12 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
 };
 
 export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver | null> => {
+  // Remove photo property if it exists (we handle it separately)
+  const { photo, ...driverData } = driver as any;
+  
   const { data, error } = await supabase
     .from('drivers')
-    .insert(convertKeysToSnakeCase(driver))
+    .insert(convertKeysToSnakeCase(driverData))
     .select()
     .single();
 
@@ -318,10 +321,13 @@ export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver |
 };
 
 export const updateDriver = async (id: string, updatedDriver: Partial<Driver>): Promise<Driver | null> => {
+  // Remove photo property if it exists (we handle it separately)
+  const { photo, ...driverData } = updatedDriver as any;
+  
   const { data, error } = await supabase
     .from('drivers')
     .update({
-      ...updatedDriver,
+      ...driverData,
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
@@ -348,6 +354,37 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
   }
 
   return true;
+};
+
+// Upload driver photo to Supabase Storage
+export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string> => {
+  if (!file) throw new Error('No file provided');
+  
+  // Get file extension
+  const fileExt = file.name.split('.').pop();
+  // Create a unique filename
+  const fileName = `${driverId}.${fileExt}`;
+  const filePath = `driver_photos/${fileName}`;
+  
+  // Upload the file
+  const { error: uploadError } = await supabase.storage
+    .from('drivers')
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type
+    });
+    
+  if (uploadError) {
+    console.error('Error uploading driver photo:', uploadError);
+    throw uploadError;
+  }
+  
+  // Get the public URL
+  const { data } = supabase.storage
+    .from('drivers')
+    .getPublicUrl(filePath);
+    
+  return data.publicUrl;
 };
 
 // Driver stats
@@ -680,6 +717,7 @@ export default {
   createDriver,
   updateDriver,
   deleteDriver,
+  uploadDriverPhoto,
   getDriverStats,
   getWarehouses,
   getWarehouse,

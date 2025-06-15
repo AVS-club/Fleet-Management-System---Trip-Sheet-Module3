@@ -138,8 +138,9 @@ export interface Driver {
   status: 'active' | 'inactive' | 'onLeave' | 'suspended' | 'blacklisted';
   experience: number;
   primary_vehicle_id?: string;
-  photo?: string;
-  license_document?: string;
+  photo?: File | null;
+  driver_photo_url?: string;
+  license_document?: string | File;
   license_expiry_date?: string;
   documents_verified?: boolean;
   driver_status_reason?: string;
