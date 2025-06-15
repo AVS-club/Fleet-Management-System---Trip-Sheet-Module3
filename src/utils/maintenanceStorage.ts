@@ -78,11 +78,6 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
     throw new Error('Start date cannot be empty');
   }
 
-  // If garage_id is not provided, use vendor_id from the first service group
-  if (!taskData.garage_id && service_groups && service_groups.length > 0 && service_groups[0].vendor_id) {
-    taskData.garage_id = service_groups[0].vendor_id;
-  }
-
   // Make sure required fields are present
   if (!taskData.garage_id) {
     console.error('Missing garage_id in createTask');
@@ -127,14 +122,14 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
     // Insert service groups if any
     if (service_groups && service_groups.length > 0) {
       try {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => {
-          // Create a new object without bill_file
-          const { bill_file, ...groupData } = group;
-          return {
-            ...groupData,
-            maintenance_task_id: data.id
-          };
-        });
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
+          maintenance_task_id: data.id,
+          tasks: group.tasks || [],
+          cost: group.cost || 0,
+          // Map vendor_id to the correct column name in the database
+          // Remove bill_file as it's not for database storage
+          bill_file: undefined
+        }));
 
         await supabase
           .from('maintenance_service_tasks')
@@ -184,11 +179,6 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
   if (updateData.start_date === '') {
     console.error('Empty start_date detected in updateTask');
     throw new Error('Start date cannot be empty');
-  }
-
-  // If garage_id is not provided, use vendor_id from the first service group
-  if (!updateData.garage_id && service_groups && service_groups.length > 0 && service_groups[0].vendor_id) {
-    updateData.garage_id = service_groups[0].vendor_id;
   }
 
   // Make sure required fields are preserved
@@ -248,14 +238,14 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
       
       // Then insert the updated ones
       if (service_groups.length > 0) {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => {
-          // Create a new object without bill_file
-          const { bill_file, ...groupData } = group;
-          return {
-            ...groupData,
-            maintenance_task_id: id
-          };
-        });
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
+          maintenance_task_id: id,
+          tasks: group.tasks || [],
+          cost: group.cost || 0,
+          // Map vendor_id to the correct column name in the database
+          // Remove bill_file as it's not for database storage
+          bill_file: undefined
+        }));
 
         await supabase
           .from('maintenance_service_tasks')
@@ -358,7 +348,7 @@ export const uploadServiceBill = async (file: File, taskId: string, groupId?: st
   if (!file) return null;
 
   const fileExt = file.name.split('.').pop();
-  const fileName = `${taskId}-group${groupId || Date.now()}.${fileExt}`;
+  const fileName = `${taskId}-${groupId || Date.now()}.${fileExt}`;
   const filePath = `maintenance-bills/${fileName}`;
   
   const { error: uploadError } = await supabase.storage
@@ -457,8 +447,10 @@ export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   // Calculate expenditure by vendor (using service groups)
   const expenditure_by_vendor = Array.isArray(serviceGroups)
     ? serviceGroups.reduce((acc, group) => {
-        if (group.vendor_id) {
-          acc[group.vendor_id] = (acc[group.vendor_id] || 0) + (group.cost || 0);
+        // Use the correct field for vendor identification
+        const vendorIdentifier = group.vendor_id || group.maintenance_task_id;
+        if (vendorIdentifier) {
+          acc[vendorIdentifier] = (acc[vendorIdentifier] || 0) + (group.cost || 0);
         }
         return acc;
       }, {} as Record<string, number>)
