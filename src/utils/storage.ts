@@ -22,6 +22,35 @@ const convertKeysToSnakeCase = (obj: Record<string, any>): Record<string, any> =
 };
 import { calculateMileage } from './mileageCalculator';
 
+// Helper function to upload vehicle profile JSON to Supabase Storage
+const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
+  try {
+    const fileName = `${vehicle.id}.json`;
+    const filePath = fileName;
+    
+    // Create JSON blob
+    const jsonBlob = new Blob([JSON.stringify(vehicle, null, 2)], {
+      type: 'application/json'
+    });
+    
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('vehicle-profiles')
+      .upload(filePath, jsonBlob, {
+        upsert: true,
+        contentType: 'application/json'
+      });
+      
+    if (uploadError) {
+      console.error('Error uploading vehicle profile:', uploadError);
+      // Don't throw error to avoid breaking the main operation
+    }
+  } catch (error) {
+    console.error('Error creating vehicle profile JSON:', error);
+    // Don't throw error to avoid breaking the main operation
+  }
+};
+
 // Generate Trip ID based on vehicle registration
 const generateTripId = async (vehicleId: string): Promise<string> => {
   // Validate vehicleId
@@ -236,6 +265,11 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
     return null;
   }
 
+  // Upload vehicle profile JSON to storage
+  if (data) {
+    await uploadVehicleProfile(data);
+  }
+
   return data;
 };
 
@@ -253,6 +287,11 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
   if (error) {
     console.error('Error updating vehicle:', error);
     return null;
+  }
+
+  // Upload updated vehicle profile JSON to storage
+  if (data) {
+    await uploadVehicleProfile(data);
   }
 
   return data;
