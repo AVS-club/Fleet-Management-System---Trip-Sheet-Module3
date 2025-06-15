@@ -17,10 +17,11 @@ const DashboardPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [showChatbot, setShowChatbot] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
+  const [bestDriver, setBestDriver] = useState<Driver | null>(null);
 
-  // Translate page title and subtitle
+  // Move ALL useTranslation calls to the top level
   const dashboardTitle = useTranslation('Dashboard');
   const lastUpdatedText = useTranslation('Last updated');
   const totalTripsLabel = useTranslation('Total Trips');
@@ -31,6 +32,16 @@ const DashboardPage: React.FC = () => {
   const bestDriverLabel = useTranslation('Best Driver');
   const potentialSavingsLabel = useTranslation('Potential Savings');
   const aiInsightsLabel = useTranslation('AI Insights');
+  const vsLastMonthLabel = useTranslation("vs last month");
+  const licenseLabel = useTranslation("License");
+  const estimatedMonthlySavingsLabel = useTranslation("Estimated monthly savings with best practices");
+  const ourAiAnalysisLabel = useTranslation("Our AI analysis suggests the following insights:");
+  const averageFuelEfficiencyLabel = useTranslation("The average fuel efficiency across your fleet is");
+  const mostEfficientDriverLabel = useTranslation("is your most efficient driver with");
+  const averageLabel = useTranslation("average");
+  const bestFuelEconomyLabel = useTranslation("shows the best fuel economy at");
+  const potentialMonthlySavingsLabel = useTranslation("Potential monthly savings of");
+  const bestPracticesLabel = useTranslation("by adopting best practices");
   
   useEffect(() => {
     const fetchData = async () => {
@@ -111,9 +122,6 @@ const DashboardPage: React.FC = () => {
   }, [trips]);
 
   // Fetch best vehicle and driver data
-  const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
-  const [bestDriver, setBestDriver] = useState<Driver | null>(null);
-  
   useEffect(() => {
     const fetchBestPerformers = async () => {
       const insights = getMileageInsights(trips);
@@ -172,7 +180,7 @@ const DashboardPage: React.FC = () => {
             icon={<BarChart className="h-5 w-5 text-primary-600" />}
             trend={{
               value: 12,
-              label: useTranslation("vs last month"),
+              label: vsLastMonthLabel,
               isPositive: true
             }}
           />
@@ -225,7 +233,7 @@ const DashboardPage: React.FC = () => {
               </div>
               <div className="mt-4">
                 <p className="text-2xl font-bold text-gray-900">{bestDriver.name}</p>
-                <p className="text-sm text-gray-500">{useTranslation("License")}: {bestDriver.license_number}</p>
+                <p className="text-sm text-gray-500">{licenseLabel}: {bestDriver.license_number}</p>
                 <p className="mt-2 text-success-600 font-medium">
                   {stats.bestDriverMileage?.toFixed(2)} km/L
                 </p>
@@ -240,7 +248,7 @@ const DashboardPage: React.FC = () => {
             </div>
             <div className="mt-4">
               <p className="text-2xl font-bold text-success-600">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-              <p className="text-sm text-gray-500">{useTranslation("Estimated monthly savings with best practices")}</p>
+              <p className="text-sm text-gray-500">{estimatedMonthlySavingsLabel}</p>
             </div>
           </div>
         </div>
@@ -275,18 +283,18 @@ const DashboardPage: React.FC = () => {
                 <h3 className="text-blue-800 font-medium">{aiInsightsLabel}</h3>
                 <div className="mt-2 text-blue-700 text-sm">
                   <p>
-                    {useTranslation("Our AI analysis suggests the following insights:")}
+                    {ourAiAnalysisLabel}
                   </p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>{useTranslation("The average fuel efficiency across your fleet is")} {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
+                    <li>{averageFuelEfficiencyLabel} {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
                     {bestDriver && (
-                      <li>{bestDriver.name} {useTranslation("is your most efficient driver with")} {stats.bestDriverMileage?.toFixed(2)} km/L {useTranslation("average")}</li>
+                      <li>{bestDriver.name} {mostEfficientDriverLabel} {stats.bestDriverMileage?.toFixed(2)} km/L {averageLabel}</li>
                     )}
                     {bestVehicle && (
-                      <li>{bestVehicle.registration_number} {useTranslation("shows the best fuel economy at")} {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
+                      <li>{bestVehicle.registration_number} {bestFuelEconomyLabel} {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
                     )}
                     {stats.estimatedFuelSaved > 0 && (
-                      <li>{useTranslation("Potential monthly savings of")} ₹{stats.estimatedFuelSaved.toLocaleString()} {useTranslation("by adopting best practices")}</li>
+                      <li>{potentialMonthlySavingsLabel} ₹{stats.estimatedFuelSaved.toLocaleString()} {bestPracticesLabel}</li>
                     )}
                   </ul>
                 </div>
