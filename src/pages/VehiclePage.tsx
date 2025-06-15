@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
-import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown, Eye } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
@@ -255,36 +255,183 @@ const VehiclePage: React.FC = () => {
               </div>
               <Shield className="h-8 w-8 text-primary-500" />
             </div>
-            <div className="mt-4 space-y-4">
-              <div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">Insurance Status:</span>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    vehicle.insurance_end_date && new Date(vehicle.insurance_end_date) > new Date()
-                      ? 'bg-success-100 text-success-700'
-                      : 'bg-error-100 text-error-700'
-                  }`}>
-                    {vehicle.insurance_end_date 
-                      ? new Date(vehicle.insurance_end_date) > new Date()
-                        ? 'Valid'
-                        : 'Expired'
-                      : 'Not Added'}
-                  </span>
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              {/* RC Copy */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">RC Copy</span>
                 </div>
-                {vehicle.insurance_end_date && (
-                  <p className="text-sm mt-1">Expires: {new Date(vehicle.insurance_end_date).toLocaleDateString()}</p>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.rc_document_url 
+                    ? 'bg-success-100 text-success-800'
+                    : 'bg-error-100 text-error-800'
+                }`}>
+                  {vehicle.rc_document_url ? 'Uploaded' : 'Missing'}
+                </span>
+                {vehicle.rc_document_url && (
+                  <a 
+                    href={vehicle.rc_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
                 )}
               </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">Documents Verified:</span>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  vehicle.documents_verified
-                    ? 'bg-success-100 text-success-700'
-                    : 'bg-warning-100 text-warning-700'
+              
+              {/* Insurance */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">Insurance</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.insurance_document_url 
+                    ? vehicle.insurance_end_date && new Date(vehicle.insurance_end_date) > new Date()
+                      ? 'bg-success-100 text-success-800'
+                      : 'bg-error-100 text-error-800'
+                    : 'bg-error-100 text-error-800'
                 }`}>
-                  {vehicle.documents_verified ? 'Verified' : 'Pending'}
+                  {vehicle.insurance_document_url 
+                    ? vehicle.insurance_end_date && new Date(vehicle.insurance_end_date) > new Date()
+                      ? 'Valid'
+                      : 'Expired'
+                    : 'Missing'
+                  }
                 </span>
+                {vehicle.insurance_document_url && (
+                  <a 
+                    href={vehicle.insurance_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              
+              {/* Fitness Certificate */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">Fitness</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.fitness_document_url 
+                    ? vehicle.fitness_expiry_date && new Date(vehicle.fitness_expiry_date) > new Date()
+                      ? 'bg-success-100 text-success-800'
+                      : 'bg-error-100 text-error-800'
+                    : 'bg-error-100 text-error-800'
+                }`}>
+                  {vehicle.fitness_document_url 
+                    ? vehicle.fitness_expiry_date && new Date(vehicle.fitness_expiry_date) > new Date()
+                      ? 'Valid'
+                      : 'Expired'
+                    : 'Missing'
+                  }
+                </span>
+                {vehicle.fitness_document_url && (
+                  <a 
+                    href={vehicle.fitness_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              
+              {/* Tax Receipt */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">Tax Receipt</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.tax_document_url 
+                    ? 'bg-success-100 text-success-800'
+                    : 'bg-error-100 text-error-800'
+                }`}>
+                  {vehicle.tax_document_url ? 'Uploaded' : 'Missing'}
+                </span>
+                {vehicle.tax_document_url && (
+                  <a 
+                    href={vehicle.tax_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              
+              {/* Permit */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">Permit</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.permit_document_url 
+                    ? vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) > new Date()
+                      ? 'bg-success-100 text-success-800'
+                      : 'bg-error-100 text-error-800'
+                    : 'bg-error-100 text-error-800'
+                }`}>
+                  {vehicle.permit_document_url 
+                    ? vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) > new Date()
+                      ? 'Valid'
+                      : 'Expired'
+                    : 'Missing'
+                  }
+                </span>
+                {vehicle.permit_document_url && (
+                  <a 
+                    href={vehicle.permit_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+              
+              {/* PUC Certificate */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">PUC</span>
+                </div>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  vehicle.puc_document_url 
+                    ? vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) > new Date()
+                      ? 'bg-success-100 text-success-800'
+                      : 'bg-error-100 text-error-800'
+                    : 'bg-error-100 text-error-800'
+                }`}>
+                  {vehicle.puc_document_url 
+                    ? vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) > new Date()
+                      ? 'Valid'
+                      : 'Expired'
+                    : 'Missing'
+                  }
+                </span>
+                {vehicle.puc_document_url && (
+                  <a 
+                    href={vehicle.puc_document_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="ml-2 text-primary-600 hover:text-primary-800"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </a>
+                )}
               </div>
             </div>
           </div>
