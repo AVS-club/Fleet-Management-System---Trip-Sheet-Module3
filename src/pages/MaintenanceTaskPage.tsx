@@ -147,6 +147,18 @@ const MaintenanceTaskPage: React.FC = () => {
     return updatedGroups;
   };
 
+  // Clean service groups data for database insertion
+  const cleanServiceGroupsForDatabase = (serviceGroups: Array<Partial<MaintenanceServiceGroup>>): Array<Partial<MaintenanceServiceGroup>> => {
+    if (!serviceGroups || serviceGroups.length === 0) return [];
+    
+    return serviceGroups.map(group => {
+      // Create a clean copy without the bill_file property
+      const cleanGroup = { ...group };
+      delete cleanGroup.bill_file;
+      return cleanGroup;
+    });
+  };
+
   const handleSubmit = async (formData: MaintenanceFormData) => {
     setIsSubmitting(true);
     try {
@@ -190,6 +202,8 @@ const MaintenanceTaskPage: React.FC = () => {
         let updatedServiceGroups: Array<Partial<MaintenanceServiceGroup>> = [];
         if (service_groups && service_groups.length > 0) {
           updatedServiceGroups = await handleFileUploads(service_groups, id);
+          // Clean the service groups data for database insertion
+          updatedServiceGroups = cleanServiceGroupsForDatabase(updatedServiceGroups);
         }
 
         const updatePayload: Partial<MaintenanceTask> = {
@@ -222,7 +236,10 @@ const MaintenanceTaskPage: React.FC = () => {
           if (newTask) {
             // Handle service group file uploads
             if (service_groups && service_groups.length > 0 && newTask.id) {
-              const updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
+              let updatedServiceGroups = await handleFileUploads(service_groups, newTask.id);
+              
+              // Clean the service groups data for database insertion
+              updatedServiceGroups = cleanServiceGroupsForDatabase(updatedServiceGroups);
               
               // Update the task with the service groups
               if (updatedServiceGroups.length > 0) {
