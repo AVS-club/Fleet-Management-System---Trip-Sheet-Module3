@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import React, { useState, useMemo } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { ChevronRight } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import Button from '../ui/Button';
+import TopMaintenanceCategoriesChart from './TopMaintenanceCategoriesChart';
 
 interface ExpenditureAnalyticsProps {
   monthlyExpenditure: { month: string; cost: number }[];
   expenditureByVehicle: { vehicleId: string; registration: string; cost: number }[];
   expenditureByVendor: { vendorId: string; name: string; cost: number }[];
+  topMaintenanceCategories: { category: string; cost: number }[];
   previousPeriodComparison?: {
     totalExpenditure: number;
     percentChange: number;
@@ -22,6 +25,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
   monthlyExpenditure,
   expenditureByVehicle,
   expenditureByVendor,
+  topMaintenanceCategories,
   previousPeriodComparison
 }) => {
   const [showFullVehicleList, setShowFullVehicleList] = useState(false);
@@ -58,9 +62,9 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
         defaultExpanded={true}
         iconColor="text-green-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Monthly Expenditure Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="bg-white rounded-lg shadow-sm p-4 lg:col-span-2">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure Over Time</h3>
               {previousPeriodComparison && (
@@ -95,9 +99,9 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                   />
                   <Tooltip content={<CustomMonthlyTooltip />} />
                   <Line
-                    type="monotone"
-                    dataKey="cost"
-                    stroke="#4CAF50"
+                    type="monotone" 
+                    dataKey="cost" 
+                    stroke="#4CAF50" 
                     strokeWidth={2}
                     dot={{ r: 4, strokeWidth: 2, fill: "white" }}
                     activeDot={{ r: 6 }}
@@ -143,8 +147,14 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={80}
                   />
                   <Tooltip
-                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
-                    labelFormatter={(label) => `Vehicle: ${label}`}
+                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    labelStyle={{ fontWeight: 'bold' }}
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      borderRadius: '0.5rem',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
                   />
                   <Bar dataKey="cost" barSize={20}>
                     {topVehicles.map((entry, index) => (
@@ -192,8 +202,14 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={100}
                   />
                   <Tooltip
-                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
-                    labelFormatter={(label) => `Vendor: ${label}`}
+                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    labelStyle={{ fontWeight: 'bold' }}
+                    contentStyle={{ 
+                      backgroundColor: 'white', 
+                      borderRadius: '0.5rem',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                    }}
                   />
                   <Bar dataKey="cost" barSize={20}>
                     {topVendors.map((entry, index) => (
@@ -203,6 +219,11 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                 </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+
+          {/* Top Maintenance Categories Chart */}
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <TopMaintenanceCategoriesChart data={topMaintenanceCategories} />
           </div>
         </div>
       </CollapsibleSection>

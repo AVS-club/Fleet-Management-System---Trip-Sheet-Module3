@@ -21,6 +21,8 @@ export type MaintenanceMetrics = {
   taskTypeDistribution: { type: string; count: number }[];
   vehicleDowntime: { vehicleId: string; registration: string; downtime: number }[];
   kmBetweenMaintenance: { vehicleId: string; registration: string; kmReadings: number[] }[];
+  topMaintenanceCategories: { category: string; cost: number }[];
+  filteredTasks: MaintenanceTask[];
 };
 
 export const getDateRangeForFilter = (filterType: string, customStart?: string, customEnd?: string): DateRange => {
@@ -310,6 +312,27 @@ export const calculateMaintenanceMetrics = (
       kmReadings
     }));
   
+  // Calculate top maintenance categories by spend
+  const categorySpendMap: Record<string, number> = {};
+  
+  filteredTasks.forEach(task => {
+    if (Array.isArray(task.service_groups)) {
+      task.service_groups.forEach(group => {
+        // Use task.category if available, otherwise use a default category
+        const category = task.category || 'General Service / Multi-System';
+        categorySpendMap[category] = (categorySpendMap[category] || 0) + (group.cost || 0);
+      });
+    }
+  });
+  
+  const topMaintenanceCategories = Object.entries(categorySpendMap)
+    .map(([category, cost]) => ({
+      category,
+      cost
+    }))
+    .sort((a, b) => b.cost - a.cost)
+    .slice(0, 20); // Limit to top 20 categories
+  
   return {
     totalTasks,
     pendingTasks,
@@ -322,12 +345,16 @@ export const calculateMaintenanceMetrics = (
     expenditureByVendor,
     taskTypeDistribution,
     vehicleDowntime,
-    kmBetweenMaintenance
+    kmBetweenMaintenance,
+    topMaintenanceCategories,
+    filteredTasks
   };
 };
 
 export const getMaintenanceMetricsWithComparison = async (
-  currentDateRange: DateRange
+  currentDateRange: DateRange,
+  allTasks: MaintenanceTask[] = [],
+  allVehicles: Vehicle[] = []
 ): Promise<MaintenanceMetrics & { 
   previousPeriodComparison: { 
     totalTasks: number;
@@ -346,25 +373,33 @@ export const getMaintenanceMetricsWithComparison = async (
       end: previousEnd
     };
     
-    // Fetch all maintenance tasks from both time periods
-    const { data: tasksData, error: tasksError } = await supabase
-      .from('maintenance_tasks')
-      .select('*, service_groups:maintenance_service_tasks(*)')
-      .gte('start_date', previousStart.toISOString());
-      
-    if (tasksError) {
-      console.error('Error fetching maintenance tasks:', tasksError);
-      throw tasksError;
-    }
+    // Fetch all maintenance tasks from both time periods if not provided
+    let tasksData = allTasks;
+    let vehiclesData = allVehicles;
     
-    // Fetch all vehicles
-    const { data: vehiclesData, error: vehiclesError } = await supabase
-      .from('vehicles')
-      .select('*');
+    if (!tasksData.length || !vehiclesData.length) {
+      const [tasksResponse, vehiclesResponse] = await Promise.all([
+        supabase
+          .from('maintenance_tasks')
+          .select('*, service_groups:maintenance_service_tasks(*)')
+          .gte('start_date', previousStart.toISOString()),
+        supabase
+          .from('vehicles')
+          .select('*')
+      ]);
       
-    if (vehiclesError) {
-      console.error('Error fetching vehicles:', vehiclesError);
-      throw vehiclesError;
+      if (tasksResponse.error) {
+        console.error('Error fetching maintenance tasks:', tasksResponse.error);
+        throw tasksResponse.error;
+      }
+      
+      if (vehiclesResponse.error) {
+        console.error('Error fetching vehicles:', vehiclesResponse.error);
+        throw vehiclesResponse.error;
+      }
+      
+      tasksData = tasksResponse.data || [];
+      vehiclesData = vehiclesResponse.data || [];
     }
     
     // Filter tasks for current period
