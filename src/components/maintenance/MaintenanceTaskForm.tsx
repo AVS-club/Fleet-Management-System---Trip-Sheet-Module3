@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
-import { DEMO_VENDORS, PART_BRANDS, DEMO_GARAGES } from '../../types/maintenance';
-import { addDays, addHours, format, parse } from 'date-fns';
+import { MaintenanceTask, Vehicle } from '../../types';
+import { MAINTENANCE_ITEMS, MAINTENANCE_CATEGORIES, MAINTENANCE_GROUPS, MaintenanceServiceGroup, DEMO_VENDORS, PART_BRANDS } from '../../types/maintenance';
+import { addDays, addHours, format } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -10,10 +10,9 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
-import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
-import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
+import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -41,6 +40,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   }>({
     confidence: 0
   });
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    initialData?.category || undefined
+  );
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -55,6 +57,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       service_groups: initialData?.service_groups && initialData.service_groups.length > 0 
         ? initialData.service_groups 
         : [{ 
+            vendor_id: '', 
             tasks: [], 
             cost: 0
           }],
@@ -242,8 +245,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
+      // Use vendor_id from first service group as garage_id if not provided
+      if (!data.garage_id && data.service_groups && data.service_groups.length > 0 && data.service_groups[0].vendor_id) {
+        data.garage_id = data.service_groups[0].vendor_id;
+      }
+      
       if (!data.garage_id) {
-        toast.error("Please select a garage");
+        toast.error("Please select a vendor for the service");
         return;
       }
       
@@ -259,30 +267,44 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
-      // Set category field based on task_type
-      if (data.task_type) {
-        switch (data.task_type) {
-          case 'general_scheduled_service':
-            data.category = 'General';
-            break;
-          case 'accidental':
-            data.category = 'Accidental';
-            break;
-          case 'wear_and_tear_replacement_repairs':
-            data.category = 'Repair/Replacement';
-            break;
-          case 'others':
-            data.category = 'Others';
-            break;
-          default:
-            data.category = 'General';
-        }
+      // Map the selected category to the database-allowed values
+      if (selectedCategory) {
+        // Map maintenance categories to database categories
+        const categoryMapping: { [key: string]: string } = {
+          'engine': 'General',
+          'transmission': 'Repair/Replacement',
+          'brakes': 'General',
+          'suspension': 'Repair/Replacement',
+          'electrical': 'Repair/Replacement',
+          'body': 'Repair/Replacement',
+          'tires': 'General',
+          'ac': 'Repair/Replacement',
+          'others': 'Others'
+        };
+        
+        data.category = categoryMapping[selectedCategory] || 'General';
+      } else {
+        // Default category if none selected
+        data.category = 'General';
       }
       
       onSubmit(data);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Form submission failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
+  // Handle category change
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    // Clear selected tasks when category changes
+    if (serviceGroupsWatch && serviceGroupsWatch.length > 0) {
+      const updatedGroups = [...serviceGroupsWatch];
+      updatedGroups.forEach(group => {
+        group.tasks = [];
+      });
+      setValue('service_groups', updatedGroups);
     }
   };
 
@@ -340,19 +362,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Controller
             control={control}
-            name="garage_id"
-            rules={{ required: 'Garage is required' }}
-            render={({ field: { value, onChange }, fieldState: { error } }) => (
-              <GarageSelector
-                selectedGarage={value}
-                onChange={onChange}
-                error={error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
             name="priority"
             rules={{ required: 'Priority is required' }}
             render={({ field }) => (
@@ -399,7 +408,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
               
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Vendor selector */}
                   <Controller
                     control={control}
@@ -414,6 +423,22 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     )}
                   />
 
+                  {/* Task Category Selector */}
+                  <Select
+                    label="Task Category"
+                    options={[
+                      { value: '', label: 'Select Category' },
+                      ...Object.entries(MAINTENANCE_CATEGORIES).map(([key, value]) => ({
+                        value: key,
+                        label: value
+                      }))
+                    ]}
+                    value={selectedCategory || ''}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Maintenance tasks */}
                   <Controller
                     control={control}
@@ -424,6 +449,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                         selectedItems={value || []}
                         onChange={onChange}
                         showGroupView={true}
+                        selectedCategory={selectedCategory}
                         error={error?.message}
                       />
                     )}
@@ -470,6 +496,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             variant="outline"
             size="sm"
             onClick={() => append({
+              vendor_id: '',
               tasks: [],
               cost: 0
             })}
