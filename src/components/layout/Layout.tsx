@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from './Header';
 import { Truck } from 'lucide-react';
+import { useTranslation } from '../../utils/translationUtils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ const Layout: React.FC<LayoutProps> = ({
   subtitle,
   actions 
 }) => {
+  // Translate the footer text
+  const footerText = useTranslation('Intelligent fleet management and analytics');
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Header />
@@ -55,7 +59,7 @@ const Layout: React.FC<LayoutProps> = ({
               <p className="text-sm">Auto Vital Solution © {new Date().getFullYear()}</p>
             </div>
             <p className="text-gray-400 text-sm mt-2 md:mt-0">
-              Intelligent fleet management and analytics
+              {footerText}
             </p>
           </div>
         </div>
