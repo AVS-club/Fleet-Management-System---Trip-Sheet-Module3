@@ -72,34 +72,42 @@ Deno.serve(async (req: Request) => {
     // Basic language mapping for demonstration
     if (targetLanguage === 'hi') {
       // Simple mapping for common words - in production use proper translation service
-      const simpleTranslations: { [key: string]: string } = {
+      const hindiTranslations: { [key: string]: string } = {
         'Dashboard': 'डैशबोर्ड',
         'Vehicles': 'वाहन',
         'Drivers': 'चालक',
         'Trips': 'यात्राएं',
         'Maintenance': 'रखरखाव',
+        'AI Alerts': 'एआई अलर्ट',
+        'Admin': 'प्रशासन',
+        'Logout': 'लॉगआउट',
+        'Intelligent fleet management and analytics': 'बुद्धिमान बेड़ा प्रबंधन और विश्लेषण',
         'Alerts': 'अलर्ट',
         'Settings': 'सेटिंग्स',
         'Profile': 'प्रोफ़ाइल',
         'Reports': 'रिपोर्ट',
         'Analytics': 'विश्लेषण'
       };
-      translatedText = simpleTranslations[text] || text;
+      translatedText = hindiTranslations[text] || text;
     } else if (targetLanguage === 'mr') {
       // Simple mapping for Marathi
-      const simpleTranslations: { [key: string]: string } = {
+      const marathiTranslations: { [key: string]: string } = {
         'Dashboard': 'डॅशबोर्ड',
         'Vehicles': 'वाहने',
         'Drivers': 'चालक',
         'Trips': 'प्रवास',
         'Maintenance': 'देखभाल',
+        'AI Alerts': 'एआय इशारे',
+        'Admin': 'प्रशासक',
+        'Logout': 'लॉगआउट',
+        'Intelligent fleet management and analytics': 'बुद्धिमान ताफा व्यवस्थापन आणि विश्लेषण',
         'Alerts': 'इशारे',
         'Settings': 'सेटिंग्स',
         'Profile': 'प्रोफाइल',
         'Reports': 'अहवाल',
         'Analytics': 'विश्लेषण'
       };
-      translatedText = simpleTranslations[text] || text;
+      translatedText = marathiTranslations[text] || text;
     }
 
     return new Response(
