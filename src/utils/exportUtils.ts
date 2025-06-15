@@ -365,15 +365,93 @@ export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> 
   }
 };
 
+// Helper function to upload vehicle profile data to storage
+const uploadVehicleProfile = async (vehicleId: string, vehicleData: any): Promise<void> => {
+  try {
+    const profileData = {
+      id: vehicleData.id,
+      registration_number: vehicleData.registration_number,
+      make: vehicleData.make,
+      model: vehicleData.model,
+      year: vehicleData.year,
+      type: vehicleData.type,
+      fuel_type: vehicleData.fuel_type,
+      current_odometer: vehicleData.current_odometer,
+      status: vehicleData.status,
+      chassis_number: vehicleData.chassis_number,
+      engine_number: vehicleData.engine_number,
+      owner_name: vehicleData.owner_name,
+      insurance_end_date: vehicleData.insurance_end_date,
+      fitness_expiry_date: vehicleData.fitness_expiry_date,
+      permit_expiry_date: vehicleData.permit_expiry_date,
+      puc_expiry_date: vehicleData.puc_expiry_date,
+      created_at: vehicleData.created_at,
+      updated_at: vehicleData.updated_at,
+      generated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.storage
+      .from('vehicle-profiles')
+      .upload(`${vehicleId}.json`, JSON.stringify(profileData, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error uploading vehicle profile:', error);
+    throw error;
+  }
+};
+
+// Helper function to get vehicle data from database
+const getVehicleData = async (vehicleId: string): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('id', vehicleId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching vehicle data:', error);
+    throw error;
+  }
+};
+
 // Function to create a shareable link for a vehicle profile
 export const createShareableVehicleLink = async (vehicleId: string): Promise<string> => {
   try {
-    // Generate a signed URL with 7-day expiry
+    // First, try to create a signed URL
     const { data, error } = await supabase.storage
       .from('vehicle-profiles')
       .createSignedUrl(`${vehicleId}.json`, 60 * 60 * 24 * 7); // 7 days in seconds
     
-    if (error) throw error;
+    if (error) {
+      // If the error is "Object not found", create the profile first
+      if (error.message.includes('Object not found') || error.message.includes('not_found')) {
+        console.log('Vehicle profile not found in storage, creating it...');
+        
+        // Get vehicle data from database
+        const vehicleData = await getVehicleData(vehicleId);
+        
+        // Upload the vehicle profile to storage
+        await uploadVehicleProfile(vehicleId, vehicleData);
+        
+        // Retry creating the signed URL
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from('vehicle-profiles')
+          .createSignedUrl(`${vehicleId}.json`, 60 * 60 * 24 * 7);
+        
+        if (retryError) throw retryError;
+        return retryData.signedUrl;
+      }
+      
+      // If it's a different error, throw it
+      throw error;
+    }
     
     return data.signedUrl;
   } catch (error) {
@@ -382,15 +460,89 @@ export const createShareableVehicleLink = async (vehicleId: string): Promise<str
   }
 };
 
+// Helper function to upload driver profile data to storage
+const uploadDriverProfile = async (driverId: string, driverData: any): Promise<void> => {
+  try {
+    const profileData = {
+      id: driverData.id,
+      name: driverData.name,
+      license_number: driverData.license_number,
+      contact_number: driverData.contact_number,
+      email: driverData.email,
+      join_date: driverData.join_date,
+      status: driverData.status,
+      experience_years: driverData.experience_years,
+      primary_vehicle_id: driverData.primary_vehicle_id,
+      license_expiry_date: driverData.license_expiry_date,
+      documents_verified: driverData.documents_verified,
+      driver_status_reason: driverData.driver_status_reason,
+      created_at: driverData.created_at,
+      updated_at: driverData.updated_at,
+      generated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase.storage
+      .from('driver-profiles')
+      .upload(`${driverId}.json`, JSON.stringify(profileData, null, 2), {
+        contentType: 'application/json',
+        upsert: true
+      });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error uploading driver profile:', error);
+    throw error;
+  }
+};
+
+// Helper function to get driver data from database
+const getDriverData = async (driverId: string): Promise<any> => {
+  try {
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('*')
+      .eq('id', driverId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error fetching driver data:', error);
+    throw error;
+  }
+};
+
 // Function to create a shareable link for a driver profile
 export const createShareableDriverLink = async (driverId: string): Promise<string> => {
   try {
-    // Generate a signed URL with 7-day expiry
+    // First, try to create a signed URL
     const { data, error } = await supabase.storage
       .from('driver-profiles')
       .createSignedUrl(`${driverId}.json`, 60 * 60 * 24 * 7); // 7 days in seconds
     
-    if (error) throw error;
+    if (error) {
+      // If the error is "Object not found", create the profile first
+      if (error.message.includes('Object not found') || error.message.includes('not_found')) {
+        console.log('Driver profile not found in storage, creating it...');
+        
+        // Get driver data from database
+        const driverData = await getDriverData(driverId);
+        
+        // Upload the driver profile to storage
+        await uploadDriverProfile(driverId, driverData);
+        
+        // Retry creating the signed URL
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from('driver-profiles')
+          .createSignedUrl(`${driverId}.json`, 60 * 60 * 24 * 7);
+        
+        if (retryError) throw retryError;
+        return retryData.signedUrl;
+      }
+      
+      // If it's a different error, throw it
+      throw error;
+    }
     
     return data.signedUrl;
   } catch (error) {
