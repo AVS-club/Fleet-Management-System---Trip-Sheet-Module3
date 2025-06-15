@@ -56,12 +56,12 @@ export const predictNextService = async (
   taskTitles.forEach(taskId => {
     const item = MAINTENANCE_ITEMS.find(i => i.id === taskId);
     if (item) {
-      if (item.standard_life_km && isFinite(item.standard_life_km)) {
-        const kmUntilDue = item.standard_life_km;
+      if (item.standardLifeKm && isFinite(item.standardLifeKm)) {
+        const kmUntilDue = item.standardLifeKm;
         nextDueKm = Math.min(nextDueKm, kmUntilDue);
       }
-      if (item.standard_life_days && isFinite(item.standard_life_days)) {
-        nextDueDays = Math.min(nextDueDays, item.standard_life_days);
+      if (item.standardLifeDays && isFinite(item.standardLifeDays)) {
+        nextDueDays = Math.min(nextDueDays, item.standardLifeDays);
       }
     }
   });
@@ -129,23 +129,23 @@ export const isMaintenanceOverdue = async (
     if (!item) return;
 
     // Check days
-    if (item.standard_life_days) {
+    if (item.standardLifeDays) {
       const lastServiceDate = new Date(task.start_date);
       const daysElapsed = Math.floor(
         (new Date().getTime() - lastServiceDate.getTime()) / (1000 * 60 * 60 * 24)
       );
-      if (daysElapsed > item.standard_life_days) {
+      if (daysElapsed > item.standardLifeDays) {
         isOverdue = true;
-        daysOverdue = daysElapsed - item.standard_life_days;
+        daysOverdue = daysElapsed - item.standardLifeDays;
       }
     }
 
     // Check kilometers
-    if (item.standard_life_km) {
+    if (item.standardLifeKm) {
       const kmElapsed = vehicle.current_odometer - task.odometer_reading;
-      if (kmElapsed > item.standard_life_km) {
+      if (kmElapsed > item.standardLifeKm) {
         isOverdue = true;
-        kmOverdue = kmElapsed - item.standard_life_km;
+        kmOverdue = kmElapsed - item.standardLifeKm;
       }
     }
   });

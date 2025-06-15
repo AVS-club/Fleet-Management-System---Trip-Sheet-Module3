@@ -169,12 +169,6 @@ const MaintenanceTaskPage: React.FC = () => {
         return;
       }
       
-      if (!formData.start_date || formData.start_date === "") {
-        toast.error("Start date is required");
-        setIsSubmitting(false);
-        return;
-      }
-      
       // Ensure odometer_reading is provided
       if (!formData.odometer_reading) {
         toast.error("Odometer reading is required");

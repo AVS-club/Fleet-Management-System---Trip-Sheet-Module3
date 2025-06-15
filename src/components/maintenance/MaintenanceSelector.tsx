@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PenTool as Tool } from 'lucide-react';
 import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS, MAINTENANCE_CATEGORIES } from '../../types/maintenance';
+import { getMaintenanceTasksCatalog } from '../../utils/maintenanceStorage';
 
 interface MaintenanceSelectorProps {
   selectedItems: string[];
@@ -20,6 +21,9 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
+  const [maintenanceCategories, setMaintenanceCategories] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -32,6 +36,60 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fetch maintenance tasks from the database
+  useEffect(() => {
+    const fetchMaintenanceTasks = async () => {
+      setLoading(true);
+      try {
+        const tasks = await getMaintenanceTasksCatalog();
+        
+        // Group tasks by category
+        const categories: Record<string, any> = {};
+        const tasksList: any[] = [];
+        
+        tasks.forEach(task => {
+          if (!task.is_category) {
+            tasksList.push({
+              id: task.id,
+              name: task.task_name,
+              group: task.task_category,
+              inactive: !task.active
+            });
+          }
+          
+          // Build categories structure
+          if (!categories[task.task_category]) {
+            categories[task.task_category] = {
+              title: task.task_category,
+              items: []
+            };
+          }
+          
+          if (!task.is_category) {
+            categories[task.task_category].items.push({
+              id: task.id,
+              name: task.task_name,
+              group: task.task_category,
+              inactive: !task.active
+            });
+          }
+        });
+        
+        setMaintenanceTasks(tasksList);
+        setMaintenanceCategories(categories);
+      } catch (error) {
+        console.error('Error fetching maintenance tasks:', error);
+        // Fallback to static data if fetch fails
+        setMaintenanceTasks(MAINTENANCE_ITEMS);
+        setMaintenanceCategories(MAINTENANCE_GROUPS);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMaintenanceTasks();
+  }, []);
+
   const toggleItem = (id: string) => {
     const newSelection = selectedItems.includes(id)
       ? selectedItems.filter(i => i !== id)
@@ -40,7 +98,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   };
 
   // Filter items based on search term and selected category
-  const filteredItems = MAINTENANCE_ITEMS.filter(item => {
+  const filteredItems = maintenanceTasks.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = !selectedCategory || item.group === selectedCategory;
     return matchesSearch && matchesCategory && !item.inactive;
@@ -48,8 +106,8 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
 
   // Get the groups to display based on selected category
   const groupsToDisplay = selectedCategory 
-    ? { [selectedCategory]: MAINTENANCE_GROUPS[selectedCategory as keyof typeof MAINTENANCE_GROUPS] }
-    : MAINTENANCE_GROUPS;
+    ? { [selectedCategory]: maintenanceCategories[selectedCategory] }
+    : maintenanceCategories;
 
   return (
     <div className="space-y-2">
@@ -68,7 +126,8 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
           {selectedItems.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {selectedItems.map(id => {
-                const item = MAINTENANCE_ITEMS.find(i => i.id === id);
+                const item = maintenanceTasks.find(i => i.id === id) || 
+                             MAINTENANCE_ITEMS.find(i => i.id === id);
                 return item ? (
                   <span
                     key={item.id}
@@ -107,7 +166,11 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
             />
 
             <div className="max-h-60 overflow-y-auto">
-              {showGroupView ? (
+              {loading ? (
+                <div className="p-4 text-center text-gray-500">
+                  Loading maintenance tasks...
+                </div>
+              ) : showGroupView ? (
                 // Grouped View
                 Object.entries(groupsToDisplay).map(([groupKey, group]) => (
                   <div key={groupKey} className="border-b last:border-b-0">
@@ -154,7 +217,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
                 ))
               )}
 
-              {filteredItems.length === 0 && (
+              {filteredItems.length === 0 && !loading && (
                 <div className="p-3 text-center text-gray-500">
                   No tasks found
                 </div>

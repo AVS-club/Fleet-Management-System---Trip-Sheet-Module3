@@ -15,7 +15,7 @@ import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
 import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
-import { getAuditLogs } from '../../utils/maintenanceStorage';
+import { getAuditLogs, getMaintenanceTasksCatalog } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
 
@@ -41,6 +41,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   }>({
     confidence: 0
   });
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
+  const [maintenanceCategories, setMaintenanceCategories] = useState<string[]>([]);
 
   const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -56,7 +58,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         ? initialData.service_groups 
         : [{ 
             tasks: [], 
-            cost: 0
+            cost: 0,
+            vendor_id: ''
           }],
       ...initialData
     }
@@ -80,6 +83,25 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   // Get current values of the text areas for speech-to-text functionality
   const complaintDescription = watch('complaint_description') || '';
   const resolutionSummary = watch('resolution_summary') || '';
+
+  // Fetch maintenance tasks catalog
+  useEffect(() => {
+    const fetchMaintenanceTasks = async () => {
+      try {
+        const tasks = await getMaintenanceTasksCatalog();
+        
+        // Extract unique categories
+        const categories = [...new Set(tasks.map(task => task.task_category))];
+        
+        setMaintenanceTasks(tasks);
+        setMaintenanceCategories(categories);
+      } catch (error) {
+        console.error('Error fetching maintenance tasks catalog:', error);
+      }
+    };
+    
+    fetchMaintenanceTasks();
+  }, []);
 
   // Handle speech-to-text transcripts
   const handleComplaintTranscript = (text: string) => {
@@ -239,11 +261,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       // Basic validation
       if (!data.vehicle_id) {
         toast.error("Please select a vehicle");
-        return;
-      }
-      
-      if (!data.garage_id) {
-        toast.error("Please select a garage");
         return;
       }
       
@@ -414,6 +431,26 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     )}
                   />
 
+                  {/* Category selector for filtering tasks */}
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.category` as const}
+                    render={({ field: { value, onChange } }) => (
+                      <Select
+                        label="Category Filter"
+                        options={[
+                          { value: '', label: 'All Categories' },
+                          ...maintenanceCategories.map(category => ({
+                            value: category,
+                            label: category
+                          }))
+                        ]}
+                        value={value || ''}
+                        onChange={onChange}
+                      />
+                    )}
+                  />
+
                   {/* Maintenance tasks */}
                   <Controller
                     control={control}
@@ -424,6 +461,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                         selectedItems={value || []}
                         onChange={onChange}
                         showGroupView={true}
+                        selectedCategory={watch(`service_groups.${index}.category`)}
                         error={error?.message}
                       />
                     )}
@@ -471,7 +509,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             size="sm"
             onClick={() => append({
               tasks: [],
-              cost: 0
+              cost: 0,
+              vendor_id: ''
             })}
             icon={<Plus className="h-4 w-4" />}
           >
