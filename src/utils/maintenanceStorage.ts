@@ -127,12 +127,14 @@ export const createTask = async (task: Omit<MaintenanceTask, 'id' | 'created_at'
     // Insert service groups if any
     if (service_groups && service_groups.length > 0) {
       try {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
-          ...group,
-          maintenance_task_id: data.id,
-          // Remove bill_file as it's not for database storage
-          bill_file: undefined
-        }));
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => {
+          // Create a new object without bill_file
+          const { bill_file, ...groupData } = group;
+          return {
+            ...groupData,
+            maintenance_task_id: data.id
+          };
+        });
 
         await supabase
           .from('maintenance_service_tasks')
@@ -246,12 +248,14 @@ export const updateTask = async (id: string, updates: Partial<MaintenanceTask>):
       
       // Then insert the updated ones
       if (service_groups.length > 0) {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
-          ...group,
-          maintenance_task_id: id,
-          // Remove bill_file as it's not for database storage
-          bill_file: undefined
-        }));
+        const serviceGroupsWithTaskId = service_groups.map((group: any) => {
+          // Create a new object without bill_file
+          const { bill_file, ...groupData } = group;
+          return {
+            ...groupData,
+            maintenance_task_id: id
+          };
+        });
 
         await supabase
           .from('maintenance_service_tasks')
