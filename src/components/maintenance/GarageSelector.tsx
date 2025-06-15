@@ -15,7 +15,10 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMenuAbove, setIsMenuAbove] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -27,6 +30,23 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Calculate dropdown position when it opens
+  useEffect(() => {
+    if (isOpen && inputContainerRef.current && dropdownMenuRef.current) {
+      const inputRect = inputContainerRef.current.getBoundingClientRect();
+      const dropdownHeight = Math.min(dropdownMenuRef.current.scrollHeight, 300);
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - inputRect.bottom;
+      const spaceAbove = inputRect.top;
+
+      if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+        setIsMenuAbove(true);
+      } else {
+        setIsMenuAbove(false);
+      }
+    }
+  }, [isOpen]);
 
   const filteredGarages = DEMO_GARAGES.filter(garage =>
     garage.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -61,6 +81,7 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
 
       <div className="relative" ref={dropdownRef}>
         <div
+          ref={inputContainerRef}
           className={`min-h-[42px] p-4 border rounded-lg bg-white cursor-pointer hover:bg-gray-50 ${
             error ? 'border-error-500' : 'border-gray-300'
           }`}
@@ -96,8 +117,14 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
         </div>
 
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-            <div className="p-2 border-b">
+          <div 
+            ref={dropdownMenuRef}
+            className={`absolute z-50 w-full bg-white border rounded-lg shadow-lg ${
+              isMenuAbove ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}
+            style={{ maxHeight: '300px', overflowY: 'auto' }}
+          >
+            <div className="p-2 border-b sticky top-0 bg-white z-10">
               <input
                 type="text"
                 className="w-full p-2 border rounded-md"
@@ -105,10 +132,11 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 onClick={e => e.stopPropagation()}
+                autoFocus
               />
             </div>
 
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[250px] overflow-y-auto">
               {filteredGarages.map(garage => (
                 <div
                   key={garage.id}

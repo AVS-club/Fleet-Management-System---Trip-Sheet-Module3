@@ -23,6 +23,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,6 +51,13 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
       } else {
         setIsMenuAbove(false);
       }
+    }
+  }, [isOpen]);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
     }
   }, [isOpen]);
 
@@ -120,12 +128,13 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
         {isOpen && (
           <div 
             ref={dropdownMenuRef}
-            className={`absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg ${
+            className={`absolute z-50 w-full bg-white border rounded-lg shadow-lg ${
               isMenuAbove ? 'bottom-full mb-1' : 'top-full mt-1'
             }`}
             style={{ maxHeight: '300px', overflowY: 'auto' }}
           >
             <input
+              ref={searchInputRef}
               type="text"
               className="w-full p-2 border-b sticky top-0 bg-white z-10"
               placeholder="Search tasks..."
