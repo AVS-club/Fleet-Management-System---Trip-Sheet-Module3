@@ -25,8 +25,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { updateAllTripMileage } from './utils/storage';
 import { ThemeProvider } from './utils/themeContext';
-import { LanguageProvider } from './utils/languageContext';
-import TranslationProvider from './components/TranslationProvider';
 
 interface ProtectedRouteProps {
   session: Session | null;
@@ -38,6 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ session }) => {
   }
   return <Outlet />;
 };
+
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -111,9 +110,7 @@ function App() {
 const AppWrapper: React.FC = () => (
   <Router>
     <ThemeProvider>
-      <TranslationProvider>
-        <App />
-      </TranslationProvider>
+      <App />
     </ThemeProvider>
   </Router>
 );

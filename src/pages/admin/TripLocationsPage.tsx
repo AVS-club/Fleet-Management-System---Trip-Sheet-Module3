@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
-import { MapPin, Building2, ChevronLeft, Plus, Package, Settings } from 'lucide-react';
+import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import WarehouseForm from '../../components/admin/WarehouseForm';
 import DestinationForm from '../../components/admin/DestinationForm';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
 import { getWarehouses, getDestinations, createWarehouse, createDestination } from '../../utils/storage';
-import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
-import { Warehouse, Destination } from '../../types';
-import { useTranslation } from '../../utils/translationUtils';
+import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
+import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,25 +21,6 @@ const TripLocationsPage: React.FC = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Translate UI text
-  const title = useTranslation('Trip Locations');
-  const subtitle = useTranslation('Manage warehouses and delivery destinations');
-  const backToAdminText = useTranslation('Back to Admin');
-  const warehousesTabText = useTranslation('Warehouses');
-  const destinationsTabText = useTranslation('Destinations');
-  const manageMaterialTypesText = useTranslation('Manage Material Types');
-  const originWarehousesText = useTranslation('Origin Warehouses');
-  const manageWarehouseText = useTranslation('Manage warehouse locations');
-  const addWarehouseText = useTranslation('Add Warehouse');
-  const noWarehousesText = useTranslation('No warehouses found. Add your first warehouse to get started.');
-  const deliveryDestinationsText = useTranslation('Delivery Destinations');
-  const manageDeliveryText = useTranslation('Manage delivery points');
-  const addDestinationText = useTranslation('Add Destination');
-  const noDestinationsText = useTranslation('No destinations found. Add your first destination to get started.');
-  const loadingWarehousesText = useTranslation('Loading warehouses...');
-  const loadingDestinationsText = useTranslation('Loading destinations...');
-  const coordinatesText = useTranslation('Coordinates');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,10 +57,10 @@ const TripLocationsPage: React.FC = () => {
       const updatedWarehouses = await getWarehouses();
       setWarehouses(Array.isArray(updatedWarehouses) ? updatedWarehouses : []);
       setIsAddingWarehouse(false);
-      toast.success(useTranslation('Warehouse added successfully'));
+      toast.success('Warehouse added successfully');
     } catch (error) {
       console.error('Error adding warehouse:', error);
-      toast.error(useTranslation('Failed to add warehouse. Please try again.'));
+      toast.error('Failed to add warehouse. Please try again.');
     }
   };
 
@@ -100,24 +80,24 @@ const TripLocationsPage: React.FC = () => {
       const updatedDestinations = await getDestinations();
       setDestinations(Array.isArray(updatedDestinations) ? updatedDestinations : []);
       setIsAddingDestination(false);
-      toast.success(useTranslation('Destination added successfully'));
+      toast.success('Destination added successfully');
     } catch (error) {
       console.error('Error adding destination:', error);
-      toast.error(useTranslation('Failed to add destination. Please try again.'));
+      toast.error('Failed to add destination. Please try again.');
     }
   };
 
   return (
     <Layout
-      title={title}
-      subtitle={subtitle}
+      title="Trip Locations"
+      subtitle="Manage warehouses and delivery destinations"
       actions={
         <Button
           variant="outline"
           onClick={() => navigate('/admin')}
           icon={<ChevronLeft className="h-4 w-4" />}
         >
-          {backToAdminText}
+          Back to Admin
         </Button>
       }
     >
@@ -135,7 +115,7 @@ const TripLocationsPage: React.FC = () => {
                 onClick={() => setActiveTab('warehouses')}
               >
                 <Building2 className="h-5 w-5" />
-                <span>{warehousesTabText}</span>
+                <span>Warehouses</span>
               </button>
               <button
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
@@ -146,7 +126,7 @@ const TripLocationsPage: React.FC = () => {
                 onClick={() => setActiveTab('destinations')}
               >
                 <MapPin className="h-5 w-5" />
-                <span>{destinationsTabText}</span>
+                <span>Destinations</span>
               </button>
             </div>
             <div className="p-4">
@@ -156,7 +136,7 @@ const TripLocationsPage: React.FC = () => {
                 onClick={() => setIsManagingMaterialTypes(true)}
                 icon={<Settings className="h-4 w-4" />}
               >
-                {manageMaterialTypesText}
+                Manage Material Types
               </Button>
             </div>
           </div>
@@ -167,20 +147,20 @@ const TripLocationsPage: React.FC = () => {
                 {loading ? (
                   <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                    <p className="ml-3 text-gray-600">{loadingWarehousesText}</p>
+                    <p className="ml-3 text-gray-600">Loading warehouses...</p>
                   </div>
                 ) : (
                   <>
                     <div className="flex justify-between items-center">
                       <div>
-                        <h2 className="text-lg font-medium text-gray-900">{originWarehousesText}</h2>
-                        <p className="text-sm text-gray-500">{manageWarehouseText}</p>
+                        <h2 className="text-lg font-medium text-gray-900">Origin Warehouses</h2>
+                        <p className="text-sm text-gray-500">Manage warehouse locations</p>
                       </div>
                       <Button
                         onClick={() => setIsAddingWarehouse(true)}
                         icon={<Plus className="h-4 w-4" />}
                       >
-                        {addWarehouseText}
+                        Add Warehouse
                       </Button>
                     </div>
 
@@ -193,7 +173,7 @@ const TripLocationsPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {warehouses.length === 0 ? (
                           <div className="col-span-3 text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                            {noWarehousesText}
+                            No warehouses found. Add your first warehouse to get started.
                           </div>
                         ) : (
                           warehouses.map(warehouse => (
@@ -221,11 +201,11 @@ const TripLocationsPage: React.FC = () => {
                               </div>
                               {typeof warehouse.latitude === 'number' && typeof warehouse.longitude === 'number' ? (
                                 <div className="mt-3 text-sm text-gray-500">
-                                  {coordinatesText}: {warehouse.latitude.toFixed(6)}, {warehouse.longitude.toFixed(6)}
+                                  Coordinates: {warehouse.latitude.toFixed(6)}, {warehouse.longitude.toFixed(6)}
                                 </div>
                               ) : warehouse.latitude !== undefined && warehouse.longitude !== undefined && (
                                 <div className="mt-3 text-sm text-gray-500">
-                                  {coordinatesText}: {warehouse.latitude}, {warehouse.longitude} ({useTranslation('Invalid')})
+                                  Coordinates: {warehouse.latitude}, {warehouse.longitude} (Invalid)
                                 </div>
                               )}
                             </div>
@@ -241,20 +221,20 @@ const TripLocationsPage: React.FC = () => {
                 {loading ? (
                   <div className="flex justify-center items-center h-64">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                    <p className="ml-3 text-gray-600">{loadingDestinationsText}</p>
+                    <p className="ml-3 text-gray-600">Loading destinations...</p>
                   </div>
                 ) : (
                   <>
                     <div className="flex justify-between items-center">
                       <div>
-                        <h2 className="text-lg font-medium text-gray-900">{deliveryDestinationsText}</h2>
-                        <p className="text-sm text-gray-500">{manageDeliveryText}</p>
+                        <h2 className="text-lg font-medium text-gray-900">Delivery Destinations</h2>
+                        <p className="text-sm text-gray-500">Manage delivery points</p>
                       </div>
                       <Button
                         onClick={() => setIsAddingDestination(true)}
                         icon={<Plus className="h-4 w-4" />}
                       >
-                        {addDestinationText}
+                        Add Destination
                       </Button>
                     </div>
 
@@ -267,7 +247,7 @@ const TripLocationsPage: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {destinations.length === 0 ? (
                           <div className="col-span-3 text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                            {noDestinationsText}
+                            No destinations found. Add your first destination to get started.
                           </div>
                         ) : (
                           destinations.map(destination => (
@@ -288,11 +268,11 @@ const TripLocationsPage: React.FC = () => {
                               </div>
                               {typeof destination.latitude === 'number' && typeof destination.longitude === 'number' ? (
                                 <div className="mt-3 text-sm text-gray-500">
-                                  {coordinatesText}: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
+                                  Coordinates: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
                                 </div>
                               ) : destination.latitude !== undefined && destination.longitude !== undefined && (
                                 <div className="mt-3 text-sm text-gray-500">
-                                  {coordinatesText}: {destination.latitude}, {destination.longitude} ({useTranslation('Invalid')})
+                                  Coordinates: {destination.latitude}, {destination.longitude} (Invalid)
                                 </div>
                               )}
                             </div>

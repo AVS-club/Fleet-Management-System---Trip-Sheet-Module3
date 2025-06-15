@@ -1,9 +1,0 @@
-{
-  "name": "translate-batch",
-  "version": "1.0.0",
-  "description": "Batch translates multiple texts using Google Cloud Translation API",
-  "main": "index.js",
-  "dependencies": {
-    "@google-cloud/translate": "^8.0.1"
-  }
-}

@@ -1,28 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings, LogOut, Globe } from 'lucide-react';
+import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as Tool, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from '../ui/ThemeToggle';
-import LanguageSelector from '../ui/LanguageSelector';
-import { useLanguage } from '../../utils/languageContext';
-import { useTranslation } from '../../utils/translationUtils';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentLanguage } = useLanguage();
-
-  // Translated nav link labels
-  const dashboardLabel = useTranslation('Dashboard');
-  const tripsLabel = useTranslation('Trips');
-  const maintenanceLabel = useTranslation('Maintenance');
-  const vehiclesLabel = useTranslation('Vehicles');
-  const driversLabel = useTranslation('Drivers');
-  const alertsLabel = useTranslation('AI Alerts');
-  const adminLabel = useTranslation('Admin');
-  const logoutLabel = useTranslation('Logout');
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -52,13 +38,13 @@ const Header: React.FC = () => {
   }, [location.pathname]);
 
   const navLinks = [
-    { name: dashboardLabel, path: '/', icon: <BarChart2 className="h-5 w-5" /> },
-    { name: tripsLabel, path: '/trips', icon: <FileText className="h-5 w-5" /> },
-    { name: maintenanceLabel, path: '/maintenance', icon: <Tool className="h-5 w-5" /> },
-    { name: vehiclesLabel, path: '/vehicles', icon: <Truck className="h-5 w-5" /> },
-    { name: driversLabel, path: '/drivers', icon: <User className="h-5 w-5" /> },
-    { name: alertsLabel, path: '/alerts', icon: <AlertTriangle className="h-5 w-5" /> },
-    { name: adminLabel, path: '/admin', icon: <Settings className="h-5 w-5" /> }
+    { name: 'Dashboard', path: '/', icon: <BarChart2 className="h-5 w-5" /> },
+    { name: 'Trips', path: '/trips', icon: <FileText className="h-5 w-5" /> },
+    { name: 'Maintenance', path: '/maintenance', icon: <Tool className="h-5 w-5" /> },
+    { name: 'Vehicles', path: '/vehicles', icon: <Truck className="h-5 w-5" /> },
+    { name: 'Drivers', path: '/drivers', icon: <User className="h-5 w-5" /> },
+    { name: 'AI Alerts', path: '/alerts', icon: <AlertTriangle className="h-5 w-5" /> },
+    { name: 'Admin', path: '/admin', icon: <Settings className="h-5 w-5" /> }
   ];
 
   return (
@@ -97,17 +83,16 @@ const Header: React.FC = () => {
                 <span>{link.name}</span>
               </Link>
             ))}
-            <div className="flex items-center space-x-4 ml-4">
-              <LanguageSelector />
+            <div className="flex items-center ml-4">
               <ThemeToggle />
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
-                <LogOut className="h-5 w-5" />
-                <span>{logoutLabel}</span>
-              </button>
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
           </div>
 
           <button
@@ -145,16 +130,13 @@ const Header: React.FC = () => {
             </Link>
           ))}
           <div className="flex items-center justify-between px-3 py-3">
-            <div className="flex items-center space-x-4">
-              <LanguageSelector variant="minimal" />
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             <button
               onClick={handleLogout}
               className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
               <LogOut className="h-5 w-5" />
-              <span>{logoutLabel}</span>
+              <span>Logout</span>
             </button>
           </div>
         </div>

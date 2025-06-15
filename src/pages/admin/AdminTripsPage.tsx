@@ -7,7 +7,6 @@ import { Trip, Vehicle, Driver, Warehouse } from '../../types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import * as XLSX from 'xlsx';
-import { useTranslation } from '../../utils/translationUtils';
 
 const AdminTripsPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -15,10 +14,7 @@ const AdminTripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-
-  // Translate UI text
-  const title = useTranslation('Trip Management');
-  const subtitle = useTranslation('View and manage all trip records');
+  // const [pageSize, setPageSize] = useState(50); // This state is not used by TripsTable, consider removing if not needed elsewhere.
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,8 +152,8 @@ const AdminTripsPage: React.FC = () => {
 
   return (
     <Layout
-      title={title}
-      subtitle={subtitle}
+      title="Trip Management"
+      subtitle="View and manage all trip records"
     >
       <TripsSummary
         trips={trips}
@@ -173,6 +169,8 @@ const AdminTripsPage: React.FC = () => {
         onExport={() => setShowExportModal(true)}
         onImport={handleImport}
         onDownloadFormat={handleDownloadFormat}
+        // pageSize={pageSize} // pageSize is not a prop of TripsTable
+        // onPageSizeChange={setPageSize} // onPageSizeChange is not a prop of TripsTable
       />
 
       {showExportModal && (

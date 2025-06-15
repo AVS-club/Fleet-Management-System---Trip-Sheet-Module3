@@ -9,7 +9,6 @@ import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
 import { PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useTranslation } from '../utils/translationUtils';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,15 +18,6 @@ const TripsPage: React.FC = () => {
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
-  
-  // Translate UI text
-  const title = useTranslation('Trip Management');
-  const subtitle = useTranslation('Log and track all vehicle trips');
-  const hideDashboardText = useTranslation('Hide Dashboard');
-  const showDashboardText = useTranslation('Show Dashboard');
-  const addNewTripText = useTranslation('Add New Trip');
-  const cancelText = useTranslation('Cancel');
-  const newTripSheetText = useTranslation('New Trip Sheet');
   
   // Load data
   useEffect(() => {
@@ -88,13 +78,13 @@ const TripsPage: React.FC = () => {
         
         // Redirect to the trip details page
         navigate(`/trips/${newTrip.id}`);
-        toast.success(useTranslation('Trip added successfully'));
+        toast.success('Trip added successfully');
       } else {
-        toast.error(useTranslation('Failed to add trip'));
+        toast.error('Failed to add trip');
       }
     } catch (error) {
       console.error('Error adding trip:', error);
-      toast.error(useTranslation('Error adding trip'));
+      toast.error('Error adding trip');
     } finally {
       setIsSubmitting(false);
     }
@@ -106,8 +96,8 @@ const TripsPage: React.FC = () => {
   
   return (
     <Layout
-      title={title}
-      subtitle={subtitle}
+      title="Trip Management"
+      subtitle="Log and track all vehicle trips"
       actions={
         !isAddingTrip ? (
           <div className="flex space-x-3">
@@ -115,13 +105,13 @@ const TripsPage: React.FC = () => {
               variant="outline"
               onClick={() => setShowDashboard(!showDashboard)}
             >
-              {showDashboard ? hideDashboardText : showDashboardText}
+              {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
             </Button>
             <Button
               onClick={() => setIsAddingTrip(true)}
               icon={<PlusCircle className="h-4 w-4" />}
             >
-              {addNewTripText}
+              Add New Trip
             </Button>
           </div>
         ) : (
@@ -129,7 +119,7 @@ const TripsPage: React.FC = () => {
             variant="outline"
             onClick={() => setIsAddingTrip(false)}
           >
-            {cancelText}
+            Cancel
           </Button>
         )
       }
@@ -139,14 +129,14 @@ const TripsPage: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
-              {newTripSheetText}
+              New Trip Sheet
             </h2>
             
             <Button
               variant="outline"
               onClick={() => setIsAddingTrip(false)}
             >
-              {cancelText}
+              Cancel
             </Button>
           </div>
           

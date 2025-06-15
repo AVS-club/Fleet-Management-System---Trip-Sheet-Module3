@@ -13,7 +13,6 @@ import MaintenanceCharts from '../components/maintenance/MaintenanceCharts';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { useTranslation } from '../utils/translationUtils';
 
 const CHART_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#8dd1e1'];
 
@@ -46,20 +45,6 @@ const MaintenancePage = () => {
       end: ''
     }
   });
-
-  // Translated strings
-  const title = useTranslation('Maintenance Management');
-  const subtitle = useTranslation('Track and manage vehicle maintenance tasks');
-  const exportLabel = useTranslation('Export');
-  const newTaskLabel = useTranslation('New Task');
-  const searchLabel = useTranslation('Search tasks...');
-  const totalTasksLabel = useTranslation('Total Tasks');
-  const pendingTasksLabel = useTranslation('Pending Tasks');
-  const avgCompletionLabel = useTranslation('Avg. Completion');
-  const totalCostLabel = useTranslation('Total Cost');
-  const requiresAttentionLabel = useTranslation('Requires attention');
-  const daysLabel = useTranslation('days');
-  const thisMonthLabel = useTranslation('this month');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,11 +109,11 @@ const MaintenancePage = () => {
       return false;
     }
 
-    if (filter.dateRange.start && new Date(task.start_date) < new Date(filter.dateRange.start)) {
+    if (filter.dateRange.start && new Date(task.startDate) < new Date(filter.dateRange.start)) {
       return false;
     }
 
-    if (filter.dateRange.end && new Date(task.start_date) > new Date(filter.dateRange.end)) {
+    if (filter.dateRange.end && new Date(task.startDate) > new Date(filter.dateRange.end)) {
       return false;
     }
 
@@ -137,26 +122,19 @@ const MaintenancePage = () => {
 
   const handleExport = () => {
     const doc = new jsPDF();
-    doc.text(title, 14, 15);
+    doc.text('Maintenance Report', 14, 15);
     doc.setFontSize(10);
-    doc.text(`${useTranslation('Generated on')} ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22);
+    doc.text(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22);
     autoTable(doc, {
       startY: 30,
-      head: [[
-        useTranslation('Vehicle'), 
-        useTranslation('Type'), 
-        useTranslation('Status'), 
-        useTranslation('Priority'), 
-        useTranslation('Date'), 
-        useTranslation('Cost')
-      ]],
+      head: [['Vehicle', 'Type', 'Status', 'Priority', 'Date', 'Cost']],
       body: Array.isArray(filteredTasks) ? filteredTasks.map(task => [
-        vehicles.find(v => v.id === task.vehicle_id)?.registration_number || 'Unknown',
-        task.task_type.replace('_', ' '),
+        vehicles.find(v => v.id === task.vehicleId)?.registrationNumber || 'Unknown',
+        task.taskType.replace('_', ' '),
         task.status.toUpperCase(),
         task.priority.toUpperCase(),
-        format(new Date(task.start_date), 'dd/MM/yyyy'),
-        `₹${(task.actual_cost || task.estimated_cost || 0).toLocaleString()}`
+        format(new Date(task.startDate), 'dd/MM/yyyy'),
+        `₹${(task.actualCost || task.estimatedCost || 0).toLocaleString()}`
       ]) : []
     });
     doc.save('maintenance-report.pdf');
@@ -193,8 +171,8 @@ const MaintenancePage = () => {
 
   return (
     <Layout
-      title={title}
-      subtitle={subtitle}
+      title="Maintenance Management"
+      subtitle="Track and manage vehicle maintenance tasks"
       actions={
         <div className="flex space-x-2">
           <Button
@@ -203,14 +181,14 @@ const MaintenancePage = () => {
             icon={<Download className="h-4 w-4" />}
             size="sm"
           >
-            {exportLabel}
+            Export
           </Button>
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
             size="sm"
           >
-            {newTaskLabel}
+            New Task
           </Button>
         </div>
       }
@@ -218,7 +196,7 @@ const MaintenancePage = () => {
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 text-gray-600">{useTranslation('Loading maintenance data...')}</p>
+          <p className="ml-3 text-gray-600">Loading maintenance data...</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -226,11 +204,11 @@ const MaintenancePage = () => {
           <div className="bg-white p-3 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{totalTasksLabel}</p>
+                <p className="text-xs text-gray-500">Total Tasks</p>
                 <h3 className="text-xl font-bold text-gray-900">{stats.total_tasks || 0}</h3>
                 {stats.total_tasks > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {currentPeriodTasks.length} {thisMonthLabel}
+                    {currentPeriodTasks.length} this month
                   </p>
                 )}
               </div>
@@ -241,11 +219,11 @@ const MaintenancePage = () => {
           <div className="bg-white p-3 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{pendingTasksLabel}</p>
+                <p className="text-xs text-gray-500">Pending Tasks</p>
                 <h3 className="text-xl font-bold text-warning-600">{stats.pending_tasks || 0}</h3>
                 {stats.pending_tasks > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {requiresAttentionLabel}
+                    Requires attention
                   </p>
                 )}
               </div>
@@ -256,15 +234,15 @@ const MaintenancePage = () => {
           <div className="bg-white p-3 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{avgCompletionLabel}</p>
+                <p className="text-xs text-gray-500">Avg. Completion</p>
                 <h3 className="text-xl font-bold text-gray-900">
                   {(typeof stats.average_completion_time === 'number' && !isNaN(stats.average_completion_time))
                     ? stats.average_completion_time.toFixed(1)
-                    : '0.0'} {daysLabel}
+                    : '0.0'} days
                 </h3>
                 {stats.average_completion_time > 0 && (
                   <p className="text-xs text-gray-500 mt-1">
-                    {useTranslation('Based on completed tasks')}
+                    Based on completed tasks
                   </p>
                 )}
               </div>
@@ -275,13 +253,13 @@ const MaintenancePage = () => {
           <div className="bg-white p-3 rounded-lg shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500">{totalCostLabel}</p>
+                <p className="text-xs text-gray-500">Total Cost</p>
                 <h3 className="text-xl font-bold text-success-600">
                   ₹{(stats.total_expenditure || 0).toLocaleString()}
                 </h3>
                 {costChange !== 0 && (
                   <p className={`text-xs ${costChange > 0 ? 'text-error-500' : 'text-success-500'} mt-1`}>
-                    {costChange > 0 ? '↑' : '↓'} {Math.abs(costChange).toFixed(1)}% {useTranslation('vs last month')}
+                    {costChange > 0 ? '↑' : '↓'} {Math.abs(costChange).toFixed(1)}% vs last month
                   </p>
                 )}
               </div>
@@ -294,7 +272,7 @@ const MaintenancePage = () => {
 
         <div className="flex flex-wrap gap-2 bg-white p-2 rounded-lg shadow-sm">
           <Input
-            placeholder={searchLabel}
+            placeholder="Search tasks..."
             icon={<Search className="h-4 w-4" />}
             value={filter.search}
             onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
@@ -304,11 +282,11 @@ const MaintenancePage = () => {
           
           <Select
             options={[
-              { value: 'all', label: useTranslation('All Status') },
-              { value: 'open', label: useTranslation('Open') },
-              { value: 'in_progress', label: useTranslation('In Progress') },
-              { value: 'resolved', label: useTranslation('Resolved') },
-              { value: 'escalated', label: useTranslation('Escalated') }
+              { value: 'all', label: 'All Status' },
+              { value: 'open', label: 'Open' },
+              { value: 'in_progress', label: 'In Progress' },
+              { value: 'resolved', label: 'Resolved' },
+              { value: 'escalated', label: 'Escalated' }
             ]}
             value={filter.status}
             onChange={e => setFilter(f => ({ ...f, status: e.target.value }))}
@@ -318,11 +296,11 @@ const MaintenancePage = () => {
           
           <Select
             options={[
-              { value: 'all', label: useTranslation('All Priority') },
-              { value: 'low', label: useTranslation('Low') },
-              { value: 'medium', label: useTranslation('Medium') },
-              { value: 'high', label: useTranslation('High') },
-              { value: 'critical', label: useTranslation('Critical') }
+              { value: 'all', label: 'All Priority' },
+              { value: 'low', label: 'Low' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'high', label: 'High' },
+              { value: 'critical', label: 'Critical' }
             ]}
             value={filter.priority}
             onChange={e => setFilter(f => ({ ...f, priority: e.target.value }))}
@@ -332,14 +310,14 @@ const MaintenancePage = () => {
           
           <Select
             options={[
-              { value: 'all', label: useTranslation('All Vehicles') },
+              { value: 'all', label: 'All Vehicles' },
               ...Array.isArray(vehicles) ? vehicles.map(v => ({
                 value: v.id,
                 label: v.registration_number
               })) : []
             ]}
-            value={filter.vehicle_id}
-            onChange={e => setFilter(f => ({ ...f, vehicle_id: e.target.value }))}
+            value={filter.vehicleId}
+            onChange={e => setFilter(f => ({ ...f, vehicleId: e.target.value }))}
             className="w-40"
             size="sm"
           />
@@ -355,7 +333,7 @@ const MaintenancePage = () => {
               className="w-32"
               size="sm"
             />
-            <span className="text-gray-500">{useTranslation('to')}</span>
+            <span className="text-gray-500">to</span>
             <Input
               type="date"
               value={filter.dateRange.end}

@@ -10,7 +10,6 @@ import { supabase } from '../utils/supabaseClient';
 import Button from '../components/ui/Button';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useTranslation } from '../utils/translationUtils';
 
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
@@ -67,18 +66,6 @@ const MaintenanceTaskPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  // Translate title and button text
-  const newTaskTitle = useTranslation('New Maintenance Task');
-  const editTaskTitle = useTranslation('Edit Maintenance Task');
-  const taskSubtitle = id && id !== 'new' 
-    ? useTranslation('Task') + ` #${task?.id}` 
-    : useTranslation('Create a new maintenance task');
-  const deleteButtonText = useTranslation('Delete Task');
-  const backButtonText = useTranslation('Back to Maintenance');
-  const loadingText = id === 'new' 
-    ? useTranslation('Loading form...') 
-    : useTranslation('Loading maintenance task...');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -194,7 +181,7 @@ const MaintenanceTaskPage: React.FC = () => {
       
       if (id && id !== 'new') {
         // Update existing task
-        const confirmUpdate = window.confirm(useTranslation('Are you sure you want to update this maintenance task?'));
+        const confirmUpdate = window.confirm('Are you sure you want to update this maintenance task?');
         if (!confirmUpdate) {
           setIsSubmitting(false);
           return;
@@ -219,14 +206,14 @@ const MaintenanceTaskPage: React.FC = () => {
           const updatedTask = await updateTask(id, updatePayload);
           if (updatedTask) {
             setTask(updatedTask);
-            toast.success(useTranslation('Maintenance task updated successfully'));
+            toast.success('Maintenance task updated successfully');
             navigate('/maintenance');
           } else {
-            toast.error(useTranslation('Failed to update task'));
+            toast.error('Failed to update task');
           }
         } catch (error) {
           console.error('Error updating task:', error);
-          toast.error(`${useTranslation('Error updating task')}: ${error instanceof Error ? error.message : useTranslation('Unknown error')}`);
+          toast.error(`Error updating task: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       } else {
         // Create new task
@@ -246,19 +233,19 @@ const MaintenanceTaskPage: React.FC = () => {
               }
             }
             
-            toast.success(useTranslation('Maintenance task created successfully'));
+            toast.success('Maintenance task created successfully');
             navigate('/maintenance');
           } else {
-            toast.error(useTranslation('Task creation failed - no data returned'));
+            toast.error('Task creation failed - no data returned');
           }
         } catch (error) {
           console.error('Error creating task:', error);
-          toast.error(`${useTranslation('Error creating task')}: ${error instanceof Error ? error.message : useTranslation('Unknown error')}`);
+          toast.error(`Error creating task: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     } catch (error) {
       console.error('Error submitting maintenance task:', error);
-      toast.error(`${useTranslation('Failed to')} ${id && id !== 'new' ? useTranslation('update') : useTranslation('create')} ${useTranslation('maintenance task')}: ${error instanceof Error ? error.message : useTranslation('Unknown error')}`);
+      toast.error(`Failed to ${id && id !== 'new' ? 'update' : 'create'} maintenance task: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -267,23 +254,23 @@ const MaintenanceTaskPage: React.FC = () => {
   const handleDelete = () => {
     if (!id) return;
 
-    const confirmDelete = window.confirm(useTranslation('Are you sure you want to delete this maintenance task? This action cannot be undone.'));
+    const confirmDelete = window.confirm('Are you sure you want to delete this maintenance task? This action cannot be undone.');
     if (!confirmDelete) return;
 
     try {
       deleteTask(id);
-      toast.success(useTranslation('Maintenance task deleted successfully'));
+      toast.success('Maintenance task deleted successfully');
       navigate('/maintenance');
     } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error(useTranslation('Failed to delete maintenance task'));
+      toast.error('Failed to delete maintenance task');
     }
   };
 
   return (
     <Layout
-      title={id === 'new' ? newTaskTitle : editTaskTitle}
-      subtitle={taskSubtitle}
+      title={id === 'new' ? 'New Maintenance Task' : 'Edit Maintenance Task'}
+      subtitle={task ? `Task #${task.id}` : 'Create a new maintenance task'}
       actions={
         id !== 'new' ? (
           <Button
@@ -291,7 +278,7 @@ const MaintenanceTaskPage: React.FC = () => {
             onClick={handleDelete}
             icon={<Trash2 className="h-4 w-4" />}
           >
-            {deleteButtonText}
+            Delete Task
           </Button>
         ) : undefined
       }
@@ -300,7 +287,7 @@ const MaintenanceTaskPage: React.FC = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
           <p className="ml-3 text-gray-600">
-            {loadingText}
+            {id === 'new' ? 'Loading form...' : 'Loading maintenance task...'}
           </p>
         </div>
       ) : (
@@ -312,7 +299,7 @@ const MaintenanceTaskPage: React.FC = () => {
             onClick={() => navigate('/maintenance')}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
-            {backButtonText}
+            Back to Maintenance
           </Button>
         </div>
 

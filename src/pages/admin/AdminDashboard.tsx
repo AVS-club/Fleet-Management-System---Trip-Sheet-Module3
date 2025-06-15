@@ -9,7 +9,6 @@ import Button from '../../components/ui/Button';
 import VehicleProfileModal from '../../components/admin/VehicleProfileModal';
 import DriverProfileModal from '../../components/admin/DriverProfileModal';
 import RunDiagnosis from '../../components/admin/RunDiagnosis';
-import { useTranslation } from '../../utils/translationUtils';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -18,55 +17,24 @@ const AdminDashboard: React.FC = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
-  // Translate UI text
-  const title = useTranslation('Admin Dashboard');
-  const subtitle = useTranslation('Manage system settings and configurations');
-  const overviewTab = useTranslation('Overview');
-  const tripsTab = useTranslation('Trips');
-  const vehiclesTab = useTranslation('Vehicles');
-  const driversTab = useTranslation('Drivers');
-  const maintenanceTab = useTranslation('Maintenance');
-  const alertsTab = useTranslation('Alert Settings');
-  
-  // Translate card titles
-  const tripManagementText = useTranslation('Trip Management');
-  const tripManagementDesc = useTranslation('Manage trip records and configurations');
-  const tripLocationsText = useTranslation('Trip Locations');
-  const tripLocationsDesc = useTranslation('Manage warehouses and destinations');
-  const vehicleManagementText = useTranslation('Vehicle Management');
-  const vehicleManagementDesc = useTranslation('Manage vehicle fleet and maintenance');
-  const driverManagementText = useTranslation('Driver Management');
-  const driverManagementDesc = useTranslation('Manage drivers and assignments');
-  const maintenanceTasksText = useTranslation('Maintenance Tasks');
-  const maintenanceTasksDesc = useTranslation('Configure maintenance task types');
-  const alertSettingsText = useTranslation('Alert Settings');
-  const alertSettingsDesc = useTranslation('Configure alert rules and notifications');
-  const remindersText = useTranslation('Reminders');
-  const remindersDesc = useTranslation('Configure reminder contacts and timing rules');
-  const viewAllTripsText = useTranslation('View All Trips');
-  const manageVehiclesText = useTranslation('Manage Vehicles');
-  const manageDriversText = useTranslation('Manage Drivers');
-  const manageTasksText = useTranslation('Manage Tasks');
-  const configureAlertsText = useTranslation('Configure Alerts');
-
   useEffect(() => {
     setVehicles(getVehicles());
     setDrivers(getDrivers());
   }, []);
 
   const tabs = [
-    { id: 'overview', label: overviewTab, icon: <Settings className="h-5 w-5" /> },
-    { id: 'trips', label: tripsTab, icon: <FileText className="h-5 w-5" /> },
-    { id: 'vehicles', label: vehiclesTab, icon: <Truck className="h-5 w-5" /> },
-    { id: 'drivers', label: driversTab, icon: <Users className="h-5 w-5" /> },
-    { id: 'maintenance', label: maintenanceTab, icon: <Tool className="h-5 w-5" /> },
-    { id: 'alerts', label: alertsTab, icon: <Bell className="h-5 w-5" /> }
+    { id: 'overview', label: 'Overview', icon: <Settings className="h-5 w-5" /> },
+    { id: 'trips', label: 'Trips', icon: <FileText className="h-5 w-5" /> },
+    { id: 'vehicles', label: 'Vehicles', icon: <Truck className="h-5 w-5" /> },
+    { id: 'drivers', label: 'Drivers', icon: <Users className="h-5 w-5" /> },
+    { id: 'maintenance', label: 'Maintenance', icon: <Tool className="h-5 w-5" /> },
+    { id: 'alerts', label: 'Alert Settings', icon: <Bell className="h-5 w-5" /> }
   ];
 
   const vehicleColumns = [
     { 
       key: 'registrationNumber', 
-      label: useTranslation('Registration'),
+      label: 'Registration',
       render: (value: string, row: Vehicle) => (
         <button
           className="text-primary-600 hover:text-primary-800 font-medium"
@@ -76,17 +44,17 @@ const AdminDashboard: React.FC = () => {
         </button>
       )
     },
-    { key: 'type', label: useTranslation('Type') },
-    { key: 'make', label: useTranslation('Make') },
-    { key: 'model', label: useTranslation('Model') },
-    { key: 'status', label: useTranslation('Status'), 
+    { key: 'type', label: 'Type' },
+    { key: 'make', label: 'Make' },
+    { key: 'model', label: 'Model' },
+    { key: 'status', label: 'Status', 
       render: (value: string) => (
         <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
           value === 'active' ? 'bg-success-100 text-success-700' :
           value === 'maintenance' ? 'bg-warning-100 text-warning-700' :
           'bg-gray-100 text-gray-700'
         }`}>
-          {useTranslation(value)}
+          {value}
         </span>
       )
     }
@@ -95,7 +63,7 @@ const AdminDashboard: React.FC = () => {
   const driverColumns = [
     {
       key: 'name',
-      label: useTranslation('Name'),
+      label: 'Name',
       render: (value: string, row: Driver) => (
         <button
           className="text-primary-600 hover:text-primary-800 font-medium"
@@ -105,16 +73,16 @@ const AdminDashboard: React.FC = () => {
         </button>
       )
     },
-    { key: 'licenseNumber', label: useTranslation('License') },
-    { key: 'experience', label: useTranslation('Experience') },
-    { key: 'status', label: useTranslation('Status'),
+    { key: 'licenseNumber', label: 'License' },
+    { key: 'experience', label: 'Experience' },
+    { key: 'status', label: 'Status',
       render: (value: string) => (
         <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
           value === 'active' ? 'bg-success-100 text-success-700' :
           value === 'onLeave' ? 'bg-warning-100 text-warning-700' :
           'bg-gray-100 text-gray-700'
         }`}>
-          {useTranslation(value.replace('_', ' '))}
+          {value.replace('_', ' ')}
         </span>
       )
     }
@@ -122,8 +90,8 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <Layout
-      title={title}
-      subtitle={subtitle}
+      title="Admin Dashboard"
+      subtitle="Manage system settings and configurations"
     >
       <div className="space-y-6">
         {activeTab === 'overview' && (
@@ -138,9 +106,9 @@ const AdminDashboard: React.FC = () => {
                     <FileText className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{tripManagementText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Trip Management</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {tripManagementDesc}
+                      Manage trip records and configurations
                     </p>
                   </div>
                 </div>
@@ -155,9 +123,9 @@ const AdminDashboard: React.FC = () => {
                     <MapPin className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{tripLocationsText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Trip Locations</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {tripLocationsDesc}
+                      Manage warehouses and destinations
                     </p>
                   </div>
                 </div>
@@ -172,9 +140,9 @@ const AdminDashboard: React.FC = () => {
                     <Truck className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{vehicleManagementText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Vehicle Management</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {vehicleManagementDesc}
+                      Manage vehicle fleet and maintenance
                     </p>
                   </div>
                 </div>
@@ -189,9 +157,9 @@ const AdminDashboard: React.FC = () => {
                     <Users className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{driverManagementText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Driver Management</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {driverManagementDesc}
+                      Manage drivers and assignments
                     </p>
                   </div>
                 </div>
@@ -206,9 +174,9 @@ const AdminDashboard: React.FC = () => {
                     <Tool className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{maintenanceTasksText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Maintenance Tasks</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {maintenanceTasksDesc}
+                      Configure maintenance task types
                     </p>
                   </div>
                 </div>
@@ -223,9 +191,9 @@ const AdminDashboard: React.FC = () => {
                     <Bell className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{alertSettingsText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Alert Settings</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {alertSettingsDesc}
+                      Configure alert rules and notifications
                     </p>
                   </div>
                 </div>
@@ -240,9 +208,9 @@ const AdminDashboard: React.FC = () => {
                     <Calendar className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{remindersText}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">Reminders</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      {remindersDesc}
+                      Configure reminder contacts and timing rules
                     </p>
                   </div>
                 </div>
@@ -279,11 +247,11 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">{tripManagementText}</h2>
-                      <p className="text-sm text-gray-500">{useTranslation('View and manage all trip records')}</p>
+                      <h2 className="text-lg font-medium text-gray-900">Trip Management</h2>
+                      <p className="text-sm text-gray-500">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
-                      <Button>{viewAllTripsText}</Button>
+                      <Button>View All Trips</Button>
                     </Link>
                   </div>
                 </div>
@@ -293,17 +261,17 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">{vehicleManagementText}</h2>
-                      <p className="text-sm text-gray-500">{useTranslation('Manage vehicle master data and configurations')}</p>
+                      <h2 className="text-lg font-medium text-gray-900">Vehicle Management</h2>
+                      <p className="text-sm text-gray-500">Manage vehicle master data and configurations</p>
                     </div>
                     <Link to="/vehicles">
-                      <Button>{manageVehiclesText}</Button>
+                      <Button>Manage Vehicles</Button>
                     </Link>
                   </div>
                   <DataTable
                     columns={vehicleColumns}
                     data={vehicles}
-                    searchPlaceholder={useTranslation('Search vehicles...')}
+                    searchPlaceholder="Search vehicles..."
                   />
                 </div>
               )}
@@ -312,17 +280,17 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">{driverManagementText}</h2>
-                      <p className="text-sm text-gray-500">{useTranslation('Manage driver master data and configurations')}</p>
+                      <h2 className="text-lg font-medium text-gray-900">Driver Management</h2>
+                      <p className="text-sm text-gray-500">Manage driver master data and configurations</p>
                     </div>
                     <Link to="/drivers">
-                      <Button>{manageDriversText}</Button>
+                      <Button>Manage Drivers</Button>
                     </Link>
                   </div>
                   <DataTable
                     columns={driverColumns}
                     data={drivers}
-                    searchPlaceholder={useTranslation('Search drivers...')}
+                    searchPlaceholder="Search drivers..."
                   />
                 </div>
               )}
@@ -331,21 +299,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">{useTranslation('Maintenance Settings')}</h2>
-                      <p className="text-sm text-gray-500">{useTranslation('Configure maintenance tasks and schedules')}</p>
+                      <h2 className="text-lg font-medium text-gray-900">Maintenance Settings</h2>
+                      <p className="text-sm text-gray-500">Configure maintenance tasks and schedules</p>
                     </div>
                     <Link to="/admin/maintenance-tasks">
-                      <Button>{manageTasksText}</Button>
+                      <Button>Manage Tasks</Button>
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">{useTranslation('Service Types')}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{useTranslation('Configure maintenance service types')}</p>
+                      <h3 className="font-medium text-gray-900">Service Types</h3>
+                      <p className="text-sm text-gray-500 mt-1">Configure maintenance service types</p>
                     </div>
                     <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">{useTranslation('Schedule Templates')}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{useTranslation('Manage maintenance schedule templates')}</p>
+                      <h3 className="font-medium text-gray-900">Schedule Templates</h3>
+                      <p className="text-sm text-gray-500 mt-1">Manage maintenance schedule templates</p>
                     </div>
                   </div>
                 </div>
@@ -355,21 +323,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">{alertSettingsText}</h2>
-                      <p className="text-sm text-gray-500">{useTranslation('Configure system-wide alert preferences')}</p>
+                      <h2 className="text-lg font-medium text-gray-900">Alert Settings</h2>
+                      <p className="text-sm text-gray-500">Configure system-wide alert preferences</p>
                     </div>
                     <Link to="/admin/alert-settings">
-                      <Button>{configureAlertsText}</Button>
+                      <Button>Configure Alerts</Button>
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">{useTranslation('Notification Rules')}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{useTranslation('Set up alert notification rules')}</p>
+                      <h3 className="font-medium text-gray-900">Notification Rules</h3>
+                      <p className="text-sm text-gray-500 mt-1">Set up alert notification rules</p>
                     </div>
                     <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">{useTranslation('Alert Thresholds')}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{useTranslation('Configure alert trigger thresholds')}</p>
+                      <h3 className="font-medium text-gray-900">Alert Thresholds</h3>
+                      <p className="text-sm text-gray-500 mt-1">Configure alert trigger thresholds</p>
                     </div>
                   </div>
                 </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isSupabaseConfigured } from '../../utils/supabaseClient';
+import { supabase } from '../../utils/supabaseClient';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
@@ -14,12 +14,6 @@ const LoginForm: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!isSupabaseConfigured) {
-      setError('Supabase is not configured. Please set up your environment variables.');
-      return;
-    }
-
     setError(null);
     setLoading(true);
     try {
@@ -35,30 +29,6 @@ const LoginForm: React.FC = () => {
       setLoading(false);
     }
   };
-
-  if (!isSupabaseConfigured) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 p-4 rounded-md">
-          <AlertCircle className="h-5 w-5" />
-          <div>
-            <h3 className="font-medium">Supabase Configuration Required</h3>
-            <p className="text-sm mt-1">
-              Please configure your Supabase credentials in the environment variables to enable authentication.
-            </p>
-            <div className="text-xs mt-2 space-y-1">
-              <p>1. Set up your <code className="bg-amber-100 dark:bg-amber-800 px-1 rounded">VITE_SUPABASE_URL</code></p>
-              <p>2. Set up your <code className="bg-amber-100 dark:bg-amber-800 px-1 rounded">VITE_SUPABASE_ANON_KEY</code></p>
-              <p>3. Click "Connect to Supabase" in the top right if available</p>
-            </div>
-          </div>
-        </div>
-        <Button type="button" disabled fullWidth>
-          Login (Configuration Required)
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
