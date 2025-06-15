@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tool, AlertTriangle, Clock, CheckCircle, IndianRupee, BarChart2 } from 'lucide-react';
+import { PenTool as Tool, AlertTriangle, Clock, CheckCircle, IndianRupee, BarChart2 } from 'lucide-react';
 
 interface KPIPanelProps {
   totalTasks: number;
