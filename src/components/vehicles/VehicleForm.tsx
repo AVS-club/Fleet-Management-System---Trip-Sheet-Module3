@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Vehicle } from '../../types';
 import { ReminderContact, ReminderTemplate, ReminderAssignedType } from '../../types/reminders';
 import { getReminderContacts, getReminderTemplates } from '../../utils/reminderService';
+import { uploadVehicleDocument } from '../../utils/supabaseStorage';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import FileUpload from '../ui/FileUpload';
@@ -24,6 +25,7 @@ import {
   Paperclip,
   Bell
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -35,7 +37,8 @@ interface VehicleFormProps {
 interface OtherDocument {
   id: string;
   name: string;
-  file?: File | null;
+  file_obj?: File | null;
+  file_url?: string;
   issueDate?: string;
   expiryDate?: string;
   cost?: number;
@@ -63,6 +66,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>([]);
   const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Omit<Vehicle, 'id'>>({
     defaultValues: {
@@ -110,49 +114,158 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     fetchReminderData();
   }, []);
 
-  const handleFormSubmit = (data: any) => {
-    // Convert file objects to boolean flags for database storage
-    // In a real app, you would upload these files to storage and store the URLs
-   // Convert empty date strings to null to avoid timestamp errors
-   const processedData = { ...data };
-   const dateFields = [
-     'registration_date', 'rc_expiry_date', 
-     'insurance_start_date', 'insurance_end_date', 
-     'fitness_issue_date', 'fitness_expiry_date',
-     'permit_issue_date', 'permit_expiry_date',
-     'puc_issue_date', 'puc_expiry_date'
-   ];
-   
-   // Convert empty date strings to null
-   dateFields.forEach(field => {
-     if (processedData[field] === '') {
-       processedData[field] = null;
-     }
-   });
-   
-    const formattedData = {
-     ...processedData,
-      rc_copy: !!rcFile,
-      insurance_document: !!insuranceFile,
-      fitness_document: !!fitnessFile,
-      tax_receipt_document: !!taxFile,
-      permit_document: !!permitFile,
-      puc_document: !!pucFile,
-      other_documents: otherDocuments.map(doc => ({
+  // Initialize other documents from initialData
+  useEffect(() => {
+    if (initialData?.other_documents && Array.isArray(initialData.other_documents)) {
+      const formattedDocs = initialData.other_documents.map(doc => ({
+        id: doc.id || `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         name: doc.name,
-        file: !!doc.file,
-       issue_date: doc.issueDate || null,
-       expiry_date: doc.expiryDate || null,
+        file_url: typeof doc.file === 'string' ? doc.file : undefined,
+        issueDate: doc.issue_date,
+        expiryDate: doc.expiry_date,
         cost: doc.cost
-      }))
-    };
-    
-    onSubmit(formattedData);
+      }));
+      setOtherDocuments(formattedDocs);
+    }
+  }, [initialData?.other_documents]);
+
+  const handleFormSubmit = async (data: Omit<Vehicle, 'id'>) => {
+    try {
+      setUploadingFiles(true);
+      
+      // Create a copy of the data to modify
+      const formData: any = { ...data };
+      
+      // Upload RC document if provided
+      if (rcFile) {
+        try {
+          const rcUrl = await uploadVehicleDocument(rcFile, initialData?.id || 'new', 'rc');
+          formData.rc_document_url = rcUrl;
+          formData.rc_copy = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading RC document:', error);
+          toast.error('Failed to upload RC document');
+        }
+      }
+      
+      // Upload insurance document if provided
+      if (insuranceFile) {
+        try {
+          const insuranceUrl = await uploadVehicleDocument(insuranceFile, initialData?.id || 'new', 'insurance');
+          formData.insurance_document_url = insuranceUrl;
+          formData.insurance_document = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading insurance document:', error);
+          toast.error('Failed to upload insurance document');
+        }
+      }
+      
+      // Upload fitness document if provided
+      if (fitnessFile) {
+        try {
+          const fitnessUrl = await uploadVehicleDocument(fitnessFile, initialData?.id || 'new', 'fitness');
+          formData.fitness_document_url = fitnessUrl;
+          formData.fitness_document = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading fitness document:', error);
+          toast.error('Failed to upload fitness document');
+        }
+      }
+      
+      // Upload tax document if provided
+      if (taxFile) {
+        try {
+          const taxUrl = await uploadVehicleDocument(taxFile, initialData?.id || 'new', 'tax');
+          formData.tax_document_url = taxUrl;
+          formData.tax_receipt_document = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading tax document:', error);
+          toast.error('Failed to upload tax document');
+        }
+      }
+      
+      // Upload permit document if provided
+      if (permitFile) {
+        try {
+          const permitUrl = await uploadVehicleDocument(permitFile, initialData?.id || 'new', 'permit');
+          formData.permit_document_url = permitUrl;
+          formData.permit_document = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading permit document:', error);
+          toast.error('Failed to upload permit document');
+        }
+      }
+      
+      // Upload PUC document if provided
+      if (pucFile) {
+        try {
+          const pucUrl = await uploadVehicleDocument(pucFile, initialData?.id || 'new', 'puc');
+          formData.puc_document_url = pucUrl;
+          formData.puc_document = true; // Set the legacy flag for backward compatibility
+        } catch (error) {
+          console.error('Error uploading PUC document:', error);
+          toast.error('Failed to upload PUC document');
+        }
+      }
+      
+      // Process other documents
+      if (otherDocuments.length > 0) {
+        const processedDocs = await Promise.all(otherDocuments.map(async (doc) => {
+          const processedDoc: any = {
+            id: doc.id,
+            name: doc.name,
+            issue_date: doc.issueDate,
+            expiry_date: doc.expiryDate,
+            cost: doc.cost
+          };
+          
+          // If there's a new file to upload
+          if (doc.file_obj) {
+            try {
+              const fileUrl = await uploadVehicleDocument(
+                doc.file_obj, 
+                initialData?.id || 'new', 
+                `other_${doc.id}`
+              );
+              processedDoc.file = fileUrl;
+            } catch (error) {
+              console.error(`Error uploading other document ${doc.name}:`, error);
+              toast.error(`Failed to upload ${doc.name}`);
+              // Keep existing URL if available
+              processedDoc.file = doc.file_url;
+            }
+          } else {
+            // Keep existing URL if available
+            processedDoc.file = doc.file_url;
+          }
+          
+          return processedDoc;
+        }));
+        
+        formData.other_documents = processedDocs;
+      }
+      
+      // Remove file objects from the form data
+      delete formData.rc_copy_file;
+      delete formData.insurance_document_file;
+      delete formData.fitness_document_file;
+      delete formData.tax_receipt_document_file;
+      delete formData.permit_document_file;
+      delete formData.puc_document_file;
+      
+      // Submit the form data
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Error processing form submission:', error);
+      toast.error('An error occurred while saving the vehicle');
+    } finally {
+      setUploadingFiles(false);
+    }
   };
 
   const addOtherDocument = () => {
     setOtherDocuments([...otherDocuments, { 
-      id: `doc-${Date.now()}`, 
+      id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 
       name: '' 
     }]);
   };
@@ -424,13 +537,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload RC"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={rcFile}
-            onChange={setRcFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="rc_copy_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload RC"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setRcFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
       </CollapsibleSection>
@@ -479,16 +601,39 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               }
             })}
           />
+
+          <Input
+            label="IDV Amount (₹)"
+            type="number"
+            min="0"
+            placeholder="e.g., 500000"
+            {...register('insurance_idv', {
+              valueAsNumber: true,
+              min: {
+                value: 0,
+                message: 'IDV amount must be positive'
+              }
+            })}
+          />
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload Insurance PDF"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={insuranceFile}
-            onChange={setInsuranceFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="insurance_document_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload Insurance PDF"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setInsuranceFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
 
@@ -557,13 +702,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload Fitness Certificate"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={fitnessFile}
-            onChange={setFitnessFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="fitness_document_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload Fitness Certificate"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setFitnessFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
 
@@ -634,16 +788,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               />
             )}
           />
+
+          <Input
+            label="Tax Scope"
+            placeholder="e.g., State, National"
+            {...register('tax_scope')}
+          />
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload Tax Receipt"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={taxFile}
-            onChange={setTaxFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="tax_receipt_document_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload Tax Receipt"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setTaxFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
 
@@ -687,7 +856,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issuing State"
             placeholder="e.g., Chhattisgarh"
-            {...register('issuing_state')}
+            {...register('permit_issuing_state')}
           />
 
           <Controller
@@ -735,13 +904,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload Permit Document"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={permitFile}
-            onChange={setPermitFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="permit_document_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload Permit Document"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setPermitFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
 
@@ -810,13 +988,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
         
         <div className="mt-4 flex justify-end">
-          <FileUpload
-            buttonMode={true}
-            label="Upload PUC Certificate"
-            accept=".jpg,.jpeg,.png,.pdf"
-            value={pucFile}
-            onChange={setPucFile}
-            icon={<Paperclip className="h-4 w-4" />}
+          <Controller
+            control={control}
+            name="puc_document_file"
+            render={({ field: { value, onChange } }) => (
+              <FileUpload
+                buttonMode={true}
+                label="Upload PUC Certificate"
+                accept=".jpg,.jpeg,.png,.pdf"
+                value={value as File | null}
+                onChange={(file) => {
+                  onChange(file);
+                  setPucFile(file);
+                }}
+                icon={<Paperclip className="h-4 w-4" />}
+              />
+            )}
           />
         </div>
 
@@ -953,9 +1140,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     buttonMode={true}
                     label="Upload Document"
                     accept=".jpg,.jpeg,.png,.pdf"
-                    value={doc.file || null}
-                    onChange={(file) => updateOtherDocument(doc.id, 'file', file)}
+                    value={doc.file_obj || null}
+                    onChange={(file) => updateOtherDocument(doc.id, 'file_obj', file)}
                   />
+                  
+                  {doc.file_url && (
+                    <a 
+                      href={doc.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      View
+                    </a>
+                  )}
                 </div>
                 
                 <Input
@@ -1007,9 +1205,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         )}
         <Button
           type="submit"
-          isLoading={isSubmitting}
+          isLoading={isSubmitting || uploadingFiles}
         >
-          Save Vehicle
+          {uploadingFiles ? 'Uploading Files...' : 'Save Vehicle'}
         </Button>
       </div>
     </form>

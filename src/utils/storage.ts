@@ -254,9 +254,40 @@ export const getVehicle = async (id: string): Promise<Vehicle | null> => {
 };
 
 export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle | null> => {
+  // Process the vehicle data to handle file uploads and document flags
+  const processedVehicle = {
+    ...vehicle,
+    // Set document flags based on URL presence
+    rc_copy: !!vehicle.rc_document_url,
+    insurance_document: !!vehicle.insurance_document_url,
+    fitness_document: !!vehicle.fitness_document_url,
+    tax_receipt_document: !!vehicle.tax_document_url,
+    permit_document: !!vehicle.permit_document_url,
+    puc_document: !!vehicle.puc_document_url,
+  };
+  
+  // Remove file objects as they can't be stored in the database
+  delete (processedVehicle as any).rc_copy_file;
+  delete (processedVehicle as any).insurance_document_file;
+  delete (processedVehicle as any).fitness_document_file;
+  delete (processedVehicle as any).tax_receipt_document_file;
+  delete (processedVehicle as any).permit_document_file;
+  delete (processedVehicle as any).puc_document_file;
+  
+  // Process other documents to ensure they have the right format
+  if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+    processedVehicle.other_documents = processedVehicle.other_documents.map(doc => ({
+      name: doc.name,
+      file: doc.file_url || doc.file,
+      issue_date: doc.issue_date || doc.issueDate,
+      expiry_date: doc.expiry_date || doc.expiryDate,
+      cost: doc.cost
+    }));
+  }
+
   const { data, error } = await supabase
     .from('vehicles')
-    .insert(convertKeysToSnakeCase(vehicle))
+    .insert(convertKeysToSnakeCase(processedVehicle))
     .select()
     .single();
 
@@ -274,12 +305,41 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
 };
 
 export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>): Promise<Vehicle | null> => {
+  // Process the vehicle data to handle file uploads and document flags
+  const processedVehicle = {
+    ...updatedVehicle,
+    // Set document flags based on URL presence
+    rc_copy: updatedVehicle.rc_document_url ? true : updatedVehicle.rc_copy,
+    insurance_document: updatedVehicle.insurance_document_url ? true : updatedVehicle.insurance_document,
+    fitness_document: updatedVehicle.fitness_document_url ? true : updatedVehicle.fitness_document,
+    tax_receipt_document: updatedVehicle.tax_document_url ? true : updatedVehicle.tax_receipt_document,
+    permit_document: updatedVehicle.permit_document_url ? true : updatedVehicle.permit_document,
+    puc_document: updatedVehicle.puc_document_url ? true : updatedVehicle.puc_document,
+    updated_at: new Date().toISOString()
+  };
+  
+  // Remove file objects as they can't be stored in the database
+  delete (processedVehicle as any).rc_copy_file;
+  delete (processedVehicle as any).insurance_document_file;
+  delete (processedVehicle as any).fitness_document_file;
+  delete (processedVehicle as any).tax_receipt_document_file;
+  delete (processedVehicle as any).permit_document_file;
+  delete (processedVehicle as any).puc_document_file;
+  
+  // Process other documents to ensure they have the right format
+  if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+    processedVehicle.other_documents = processedVehicle.other_documents.map(doc => ({
+      name: doc.name,
+      file: doc.file_url || doc.file,
+      issue_date: doc.issue_date || doc.issueDate,
+      expiry_date: doc.expiry_date || doc.expiryDate,
+      cost: doc.cost
+    }));
+  }
+
   const { data, error } = await supabase
     .from('vehicles')
-    .update({
-      ...updatedVehicle,
-      updated_at: new Date().toISOString()
-    })
+    .update(convertKeysToSnakeCase(processedVehicle))
     .eq('id', id)
     .select()
     .single();

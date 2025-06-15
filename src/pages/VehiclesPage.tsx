@@ -15,6 +15,7 @@ import { getVehicles, getVehicleStats, createVehicle } from '../utils/storage';
 import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText } from 'lucide-react';
 import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
+import { toast } from 'react-toastify';
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const VehiclesPage: React.FC = () => {
         setVehicles(vehiclesWithStats);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
+        toast.error('Failed to load vehicles');
       } finally {
         setLoading(false);
       }
@@ -76,9 +78,13 @@ const VehiclesPage: React.FC = () => {
             : [vehicleWithStats]
         );
         setIsAddingVehicle(false);
+        toast.success('Vehicle added successfully');
+      } else {
+        toast.error('Failed to add vehicle');
       }
     } catch (error) {
       console.error('Error adding vehicle:', error);
+      toast.error('Error adding vehicle: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -133,6 +139,7 @@ const VehiclesPage: React.FC = () => {
           <VehicleForm 
             onSubmit={handleAddVehicle}
             isSubmitting={isSubmitting}
+            onCancel={() => setIsAddingVehicle(false)}
           />
         </div>
       ) : (
@@ -178,7 +185,7 @@ const VehiclesPage: React.FC = () => {
                     </div>
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
-                    vehicle.status === 'active'
+                    vehicle.status === 'active' 
                       ? 'bg-success-100 text-success-800'
                       : vehicle.status === 'maintenance'
                       ? 'bg-warning-100 text-warning-800'
@@ -219,6 +226,7 @@ const VehiclesPage: React.FC = () => {
                       <span className="text-sm text-gray-500">Trips</span>
                       <p className="font-medium">{vehicle.stats.totalTrips}</p>
                     </div>
+                    
                     <div className="text-center">
                       <Calendar className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Distance</span>
@@ -228,6 +236,7 @@ const VehiclesPage: React.FC = () => {
                           : 'N/A'}
                       </p>
                     </div>
+                    
                     <div className="text-center">
                       <PenToolIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
                       <span className="text-sm text-gray-500">Avg KMPL</span>

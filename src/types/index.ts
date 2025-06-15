@@ -44,7 +44,30 @@ export interface Vehicle {
   number_of_tyres?: number;
   registration_date?: string;
   rc_expiry_date?: string;
-  rc_copy?: boolean | File;
+  
+  // Document files for upload
+  rc_copy_file?: File;
+  insurance_document_file?: File;
+  fitness_document_file?: File;
+  tax_receipt_document_file?: File;
+  permit_document_file?: File;
+  puc_document_file?: File;
+  
+  // Document URLs for storage
+  rc_document_url?: string;
+  insurance_document_url?: string;
+  fitness_document_url?: string;
+  tax_document_url?: string;
+  permit_document_url?: string;
+  puc_document_url?: string;
+  
+  // Legacy boolean flags (for backward compatibility)
+  rc_copy?: boolean;
+  insurance_document?: boolean;
+  fitness_document?: boolean;
+  tax_receipt_document?: boolean;
+  permit_document?: boolean;
+  puc_document?: boolean;
   
   // Insurance Details
   policy_number?: string;
@@ -52,20 +75,19 @@ export interface Vehicle {
   insurance_start_date?: string;
   insurance_end_date?: string;
   insurance_premium_amount?: number;
-  insurance_document?: boolean | File;
+  insurance_idv?: number;
   
   // Fitness Certificate
   fitness_certificate_number?: string;
   fitness_issue_date?: string;
   fitness_expiry_date?: string;
   fitness_cost?: number;
-  fitness_document?: boolean | File;
   
   // Tax Details
   tax_receipt_number?: string;
   tax_amount?: number;
   tax_period?: 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
-  tax_receipt_document?: boolean | File;
+  tax_scope?: string;
   
   // Permit Details
   permit_number?: string;
@@ -74,19 +96,21 @@ export interface Vehicle {
   permit_issue_date?: string;
   permit_expiry_date?: string;
   permit_cost?: number;
-  permit_document?: boolean | File;
+  permit_issuing_state?: string;
   
   // PUC Details
   puc_certificate_number?: string;
   puc_issue_date?: string;
   puc_expiry_date?: string;
   puc_cost?: number;
-  puc_document?: boolean | File;
   
   // Other Documents
   other_documents?: Array<{
+    id?: string;
     name: string;
-    file?: File;
+    file?: File | string;
+    file_obj?: File;
+    file_url?: string;
     issue_date?: string;
     expiry_date?: string;
     cost?: number;
@@ -122,6 +146,9 @@ export interface Vehicle {
   service_reminder_contact_id?: string;
   service_reminder_days_before?: number;
   service_reminder_km?: number;
+  
+  // Vehicle photo
+  photo_url?: string;
   
   created_at?: string;
   updated_at?: string;
