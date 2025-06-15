@@ -12,6 +12,7 @@ import AlertActionModal from '../components/alerts/AlertActionModal';
 import AlertDetailsModal from '../components/alerts/AlertDetailsModal';
 import AlertTypeTag from '../components/alerts/AlertTypeTag';
 import { safeFormatDate, formatRelativeDate } from '../utils/dateUtils';
+import { isValid } from 'date-fns';
 import { Vehicle } from '../types';
 
 const AIAlertsPage: React.FC = () => {
@@ -189,13 +190,13 @@ const AIAlertsPage: React.FC = () => {
       return true;
     }).sort((a, b) => {
       // Sort by date first
-      const dateA = new Date(a.created_at);
-      const dateB = new Date(b.created_at);
+      const dateA = new Date(a.created_at || '');
+      const dateB = new Date(b.created_at || '');
       
       // Handle invalid dates by putting them at the end
-      if (!isValid(dateA) && !isValid(dateB)) return 0;
-      if (!isValid(dateA)) return 1;
-      if (!isValid(dateB)) return -1;
+      if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) return 0;
+      if (isNaN(dateA.getTime())) return 1;
+      if (isNaN(dateB.getTime())) return -1;
       
       const dateCompare = dateB.getTime() - dateA.getTime();
       

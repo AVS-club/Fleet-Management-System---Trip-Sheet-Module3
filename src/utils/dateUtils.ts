@@ -6,12 +6,16 @@ import { formatDistanceToNow, isValid, format } from 'date-fns';
  * - Older dates: "DD MMM YYYY"
  * - Invalid dates: "-"
  */
-export function formatRelativeDate(dateString: string): string {
+export function formatRelativeDate(dateString: string | null | undefined): string {
+  if (!dateString) {
+    return '-';
+  }
+  
   try {
     const date = new Date(dateString);
     
     // Return dash if date is invalid
-    if (!isValid(date)) {
+    if (isNaN(date.getTime())) {
       return '-';
     }
     
@@ -38,10 +42,14 @@ export function formatRelativeDate(dateString: string): string {
  * Safely format a date string using date-fns format
  * Returns a fallback string if the date is invalid
  */
-export function safeFormatDate(dateString: string, formatString: string = 'dd MMM yyyy HH:mm', fallback: string = '-'): string {
+export function safeFormatDate(dateString: string | null | undefined, formatString: string = 'dd MMM yyyy HH:mm', fallback: string = '-'): string {
+  if (!dateString) {
+    return fallback;
+  }
+  
   try {
     const date = new Date(dateString);
-    return isValid(date) ? format(date, formatString) : fallback;
+    return isNaN(date.getTime()) ? fallback : format(date, formatString);
   } catch (error) {
     return fallback;
   }
