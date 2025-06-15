@@ -235,19 +235,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   }, [vehicleId, odometerReading, title]);
 
-  // Handle category change
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    // Clear selected tasks when category changes
-    if (serviceGroupsWatch && serviceGroupsWatch.length > 0) {
-      const updatedGroups = [...serviceGroupsWatch];
-      updatedGroups.forEach(group => {
-        group.tasks = [];
-      });
-      setValue('service_groups', updatedGroups);
-    }
-  };
-
   const handleFormSubmit = (data: any) => {
     try {
       console.log("Form submission data:", data);
@@ -305,6 +292,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Form submission failed: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
+  // Handle category change
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    // Clear selected tasks when category changes
+    if (serviceGroupsWatch && serviceGroupsWatch.length > 0) {
+      const updatedGroups = [...serviceGroupsWatch];
+      updatedGroups.forEach(group => {
+        group.tasks = [];
+      });
+      setValue('service_groups', updatedGroups);
     }
   };
 
@@ -525,7 +525,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           Complaint & Resolution
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">
