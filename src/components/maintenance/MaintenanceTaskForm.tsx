@@ -267,9 +267,25 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
-      // Add category to the data
+      // Map the selected category to the database-allowed values
       if (selectedCategory) {
-        data.category = selectedCategory;
+        // Map maintenance categories to database categories
+        const categoryMapping: { [key: string]: string } = {
+          'engine': 'General',
+          'transmission': 'Repair/Replacement',
+          'brakes': 'General',
+          'suspension': 'Repair/Replacement',
+          'electrical': 'Repair/Replacement',
+          'body': 'Repair/Replacement',
+          'tires': 'General',
+          'ac': 'Repair/Replacement',
+          'others': 'Others'
+        };
+        
+        data.category = categoryMapping[selectedCategory] || 'General';
+      } else {
+        // Default category if none selected
+        data.category = 'General';
       }
       
       onSubmit(data);
