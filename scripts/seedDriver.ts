@@ -22,15 +22,15 @@ async function seedDriver() {
   
   // Map the provided driver data to match our database schema
   const driverData = {
-    name: "Ravi Yadav",
-    license_number: "MH202300987654",
-    contact_number: "9876543210",
-    email: "ravi.yadav@example.com", // Added a placeholder email
-    join_date: "2024-05-02",
+    name: "Ashok Meena",
+    license_number: "CG202301234567",
+    contact_number: "7894561230",
+    email: "ashok.meena@example.com", // Added a placeholder email
+    join_date: "2024-11-09",
     status: "active",
-    experience_years: 10, // As specified in your message
+    experience_years: 8, // As specified in your data
     documents_verified: true,
-    driver_photo_url: "https://example.com/photos/ravi_yadav.jpg"
+    driver_photo_url: "https://example.com/photos/ashok_meena.jpg"
   };
 
   try {
@@ -102,13 +102,3 @@ seedDriver()
     console.error('Seed script failed:', error);
     process.exit(1);
   });
-const driverData = {
-  driver_name: "Ashok Meena",
-  license_number: "CG202301234567",
-  mobile_number: "7894561230",
-  joining_date: "2024-11-09",
-  assigned_vehicle: "CG04NC4622",
-  status: "active",
-  experience_years: 8,
-  driver_photo_url: "https://example.com/photos/ashok_meena.jpg"
-};
