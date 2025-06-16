@@ -2,18 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
-import { 
-  Truck, Calendar, PenTool as Tool, AlertTriangle, ChevronLeft, 
-  Fuel, FileText, Shield, Download, Share2, FileDown, Eye, 
-  Info, User, Check, Clock, TrendingUp, BarChart2, Database, Tag
-} from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown, Eye, Clock, Info, BarChart2, Database, IndianRupee } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { generateVehiclePDF, downloadVehicleDocuments, createShareableVehicleLink } from '../utils/exportUtils';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import CollapsibleSection from '../components/ui/CollapsibleSection';
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -47,7 +42,6 @@ const VehiclePage: React.FC = () => {
         setStats(vehicleStats || { totalTrips: 0, totalDistance: 0 });
       } catch (error) {
         console.error('Error fetching vehicle data:', error);
-        toast.error('Failed to load vehicle data');
       } finally {
         setLoading(false);
       }
@@ -56,7 +50,7 @@ const VehiclePage: React.FC = () => {
     fetchData();
   }, [id]);
   
-  if (!vehicle && !loading) {
+  if (!vehicle) {
     return (
       <Layout title="Vehicle Not Found">
         <div className="text-center py-12">
@@ -74,7 +68,7 @@ const VehiclePage: React.FC = () => {
     );
   }
 
-  if (isEditing && vehicle) {
+  if (isEditing) {
     return (
       <Layout
         title="Edit Vehicle"
@@ -95,17 +89,54 @@ const VehiclePage: React.FC = () => {
               // Handle update
               setIsEditing(false);
             }}
-            onCancel={() => setIsEditing(false)}
           />
         </div>
       </Layout>
     );
   }
 
+  // Helper functions for document status
+  const getDocumentStatus = (docUrl?: string, expiryDate?: string) => {
+    if (!docUrl) return { status: 'missing', label: 'Missing', color: 'bg-gray-100 text-gray-800' };
+    
+    if (expiryDate) {
+      const expiry = new Date(expiryDate);
+      const now = new Date();
+      if (expiry < now) {
+        return { status: 'expired', label: 'Expired', color: 'bg-error-100 text-error-800' };
+      }
+      
+      // Check if expiring soon (within 30 days)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(now.getDate() + 30);
+      
+      if (expiry < thirtyDaysFromNow) {
+        return { status: 'expiring', label: 'Expiring Soon', color: 'bg-warning-100 text-warning-800' };
+      }
+    }
+    
+    return { status: 'valid', label: 'Valid', color: 'bg-success-100 text-success-800' };
+  };
+  
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Calculate document statuses
+  const rcStatus = getDocumentStatus(vehicle.rc_document_url, vehicle.rc_expiry_date);
+  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_url, vehicle.insurance_expiry_date);
+  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_url, vehicle.fitness_expiry_date);
+  const taxStatus = getDocumentStatus(vehicle.tax_document_url, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
+  const permitStatus = getDocumentStatus(vehicle.permit_document_url, vehicle.permit_expiry_date);
+  const pucStatus = getDocumentStatus(vehicle.puc_document_url, vehicle.puc_expiry_date);
+
   // Handle export as PDF
   const handleExportPDF = async () => {
-    if (!vehicle) return;
-    
     try {
       setExportLoading(true);
       const doc = await generateVehiclePDF(vehicle, stats);
@@ -121,8 +152,6 @@ const VehiclePage: React.FC = () => {
 
   // Handle download documents
   const handleDownloadDocuments = async () => {
-    if (!vehicle) return;
-    
     try {
       setDownloadLoading(true);
       await downloadVehicleDocuments(vehicle);
@@ -137,8 +166,6 @@ const VehiclePage: React.FC = () => {
 
   // Handle create shareable link
   const handleCreateShareableLink = async () => {
-    if (!vehicle) return;
-    
     try {
       setShareLoading(true);
       const link = await createShareableVehicleLink(vehicle.id);
@@ -148,54 +175,16 @@ const VehiclePage: React.FC = () => {
       toast.success('Shareable link copied to clipboard (valid for 7 days)');
     } catch (error) {
       console.error('Error creating shareable link:', error);
-      toast.error('Error creating shareable link: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to create shareable link');
     } finally {
       setShareLoading(false);
     }
   };
 
-  // Helper function to format date for display
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return 'Not set';
-    try {
-      return new Date(date).toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      });
-    } catch (e) {
-      return 'Invalid date';
-    }
-  };
-  
-  // Helper function to determine document status
-  const getDocumentStatus = (
-    documentExists: boolean | undefined, 
-    expiryDate: string | null | undefined
-  ) => {
-    if (!documentExists) return { label: 'Missing', color: 'bg-gray-100 text-gray-800', icon: <AlertTriangle className="h-3.5 w-3.5 mr-1" /> };
-    
-    if (!expiryDate) return { label: 'Uploaded', color: 'bg-gray-100 text-gray-800', icon: <Check className="h-3.5 w-3.5 mr-1" /> };
-    
-    const today = new Date();
-    const expiry = new Date(expiryDate);
-    
-    // Calculate days until expiry
-    const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (expiry < today) {
-      return { label: 'Expired', color: 'bg-error-100 text-error-800', icon: <AlertTriangle className="h-3.5 w-3.5 mr-1" /> };
-    } else if (daysUntilExpiry <= 30) {
-      return { label: 'Expiring Soon', color: 'bg-warning-100 text-warning-800', icon: <Clock className="h-3.5 w-3.5 mr-1" /> };
-    } else {
-      return { label: 'Valid', color: 'bg-success-100 text-success-800', icon: <Check className="h-3.5 w-3.5 mr-1" /> };
-    }
-  };
-
   return (
     <Layout
-      title={`Vehicle: ${vehicle?.registration_number}`}
-      subtitle={`${vehicle?.make} ${vehicle?.model} (${vehicle?.year})`}
+      title={`Vehicle: ${vehicle.registration_number}`}
+      subtitle={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button
@@ -235,7 +224,7 @@ const VehiclePage: React.FC = () => {
           
           <Button
             onClick={() => setIsEditing(true)}
-            icon={<Tool className="h-4 w-4" />}
+            icon={<PenToolIcon className="h-4 w-4" />}
           >
             Edit Vehicle
           </Button>
@@ -248,794 +237,749 @@ const VehiclePage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Vehicle Information Section */}
-          <CollapsibleSection 
-            title="Vehicle Information" 
-            icon={<Truck className="h-5 w-5" />}
-            iconColor="text-blue-600" 
-            defaultExpanded={true}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Basic Info Card */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
-                  <Tag className="h-5 w-5 text-primary-500" />
+          {/* Main Content Grid - 3 Sections */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* SECTION 1: VEHICLE INFORMATION */}
+            <div className="bg-white p-6 rounded-lg shadow-sm space-y-5">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Vehicle Information</h3>
+                  {vehicle.owner_name && (
+                    <p className="text-sm text-gray-500">
+                      <span className="inline-flex items-center">
+                        <User className="h-3.5 w-3.5 mr-1 text-gray-400" />
+                        Owned by {vehicle.owner_name}
+                      </span>
+                    </p>
+                  )}
                 </div>
-                
-                <div className="mt-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Registration</span>
-                    <span className="font-medium text-right">{vehicle?.registration_number}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Make & Model</span>
-                    <span className="font-medium text-right">{vehicle?.make} {vehicle?.model}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Year</span>
-                    <span className="font-medium text-right">{vehicle?.year}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Vehicle Type</span>
-                    <span className="font-medium text-right capitalize">{vehicle?.type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Fuel Type</span>
-                    <span className="font-medium text-right capitalize">{vehicle?.fuel_type}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Status</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                      vehicle?.status === 'active' 
-                        ? 'bg-success-100 text-success-800'
-                        : vehicle?.status === 'maintenance'
-                        ? 'bg-warning-100 text-warning-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {vehicle?.status}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Odometer Reading</span>
-                    <span className="font-medium text-right">{vehicle?.current_odometer?.toLocaleString()} km</span>
-                  </div>
+                <div className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                  vehicle.status === 'active' 
+                    ? 'bg-success-100 text-success-800'
+                    : vehicle.status === 'maintenance'
+                    ? 'bg-warning-100 text-warning-800'
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {vehicle.status}
                 </div>
               </div>
-
-              {/* Owner & Registration Card */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-medium text-gray-900">Ownership & Registration</h3>
-                  <User className="h-5 w-5 text-primary-500" />
+              
+              <div className="space-y-3 divide-y divide-gray-100">
+                <div className="grid grid-cols-2 gap-4 pb-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Registration</p>
+                    <p className="font-medium">{vehicle.registration_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Make & Model</p>
+                    <p className="font-medium">{vehicle.make} {vehicle.model}</p>
+                  </div>
                 </div>
                 
-                <div className="mt-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Owner Name</span>
-                    <span className="font-medium text-right">{vehicle?.owner_name || 'Not specified'}</span>
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Type</p>
+                    <p className="font-medium capitalize">{vehicle.type}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Engine Number</span>
-                    <span className="font-medium text-right font-mono">{vehicle?.engine_number || 'Not available'}</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Year</p>
+                    <p className="font-medium">{vehicle.year}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Chassis Number</span>
-                    <span className="font-medium text-right font-mono">{vehicle?.chassis_number || 'Not available'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Registration Date</span>
-                    <span className="font-medium text-right">
-                      {vehicle?.registration_date ? formatDate(vehicle.registration_date) : 'Not available'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">RC Expiry Date</span>
-                    <span className="font-medium text-right">
-                      {vehicle?.rc_expiry_date ? formatDate(vehicle.rc_expiry_date) : 'Not available'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Tyre Size</span>
-                    <span className="font-medium text-right">{vehicle?.tyre_size || 'Not specified'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-500">Number of Tyres</span>
-                    <span className="font-medium text-right">{vehicle?.number_of_tyres || 'Not specified'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Vehicle Performance Stats */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-medium text-gray-900">Performance Stats</h3>
-                  <BarChart2 className="h-5 w-5 text-primary-500" />
                 </div>
                 
-                <div className="mt-4 space-y-6">
+                <div className="grid grid-cols-2 gap-4 py-3">
                   <div>
-                    <span className="text-sm text-gray-500">Total Trips</span>
-                    <p className="text-2xl font-semibold">{stats?.totalTrips || 0}</p>
+                    <p className="text-xs text-gray-500">Fuel Type</p>
+                    <p className="font-medium capitalize">{vehicle.fuel_type}</p>
                   </div>
                   <div>
-                    <span className="text-sm text-gray-500">Total Distance</span>
-                    <p className="text-2xl font-semibold">{stats?.totalDistance?.toLocaleString() || 0} km</p>
+                    <p className="text-xs text-gray-500">Chassis Number</p>
+                    <p className="font-medium font-mono text-sm">{vehicle.chassis_number || 'N/A'}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Engine Number</p>
+                    <p className="font-medium font-mono text-sm">{vehicle.engine_number || 'N/A'}</p>
                   </div>
                   <div>
-                    <span className="text-sm text-gray-500">Average Mileage</span>
-                    <p className="text-2xl font-semibold text-success-600">
-                      {stats?.averageKmpl?.toFixed(2) || '-'} km/L
+                    <p className="text-xs text-gray-500">Reg. Date</p>
+                    <p className="font-medium">{formatDate(vehicle.registration_date)}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Current Odometer</p>
+                    <p className="font-medium">{vehicle.current_odometer?.toLocaleString()} km</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Tyre Details</p>
+                    <p className="font-medium">
+                      {vehicle.tyre_size && vehicle.number_of_tyres ? 
+                        `${vehicle.number_of_tyres}x ${vehicle.tyre_size}` : 'N/A'}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-          </CollapsibleSection>
-
-          {/* Compliance Documents Section */}
-          <CollapsibleSection 
-            title="Compliance Documents" 
-            icon={<FileText className="h-5 w-5" />}
-            iconColor="text-amber-600" 
-            defaultExpanded={true}
-          >
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* RC Document Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
+            
+            {/* SECTION 2: DOCUMENT STATUS */}
+            <div className="bg-white p-6 rounded-lg shadow-sm space-y-5">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium text-gray-900">Compliance Documents</h3>
+                <Shield className="h-5 w-5 text-primary-500" />
+              </div>
+              
+              <div className="space-y-4">
+                {/* RC Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Registration Certificate (RC)</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.rc_expiry_date ? `Expires: ${formatDate(vehicle.rc_expiry_date)}` : 'No expiry data'}
-                        </p>
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">RC Document</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${rcStatus.color}`}>
+                        {rcStatus.label}
+                      </span>
                     </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).icon}
-                      {getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).label}
-                    </div>
+                    {vehicle.rc_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.rc_expiry_date)}
+                      </p>
+                    )}
                   </div>
-                  
-                  {vehicle?.rc_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.rc_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                {/* Insurance Document Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <Shield className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Insurance</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.insurance_expiry_date 
-                            ? `Expires: ${formatDate(vehicle.insurance_expiry_date)}` 
-                            : 'No expiry data'}
-                        </p>
-                        {vehicle?.policy_number && (
-                          <p className="text-xs text-gray-500">Policy: {vehicle.policy_number}</p>
-                        )}
-                        {vehicle?.insurer_name && (
-                          <p className="text-xs text-gray-500">Insurer: {vehicle.insurer_name}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).icon}
-                      {getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).label}
-                    </div>
-                  </div>
-                  
-                  {vehicle?.insurance_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.insurance_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
+                  {vehicle.rc_document_url && (
+                    <a 
+                      href={vehicle.rc_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
                 
-                {/* Fitness Certificate Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
+                {/* Insurance Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Fitness Certificate</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.fitness_expiry_date 
-                            ? `Expires: ${formatDate(vehicle.fitness_expiry_date)}` 
-                            : 'No expiry data'}
-                        </p>
-                        {vehicle?.fitness_certificate_number && (
-                          <p className="text-xs text-gray-500">Cert No: {vehicle.fitness_certificate_number}</p>
-                        )}
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Insurance</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${insuranceStatus.color}`}>
+                        {insuranceStatus.label}
+                      </span>
                     </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).icon}
-                      {getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).label}
-                    </div>
+                    {vehicle.insurer_name && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        {vehicle.insurer_name} 
+                        {vehicle.policy_number && ` • ${vehicle.policy_number}`}
+                      </p>
+                    )}
+                    {vehicle.insurance_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.insurance_expiry_date)}
+                      </p>
+                    )}
+                    {vehicle.insurance_premium_amount && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Premium: ₹{vehicle.insurance_premium_amount.toLocaleString()}
+                      </p>
+                    )}
                   </div>
-                  
-                  {vehicle?.fitness_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.fitness_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
+                  {vehicle.insurance_document_url && (
+                    <a 
+                      href={vehicle.insurance_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-
-                {/* Permit Document Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
+                
+                {/* Fitness Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Permit</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.permit_expiry_date 
-                            ? `Expires: ${formatDate(vehicle.permit_expiry_date)}` 
-                            : 'No expiry data'}
-                        </p>
-                        {vehicle?.permit_number && (
-                          <p className="text-xs text-gray-500">Permit No: {vehicle.permit_number}</p>
-                        )}
-                        {vehicle?.permit_type && (
-                          <p className="text-xs text-gray-500">Type: {vehicle.permit_type}</p>
-                        )}
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Fitness Certificate</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${fitnessStatus.color}`}>
+                        {fitnessStatus.label}
+                      </span>
                     </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).icon}
-                      {getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).label}
-                    </div>
+                    {vehicle.fitness_certificate_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Cert: {vehicle.fitness_certificate_number}
+                      </p>
+                    )}
+                    {vehicle.fitness_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.fitness_expiry_date)}
+                      </p>
+                    )}
                   </div>
-                  
-                  {vehicle?.permit_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.permit_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
+                  {vehicle.fitness_document_url && (
+                    <a 
+                      href={vehicle.fitness_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-
-                {/* Tax Receipt Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
+                
+                {/* Permit Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">Tax Receipt</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.tax_period && `Period: ${vehicle.tax_period}`}
-                        </p>
-                        {vehicle?.tax_receipt_number && (
-                          <p className="text-xs text-gray-500">Receipt No: {vehicle.tax_receipt_number}</p>
-                        )}
-                        {vehicle?.tax_amount && (
-                          <p className="text-xs text-gray-500">Amount: ₹{vehicle.tax_amount.toLocaleString()}</p>
-                        )}
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Permit</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${permitStatus.color}`}>
+                        {permitStatus.label}
+                      </span>
                     </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.tax_receipt_document, null).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.tax_receipt_document, null).icon}
-                      {getDocumentStatus(vehicle?.tax_receipt_document, null).label}
-                    </div>
+                    {vehicle.permit_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        {vehicle.permit_number}
+                        {vehicle.permit_type && ` (${vehicle.permit_type.charAt(0).toUpperCase() + vehicle.permit_type.slice(1)})`}
+                      </p>
+                    )}
+                    {vehicle.permit_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.permit_expiry_date)}
+                      </p>
+                    )}
                   </div>
-                  
-                  {vehicle?.tax_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.tax_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
+                  {vehicle.permit_document_url && (
+                    <a 
+                      href={vehicle.permit_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-
-                {/* PUC Certificate Card */}
-                <div className="p-4 rounded-lg bg-gray-50">
-                  <div className="flex justify-between items-start">
+                
+                {/* PUC Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                      <div>
-                        <h4 className="font-medium text-gray-900">PUC Certificate</h4>
-                        <p className="text-xs text-gray-500">
-                          {vehicle?.puc_expiry_date 
-                            ? `Expires: ${formatDate(vehicle.puc_expiry_date)}` 
-                            : 'No expiry data'}
-                        </p>
-                        {vehicle?.puc_certificate_number && (
-                          <p className="text-xs text-gray-500">Cert No: {vehicle.puc_certificate_number}</p>
-                        )}
-                      </div>
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">PUC Certificate</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${pucStatus.color}`}>
+                        {pucStatus.label}
+                      </span>
                     </div>
-                    <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).color
-                    }`}>
-                      {getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).icon}
-                      {getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).label}
-                    </div>
+                    {vehicle.puc_certificate_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Cert: {vehicle.puc_certificate_number}
+                      </p>
+                    )}
+                    {vehicle.puc_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.puc_expiry_date)}
+                      </p>
+                    )}
                   </div>
-                  
-                  {vehicle?.puc_document_url && (
-                    <div className="mt-3 flex justify-end">
-                      <a 
-                        href={vehicle.puc_document_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-700 bg-primary-50 rounded hover:bg-primary-100"
-                      >
-                        <Eye className="h-3 w-3 mr-1" />
-                        View Document
-                      </a>
-                    </div>
+                  {vehicle.puc_document_url && (
+                    <a 
+                      href={vehicle.puc_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
                   )}
                 </div>
-              </div>
-
-              {/* Other Documents */}
-              {vehicle?.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="font-medium text-gray-900 mb-3">Additional Documents</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {vehicle.other_documents.map((doc, index) => (
-                      <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex justify-between">
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                            <span className="text-sm font-medium text-gray-900">{doc.name}</span>
-                          </div>
-                          {doc.file && (
-                            <a 
-                              href={typeof doc.file === 'string' ? doc.file : '#'} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 text-xs"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </a>
-                          )}
-                        </div>
-                        {doc.expiry_date && (
-                          <div className="mt-1 text-xs text-gray-500">
-                            Expiry: {formatDate(doc.expiry_date)}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                
+                {/* Tax Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Tax Receipt</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${taxStatus.color}`}>
+                        {taxStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.tax_receipt_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Receipt: {vehicle.tax_receipt_number}
+                      </p>
+                    )}
+                    {vehicle.tax_amount && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Amount: ₹{vehicle.tax_amount.toLocaleString()}
+                        {vehicle.tax_period && ` (${vehicle.tax_period})`}
+                      </p>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Document Expiry Summary */}
-              <div className="mt-6">
-                <h3 className="font-medium text-gray-900 mb-3">Document Status Summary</h3>
-                <div className="overflow-hidden bg-white border border-gray-200 rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
-                        <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Document</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900">RC Copy</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).color
-                          }`}>
-                            {getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).icon}
-                            {getDocumentStatus(vehicle?.rc_copy, vehicle?.rc_expiry_date).label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{vehicle?.rc_expiry_date ? formatDate(vehicle.rc_expiry_date) : '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {vehicle?.rc_document_url ? (
-                            <a 
-                              href={vehicle.rc_document_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 hover:text-primary-800"
-                            >
-                              View
-                            </a>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900">Insurance</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).color
-                          }`}>
-                            {getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).icon}
-                            {getDocumentStatus(vehicle?.insurance_document, vehicle?.insurance_expiry_date).label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{vehicle?.insurance_expiry_date ? formatDate(vehicle.insurance_expiry_date) : '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {vehicle?.insurance_document_url ? (
-                            <a 
-                              href={vehicle.insurance_document_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 hover:text-primary-800"
-                            >
-                              View
-                            </a>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900">Fitness Certificate</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).color
-                          }`}>
-                            {getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).icon}
-                            {getDocumentStatus(vehicle?.fitness_document, vehicle?.fitness_expiry_date).label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{vehicle?.fitness_expiry_date ? formatDate(vehicle.fitness_expiry_date) : '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {vehicle?.fitness_document_url ? (
-                            <a 
-                              href={vehicle.fitness_document_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 hover:text-primary-800"
-                            >
-                              View
-                            </a>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900">Permit</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).color
-                          }`}>
-                            {getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).icon}
-                            {getDocumentStatus(vehicle?.permit_document, vehicle?.permit_expiry_date).label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{vehicle?.permit_expiry_date ? formatDate(vehicle.permit_expiry_date) : '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {vehicle?.permit_document_url ? (
-                            <a 
-                              href={vehicle.permit_document_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 hover:text-primary-800"
-                            >
-                              View
-                            </a>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900">PUC Certificate</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).color
-                          }`}>
-                            {getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).icon}
-                            {getDocumentStatus(vehicle?.puc_document, vehicle?.puc_expiry_date).label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{vehicle?.puc_expiry_date ? formatDate(vehicle.puc_expiry_date) : '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {vehicle?.puc_document_url ? (
-                            <a 
-                              href={vehicle.puc_document_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-primary-600 hover:text-primary-800"
-                            >
-                              View
-                            </a>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  {vehicle.tax_document_url && (
+                    <a 
+                      href={vehicle.tax_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
-          </CollapsibleSection>
-
-          {/* VAHAN Data Information Section */}
-          <CollapsibleSection 
-            title="Additional Information" 
-            icon={<Database className="h-5 w-5" />}
-            iconColor="text-green-600" 
-            defaultExpanded={false}
-          >
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Technical Specifications Card */}
-                <div>
-                  <h3 className="text-base font-medium text-gray-900 mb-3">Technical Specifications</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Cubic Capacity</span>
-                      <span className="font-medium text-right">{vehicle?.cubic_capacity || '-'} cc</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Cylinders</span>
-                      <span className="font-medium text-right">{vehicle?.cylinders || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Unladen Weight</span>
-                      <span className="font-medium text-right">{vehicle?.unladen_weight ? `${vehicle.unladen_weight} kg` : '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Seating Capacity</span>
-                      <span className="font-medium text-right">{vehicle?.seating_capacity || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Emission Norms</span>
-                      <span className="font-medium text-right">{vehicle?.emission_norms || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Vehicle Class</span>
-                      <span className="font-medium text-right">{vehicle?.vehicle_class || '-'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Color</span>
-                      <span className="font-medium text-right">{vehicle?.color || '-'}</span>
-                    </div>
-                  </div>
+            
+            {/* SECTION 3: PERFORMANCE STATS */}
+            <div className="space-y-5">
+              {/* Performance Stats Card */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Performance</h3>
+                  <BarChart2 className="h-5 w-5 text-primary-500" />
                 </div>
-
-                {/* Financing Details Card */}
-                <div>
-                  <h3 className="text-base font-medium text-gray-900 mb-3">Financing & Ownership</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Financed By</span>
-                      <span className="font-medium text-right">{vehicle?.financer || 'Self-Financed'}</span>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Total Trips</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">NOC Details</span>
-                      <span className="font-medium text-right">{vehicle?.noc_details || 'Not Applicable'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">RC Status</span>
-                      <span className="font-medium text-right">{vehicle?.rc_status || 'Active'}</span>
-                    </div>
+                    <span className="text-lg font-medium text-gray-900">
+                      {stats?.totalTrips || 0}
+                    </span>
                   </div>
-                </div>
-
-                {/* National Permit Details Card */}
-                <div>
-                  <h3 className="text-base font-medium text-gray-900 mb-3">National Permit Details</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">National Permit No.</span>
-                      <span className="font-medium text-right">{vehicle?.national_permit_number || '-'}</span>
+                  
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Truck className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Distance Covered</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Valid Until</span>
-                      <span className="font-medium text-right">
-                        {vehicle?.national_permit_upto && vehicle.national_permit_upto !== "1900-01-01" 
-                          ? formatDate(vehicle.national_permit_upto) 
-                          : '-'}
-                      </span>
+                    <span className="text-lg font-medium text-gray-900">
+                      {stats?.totalDistance?.toLocaleString() || 0} km
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Fuel className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Average Mileage</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Additional Documents */}
-              {vehicle?.other_info_documents && Array.isArray(vehicle.other_info_documents) && vehicle.other_info_documents.length > 0 && (
-                <div className="mt-6 border-t pt-6">
-                  <h3 className="text-base font-medium text-gray-900 mb-3">Additional Documents</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {vehicle.other_info_documents.map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-700">Document {index + 1}</span>
-                        </div>
-                        {typeof doc === 'string' && (
-                          <a 
-                            href={doc} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-primary-600 hover:text-primary-800 text-sm"
-                          >
-                            View
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* VAHAN Data Last Updated */}
-              {vehicle?.vahan_last_fetched_at && (
-                <div className="mt-4 text-xs text-gray-500 text-right">
-                  <div className="flex items-center justify-end">
-                    <Info className="h-3 w-3 mr-1" />
-                    <span>
-                      Last fetched from VAHAN: {format(new Date(vehicle.vahan_last_fetched_at), 'dd MMM yyyy HH:mm')}
+                    <span className="text-lg font-medium text-success-600">
+                      {stats?.averageKmpl?.toFixed(2) || '--'} km/L
                     </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </CollapsibleSection>
-
-          {/* Maintenance & Analytics Section */}
-          <CollapsibleSection 
-            title="Maintenance & Analytics" 
-            icon={<Tool className="h-5 w-5" />}
-            iconColor="text-red-600" 
-            defaultExpanded={true}
-          >
-            <div className="space-y-6">
-              {/* Service Reminder Settings */}
-              {vehicle && (
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Service Reminders</h3>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      vehicle.remind_service 
-                        ? 'bg-success-100 text-success-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+              </div>
+              
+              {/* Reminders Card */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Service Reminders</h3>
+                  <Clock className="h-5 w-5 text-primary-500" />
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-2">
+                    <span className="text-sm text-gray-700">Reminders Enabled</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${vehicle.remind_service ? 'bg-success-100 text-success-800' : 'bg-gray-100 text-gray-800'}`}>
                       {vehicle.remind_service ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Time-Based Reminders</h4>
-                      <p className="text-sm text-gray-700">
-                        {vehicle.service_reminder_days_before 
-                          ? `Remind ${vehicle.service_reminder_days_before} days before service is due` 
-                          : 'No time-based reminder set'}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 mb-2">Distance-Based Reminders</h4>
-                      <p className="text-sm text-gray-700">
-                        {vehicle.service_reminder_km 
-                          ? `Remind when odometer is ${vehicle.service_reminder_km} km away from service` 
-                          : 'No distance-based reminder set'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Mileage Chart */}
-              {trips.length > 0 ? (
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Mileage Trends</h3>
-                  <div className="h-64">
-                    <MileageChart trips={trips} />
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-center">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Mileage Trends</h3>
-                  <p className="text-gray-500">No trip data available to display mileage trends</p>
-                </div>
-              )}
-
-              {/* Maintenance & Service History */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Maintenance History</h3>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate('/maintenance', { state: { vehicleId: vehicle?.id } })}
-                  >
-                    View All Maintenance
-                  </Button>
-                </div>
-                
-                <div className="flex flex-col">
-                  <div className="-my-2 overflow-x-auto">
-                    <div className="py-2 align-middle inline-block min-w-full">
-                      <div className="overflow-hidden border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Date
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Service Type
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Odometer
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Cost
-                              </th>
-                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {/* This would typically be populated from maintenance tasks data */}
-                            <tr className="text-center">
-                              <td colSpan={5} className="px-6 py-8 text-sm text-gray-500">
-                                No maintenance records available
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                  {vehicle.remind_service && (
+                    <>
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">Days Before Service</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_days_before || 'Default'} days
+                        </span>
                       </div>
+                      
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">KM Before Service</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_km?.toLocaleString() || 'Default'} km
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">Contact Assigned</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_contact_id ? 'Yes' : 'Default Contact'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {!vehicle.remind_service && (
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <p className="text-sm text-gray-500">Service reminders are disabled for this vehicle</p>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
-          </CollapsibleSection>
+          </div>
+          
+          {/* Additional VAHAN Data Section */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Database className="h-5 w-5 mr-2 text-primary-500" />
+                Additional Vehicle Information
+              </h3>
+              {vehicle.vahan_last_fetched_at && (
+                <span className="text-xs text-gray-500">
+                  Last updated: {new Date(vehicle.vahan_last_fetched_at).toLocaleString()}
+                </span>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 max-w-4xl">
+              {vehicle.financer && (
+                <div>
+                  <p className="text-xs text-gray-500">Financer</p>
+                  <p className="font-medium">{vehicle.financer}</p>
+                </div>
+              )}
+              
+              {vehicle.vehicle_class && (
+                <div>
+                  <p className="text-xs text-gray-500">Vehicle Class</p>
+                  <p className="font-medium">{vehicle.vehicle_class}</p>
+                </div>
+              )}
+              
+              {vehicle.color && (
+                <div>
+                  <p className="text-xs text-gray-500">Color</p>
+                  <p className="font-medium">{vehicle.color}</p>
+                </div>
+              )}
+              
+              {vehicle.cubic_capacity && (
+                <div>
+                  <p className="text-xs text-gray-500">Cubic Capacity</p>
+                  <p className="font-medium">{vehicle.cubic_capacity} cc</p>
+                </div>
+              )}
+              
+              {vehicle.cylinders && (
+                <div>
+                  <p className="text-xs text-gray-500">Cylinders</p>
+                  <p className="font-medium">{vehicle.cylinders}</p>
+                </div>
+              )}
+              
+              {vehicle.unladen_weight && (
+                <div>
+                  <p className="text-xs text-gray-500">Unladen Weight</p>
+                  <p className="font-medium">{vehicle.unladen_weight} kg</p>
+                </div>
+              )}
+              
+              {vehicle.seating_capacity && (
+                <div>
+                  <p className="text-xs text-gray-500">Seating Capacity</p>
+                  <p className="font-medium">{vehicle.seating_capacity}</p>
+                </div>
+              )}
+              
+              {vehicle.emission_norms && (
+                <div>
+                  <p className="text-xs text-gray-500">Emission Norms</p>
+                  <p className="font-medium">{vehicle.emission_norms}</p>
+                </div>
+              )}
+              
+              {vehicle.rc_status && (
+                <div>
+                  <p className="text-xs text-gray-500">RC Status</p>
+                  <p className="font-medium">{vehicle.rc_status}</p>
+                </div>
+              )}
+              
+              {vehicle.national_permit_number && (
+                <div>
+                  <p className="text-xs text-gray-500">National Permit</p>
+                  <p className="font-medium">{vehicle.national_permit_number}</p>
+                </div>
+              )}
+              
+              {vehicle.national_permit_upto && (
+                <div>
+                  <p className="text-xs text-gray-500">Permit Valid Till</p>
+                  <p className="font-medium">{formatDate(vehicle.national_permit_upto)}</p>
+                </div>
+              )}
+              
+              {vehicle.noc_details && (
+                <div>
+                  <p className="text-xs text-gray-500">NOC Details</p>
+                  <p className="font-medium">{vehicle.noc_details}</p>
+                </div>
+              )}
+            </div>
+            
+            {!vehicle.financer && 
+             !vehicle.vehicle_class &&
+             !vehicle.color && 
+             !vehicle.cubic_capacity && 
+             !vehicle.cylinders && 
+             !vehicle.unladen_weight && 
+             !vehicle.seating_capacity && 
+             !vehicle.emission_norms && 
+             !vehicle.rc_status && 
+             !vehicle.national_permit_number && (
+              <div className="flex items-center justify-center py-8 bg-gray-50 rounded-lg mt-4">
+                <Info className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-500">No additional information available for this vehicle</span>
+              </div>
+            )}
+            
+            {/* Other Info Documents */}
+            {vehicle.other_info_documents && Array.isArray(vehicle.other_info_documents) && vehicle.other_info_documents.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Additional Documents</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {vehicle.other_info_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-700 truncate max-w-[150px]">
+                          Document {index + 1}
+                        </span>
+                      </div>
+                      {typeof doc === 'string' && (
+                        <a 
+                          href={doc} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Financial Summary Card */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
+                Financial Summary
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Insurance Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <Shield className="h-4 w-4 mr-1 text-blue-500" />
+                  Insurance
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.insurance_premium_amount && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Premium</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.insurance_premium_amount.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.insurance_idv && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">IDV</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.insurance_idv.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.insurance_start_date && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Start Date</dt>
+                      <dd className="text-sm">{formatDate(vehicle.insurance_start_date)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              
+              {/* Tax Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <IndianRupee className="h-4 w-4 mr-1 text-green-500" />
+                  Tax
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.tax_amount && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Amount</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.tax_amount.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.tax_period && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Period</dt>
+                      <dd className="text-sm font-medium capitalize">{vehicle.tax_period}</dd>
+                    </div>
+                  )}
+                  {vehicle.tax_scope && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Scope</dt>
+                      <dd className="text-sm">{vehicle.tax_scope}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              
+              {/* Other Costs */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <IndianRupee className="h-4 w-4 mr-1 text-purple-500" />
+                  Other Costs
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.fitness_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Fitness Cert.</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.fitness_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.permit_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Permit</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.permit_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.puc_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">PUC</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.puc_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+          </div>
+          
+          {/* Document Alerts Section */}
+          {(insuranceStatus.status === 'expired' || fitnessStatus.status === 'expired' || permitStatus.status === 'expired' || pucStatus.status === 'expired') && (
+            <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-error-500 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-error-800 font-medium">Expired Document Alert</h3>
+                  <ul className="mt-1 text-error-700 list-disc list-inside text-sm">
+                    {insuranceStatus.status === 'expired' && (
+                      <li>Insurance expired on {formatDate(vehicle.insurance_expiry_date)}</li>
+                    )}
+                    {fitnessStatus.status === 'expired' && (
+                      <li>Fitness certificate expired on {formatDate(vehicle.fitness_expiry_date)}</li>
+                    )}
+                    {permitStatus.status === 'expired' && (
+                      <li>Permit expired on {formatDate(vehicle.permit_expiry_date)}</li>
+                    )}
+                    {pucStatus.status === 'expired' && (
+                      <li>PUC certificate expired on {formatDate(vehicle.puc_expiry_date)}</li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-sm text-error-700">Please update these documents to maintain compliance.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Expiring Soon Alert */}
+          {(insuranceStatus.status === 'expiring' || fitnessStatus.status === 'expiring' || permitStatus.status === 'expiring' || pucStatus.status === 'expiring') && 
+          !(insuranceStatus.status === 'expired' || fitnessStatus.status === 'expired' || permitStatus.status === 'expired' || pucStatus.status === 'expired') && (
+            <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-warning-500 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-warning-800 font-medium">Documents Expiring Soon</h3>
+                  <ul className="mt-1 text-warning-700 list-disc list-inside text-sm">
+                    {insuranceStatus.status === 'expiring' && (
+                      <li>Insurance expires on {formatDate(vehicle.insurance_expiry_date)}</li>
+                    )}
+                    {fitnessStatus.status === 'expiring' && (
+                      <li>Fitness certificate expires on {formatDate(vehicle.fitness_expiry_date)}</li>
+                    )}
+                    {permitStatus.status === 'expiring' && (
+                      <li>Permit expires on {formatDate(vehicle.permit_expiry_date)}</li>
+                    )}
+                    {pucStatus.status === 'expiring' && (
+                      <li>PUC certificate expires on {formatDate(vehicle.puc_expiry_date)}</li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-sm text-warning-700">Please prepare for renewal soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Mileage Chart */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Mileage Trends</h3>
+            <div className="h-64">
+              <MileageChart trips={trips} />
+            </div>
+          </div>
+          
+          {/* Other Documents Display */}
+          {vehicle.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Other Documents</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {vehicle.other_documents.map((doc, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {doc.name || `Document ${index + 1}`}
+                        </span>
+                      </div>
+                      {doc.file && typeof doc.file === 'string' && (
+                        <a 
+                          href={doc.file} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {doc.issue_date && (
+                        <p className="text-xs text-gray-500">
+                          Issued: {formatDate(doc.issue_date)}
+                        </p>
+                      )}
+                      {doc.expiry_date && (
+                        <p className="text-xs text-gray-500">
+                          Expires: {formatDate(doc.expiry_date)}
+                        </p>
+                      )}
+                      {doc.cost && (
+                        <p className="text-xs text-gray-500">
+                          Cost: ₹{doc.cost.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Layout>
