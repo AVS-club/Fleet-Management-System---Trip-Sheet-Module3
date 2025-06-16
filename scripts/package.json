@@ -4,7 +4,8 @@
   "description": "Scripts for Fleet Management System",
   "main": "index.js",
   "scripts": {
-    "seed:maintenance": "tsx seedMaintenanceTasks.ts"
+    "seed:maintenance": "tsx seedMaintenanceTasks.ts",
+    "seed:vehicle": "tsx seedVehicle.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
