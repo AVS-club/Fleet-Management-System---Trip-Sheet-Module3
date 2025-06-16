@@ -15,5 +15,11 @@
     "@types/node": "^20.10.5",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
+"scripts": {
+  "dev": "vite",
+  "seed:vehicle": "tsx scripts/seedVehicle.ts",
+  "seed:driver": "tsx scripts/seedDriver.ts",
+  "seed:trip": "tsx scripts/seedTrip.ts"
+}
   }
 }
