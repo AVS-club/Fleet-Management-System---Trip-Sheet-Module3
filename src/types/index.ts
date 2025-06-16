@@ -150,6 +150,22 @@ export interface Vehicle {
   // Vehicle photo
   photo_url?: string;
   
+  // Other Information & Documents (VAHAN data)
+  financer?: string;
+  class?: string;
+  color?: string;
+  cubic_capacity?: number;
+  cylinders?: number;
+  gross_weight?: number;
+  seating_capacity?: number;
+  emission_norms?: string;
+  noc_details?: string;
+  national_permit_number?: string;
+  national_permit_upto?: string;
+  rc_status?: string;
+  vahan_last_fetched_date?: string;
+  other_info_documents?: File[] | string[];
+  
   created_at?: string;
   updated_at?: string;
 }

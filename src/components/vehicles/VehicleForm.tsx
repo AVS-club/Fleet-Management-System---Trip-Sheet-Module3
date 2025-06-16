@@ -23,9 +23,12 @@ import {
   Trash2,
   Upload,
   Paperclip,
-  Bell
+  Bell,
+  Info,
+  Database
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { format } from 'date-fns';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -57,6 +60,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   onCancel
 }) => {
   const [otherDocuments, setOtherDocuments] = useState<OtherDocument[]>([]);
+  const [otherInfoDocuments, setOtherInfoDocuments] = useState<File[]>([]);
   const [rcFile, setRcFile] = useState<File | null>(null);
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [fitnessFile, setFitnessFile] = useState<File | null>(null);
@@ -127,7 +131,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }));
       setOtherDocuments(formattedDocs);
     }
-  }, [initialData?.other_documents]);
+
+    // Initialize otherInfoDocuments if they exist in initialData
+    if (initialData?.other_info_documents && Array.isArray(initialData.other_info_documents)) {
+      // If they are strings (URLs), we can't convert them to File objects
+      // But we'll handle displaying them separately in the UI
+    }
+  }, [initialData?.other_documents, initialData?.other_info_documents]);
 
   const handleFormSubmit = async (data: Omit<Vehicle, 'id'>) => {
     try {
@@ -243,6 +253,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         }));
         
         formData.other_documents = processedDocs;
+      }
+
+      // Process Other Information & Documents
+      if (otherInfoDocuments.length > 0) {
+        try {
+          const otherInfoDocUrls = await Promise.all(otherInfoDocuments.map(async (file) => {
+            const url = await uploadVehicleDocument(
+              file,
+              initialData?.id || 'new',
+              `other_info_${Date.now()}_${file.name}`
+            );
+            return url;
+          }));
+          
+          formData.other_info_documents = otherInfoDocUrls;
+        } catch (error) {
+          console.error('Error uploading other info documents:', error);
+          toast.error('Failed to upload some additional documents');
+        }
       }
       
       // Remove file objects from the form data
@@ -548,7 +577,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setRcFile(file);
+                  setRcFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -629,7 +658,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setInsuranceFile(file);
+                  setInsuranceFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -713,7 +742,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setFitnessFile(file);
+                  setFitnessFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -808,7 +837,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setTaxFile(file);
+                  setTaxFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -915,7 +944,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setPermitFile(file);
+                  setPermitFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -999,7 +1028,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setPucFile(file);
+                  setPucFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
               />
@@ -1189,6 +1218,211 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           >
             Add Another Document
           </Button>
+        </div>
+      </CollapsibleSection>
+
+      {/* Other Information & Documents Section */}
+      <CollapsibleSection 
+        title="Other Information & Documents" 
+        icon={<FileText className="h-5 w-5" />}
+        iconColor="text-gray-600"
+        defaultExpanded={false}
+      >
+        <div className="space-y-6 max-w-4xl mx-auto">
+          <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              {/* Financed By */}
+              {initialData?.financer && initialData.financer !== "DUMMY COMPANY" && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Financed By</span>
+                  <span className="text-gray-700">{initialData.financer}</span>
+                </div>
+              )}
+              
+              {/* Engine Number */}
+              {initialData?.engine_number && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Engine Number</span>
+                  <span className="text-gray-700 font-mono">{initialData.engine_number.toUpperCase()}</span>
+                </div>
+              )}
+              
+              {/* Chassis Number */}
+              {initialData?.chassis_number && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Chassis Number</span>
+                  <span className="text-gray-700 font-mono">{initialData.chassis_number.toUpperCase()}</span>
+                </div>
+              )}
+              
+              {/* Fuel Type */}
+              {initialData?.fuel_type && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Fuel Type</span>
+                  <span className="text-gray-700 capitalize">{initialData.fuel_type}</span>
+                </div>
+              )}
+              
+              {/* Vehicle Class */}
+              {initialData?.class && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Vehicle Class</span>
+                  <span className="text-gray-700">{initialData.class}</span>
+                </div>
+              )}
+              
+              {/* Color */}
+              {initialData?.color && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Color</span>
+                  <span className="text-gray-700">{initialData.color}</span>
+                </div>
+              )}
+              
+              {/* Cubic Capacity */}
+              {initialData?.cubic_capacity && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Cubic Capacity (cc)</span>
+                  <span className="text-gray-700">{initialData.cubic_capacity}</span>
+                </div>
+              )}
+              
+              {/* Cylinder Count */}
+              {initialData?.cylinders && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Cylinder Count</span>
+                  <span className="text-gray-700">{initialData.cylinders}</span>
+                </div>
+              )}
+              
+              {/* Unladen Weight */}
+              {initialData?.gross_weight && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Unladen Weight (kg)</span>
+                  <span className="text-gray-700">{initialData.gross_weight}</span>
+                </div>
+              )}
+              
+              {/* Seating Capacity */}
+              {initialData?.seating_capacity && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Seating Capacity</span>
+                  <span className="text-gray-700">{initialData.seating_capacity}</span>
+                </div>
+              )}
+              
+              {/* Emission Norms */}
+              {initialData?.emission_norms && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Emission Norms</span>
+                  <span className="text-gray-700">{initialData.emission_norms}</span>
+                </div>
+              )}
+              
+              {/* NOC Details */}
+              {initialData?.noc_details && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">NOC Details</span>
+                  <span className="text-gray-700">{initialData.noc_details}</span>
+                </div>
+              )}
+              
+              {/* National Permit Number */}
+              {initialData?.national_permit_number && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">National Permit Number</span>
+                  <span className="text-gray-700">{initialData.national_permit_number}</span>
+                </div>
+              )}
+              
+              {/* Permit Valid Till */}
+              {initialData?.national_permit_upto && initialData.national_permit_upto !== "1900-01-01" && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">Permit Valid Till</span>
+                  <span className="text-gray-700">
+                    {new Date(initialData.national_permit_upto).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+              
+              {/* RC Status */}
+              {initialData?.rc_status && (
+                <div className="py-1.5">
+                  <span className="block text-gray-500">RC Status</span>
+                  <span className="text-gray-700">{initialData.rc_status}</span>
+                </div>
+              )}
+            </div>
+            
+            {/* Last fetched from VAHAN date */}
+            {initialData?.vahan_last_fetched_date && (
+              <div className="text-right mt-4 text-xs text-gray-400">
+                Last fetched from VAHAN: {
+                  new Date(initialData.vahan_last_fetched_date).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
+                }
+              </div>
+            )}
+
+            {/* If no data available yet, show a message */}
+            {!initialData?.financer && 
+             !initialData?.engine_number && 
+             !initialData?.chassis_number && 
+             !initialData?.class && 
+             !initialData?.rc_status && (
+              <div className="flex items-center justify-center py-8">
+                <Database className="h-5 w-5 text-gray-400 mr-2" />
+                <span className="text-gray-500">No VAHAN data available for this vehicle</span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6">
+            <FileUpload
+              label="Upload Related Documents"
+              helperText="Add additional documents related to the vehicle (max 5 files)"
+              accept=".jpg,.jpeg,.png,.pdf"
+              multiple={true}
+              maxFiles={5}
+              value={otherInfoDocuments}
+              onChange={(files) => setOtherInfoDocuments(files as File[])}
+              icon={<Paperclip className="h-4 w-4" />}
+            />
+
+            {/* Display existing document URLs if any */}
+            {initialData?.other_info_documents && Array.isArray(initialData.other_info_documents) && initialData.other_info_documents.length > 0 && (
+              <div className="mt-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Existing Documents</h5>
+                <div className="space-y-2">
+                  {initialData.other_info_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex items-center overflow-hidden">
+                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0 mr-2" />
+                        <span className="text-sm text-gray-700 truncate">
+                          {typeof doc === 'string' ? `Document ${index + 1}` : doc.name}
+                        </span>
+                      </div>
+                      {typeof doc === 'string' && (
+                        <a 
+                          href={doc}
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary-600 hover:text-primary-700 text-sm underline"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CollapsibleSection>
 

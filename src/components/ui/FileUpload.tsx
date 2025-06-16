@@ -8,9 +8,11 @@ export interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInpu
   helperText?: string;
   error?: string;
   icon?: React.ReactNode;
-  value: File | null;
-  onChange: (file: File | null) => void;
+  value: File | File[] | null;
+  onChange: (file: File | File[] | null) => void;
   buttonMode?: boolean;
+  multiple?: boolean;
+  maxFiles?: number;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -25,6 +27,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
   required,
   className,
   buttonMode = false,
+  multiple = false,
+  maxFiles = 5,
   ...props
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -42,35 +46,89 @@ const FileUpload: React.FC<FileUploadProps> = ({
       return;
     }
 
-    const file = files[0];
-    if (!file || typeof file.name !== 'string') {
-      console.warn("Invalid file dropped.");
-      return;
-    }
-
-    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-    const acceptedTypes = accept?.split(',') || [];
-
-    const isAccepted = acceptedTypes.some(type => {
-      if (type.startsWith('.')) {
-        return `.${fileExtension}` === type.toLowerCase();
+    if (multiple) {
+      // Handle multiple files
+      const filesArray = Array.from(files);
+      
+      // Filter files by accepted types
+      const acceptedFiles = filterFilesByAccept(filesArray, accept);
+      
+      // If no accepted files, return
+      if (acceptedFiles.length === 0) {
+        return;
+      }
+      
+      // Check if we're exceeding the maxFiles limit
+      let newFiles: File[] = [];
+      
+      if (Array.isArray(value) && value.length > 0) {
+        // Don't exceed the maximum number of files
+        const remainingSlots = maxFiles - value.length;
+        if (remainingSlots <= 0) {
+          console.warn(`Maximum number of files (${maxFiles}) reached.`);
+          return;
+        }
+        
+        // Add only up to the remaining slots
+        newFiles = [...value, ...acceptedFiles.slice(0, remainingSlots)];
       } else {
-        return file.type.includes(type.trim().replace('*', ''));
+        // Take up to maxFiles
+        newFiles = acceptedFiles.slice(0, maxFiles);
       }
+      
+      if (onChange) {
+        onChange(newFiles);
+      }
+    } else {
+      // Handle single file (original behavior)
+      const file = files[0];
+      if (!file || typeof file.name !== 'string') {
+        console.warn("Invalid file dropped.");
+        return;
+      }
+
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const acceptedTypes = accept?.split(',') || [];
+
+      const isAccepted = acceptedTypes.length === 0 || acceptedTypes.some(type => {
+        if (type.startsWith('.')) {
+          return `.${fileExtension}` === type.toLowerCase();
+        } else {
+          return file.type.includes(type.trim().replace('*', ''));
+        }
+      });
+
+      if (!isAccepted) {
+        console.warn("File type not accepted.");
+        return;
+      }
+
+      if (onChange) {
+        try {
+          onChange(file);
+        } catch (err) {
+          console.error("onChange failed", err);
+        }
+      }
+    }
+  };
+
+  const filterFilesByAccept = (files: File[], acceptString?: string): File[] => {
+    if (!acceptString || acceptString.trim() === '') return files;
+    
+    const acceptedTypes = acceptString.split(',').map(t => t.trim());
+    
+    return files.filter(file => {
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      
+      return acceptedTypes.some(type => {
+        if (type.startsWith('.')) {
+          return `.${fileExtension}` === type.toLowerCase();
+        } else {
+          return file.type.includes(type.trim().replace('*', ''));
+        }
+      });
     });
-
-    if (!isAccepted) {
-      console.warn("File type not accepted.");
-      return;
-    }
-
-    if (onChange) {
-      try {
-        onChange(file);
-      } catch (err) {
-        console.error("onChange failed", err);
-      }
-    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -85,19 +143,101 @@ const FileUpload: React.FC<FileUploadProps> = ({
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    if (onChange) {
-      onChange(file);
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) return;
+    
+    if (multiple) {
+      // Handle multiple files
+      const filesArray = Array.from(files);
+      
+      // Filter files by accepted types
+      const acceptedFiles = filterFilesByAccept(filesArray, accept);
+      
+      // If no accepted files, return
+      if (acceptedFiles.length === 0) {
+        return;
+      }
+      
+      // Check if we're exceeding the maxFiles limit
+      let newFiles: File[];
+      
+      if (Array.isArray(value) && value.length > 0) {
+        // Don't exceed the maximum number of files
+        const remainingSlots = maxFiles - value.length;
+        if (remainingSlots <= 0) {
+          console.warn(`Maximum number of files (${maxFiles}) reached.`);
+          return;
+        }
+        
+        // Add only up to the remaining slots
+        newFiles = [...value, ...acceptedFiles.slice(0, remainingSlots)];
+      } else {
+        // Take up to maxFiles
+        newFiles = acceptedFiles.slice(0, maxFiles);
+      }
+      
+      if (onChange) {
+        onChange(newFiles);
+      }
+    } else {
+      // Handle single file (original behavior)
+      const file = files[0] || null;
+      if (onChange) {
+        onChange(file);
+      }
     }
-  };
-
-  const handleRemoveFile = () => {
-    if (onChange) {
-      onChange(null);
-    }
+    
+    // Reset the input value to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleRemoveFile = (indexToRemove?: number) => {
+    if (multiple && Array.isArray(value) && indexToRemove !== undefined) {
+      // Remove a specific file from the array
+      const newFiles = value.filter((_, index) => index !== indexToRemove);
+      if (onChange) {
+        onChange(newFiles.length > 0 ? newFiles : null);
+      }
+    } else {
+      // Remove the single file
+      if (onChange) {
+        onChange(null);
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const renderFilesList = () => {
+    if (!multiple || !Array.isArray(value) || value.length === 0) {
+      return null;
+    }
+    
+    return (
+      <ul className="mt-2 space-y-2">
+        {value.map((file, index) => (
+          <li key={`${file.name}-${index}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center overflow-hidden">
+              <File className="h-4 w-4 text-gray-400 flex-shrink-0 mr-2" />
+              <span className="text-sm text-gray-700 truncate">{file.name}</span>
+              <span className="text-xs text-gray-500 ml-2">({Math.round(file.size / 1024)} KB)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleRemoveFile(index)}
+              className="text-gray-400 hover:text-error-500 ml-2 flex-shrink-0"
+              disabled={disabled}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   return (
@@ -132,6 +272,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
           onChange={handleFileSelect}
           accept={accept}
           disabled={disabled}
+          multiple={multiple}
           {...props}
         />
 
@@ -142,12 +283,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
           >
             <Paperclip className="h-4 w-4 mr-2" />
             <span>{label || "Upload File"}</span>
+            {multiple && <span className="text-xs text-gray-500 ml-1">(max {maxFiles})</span>}
           </div>
         ) : buttonMode && value ? (
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
               <File className="h-4 w-4 text-primary-600 mr-2" />
-              <span className="text-sm text-gray-700 truncate max-w-[150px]">{value.name}</span>
+              {multiple && Array.isArray(value) ? (
+                <span className="text-sm text-gray-700">{value.length} file{value.length !== 1 ? 's' : ''} selected</span>
+              ) : (
+                <span className="text-sm text-gray-700 truncate max-w-[150px]">
+                  {Array.isArray(value) && value.length > 0 ? value[0].name : (value as File)?.name || 'No file'}
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -162,19 +310,27 @@ const FileUpload: React.FC<FileUploadProps> = ({
             </button>
           </div>
         ) : value ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <File className="h-5 w-5 text-gray-400 mr-2" />
-              <span className="text-sm text-gray-700">{value?.name ?? 'No file selected'}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleRemoveFile}
-              className="text-gray-400 hover:text-gray-600"
-              disabled={disabled}
-            >
-              <X className="h-5 w-5" />
-            </button>
+          <div className="space-y-2">
+            {!multiple || !Array.isArray(value) ? (
+              // Single file display
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <File className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm text-gray-700">{(value as File)?.name ?? 'No file selected'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFile()}
+                  className="text-gray-400 hover:text-gray-600"
+                  disabled={disabled}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            ) : (
+              // Multiple files display
+              renderFilesList()
+            )}
           </div>
         ) : (
           <div
@@ -183,16 +339,23 @@ const FileUpload: React.FC<FileUploadProps> = ({
           >
             {icon}
             <p className="mt-2 text-sm text-gray-600">
-              Drag and drop a file here, or click to select
+              Drag and drop {multiple ? 'files' : 'a file'} here, or click to select
             </p>
             {accept && (
               <p className="mt-1 text-xs text-gray-500">
                 Accepted formats: {accept}
               </p>
             )}
+            {multiple && (
+              <p className="mt-1 text-xs text-gray-500">
+                Maximum {maxFiles} files
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      {multiple && Array.isArray(value) && value.length > 0 && !buttonMode && renderFilesList()}
 
       {(helperText || error) && (
         <p className={clsx(
