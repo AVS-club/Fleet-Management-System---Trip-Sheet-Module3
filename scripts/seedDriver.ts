@@ -102,3 +102,13 @@ seedDriver()
     console.error('Seed script failed:', error);
     process.exit(1);
   });
+const driverData = {
+  driver_name: "Ashok Meena",
+  license_number: "CG202301234567",
+  mobile_number: "7894561230",
+  joining_date: "2024-11-09",
+  assigned_vehicle: "CG04NC4622",
+  status: "active",
+  experience_years: 8,
+  driver_photo_url: "https://example.com/photos/ashok_meena.jpg"
+};
