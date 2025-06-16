@@ -102,4 +102,3 @@ seedDriver()
     console.error('Seed script failed:', error);
     process.exit(1);
   });
-cd scripts && tsx seedDriver.ts
