@@ -25,7 +25,8 @@ import {
   Paperclip,
   Bell,
   Info,
-  Database
+  Database,
+  User
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -457,6 +458,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 {...field}
               />
             )}
+          />
+
+          <Input
+            label="Owner Name"
+            placeholder="Enter owner's name"
+            {...register('owner_name')}
           />
 
           <Controller
