@@ -9,6 +9,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
+
+// ✅ DEBUG: Confirm if ENV is loaded properly
+console.log('Supabase URL:', supabaseUrl);
+console.log('Key present?', !!supabaseKey);
 if (!supabaseUrl || !supabaseKey) {
   console.error('Error: Missing Supabase environment variables');
   console.error('Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
