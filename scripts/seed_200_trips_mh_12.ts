@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
-import { nanoid } from 'nanoid';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -18,252 +17,241 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Warehouse and destination IDs will be fetched from the database
-let warehouseIds: string[] = [];
-let destinationIds: string[] = [];
-let driverId: string = '';
-let vehicleId: string = '';
-let materialTypeIds: string[] = [];
-
-// Constants for trip generation
-const startOdometer = 143500;
-const totalTrips = 200;
-const trips = [];
-let currentKm = startOdometer;
-const today = new Date();
-const tripStartDate = new Date("2024-05-05");
-
-async function fetchRequiredData() {
-  console.log('Fetching required data from database...');
-  
-  // Fetch warehouses
-  const { data: warehouses, error: warehouseError } = await supabase
-    .from('warehouses')
-    .select('id, name')
-    .limit(5);
-  
-  if (warehouseError) {
-    console.error('Error fetching warehouses:', warehouseError);
-    process.exit(1);
-  }
-  
-  if (!warehouses || warehouses.length === 0) {
-    console.error('No warehouses found. Please add warehouses first.');
-    process.exit(1);
-  }
-  
-  warehouseIds = warehouses.map(w => w.id);
-  console.log(`Found ${warehouseIds.length} warehouses`);
-  
-  // Fetch destinations
-  const { data: destinations, error: destinationError } = await supabase
-    .from('destinations')
-    .select('id, name')
-    .limit(10);
-  
-  if (destinationError) {
-    console.error('Error fetching destinations:', destinationError);
-    process.exit(1);
-  }
-  
-  if (!destinations || destinations.length === 0) {
-    console.error('No destinations found. Please add destinations first.');
-    process.exit(1);
-  }
-  
-  destinationIds = destinations.map(d => d.id);
-  console.log(`Found ${destinationIds.length} destinations`);
-  
-  // Fetch vehicle ID for MH12AV1001
-  const { data: vehicle, error: vehicleError } = await supabase
+// Get vehicle ID for MH12AV1001
+async function getVehicleId() {
+  const { data, error } = await supabase
     .from('vehicles')
     .select('id')
     .eq('registration_number', 'MH12AV1001')
     .single();
   
-  if (vehicleError) {
-    console.error('Error fetching vehicle:', vehicleError);
-    console.error('Make sure vehicle with registration number MH12AV1001 exists');
-    process.exit(1);
+  if (error) {
+    console.error('Error fetching vehicle:', error);
+    throw error;
   }
   
-  vehicleId = vehicle.id;
-  console.log(`Found vehicle ID: ${vehicleId}`);
-  
-  // Fetch a driver
-  const { data: driver, error: driverError } = await supabase
-    .from('drivers')
-    .select('id')
-    .limit(1)
-    .single();
-  
-  if (driverError) {
-    console.error('Error fetching driver:', driverError);
-    console.error('Make sure at least one driver exists in the database');
-    process.exit(1);
-  }
-  
-  driverId = driver.id;
-  console.log(`Found driver ID: ${driverId}`);
-  
-  // Fetch material types
-  const { data: materials, error: materialsError } = await supabase
-    .from('material_types')
-    .select('id')
-    .limit(3);
-  
-  if (materialsError) {
-    console.error('Error fetching material types:', materialsError);
-  }
-  
-  if (materials && materials.length > 0) {
-    materialTypeIds = materials.map(m => m.id);
-    console.log(`Found ${materialTypeIds.length} material types`);
-  } else {
-    console.log('No material types found. Trips will be created without material types.');
-  }
+  return data.id;
 }
 
-async function generateTrips() {
-  console.log('Generating trips...');
+// Get driver ID for Ravi Yadav or any available driver
+async function getDriverId() {
+  const { data, error } = await supabase
+    .from('drivers')
+    .select('id')
+    .eq('name', 'Ravi Yadav')
+    .single();
   
-  for (let i = 0; i < totalTrips; i++) {
-    // Skip 4-5 random blocks for maintenance
-    if (i % 40 === 0) {
-      tripStartDate.setDate(tripStartDate.getDate() + 3); // Maintenance window
-    }
-
-    const tripDays = Math.floor(Math.random() * 2) + 1; // 1-2 day trips
-    const startDate = new Date(tripStartDate);
-    const endDate = new Date(tripStartDate);
-    endDate.setDate(startDate.getDate() + tripDays);
-
-    // Skip if we've gone past today
-    if (startDate > today) {
-      console.log(`Stopping at trip ${i} as we've reached today's date`);
-      break;
-    }
-
-    const warehouseId = warehouseIds[Math.floor(Math.random() * warehouseIds.length)];
+  if (error) {
+    // If Ravi Yadav not found, get any driver
+    const { data: anyDriver, error: anyDriverError } = await supabase
+      .from('drivers')
+      .select('id')
+      .limit(1)
+      .single();
     
-    // Select 1-2 random destinations
-    const numDestinations = Math.random() > 0.7 ? 2 : 1;
-    const tripDestinations = [];
-    for (let j = 0; j < numDestinations; j++) {
-      const destId = destinationIds[Math.floor(Math.random() * destinationIds.length)];
-      if (!tripDestinations.includes(destId)) {
-        tripDestinations.push(destId);
-      }
+    if (anyDriverError) {
+      console.error('Error fetching driver:', anyDriverError);
+      throw anyDriverError;
     }
-
-    const distance = Math.floor(Math.random() * 150) + 400; // 400–550 km
-    const fuelUsed = distance / (7 + Math.random()); // ~7.5 kmpl with variation
-    const refuelingDone = i % Math.floor(Math.random() * 3 + 4) === 0; // Every 4-6 trips
-    const grossWeight = Math.floor(Math.random() * 800) + 2000; // 2000–2800 kg
     
-    // Calculate expenses
-    const unloadingExpense = Math.floor(Math.random() * 300) + 300;
-    const driverExpense = Math.floor(Math.random() * 200) + 400;
-    const roadRtoExpense = Math.random() > 0.85 ? 250 : 0;
-    const breakdownExpense = Math.random() > 0.95 ? 500 : 0;
-    const totalRoadExpenses = unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense;
-    
-    // Generate trip serial number
-    const tripSerialNumber = `T${String(i + 1).padStart(4, '0')}`;
-    
-    // Select random material types (0-2)
-    const selectedMaterialTypes = [];
-    if (materialTypeIds.length > 0) {
-      const numMaterials = Math.floor(Math.random() * 3); // 0-2 materials
-      for (let j = 0; j < numMaterials; j++) {
-        const materialId = materialTypeIds[Math.floor(Math.random() * materialTypeIds.length)];
-        if (!selectedMaterialTypes.includes(materialId)) {
-          selectedMaterialTypes.push(materialId);
-        }
-      }
-    }
-
-    const trip = {
-      id: nanoid(),
-      trip_serial_number: tripSerialNumber,
-      vehicle_id: vehicleId,
-      driver_id: driverId,
-      warehouse_id: warehouseId,
-      destinations: tripDestinations,
-      trip_start_date: startDate.toISOString(),
-      trip_end_date: endDate.toISOString(),
-      trip_duration: tripDays,
-      manual_trip_id: false,
-      start_km: currentKm,
-      end_km: currentKm + distance,
-      gross_weight: grossWeight,
-      station: null,
-      refueling_done: refuelingDone,
-      fuel_quantity: refuelingDone ? Number(fuelUsed.toFixed(2)) : null,
-      fuel_cost: refuelingDone ? 96 + Math.random() * 4 : null, // 96-100 per liter
-      total_fuel_cost: refuelingDone ? Number((fuelUsed * (96 + Math.random() * 4)).toFixed(2)) : null,
-      unloading_expense: unloadingExpense,
-      driver_expense: driverExpense,
-      road_rto_expense: roadRtoExpense,
-      breakdown_expense: breakdownExpense,
-      total_road_expenses: totalRoadExpenses,
-      short_trip: distance < 100, // Short trips are less than 100km
-      remarks: "Routine trip",
-      calculated_kmpl: refuelingDone ? Number((distance / fuelUsed).toFixed(2)) : null,
-      route_deviation: Math.random() > 0.8 ? (Math.random() * 20 - 10) : null, // 20% chance of deviation
-      material_type_ids: selectedMaterialTypes.length > 0 ? selectedMaterialTypes : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    trips.push(trip);
-    currentKm += distance;
-    tripStartDate.setDate(tripStartDate.getDate() + tripDays + 1);
+    return anyDriver.id;
   }
   
-  console.log(`Generated ${trips.length} trips`);
+  return data.id;
+}
+
+// Get warehouse IDs
+async function getWarehouses() {
+  const { data, error } = await supabase
+    .from('warehouses')
+    .select('id, name');
+  
+  if (error) {
+    console.error('Error fetching warehouses:', error);
+    throw error;
+  }
+  
+  return data;
+}
+
+// Get destination IDs
+async function getDestinations() {
+  const { data, error } = await supabase
+    .from('destinations')
+    .select('id, name');
+  
+  if (error) {
+    console.error('Error fetching destinations:', error);
+    throw error;
+  }
+  
+  return data;
+}
+
+// Get material type IDs
+async function getMaterialTypes() {
+  const { data, error } = await supabase
+    .from('material_types')
+    .select('id, name');
+  
+  if (error) {
+    console.error('Error fetching material types:', error);
+    throw error;
+  }
+  
+  return data;
+}
+
+// Generate trip serial number
+function generateTripSerialNumber(index: number) {
+  return `MH12AV${String(index + 1).padStart(4, '0')}`;
 }
 
 async function seedTrips() {
-  console.log('Seeding trips to database...');
-  
-  // Insert trips in batches of 20 to avoid rate limits
-  const batchSize = 20;
-  let successCount = 0;
-  
-  for (let i = 0; i < trips.length; i += batchSize) {
-    const batch = trips.slice(i, i + batchSize);
-    console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(trips.length / batchSize)}`);
+  try {
+    console.log('Starting to seed 200 trips for MH12AV1001...');
     
-    const { data, error } = await supabase
-      .from('trips')
-      .insert(batch);
+    // Get necessary IDs
+    const vehicleId = await getVehicleId();
+    const driverId = await getDriverId();
+    const warehouses = await getWarehouses();
+    const destinations = await getDestinations();
+    const materialTypes = await getMaterialTypes();
     
-    if (error) {
-      console.error(`Error inserting batch ${i / batchSize + 1}:`, error);
-    } else {
-      successCount += batch.length;
-      console.log(`Successfully inserted batch ${i / batchSize + 1}`);
+    console.log(`Vehicle ID: ${vehicleId}`);
+    console.log(`Driver ID: ${driverId}`);
+    console.log(`Found ${warehouses.length} warehouses`);
+    console.log(`Found ${destinations.length} destinations`);
+    console.log(`Found ${materialTypes.length} material types`);
+    
+    // Prepare data
+    const startOdometer = 143500;
+    const totalTrips = 200;
+    const trips = [];
+    let currentKm = startOdometer;
+    const today = new Date();
+    const tripStartDate = new Date("2024-05-05");
+    
+    // Generate trips
+    for (let i = 0; i < totalTrips; i++) {
+      // Skip 4-5 random blocks for maintenance
+      if (i % 40 === 0) {
+        tripStartDate.setDate(tripStartDate.getDate() + 3); // Maintenance window
+      }
+      
+      // Skip if we've reached today
+      if (tripStartDate > today) {
+        break;
+      }
+      
+      const tripDays = Math.floor(Math.random() * 2) + 1; // 1-2 day trips
+      const startDate = new Date(tripStartDate);
+      const endDate = new Date(tripStartDate);
+      endDate.setDate(startDate.getDate() + tripDays);
+      
+      // Select random warehouse and destination
+      const warehouse = warehouses[Math.floor(Math.random() * warehouses.length)];
+      const destination = destinations[Math.floor(Math.random() * destinations.length)];
+      
+      // Select random material types (1-2)
+      const materialTypeCount = Math.floor(Math.random() * 2) + 1;
+      const selectedMaterialTypes = [];
+      for (let j = 0; j < materialTypeCount && j < materialTypes.length; j++) {
+        const randomIndex = Math.floor(Math.random() * materialTypes.length);
+        if (!selectedMaterialTypes.includes(materialTypes[randomIndex].id)) {
+          selectedMaterialTypes.push(materialTypes[randomIndex].id);
+        }
+      }
+      
+      const loadWeight = Math.floor(Math.random() * 800) + 2000; // 2000–2800 kg
+      const distance = Math.floor(Math.random() * 150) + 400; // 400–550 km
+      const fuelUsed = distance / (7 + Math.random());
+      const refuelingDone = i % Math.floor(Math.random() * 3 + 4) === 0;
+      
+      const trip = {
+        trip_serial_number: generateTripSerialNumber(i),
+        vehicle_id: vehicleId,
+        driver_id: driverId,
+        warehouse_id: warehouse.id,
+        destinations: [destination.id],
+        trip_start_date: startDate.toISOString(),
+        trip_end_date: endDate.toISOString(),
+        trip_duration: tripDays,
+        start_km: currentKm,
+        end_km: currentKm + distance,
+        gross_weight: loadWeight,
+        station: destination.name,
+        refueling_done: refuelingDone,
+        fuel_quantity: refuelingDone ? Number((fuelUsed + Math.random() * 5).toFixed(2)) : null,
+        fuel_cost: refuelingDone ? Number((96 + Math.random() * 4).toFixed(2)) : null,
+        total_fuel_cost: refuelingDone ? Number((fuelUsed * (96 + Math.random() * 4)).toFixed(2)) : null,
+        unloading_expense: Math.floor(Math.random() * 300) + 300,
+        driver_expense: Math.floor(Math.random() * 200) + 400,
+        road_rto_expense: Math.random() > 0.85 ? 250 : 0,
+        breakdown_expense: Math.random() > 0.95 ? 500 : 0,
+        miscellaneous_expense: Math.random() > 0.9 ? Math.floor(Math.random() * 200) : 0,
+        total_road_expenses: 0, // Will calculate below
+        short_trip: Math.random() > 0.9, // 10% chance of being a short trip
+        remarks: "Routine trip",
+        material_type_ids: selectedMaterialTypes,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // Calculate total road expenses
+      trip.total_road_expenses = 
+        trip.unloading_expense + 
+        trip.driver_expense + 
+        trip.road_rto_expense + 
+        trip.breakdown_expense +
+        (trip.miscellaneous_expense || 0);
+      
+      // Calculate mileage if refueling
+      if (refuelingDone && trip.fuel_quantity) {
+        trip.calculated_kmpl = Number((distance / trip.fuel_quantity).toFixed(2));
+      }
+      
+      currentKm += distance;
+      tripStartDate.setDate(tripStartDate.getDate() + tripDays + 1);
+      trips.push(trip);
+      
+      // Log progress
+      if (i % 20 === 0) {
+        console.log(`Generated ${i} trips...`);
+      }
     }
     
-    // Add a small delay between batches to avoid rate limits
-    if (i + batchSize < trips.length) {
+    console.log(`Generated ${trips.length} trips. Inserting into database...`);
+    
+    // Insert trips in batches to avoid rate limits
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < trips.length; i += BATCH_SIZE) {
+      const batch = trips.slice(i, i + BATCH_SIZE);
+      const { data, error } = await supabase.from('trips').insert(batch);
+      
+      if (error) {
+        console.error(`Error inserting batch ${i / BATCH_SIZE + 1}:`, error);
+      } else {
+        console.log(`Successfully inserted batch ${i / BATCH_SIZE + 1} of ${Math.ceil(trips.length / BATCH_SIZE)}`);
+      }
+      
+      // Small delay between batches
       await new Promise(resolve => setTimeout(resolve, 500));
     }
-  }
-  
-  console.log(`✅ Successfully seeded ${successCount} trips for MH12AV1001`);
-}
-
-async function main() {
-  try {
-    await fetchRequiredData();
-    await generateTrips();
-    await seedTrips();
+    
+    console.log(`✅ ${trips.length} trips seeded for MH12AV1001`);
   } catch (error) {
-    console.error('Error in seeding process:', error);
-    process.exit(1);
+    console.error('Error seeding trips:', error);
   }
 }
 
-main();
+// Run the seed function
+seedTrips()
+  .then(() => {
+    console.log('Seed script completed');
+    process.exit(0);
+  })
+  .catch(error => {
+    console.error('Seed script failed:', error);
+    process.exit(1);
+  });
