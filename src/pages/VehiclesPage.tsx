@@ -97,14 +97,6 @@ const VehiclesPage: React.FC = () => {
         
         setDocsPendingVehicles(docsPendingCount);
         
-        // Get additional stats from Supabase if needed
-        const { data: vehiclesByStatus } = await supabase
-          .from('vehicles')
-          .select('status, count(*)')
-          .group('status');
-        
-        console.log('Vehicles by status:', vehiclesByStatus);
-        
         setStatsLoading(false);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
