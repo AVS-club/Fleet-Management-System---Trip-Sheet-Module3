@@ -413,11 +413,7 @@ export const getAIAlerts = async () => {
   return data || [];
 };
 
-export const analyzeTripAndGenerateAlerts = async (
-  trip: Trip,
-  analysis: RouteAnalysis | undefined,
-  allTrips: Trip[]
-): Promise<Alert[]> {
+export const analyzeTripAndGenerateAlerts = async (trip: Trip, analysis: RouteAnalysis | undefined, allTrips: Trip[]): Promise<Alert[]> => {
   const alerts: Alert[] = [];
   
   // Check for route deviation alerts
