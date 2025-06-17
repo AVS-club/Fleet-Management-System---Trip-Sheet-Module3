@@ -398,14 +398,6 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
 };
 
 export const deleteVehicle = async (id: string): Promise<boolean> => {
-  // Get current user and vehicle info before deletion
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: vehicle } = await supabase
-    .from('vehicles')
-    .select('registration_number')
-    .eq('id', id)
-    .single();
-
   try {
     // Step 1: Get all maintenance task IDs for this vehicle BEFORE deleting anything
     const { data: maintenanceTasks } = await supabase
@@ -463,17 +455,7 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
       throw new Error(`Failed to delete associated trips: ${tripsError.message}`);
     }
 
-    // Step 6: Log the deletion activity before deleting activity logs
-    if (user) {
-      await logVehicleActivity(
-        id,
-        'deleted',
-        user.email || user.id,
-        `Vehicle deleted: ${vehicle?.registration_number || id}`
-      );
-    }
-
-    // Step 7: Delete the vehicle activity logs
+    // Step 6: Delete the vehicle activity logs BEFORE deleting the vehicle
     const { error: activityLogsError } = await supabase
       .from('vehicle_activity_log')
       .delete()
@@ -484,7 +466,7 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
       throw new Error(`Failed to delete vehicle activity logs: ${activityLogsError.message}`);
     }
 
-    // Step 8: Finally delete the vehicle itself
+    // Step 7: Finally delete the vehicle itself
     const { error: vehicleError } = await supabase
       .from('vehicles')
       .delete()
