@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/layout/Layout';
 import { AIAlert } from '../types';
-import { getAIAlerts, processAlertAction } from '../utils/aiAnalytics';
+import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, IndianRupee, AlertOctagon, Tool } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -14,6 +14,7 @@ import AlertTypeTag from '../components/alerts/AlertTypeTag';
 import { safeFormatDate, formatRelativeDate } from '../utils/dateUtils';
 import { isValid } from 'date-fns';
 import { Vehicle } from '../types';
+import { toast } from 'react-toastify';
 
 const AIAlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
@@ -71,11 +72,28 @@ const AIAlertsPage: React.FC = () => {
     if (actionModal) {
       try {
         await processAlertAction(actionModal.alert.id, actionModal.type, reason, duration);
-        // Refresh alerts
-        const data = await getAIAlerts();
-        setAlerts(Array.isArray(data) ? data : []);
+        
+        // Update alert in state
+        setAlerts(prevAlerts => prevAlerts.map(alert => 
+          alert.id === actionModal.alert.id
+            ? { 
+                ...alert, 
+                status: actionModal.type === 'accept' ? 'accepted' : actionModal.type === 'deny' ? 'denied' : 'ignored',
+                metadata: { 
+                  ...alert.metadata, 
+                  resolution_reason: reason,
+                  resolution_comment: reason,
+                  ignore_duration: duration,
+                  resolved_at: new Date().toISOString()
+                }
+              }
+            : alert
+        ));
+        
+        toast.success(`Alert ${actionModal.type === 'accept' ? 'accepted' : actionModal.type === 'deny' ? 'denied' : 'ignored'} successfully`);
       } catch (error) {
         console.error('Error processing alert action:', error);
+        toast.error('Failed to process alert action');
       }
       setActionModal(null);
     }
@@ -85,14 +103,16 @@ const AIAlertsPage: React.FC = () => {
   const handleRunAICheck = async () => {
     setRunningCheck(true);
     try {
-      // In a real app, this would trigger a backend process to run AI checks
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulating API call
+      const newAlertCount = await runAlertScan();
       
-      // Refresh alerts
-      const data = await getAIAlerts();
-      setAlerts(Array.isArray(data) ? data : []);
+      // Refresh alerts list
+      const refreshedAlerts = await getAIAlerts();
+      setAlerts(Array.isArray(refreshedAlerts) ? refreshedAlerts : []);
+      
+      toast.success(`AI check complete: ${newAlertCount} new alert${newAlertCount !== 1 ? 's' : ''} generated`);
     } catch (error) {
       console.error('Error running AI check:', error);
+      toast.error('Failed to run AI check');
     } finally {
       setRunningCheck(false);
     }
@@ -110,11 +130,28 @@ const AIAlertsPage: React.FC = () => {
   };
 
   // Helper to get severity icon
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'high': return <AlertTriangle className="h-4 w-4 text-error-500" />;
-      case 'medium': return <AlertTriangle className="h-4 w-4 text-warning-500" />;
-      default: return <AlertTriangle className="h-4 w-4 text-gray-400" />;
+  const getSeverityIcon = (severity: string, alertType: string) => {
+    // First check by alert type
+    switch (alertType) {
+      case 'fuel_anomaly':
+        return <Fuel className="h-4 w-4 text-amber-500" />;
+      case 'route_deviation':
+        return <TrendingDown className="h-4 w-4 text-blue-500" />;
+      case 'low_mileage_streak':
+        return <TrendingDown className="h-4 w-4 text-indigo-500" />;
+      case 'frequent_maintenance':
+        return <Tool className="h-4 w-4 text-orange-500" />;
+      case 'high_expense_spike':
+        return <IndianRupee className="h-4 w-4 text-red-500" />;
+      case 'documentation':
+        return <FileX className="h-4 w-4 text-purple-500" />;
+      default:
+        // Fall back to severity-based icons
+        switch (severity) {
+          case 'high': return <AlertOctagon className="h-4 w-4 text-error-500" />;
+          case 'medium': return <AlertTriangle className="h-4 w-4 text-warning-500" />;
+          default: return <AlertTriangle className="h-4 w-4 text-gray-400" />;
+        }
     }
   };
 
@@ -242,98 +279,6 @@ const AIAlertsPage: React.FC = () => {
     return groups;
   }, [filteredAlerts, groupByVehicle, vehicleMap]);
 
-  // Render alert table (used in both grouped and non-grouped views)
-  const renderAlertTable = (alertsToRender: AIAlert[]) => (
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Type</th>
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Alert</th>
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Vehicle</th>
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
-          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Time</th>
-          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Details</th>
-          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-200">
-        {alertsToRender.map(alert => {
-          const vehicle = alert.affected_entity?.type === 'vehicle' 
-            ? vehicleMap[alert.affected_entity.id] 
-            : null;
-            
-          return (
-            <tr key={alert.id} className="hover:bg-gray-50">
-              <td className="px-3 py-2 whitespace-nowrap">
-                <div className="flex items-center">
-                  {getSeverityIcon(alert.severity)}
-                  <AlertTypeTag 
-                    type={alert.alert_type} 
-                    className="ml-2"
-                  />
-                </div>
-              </td>
-              <td className="px-3 py-2">
-                {getAlertMessageDetails(alert)}
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap">
-                {vehicle ? (
-                  <div>
-                    <p className="text-sm font-medium text-primary-600">
-                      {vehicle.registration_number}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {vehicle.make} {vehicle.model}
-                    </p>
-                  </div>
-                ) : (
-                  <span className="text-sm text-gray-500">-</span>
-                )}
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap">
-                <span className={`inline-flex text-xs px-2 py-1 rounded-full ${getStatusColor(alert.status)}`}>
-                  {alert.status}
-                </span>
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                {formatRelativeDate(alert.created_at)}
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap text-center">
-                <button
-                  onClick={() => setSelectedAlert(alert)}
-                  className="text-primary-600 hover:text-primary-800"
-                  title="View Alert Details"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </td>
-              <td className="px-3 py-2 whitespace-nowrap text-right">
-                {alert.status === 'pending' && (
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleAction(alert, 'accept')}
-                      className="text-success-600 hover:text-success-700"
-                      title="Acknowledge Alert"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleAction(alert, 'deny')}
-                      className="text-error-600 hover:text-error-700"
-                      title="Dismiss Alert"
-                    >
-                      <XCircle className="h-4 w-4" />
-                    </button>
-                  </div>
-                )}
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-
   // Handle alert actions
   const handleAction = async (alert: AIAlert, action: 'accept' | 'deny' | 'ignore') => {
     setActionModal({ type: action, alert });
@@ -366,9 +311,11 @@ const AIAlertsPage: React.FC = () => {
                 <Select
                   options={[
                     { value: 'all', label: 'All Types' },
-                    { value: 'route_deviation', label: 'Route Deviation' },
                     { value: 'fuel_anomaly', label: 'Fuel Anomaly' },
-                    { value: 'maintenance', label: 'Maintenance' },
+                    { value: 'route_deviation', label: 'Route Deviation' },
+                    { value: 'low_mileage_streak', label: 'Low Mileage Streak' },
+                    { value: 'frequent_maintenance', label: 'Frequent Maintenance' },
+                    { value: 'high_expense_spike', label: 'High Expense' },
                     { value: 'documentation', label: 'Documentation' }
                   ]}
                   value={filters.type}
@@ -461,7 +408,73 @@ const AIAlertsPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="overflow-x-auto">
-                          {renderAlertTable(alerts)}
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Type</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Alert</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Time</th>
+                                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Details</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                              {alerts.map(alert => (
+                                <tr key={alert.id} className="hover:bg-gray-50">
+                                  <td className="px-3 py-2 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                      {getSeverityIcon(alert.severity, alert.alert_type)}
+                                      <AlertTypeTag 
+                                        type={alert.alert_type} 
+                                        className="ml-2"
+                                      />
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {getAlertMessageDetails(alert)}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap">
+                                    <span className={`inline-flex text-xs px-2 py-1 rounded-full ${getStatusColor(alert.status)}`}>
+                                      {alert.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                                    {formatRelativeDate(alert.created_at)}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                                    <button
+                                      onClick={() => setSelectedAlert(alert)}
+                                      className="text-primary-600 hover:text-primary-800"
+                                      title="View Alert Details"
+                                    >
+                                      <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-right">
+                                    {alert.status === 'pending' && (
+                                      <div className="flex justify-end space-x-2">
+                                        <button
+                                          onClick={() => handleAction(alert, 'accept')}
+                                          className="text-success-600 hover:text-success-700"
+                                          title="Accept Alert"
+                                        >
+                                          <CheckCircle className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={() => handleAction(alert, 'deny')}
+                                          className="text-error-600 hover:text-error-700"
+                                          title="Dismiss Alert"
+                                        >
+                                          <XCircle className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     ))}
@@ -498,7 +511,94 @@ const AIAlertsPage: React.FC = () => {
               <div>
                 {filteredAlerts.length > 0 ? (
                   <div className="overflow-x-auto">
-                    {renderAlertTable(filteredAlerts)}
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Type</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Alert</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Vehicle</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Time</th>
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500">Details</th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {filteredAlerts.map(alert => {
+                          const vehicle = alert.affected_entity?.type === 'vehicle' 
+                            ? vehicleMap[alert.affected_entity.id] 
+                            : null;
+                            
+                          return (
+                            <tr key={alert.id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  {getSeverityIcon(alert.severity, alert.alert_type)}
+                                  <AlertTypeTag 
+                                    type={alert.alert_type} 
+                                    className="ml-2"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2">
+                                {getAlertMessageDetails(alert)}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                {vehicle ? (
+                                  <div>
+                                    <p className="text-sm font-medium text-primary-600">
+                                      {vehicle.registration_number}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {vehicle.make} {vehicle.model}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <span className="text-sm text-gray-500">-</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                <span className={`inline-flex text-xs px-2 py-1 rounded-full ${getStatusColor(alert.status)}`}>
+                                  {alert.status}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                                {formatRelativeDate(alert.created_at)}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-center">
+                                <button
+                                  onClick={() => setSelectedAlert(alert)}
+                                  className="text-primary-600 hover:text-primary-800"
+                                  title="View Alert Details"
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </button>
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-right">
+                                {alert.status === 'pending' && (
+                                  <div className="flex justify-end space-x-2">
+                                    <button
+                                      onClick={() => handleAction(alert, 'accept')}
+                                      className="text-success-600 hover:text-success-700"
+                                      title="Accept Alert"
+                                    >
+                                      <CheckCircle className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleAction(alert, 'deny')}
+                                      className="text-error-600 hover:text-error-700"
+                                      title="Dismiss Alert"
+                                    >
+                                      <XCircle className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <div className="p-6 text-center">
@@ -520,7 +620,6 @@ const AIAlertsPage: React.FC = () => {
                       <Button
                         onClick={handleRunAICheck}
                         isLoading={runningCheck}
-                        icon={<RefreshCw className="h-4 w-4" />}
                       >
                         Run AI Check
                       </Button>

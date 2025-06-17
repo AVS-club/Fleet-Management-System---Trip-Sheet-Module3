@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User } from 'lucide-react';
+import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, Tool, IndianRupee, TrendingDown, Fuel } from 'lucide-react';
 import Button from '../ui/Button';
 import { AIAlert } from '../../types';
 import { getVehicle, getDriver } from '../../utils/storage';
@@ -57,6 +57,23 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
     }
   };
 
+  const getAlertTypeIcon = (alertType: string) => {
+    switch (alertType) {
+      case 'fuel_anomaly':
+        return <Fuel className="h-5 w-5 text-amber-500" />;
+      case 'route_deviation':
+        return <TrendingDown className="h-5 w-5 text-blue-500" />;
+      case 'low_mileage_streak':
+        return <TrendingDown className="h-5 w-5 text-indigo-500" />;
+      case 'frequent_maintenance':
+        return <Tool className="h-5 w-5 text-orange-500" />;
+      case 'high_expense_spike':
+        return <IndianRupee className="h-5 w-5 text-red-500" />;
+      default:
+        return <AlertTriangle className="h-5 w-5 text-warning-500" />;
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -67,12 +84,8 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
           <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
             <div className="flex justify-between items-start">
               <div className="flex items-center">
-                <AlertTriangle className={`h-5 w-5 mr-2 ${
-                  alert.severity === 'high' ? 'text-error-500' :
-                  alert.severity === 'medium' ? 'text-warning-500' :
-                  'text-gray-500'
-                }`} />
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                {getAlertTypeIcon(alert.alert_type)}
+                <h3 className="ml-2 text-lg leading-6 font-medium text-gray-900">
                   {alert.title}
                 </h3>
               </div>
@@ -100,7 +113,7 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                   <div className="flex justify-between mb-2">
                     <div className="flex items-center">
                       <span className="text-sm font-medium">Alert Type:</span>
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
                         {alert.alert_type.replace('_', ' ')}
                       </span>
                     </div>
@@ -187,6 +200,24 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Trip ID:</span>
                           <span className="font-medium">{alert.metadata.trip_id}</span>
+                        </div>
+                      )}
+                      {alert.metadata.resolution_reason && (
+                        <div className="flex justify-between text-sm pt-2 border-t border-gray-200 mt-2">
+                          <span className="text-gray-600">Resolution Reason:</span>
+                          <span className="font-medium">{alert.metadata.resolution_reason}</span>
+                        </div>
+                      )}
+                      {alert.metadata.resolution_comment && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Comment:</span>
+                          <span className="font-medium">{alert.metadata.resolution_comment}</span>
+                        </div>
+                      )}
+                      {alert.metadata.resolved_at && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Resolved At:</span>
+                          <span className="font-medium">{formatDate(alert.metadata.resolved_at)}</span>
                         </div>
                       )}
                     </div>

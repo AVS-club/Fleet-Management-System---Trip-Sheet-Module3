@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX } from 'lucide-react';
+import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX, Tool, IndianRupee } from 'lucide-react';
 
 interface AlertTypeTagProps {
   type: string;
@@ -25,11 +25,29 @@ const AlertTypeTag: React.FC<AlertTypeTagProps> = ({ type, className }) => {
           icon: <Fuel className="h-3 w-3" />, 
           colorClass: 'bg-amber-100 text-amber-800' 
         };
+      case 'low_mileage_streak':
+        return { 
+          label: 'Low Mileage', 
+          icon: <TrendingDown className="h-3 w-3" />, 
+          colorClass: 'bg-indigo-100 text-indigo-800' 
+        };
       case 'documentation':
         return { 
           label: 'Documentation', 
           icon: <FileX className="h-3 w-3" />, 
           colorClass: 'bg-purple-100 text-purple-800' 
+        };
+      case 'frequent_maintenance':
+        return { 
+          label: 'Frequent Maintenance', 
+          icon: <Tool className="h-3 w-3" />, 
+          colorClass: 'bg-orange-100 text-orange-800' 
+        };
+      case 'high_expense_spike':
+        return { 
+          label: 'High Expense', 
+          icon: <IndianRupee className="h-3 w-3" />, 
+          colorClass: 'bg-red-100 text-red-800' 
         };
       case 'maintenance':
         return { 
