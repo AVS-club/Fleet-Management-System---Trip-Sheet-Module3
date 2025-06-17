@@ -332,16 +332,10 @@ export const checkFrequentMaintenance = async (
 export const checkHighExpenseSpike = async (task: MaintenanceTask): Promise<AIAlert | null> => {
   const EXPENSE_THRESHOLD = 10000; // ₹10,000
   
-  // Get the total cost (either from service groups or direct cost)
+  // Get the total cost from actual_cost or estimated_cost
   let totalCost = 0;
   
-  // Check service groups costs
-  if (Array.isArray(task.service_groups) && task.service_groups.length > 0) {
-    totalCost = task.service_groups.reduce((sum, group) => {
-      const groupCost = typeof group.cost === 'number' ? group.cost : 0;
-      return sum + groupCost;
-    }, 0);
-  } else if (task.actual_cost) {
+  if (task.actual_cost) {
     totalCost = task.actual_cost;
   } else if (task.estimated_cost) {
     totalCost = task.estimated_cost;
@@ -452,9 +446,10 @@ export const runAlertScan = async (): Promise<number> => {
       return 0;
     }
     
+    // Fetch maintenance tasks without the problematic service_groups join
     const { data: tasksData, error: tasksError } = await supabase
       .from('maintenance_tasks')
-      .select('*, service_groups(*)')
+      .select('*')
       .order('start_date', { ascending: false })
       .limit(50); // Get the 50 most recent maintenance tasks
     
