@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, Tool, IndianRupee, TrendingDown, Fuel } from 'lucide-react';
+import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, PenTool as Tool, IndianRupee, TrendingDown, Fuel } from 'lucide-react';
 import Button from '../ui/Button';
 import { AIAlert } from '../../types';
 import { getVehicle, getDriver } from '../../utils/storage';

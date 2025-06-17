@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX, Tool, IndianRupee } from 'lucide-react';
+import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX, PenTool as Tool, IndianRupee } from 'lucide-react';
 
 interface AlertTypeTagProps {
   type: string;

@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import { AIAlert } from '../types';
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, IndianRupee, AlertOctagon, Tool } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, IndianRupee, AlertOctagon, PenTool as Tool } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
