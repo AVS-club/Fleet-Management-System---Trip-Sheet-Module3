@@ -407,6 +407,16 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     .single();
 
   try {
+    // Log the deletion BEFORE deleting the vehicle (while the foreign key constraint is still satisfied)
+    if (user) {
+      await logVehicleActivity(
+        id,
+        'deleted',
+        user.email || user.id,
+        `Vehicle deleted: ${vehicle?.registration_number || id}`
+      );
+    }
+
     // Step 1: Delete all associated trips first
     const { error: tripsError } = await supabase
       .from('trips')
@@ -480,16 +490,6 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     if (vehicleError) {
       console.error('Error deleting vehicle:', vehicleError);
       throw new Error(`Failed to delete vehicle: ${vehicleError.message}`);
-    }
-
-    // Log the deletion if we have user info
-    if (user) {
-      await logVehicleActivity(
-        id,
-        'deleted',
-        user.email || user.id,
-        `Vehicle deleted: ${vehicle?.registration_number || id}`
-      );
     }
 
     return true;
