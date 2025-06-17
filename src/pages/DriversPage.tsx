@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getDrivers, getTrips, createDriver, updateDriver, uploadDriverPhoto } from '../utils/storage';
-import { User, Truck, MapPin, PlusCircle, Edit2 } from 'lucide-react';
+import { supabase } from '../utils/supabaseClient';
+import { User, Truck, MapPin, PlusCircle, Edit2, Users, UserCheck, UserX, Clock } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverForm from '../components/drivers/DriverForm';
 import { Driver, Trip } from '../types';
 import { toast } from 'react-toastify';
+import StatCard from '../components/dashboard/StatCard';
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,19 +19,60 @@ const DriversPage: React.FC = () => {
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Stats state
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [totalDrivers, setTotalDrivers] = useState(0);
+  const [activeDrivers, setActiveDrivers] = useState(0);
+  const [inactiveDrivers, setInactiveDrivers] = useState(0);
+  const [avgExperience, setAvgExperience] = useState(0);
+  const [driversWithExpiringLicense, setDriversWithExpiringLicense] = useState(0);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setStatsLoading(true);
       try {
         const [driversData, tripsData] = await Promise.all([
           getDrivers(),
           getTrips()
         ]);
-        setDrivers(Array.isArray(driversData) ? driversData : []);
+        
+        const driversArray = Array.isArray(driversData) ? driversData : [];
+        setDrivers(driversArray);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
+        
+        // Calculate statistics
+        setTotalDrivers(driversArray.length);
+        
+        const active = driversArray.filter(d => d.status === 'active').length;
+        setActiveDrivers(active);
+        
+        const inactive = driversArray.filter(d => d.status === 'inactive').length;
+        setInactiveDrivers(inactive);
+        
+        // Calculate average experience
+        const totalExperience = driversArray.reduce((sum, driver) => sum + (driver.experience_years || 0), 0);
+        setAvgExperience(driversArray.length > 0 ? Math.round(totalExperience / driversArray.length * 10) / 10 : 0);
+        
+        // Calculate drivers with expiring license (within 30 days)
+        const today = new Date();
+        const thirtyDaysFromNow = new Date(today);
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        
+        const expiringLicenses = driversArray.filter(driver => {
+          if (!driver.license_expiry_date) return false;
+          
+          const expiryDate = new Date(driver.license_expiry_date);
+          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+        }).length;
+        
+        setDriversWithExpiringLicense(expiringLicenses);
+        
+        setStatsLoading(false);
       } catch (error) {
         console.error('Error fetching drivers data:', error);
         toast.error('Failed to load drivers');
+        setStatsLoading(false);
       } finally {
         setLoading(false);
       }
@@ -94,6 +137,13 @@ const DriversPage: React.FC = () => {
           }
           
           setDrivers(prevDrivers => [newDriver, ...prevDrivers]);
+          setTotalDrivers(prev => prev + 1);
+          if (newDriver.status === 'active') {
+            setActiveDrivers(prev => prev + 1);
+          } else if (newDriver.status === 'inactive') {
+            setInactiveDrivers(prev => prev + 1);
+          }
+          
           setIsAddingDriver(false);
           toast.success('Driver added successfully');
         } else {
@@ -189,131 +239,172 @@ const DriversPage: React.FC = () => {
           />
         </div>
       ) : (
-        loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="ml-3 text-gray-600">Loading drivers...</p>
-          </div>
-        ) : drivers.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-gray-500">No drivers found. Add your first driver to get started.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {drivers.map((driver: Driver) => {
-              const driverTrips = Array.isArray(trips) ? trips.filter(trip => trip.driver_id === driver.id) : [];
-              const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-              const licenseStatus = getLicenseStatus(driver.license_expiry_date);
+        <>
+          {/* Driver Stats Section */}
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <StatCard
+                title="Total Drivers"
+                value={totalDrivers}
+                icon={<Users className="h-5 w-5 text-primary-600" />}
+              />
+              
+              <StatCard
+                title="Active Drivers"
+                value={activeDrivers}
+                icon={<UserCheck className="h-5 w-5 text-success-600" />}
+              />
+              
+              <StatCard
+                title="Inactive Drivers"
+                value={inactiveDrivers}
+                icon={<UserX className="h-5 w-5 text-gray-600" />}
+              />
+              
+              <StatCard
+                title="Avg. Experience"
+                value={avgExperience}
+                subtitle="years"
+                icon={<Clock className="h-5 w-5 text-primary-600" />}
+              />
+            </div>
+          )}
+        
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <p className="ml-3 text-gray-600">Loading drivers...</p>
+            </div>
+          ) : drivers.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-500">No drivers found. Add your first driver to get started.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {drivers.map((driver: Driver) => {
+                const driverTrips = Array.isArray(trips) ? trips.filter(trip => trip.driver_id === driver.id) : [];
+                const totalDistance = driverTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+                const licenseStatus = getLicenseStatus(driver.license_expiry_date);
 
-              return (
-                <div
-                  key={driver.id}
-                  className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative"
-                >
-                  {/* Edit Button */}
-                  <button
-                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditDriver(driver);
-                    }}
-                    title="Edit Driver"
+                return (
+                  <div
+                    key={driver.id}
+                    className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative"
                   >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  
-                  <div className="flex items-start space-x-4 mb-4">
-                    {/* Driver Photo */}
-                    <div className="flex-shrink-0">
-                      {driver.driver_photo_url ? (
-                        <img 
-                          src={driver.driver_photo_url} 
-                          alt={driver.name}
-                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                          <User className="h-8 w-8 text-gray-400" />
+                    {/* Edit Button */}
+                    <button
+                      className="absolute top-4 right-4 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditDriver(driver);
+                      }}
+                      title="Edit Driver"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    
+                    <div className="flex items-start space-x-4 mb-4">
+                      {/* Driver Photo */}
+                      <div className="flex-shrink-0">
+                        {driver.driver_photo_url ? (
+                          <img 
+                            src={driver.driver_photo_url} 
+                            alt={driver.name}
+                            className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                          />
+                        ) : (
+                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                            <User className="h-8 w-8 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-medium text-gray-900 truncate">{driver.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {driver.license_number || 'License: Not available'}
+                        </p>
+                        
+                        {/* License Status Badge */}
+                        {driver.license_expiry_date && (
+                          <div className="mt-1">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              licenseStatus.status === 'expired' 
+                                ? 'bg-error-100 text-error-800'
+                                : licenseStatus.status === 'expiring' 
+                                ? 'bg-warning-100 text-warning-800'
+                                : 'bg-success-100 text-success-800'
+                            }`}>
+                              {licenseStatus.label} {driver.license_expiry_date && `(${formatDate(driver.license_expiry_date)})`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <span className="text-sm text-gray-500 block">Experience</span>
+                        <p className="font-medium">{driver.experience_years} years</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500 block">Join Date</span>
+                        <p className="font-medium">{formatDate(driver.join_date)}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500 block">Contact</span>
+                        <p className="font-medium">{driver.contact_number}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500 block">Email</span>
+                        <p className="font-medium truncate">{driver.email || '-'}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="text-center">
+                          <User className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">Trips</span>
+                          <p className="font-medium">{driverTrips.length}</p>
                         </div>
-                      )}
+                        <div className="text-center">
+                          <MapPin className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">Distance</span>
+                          <p className="font-medium">{totalDistance.toLocaleString()}</p>
+                        </div>
+                        <div className="text-center">
+                          <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">Vehicle</span>
+                          <p className="font-medium">{driver.primary_vehicle_id ? 'Assigned' : '-'}</p>
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">{driver.name}</h3>
-                      <p className="text-sm text-gray-500">
-                        {driver.license_number || 'License: Not available'}
-                      </p>
-                      
-                      {/* License Status Badge */}
-                      {driver.license_expiry_date && (
-                        <div className="mt-1">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            licenseStatus.status === 'expired' 
-                              ? 'bg-error-100 text-error-800'
-                              : licenseStatus.status === 'expiring' 
-                              ? 'bg-warning-100 text-warning-800'
-                              : 'bg-success-100 text-success-800'
-                          }`}>
-                            {licenseStatus.label} {driver.license_expiry_date && `(${formatDate(driver.license_expiry_date)})`}
-                          </span>
-                        </div>
-                      )}
+                    {/* View Details Link */}
+                    <div className="mt-4 text-center">
+                      <button
+                        onClick={() => navigate(`/drivers/${driver.id}`)}
+                        className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <span className="text-sm text-gray-500 block">Experience</span>
-                      <p className="font-medium">{driver.experience_years} years</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500 block">Join Date</span>
-                      <p className="font-medium">{formatDate(driver.join_date)}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500 block">Contact</span>
-                      <p className="font-medium">{driver.contact_number}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500 block">Email</span>
-                      <p className="font-medium truncate">{driver.email || '-'}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <User className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Trips</span>
-                        <p className="font-medium">{driverTrips.length}</p>
-                      </div>
-                      <div className="text-center">
-                        <MapPin className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Distance</span>
-                        <p className="font-medium">{totalDistance.toLocaleString()}</p>
-                      </div>
-                      <div className="text-center">
-                        <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Vehicle</span>
-                        <p className="font-medium">{driver.primary_vehicle_id ? 'Assigned' : '-'}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* View Details Link */}
-                  <div className="mt-4 text-center">
-                    <button
-                      onClick={() => navigate(`/drivers/${driver.id}`)}
-                      className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </Layout>
   );
