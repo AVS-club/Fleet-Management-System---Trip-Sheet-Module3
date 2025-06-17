@@ -149,10 +149,8 @@ const createSupabaseClient = () => {
       global: {
         headers: {
           'X-Client-Info': 'vehicle-management-system'
-        }
-      },
-      // Add custom fetch function to handle network errors gracefully
-      global: {
+        },
+        // Add custom fetch function to handle network errors gracefully
         fetch: async (url, options = {}) => {
           try {
             const response = await fetch(url, {
