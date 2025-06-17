@@ -12,7 +12,7 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
          startOfYear, endOfYear, subWeeks, subMonths, subYears } from 'date-fns';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import Select from '../../ui/Select';
+import Select from '../../components/ui/Select';
 import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
