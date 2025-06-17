@@ -8,9 +8,12 @@ import { Trip, Vehicle, Driver, Warehouse } from '../../types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import { supabase } from '../../utils/supabaseClient';
-import { format, subDays } from 'date-fns';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
+         startOfYear, endOfYear, subWeeks, subMonths, subYears } from 'date-fns';
 import Button from '../../components/ui/Button';
-import { Calendar, ChevronDown, Filter } from 'lucide-react';
+import Input from '../../components/ui/Input';
+import Select from '../../ui/Select';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 
@@ -39,9 +42,18 @@ const AdminTripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Date preset state
+  const [datePreset, setDatePreset] = useState('last30');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const tripsPerPage = 50; // 50 trips per page
+
   const [summaryMetrics, setSummaryMetrics] = useState<TripSummaryMetrics>({
     totalExpenses: 0,
     avgDistance: 0,
@@ -64,6 +76,86 @@ const AdminTripsPage: React.FC = () => {
     search: ''
   });
 
+  // Date preset options
+  const datePresetOptions = [
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'thisWeek', label: 'This Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'thisMonth', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'thisYear', label: 'This Year' },
+    { value: 'lastYear', label: 'Last Year' },
+    { value: 'last7', label: 'Last 7 Days' },
+    { value: 'last30', label: 'Last 30 Days' },
+    { value: 'allTime', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range' }
+  ];
+
+  // Handle date preset changes
+  useEffect(() => {
+    if (datePreset === 'custom') {
+      return; // Don't update the date range if custom is selected
+    }
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = now;
+
+    switch (datePreset) {
+      case 'today':
+        startDate = new Date(now.setHours(0, 0, 0, 0));
+        break;
+      case 'yesterday':
+        startDate = subDays(new Date(now.setHours(0, 0, 0, 0)), 1);
+        endDate = new Date(startDate);
+        endDate.setHours(23, 59, 59, 999);
+        break;
+      case 'thisWeek':
+        startDate = startOfWeek(now);
+        break;
+      case 'lastWeek':
+        startDate = startOfWeek(subWeeks(now, 1));
+        endDate = endOfWeek(subWeeks(now, 1));
+        break;
+      case 'thisMonth':
+        startDate = startOfMonth(now);
+        break;
+      case 'lastMonth':
+        startDate = startOfMonth(subMonths(now, 1));
+        endDate = endOfMonth(subMonths(now, 1));
+        break;
+      case 'thisYear':
+        startDate = startOfYear(now);
+        break;
+      case 'lastYear':
+        startDate = startOfYear(subYears(now, 1));
+        endDate = endOfYear(subYears(now, 1));
+        break;
+      case 'last7':
+        startDate = subDays(now, 7);
+        break;
+      case 'last30':
+        startDate = subDays(now, 30);
+        break;
+      case 'allTime':
+        startDate = new Date(0); // January 1, 1970
+        break;
+      default:
+        startDate = subDays(now, 30); // Default to last 30 days
+    }
+
+    // Update filters with new date range
+    setFilters(prev => ({
+      ...prev,
+      dateRange: {
+        start: format(startDate, 'yyyy-MM-dd'),
+        end: format(endDate, 'yyyy-MM-dd')
+      }
+    }));
+  }, [datePreset]);
+
+  // Fetch data on load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -96,7 +188,34 @@ const AdminTripsPage: React.FC = () => {
   // Fetch summary metrics when filters change
   useEffect(() => {
     fetchSummaryMetrics();
+    // Reset to first page when filters change
+    setCurrentPage(1);
   }, [filters]);
+
+  // Refresh data function
+  const refreshData = async () => {
+    try {
+      setRefreshing(true);
+      const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+        getTrips(),
+        getVehicles(),
+        getDrivers(),
+        getWarehouses()
+      ]);
+      setTrips(tripsData);
+      setVehicles(vehiclesData);
+      setDrivers(driversData);
+      setWarehouses(warehousesData);
+      
+      await fetchSummaryMetrics();
+      toast.success("Data refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Filter trips based on current filters
   const filteredTrips = useMemo(() => {
@@ -169,6 +288,29 @@ const AdminTripsPage: React.FC = () => {
     });
   }, [trips, vehicles, drivers, filters]);
 
+  // Calculate pagination
+  const indexOfLastTrip = currentPage * tripsPerPage;
+  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
+  const currentTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
+  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
+  
+  // Go to a specific page
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  // Previous page
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  // Next page
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
   const fetchSummaryMetrics = async () => {
     try {
       setSummaryLoading(true);
@@ -225,6 +367,11 @@ const AdminTripsPage: React.FC = () => {
       
       // Refresh summary metrics
       fetchSummaryMetrics();
+      
+      // If the last trip on the page was deleted, go to previous page
+      if (currentTrips.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     } catch (error) {
       console.error("Error deleting trip:", error);
       toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -232,10 +379,30 @@ const AdminTripsPage: React.FC = () => {
   };
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
+    if (newFilters.dateRange && datePreset !== 'custom') {
+      // If manually changing dates, switch to custom preset
+      setDatePreset('custom');
+    }
+    
     setFilters(prev => ({
       ...prev,
       ...newFilters
     }));
+  };
+  
+  const clearFilters = () => {
+    setFilters({
+      dateRange: {
+        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+        end: format(new Date(), 'yyyy-MM-dd')
+      },
+      vehicleId: '',
+      driverId: '',
+      warehouseId: '',
+      tripType: '',
+      search: ''
+    });
+    setDatePreset('last30');
   };
 
   const handleExport = (options: ExportOptions) => {
@@ -378,83 +545,120 @@ const AdminTripsPage: React.FC = () => {
       {/* Filters */}
       {!loading && (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
             <h3 className="text-lg font-medium">Trip Filters</h3>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setShowFilters(!showFilters)}
-              icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-            >
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                icon={<X className="h-4 w-4" />}
+              >
+                Clear Filters
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={refreshData}
+                icon={<RefreshCw className="h-4 w-4" />}
+                isLoading={refreshing}
+              >
+                Refresh
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowFilters(!showFilters)}
+                icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+            </div>
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="flex gap-2 items-center">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <div className="grid grid-cols-2 gap-2 flex-1">
-                  <input
-                    type="date"
-                    className="border border-gray-300 rounded-md p-2 text-sm"
-                    value={filters.dateRange.start}
-                    onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, start: e.target.value } })}
-                  />
-                  <input
-                    type="date"
-                    className="border border-gray-300 rounded-md p-2 text-sm"
-                    value={filters.dateRange.end}
-                    onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, end: e.target.value } })}
-                  />
-                </div>
-              </div>
-              <select
-                className="border border-gray-300 rounded-md p-2 text-sm"
-                value={filters.vehicleId}
-                onChange={e => handleFiltersChange({ vehicleId: e.target.value })}
-              >
-                <option value="">All Vehicles</option>
-                {vehicles.map(v => (
-                  <option key={v.id} value={v.id}>{v.registration_number}</option>
-                ))}
-              </select>
-              <select
-                className="border border-gray-300 rounded-md p-2 text-sm"
-                value={filters.driverId}
-                onChange={e => handleFiltersChange({ driverId: e.target.value })}
-              >
-                <option value="">All Drivers</option>
-                {drivers.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-              <select
-                className="border border-gray-300 rounded-md p-2 text-sm"
-                value={filters.warehouseId}
-                onChange={e => handleFiltersChange({ warehouseId: e.target.value })}
-              >
-                <option value="">All Warehouses</option>
-                {warehouses.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-              <select
-                className="border border-gray-300 rounded-md p-2 text-sm"
-                value={filters.tripType}
-                onChange={e => handleFiltersChange({ tripType: e.target.value })}
-              >
-                <option value="">All Trip Types</option>
-                <option value="one_way">One Way</option>
-                <option value="two_way">Two Way</option>
-                <option value="local">Local Trip</option>
-              </select>
-              <input
-                type="text"
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              {/* Search */}
+              <Input
                 placeholder="Search trips..."
-                className="border border-gray-300 rounded-md p-2 text-sm"
+                icon={<Search className="h-4 w-4" />}
                 value={filters.search}
                 onChange={e => handleFiltersChange({ search: e.target.value })}
+              />
+              
+              {/* Date Preset Dropdown */}
+              <Select
+                options={datePresetOptions}
+                value={datePreset}
+                onChange={e => setDatePreset(e.target.value)}
+              />
+              
+              {/* Date Range */}
+              <Input
+                type="date"
+                value={filters.dateRange.start}
+                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, start: e.target.value } })}
+                icon={<Calendar className="h-4 w-4" />}
+              />
+              
+              <Input
+                type="date"
+                value={filters.dateRange.end}
+                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, end: e.target.value } })}
+                icon={<Calendar className="h-4 w-4" />}
+              />
+              
+              {/* Vehicle Dropdown */}
+              <Select
+                options={[
+                  { value: '', label: 'All Vehicles' },
+                  ...vehicles.map(v => ({
+                    value: v.id,
+                    label: v.registration_number
+                  }))
+                ]}
+                value={filters.vehicleId}
+                onChange={e => handleFiltersChange({ vehicleId: e.target.value })}
+              />
+              
+              {/* Driver Dropdown */}
+              <Select
+                options={[
+                  { value: '', label: 'All Drivers' },
+                  ...drivers.map(d => ({
+                    value: d.id,
+                    label: d.name
+                  }))
+                ]}
+                value={filters.driverId}
+                onChange={e => handleFiltersChange({ driverId: e.target.value })}
+              />
+              
+              {/* Warehouse Dropdown */}
+              <Select
+                options={[
+                  { value: '', label: 'All Warehouses' },
+                  ...warehouses.map(w => ({
+                    value: w.id,
+                    label: w.name
+                  }))
+                ]}
+                value={filters.warehouseId}
+                onChange={e => handleFiltersChange({ warehouseId: e.target.value })}
+              />
+              
+              {/* Trip Type Dropdown */}
+              <Select
+                options={[
+                  { value: '', label: 'All Trip Types' },
+                  { value: 'one_way', label: 'One Way' },
+                  { value: 'two_way', label: 'Two Way' },
+                  { value: 'local', label: 'Local Trip' }
+                ]}
+                value={filters.tripType}
+                onChange={e => handleFiltersChange({ tripType: e.target.value })}
               />
             </div>
           )}
@@ -466,6 +670,7 @@ const AdminTripsPage: React.FC = () => {
         </div>
       )}
 
+      {/* Summary Metrics */}
       <TripsSummary
         trips={trips}
         vehicles={vehicles}
@@ -474,8 +679,9 @@ const AdminTripsPage: React.FC = () => {
         metrics={summaryMetrics}
       />
 
+      {/* Trip Table */}
       <TripsTable
-        trips={filteredTrips}
+        trips={currentTrips}
         vehicles={vehicles}
         drivers={drivers}
         onUpdateTrip={handleUpdateTrip}
@@ -484,6 +690,75 @@ const AdminTripsPage: React.FC = () => {
         onImport={handleImport}
         onDownloadFormat={handleDownloadFormat}
       />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow-sm mt-4">
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{indexOfFirstTrip + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(indexOfLastTrip, filteredTrips.length)}
+                </span>{' '}
+                of <span className="font-medium">{filteredTrips.length}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={goToPreviousPage}
+                  className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === 1 ? 'cursor-not-allowed opacity-50' : ''
+                  }`}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  // Simple pagination logic that shows 5 pages at most
+                  let pageNum = i + 1;
+                  if (totalPages > 5) {
+                    if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => paginate(pageNum)}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                        currentPage === pageNum
+                          ? 'z-10 bg-primary-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
+                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button
+                  onClick={goToNextPage}
+                  className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === totalPages ? 'cursor-not-allowed opacity-50' : ''
+                  }`}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showExportModal && (
         <ExportOptionsModal
