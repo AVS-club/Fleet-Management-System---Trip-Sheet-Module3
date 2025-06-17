@@ -21,7 +21,7 @@ const isConfigured = supabaseUrl &&
 
 // Create a comprehensive mock client if Supabase is not configured
 const createMockClient = () => {
-  const mockError = new Error('Supabase not configured');
+  const mockError = new Error('Supabase not configured. Please check your environment variables.');
   
   // Create a chainable query builder mock
   const createQueryBuilder = () => {
@@ -132,8 +132,111 @@ const createMockClient = () => {
   };
 };
 
-export const supabase = isConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createMockClient() as any;
+// Create the Supabase client with enhanced error handling
+const createSupabaseClient = () => {
+  if (!isConfigured) {
+    console.warn('Supabase is not properly configured. Using mock client.');
+    return createMockClient() as any;
+  }
 
+  try {
+    // Create the client with additional options for better error handling
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'vehicle-management-system'
+        }
+      },
+      // Add custom fetch function to handle network errors gracefully
+      global: {
+        fetch: async (url, options = {}) => {
+          try {
+            const response = await fetch(url, {
+              ...options,
+              headers: {
+                ...options.headers,
+              }
+            });
+            
+            // Check if the response is ok
+            if (!response.ok) {
+              // Log the error for debugging
+              console.error(`Supabase API error: ${response.status} ${response.statusText}`);
+              
+              // If it's a 401, it might be an auth issue
+              if (response.status === 401) {
+                console.error('Authentication error. Please check your Supabase anon key.');
+              }
+              
+              // If it's a 404, the resource might not exist
+              if (response.status === 404) {
+                console.error('Resource not found. Please check your Supabase project URL.');
+              }
+            }
+            
+            return response;
+          } catch (error) {
+            // Handle network errors
+            console.error('Network error when connecting to Supabase:', error);
+            
+            // Check if it's a fetch error (network issue)
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+              console.error('Failed to connect to Supabase. Please check:');
+              console.error('1. Your internet connection');
+              console.error('2. Supabase project URL:', supabaseUrl);
+              console.error('3. Supabase project status');
+              
+              // Create a response-like object for the error
+              throw new Error(`Network error: Unable to connect to Supabase at ${supabaseUrl}. Please check your connection and Supabase project status.`);
+            }
+            
+            throw error;
+          }
+        }
+      }
+    });
+
+    return client;
+  } catch (error) {
+    console.error('Error initializing Supabase client:', error);
+    return createMockClient() as any;
+  }
+};
+
+export const supabase = createSupabaseClient();
 export const isSupabaseConfigured = isConfigured;
+
+// Helper function to check if Supabase is accessible
+export const testSupabaseConnection = async (): Promise<boolean> => {
+  if (!isConfigured) {
+    return false;
+  }
+
+  try {
+    // Try a simple query to test the connection
+    const { error } = await supabase.from('vehicles').select('count', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('Supabase connection test failed:', error.message);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Supabase connection test error:', error);
+    return false;
+  }
+};
+
+// Log configuration status on startup
+if (typeof window !== 'undefined') {
+  console.log('Supabase configuration status:', {
+    configured: isConfigured,
+    url: supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey
+  });
+}
