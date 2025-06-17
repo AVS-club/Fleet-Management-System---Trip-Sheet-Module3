@@ -1,0 +1,10 @@
+VITE_GOOGLE_MAPS_API_KEY=AIzaSyBAB939D5LqfC2RjcQcaZJquTR0R2WAqZ0
+VITE_DOCUMENT_AI_ENDPOINT=https://us-documentai.googleapis.com/v1
+VITE_PROJECT_ID=your_project_id_here
+VITE_LOCATION=us
+VITE_RC_PROCESSOR_ID=your_rc_processor_id_here
+VITE_INSURANCE_PROCESSOR_ID=your_insurance_processor_id_here
+
+# Supabase Configuration
+VITE_SUPABASE_URL=your_project_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
