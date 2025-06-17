@@ -398,7 +398,7 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
 };
 
 export const deleteVehicle = async (id: string): Promise<boolean> => {
-  // Get current user before deletion
+  // Get current user and vehicle info before deletion
   const { data: { user } } = await supabase.auth.getUser();
   const { data: vehicle } = await supabase
     .from('vehicles')
@@ -406,28 +406,97 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     .eq('id', id)
     .single();
 
-  // Perform the deletion
-  const { error } = await supabase
-    .from('vehicles')
-    .delete()
-    .eq('id', id);
+  try {
+    // Step 1: Delete all associated trips first
+    const { error: tripsError } = await supabase
+      .from('trips')
+      .delete()
+      .eq('vehicle_id', id);
 
-  if (error) {
-    console.error('Error deleting vehicle:', error);
-    return false;
+    if (tripsError) {
+      console.error('Error deleting associated trips:', tripsError);
+      throw new Error(`Failed to delete associated trips: ${tripsError.message}`);
+    }
+
+    // Step 2: Delete all associated maintenance tasks
+    const { error: maintenanceError } = await supabase
+      .from('maintenance_tasks')
+      .delete()
+      .eq('vehicle_id', id);
+
+    if (maintenanceError) {
+      console.error('Error deleting associated maintenance tasks:', maintenanceError);
+      throw new Error(`Failed to delete associated maintenance tasks: ${maintenanceError.message}`);
+    }
+
+    // Step 3: Delete all associated maintenance service tasks
+    // First get the maintenance task IDs for this vehicle to delete their service tasks
+    const { data: maintenanceTasks } = await supabase
+      .from('maintenance_tasks')
+      .select('id')
+      .eq('vehicle_id', id);
+
+    if (maintenanceTasks && maintenanceTasks.length > 0) {
+      const maintenanceTaskIds = maintenanceTasks.map(task => task.id);
+      const { error: serviceTasksError } = await supabase
+        .from('maintenance_service_tasks')
+        .delete()
+        .in('maintenance_task_id', maintenanceTaskIds);
+
+      if (serviceTasksError) {
+        console.error('Error deleting associated maintenance service tasks:', serviceTasksError);
+        // Don't throw error here as service tasks might not exist
+      }
+    }
+
+    // Step 4: Delete associated maintenance audit logs
+    const { error: auditLogsError } = await supabase
+      .from('maintenance_audit_logs')
+      .delete()
+      .eq('task_id', id);
+
+    if (auditLogsError) {
+      console.error('Error deleting maintenance audit logs:', auditLogsError);
+      // Don't throw error here as audit logs might not exist
+    }
+
+    // Step 5: Delete the vehicle activity logs
+    const { error: activityLogsError } = await supabase
+      .from('vehicle_activity_log')
+      .delete()
+      .eq('vehicle_id', id);
+
+    if (activityLogsError) {
+      console.error('Error deleting vehicle activity logs:', activityLogsError);
+      // Don't throw error here as activity logs are not critical for deletion
+    }
+
+    // Step 6: Finally delete the vehicle itself
+    const { error: vehicleError } = await supabase
+      .from('vehicles')
+      .delete()
+      .eq('id', id);
+
+    if (vehicleError) {
+      console.error('Error deleting vehicle:', vehicleError);
+      throw new Error(`Failed to delete vehicle: ${vehicleError.message}`);
+    }
+
+    // Log the deletion if we have user info
+    if (user) {
+      await logVehicleActivity(
+        id,
+        'deleted',
+        user.email || user.id,
+        `Vehicle deleted: ${vehicle?.registration_number || id}`
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in vehicle deletion process:', error);
+    throw error;
   }
-
-  // Log the deletion if we have user info
-  if (user) {
-    await logVehicleActivity(
-      id,
-      'deleted',
-      user.email || user.id,
-      `Vehicle deleted: ${vehicle?.registration_number || id}`
-    );
-  }
-
-  return true;
 };
 
 export const bulkUpdateVehicles = async (
