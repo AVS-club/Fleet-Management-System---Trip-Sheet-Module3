@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import { AIAlert } from '../types';
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, IndianRupee, AlertOctagon, PenTool as Tool } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, PenTool as Tool } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -99,7 +99,7 @@ const AIAlertsPage: React.FC = () => {
     }
   };
 
-  // Run AI check again (simulated)
+  // Run AI check again
   const handleRunAICheck = async () => {
     setRunningCheck(true);
     try {
@@ -118,7 +118,7 @@ const AIAlertsPage: React.FC = () => {
     }
   };
 
-  // Helper to get status style classes
+  // Helper to get status color
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-warning-100 text-warning-700';
@@ -137,18 +137,14 @@ const AIAlertsPage: React.FC = () => {
         return <Fuel className="h-4 w-4 text-amber-500" />;
       case 'route_deviation':
         return <TrendingDown className="h-4 w-4 text-blue-500" />;
-      case 'low_mileage_streak':
-        return <TrendingDown className="h-4 w-4 text-indigo-500" />;
       case 'frequent_maintenance':
         return <Tool className="h-4 w-4 text-orange-500" />;
-      case 'high_expense_spike':
-        return <IndianRupee className="h-4 w-4 text-red-500" />;
       case 'documentation':
         return <FileX className="h-4 w-4 text-purple-500" />;
       default:
         // Fall back to severity-based icons
         switch (severity) {
-          case 'high': return <AlertOctagon className="h-4 w-4 text-error-500" />;
+          case 'high': return <AlertTriangle className="h-4 w-4 text-error-500" />;
           case 'medium': return <AlertTriangle className="h-4 w-4 text-warning-500" />;
           default: return <AlertTriangle className="h-4 w-4 text-gray-400" />;
         }
@@ -285,7 +281,10 @@ const AIAlertsPage: React.FC = () => {
   };
 
   return (
-    <Layout title="AI AVS Alerts" subtitle="Review and manage AI-generated alerts">
+    <Layout
+      title="AI AVS Alerts"
+      subtitle="Review and manage AI-generated alerts"
+    >
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -313,9 +312,7 @@ const AIAlertsPage: React.FC = () => {
                     { value: 'all', label: 'All Types' },
                     { value: 'fuel_anomaly', label: 'Fuel Anomaly' },
                     { value: 'route_deviation', label: 'Route Deviation' },
-                    { value: 'low_mileage_streak', label: 'Low Mileage Streak' },
                     { value: 'frequent_maintenance', label: 'Frequent Maintenance' },
-                    { value: 'high_expense_spike', label: 'High Expense' },
                     { value: 'documentation', label: 'Documentation' }
                   ]}
                   value={filters.type}

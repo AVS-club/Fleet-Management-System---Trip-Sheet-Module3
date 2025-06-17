@@ -63,12 +63,8 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
         return <Fuel className="h-5 w-5 text-amber-500" />;
       case 'route_deviation':
         return <TrendingDown className="h-5 w-5 text-blue-500" />;
-      case 'low_mileage_streak':
-        return <TrendingDown className="h-5 w-5 text-indigo-500" />;
       case 'frequent_maintenance':
         return <Tool className="h-5 w-5 text-orange-500" />;
-      case 'high_expense_spike':
-        return <IndianRupee className="h-5 w-5 text-red-500" />;
       default:
         return <AlertTriangle className="h-5 w-5 text-warning-500" />;
     }

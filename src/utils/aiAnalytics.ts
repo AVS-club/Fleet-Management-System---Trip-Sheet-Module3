@@ -1,13 +1,9 @@
 import { Trip, RouteAnalysis, Alert, AIAlert, MaintenanceTask } from '../types';
 import { supabase } from './supabaseClient';
-import { subDays, isWithinInterval } from 'date-fns';
-
-// Mileage anomaly detection thresholds
-const MAX_ALLOWED_MILEAGE = 30; // km/L - suspiciously high mileage
-const MIN_ALLOWED_MILEAGE = 4;  // km/L - suspiciously low mileage
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 /**
- * Check for mileage anomalies in a trip
+ * Check for mileage anomalies in a trip based on historical vehicle data
  * @param trip The trip to analyze
  * @returns An alert object if an anomaly is detected, or null if no anomaly
  */
@@ -28,66 +24,105 @@ export const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> =
   if (distance <= 0) {
     return null;
   }
+  
+  // Calculate current trip mileage
+  const currentMileage = distance / trip.fuel_quantity;
 
-  const mileage = distance / trip.fuel_quantity;
-
-  // Check if mileage is outside acceptable range
-  if (mileage > MAX_ALLOWED_MILEAGE || mileage < MIN_ALLOWED_MILEAGE) {
-    const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
-      alert_type: 'fuel_anomaly',
-      severity: mileage > MAX_ALLOWED_MILEAGE ? 'medium' : 'high',
-      status: 'pending',
-      title: `Unusual mileage detected: ${mileage.toFixed(2)} km/L`,
-      description: `Trip ${trip.trip_serial_number} recorded ${mileage.toFixed(2)} km/L, which is ${
-        mileage > MAX_ALLOWED_MILEAGE ? 'higher than expected' : 'lower than expected'
-      }. This might indicate ${
-        mileage > MAX_ALLOWED_MILEAGE ? 
-          'fuel leakage, data entry error, or gauge malfunction.' : 
-          'vehicle issues, driving style concerns, or fuel theft.'
-      }`,
-      affected_entity: {
-        type: 'vehicle',
-        id: trip.vehicle_id
-      },
-      metadata: {
-        trip_id: trip.id,
-        driver_id: trip.driver_id,
-        expected_value: mileage > MAX_ALLOWED_MILEAGE ? MAX_ALLOWED_MILEAGE : MIN_ALLOWED_MILEAGE,
-        actual_value: mileage,
-        deviation: mileage > MAX_ALLOWED_MILEAGE ? 
-          ((mileage - MAX_ALLOWED_MILEAGE) / MAX_ALLOWED_MILEAGE * 100) : 
-          ((MIN_ALLOWED_MILEAGE - mileage) / MIN_ALLOWED_MILEAGE * 100),
-        distance: distance,
-        fuel_quantity: trip.fuel_quantity,
-        recommendations: [
-          mileage > MAX_ALLOWED_MILEAGE ?
-            'Verify odometer readings and fuel quantity data' :
-            'Check for vehicle mechanical issues',
-          'Compare with previous trips for this vehicle',
-          'Investigate driver behavior if pattern continues'
-        ]
-      },
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      // Insert the alert into Supabase
-      const { data, error } = await supabase
-        .from('ai_alerts')
-        .insert(alertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating mileage anomaly alert:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Exception creating mileage anomaly alert:', error);
+  try {
+    // Get all trips for this vehicle with valid mileage data
+    const { data: vehicleTrips, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('vehicle_id', trip.vehicle_id)
+      .eq('refueling_done', true)
+      .not('fuel_quantity', 'is', null)
+      .not('calculated_kmpl', 'is', null)
+      .eq('short_trip', false)
+      .order('trip_end_date', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching vehicle trips for mileage analysis:', error);
       return null;
     }
+    
+    // We need at least 10 trips for a good baseline, otherwise skip alert
+    if (!vehicleTrips || vehicleTrips.length < 10) {
+      console.log(`Not enough trips (${vehicleTrips?.length || 0}) for vehicle ${trip.vehicle_id} to establish mileage baseline`);
+      return null;
+    }
+
+    // Remove current trip from array if it's there
+    const previousTrips = vehicleTrips.filter(t => t.id !== trip.id);
+    
+    // Get the 10 most recent trips for baseline
+    const recentTrips = previousTrips.slice(0, 10);
+    
+    // Calculate average mileage from these trips
+    const baselineMileage = recentTrips.reduce((sum, t) => sum + (t.calculated_kmpl || 0), 0) / recentTrips.length;
+    
+    // Calculate percentage deviation
+    const deviation = ((currentMileage - baselineMileage) / baselineMileage) * 100;
+    
+    // Only trigger alert if deviation is ≥15% (positive or negative)
+    if (Math.abs(deviation) >= 15) {
+      const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
+        alert_type: 'fuel_anomaly',
+        severity: Math.abs(deviation) > 25 ? 'high' : 'medium',
+        status: 'pending',
+        title: `Fuel anomaly detected: ${currentMileage.toFixed(2)} km/L (${deviation > 0 ? '+' : ''}${deviation.toFixed(1)}%)`,
+        description: `Trip ${trip.trip_serial_number} recorded ${currentMileage.toFixed(2)} km/L, which is ${
+          deviation > 0 ? 'higher' : 'lower'
+        } than the vehicle's average of ${baselineMileage.toFixed(2)} km/L. This represents a ${Math.abs(deviation).toFixed(1)}% deviation.`,
+        affected_entity: {
+          type: 'vehicle',
+          id: trip.vehicle_id
+        },
+        metadata: {
+          trip_id: trip.id,
+          driver_id: trip.driver_id,
+          expected_value: baselineMileage,
+          actual_value: currentMileage,
+          deviation: deviation,
+          distance: distance,
+          fuel_quantity: trip.fuel_quantity,
+          baseline_mileage: baselineMileage,
+          sample_size: recentTrips.length,
+          recommendations: deviation > 0
+            ? [
+                'Verify odometer readings and fuel quantity data',
+                'Check for data entry errors in fuel quantity',
+                'Verify that refueling was complete (tank full to tank full)'
+              ]
+            : [
+                'Check for vehicle mechanical issues',
+                'Investigate driving patterns or terrain factors',
+                'Verify fuel quality or potential fuel theft'
+              ]
+        },
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        // Insert the alert into Supabase
+        const { data, error } = await supabase
+          .from('ai_alerts')
+          .insert(alertData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error creating mileage anomaly alert:', error);
+          return null;
+        }
+
+        return data;
+      } catch (error) {
+        console.error('Exception creating mileage anomaly alert:', error);
+        return null;
+      }
+    }
+  } catch (error) {
+    console.error('Error in mileage analysis:', error);
   }
 
   return null;
@@ -104,12 +139,12 @@ export const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> =
     return null;
   }
   
-  const ROUTE_DEVIATION_THRESHOLD = 8; // 8% above standard route
+  const ROUTE_DEVIATION_THRESHOLD = 20; // 20% above standard route (120% of estimated)
   
   if (trip.route_deviation > ROUTE_DEVIATION_THRESHOLD) {
     const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
       alert_type: 'route_deviation',
-      severity: 'medium',
+      severity: trip.route_deviation > 35 ? 'high' : 'medium',
       status: 'pending',
       title: `Route deviation detected: ${trip.route_deviation.toFixed(1)}%`,
       description: `Trip ${trip.trip_serial_number} took a route ${trip.route_deviation.toFixed(1)}% longer than the standard route. This may indicate unauthorized detours, traffic diversions, or navigation issues.`,
@@ -158,97 +193,7 @@ export const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> =
 };
 
 /**
- * Check for low mileage streak (3 or more consecutive trips with low mileage)
- * @param trip The trip to analyze
- * @param allTrips All trips for context
- * @returns An alert if a streak is detected, or null otherwise
- */
-export const checkLowMileageStreak = async (trip: Trip, allTrips: Trip[]): Promise<AIAlert | null> => {
-  // Skip trips without mileage data or short trips
-  if (!trip.calculated_kmpl || trip.short_trip) {
-    return null;
-  }
-  
-  const LOW_MILEAGE_THRESHOLD = 6; // km/L
-  const STREAK_THRESHOLD = 3; // number of consecutive trips
-  
-  // Skip if the current trip's mileage is not low
-  if (trip.calculated_kmpl >= LOW_MILEAGE_THRESHOLD) {
-    return null;
-  }
-  
-  // Get recent trips for this vehicle
-  const recentTrips = allTrips
-    .filter(t => 
-      t.vehicle_id === trip.vehicle_id && 
-      !t.short_trip &&
-      t.calculated_kmpl !== undefined
-    )
-    .sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
-  
-  // Check if we have a streak of low mileage trips (including the current one)
-  let streakCount = 0;
-  for (let i = 0; i < recentTrips.length && i < 5; i++) { // Check last 5 trips max
-    if (recentTrips[i].calculated_kmpl && recentTrips[i].calculated_kmpl < LOW_MILEAGE_THRESHOLD) {
-      streakCount++;
-    } else {
-      break; // Streak broken
-    }
-  }
-  
-  if (streakCount >= STREAK_THRESHOLD) {
-    const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
-      alert_type: 'low_mileage_streak',
-      severity: 'medium',
-      status: 'pending',
-      title: `${streakCount} consecutive trips with low mileage`,
-      description: `Vehicle has had ${streakCount} consecutive trips with mileage below ${LOW_MILEAGE_THRESHOLD} km/L. Latest trip: ${trip.calculated_kmpl.toFixed(2)} km/L. This pattern may indicate mechanical issues or inefficient driving.`,
-      affected_entity: {
-        type: 'vehicle',
-        id: trip.vehicle_id
-      },
-      metadata: {
-        trip_id: trip.id,
-        driver_id: trip.driver_id,
-        expected_value: LOW_MILEAGE_THRESHOLD,
-        actual_value: trip.calculated_kmpl,
-        deviation: ((LOW_MILEAGE_THRESHOLD - trip.calculated_kmpl) / LOW_MILEAGE_THRESHOLD) * 100,
-        streak_count: streakCount,
-        recommendations: [
-          'Schedule a maintenance check for the vehicle',
-          'Review driving patterns and terrain',
-          'Check for excessive idling or improper loading',
-          'Consider driver training on fuel-efficient driving'
-        ]
-      },
-      created_at: new Date().toISOString()
-    };
-    
-    try {
-      // Insert the alert into Supabase
-      const { data, error } = await supabase
-        .from('ai_alerts')
-        .insert(alertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating low mileage streak alert:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Exception creating low mileage streak alert:', error);
-      return null;
-    }
-  }
-  
-  return null;
-};
-
-/**
- * Check for frequent maintenance on a vehicle
+ * Check for frequent maintenance on a vehicle within a calendar month
  * @param task The maintenance task to analyze
  * @param allTasks All maintenance tasks for context
  * @returns An alert if frequent maintenance is detected, or null otherwise
@@ -257,40 +202,62 @@ export const checkFrequentMaintenance = async (
   task: MaintenanceTask, 
   allTasks: MaintenanceTask[]
 ): Promise<AIAlert | null> => {
-  const MAINTENANCE_WINDOW_DAYS = 30;
   const MAINTENANCE_COUNT_THRESHOLD = 3;
   
-  // Get recent tasks for this vehicle
-  const recentTasks = allTasks.filter(t => {
+  // Get the month and year of the task
+  const taskDate = new Date(task.start_date);
+  const monthYear = format(taskDate, 'yyyy-MM'); // Format: "2024-06"
+  const monthStart = startOfMonth(taskDate);
+  const monthEnd = endOfMonth(taskDate);
+  
+  // Get tasks for this vehicle in the same month
+  const monthlyTasks = allTasks.filter(t => {
     if (t.vehicle_id !== task.vehicle_id) return false;
     
-    // Check if task is within 30 days window
-    const taskDate = new Date(task.start_date);
     const otherTaskDate = new Date(t.start_date);
-    const timeDiff = Math.abs(taskDate.getTime() - otherTaskDate.getTime());
-    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-    
-    return daysDiff <= MAINTENANCE_WINDOW_DAYS;
+    return isWithinInterval(otherTaskDate, { start: monthStart, end: monthEnd });
   });
   
-  // If we have 3 or more tasks (including this one) in the window, create an alert
-  if (recentTasks.length >= MAINTENANCE_COUNT_THRESHOLD) {
+  // If we have 3 or more tasks in the month, check if we already created an alert
+  if (monthlyTasks.length >= MAINTENANCE_COUNT_THRESHOLD) {
+    // Check if we already created an alert for this vehicle and month
+    const { data: existingAlerts, error } = await supabase
+      .from('ai_alerts')
+      .select('*')
+      .eq('alert_type', 'frequent_maintenance')
+      .eq('affected_entity->>id', task.vehicle_id) // Query into the JSONB field
+      .eq('affected_entity->>type', 'vehicle')
+      .eq('metadata->>month_of_alert', monthYear)
+      .limit(1);
+      
+    if (error) {
+      console.error('Error checking for existing maintenance alerts:', error);
+    }
+    
+    // If an alert already exists for this month, don't create another one
+    if (existingAlerts && existingAlerts.length > 0) {
+      console.log(`Alert for frequent maintenance already exists for vehicle ${task.vehicle_id} in month ${monthYear}`);
+      return null;
+    }
+    
     const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
       alert_type: 'frequent_maintenance',
-      severity: 'medium',
+      severity: monthlyTasks.length >= 4 ? 'high' : 'medium',
       status: 'pending',
-      title: `${recentTasks.length} maintenance tasks within ${MAINTENANCE_WINDOW_DAYS} days`,
-      description: `Vehicle has had ${recentTasks.length} maintenance tasks in the last ${MAINTENANCE_WINDOW_DAYS} days. This may indicate recurring issues or ineffective repairs.`,
+      title: `${monthlyTasks.length} maintenance tasks within one month`,
+      description: `Vehicle has had ${monthlyTasks.length} maintenance tasks in ${format(taskDate, 'MMMM yyyy')}. This may indicate recurring issues or ineffective repairs.`,
       affected_entity: {
         type: 'vehicle',
         id: task.vehicle_id
       },
       metadata: {
         task_id: task.id,
-        expected_value: 2, // Expected fewer than 3 tasks in 30 days
-        actual_value: recentTasks.length,
-        deviation: ((recentTasks.length - 2) / 2) * 100, // Percentage above expected
-        maintenance_ids: recentTasks.map(t => t.id),
+        expected_value: 2, // Expected fewer than 3 tasks per month
+        actual_value: monthlyTasks.length,
+        deviation: ((monthlyTasks.length - 2) / 2) * 100, // Percentage above expected
+        maintenance_ids: monthlyTasks.map(t => t.id),
+        month_of_alert: monthYear,
+        maintenance_count: monthlyTasks.length,
         recommendations: [
           'Review maintenance history in detail',
           'Consider a comprehensive vehicle inspection',
@@ -324,75 +291,7 @@ export const checkFrequentMaintenance = async (
   return null;
 };
 
-/**
- * Check for high expense spike in maintenance costs
- * @param task The maintenance task to analyze
- * @returns An alert if the expense is above threshold, or null otherwise
- */
-export const checkHighExpenseSpike = async (task: MaintenanceTask): Promise<AIAlert | null> => {
-  const EXPENSE_THRESHOLD = 10000; // ₹10,000
-  
-  // Get the total cost from actual_cost or estimated_cost
-  let totalCost = 0;
-  
-  if (task.actual_cost) {
-    totalCost = task.actual_cost;
-  } else if (task.estimated_cost) {
-    totalCost = task.estimated_cost;
-  }
-  
-  // If cost exceeds threshold, create an alert
-  if (totalCost > EXPENSE_THRESHOLD) {
-    const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
-      alert_type: 'high_expense_spike',
-      severity: 'high',
-      status: 'pending',
-      title: `High maintenance cost: ₹${totalCost.toLocaleString()}`,
-      description: `Maintenance task has unusually high cost (₹${totalCost.toLocaleString()}), exceeding the ₹${EXPENSE_THRESHOLD.toLocaleString()} threshold. This may require budget review or approval.`,
-      affected_entity: {
-        type: 'vehicle',
-        id: task.vehicle_id
-      },
-      metadata: {
-        task_id: task.id,
-        expected_value: EXPENSE_THRESHOLD,
-        actual_value: totalCost,
-        deviation: ((totalCost - EXPENSE_THRESHOLD) / EXPENSE_THRESHOLD) * 100,
-        task_type: task.task_type,
-        recommendations: [
-          'Review itemized costs for potential errors',
-          'Verify if all services were necessary',
-          'Compare with average costs for similar maintenance',
-          'Consider getting second opinions for future high-cost repairs'
-        ]
-      },
-      created_at: new Date().toISOString()
-    };
-    
-    try {
-      // Insert the alert into Supabase
-      const { data, error } = await supabase
-        .from('ai_alerts')
-        .insert(alertData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating high expense alert:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Exception creating high expense alert:', error);
-      return null;
-    }
-  }
-  
-  return null;
-};
-
-// Stub functions that no longer generate alerts
+// Fetch AI alerts from Supabase
 export const getAIAlerts = async () => {
   const { data, error } = await supabase
     .from('ai_alerts')
@@ -407,29 +306,34 @@ export const getAIAlerts = async () => {
   return data || [];
 };
 
-export const analyzeTripAndGenerateAlerts = async (trip: Trip, analysis: RouteAnalysis | undefined, allTrips: Trip[]): Promise<Alert[]> => {
+// Generate alerts for a trip
+export const analyzeTripAndGenerateAlerts = async (
+  trip: Trip, 
+  analysis: RouteAnalysis | undefined,
+  allTrips: Trip[]
+): Promise<Alert[]> => {
   const alerts: Alert[] = [];
   
   // Check for route deviation alerts
-  if (analysis && Math.abs(analysis.deviation) > 15) {
+  if (analysis && Math.abs(analysis.deviation) > 20) {
     alerts.push({
       type: 'route_deviation',
       message: `Route deviation of ${analysis.deviation.toFixed(1)}%`,
-      severity: Math.abs(analysis.deviation) > 25 ? 'high' : 'medium',
+      severity: Math.abs(analysis.deviation) > 35 ? 'high' : 'medium',
       details: `Trip took ${Math.abs(analysis.deviation).toFixed(1)}% ${analysis.deviation > 0 ? 'more' : 'less'} distance than expected.`
     });
   }
 
-  // Run all alert checks
-  await Promise.all([
-    checkMileageAnomaly(trip),
-    checkRouteDeviation(trip),
-    checkLowMileageStreak(trip, allTrips)
-  ]);
+  // Run mileage anomaly check
+  await checkMileageAnomaly(trip);
+  
+  // Run route deviation check
+  await checkRouteDeviation(trip);
   
   return alerts;
 };
 
+// Run AI check to generate alerts
 export const runAlertScan = async (): Promise<number> => {
   let alertCount = 0;
   
@@ -446,7 +350,7 @@ export const runAlertScan = async (): Promise<number> => {
       return 0;
     }
     
-    // Fetch maintenance tasks without the problematic service_groups join
+    // Fetch maintenance tasks
     const { data: tasksData, error: tasksError } = await supabase
       .from('maintenance_tasks')
       .select('*')
@@ -467,18 +371,12 @@ export const runAlertScan = async (): Promise<number> => {
       
       const routeAlert = await checkRouteDeviation(trip);
       if (routeAlert) alertCount++;
-      
-      const streakAlert = await checkLowMileageStreak(trip, trips);
-      if (streakAlert) alertCount++;
     }
     
     // 3. Analyze maintenance tasks
     for (const task of tasks) {
       const frequentMaintenanceAlert = await checkFrequentMaintenance(task, tasks);
       if (frequentMaintenanceAlert) alertCount++;
-      
-      const expenseAlert = await checkHighExpenseSpike(task);
-      if (expenseAlert) alertCount++;
     }
     
     return alertCount;
@@ -488,6 +386,7 @@ export const runAlertScan = async (): Promise<number> => {
   }
 };
 
+// Process alert actions (accept/deny/ignore)
 export const processAlertAction = async (
   alertId: string, 
   action: 'accept' | 'deny' | 'ignore', 
@@ -500,12 +399,23 @@ export const processAlertAction = async (
     .from('ai_alerts')
     .update({
       status,
-      metadata: {
-        resolution_reason: reason,
-        resolution_comment: reason,
-        ignore_duration: duration,
-        resolved_at: new Date().toISOString()
-      },
+      metadata: supabase.rpc('jsonb_deep_set', {
+        json_object: supabase.rpc('jsonb_deep_set', {
+          json_object: supabase.rpc('jsonb_deep_set', {
+            json_object: supabase.rpc('jsonb_deep_set', {
+              json_object: 'metadata',
+              path: ['resolution_reason'],
+              value: reason
+            }),
+            path: ['resolution_comment'],
+            value: reason
+          }),
+          path: ['ignore_duration'],
+          value: duration
+        }),
+        path: ['resolved_at'],
+        value: new Date().toISOString()
+      }),
       updated_at: new Date().toISOString()
     })
     .eq('id', alertId);
@@ -522,8 +432,6 @@ export default {
   getAIAlerts,
   checkMileageAnomaly,
   checkRouteDeviation,
-  checkLowMileageStreak,
   checkFrequentMaintenance,
-  checkHighExpenseSpike,
   runAlertScan
 };
