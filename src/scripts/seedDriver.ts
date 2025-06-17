@@ -3,8 +3,8 @@ console.log('▶️ Script started');
 // Load environment variables from .env file
 
 // Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 
 // ✅ DEBUG: Confirm if ENV is loaded properly
