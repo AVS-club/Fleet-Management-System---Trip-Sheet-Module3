@@ -5,7 +5,7 @@ import path from 'path';
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Initialize Supabase clien
+// Initialize Supabase client
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
