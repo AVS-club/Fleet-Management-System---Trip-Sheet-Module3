@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.39.3",
     "@tanstack/react-table": "^8.12.0",
     "@types/google.maps": "^3.54.10",
+    "@types/node": "^24.0.3",
     "@types/papaparse": "^5.3.14",
     "@types/react-router-dom": "^5.3.3",
     "clsx": "^2.1.0",
@@ -42,6 +43,7 @@
     "react-zoom-pan-pinch": "^3.4.2",
     "recharts": "^2.10.3",
     "tailwind-merge": "^2.2.1",
+    "tsx": "^4.20.3",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
