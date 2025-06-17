@@ -407,28 +407,41 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     .single();
 
   try {
-    // Log the deletion BEFORE deleting the vehicle (while the foreign key constraint is still satisfied)
-    if (user) {
-      await logVehicleActivity(
-        id,
-        'deleted',
-        user.email || user.id,
-        `Vehicle deleted: ${vehicle?.registration_number || id}`
-      );
-    }
-
-    // Step 1: Delete all associated trips first
-    const { error: tripsError } = await supabase
-      .from('trips')
-      .delete()
+    // Step 1: Get all maintenance task IDs for this vehicle BEFORE deleting anything
+    const { data: maintenanceTasks } = await supabase
+      .from('maintenance_tasks')
+      .select('id')
       .eq('vehicle_id', id);
 
-    if (tripsError) {
-      console.error('Error deleting associated trips:', tripsError);
-      throw new Error(`Failed to delete associated trips: ${tripsError.message}`);
+    const maintenanceTaskIds = maintenanceTasks?.map(task => task.id) || [];
+
+    // Step 2: Delete maintenance audit logs for all maintenance tasks of this vehicle
+    if (maintenanceTaskIds.length > 0) {
+      const { error: auditLogsError } = await supabase
+        .from('maintenance_audit_logs')
+        .delete()
+        .in('task_id', maintenanceTaskIds);
+
+      if (auditLogsError) {
+        console.error('Error deleting maintenance audit logs:', auditLogsError);
+        throw new Error(`Failed to delete maintenance audit logs: ${auditLogsError.message}`);
+      }
     }
 
-    // Step 2: Delete all associated maintenance tasks
+    // Step 3: Delete maintenance service tasks for all maintenance tasks of this vehicle
+    if (maintenanceTaskIds.length > 0) {
+      const { error: serviceTasksError } = await supabase
+        .from('maintenance_service_tasks')
+        .delete()
+        .in('maintenance_task_id', maintenanceTaskIds);
+
+      if (serviceTasksError) {
+        console.error('Error deleting associated maintenance service tasks:', serviceTasksError);
+        throw new Error(`Failed to delete associated maintenance service tasks: ${serviceTasksError.message}`);
+      }
+    }
+
+    // Step 4: Delete all maintenance tasks for this vehicle
     const { error: maintenanceError } = await supabase
       .from('maintenance_tasks')
       .delete()
@@ -439,38 +452,28 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
       throw new Error(`Failed to delete associated maintenance tasks: ${maintenanceError.message}`);
     }
 
-    // Step 3: Delete all associated maintenance service tasks
-    // First get the maintenance task IDs for this vehicle to delete their service tasks
-    const { data: maintenanceTasks } = await supabase
-      .from('maintenance_tasks')
-      .select('id')
+    // Step 5: Delete all associated trips
+    const { error: tripsError } = await supabase
+      .from('trips')
+      .delete()
       .eq('vehicle_id', id);
 
-    if (maintenanceTasks && maintenanceTasks.length > 0) {
-      const maintenanceTaskIds = maintenanceTasks.map(task => task.id);
-      const { error: serviceTasksError } = await supabase
-        .from('maintenance_service_tasks')
-        .delete()
-        .in('maintenance_task_id', maintenanceTaskIds);
-
-      if (serviceTasksError) {
-        console.error('Error deleting associated maintenance service tasks:', serviceTasksError);
-        // Don't throw error here as service tasks might not exist
-      }
+    if (tripsError) {
+      console.error('Error deleting associated trips:', tripsError);
+      throw new Error(`Failed to delete associated trips: ${tripsError.message}`);
     }
 
-    // Step 4: Delete associated maintenance audit logs
-    const { error: auditLogsError } = await supabase
-      .from('maintenance_audit_logs')
-      .delete()
-      .eq('task_id', id);
-
-    if (auditLogsError) {
-      console.error('Error deleting maintenance audit logs:', auditLogsError);
-      // Don't throw error here as audit logs might not exist
+    // Step 6: Log the deletion activity before deleting activity logs
+    if (user) {
+      await logVehicleActivity(
+        id,
+        'deleted',
+        user.email || user.id,
+        `Vehicle deleted: ${vehicle?.registration_number || id}`
+      );
     }
 
-    // Step 5: Delete the vehicle activity logs
+    // Step 7: Delete the vehicle activity logs
     const { error: activityLogsError } = await supabase
       .from('vehicle_activity_log')
       .delete()
@@ -478,10 +481,10 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
 
     if (activityLogsError) {
       console.error('Error deleting vehicle activity logs:', activityLogsError);
-      // Don't throw error here as activity logs are not critical for deletion
+      throw new Error(`Failed to delete vehicle activity logs: ${activityLogsError.message}`);
     }
 
-    // Step 6: Finally delete the vehicle itself
+    // Step 8: Finally delete the vehicle itself
     const { error: vehicleError } = await supabase
       .from('vehicles')
       .delete()
