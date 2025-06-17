@@ -140,7 +140,7 @@ const createSupabaseClient = () => {
   }
 
   try {
-    // Create the client with additional options for better error handling
+    // Create the client with minimal configuration to avoid interfering with default behavior
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,
@@ -149,51 +149,6 @@ const createSupabaseClient = () => {
       global: {
         headers: {
           'X-Client-Info': 'vehicle-management-system'
-        },
-        // Add custom fetch function to handle network errors gracefully
-        fetch: async (url, options = {}) => {
-          try {
-            const response = await fetch(url, {
-              ...options,
-              headers: {
-                ...options.headers,
-              }
-            });
-            
-            // Check if the response is ok
-            if (!response.ok) {
-              // Log the error for debugging
-              console.error(`Supabase API error: ${response.status} ${response.statusText}`);
-              
-              // If it's a 401, it might be an auth issue
-              if (response.status === 401) {
-                console.error('Authentication error. Please check your Supabase anon key.');
-              }
-              
-              // If it's a 404, the resource might not exist
-              if (response.status === 404) {
-                console.error('Resource not found. Please check your Supabase project URL.');
-              }
-            }
-            
-            return response;
-          } catch (error) {
-            // Handle network errors
-            console.error('Network error when connecting to Supabase:', error);
-            
-            // Check if it's a fetch error (network issue)
-            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-              console.error('Failed to connect to Supabase. Please check:');
-              console.error('1. Your internet connection');
-              console.error('2. Supabase project URL:', supabaseUrl);
-              console.error('3. Supabase project status');
-              
-              // Create a response-like object for the error
-              throw new Error(`Network error: Unable to connect to Supabase at ${supabaseUrl}. Please check your connection and Supabase project status.`);
-            }
-            
-            throw error;
-          }
         }
       }
     });
