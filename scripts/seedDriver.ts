@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+
 console.log('▶️ Script started');
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -26,15 +27,16 @@ async function seedDriver() {
   
   // Map the provided driver data to match our database schema
   const driverData = {
-    name: "Ashok Meena",
-    license_number: "CG202301234567",
-    contact_number: "7894561230",
-    email: "ashok.meena@example.com", // Added a placeholder email
-    join_date: "2024-11-09",
+    name: "Ravi Shankar",
+    license_number: "MH20LS7823",
+    contact_number: "9876543210",
+    email: "ravi.shankar@example.com", 
+    join_date: "2023-08-15",
     status: "active",
-    experience_years: 8, // As specified in your data
+    experience_years: 5, 
     documents_verified: true,
-    driver_photo_url: "https://example.com/photos/ashok_meena.jpg"
+    driver_photo_url: "https://example.com/photos/ravi_shankar.jpg",
+    license_expiry_date: "2026-08-14"
   };
 
   try {
