@@ -634,6 +634,12 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
+  // Validate the ID parameter before making the request
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    console.error('Invalid destination ID provided:', id);
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('destinations')
     .select('*')
