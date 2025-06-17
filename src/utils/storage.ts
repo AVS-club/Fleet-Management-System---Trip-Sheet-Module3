@@ -1,5 +1,6 @@
 import { Trip, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../types'; 
 import { supabase } from './supabaseClient';
+import { logVehicleActivity } from './vehicleActivity';
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) => 
@@ -301,6 +302,17 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
     await uploadVehicleProfile(data);
   }
 
+  // Log the vehicle creation activity
+  const { data: { user } } = await supabase.auth.getUser();
+  if (data && user) {
+    await logVehicleActivity(
+      data.id,
+      'updated',
+      user.email || user.id,
+      'Vehicle created'
+    );
+  }
+
   return data;
 };
 
@@ -354,10 +366,47 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
     await uploadVehicleProfile(data);
   }
 
+  // Log the vehicle update activity
+  const { data: { user } } = await supabase.auth.getUser();
+  if (data && user) {
+    let actionType: 'updated' | 'archived' | 'assigned_driver' | 'unassigned_driver' = 'updated';
+    let notes = 'Vehicle information updated';
+
+    // Determine the action type based on the updated fields
+    if (updatedVehicle.status === 'archived') {
+      actionType = 'archived';
+      notes = 'Vehicle archived';
+    } else if (updatedVehicle.primary_driver_id !== undefined) {
+      if (updatedVehicle.primary_driver_id === null) {
+        actionType = 'unassigned_driver';
+        notes = 'Driver unassigned from vehicle';
+      } else {
+        actionType = 'assigned_driver';
+        notes = 'Driver assigned to vehicle';
+      }
+    }
+
+    await logVehicleActivity(
+      id,
+      actionType,
+      user.email || user.id,
+      notes
+    );
+  }
+
   return data;
 };
 
 export const deleteVehicle = async (id: string): Promise<boolean> => {
+  // Get current user before deletion
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: vehicle } = await supabase
+    .from('vehicles')
+    .select('registration_number')
+    .eq('id', id)
+    .single();
+
+  // Perform the deletion
   const { error } = await supabase
     .from('vehicles')
     .delete()
@@ -368,7 +417,64 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     return false;
   }
 
+  // Log the deletion if we have user info
+  if (user) {
+    await logVehicleActivity(
+      id,
+      'deleted',
+      user.email || user.id,
+      `Vehicle deleted: ${vehicle?.registration_number || id}`
+    );
+  }
+
   return true;
+};
+
+export const bulkUpdateVehicles = async (
+  vehicleIds: string[], 
+  updates: Partial<Vehicle>
+): Promise<{ success: number; failed: number }> => {
+  let successCount = 0;
+  let failedCount = 0;
+  
+  for (const id of vehicleIds) {
+    try {
+      const result = await updateVehicle(id, updates);
+      if (result) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    } catch (error) {
+      console.error(`Error updating vehicle ${id}:`, error);
+      failedCount++;
+    }
+  }
+  
+  return { success: successCount, failed: failedCount };
+};
+
+export const bulkDeleteVehicles = async (
+  vehicleIds: string[]
+): Promise<{ success: number; failed: number }> => {
+  let successCount = 0;
+  let failedCount = 0;
+  
+  for (const id of vehicleIds) {
+    try {
+      const result = await deleteVehicle(id);
+      if (result) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    } catch (error) {
+      console.error(`Error deleting vehicle ${id}:`, error);
+      failedCount++;
+    }
+  }
+  
+  return { success: successCount, failed: failedCount };
 };
 
 // Drivers CRUD operations with Supabase
@@ -808,6 +914,45 @@ export const updateAllTripMileage = async (): Promise<void> => {
   }
 };
 
+// Export vehicle data to CSV
+export const exportVehicleData = async (vehicleData: any[]): Promise<string> => {
+  // Get the current user for logging
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Create CSV header and content
+  let csvContent = 'Registration Number,Make,Model,Year,Type,Fuel Type,Status,Current Odometer,Total Trips,Total Distance,Average Mileage\n';
+  
+  for (const vehicle of vehicleData) {
+    const row = [
+      vehicle.registration_number,
+      vehicle.make,
+      vehicle.model,
+      vehicle.year,
+      vehicle.type,
+      vehicle.fuel_type,
+      vehicle.status,
+      vehicle.current_odometer,
+      vehicle.stats?.totalTrips || 0,
+      vehicle.stats?.totalDistance || 0,
+      vehicle.stats?.averageKmpl ? vehicle.stats.averageKmpl.toFixed(2) : 'N/A'
+    ].map(value => `"${value}"`).join(',');
+    
+    csvContent += row + '\n';
+    
+    // Log export activity for each vehicle
+    if (user) {
+      await logVehicleActivity(
+        vehicle.id,
+        'exported',
+        user.email || user.id,
+        'Vehicle data exported to CSV'
+      );
+    }
+  }
+  
+  return csvContent;
+};
+
 export default {
   getTrips,
   getTrip,
@@ -819,6 +964,8 @@ export default {
   createVehicle,
   updateVehicle,
   deleteVehicle,
+  bulkUpdateVehicles,
+  bulkDeleteVehicles,
   getDrivers,
   getDriver,
   createDriver,
@@ -832,5 +979,6 @@ export default {
   analyzeRoute,
   generateAlerts,
   getVehicleStats,
-  updateAllTripMileage
+  updateAllTripMileage,
+  exportVehicleData
 };

@@ -23,6 +23,7 @@ import DriversPage from './pages/DriversPage';
 import DriverPage from './pages/DriverPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import VehicleManagementPage from './pages/admin/VehicleManagementPage';
 import { updateAllTripMileage } from './utils/storage';
 import { ThemeProvider } from './utils/themeContext';
 
@@ -139,6 +140,7 @@ function App() {
             <Route path="/admin/maintenance-tasks" element={<MaintenanceTasksAdmin />} />
             <Route path="/admin/trip-locations" element={<TripLocationsPage />} />
             <Route path="/admin/reminders" element={<RemindersPage />} />
+            <Route path="/admin/vehicle-management" element={<VehicleManagementPage />} />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/:id" element={<VehiclePage />} />
             <Route path="/drivers" element={<DriversPage />} />

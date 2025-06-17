@@ -132,7 +132,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/vehicles"
+                to="/admin/vehicle-management"
                 className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-4">
@@ -142,7 +142,7 @@ const AdminDashboard: React.FC = () => {
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">Vehicle Management</h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      Manage vehicle fleet and maintenance
+                      Advanced vehicle management and administration
                     </p>
                   </div>
                 </div>
@@ -264,9 +264,14 @@ const AdminDashboard: React.FC = () => {
                       <h2 className="text-lg font-medium text-gray-900">Vehicle Management</h2>
                       <p className="text-sm text-gray-500">Manage vehicle master data and configurations</p>
                     </div>
-                    <Link to="/vehicles">
-                      <Button>Manage Vehicles</Button>
-                    </Link>
+                    <div className="flex space-x-3">
+                      <Link to="/vehicles">
+                        <Button>Manage Vehicles</Button>
+                      </Link>
+                      <Link to="/admin/vehicle-management">
+                        <Button variant="primary">Advanced Management</Button>
+                      </Link>
+                    </div>
                   </div>
                   <DataTable
                     columns={vehicleColumns}

@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   fullWidth?: boolean;
@@ -29,6 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
     outline: 'border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700',
     ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200',
     danger: 'bg-error-500 hover:bg-error-600 dark:bg-error-600 dark:hover:bg-error-500 text-white shadow-sm',
+    warning: 'bg-warning-500 hover:bg-warning-600 dark:bg-warning-600 dark:hover:bg-warning-500 text-white shadow-sm',
   };
 
   const sizes = {
