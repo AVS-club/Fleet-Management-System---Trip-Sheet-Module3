@@ -51,21 +51,40 @@ function App() {
       const isConnected = await testSupabaseConnection();
       
       if (!isConnected) {
-        setConnectionError("Could not connect to Supabase. Please check your API keys in the .env file.");
+        setConnectionError("Could not connect to Supabase. Please check your API keys and network connection.");
         setLoading(false);
         return;
       }
       
       try {
         // Update all trip mileage calculations when the app starts
+        // This is wrapped in an additional try-catch to ensure any network errors don't crash the app
         await updateAllTripMileage();
       } catch (error) {
         console.warn('Failed to update trip mileage:', error);
-        // Continue app initialization even if this fails
+        
+        // If the error is a network/connection error, show connection error
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          setConnectionError("Network connection failed while initializing data. Please check your internet connection and Supabase configuration.");
+          setLoading(false);
+          return;
+        }
+        
+        // Continue app initialization for other types of errors
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+      } catch (error) {
+        console.error('Failed to get session:', error);
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          setConnectionError("Network connection failed while getting user session. Please check your internet connection and Supabase configuration.");
+          setLoading(false);
+          return;
+        }
+      }
+      
       setLoading(false);
     };
 
@@ -107,6 +126,7 @@ function App() {
               <li>Ensure your Supabase project is up and running</li>
               <li>Verify that your network can access the Supabase API</li>
               <li>Check your Supabase project's CORS settings in the dashboard and ensure that <code className="bg-gray-100 px-1 rounded">http://localhost:5173</code> is added to the allowed origins</li>
+              <li>For WebContainer environments, also add your current domain to the CORS allowed origins</li>
               <li>Try reloading the page after fixing the issue</li>
             </ol>
           </div>

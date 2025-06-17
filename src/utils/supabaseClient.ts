@@ -163,24 +163,52 @@ const createSupabaseClient = () => {
 export const supabase = createSupabaseClient();
 export const isSupabaseConfigured = isConfigured;
 
-// Helper function to check if Supabase is accessible
+// Helper function to check if Supabase is accessible with more comprehensive testing
 export const testSupabaseConnection = async (): Promise<boolean> => {
   if (!isConfigured) {
     return false;
   }
 
   try {
-    // Try a simple query to test the connection
-    const { error } = await supabase.from('vehicles').select('count', { count: 'exact', head: true });
+    // Test 1: Try a simple count query
+    const { error: countError } = await supabase.from('vehicles').select('count', { count: 'exact', head: true });
     
-    if (error) {
-      console.error('Supabase connection test failed:', error.message);
+    if (countError) {
+      console.error('Supabase connection test failed (count query):', countError.message);
+      return false;
+    }
+
+    // Test 2: Try to actually fetch some data to test more comprehensive access
+    const { error: selectError } = await supabase
+      .from('vehicles')
+      .select('id')
+      .limit(1);
+    
+    if (selectError) {
+      console.error('Supabase connection test failed (select query):', selectError.message);
+      return false;
+    }
+
+    // Test 3: Check if we can access trips table (used by updateAllTripMileage)
+    const { error: tripError } = await supabase
+      .from('trips')
+      .select('id')
+      .limit(1);
+    
+    if (tripError) {
+      console.error('Supabase connection test failed (trips query):', tripError.message);
       return false;
     }
     
     return true;
   } catch (error) {
     console.error('Supabase connection test error:', error);
+    
+    // Check if it's a network error specifically
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      console.error('Network connection failed. Please check your internet connection and Supabase URL.');
+    }
+    
     return false;
   }
 };
