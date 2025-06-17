@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed:vehicle": "tsx scripts/seedVehicle.ts",
-    "seed:driver": "tsx scripts/seedDriver.ts",
+    "seed:driver": "tsx src/scripts/seedDriver.ts",
     "seed:trip": "tsx scripts/seedTrip.ts",
     "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
     "fetch:drivers": "tsx scripts/fetchDrivers.ts"
