@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Trip, Vehicle, Driver } from '../../types';
-import { ChevronDown, ChevronUp, Search, Filter, Download, Upload, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2 } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -23,6 +23,7 @@ interface TripsTableProps {
   vehicles: Vehicle[];
   drivers: Driver[];
   onUpdateTrip: (tripId: string, updates: Partial<Trip>) => void;
+  onDeleteTrip: (tripId: string) => Promise<void>;
   onExport: () => void;
   onImport: (file: File) => void;
   onDownloadFormat: () => void;
@@ -33,6 +34,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
   vehicles,
   drivers,
   onUpdateTrip,
+  onDeleteTrip,
   onExport,
   onImport,
   onDownloadFormat
@@ -147,18 +149,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
     direction: 'asc' | 'desc';
   } | null>(null);
 
-  const [filters, setFilters] = useState<{
-    search: string;
-    vehicle: string;
-    driver: string;
-    dateRange: { start: string; end: string };
-  }>({
-    search: '',
-    vehicle: '',
-    driver: '',
-    dateRange: { start: '', end: '' }
-  });
-
   const [editingCell, setEditingCell] = useState<{
     tripId: string;
     columnId: string;
@@ -185,44 +175,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
         : Number(bValue) - Number(aValue);
     });
   }, [trips, sortConfig, columns, vehicles, drivers]);
-
-  const filteredTrips = useMemo(() => {
-    return sortedTrips.filter(trip => {
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
-        const driver = drivers.find(d => d.id === trip.driver_id);
-        
-        const searchFields = [
-          trip.trip_serial_number,
-          vehicle?.registration_number,
-          driver?.name,
-          trip.station
-        ].map(field => field?.toLowerCase());
-
-        if (!searchFields.some(field => field?.includes(searchTerm))) {
-          return false;
-        }
-      }
-
-      if (filters.vehicle && trip.vehicle_id !== filters.vehicle) {
-        return false;
-      }
-
-      if (filters.driver && trip.driver_id !== filters.driver) {
-        return false;
-      }
-
-      if (filters.dateRange.start && new Date(trip.trip_start_date) < new Date(filters.dateRange.start)) {
-        return false;
-      }
-      if (filters.dateRange.end && new Date(trip.trip_end_date) > new Date(filters.dateRange.end)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [sortedTrips, filters, vehicles, drivers]);
 
   const handleSort = (columnId: string) => {
     setSortConfig(current => {
@@ -271,6 +223,12 @@ const TripsTable: React.FC<TripsTableProps> = ({
     }
   };
 
+  const handleDeleteTrip = async (tripId: string) => {
+    if (window.confirm('Are you sure you want to permanently delete this trip? This action cannot be undone.')) {
+      await onDeleteTrip(tripId);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg shadow-sm">
@@ -278,53 +236,11 @@ const TripsTable: React.FC<TripsTableProps> = ({
           <Input
             placeholder="Search trips..."
             icon={<Search className="h-4 w-4" />}
-            value={filters.search}
-            onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+            onChange={() => {}} // This is now handled in the parent component
+            disabled={true}
           />
         </div>
         
-        <Select
-          options={[
-            { value: '', label: 'All Vehicles' },
-            ...(vehicles || []).map(v => ({
-              value: v.id,
-              label: v.registration_number
-            }))
-          ]}
-          value={filters.vehicle}
-          onChange={e => setFilters(f => ({ ...f, vehicle: e.target.value }))}
-        />
-        
-        <Select
-          options={[
-            { value: '', label: 'All Drivers' },
-            ...drivers.map(d => ({
-              value: d.id,
-              label: d.name
-            }))
-          ]}
-          value={filters.driver}
-          onChange={e => setFilters(f => ({ ...f, driver: e.target.value }))}
-        />
-        
-        <Input
-          type="date"
-          value={filters.dateRange.start}
-          onChange={e => setFilters(f => ({
-            ...f,
-            dateRange: { ...f.dateRange, start: e.target.value }
-          }))}
-        />
-        
-        <Input
-          type="date"
-          value={filters.dateRange.end}
-          onChange={e => setFilters(f => ({
-            ...f,
-            dateRange: { ...f.dateRange, end: e.target.value }
-          }))}
-        />
-
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -387,47 +303,67 @@ const TripsTable: React.FC<TripsTableProps> = ({
                   </div>
                 </th>
               ))}
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTrips.map(trip => (
-              <tr key={trip.id} className="hover:bg-gray-50">
-                {columns.map(column => (
-                  <td
-                    key={`${trip.id}-${column.id}`}
-                    className="px-6 py-4 whitespace-nowrap text-sm"
-                    onClick={() => column.editable && setEditingCell({
-                      tripId: trip.id,
-                      columnId: column.id
-                    })}
-                  >
-                    {editingCell?.tripId === trip.id && 
-                     editingCell?.columnId === column.id ? (
-                      column.type === 'select' ? (
-                        <Select
-                          options={column.options || []}
-                          value={column.id === 'vehicle' ? trip.vehicle_id : trip.driver_id}
-                          onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
-                          autoFocus
-                        />
+            {sortedTrips.length > 0 ? (
+              sortedTrips.map(trip => (
+                <tr key={trip.id} className="hover:bg-gray-50">
+                  {columns.map(column => (
+                    <td
+                      key={`${trip.id}-${column.id}`}
+                      className="px-6 py-4 whitespace-nowrap text-sm"
+                      onClick={() => column.editable && setEditingCell({
+                        tripId: trip.id,
+                        columnId: column.id
+                      })}
+                    >
+                      {editingCell?.tripId === trip.id && 
+                       editingCell?.columnId === column.id ? (
+                        column.type === 'select' ? (
+                          <Select
+                            options={column.options || []}
+                            value={column.id === 'vehicle' ? trip.vehicle_id : trip.driver_id}
+                            onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
+                            autoFocus
+                          />
+                        ) : (
+                          <Input
+                            type={column.type || 'text'}
+                            value={column.accessor(trip, vehicles, drivers).toString()}
+                            onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
+                            autoFocus
+                            onBlur={() => setEditingCell(null)}
+                          />
+                        )
                       ) : (
-                        <Input
-                          type={column.type || 'text'}
-                          value={column.accessor(trip, vehicles, drivers).toString()}
-                          onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
-                          autoFocus
-                          onBlur={() => setEditingCell(null)}
-                        />
-                      )
-                    ) : (
-                      <span className={column.editable ? 'cursor-pointer' : ''}>
-                        {column.accessor(trip, vehicles, drivers)}
-                      </span>
-                    )}
+                        <span className={column.editable ? 'cursor-pointer' : ''}>
+                          {column.accessor(trip, vehicles, drivers)}
+                        </span>
+                      )}
+                    </td>
+                  ))}
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => handleDeleteTrip(trip.id)}
+                      className="text-error-600 hover:text-error-900"
+                      title="Delete Trip"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </td>
-                ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-gray-500">
+                  No trips match your filter criteria
+                </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

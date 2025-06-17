@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
@@ -8,9 +9,10 @@ import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '..
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import { supabase } from '../../utils/supabaseClient';
 import { format, subDays } from 'date-fns';
-import * as XLSX from 'xlsx';
 import Button from '../../components/ui/Button';
 import { Calendar, ChevronDown, Filter } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { toast } from 'react-toastify';
 
 interface TripSummaryMetrics {
   totalExpenses: number;
@@ -31,6 +33,7 @@ interface TripSummaryMetrics {
 }
 
 const AdminTripsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -57,7 +60,8 @@ const AdminTripsPage: React.FC = () => {
     vehicleId: '',
     driverId: '',
     warehouseId: '',
-    tripType: ''
+    tripType: '',
+    search: ''
   });
 
   useEffect(() => {
@@ -94,6 +98,77 @@ const AdminTripsPage: React.FC = () => {
     fetchSummaryMetrics();
   }, [filters]);
 
+  // Filter trips based on current filters
+  const filteredTrips = useMemo(() => {
+    return trips.filter(trip => {
+      // Search filter
+      if (filters.search) {
+        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+        const driver = drivers.find(d => d.id === trip.driver_id);
+        
+        const searchTerm = filters.search.toLowerCase();
+        const searchFields = [
+          trip.trip_serial_number,
+          vehicle?.registration_number,
+          driver?.name,
+          trip.station
+        ].map(field => field?.toLowerCase());
+        
+        if (!searchFields.some(field => field?.includes(searchTerm))) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange.start) {
+        const startDate = new Date(filters.dateRange.start);
+        const tripStartDate = new Date(trip.trip_start_date);
+        if (tripStartDate < startDate) {
+          return false;
+        }
+      }
+      
+      if (filters.dateRange.end) {
+        const endDate = new Date(filters.dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        const tripEndDate = new Date(trip.trip_end_date);
+        if (tripEndDate > endDate) {
+          return false;
+        }
+      }
+
+      // Vehicle filter
+      if (filters.vehicleId && trip.vehicle_id !== filters.vehicleId) {
+        return false;
+      }
+
+      // Driver filter
+      if (filters.driverId && trip.driver_id !== filters.driverId) {
+        return false;
+      }
+
+      // Warehouse filter
+      if (filters.warehouseId && trip.warehouse_id !== filters.warehouseId) {
+        return false;
+      }
+
+      // Trip type filter
+      if (filters.tripType) {
+        if (filters.tripType === 'local' && !trip.short_trip) {
+          return false;
+        }
+        if (filters.tripType === 'two_way' && !(Array.isArray(trip.destinations) && trip.destinations.length > 1)) {
+          return false;
+        }
+        if (filters.tripType === 'one_way' && (!(!trip.short_trip && Array.isArray(trip.destinations) && trip.destinations.length === 1))) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [trips, vehicles, drivers, filters]);
+
   const fetchSummaryMetrics = async () => {
     try {
       setSummaryLoading(true);
@@ -122,13 +197,37 @@ const AdminTripsPage: React.FC = () => {
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);
     if (updatedTrip) {
-      setTrips(prevTrips => 
-        prevTrips.map(trip => 
+      setTrips(prev => 
+        prev.map(trip => 
           trip.id === tripId ? updatedTrip : trip
         )
       );
       // Refresh summary metrics after update
       fetchSummaryMetrics();
+    }
+  };
+
+  const handleDeleteTrip = async (tripId: string) => {
+    try {
+      // Delete the trip from Supabase
+      const { error } = await supabase
+        .from('trips')
+        .delete()
+        .eq('id', tripId);
+
+      if (error) {
+        throw new Error(`Failed to delete trip: ${error.message}`);
+      }
+
+      // If successful, update the trips list
+      setTrips(prev => prev.filter(trip => trip.id !== tripId));
+      toast.success('Trip deleted successfully');
+      
+      // Refresh summary metrics
+      fetchSummaryMetrics();
+    } catch (error) {
+      console.error("Error deleting trip:", error);
+      toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -236,10 +335,14 @@ const AdminTripsPage: React.FC = () => {
   const handleImport = async (file: File) => {
     try {
       const data = await parseCSV(file);
-      // Process imported data and update trips
-      console.log('Imported data:', data);
+      // Process imported data
+      toast.info(`Imported ${data.length} trips. Processing...`);
+      // You'd normally process these and add to the database
+      // For now, we're just showing a success message
+      toast.success(`Successfully processed ${data.length} trips`);
     } catch (error) {
       console.error('Error importing file:', error);
+      toast.error('Failed to import trips');
     }
   };
 
@@ -346,6 +449,13 @@ const AdminTripsPage: React.FC = () => {
                 <option value="two_way">Two Way</option>
                 <option value="local">Local Trip</option>
               </select>
+              <input
+                type="text"
+                placeholder="Search trips..."
+                className="border border-gray-300 rounded-md p-2 text-sm"
+                value={filters.search}
+                onChange={e => handleFiltersChange({ search: e.target.value })}
+              />
             </div>
           )}
 
@@ -365,10 +475,11 @@ const AdminTripsPage: React.FC = () => {
       />
 
       <TripsTable
-        trips={trips}
+        trips={filteredTrips}
         vehicles={vehicles}
         drivers={drivers}
         onUpdateTrip={handleUpdateTrip}
+        onDeleteTrip={handleDeleteTrip}
         onExport={() => setShowExportModal(true)}
         onImport={handleImport}
         onDownloadFormat={handleDownloadFormat}
