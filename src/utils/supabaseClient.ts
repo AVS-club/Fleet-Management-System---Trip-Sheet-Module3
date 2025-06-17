@@ -140,7 +140,7 @@ const createSupabaseClient = () => {
   }
 
   try {
-    // Create the client with minimal configuration to avoid interfering with default behavior
+    // Create the client with standard configuration
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: true,

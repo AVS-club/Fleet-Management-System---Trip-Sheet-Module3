@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from './utils/supabaseClient';
+import { supabase, testSupabaseConnection } from './utils/supabaseClient';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoadingScreen from './components/LoadingScreen';
 import AVSChatbot from './components/AVSChatbot';
@@ -41,19 +41,34 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ session }) => {
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   const navigate = useNavigate(); // For programmatic navigation
 
   useEffect(() => {
-    // Update all trip mileage calculations when the app starts
-    updateAllTripMileage();
+    const initializeApp = async () => {
+      // Test Supabase connection before trying to use it
+      const isConnected = await testSupabaseConnection();
+      
+      if (!isConnected) {
+        setConnectionError("Could not connect to Supabase. Please check your API keys in the .env file.");
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        // Update all trip mileage calculations when the app starts
+        await updateAllTripMileage();
+      } catch (error) {
+        console.warn('Failed to update trip mileage:', error);
+        // Continue app initialization even if this fails
+      }
 
-    const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setLoading(false);
     };
 
-    getSession();
+    initializeApp();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -72,6 +87,36 @@ function App() {
 
   if (loading) {
     return <LoadingScreen isLoading={true} />;
+  }
+
+  // Show connection error message if applicable
+  if (connectionError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="bg-error-50 border border-error-200 rounded-lg p-6 max-w-md w-full text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-error-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h2 className="text-2xl font-bold text-error-800 mb-2">Connection Error</h2>
+          <p className="text-error-600 mb-6">{connectionError}</p>
+          <div className="bg-white p-4 rounded-lg border border-error-100 text-left mb-4">
+            <p className="font-medium text-gray-900 mb-1">Troubleshooting steps:</p>
+            <ol className="list-decimal pl-5 text-sm space-y-1 text-gray-600">
+              <li>Check that your Supabase URL and anon key are correctly set in the .env file</li>
+              <li>Ensure your Supabase project is up and running</li>
+              <li>Verify that your network can access the Supabase API</li>
+              <li>Try reloading the page after fixing the issue</li>
+            </ol>
+          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
