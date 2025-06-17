@@ -22,6 +22,27 @@ const TripMap: React.FC<TripMapProps> = ({
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const getDirectionsErrorMessage = (status: google.maps.DirectionsStatus): string => {
+    switch (status) {
+      case google.maps.DirectionsStatus.ZERO_RESULTS:
+        return 'No drivable route found between the selected locations. Please check the coordinates or try different locations.';
+      case google.maps.DirectionsStatus.NOT_FOUND:
+        return 'One or more locations could not be found. Please verify the coordinates.';
+      case google.maps.DirectionsStatus.OVER_QUERY_LIMIT:
+        return 'Too many requests. Please try again later.';
+      case google.maps.DirectionsStatus.REQUEST_DENIED:
+        return 'Directions request was denied. Please check your API key permissions.';
+      case google.maps.DirectionsStatus.INVALID_REQUEST:
+        return 'Invalid directions request. Please check the route parameters.';
+      case google.maps.DirectionsStatus.MAX_WAYPOINTS_EXCEEDED:
+        return 'Too many waypoints in the route. Please reduce the number of destinations.';
+      case google.maps.DirectionsStatus.MAX_ROUTE_LENGTH_EXCEEDED:
+        return 'The route is too long. Please try a shorter route.';
+      default:
+        return `Directions request failed: ${status}`;
+    }
+  };
+
   useEffect(() => {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -194,6 +215,7 @@ const TripMap: React.FC<TripMapProps> = ({
                 directionsRenderer.setDirections(result);
               } else {
                 console.error('Directions request failed:', status);
+                setError(getDirectionsErrorMessage(status));
               }
             });
           }
