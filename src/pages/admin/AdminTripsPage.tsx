@@ -6,7 +6,29 @@ import ExportOptionsModal, { ExportOptions } from '../../components/admin/Export
 import { Trip, Vehicle, Driver, Warehouse } from '../../types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
+import { supabase } from '../../utils/supabaseClient';
+import { format, subDays } from 'date-fns';
 import * as XLSX from 'xlsx';
+import Button from '../../components/ui/Button';
+import { Calendar, ChevronDown, Filter } from 'lucide-react';
+
+interface TripSummaryMetrics {
+  totalExpenses: number;
+  avgDistance: number;
+  tripCount: number;
+  meanMileage: number;
+  topDriver: {
+    id: string;
+    name: string;
+    totalDistance: number;
+    tripCount: number;
+  } | null;
+  topVehicle: {
+    id: string;
+    registrationNumber: string;
+    tripCount: number;
+  } | null;
+}
 
 const AdminTripsPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -14,26 +36,88 @@ const AdminTripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  // const [pageSize, setPageSize] = useState(50); // This state is not used by TripsTable, consider removing if not needed elsewhere.
+  const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryMetrics, setSummaryMetrics] = useState<TripSummaryMetrics>({
+    totalExpenses: 0,
+    avgDistance: 0,
+    tripCount: 0,
+    meanMileage: 0,
+    topDriver: null,
+    topVehicle: null
+  });
+
+  // Filter state
+  const [filters, setFilters] = useState({
+    dateRange: {
+      start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+      end: format(new Date(), 'yyyy-MM-dd')
+    },
+    vehicleId: '',
+    driverId: '',
+    warehouseId: '',
+    tripType: ''
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const tripsData = await getTrips();
-        const vehiclesData = await getVehicles();
-        const driversData = await getDrivers();
-        const warehousesData = await getWarehouses();
+        setLoading(true);
+        setSummaryLoading(true);
+
+        const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+          getTrips(),
+          getVehicles(),
+          getDrivers(),
+          getWarehouses()
+        ]);
         setTrips(tripsData);
         setVehicles(vehiclesData);
         setDrivers(driversData);
         setWarehouses(warehousesData);
+
+        // Fetch summary metrics
+        await fetchSummaryMetrics();
+        setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
-        // Optionally, set some error state here to display to the user
+        setLoading(false);
+        setSummaryLoading(false);
       }
     };
     fetchData();
   }, []);
+
+  // Fetch summary metrics when filters change
+  useEffect(() => {
+    fetchSummaryMetrics();
+  }, [filters]);
+
+  const fetchSummaryMetrics = async () => {
+    try {
+      setSummaryLoading(true);
+      
+      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
+        start_date: filters.dateRange.start ? new Date(filters.dateRange.start).toISOString() : null,
+        end_date: filters.dateRange.end ? new Date(filters.dateRange.end).toISOString() : null,
+        p_vehicle_id: filters.vehicleId || null,
+        p_driver_id: filters.driverId || null,
+        p_warehouse_id: filters.warehouseId || null,
+        p_trip_type: filters.tripType || null
+      });
+      
+      if (error) {
+        console.error("Error fetching summary metrics:", error);
+      } else if (data) {
+        setSummaryMetrics(data);
+      }
+    } catch (error) {
+      console.error("Exception fetching summary metrics:", error);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
 
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);
@@ -43,7 +127,16 @@ const AdminTripsPage: React.FC = () => {
           trip.id === tripId ? updatedTrip : trip
         )
       );
+      // Refresh summary metrics after update
+      fetchSummaryMetrics();
     }
+  };
+
+  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
   };
 
   const handleExport = (options: ExportOptions) => {
@@ -77,8 +170,8 @@ const AdminTripsPage: React.FC = () => {
     if (options.tripType) {
       filteredTrips = filteredTrips.filter(trip => {
         if (options.tripType === 'local') return trip.short_trip;
-        if (options.tripType === 'two_way') return trip.destinations.length > 1;
-        return !trip.short_trip && trip.destinations.length === 1;
+        if (options.tripType === 'two_way') return Array.isArray(trip.destinations) && trip.destinations.length > 1;
+        return !trip.short_trip && Array.isArray(trip.destinations) && trip.destinations.length === 1;
       });
     }
 
@@ -150,15 +243,125 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
+  const getActiveFiltersText = () => {
+    const parts = [];
+    
+    if (filters.vehicleId) {
+      const vehicle = vehicles.find(v => v.id === filters.vehicleId);
+      parts.push(`Vehicle: ${vehicle?.registration_number || 'Unknown'}`);
+    } else {
+      parts.push('Vehicle: All');
+    }
+    
+    if (filters.driverId) {
+      const driver = drivers.find(d => d.id === filters.driverId);
+      parts.push(`Driver: ${driver?.name || 'Unknown'}`);
+    } else {
+      parts.push('Driver: All');
+    }
+    
+    if (filters.dateRange.start && filters.dateRange.end) {
+      parts.push(`Dates: ${format(new Date(filters.dateRange.start), 'dd MMM yyyy')} - ${format(new Date(filters.dateRange.end), 'dd MMM yyyy')}`);
+    }
+    
+    return parts.join(', ');
+  };
+
   return (
     <Layout
       title="Trip Management"
       subtitle="View and manage all trip records"
     >
+      {/* Filters */}
+      {!loading && (
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-2">
+            <h3 className="text-lg font-medium">Trip Filters</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowFilters(!showFilters)}
+              icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+            >
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Button>
+          </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="flex gap-2 items-center">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <div className="grid grid-cols-2 gap-2 flex-1">
+                  <input
+                    type="date"
+                    className="border border-gray-300 rounded-md p-2 text-sm"
+                    value={filters.dateRange.start}
+                    onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, start: e.target.value } })}
+                  />
+                  <input
+                    type="date"
+                    className="border border-gray-300 rounded-md p-2 text-sm"
+                    value={filters.dateRange.end}
+                    onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, end: e.target.value } })}
+                  />
+                </div>
+              </div>
+              <select
+                className="border border-gray-300 rounded-md p-2 text-sm"
+                value={filters.vehicleId}
+                onChange={e => handleFiltersChange({ vehicleId: e.target.value })}
+              >
+                <option value="">All Vehicles</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.registration_number}</option>
+                ))}
+              </select>
+              <select
+                className="border border-gray-300 rounded-md p-2 text-sm"
+                value={filters.driverId}
+                onChange={e => handleFiltersChange({ driverId: e.target.value })}
+              >
+                <option value="">All Drivers</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              <select
+                className="border border-gray-300 rounded-md p-2 text-sm"
+                value={filters.warehouseId}
+                onChange={e => handleFiltersChange({ warehouseId: e.target.value })}
+              >
+                <option value="">All Warehouses</option>
+                {warehouses.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+              <select
+                className="border border-gray-300 rounded-md p-2 text-sm"
+                value={filters.tripType}
+                onChange={e => handleFiltersChange({ tripType: e.target.value })}
+              >
+                <option value="">All Trip Types</option>
+                <option value="one_way">One Way</option>
+                <option value="two_way">Two Way</option>
+                <option value="local">Local Trip</option>
+              </select>
+            </div>
+          )}
+
+          {/* Active filters display */}
+          <div className="bg-gray-100 px-3 py-1.5 text-sm text-gray-600 rounded">
+            <strong>Active Filters:</strong> {getActiveFiltersText()}
+          </div>
+        </div>
+      )}
+
       <TripsSummary
         trips={trips}
         vehicles={vehicles}
         drivers={drivers}
+        loading={summaryLoading}
+        metrics={summaryMetrics}
       />
 
       <TripsTable
@@ -169,8 +372,6 @@ const AdminTripsPage: React.FC = () => {
         onExport={() => setShowExportModal(true)}
         onImport={handleImport}
         onDownloadFormat={handleDownloadFormat}
-        // pageSize={pageSize} // pageSize is not a prop of TripsTable
-        // onPageSizeChange={setPageSize} // onPageSizeChange is not a prop of TripsTable
       />
 
       {showExportModal && (
