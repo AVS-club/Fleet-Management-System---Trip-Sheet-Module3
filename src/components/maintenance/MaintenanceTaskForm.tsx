@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle } from '../../types';
-import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance';
-import { addDays, addHours, format } from 'date-fns';
+import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
+import { DEMO_VENDORS, PART_BRANDS, DEMO_GARAGES } from '../../types/maintenance';
+import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -10,9 +10,10 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
+import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
-import { PenTool as Tool, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip } from 'lucide-react';
+import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -266,6 +267,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   };
 
+  // Filter out archived vehicles
+  const activeVehicles = vehicles.filter(v => v.status !== 'archived');
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Vehicle & Basic Info */}
@@ -284,7 +288,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               <Select
                 label="Vehicle"
                 icon={<Truck className="h-4 w-4" />}
-                options={vehicles.map(vehicle => ({
+                options={activeVehicles.map(vehicle => ({
                   value: vehicle.id,
                   label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
                 }))}
@@ -302,7 +306,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             render={({ field }) => (
               <Select
                 label="Maintenance Type"
-                icon={<Tool className="h-4 w-4" />}
+                icon={<PenToolIcon className="h-4 w-4" />}
                 options={[
                   { value: 'general_scheduled_service', label: 'General Scheduled Service' },
                   { value: 'wear_and_tear_replacement_repairs', label: 'Wear and Tear / Replacement Repairs' },
@@ -318,6 +322,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Controller
+            control={control}
+            name="garage_id"
+            rules={{ required: 'Garage is required' }}
+            render={({ field: { value, onChange }, fieldState: { error } }) => (
+              <GarageSelector
+                selectedGarage={value}
+                onChange={onChange}
+                error={error?.message}
+              />
+            )}
+          />
+
           <Controller
             control={control}
             name="priority"
@@ -344,7 +361,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       {/* Maintenance Tasks */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Tool className="h-5 w-5 mr-2 text-primary-500" />
+          <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
           Service Groups
         </h3>
         <p className="text-sm text-gray-500">Add one or more service groups to this maintenance task</p>
@@ -366,7 +383,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
               
               <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Vendor selector */}
                   <Controller
                     control={control}
@@ -395,9 +412,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       />
                     )}
                   />
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Cost input */}
                   <Input
                     label="Cost (₹)"
@@ -411,7 +426,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       min: { value: 0, message: 'Cost must be positive' }
                     })}
                   />
+                </div>
 
+                <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Bill upload */}
                   <Controller
                     control={control}
@@ -462,7 +479,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       {/* Complaint & Resolution */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Tool className="h-5 w-5 mr-2 text-primary-500" />
+          <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
           Complaint & Resolution
         </h3>
         
@@ -582,7 +599,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         <Input
           label="Odometer Reading"
           type="number"
-          icon={<Tool className="h-4 w-4" />}
+          icon={<PenToolIcon className="h-4 w-4" />}
           error={errors.odometer_reading?.message}
           required
           {...register('odometer_reading', {
@@ -641,7 +658,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <Input
               label="Next Service Odometer"
               type="number"
-              icon={<Tool className="h-4 w-4" />}
+              icon={<PenToolIcon className="h-4 w-4" />}
               {...register('next_service_due.odometer', {
                 valueAsNumber: true,
                 min: { value: odometerReading || 0, message: 'Must be greater than current reading' }

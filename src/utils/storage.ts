@@ -376,6 +376,9 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
     if (updatedVehicle.status === 'archived') {
       actionType = 'archived';
       notes = 'Vehicle archived';
+    } else if (updatedVehicle.status === 'active' && data.status === 'active') {
+      actionType = 'updated';
+      notes = 'Vehicle unarchived';
     } else if (updatedVehicle.primary_driver_id !== undefined) {
       if (updatedVehicle.primary_driver_id === null) {
         actionType = 'unassigned_driver';
@@ -399,87 +402,72 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
 
 export const deleteVehicle = async (id: string): Promise<boolean> => {
   try {
-    // Step 1: Get all maintenance task IDs for this vehicle BEFORE deleting anything
-    const { data: maintenanceTasks } = await supabase
-      .from('maintenance_tasks')
-      .select('id')
-      .eq('vehicle_id', id);
-
-    const maintenanceTaskIds = maintenanceTasks?.map(task => task.id) || [];
-
-    // Step 2: Delete maintenance audit logs for all maintenance tasks of this vehicle
-    if (maintenanceTaskIds.length > 0) {
-      const { error: auditLogsError } = await supabase
-        .from('maintenance_audit_logs')
-        .delete()
-        .in('task_id', maintenanceTaskIds);
-
-      if (auditLogsError) {
-        console.error('Error deleting maintenance audit logs:', auditLogsError);
-        throw new Error(`Failed to delete maintenance audit logs: ${auditLogsError.message}`);
-      }
-    }
-
-    // Step 3: Delete maintenance service tasks for all maintenance tasks of this vehicle
-    if (maintenanceTaskIds.length > 0) {
-      const { error: serviceTasksError } = await supabase
-        .from('maintenance_service_tasks')
-        .delete()
-        .in('maintenance_task_id', maintenanceTaskIds);
-
-      if (serviceTasksError) {
-        console.error('Error deleting associated maintenance service tasks:', serviceTasksError);
-        throw new Error(`Failed to delete associated maintenance service tasks: ${serviceTasksError.message}`);
-      }
-    }
-
-    // Step 4: Delete all maintenance tasks for this vehicle
-    const { error: maintenanceError } = await supabase
-      .from('maintenance_tasks')
-      .delete()
-      .eq('vehicle_id', id);
-
-    if (maintenanceError) {
-      console.error('Error deleting associated maintenance tasks:', maintenanceError);
-      throw new Error(`Failed to delete associated maintenance tasks: ${maintenanceError.message}`);
-    }
-
-    // Step 5: Delete all associated trips
-    const { error: tripsError } = await supabase
-      .from('trips')
-      .delete()
-      .eq('vehicle_id', id);
-
-    if (tripsError) {
-      console.error('Error deleting associated trips:', tripsError);
-      throw new Error(`Failed to delete associated trips: ${tripsError.message}`);
-    }
-
-    // Step 6: Delete the vehicle activity logs BEFORE deleting the vehicle
-    const { error: activityLogsError } = await supabase
-      .from('vehicle_activity_log')
-      .delete()
-      .eq('vehicle_id', id);
-
-    if (activityLogsError) {
-      console.error('Error deleting vehicle activity logs:', activityLogsError);
-      throw new Error(`Failed to delete vehicle activity logs: ${activityLogsError.message}`);
-    }
-
-    // Step 7: Finally delete the vehicle itself
-    const { error: vehicleError } = await supabase
+    // Instead of deleting, change the vehicle status to 'archived'
+    const { data, error } = await supabase
       .from('vehicles')
-      .delete()
-      .eq('id', id);
+      .update({ 
+        status: 'archived',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (vehicleError) {
-      console.error('Error deleting vehicle:', vehicleError);
-      throw new Error(`Failed to delete vehicle: ${vehicleError.message}`);
+    if (error) {
+      console.error('Error archiving vehicle:', error);
+      throw new Error(`Failed to archive vehicle: ${error.message}`);
+    }
+    
+    // Log the archive activity
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await logVehicleActivity(
+        id,
+        'archived',
+        user.email || user.id,
+        'Vehicle archived'
+      );
     }
 
     return true;
   } catch (error) {
-    console.error('Error in vehicle deletion process:', error);
+    console.error('Error in vehicle archiving process:', error);
+    throw error;
+  }
+};
+
+export const unarchiveVehicle = async (id: string): Promise<boolean> => {
+  try {
+    // Change the vehicle status from 'archived' back to 'active'
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update({ 
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error unarchiving vehicle:', error);
+      throw new Error(`Failed to unarchive vehicle: ${error.message}`);
+    }
+    
+    // Log the unarchive activity
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await logVehicleActivity(
+        id,
+        'updated',
+        user.email || user.id,
+        'Vehicle unarchived'
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in vehicle unarchiving process:', error);
     throw error;
   }
 };
@@ -508,7 +496,7 @@ export const bulkUpdateVehicles = async (
   return { success: successCount, failed: failedCount };
 };
 
-export const bulkDeleteVehicles = async (
+export const bulkArchiveVehicles = async (
   vehicleIds: string[]
 ): Promise<{ success: number; failed: number }> => {
   let successCount = 0;
@@ -516,20 +504,45 @@ export const bulkDeleteVehicles = async (
   
   for (const id of vehicleIds) {
     try {
-      const result = await deleteVehicle(id);
+      const result = await deleteVehicle(id); // This now archives instead of deleting
       if (result) {
         successCount++;
       } else {
         failedCount++;
       }
     } catch (error) {
-      console.error(`Error deleting vehicle ${id}:`, error);
+      console.error(`Error archiving vehicle ${id}:`, error);
       failedCount++;
     }
   }
   
   return { success: successCount, failed: failedCount };
 };
+
+export const bulkUnarchiveVehicles = async (
+  vehicleIds: string[]
+): Promise<{ success: number; failed: number }> => {
+  let successCount = 0;
+  let failedCount = 0;
+  
+  for (const id of vehicleIds) {
+    try {
+      const result = await unarchiveVehicle(id);
+      if (result) {
+        successCount++;
+      } else {
+        failedCount++;
+      }
+    } catch (error) {
+      console.error(`Error unarchiving vehicle ${id}:`, error);
+      failedCount++;
+    }
+  }
+  
+  return { success: successCount, failed: failedCount };
+};
+
+export const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward compatibility
 
 // Drivers CRUD operations with Supabase
 export const getDrivers = async (): Promise<Driver[]> => {
@@ -1018,7 +1031,10 @@ export default {
   createVehicle,
   updateVehicle,
   deleteVehicle,
+  unarchiveVehicle,
   bulkUpdateVehicles,
+  bulkArchiveVehicles,
+  bulkUnarchiveVehicles,
   bulkDeleteVehicles,
   getDrivers,
   getDriver,

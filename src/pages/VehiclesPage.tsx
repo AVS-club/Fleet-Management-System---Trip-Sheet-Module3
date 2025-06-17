@@ -25,6 +25,7 @@ const VehiclesPage: React.FC = () => {
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
   
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -63,8 +64,9 @@ const VehiclesPage: React.FC = () => {
         const vehiclesWithStats = await Promise.all(vehiclesWithStatsPromises);
         setVehicles(vehiclesWithStats);
         
-        // Calculate total vehicles
-        setTotalVehicles(vehiclesArray.length);
+        // Calculate total vehicles (excluding archived)
+        const activeVehicles = vehiclesArray.filter(v => v.status !== 'archived');
+        setTotalVehicles(activeVehicles.length);
         
         // Calculate vehicles with zero trips
         const vehiclesWithTrips = new Set();
@@ -74,15 +76,15 @@ const VehiclesPage: React.FC = () => {
           }
         });
         
-        const zeroTripsCount = vehiclesArray.filter(vehicle => !vehiclesWithTrips.has(vehicle.id)).length;
+        const zeroTripsCount = activeVehicles.filter(vehicle => !vehiclesWithTrips.has(vehicle.id)).length;
         setVehiclesZeroTrips(zeroTripsCount);
         
-        // Calculate average odometer reading
-        const totalOdometer = vehiclesArray.reduce((sum, vehicle) => sum + (vehicle.current_odometer || 0), 0);
-        setAvgOdometer(vehiclesArray.length > 0 ? Math.round(totalOdometer / vehiclesArray.length) : 0);
+        // Calculate average odometer reading (for active vehicles)
+        const totalOdometer = activeVehicles.reduce((sum, vehicle) => sum + (vehicle.current_odometer || 0), 0);
+        setAvgOdometer(activeVehicles.length > 0 ? Math.round(totalOdometer / activeVehicles.length) : 0);
         
         // Calculate vehicles with documents pending
-        const docsPendingCount = vehiclesArray.filter(vehicle => {
+        const docsPendingCount = activeVehicles.filter(vehicle => {
           const docsCount = [
             vehicle.rc_copy,
             vehicle.insurance_document,
@@ -159,18 +161,29 @@ const VehiclesPage: React.FC = () => {
     return { uploaded, total };
   };
 
+  // Filter vehicles based on archived status
+  const filteredVehicles = vehicles.filter(v => showArchived ? v.status === 'archived' : v.status !== 'archived');
+
   return (
     <Layout
       title="Vehicles"
       subtitle="Manage your fleet vehicles"
       actions={
         !isAddingVehicle && (
-          <Button
-            onClick={() => setIsAddingVehicle(true)}
-            icon={<PlusCircle className="h-4 w-4" />}
-          >
-            Add New Vehicle
-          </Button>
+          <div className="flex space-x-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              {showArchived ? 'Show Active Vehicles' : 'Show Archived Vehicles'}
+            </Button>
+            <Button
+              onClick={() => setIsAddingVehicle(true)}
+              icon={<PlusCircle className="h-4 w-4" />}
+            >
+              Add New Vehicle
+            </Button>
+          </div>
         )
       }
     >
@@ -198,44 +211,60 @@ const VehiclesPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Vehicle Stats Section */}
-          {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
+          {/* Vehicle Stats Section - Only show for active vehicles */}
+          {!showArchived && (
+            <>
+              {statsLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+                      <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Total Vehicles"
-                value={totalVehicles}
-                icon={<Truck className="h-5 w-5 text-primary-600" />}
-              />
-              
-              <StatCard
-                title="Vehicles with 0 Trips"
-                value={vehiclesZeroTrips}
-                icon={<Calendar className="h-5 w-5 text-warning-600" />}
-                warning={vehiclesZeroTrips > 0}
-              />
-              
-              <StatCard
-                title="Average Odometer"
-                value={avgOdometer.toLocaleString()}
-                subtitle="km"
-                icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
-              />
-              
-              <StatCard
-                title="Documents Pending"
-                value={docsPendingVehicles}
-                icon={<FileCheck className="h-5 w-5 text-error-600" />}
-                warning={docsPendingVehicles > 0}
-              />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                  <StatCard
+                    title="Total Vehicles"
+                    value={totalVehicles}
+                    icon={<Truck className="h-5 w-5 text-primary-600" />}
+                  />
+                  
+                  <StatCard
+                    title="Vehicles with 0 Trips"
+                    value={vehiclesZeroTrips}
+                    icon={<Calendar className="h-5 w-5 text-warning-600" />}
+                    warning={vehiclesZeroTrips > 0}
+                  />
+                  
+                  <StatCard
+                    title="Average Odometer"
+                    value={avgOdometer.toLocaleString()}
+                    subtitle="km"
+                    icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
+                  />
+                  
+                  <StatCard
+                    title="Documents Pending"
+                    value={docsPendingVehicles}
+                    icon={<FileCheck className="h-5 w-5 text-error-600" />}
+                    warning={docsPendingVehicles > 0}
+                  />
+                </div>
+              )}
+            </>
+          )}
+          
+          {showArchived && (
+            <div className="bg-gray-100 border-l-4 border-warning-500 p-4 mb-6">
+              <div className="flex">
+                <AlertTriangle className="h-6 w-6 text-warning-500 mr-2" />
+                <div>
+                  <h3 className="text-warning-800 font-medium">Viewing Archived Vehicles</h3>
+                  <p className="text-warning-700">You are currently viewing archived vehicles. These vehicles are hidden from other parts of the system.</p>
+                </div>
+              </div>
             </div>
           )}
           
@@ -244,20 +273,24 @@ const VehiclesPage: React.FC = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               <p className="ml-3 text-gray-600">Loading vehicles...</p>
             </div>
-          ) : vehicles.length === 0 ? (
+          ) : filteredVehicles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">No vehicles found. Add your first vehicle to get started.</p>
+              <p className="text-gray-500">
+                {showArchived ? 'No archived vehicles found.' : 'No vehicles found. Add your first vehicle to get started.'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {vehicles.map(vehicle => {
+              {filteredVehicles.map(vehicle => {
                 // Count documents
                 const { uploaded, total } = countDocuments(vehicle);
                 
                 return (
                   <div
                     key={vehicle.id}
-                    className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow"
+                    className={`bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow ${
+                      vehicle.status === 'archived' ? 'opacity-75' : ''
+                    }`}
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -285,6 +318,8 @@ const VehiclesPage: React.FC = () => {
                           ? 'bg-success-100 text-success-800'
                           : vehicle.status === 'maintenance'
                           ? 'bg-warning-100 text-warning-800'
+                          : vehicle.status === 'archived'
+                          ? 'bg-gray-100 text-gray-600'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         {vehicle.status}

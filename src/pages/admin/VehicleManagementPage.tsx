@@ -6,7 +6,8 @@ import {
   getVehicleStats,
   getDrivers,
   bulkUpdateVehicles,
-  bulkDeleteVehicles,
+  bulkArchiveVehicles,
+  bulkUnarchiveVehicles,
   deleteVehicle,
   updateVehicle,
   exportVehicleData
@@ -16,13 +17,17 @@ import {
   ChevronLeft,
   Trash2,
   Archive,
+  ArchiveRestore,
   Download,
   UserPlus,
   UserX,
   CheckSquare,
   Square,
   Search,
-  Filter
+  Filter,
+  Eye,
+  Activity,
+  BarChart2
 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -53,7 +58,7 @@ const VehicleManagementPage: React.FC = () => {
   // State for vehicle filtering
   const [filters, setFilters] = useState({
     search: '',
-    status: 'all',
+    status: 'active', // Default to 'active' to hide archived vehicles by default
     type: 'all'
   });
   
@@ -65,10 +70,16 @@ const VehicleManagementPage: React.FC = () => {
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
     isOpen: false 
   });
-  const [bulkDeleteModal, setbulkDeleteModal] = useState<{ isOpen: boolean; count: number }>({ 
-    isOpen: false, count: 0 
+  const [archiveModal, setArchiveModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
+    isOpen: false 
+  });
+  const [unarchiveModal, setUnarchiveModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
+    isOpen: false 
   });
   const [bulkArchiveModal, setbulkArchiveModal] = useState<{ isOpen: boolean; count: number }>({ 
+    isOpen: false, count: 0 
+  });
+  const [bulkUnarchiveModal, setbulkUnarchiveModal] = useState<{ isOpen: boolean; count: number }>({ 
     isOpen: false, count: 0 
   });
   
@@ -149,7 +160,75 @@ const VehicleManagementPage: React.FC = () => {
     );
   };
 
-  // Handle deleting a single vehicle
+  // Handle archiving a single vehicle
+  const handleArchiveVehicle = async () => {
+    if (!archiveModal.vehicleId) return;
+    
+    setOperationLoading(true);
+    try {
+      const result = await updateVehicle(archiveModal.vehicleId, { status: 'archived' });
+      
+      if (result) {
+        toast.success(`Vehicle ${archiveModal.vehicleReg} archived successfully`);
+        // Update in state
+        setVehicles(prevVehicles => 
+          prevVehicles.map(v => {
+            if (v.id === archiveModal.vehicleId) {
+              return { ...v, status: 'archived' };
+            }
+            return v;
+          })
+        );
+        // Close modal
+        setArchiveModal({ isOpen: false });
+        // Refresh activity logs
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(`Failed to archive vehicle ${archiveModal.vehicleReg}`);
+      }
+    } catch (error) {
+      console.error('Error archiving vehicle:', error);
+      toast.error(`Error archiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handle unarchiving a single vehicle
+  const handleUnarchiveVehicle = async () => {
+    if (!unarchiveModal.vehicleId) return;
+    
+    setOperationLoading(true);
+    try {
+      const result = await updateVehicle(unarchiveModal.vehicleId, { status: 'active' });
+      
+      if (result) {
+        toast.success(`Vehicle ${unarchiveModal.vehicleReg} unarchived successfully`);
+        // Update in state
+        setVehicles(prevVehicles => 
+          prevVehicles.map(v => {
+            if (v.id === unarchiveModal.vehicleId) {
+              return { ...v, status: 'active' };
+            }
+            return v;
+          })
+        );
+        // Close modal
+        setUnarchiveModal({ isOpen: false });
+        // Refresh activity logs
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(`Failed to unarchive vehicle ${unarchiveModal.vehicleReg}`);
+      }
+    } catch (error) {
+      console.error('Error unarchiving vehicle:', error);
+      toast.error(`Error unarchiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handle deleting a single vehicle (now redirected to archive)
   const handleDeleteVehicle = async () => {
     if (!deleteModal.vehicleId) return;
     
@@ -158,53 +237,26 @@ const VehicleManagementPage: React.FC = () => {
       const success = await deleteVehicle(deleteModal.vehicleId);
       
       if (success) {
-        toast.success(`Vehicle ${deleteModal.vehicleReg} deleted successfully`);
-        // Remove from state
-        setVehicles(prevVehicles => prevVehicles.filter(v => v.id !== deleteModal.vehicleId));
+        toast.success(`Vehicle ${deleteModal.vehicleReg} archived successfully`);
+        // Update in state
+        setVehicles(prevVehicles => 
+          prevVehicles.map(v => {
+            if (v.id === deleteModal.vehicleId) {
+              return { ...v, status: 'archived' };
+            }
+            return v;
+          })
+        );
         // Close modal
         setDeleteModal({ isOpen: false });
         // Refresh activity logs
         setRefreshTrigger(prev => prev + 1);
       } else {
-        toast.error(`Failed to delete vehicle ${deleteModal.vehicleReg}`);
+        toast.error(`Failed to archive vehicle ${deleteModal.vehicleReg}`);
       }
     } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error(`Error deleting vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setOperationLoading(false);
-    }
-  };
-
-  // Handle bulk delete vehicles
-  const handleBulkDeleteVehicles = async () => {
-    if (selectedVehicles.size === 0) return;
-    
-    setOperationLoading(true);
-    try {
-      const result = await bulkDeleteVehicles(Array.from(selectedVehicles));
-      
-      if (result.success > 0) {
-        toast.success(`Successfully deleted ${result.success} vehicles`);
-        // Remove deleted vehicles from state
-        setVehicles(prevVehicles => 
-          prevVehicles.filter(v => !selectedVehicles.has(v.id))
-        );
-        // Clear selection
-        setSelectedVehicles(new Set());
-        setSelectAll(false);
-        // Close modal
-        setbulkDeleteModal({ isOpen: false, count: 0 });
-        // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
-      }
-      
-      if (result.failed > 0) {
-        toast.warning(`Failed to delete ${result.failed} vehicles`);
-      }
-    } catch (error) {
-      console.error('Error bulk deleting vehicles:', error);
-      toast.error(`Error deleting vehicles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error archiving vehicle:', error);
+      toast.error(`Error archiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setOperationLoading(false);
     }
@@ -216,10 +268,7 @@ const VehicleManagementPage: React.FC = () => {
     
     setOperationLoading(true);
     try {
-      const result = await bulkUpdateVehicles(
-        Array.from(selectedVehicles),
-        { status: 'archived' }
-      );
+      const result = await bulkArchiveVehicles(Array.from(selectedVehicles));
       
       if (result.success > 0) {
         toast.success(`Successfully archived ${result.success} vehicles`);
@@ -247,6 +296,45 @@ const VehicleManagementPage: React.FC = () => {
     } catch (error) {
       console.error('Error archiving vehicles:', error);
       toast.error(`Error archiving vehicles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handle bulk unarchive vehicles
+  const handleBulkUnarchiveVehicles = async () => {
+    if (selectedVehicles.size === 0) return;
+    
+    setOperationLoading(true);
+    try {
+      const result = await bulkUnarchiveVehicles(Array.from(selectedVehicles));
+      
+      if (result.success > 0) {
+        toast.success(`Successfully unarchived ${result.success} vehicles`);
+        // Update unarchived vehicles in state
+        setVehicles(prevVehicles => 
+          prevVehicles.map(v => {
+            if (selectedVehicles.has(v.id)) {
+              return { ...v, status: 'active' };
+            }
+            return v;
+          })
+        );
+        // Clear selection
+        setSelectedVehicles(new Set());
+        setSelectAll(false);
+        // Close modal
+        setbulkUnarchiveModal({ isOpen: false, count: 0 });
+        // Refresh activity logs
+        setRefreshTrigger(prev => prev + 1);
+      }
+      
+      if (result.failed > 0) {
+        toast.warning(`Failed to unarchive ${result.failed} vehicles`);
+      }
+    } catch (error) {
+      console.error('Error unarchiving vehicles:', error);
+      toast.error(`Error unarchiving vehicles: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setOperationLoading(false);
     }
@@ -363,6 +451,12 @@ const VehicleManagementPage: React.FC = () => {
     return driver ? driver.name : 'Unknown';
   };
 
+  // Calculate stats for archived vs. active vehicles
+  const archivedCount = vehicles.filter(v => v.status === 'archived').length;
+  const activeCount = vehicles.filter(v => v.status === 'active').length;
+  const totalCount = vehicles.length;
+  const archivedPercentage = totalCount > 0 ? Math.round((archivedCount / totalCount) * 100) : 0;
+
   return (
     <Layout
       title="Vehicle Management"
@@ -378,6 +472,49 @@ const VehicleManagementPage: React.FC = () => {
       }
     >
       <div className="space-y-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Vehicles</p>
+                <p className="text-xl font-bold text-gray-900">{totalCount}</p>
+              </div>
+              <Truck className="h-8 w-8 text-primary-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Active Vehicles</p>
+                <p className="text-xl font-bold text-green-600">{activeCount}</p>
+              </div>
+              <Activity className="h-8 w-8 text-green-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Archived Vehicles</p>
+                <p className="text-xl font-bold text-gray-600">{archivedCount}</p>
+              </div>
+              <Archive className="h-8 w-8 text-gray-500" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Archive Ratio</p>
+                <p className="text-xl font-bold text-primary-600">{archivedPercentage}%</p>
+              </div>
+              <BarChart2 className="h-8 w-8 text-primary-500" />
+            </div>
+          </div>
+        </div>
+        
         {/* Filters and Actions */}
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="flex flex-wrap gap-4 justify-between">
@@ -434,21 +571,23 @@ const VehicleManagementPage: React.FC = () => {
               
               {selectedVehicles.size > 0 && (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setbulkArchiveModal({ isOpen: true, count: selectedVehicles.size })}
-                    icon={<Archive className="h-4 w-4" />}
-                  >
-                    Archive Selected
-                  </Button>
-                  
-                  <Button
-                    variant="danger"
-                    onClick={() => setbulkDeleteModal({ isOpen: true, count: selectedVehicles.size })}
-                    icon={<Trash2 className="h-4 w-4" />}
-                  >
-                    Delete Selected
-                  </Button>
+                  {filters.status === 'archived' ? (
+                    <Button
+                      variant="primary"
+                      onClick={() => setbulkUnarchiveModal({ isOpen: true, count: selectedVehicles.size })}
+                      icon={<ArchiveRestore className="h-4 w-4" />}
+                    >
+                      Unarchive Selected
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="warning"
+                      onClick={() => setbulkArchiveModal({ isOpen: true, count: selectedVehicles.size })}
+                      icon={<Archive className="h-4 w-4" />}
+                    >
+                      Archive Selected
+                    </Button>
+                  )}
                 </>
               )}
             </div>
@@ -524,7 +663,9 @@ const VehicleManagementPage: React.FC = () => {
                 {filteredVehicles.map(vehicle => (
                   <tr 
                     key={vehicle.id}
-                    className={`hover:bg-gray-50 ${selectedVehicles.has(vehicle.id) ? 'bg-primary-50' : ''}`}
+                    className={`hover:bg-gray-50 ${selectedVehicles.has(vehicle.id) ? 'bg-primary-50' : ''} ${
+                      vehicle.status === 'archived' ? 'text-gray-400' : ''
+                    }`}
                   >
                     <td className="px-3 py-4 whitespace-nowrap">
                       <button
@@ -541,7 +682,9 @@ const VehicleManagementPage: React.FC = () => {
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <span className="font-medium text-primary-600 hover:underline cursor-pointer" 
+                        <span className={`font-medium hover:underline cursor-pointer ${
+                          vehicle.status === 'archived' ? 'text-gray-500' : 'text-primary-600'
+                        }`} 
                           onClick={() => navigate(`/vehicles/${vehicle.id}`)}>
                           {vehicle.registration_number}
                         </span>
@@ -549,12 +692,18 @@ const VehicleManagementPage: React.FC = () => {
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <div className="font-medium text-gray-900">{vehicle.make}</div>
-                        <div className="text-gray-500">{vehicle.model}</div>
+                        <div className={`font-medium ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>
+                          {vehicle.make}
+                        </div>
+                        <div className={`${vehicle.status === 'archived' ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {vehicle.model}
+                        </div>
                       </div>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900 capitalize">{vehicle.type}</span>
+                      <span className={`text-sm capitalize ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>
+                        {vehicle.type}
+                      </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full capitalize ${
@@ -563,54 +712,85 @@ const VehicleManagementPage: React.FC = () => {
                           : vehicle.status === 'maintenance'
                           ? 'bg-warning-100 text-warning-800'
                           : vehicle.status === 'archived'
-                          ? 'bg-gray-100 text-gray-800'
+                          ? 'bg-gray-100 text-gray-600'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         {vehicle.status}
                       </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vehicle.current_odometer?.toLocaleString()} km
+                      <span className={vehicle.status === 'archived' ? 'text-gray-500' : ''}>
+                        {vehicle.current_odometer?.toLocaleString()} km
+                      </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <button 
-                        className="flex items-center text-sm text-gray-900 hover:text-primary-600"
+                        className={`flex items-center text-sm ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900 hover:text-primary-600'}`}
                         onClick={() => setDriverAssignModal({ 
                           isOpen: true,
                           vehicleId: vehicle.id,
                           vehicleReg: vehicle.registration_number,
                           driverId: vehicle.primary_driver_id
                         })}
+                        disabled={vehicle.status === 'archived'}
                       >
                         {vehicle.primary_driver_id ? (
                           <>
                             <span>{getDriverName(vehicle.primary_driver_id)}</span>
-                            <UserX className="h-4 w-4 ml-1 text-gray-400 hover:text-error-500" />
+                            {vehicle.status !== 'archived' && (
+                              <UserX className="h-4 w-4 ml-1 text-gray-400 hover:text-error-500" />
+                            )}
                           </>
                         ) : (
                           <>
                             <span>Assign</span>
-                            <UserPlus className="h-4 w-4 ml-1 text-gray-400 hover:text-primary-500" />
+                            {vehicle.status !== 'archived' && (
+                              <UserPlus className="h-4 w-4 ml-1 text-gray-400 hover:text-primary-500" />
+                            )}
                           </>
                         )}
                       </button>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {vehicle.stats?.totalTrips || 0}
+                      <span className={vehicle.status === 'archived' ? 'text-gray-500' : ''}>
+                        {vehicle.stats?.totalTrips || 0}
+                      </span>
                     </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-3 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center justify-center space-x-2">
                         <button
-                          onClick={() => setDeleteModal({ 
-                            isOpen: true,
-                            vehicleId: vehicle.id,
-                            vehicleReg: vehicle.registration_number
-                          })}
-                          className="text-error-600 hover:text-error-900"
-                          aria-label={`Delete vehicle ${vehicle.registration_number}`}
+                          onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                          className="text-primary-600 hover:text-primary-900"
+                          aria-label={`View vehicle ${vehicle.registration_number}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Eye className="h-4 w-4" />
                         </button>
+                        
+                        {vehicle.status === 'archived' ? (
+                          <button
+                            onClick={() => setUnarchiveModal({ 
+                              isOpen: true,
+                              vehicleId: vehicle.id,
+                              vehicleReg: vehicle.registration_number
+                            })}
+                            className="text-success-600 hover:text-success-900"
+                            aria-label={`Unarchive vehicle ${vehicle.registration_number}`}
+                          >
+                            <ArchiveRestore className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setArchiveModal({ 
+                              isOpen: true,
+                              vehicleId: vehicle.id,
+                              vehicleReg: vehicle.registration_number
+                            })}
+                            className="text-warning-600 hover:text-warning-900"
+                            aria-label={`Archive vehicle ${vehicle.registration_number}`}
+                          >
+                            <Archive className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -626,25 +806,37 @@ const VehicleManagementPage: React.FC = () => {
         {/* Confirmation Modals */}
         <ConfirmationModal
           isOpen={deleteModal.isOpen}
-          title="Delete Vehicle"
-          message={`Are you sure you want to delete vehicle ${deleteModal.vehicleReg}? This action cannot be undone and will permanently remove the vehicle from the system.`}
-          confirmText="Delete"
+          title="Archive Vehicle"
+          message={`Are you sure you want to archive vehicle ${deleteModal.vehicleReg}? The vehicle will be hidden from regular views but can be restored later.`}
+          confirmText="Archive"
           cancelText="Cancel"
           onConfirm={handleDeleteVehicle}
           onCancel={() => setDeleteModal({ isOpen: false })}
-          type="delete"
+          type="archive"
           isLoading={operationLoading}
         />
 
         <ConfirmationModal
-          isOpen={bulkDeleteModal.isOpen}
-          title="Delete Selected Vehicles"
-          message={`Are you sure you want to delete ${bulkDeleteModal.count} selected vehicles? This action cannot be undone and will permanently remove these vehicles from the system.`}
-          confirmText="Delete All"
+          isOpen={archiveModal.isOpen}
+          title="Archive Vehicle"
+          message={`Are you sure you want to archive vehicle ${archiveModal.vehicleReg}? The vehicle will be hidden from regular views but can be restored later.`}
+          confirmText="Archive"
           cancelText="Cancel"
-          onConfirm={handleBulkDeleteVehicles}
-          onCancel={() => setbulkDeleteModal({ isOpen: false, count: 0 })}
-          type="delete"
+          onConfirm={handleArchiveVehicle}
+          onCancel={() => setArchiveModal({ isOpen: false })}
+          type="archive"
+          isLoading={operationLoading}
+        />
+
+        <ConfirmationModal
+          isOpen={unarchiveModal.isOpen}
+          title="Unarchive Vehicle"
+          message={`Are you sure you want to unarchive vehicle ${unarchiveModal.vehicleReg}? The vehicle will be restored to active status and visible in regular views.`}
+          confirmText="Unarchive"
+          cancelText="Cancel"
+          onConfirm={handleUnarchiveVehicle}
+          onCancel={() => setUnarchiveModal({ isOpen: false })}
+          type="info"
           isLoading={operationLoading}
         />
 
@@ -657,6 +849,18 @@ const VehicleManagementPage: React.FC = () => {
           onConfirm={handleBulkArchiveVehicles}
           onCancel={() => setbulkArchiveModal({ isOpen: false, count: 0 })}
           type="archive"
+          isLoading={operationLoading}
+        />
+
+        <ConfirmationModal
+          isOpen={bulkUnarchiveModal.isOpen}
+          title="Unarchive Selected Vehicles"
+          message={`Are you sure you want to unarchive ${bulkUnarchiveModal.count} selected vehicles? These vehicles will be set to active status and visible in regular views.`}
+          confirmText="Unarchive All"
+          cancelText="Cancel"
+          onConfirm={handleBulkUnarchiveVehicles}
+          onCancel={() => setbulkUnarchiveModal({ isOpen: false, count: 0 })}
+          type="info"
           isLoading={operationLoading}
         />
         

@@ -9,18 +9,21 @@ interface VehicleStatsListProps {
 }
 
 const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, onSelectVehicle }) => {
+  // Filter out archived vehicles
+  const activeVehicles = Array.isArray(vehicles) ? vehicles.filter(v => v.status !== 'archived') : [];
+  
   // Sort vehicles by activity (number of trips)
-  const sortedVehicles = Array.isArray(vehicles) ? [...vehicles].sort((a, b) => {
+  const sortedVehicles = Array.isArray(activeVehicles) ? [...activeVehicles].sort((a, b) => {
     const aTrips = Array.isArray(trips) ? trips.filter(trip => trip.vehicle_id === a.id).length : 0;
     const bTrips = Array.isArray(trips) ? trips.filter(trip => trip.vehicle_id === b.id).length : 0;
     return bTrips - aTrips;
   }) : [];
   
-  if (!Array.isArray(vehicles) || vehicles.length === 0) {
+  if (!Array.isArray(activeVehicles) || activeVehicles.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Vehicle Stats</h3>
-        <p className="text-center py-8 text-gray-500">No vehicles available</p>
+        <p className="text-center py-8 text-gray-500">No active vehicles available</p>
       </div>
     );
   }
@@ -52,14 +55,14 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
                   <h4 className="font-medium text-gray-900">{vehicle.registration_number}</h4>
                   <p className="text-sm text-gray-500">{vehicle.make} {vehicle.model}</p>
                 </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                <div className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
                   vehicle.status === 'active' 
                     ? 'bg-success-50 text-success-700'
                     : vehicle.status === 'maintenance'
                     ? 'bg-warning-50 text-warning-700'
                     : 'bg-gray-100 text-gray-700'
                 }`}>
-                  {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+                  {vehicle.status}
                 </div>
               </div>
               

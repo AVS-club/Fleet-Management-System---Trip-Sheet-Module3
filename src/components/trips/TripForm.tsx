@@ -108,7 +108,9 @@ const TripForm: React.FC<TripFormProps> = ({
           getTrips()
         ]);
         
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+        // Filter out archived vehicles
+        const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
+        setVehicles(activeVehicles);
         setDrivers(Array.isArray(driversData) ? driversData : []);
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
