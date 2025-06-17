@@ -105,6 +105,7 @@ function App() {
               <li>Check that your Supabase URL and anon key are correctly set in the .env file</li>
               <li>Ensure your Supabase project is up and running</li>
               <li>Verify that your network can access the Supabase API</li>
+              <li>Check your Supabase project's CORS settings in the dashboard and ensure that <code className="bg-gray-100 px-1 rounded">http://localhost:5173</code> is added to the allowed origins</li>
               <li>Try reloading the page after fixing the issue</li>
             </ol>
           </div>
