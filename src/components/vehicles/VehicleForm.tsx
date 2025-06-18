@@ -4,6 +4,7 @@ import { Vehicle } from '../../types';
 import { ReminderContact, ReminderTemplate, ReminderAssignedType } from '../../types/reminders';
 import { getReminderContacts, getReminderTemplates } from '../../utils/reminderService';
 import { uploadVehicleDocument } from '../../utils/supabaseStorage';
+import { supabase } from '../../utils/supabaseClient';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import FileUpload from '../ui/FileUpload';
@@ -27,11 +28,11 @@ import {
   Info,
   Database,
   User,
-  Search
+  Search,
+  Loader
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { supabase } from '../../utils/supabaseClient';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -50,7 +51,7 @@ interface OtherDocument {
   cost?: number;
 }
 
-interface VehicleDetailsResponse {
+interface VehicleAPIResponse {
   code: number;
   status: string;
   message: string;
@@ -62,17 +63,22 @@ interface VehicleDetailsResponse {
     engine_number: string;
     brand_name: string;
     brand_model: string;
-    fuel_type: string;
     registration_date: string;
-    fit_up_to: string;
-    manufacturing_date: string;
+    fuel_type: string;
     class: string;
     color: string;
     cubic_capacity: string;
     cylinders: string;
     gross_weight: string;
     seating_capacity: string;
+    manufacturing_date_formatted: string;
     rc_status: string;
+    fit_up_to: string;
+    insurance_company: string;
+    insurance_policy: string;
+    insurance_expiry: string;
+    financer: string;
+    vehicle_age: string | null;
     [key: string]: any;
   };
 }
@@ -101,8 +107,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [fetchingVehicleDetails, setFetchingVehicleDetails] = useState(false);
-  const [fieldsDisabled, setFieldsDisabled] = useState(!initialData);
+  const [fieldsDisabled, setFieldsDisabled] = useState(true);
+  const [fetchingDetails, setFetchingDetails] = useState(false);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors }, reset } = useForm<Omit<Vehicle, 'id'>>({
     defaultValues: {
@@ -170,12 +176,131 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // If they are strings (URLs), we can't convert them to File objects
       // But we'll handle displaying them separately in the UI
     }
-    
+
     // If we have initialData, enable all fields
-    if (initialData) {
+    if (initialData && Object.keys(initialData).length > 0) {
       setFieldsDisabled(false);
     }
   }, [initialData?.other_documents, initialData?.other_info_documents, initialData]);
+
+  const fetchVehicleDetails = async () => {
+    if (!registrationNumber) {
+      toast.error('Please enter a vehicle registration number');
+      return;
+    }
+
+    setFetchingDetails(true);
+    try {
+      // Get the current user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error('User not authenticated');
+      }
+
+      // Call the Supabase Edge Function
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rc-details`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ registration_number: registrationNumber })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to fetch vehicle details: ${errorData.error || response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success || !data.data || !data.data.response) {
+        throw new Error('Invalid response from API');
+      }
+
+      const vehicleData = data.data.response;
+      
+      // Map API response to form fields
+      mapApiResponseToForm(vehicleData);
+      
+      // Enable all fields for editing
+      setFieldsDisabled(false);
+      
+      toast.success('Vehicle details fetched successfully');
+    } catch (error) {
+      console.error('Error fetching vehicle details:', error);
+      toast.error(`Error fetching vehicle details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Enable fields anyway so user can enter data manually
+      setFieldsDisabled(false);
+    } finally {
+      setFetchingDetails(false);
+    }
+  };
+
+  const mapApiResponseToForm = (data: any) => {
+    // Map API response fields to form fields
+    const manufacturingYear = data.manufacturing_date_formatted ? 
+      parseInt(data.manufacturing_date_formatted.split('-')[0]) : 
+      null;
+
+    // Map fuel type from API to our enum values
+    let mappedFuelType: 'diesel' | 'petrol' | 'cng' | 'ev' = 'diesel';
+    if (data.fuel_type) {
+      const fuelLower = data.fuel_type.toLowerCase();
+      if (fuelLower.includes('petrol')) mappedFuelType = 'petrol';
+      else if (fuelLower.includes('cng')) mappedFuelType = 'cng';
+      else if (fuelLower.includes('electric')) mappedFuelType = 'ev';
+    }
+
+    // Map vehicle type based on class
+    let mappedVehicleType: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van' = 'truck';
+    if (data.class) {
+      const classLower = data.class.toLowerCase();
+      if (classLower.includes('tempo')) mappedVehicleType = 'tempo';
+      else if (classLower.includes('trailer')) mappedVehicleType = 'trailer';
+      else if (classLower.includes('pickup')) mappedVehicleType = 'pickup';
+      else if (classLower.includes('van')) mappedVehicleType = 'van';
+    }
+
+    // Set form values
+    setValue('registration_number', data.license_plate || registrationNumber);
+    setValue('chassis_number', data.chassis_number);
+    setValue('engine_number', data.engine_number);
+    setValue('make', data.brand_name);
+    setValue('model', data.brand_model);
+    setValue('year', manufacturingYear);
+    setValue('type', mappedVehicleType);
+    setValue('fuel_type', mappedFuelType);
+    setValue('owner_name', data.owner_name);
+    setValue('registration_date', data.registration_date);
+    setValue('rc_expiry_date', data.fit_up_to);
+    
+    // Insurance details
+    setValue('insurer_name', data.insurance_company);
+    setValue('policy_number', data.insurance_policy);
+    setValue('insurance_expiry_date', data.insurance_expiry);
+    
+    // Fitness details
+    setValue('fitness_expiry_date', data.fit_up_to);
+    
+    // Additional details
+    setValue('financer', data.financer);
+    setValue('class', data.class);
+    setValue('color', data.color);
+    setValue('cubic_capacity', parseFloat(data.cubic_capacity) || undefined);
+    setValue('cylinders', parseInt(data.cylinders) || undefined);
+    setValue('gross_weight', parseFloat(data.gross_weight) || undefined);
+    setValue('seating_capacity', parseInt(data.seating_capacity) || undefined);
+    setValue('emission_norms', data.norms);
+    setValue('rc_status', data.rc_status);
+    setValue('national_permit_number', data.national_permit_number);
+    setValue('national_permit_upto', data.national_permit_upto);
+  };
 
   const handleFormSubmit = async (data: Omit<Vehicle, 'id'>) => {
     try {
@@ -367,76 +492,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     return [...globalContacts, ...typeContacts];
   };
 
-  // Fetch vehicle details from API
-  const fetchVehicleDetails = async () => {
-    if (!registrationNumber) {
-      toast.error('Please enter a vehicle registration number');
-      return;
-    }
-
-    setFetchingVehicleDetails(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rc-details`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        },
-        body: JSON.stringify({ registration_number: registrationNumber })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data: { success: boolean; data: VehicleDetailsResponse } = await response.json();
-      
-      if (data.success && data.data.response) {
-        const vehicleData = data.data.response;
-        
-        // Map API response to form fields
-        setValue('chassis_number', vehicleData.chassis_number);
-        setValue('engine_number', vehicleData.engine_number);
-        setValue('make', vehicleData.brand_name);
-        setValue('model', vehicleData.brand_model);
-        setValue('year', parseInt(vehicleData.manufacturing_date_formatted?.split('-')[0] || new Date().getFullYear().toString()));
-        setValue('fuel_type', mapFuelType(vehicleData.fuel_type));
-        setValue('owner_name', vehicleData.owner_name);
-        setValue('registration_date', vehicleData.registration_date);
-        setValue('rc_expiry_date', vehicleData.fit_up_to);
-        setValue('class', vehicleData.class);
-        setValue('color', vehicleData.color);
-        setValue('cubic_capacity', parseFloat(vehicleData.cubic_capacity));
-        setValue('cylinders', parseInt(vehicleData.cylinders));
-        setValue('gross_weight', parseFloat(vehicleData.gross_weight));
-        setValue('seating_capacity', parseInt(vehicleData.seating_capacity));
-        setValue('emission_norms', vehicleData.norms);
-        setValue('rc_status', vehicleData.rc_status);
-        
-        // Enable all fields after fetching data
-        setFieldsDisabled(false);
-        toast.success('Vehicle details fetched successfully');
-      } else {
-        toast.error('Failed to fetch vehicle details');
-      }
-    } catch (error) {
-      console.error('Error fetching vehicle details:', error);
-      toast.error('Error fetching vehicle details: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    } finally {
-      setFetchingVehicleDetails(false);
-    }
-  };
-
-  // Map fuel type from API to our enum values
-  const mapFuelType = (apiValue: string): 'diesel' | 'petrol' | 'cng' | 'ev' => {
-    const value = apiValue.toLowerCase();
-    if (value.includes('diesel')) return 'diesel';
-    if (value.includes('petrol')) return 'petrol';
-    if (value.includes('cng')) return 'cng';
-    if (value.includes('electric')) return 'ev';
-    return 'diesel'; // Default
-  };
-
   // Render reminder settings for a specific document type
   const renderReminderSettings = (
     documentType: ReminderAssignedType,
@@ -502,36 +557,37 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         iconColor="text-blue-600"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="relative">
-            <Input
-              label="Vehicle Number"
-              placeholder="CG04AB1234"
-              error={errors.registration_number?.message}
-              required
-              {...register('registration_number', { 
-                required: 'Vehicle number is required',
-                setValueAs: (v) => v?.toUpperCase()
-              })}
-            />
-            <div className="absolute right-0 top-0 mt-7">
-              <Button
-                type="button"
-                size="sm"
-                onClick={fetchVehicleDetails}
-                isLoading={fetchingVehicleDetails}
-                icon={<Search className="h-4 w-4" />}
-              >
-                Get Details
-              </Button>
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                label="Vehicle Number"
+                placeholder="CG04AB1234"
+                error={errors.registration_number?.message}
+                required
+                disabled={false} // This field is always enabled
+                {...register('registration_number', { 
+                  required: 'Vehicle number is required',
+                  setValueAs: (v) => v?.toUpperCase()
+                })}
+              />
             </div>
+            <Button
+              type="button"
+              onClick={fetchVehicleDetails}
+              isLoading={fetchingDetails}
+              icon={fetchingDetails ? undefined : <Search className="h-4 w-4" />}
+              className="mb-0.5"
+            >
+              {fetchingDetails ? 'Fetching...' : 'Get Details'}
+            </Button>
           </div>
 
           <Input
             label="Chassis Number"
             error={errors.chassis_number?.message}
             required
-            placeholder="17 characters"
             disabled={fieldsDisabled}
+            placeholder="17 characters"
             {...register('chassis_number', { 
               required: 'Chassis number is required',
               minLength: {
@@ -557,8 +613,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Make"
             error={errors.make?.message}
             required
-            placeholder="Tata, Ashok Leyland, etc."
             disabled={fieldsDisabled}
+            placeholder="Tata, Ashok Leyland, etc."
             {...register('make', { required: 'Make is required' })}
           />
 
@@ -566,8 +622,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Model"
             error={errors.model?.message}
             required
-            placeholder="407, 1109, etc."
             disabled={fieldsDisabled}
+            placeholder="407, 1109, etc."
             {...register('model', { required: 'Model is required' })}
           />
 
@@ -1630,7 +1686,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         <Button
           type="submit"
           isLoading={isSubmitting || uploadingFiles}
-          disabled={fieldsDisabled && !registrationNumber}
+          disabled={fieldsDisabled && !initialData}
         >
           {uploadingFiles ? 'Uploading Files...' : 'Save Vehicle'}
         </Button>
