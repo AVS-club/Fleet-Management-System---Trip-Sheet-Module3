@@ -48,10 +48,21 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       // Test Supabase connection before trying to use it
-      const isConnected = await testSupabaseConnection();
-      
-      if (!isConnected) {
-        setConnectionError("Could not connect to Supabase. Please check your API keys and network connection.");
+      try {
+        const isConnected = await testSupabaseConnection();
+        
+        if (!isConnected) {
+          setConnectionError("Could not connect to Supabase. Please check your API keys and network connection.");
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Connection test failed:', error);
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          setConnectionError("Network connection failed during startup. Please check your internet connection and Supabase configuration.");
+        } else {
+          setConnectionError("Could not connect to Supabase. Please check your API keys and network connection.");
+        }
         setLoading(false);
         return;
       }

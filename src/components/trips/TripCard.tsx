@@ -14,27 +14,50 @@ interface TripCardProps {
 const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) => {
   const [warehouseData, setWarehouseData] = useState<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   // Fetch warehouse and destinations data
   useEffect(() => {
     const fetchData = async () => {
-      if (trip.warehouse_id) {
-        try {
-          const warehouse = await getWarehouse(trip.warehouse_id);
-          setWarehouseData(warehouse);
-        } catch (error) {
-          console.error('Error fetching warehouse:', error);
+      try {
+        setLoadingError(null);
+        
+        if (trip.warehouse_id) {
+          try {
+            const warehouse = await getWarehouse(trip.warehouse_id);
+            setWarehouseData(warehouse);
+          } catch (error) {
+            console.error('Error fetching warehouse:', error);
+            // Don't set loading error for warehouse failures, just log them
+          }
         }
-      }
-      
-      if (Array.isArray(trip.destinations) && trip.destinations.length > 0) {
-        try {
-          const destinations = await Promise.all(
-            trip.destinations.map(id => getDestination(id))
-          );
-          setDestinationData(destinations.filter(d => d !== null));
-        } catch (error) {
-          console.error('Error fetching destinations:', error);
+        
+        if (Array.isArray(trip.destinations) && trip.destinations.length > 0) {
+          try {
+            const destinations = await Promise.all(
+              trip.destinations.map(async (id) => {
+                try {
+                  return await getDestination(id);
+                } catch (error) {
+                  console.error(`Error fetching destination ${id}:`, error);
+                  // Return null for failed destinations instead of throwing
+                  return null;
+                }
+              })
+            );
+            setDestinationData(destinations.filter(d => d !== null));
+          } catch (error) {
+            console.error('Error fetching destinations:', error);
+            // Set a user-friendly error message for destination failures
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+              setLoadingError('Unable to load trip locations due to connection issues');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchData:', error);
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          setLoadingError('Unable to load trip details due to connection issues');
         }
       }
     };
@@ -97,7 +120,12 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
           </div>
         </div>
 
-        {warehouseData && destinationData.length > 0 && (
+        {loadingError ? (
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-500 italic">{loadingError}</span>
+          </div>
+        ) : warehouseData && destinationData.length > 0 ? (
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-gray-400" />
             <div className="flex items-center gap-1 text-gray-600 overflow-hidden">
@@ -112,6 +140,12 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
                 </span>
               )}
             </div>
+          </div>
+        ) : (
+          // Show loading state or fallback when data is not available
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-500 italic">Loading trip locations...</span>
           </div>
         )}
       </div>

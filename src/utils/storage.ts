@@ -94,32 +94,58 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
 
 // Trips CRUD operations with Supabase
 export const getTrips = async (): Promise<Trip[]> => {
-  const { data, error } = await supabase
-    .from('trips')
-    .select('*')
-    .order('trip_start_date', { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('*')
+      .order('trip_start_date', { ascending: false });
 
-  if (error) {
-    console.error('Error fetching trips:', error);
+    if (error) {
+      console.error('Error fetching trips:', error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes('Failed to fetch')) {
+        throw new Error('Network connection failed while fetching trips');
+      }
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getTrips:', error);
+    // Re-throw network errors so they can be handled appropriately
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw error;
+    }
     return [];
   }
-
-  return data || [];
 };
 
 export const getTrip = async (id: string): Promise<Trip | null> => {
-  const { data, error } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching trip:', error);
+    if (error) {
+      console.error('Error fetching trip:', error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes('Failed to fetch')) {
+        throw new Error('Network connection failed while fetching trip');
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getTrip:', error);
+    // Re-throw network errors so they can be handled appropriately
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw error;
+    }
     return null;
   }
-
-  return data;
 };
 
 export const createTrip = async (trip: Omit<Trip, 'id' | 'trip_serial_number'>): Promise<Trip | null> => {
@@ -709,18 +735,31 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
 };
 
 export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
-  const { data, error } = await supabase
-    .from('warehouses')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('warehouses')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching warehouse:', error);
+    if (error) {
+      console.error('Error fetching warehouse:', error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes('Failed to fetch')) {
+        throw new Error('Network connection failed while fetching warehouse');
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getWarehouse:', error);
+    // Re-throw network errors so they can be handled appropriately
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw error;
+    }
     return null;
   }
-
-  return data;
 };
 
 export const createWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise<Warehouse | null> => {
@@ -813,18 +852,31 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
     return null;
   }
 
-  const { data, error } = await supabase
-    .from('destinations')
-    .select('*')
-    .eq('id', id)
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Error fetching destination:', error);
+    if (error) {
+      console.error('Error fetching destination:', error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes('Failed to fetch')) {
+        throw new Error('Network connection failed while fetching destination');
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getDestination:', error);
+    // Re-throw network errors so they can be handled appropriately
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw error;
+    }
     return null;
   }
-
-  return data;
 };
 
 export const createDestination = async (destination: Omit<Destination, 'id'>): Promise<Destination | null> => {
@@ -963,20 +1015,28 @@ export const getVehicleStats = async (vehicleId: string) => {
 
 // Update all trip mileage
 export const updateAllTripMileage = async (): Promise<void> => {
-  const { data: trips } = await supabase
-    .from('trips')
-    .select('*')
-    .order('trip_end_date', { ascending: true });
+  try {
+    const { data: trips } = await supabase
+      .from('trips')
+      .select('*')
+      .order('trip_end_date', { ascending: true });
 
-  if (!trips || !Array.isArray(trips)) return;
+    if (!trips || !Array.isArray(trips)) return;
 
-  for (const trip of trips) {
-    if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
-      const calculatedKmpl = calculateMileage(trip, trips);
-      await supabase
-        .from('trips')
-        .update({ calculated_kmpl: calculatedKmpl })
-        .eq('id', trip.id);
+    for (const trip of trips) {
+      if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
+        const calculatedKmpl = calculateMileage(trip, trips);
+        await supabase
+          .from('trips')
+          .update({ calculated_kmpl: calculatedKmpl })
+          .eq('id', trip.id);
+      }
+    }
+  } catch (error) {
+    console.error('Error updating trip mileage:', error);
+    // Re-throw network errors so they can be handled appropriately
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw error;
     }
   }
 };
