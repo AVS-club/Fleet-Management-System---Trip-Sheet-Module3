@@ -26,10 +26,12 @@ import {
   Bell,
   Info,
   Database,
-  User
+  User,
+  Search
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import { supabase } from '../../utils/supabaseClient';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -46,6 +48,33 @@ interface OtherDocument {
   issueDate?: string;
   expiryDate?: string;
   cost?: number;
+}
+
+interface VehicleDetailsResponse {
+  code: number;
+  status: string;
+  message: string;
+  request_id: string;
+  response: {
+    license_plate: string;
+    owner_name: string;
+    chassis_number: string;
+    engine_number: string;
+    brand_name: string;
+    brand_model: string;
+    fuel_type: string;
+    registration_date: string;
+    fit_up_to: string;
+    manufacturing_date: string;
+    class: string;
+    color: string;
+    cubic_capacity: string;
+    cylinders: string;
+    gross_weight: string;
+    seating_capacity: string;
+    rc_status: string;
+    [key: string]: any;
+  };
 }
 
 const currentYear = new Date().getFullYear();
@@ -72,8 +101,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [fetchingVehicleDetails, setFetchingVehicleDetails] = useState(false);
+  const [fieldsDisabled, setFieldsDisabled] = useState(!initialData);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Omit<Vehicle, 'id'>>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors }, reset } = useForm<Omit<Vehicle, 'id'>>({
     defaultValues: {
       status: 'active',
       fuel_type: 'diesel',
@@ -97,6 +128,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const remindTax = watch('remind_tax');
   const remindPermit = watch('remind_permit');
   const remindService = watch('remind_service');
+  const registrationNumber = watch('registration_number');
 
   // Fetch reminder contacts and templates
   useEffect(() => {
@@ -138,7 +170,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // If they are strings (URLs), we can't convert them to File objects
       // But we'll handle displaying them separately in the UI
     }
-  }, [initialData?.other_documents, initialData?.other_info_documents]);
+    
+    // If we have initialData, enable all fields
+    if (initialData) {
+      setFieldsDisabled(false);
+    }
+  }, [initialData?.other_documents, initialData?.other_info_documents, initialData]);
 
   const handleFormSubmit = async (data: Omit<Vehicle, 'id'>) => {
     try {
@@ -330,6 +367,76 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     return [...globalContacts, ...typeContacts];
   };
 
+  // Fetch vehicle details from API
+  const fetchVehicleDetails = async () => {
+    if (!registrationNumber) {
+      toast.error('Please enter a vehicle registration number');
+      return;
+    }
+
+    setFetchingVehicleDetails(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rc-details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({ registration_number: registrationNumber })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const data: { success: boolean; data: VehicleDetailsResponse } = await response.json();
+      
+      if (data.success && data.data.response) {
+        const vehicleData = data.data.response;
+        
+        // Map API response to form fields
+        setValue('chassis_number', vehicleData.chassis_number);
+        setValue('engine_number', vehicleData.engine_number);
+        setValue('make', vehicleData.brand_name);
+        setValue('model', vehicleData.brand_model);
+        setValue('year', parseInt(vehicleData.manufacturing_date_formatted?.split('-')[0] || new Date().getFullYear().toString()));
+        setValue('fuel_type', mapFuelType(vehicleData.fuel_type));
+        setValue('owner_name', vehicleData.owner_name);
+        setValue('registration_date', vehicleData.registration_date);
+        setValue('rc_expiry_date', vehicleData.fit_up_to);
+        setValue('class', vehicleData.class);
+        setValue('color', vehicleData.color);
+        setValue('cubic_capacity', parseFloat(vehicleData.cubic_capacity));
+        setValue('cylinders', parseInt(vehicleData.cylinders));
+        setValue('gross_weight', parseFloat(vehicleData.gross_weight));
+        setValue('seating_capacity', parseInt(vehicleData.seating_capacity));
+        setValue('emission_norms', vehicleData.norms);
+        setValue('rc_status', vehicleData.rc_status);
+        
+        // Enable all fields after fetching data
+        setFieldsDisabled(false);
+        toast.success('Vehicle details fetched successfully');
+      } else {
+        toast.error('Failed to fetch vehicle details');
+      }
+    } catch (error) {
+      console.error('Error fetching vehicle details:', error);
+      toast.error('Error fetching vehicle details: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setFetchingVehicleDetails(false);
+    }
+  };
+
+  // Map fuel type from API to our enum values
+  const mapFuelType = (apiValue: string): 'diesel' | 'petrol' | 'cng' | 'ev' => {
+    const value = apiValue.toLowerCase();
+    if (value.includes('diesel')) return 'diesel';
+    if (value.includes('petrol')) return 'petrol';
+    if (value.includes('cng')) return 'cng';
+    if (value.includes('electric')) return 'ev';
+    return 'diesel'; // Default
+  };
+
   // Render reminder settings for a specific document type
   const renderReminderSettings = (
     documentType: ReminderAssignedType,
@@ -361,6 +468,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
                   }))
                 ]}
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -372,6 +480,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             min="1"
             max="365"
             placeholder={defaultDaysBefore.toString()}
+            disabled={fieldsDisabled}
             {...register(daysBeforeField as any, {
               valueAsNumber: true,
               min: { value: 1, message: 'Must be at least 1 day' },
@@ -393,22 +502,36 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         iconColor="text-blue-600"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Input
-            label="Vehicle Number"
-            placeholder="CG04AB1234"
-            error={errors.registration_number?.message}
-            required
-            {...register('registration_number', { 
-              required: 'Vehicle number is required',
-              setValueAs: (v) => v?.toUpperCase()
-            })}
-          />
+          <div className="relative">
+            <Input
+              label="Vehicle Number"
+              placeholder="CG04AB1234"
+              error={errors.registration_number?.message}
+              required
+              {...register('registration_number', { 
+                required: 'Vehicle number is required',
+                setValueAs: (v) => v?.toUpperCase()
+              })}
+            />
+            <div className="absolute right-0 top-0 mt-7">
+              <Button
+                type="button"
+                size="sm"
+                onClick={fetchVehicleDetails}
+                isLoading={fetchingVehicleDetails}
+                icon={<Search className="h-4 w-4" />}
+              >
+                Get Details
+              </Button>
+            </div>
+          </div>
 
           <Input
             label="Chassis Number"
             error={errors.chassis_number?.message}
             required
             placeholder="17 characters"
+            disabled={fieldsDisabled}
             {...register('chassis_number', { 
               required: 'Chassis number is required',
               minLength: {
@@ -426,6 +549,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Engine Number"
             error={errors.engine_number?.message}
             required
+            disabled={fieldsDisabled}
             {...register('engine_number', { required: 'Engine number is required' })}
           />
 
@@ -434,6 +558,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             error={errors.make?.message}
             required
             placeholder="Tata, Ashok Leyland, etc."
+            disabled={fieldsDisabled}
             {...register('make', { required: 'Make is required' })}
           />
 
@@ -442,6 +567,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             error={errors.model?.message}
             required
             placeholder="407, 1109, etc."
+            disabled={fieldsDisabled}
             {...register('model', { required: 'Model is required' })}
           />
 
@@ -455,6 +581,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 options={yearOptions}
                 error={errors.year?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -463,6 +590,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Owner Name"
             placeholder="Enter owner's name"
+            disabled={fieldsDisabled}
             {...register('owner_name')}
           />
 
@@ -482,6 +610,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.type?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -502,6 +631,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.fuel_type?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -510,6 +640,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tyre Size"
             placeholder="e.g., 215/75 R15"
+            disabled={fieldsDisabled}
             {...register('tyre_size')}
           />
 
@@ -518,6 +649,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="4"
             placeholder="6, 10, etc."
+            disabled={fieldsDisabled}
             {...register('number_of_tyres', {
               valueAsNumber: true,
               min: {
@@ -530,12 +662,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Registration Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('registration_date')}
           />
 
           <Input
             label="RC Expiry Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('rc_expiry_date')}
           />
 
@@ -544,6 +678,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             error={errors.current_odometer?.message}
             required
+            disabled={fieldsDisabled}
             {...register('current_odometer', {
               required: 'Current odometer reading is required',
               valueAsNumber: true,
@@ -566,6 +701,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.status?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -587,6 +723,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setRcFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -603,24 +740,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Policy Number"
             placeholder="e.g., POL123456789"
+            disabled={fieldsDisabled}
             {...register('policy_number')}
           />
 
           <Input
             label="Insurer Name"
             placeholder="e.g., ICICI Lombard"
+            disabled={fieldsDisabled}
             {...register('insurer_name')}
           />
 
           <Input
             label="Start Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('insurance_start_date')}
           />
 
           <Input
             label="Expiry Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('insurance_end_date')}
           />
 
@@ -629,6 +770,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 25000"
+            disabled={fieldsDisabled}
             {...register('insurance_premium_amount', {
               valueAsNumber: true,
               min: {
@@ -643,6 +785,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 500000"
+            disabled={fieldsDisabled}
             {...register('insurance_idv', {
               valueAsNumber: true,
               min: {
@@ -668,6 +811,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setInsuranceFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -684,6 +828,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 checked={value}
                 onChange={(e) => onChange(e.target.checked)}
                 icon={<Bell className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -707,18 +852,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Certificate Number"
             placeholder="e.g., FC123456789"
+            disabled={fieldsDisabled}
             {...register('fitness_certificate_number')}
           />
 
           <Input
             label="Issue Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('fitness_issue_date')}
           />
 
           <Input
             label="Expiry Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('fitness_expiry_date')}
           />
 
@@ -727,6 +875,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 2000"
+            disabled={fieldsDisabled}
             {...register('fitness_cost', {
               valueAsNumber: true,
               min: {
@@ -752,6 +901,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setFitnessFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -768,6 +918,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 checked={value}
                 onChange={(e) => onChange(e.target.checked)}
                 icon={<Bell className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -791,6 +942,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tax Receipt Number"
             placeholder="e.g., TR123456789"
+            disabled={fieldsDisabled}
             {...register('tax_receipt_number')}
           />
 
@@ -799,6 +951,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 5000"
+            disabled={fieldsDisabled}
             {...register('tax_amount', {
               valueAsNumber: true,
               min: {
@@ -820,6 +973,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   { value: 'half-yearly', label: 'Half-yearly' },
                   { value: 'yearly', label: 'Yearly' }
                 ]}
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -828,6 +982,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tax Scope"
             placeholder="e.g., State, National"
+            disabled={fieldsDisabled}
             {...register('tax_scope')}
           />
         </div>
@@ -847,6 +1002,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setTaxFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -863,6 +1019,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 checked={value}
                 onChange={(e) => onChange(e.target.checked)}
                 icon={<Bell className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -886,12 +1043,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Permit Number"
             placeholder="e.g., PER123456789"
+            disabled={fieldsDisabled}
             {...register('permit_number')}
           />
 
           <Input
             label="Issuing State"
             placeholder="e.g., Chhattisgarh"
+            disabled={fieldsDisabled}
             {...register('permit_issuing_state')}
           />
 
@@ -907,6 +1066,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   { value: 'contract', label: 'Contract' },
                   { value: 'tourist', label: 'Tourist' }
                 ]}
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -915,12 +1075,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issue Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('permit_issue_date')}
           />
 
           <Input
             label="Expiry Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('permit_expiry_date')}
           />
 
@@ -929,6 +1091,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 10000"
+            disabled={fieldsDisabled}
             {...register('permit_cost', {
               valueAsNumber: true,
               min: {
@@ -954,6 +1117,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setPermitFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -970,6 +1134,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 checked={value}
                 onChange={(e) => onChange(e.target.checked)}
                 icon={<Bell className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -993,18 +1158,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Certificate Number"
             placeholder="e.g., PUC123456789"
+            disabled={fieldsDisabled}
             {...register('puc_certificate_number')}
           />
 
           <Input
             label="Issue Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('puc_issue_date')}
           />
 
           <Input
             label="Expiry Date"
             type="date"
+            disabled={fieldsDisabled}
             {...register('puc_expiry_date')}
           />
 
@@ -1013,6 +1181,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             min="0"
             placeholder="e.g., 500"
+            disabled={fieldsDisabled}
             {...register('puc_cost', {
               valueAsNumber: true,
               min: {
@@ -1038,6 +1207,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   setPucFile(file as File);
                 }}
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -1054,6 +1224,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 checked={value}
                 onChange={(e) => onChange(e.target.checked)}
                 icon={<Bell className="h-4 w-4" />}
+                disabled={fieldsDisabled}
               />
             )}
           />
@@ -1088,6 +1259,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               checked={value}
               onChange={(e) => onChange(e.target.checked)}
               icon={<Bell className="h-4 w-4" />}
+              disabled={fieldsDisabled}
             />
           )}
         />
@@ -1108,6 +1280,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                         label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
                       }))
                     ]}
+                    disabled={fieldsDisabled}
                     {...field}
                   />
                 )}
@@ -1119,6 +1292,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 min="1"
                 max="365"
                 placeholder={getDefaultDaysBefore(ReminderAssignedType.ServiceDue).toString()}
+                disabled={fieldsDisabled}
                 {...register('service_reminder_days_before', {
                   valueAsNumber: true,
                   min: { value: 1, message: 'Must be at least 1 day' },
@@ -1132,6 +1306,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 min="500"
                 max="50000"
                 placeholder="e.g., 5000"
+                disabled={fieldsDisabled}
                 {...register('service_reminder_km', {
                   valueAsNumber: true,
                   min: { value: 500, message: 'Must be at least 500 km' },
@@ -1158,6 +1333,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   type="button"
                   onClick={() => removeOtherDocument(doc.id)}
                   className="text-error-500 hover:text-error-700"
+                  disabled={fieldsDisabled}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -1169,6 +1345,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   required
                   value={doc.name}
                   onChange={(e) => updateOtherDocument(doc.id, 'name', e.target.value)}
+                  disabled={fieldsDisabled}
                 />
                 
                 <div className="flex items-end space-x-2">
@@ -1178,6 +1355,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     accept=".jpg,.jpeg,.png,.pdf"
                     value={doc.file_obj || null}
                     onChange={(file) => updateOtherDocument(doc.id, 'file_obj', file)}
+                    disabled={fieldsDisabled}
                   />
                   
                   {doc.file_url && (
@@ -1197,6 +1375,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   type="date"
                   value={doc.issueDate || ''}
                   onChange={(e) => updateOtherDocument(doc.id, 'issueDate', e.target.value)}
+                  disabled={fieldsDisabled}
                 />
                 
                 <Input
@@ -1204,6 +1383,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   type="date"
                   value={doc.expiryDate || ''}
                   onChange={(e) => updateOtherDocument(doc.id, 'expiryDate', e.target.value)}
+                  disabled={fieldsDisabled}
                 />
                 
                 <Input
@@ -1212,6 +1392,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   min="0"
                   value={doc.cost || ''}
                   onChange={(e) => updateOtherDocument(doc.id, 'cost', parseFloat(e.target.value))}
+                  disabled={fieldsDisabled}
                 />
               </div>
             </div>
@@ -1222,6 +1403,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             variant="outline"
             onClick={addOtherDocument}
             icon={<Plus className="h-4 w-4" />}
+            disabled={fieldsDisabled}
           >
             Add Another Document
           </Button>
@@ -1399,6 +1581,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               value={otherInfoDocuments}
               onChange={(files) => setOtherInfoDocuments(files as File[])}
               icon={<Paperclip className="h-4 w-4" />}
+              disabled={fieldsDisabled}
             />
 
             {/* Display existing document URLs if any */}
@@ -1447,6 +1630,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         <Button
           type="submit"
           isLoading={isSubmitting || uploadingFiles}
+          disabled={fieldsDisabled && !registrationNumber}
         >
           {uploadingFiles ? 'Uploading Files...' : 'Save Vehicle'}
         </Button>
