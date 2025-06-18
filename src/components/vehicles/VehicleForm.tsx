@@ -297,7 +297,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
    setValue('permit_type', data.permit_type || 'national');
 
     // PUCC details
-    setValue('puc_certificate_number', data.pucc_number;
+    setValue('puc_certificate_number', data.pucc_number);
     setValue('puc_expiry_date', data.pucc_upto);
     setValue('permit_number', data.permit_number);
     
