@@ -637,27 +637,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register('tax_amount', { valueAsNumber: true })}
           />
 
-          <Controller
-            control={control}
-            name="tax_period"
-            render={({ field }) => (
-              <Select
-                label="Tax Period"
-                options={[
-                  { value: 'Monthly', label: 'Monthly' },
-                  { value: 'Quarterly', label: 'Quarterly' },
-                  { value: 'Half-Yearly', label: 'Half-Yearly' },
-                  { value: 'Annually', label: 'Annually' }
-                ]}
-                {...field}
-              />
-            )}
-          />
-
           <Input
             label="Tax Scope"
             placeholder="e.g., State, National"
             {...register('tax_scope')}
+          />
+
+          <Input
+            label="Tax Paid Up To"
+            type="date"
+            placeholder="e.g., 2025-03-31"
+            {...register('tax_paid_upto')}
           />
         </div>
 

@@ -1,29 +1,29 @@
 // Add RCDetails interface
 export interface RCDetails {
-  registration_number?: string;
-  chassis_number?: string;
-  engine_number?: string;
+  registrationNumber?: string;
+  chassisNumber?: string;
+  engineNumber?: string;
   make?: string;
   model?: string;
-  year_of_manufacture?: string;
+  yearOfManufacture?: string;
   color?: string;
-  unladen_weight?: string;
-  horse_power?: string;
+  unladenWeight?: string;
+  horsePower?: string;
   confidence: number;
-  raw_text?: string;
+  rawText?: string;
 }
 
 // Add InsuranceDetails interface
 export interface InsuranceDetails {
-  policy_number?: string;
-  insurer_name?: string;
-  valid_from?: string;
-  valid_until?: string;
-  vehicle_number?: string;
+  policyNumber?: string;
+  insurerName?: string;
+  validFrom?: string;
+  validUntil?: string;
+  vehicleNumber?: string;
   coverage?: string;
   premium?: number;
   confidence?: number;
-  raw_text?: string;
+  rawText?: string;
 }
 
 // Add Vehicle interface
@@ -88,6 +88,7 @@ export interface Vehicle {
   tax_amount?: number;
   tax_period?: 'monthly' | 'quarterly' | 'half-yearly' | 'yearly';
   tax_scope?: string;
+  tax_paid_upto?: string; // New field for tax paid up to date
   
   // Permit Details
   permit_number?: string;
@@ -152,18 +153,18 @@ export interface Vehicle {
   
   // Other Information & Documents (VAHAN data)
   financer?: string;
-  class?: string;
+  vehicle_class?: string;
   color?: string;
   cubic_capacity?: number;
   cylinders?: number;
-  gross_weight?: number;
+  unladen_weight?: number;
   seating_capacity?: number;
   emission_norms?: string;
   noc_details?: string;
   national_permit_number?: string;
   national_permit_upto?: string;
   rc_status?: string;
-  vahan_last_fetched_date?: string;
+  vahan_last_fetched_at?: string;
   other_info_documents?: File[] | string[];
   
   created_at?: string;
