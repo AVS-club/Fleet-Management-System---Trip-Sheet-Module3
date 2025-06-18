@@ -288,6 +288,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     
     // Fitness details
     setValue('fitness_expiry_date', data.fit_up_to);
+
+    // Permit details
+    setValue('permit_number', data.permit_number);
     
     // Additional details
     setValue('financer', data.financer);
