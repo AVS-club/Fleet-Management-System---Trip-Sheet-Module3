@@ -292,9 +292,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     // Permit details
     setValue('permit_number', data.permit_number);
     setValue('permit_issuing_state', data.rto_name.spliy(",")[1].trim());
-    setValue('permit_issue_date', data.permit_issue_date||data.permit_valid_from);
-    setValue('permit_expiry_date', data.permit_valid_upto);
-
+   setValue('permit_issue_date', data.permit_issue_date||data.permit_valid_from);
+   setValue('permit_expiry_date', data.permit_valid_upto);
+   setValue('permit_type', data.permit_type || 'national');
     
     // Additional details
     setValue('financer', data.financer);
