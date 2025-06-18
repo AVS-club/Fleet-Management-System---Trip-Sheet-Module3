@@ -18,6 +18,7 @@ import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { toast } from 'react-toastify';
 import StatCard from '../components/dashboard/StatCard';
+import RemindersButton from '../components/common/RemindersButton';
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,42 +40,36 @@ const VehiclesPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
-        // Fetch vehicles data
-        const vehiclesData = await getVehicles();
+        const [vehiclesData, tripsData] = await Promise.all([
+          getVehicles(),
+          getTrips()
+        ]);
+        
         const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
         
-        // Fetch trips data for calculating vehicles with zero trips
-        const tripsData = await getTrips();
-        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
+        // Fetch stats for each vehicle
+        const vehiclesWithStats = await Promise.all(
+          vehiclesArray.map(async (vehicle) => {
+            const stats = await getVehicleStats(vehicle.id);
+            return { ...vehicle, stats, selected: false };
+          })
+        );
         
-        // Process vehicle stats
-        const vehiclesWithStatsPromises = vehiclesArray.map(async (vehicle) => {
-          const rawStats = await getVehicleStats(vehicle.id);
-          const conformingStats = {
-            totalTrips: rawStats && typeof rawStats.totalTrips === 'number' ? rawStats.totalTrips : 0,
-            totalDistance: rawStats && typeof rawStats.totalDistance === 'number' ? rawStats.totalDistance : 0,
-            averageKmpl: rawStats && typeof rawStats.averageKmpl === 'number' ? rawStats.averageKmpl : undefined,
-          };
-          return {
-            ...vehicle,
-            stats: conformingStats,
-          };
-        });
-        
-        const vehiclesWithStats = await Promise.all(vehiclesWithStatsPromises);
         setVehicles(vehiclesWithStats);
         
-        // Calculate total vehicles (excluding archived)
+        // Calculate statistics
         const activeVehicles = vehiclesArray.filter(v => v.status !== 'archived');
         setTotalVehicles(activeVehicles.length);
         
         // Calculate vehicles with zero trips
         const vehiclesWithTrips = new Set();
-        tripsArray.forEach(trip => {
-          if (trip.vehicle_id) {
-            vehiclesWithTrips.add(trip.vehicle_id);
-          }
-        });
+        if (Array.isArray(tripsData)) {
+          tripsData.forEach(trip => {
+            if (trip.vehicle_id) {
+              vehiclesWithTrips.add(trip.vehicle_id);
+            }
+          });
+        }
         
         const zeroTripsCount = activeVehicles.filter(vehicle => !vehiclesWithTrips.has(vehicle.id)).length;
         setVehiclesZeroTrips(zeroTripsCount);
@@ -171,6 +166,7 @@ const VehiclesPage: React.FC = () => {
       actions={
         !isAddingVehicle && (
           <div className="flex space-x-3">
+            <RemindersButton module="vehicles" />
             <Button
               variant="outline"
               onClick={() => setShowArchived(!showArchived)}
@@ -211,7 +207,7 @@ const VehiclesPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Vehicle Stats Section - Only show for active vehicles */}
+          {/* Vehicle Stats Section */}
           {!showArchived && (
             <>
               {statsLoading ? (

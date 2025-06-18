@@ -9,6 +9,7 @@ import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
 import { PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
+import RemindersButton from '../components/common/RemindersButton';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -101,6 +102,7 @@ const TripsPage: React.FC = () => {
       actions={
         !isAddingTrip ? (
           <div className="flex space-x-3">
+            <RemindersButton module="trips" />
             <Button
               variant="outline"
               onClick={() => setShowDashboard(!showDashboard)}

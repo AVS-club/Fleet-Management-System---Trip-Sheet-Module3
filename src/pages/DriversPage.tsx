@@ -9,6 +9,7 @@ import DriverForm from '../components/drivers/DriverForm';
 import { Driver, Trip } from '../types';
 import { toast } from 'react-toastify';
 import StatCard from '../components/dashboard/StatCard';
+import RemindersButton from '../components/common/RemindersButton';
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -105,7 +106,7 @@ const DriversPage: React.FC = () => {
       };
       
       // Remove the File object as it can't be stored in the database
-      delete driverData.photo;
+      delete (driverData as any).photo;
       
       if (editingDriver) {
         // Update existing driver
@@ -207,12 +208,15 @@ const DriversPage: React.FC = () => {
       subtitle="Manage your fleet drivers"
       actions={
         !isAddingDriver && !editingDriver && (
-          <Button
-            onClick={() => setIsAddingDriver(true)}
-            icon={<PlusCircle className="h-4 w-4" />}
-          >
-            Add Driver
-          </Button>
+          <div className="flex space-x-3">
+            <RemindersButton module="drivers" />
+            <Button
+              onClick={() => setIsAddingDriver(true)}
+              icon={<PlusCircle className="h-4 w-4" />}
+            >
+              Add Driver
+            </Button>
+          </div>
         )
       }
     >
