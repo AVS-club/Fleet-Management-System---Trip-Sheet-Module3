@@ -177,11 +177,40 @@ Deno.serve(async (req) => {
       const errorText = await response.text();
       console.error(`API Error (${response.status}): ${errorText}`);
       
+      // Parse error response to check for specific error messages
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      
+      // Check if the external service is down
+      if (errorData.message && errorData.message.toLowerCase().includes('backend down')) {
+        return new Response(JSON.stringify({
+          error: "External RC details service unavailable",
+          message: "The vehicle registration details service is temporarily unavailable. Please try again later.",
+          service_status: "down",
+          retry_after: 300 // Suggest retry after 5 minutes
+        }), {
+          status: 503, // Service Unavailable
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": "300",
+            ...corsHeaders,
+            ...rateLimitHeaders
+          }
+        });
+      }
+      
+      // For other API errors, return Bad Gateway
       return new Response(JSON.stringify({
-        error: `API request failed with status ${response.status}`,
-        details: errorText
+        error: "External API error",
+        message: "Failed to fetch vehicle details from external service",
+        details: errorData.message || errorText,
+        status_code: response.status
       }), {
-        status: 502,
+        status: 502, // Bad Gateway
         headers: {
           "Content-Type": "application/json",
           ...corsHeaders,
@@ -209,6 +238,7 @@ Deno.serve(async (req) => {
     
     return new Response(JSON.stringify({
       error: "Internal server error",
+      message: "An unexpected error occurred while processing your request",
       details: error.message
     }), {
       status: 500,

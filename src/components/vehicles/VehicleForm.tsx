@@ -29,7 +29,9 @@ import {
   Database,
   User,
   Search,
-  Loader
+  Loader,
+  AlertTriangle,
+  Clock
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -214,13 +216,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(`Failed to fetch vehicle details: ${errorData.error || response.statusText}`);
+        
+        // Handle specific error cases with user-friendly messages
+        if (response.status === 503) {
+          // Service unavailable
+          const retryAfter = errorData.retry_after || 300;
+          const retryMinutes = Math.ceil(retryAfter / 60);
+          throw new Error(`The vehicle registration details service is temporarily unavailable. Please try again in ${retryMinutes} minutes.`);
+        } else if (response.status === 502) {
+          // Bad gateway - external API error
+          throw new Error('Unable to fetch vehicle details from the registration database. Please try again later or enter details manually.');
+        } else if (response.status === 429) {
+          // Rate limit exceeded
+          const retryAfter = response.headers.get('Retry-After') || '60';
+          throw new Error(`Too many requests. Please wait ${retryAfter} seconds before trying again.`);
+        } else {
+          // Generic error
+          throw new Error(errorData.message || `Failed to fetch vehicle details (Error ${response.status})`);
+        }
       }
 
       const data = await response.json();
       
       if (!data.success || !data.data || !data.data.response) {
-        throw new Error('Invalid response from API');
+        throw new Error('Invalid response from vehicle registration service');
       }
 
       const vehicleData = data.data.response;
@@ -235,7 +254,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       toast.success('Vehicle details fetched successfully');
     } catch (error) {
       console.error('Error fetching vehicle details:', error);
-      toast.error(`Error fetching vehicle details: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(errorMessage);
+      
       // Enable fields anyway so user can enter data manually
       setFieldsDisabled(false);
     } finally {
@@ -588,12 +611,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               type="button"
               onClick={fetchVehicleDetails}
               isLoading={fetchingDetails}
-              icon={fetchingDetails ? undefined : <Search className="h-4 w-4" />}
+              icon={fetchingDetails ? <Loader className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               className="mb-0"
             >
               {fetchingDetails ? 'Fetching...' : 'Get Details'}
             </Button>
           </div>
+
+          {/* Service Status Alert */}
+          {fieldsDisabled && !fetchingDetails && (
+            <div className="md:col-span-2">
+              <div className="flex items-center p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-medium">Auto-fill unavailable</p>
+                  <p>Click "Get Details" to fetch vehicle information automatically, or enter details manually below.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Input
             label="Chassis Number"

@@ -30,6 +30,13 @@ class ValidationError extends DocumentAIError {
   }
 }
 
+class ServiceUnavailableError extends DocumentAIError {
+  constructor(message: string, details?: any) {
+    super(message, 'SERVICE_UNAVAILABLE', details);
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
 interface DocumentAIResponse {
   document: {
     text: string;
@@ -63,6 +70,9 @@ export async function processRCDocument(file: File): Promise<RCDetails> {
     try {
       token = await getAccessToken();
     } catch (error) {
+      if (error instanceof ServiceUnavailableError) {
+        throw error; // Re-throw service unavailable errors
+      }
       throw new AuthenticationError(
         'Failed to authenticate with Document AI service',
         error instanceof Error ? error.message : 'Unknown authentication error'
@@ -227,8 +237,23 @@ async function getAccessToken(): Promise<string> {
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+    
+    // Check for specific service unavailable errors
+    if (response.status === 503 || 
+        (errorData.error && errorData.error.toLowerCase().includes('external rc details service unavailable'))) {
+      throw new ServiceUnavailableError(
+        'RC details service is temporarily unavailable. Please try again later.',
+        {
+          status: response.status,
+          error: errorData.error || response.statusText,
+          retry_after: errorData.retry_after || 300
+        }
+      );
+    }
+    
     throw new Error(`Failed to get Document AI access token: ${errorData.error || response.statusText}`);
   }
+  
   const data = await response.json();
   if (!data.token) {
     throw new Error('No token received from server');
