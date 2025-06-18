@@ -284,7 +284,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     // Insurance details
     setValue('insurer_name', data.insurance_company);
     setValue('policy_number', data.insurance_policy);
-    setValue('insurance_expiry_date', data.insurance_expiry);
+    setValue('insurance_end_date', data.insurance_expiry);
     
     // Fitness details
     setValue('fitness_expiry_date', data.fit_up_to);
