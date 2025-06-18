@@ -1,678 +1,297 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { Vehicle } from '../../types';
-import { ReminderContact, ReminderTemplate, ReminderAssignedType } from '../../types/reminders';
-import { getReminderContacts, getReminderTemplates } from '../../utils/reminderService';
-import { uploadVehicleDocument } from '../../utils/supabaseStorage';
-import { supabase } from '../../utils/supabaseClient';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { Vehicle, RCDetails, InsuranceDetails } from '../../types';
+import { processRCDocument, extractRCDetails } from '../../utils/ocrService';
+import { Truck, Calendar, FileText, Upload, X, Plus, Database, Info, Paperclip } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
+import FileUpload from '../ui/FileUpload';
 import Checkbox from '../ui/Checkbox';
-import CollapsibleSection from '../ui/CollapsibleSection';
-import { 
-  Truck, 
-  FileText, 
-  Calendar, 
-  Shield, 
-  FileCheck, 
-  Receipt, 
-  Ticket, 
-  Wind, 
-  Plus, 
-  Trash2,
-  Upload,
-  Paperclip,
-  Bell,
-  Info,
-  Database,
-  User,
-  Search,
-  Loader,
-  AlertTriangle,
-  Clock
-} from 'lucide-react';
+import RCPreviewModal from './RCPreviewModal';
+import InsurancePreviewModal from './InsurancePreviewModal';
 import { toast } from 'react-toastify';
-import { format } from 'date-fns';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
   onSubmit: (data: Omit<Vehicle, 'id'>) => void;
-  isSubmitting?: boolean;
   onCancel?: () => void;
+  isSubmitting?: boolean;
 }
-
-interface OtherDocument {
-  id: string;
-  name: string;
-  file_obj?: File | null;
-  file_url?: string;
-  issueDate?: string;
-  expiryDate?: string;
-  cost?: number;
-}
-
-interface VehicleAPIResponse {
-  code: number;
-  status: string;
-  message: string;
-  request_id: string;
-  response: {
-    license_plate: string;
-    owner_name: string;
-    chassis_number: string;
-    engine_number: string;
-    brand_name: string;
-    brand_model: string;
-    registration_date: string;
-    fuel_type: string;
-    class: string;
-    color: string;
-    cubic_capacity: string;
-    cylinders: string;
-    gross_weight: string;
-    seating_capacity: string;
-    manufacturing_date_formatted: string;
-    rc_status: string;
-    fit_up_to: string;
-    insurance_company: string;
-    insurance_policy: string;
-    insurance_expiry: string;
-    financer: string;
-    vehicle_age: string | null;
-    [key: string]: any;
-  };
-}
-
-const currentYear = new Date().getFullYear();
-const yearOptions = Array.from({ length: currentYear - 1994 }, (_, i) => ({
-  value: String(1995 + i),
-  label: String(1995 + i)
-})).reverse();
 
 const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
   onSubmit,
-  isSubmitting = false,
-  onCancel
+  onCancel,
+  isSubmitting = false
 }) => {
-  const [otherDocuments, setOtherDocuments] = useState<OtherDocument[]>([]);
-  const [otherInfoDocuments, setOtherInfoDocuments] = useState<File[]>([]);
-  const [rcFile, setRcFile] = useState<File | null>(null);
-  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
-  const [fitnessFile, setFitnessFile] = useState<File | null>(null);
-  const [taxFile, setTaxFile] = useState<File | null>(null);
-  const [permitFile, setPermitFile] = useState<File | null>(null);
-  const [pucFile, setPucFile] = useState<File | null>(null);
-  const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>([]);
-  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
-  const [loadingReminders, setLoadingReminders] = useState(false);
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-  const [fieldsDisabled, setFieldsDisabled] = useState(true);
-  const [fetchingDetails, setFetchingDetails] = useState(false);
+  const [rcPreviewData, setRcPreviewData] = useState<RCDetails[] | null>(null);
+  const [insurancePreviewData, setInsurancePreviewData] = useState<InsuranceDetails | null>(null);
+  const [rcProcessing, setRcProcessing] = useState(false);
+  const [insuranceProcessing, setInsuranceProcessing] = useState(false);
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors }, reset } = useForm<Omit<Vehicle, 'id'>>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Vehicle>({
     defaultValues: {
-      status: 'active',
-      fuel_type: 'diesel',
+      registration_number: '',
+      make: '',
+      model: '',
+      year: new Date().getFullYear(),
       type: 'truck',
+      fuel_type: 'diesel',
       current_odometer: 0,
-      // Reminder defaults
-      remind_insurance: false,
-      remind_fitness: false,
-      remind_puc: false,
-      remind_tax: false,
-      remind_permit: false,
-      remind_service: false,
+      status: 'active',
       ...initialData
     }
   });
 
-  // Watch reminder checkbox values to conditionally show reminder settings
+  // Field array for other documents
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'other_documents'
+  });
+
+  // Watch values for conditional rendering
   const remindInsurance = watch('remind_insurance');
   const remindFitness = watch('remind_fitness');
   const remindPuc = watch('remind_puc');
   const remindTax = watch('remind_tax');
   const remindPermit = watch('remind_permit');
   const remindService = watch('remind_service');
-  const registrationNumber = watch('registration_number');
 
-  // Fetch reminder contacts and templates
-  useEffect(() => {
-    const fetchReminderData = async () => {
-      setLoadingReminders(true);
-      try {
-        const [contacts, templates] = await Promise.all([
-          getReminderContacts(),
-          getReminderTemplates()
-        ]);
-        setReminderContacts(contacts);
-        setReminderTemplates(templates);
-      } catch (error) {
-        console.error('Error fetching reminder data:', error);
-      } finally {
-        setLoadingReminders(false);
+  // Process RC document
+  const handleRCUpload = async (file: File) => {
+    if (!file) return;
+
+    setRcProcessing(true);
+    try {
+      const result = await processRCDocument(file);
+      setRcPreviewData([result]);
+    } catch (error) {
+      console.error('Error processing RC document:', error);
+      
+      // Try to extract data from OCR text if available
+      if (error instanceof Error && error.message.includes('text')) {
+        try {
+          const text = error.message.split('text:')[1] || '';
+          const extractedData = extractRCDetails(text);
+          setRcPreviewData(extractedData);
+        } catch (extractError) {
+          console.error('Error extracting RC details:', extractError);
+          toast.error('Failed to process RC document');
+        }
+      } else {
+        toast.error('Failed to process RC document');
       }
-    };
-
-    fetchReminderData();
-  }, []);
-
-  // Initialize other documents from initialData
-  useEffect(() => {
-    if (initialData?.other_documents && Array.isArray(initialData.other_documents)) {
-      const formattedDocs = initialData.other_documents.map(doc => ({
-        id: doc.id || `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        name: doc.name,
-        file_url: typeof doc.file === 'string' ? doc.file : undefined,
-        issueDate: doc.issue_date,
-        expiryDate: doc.expiry_date,
-        cost: doc.cost
-      }));
-      setOtherDocuments(formattedDocs);
+    } finally {
+      setRcProcessing(false);
     }
+  };
 
-    // Initialize otherInfoDocuments if they exist in initialData
-    if (initialData?.other_info_documents && Array.isArray(initialData.other_info_documents)) {
-      // If they are strings (URLs), we can't convert them to File objects
-      // But we'll handle displaying them separately in the UI
+  // Process Insurance document
+  const handleInsuranceUpload = async (file: File) => {
+    if (!file) return;
+
+    setInsuranceProcessing(true);
+    try {
+      // This would be replaced with actual insurance document processing
+      // For now, we'll just simulate it
+      setTimeout(() => {
+        const mockData: InsuranceDetails = {
+          policyNumber: 'POL' + Math.floor(Math.random() * 10000000),
+          insurerName: 'Sample Insurance Co.',
+          validFrom: new Date().toISOString(),
+          validUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
+          vehicleNumber: watch('registration_number'),
+          coverage: 'Comprehensive',
+          premium: 25000,
+          confidence: 0.9
+        };
+        setInsurancePreviewData(mockData);
+        setInsuranceProcessing(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error processing insurance document:', error);
+      toast.error('Failed to process insurance document');
+      setInsuranceProcessing(false);
     }
+  };
 
-    // If we have initialData, enable all fields
-    if (initialData && Object.keys(initialData).length > 0) {
-      setFieldsDisabled(false);
-    }
-  }, [initialData?.other_documents, initialData?.other_info_documents, initialData]);
+  // Handle RC details confirmation
+  const handleRCConfirm = (details: RCDetails) => {
+    setValue('registration_number', details.registrationNumber || watch('registration_number'));
+    setValue('chassis_number', details.chassisNumber || watch('chassis_number'));
+    setValue('engine_number', details.engineNumber || watch('engine_number'));
+    setValue('make', details.make || watch('make'));
+    setValue('model', details.model || watch('model'));
+    setValue('year', parseInt(details.yearOfManufacture || watch('year').toString()));
+    setValue('fuel_type', (details.fuelType?.toLowerCase() as 'diesel' | 'petrol' | 'cng') || watch('fuel_type'));
+    setValue('owner_name', details.ownerName || watch('owner_name'));
+    setValue('color', details.color || watch('color'));
+    
+    // Set RC document flag
+    setValue('rc_copy', true);
+    
+    setRcPreviewData(null);
+  };
 
+  // Handle Insurance details confirmation
+  const handleInsuranceConfirm = (details: InsuranceDetails) => {
+    setValue('policy_number', details.policyNumber || watch('policy_number'));
+    setValue('insurer_name', details.insurerName || watch('insurer_name'));
+    setValue('insurance_start_date', details.validFrom ? new Date(details.validFrom).toISOString().split('T')[0] : watch('insurance_start_date'));
+    setValue('insurance_expiry_date', details.validUntil ? new Date(details.validUntil).toISOString().split('T')[0] : watch('insurance_expiry_date'));
+    setValue('insurance_premium_amount', details.premium || watch('insurance_premium_amount'));
+    
+    // Set insurance document flag
+    setValue('insurance_document', true);
+    
+    setInsurancePreviewData(null);
+  };
+
+  // Fetch vehicle details from external API
   const fetchVehicleDetails = async () => {
-    if (!registrationNumber) {
-      toast.error('Please enter a vehicle registration number');
+    const registrationNumber = watch('registration_number');
+    if (!registrationNumber || registrationNumber.length < 6) {
+      toast.error('Please enter a valid registration number');
       return;
     }
 
-    setFetchingDetails(true);
     try {
-      // Get the current user's session token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
+      toast.info('Fetching vehicle details...');
       
-      if (!authToken) {
-        throw new Error('User not authenticated');
-      }
-
       // Call the Supabase Edge Function
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rc-details`,
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({ registration_number: registrationNumber })
         }
       );
-
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Handle specific error cases with user-friendly messages
-        if (response.status === 503) {
-          // Service unavailable
-          const retryAfter = errorData.retry_after || 300;
-          const retryMinutes = Math.ceil(retryAfter / 60);
-          throw new Error(`The vehicle registration details service is temporarily unavailable. Please try again in ${retryMinutes} minutes.`);
-        } else if (response.status === 502) {
-          // Bad gateway - external API error
-          throw new Error('Unable to fetch vehicle details from the registration database. Please try again later or enter details manually.');
-        } else if (response.status === 429) {
-          // Rate limit exceeded
-          const retryAfter = response.headers.get('Retry-After') || '60';
-          throw new Error(`Too many requests. Please wait ${retryAfter} seconds before trying again.`);
-        } else {
-          // Generic error
-          throw new Error(errorData.message || `Failed to fetch vehicle details (Error ${response.status})`);
-        }
+        const errorData = await response.json();
+        throw new Error(`API request failed with status ${response.status}: ${errorData.message || errorData.error || 'Unknown error'}`);
       }
-
+      
       const data = await response.json();
       
-      if (!data.success || !data.data || !data.data.response) {
-        throw new Error('Invalid response from vehicle registration service');
+      if (data.success && data.data) {
+        // Process the vehicle data
+        const vehicleData = data.data;
+        
+        // Update form fields with the fetched data
+        setValue('make', vehicleData.maker || watch('make'));
+        setValue('model', vehicleData.model || watch('model'));
+        setValue('chassis_number', vehicleData.chasi_no || watch('chassis_number'));
+        setValue('engine_number', vehicleData.engine_no || watch('engine_number'));
+        setValue('registration_date', vehicleData.regn_dt ? new Date(vehicleData.regn_dt).toISOString().split('T')[0] : watch('registration_date'));
+        setValue('owner_name', vehicleData.owner_name || watch('owner_name'));
+        setValue('fuel_type', (vehicleData.fuel_type?.toLowerCase() as 'diesel' | 'petrol' | 'cng') || watch('fuel_type'));
+        
+        // Set additional VAHAN fields
+        setValue('vehicle_class', vehicleData.vehicle_class || watch('vehicle_class'));
+        setValue('color', vehicleData.color || watch('color'));
+        setValue('seating_capacity', vehicleData.seating_capacity ? parseInt(vehicleData.seating_capacity) : watch('seating_capacity'));
+        setValue('cubic_capacity', vehicleData.cubic_capacity ? parseFloat(vehicleData.cubic_capacity) : watch('cubic_capacity'));
+        setValue('unladen_weight', vehicleData.unld_wt ? parseFloat(vehicleData.unld_wt) : watch('unladen_weight'));
+        setValue('vahan_last_fetched_at', new Date().toISOString());
+        
+        toast.success('Vehicle details fetched successfully');
+      } else {
+        toast.warning('No vehicle details found');
       }
-
-      const vehicleData = data.data.response;
-      console.log(vehicleData)
-      
-      // Map API response to form fields
-      mapApiResponseToForm(vehicleData);
-      
-      // Enable all fields for editing
-      setFieldsDisabled(false);
-      
-      toast.success('Vehicle details fetched successfully');
     } catch (error) {
       console.error('Error fetching vehicle details:', error);
       
-      // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      toast.error(errorMessage);
-      
-      // Enable fields anyway so user can enter data manually
-      setFieldsDisabled(false);
-    } finally {
-      setFetchingDetails(false);
+      if (error instanceof Error) {
+        if (error.message.includes('service unavailable') || error.message.includes('Service Unavailable')) {
+          toast.error('Vehicle details service is temporarily unavailable. Please try again later.');
+        } else {
+          toast.error(`Failed to fetch vehicle details: ${error.message}`);
+        }
+      } else {
+        toast.error('Failed to fetch vehicle details');
+      }
     }
   };
 
-  const mapApiResponseToForm = (data: any) => {
-    // Map API response fields to form fields
-    const manufacturingYear = data.manufacturing_date_formatted ? 
-      parseInt(data.manufacturing_date_formatted.split('-')[0]) : data.manufacturing_date?parseInt(data.manufacturing_date_formatted.split('/')[1]):
-      null;
-
-    // Map fuel type from API to our enum values
-    let mappedFuelType: 'diesel' | 'petrol' | 'cng' | 'ev' = 'diesel';
-    if (data.fuel_type) {
-      const fuelLower = data.fuel_type.toLowerCase();
-      if (fuelLower.includes('petrol')) mappedFuelType = 'petrol';
-      else if (fuelLower.includes('cng')) mappedFuelType = 'cng';
-      else if (fuelLower.includes('electric')) mappedFuelType = 'ev';
+  const handleFormSubmit = (data: Vehicle) => {
+    // Process file uploads
+    const processedData = { ...data };
+    
+    // Process other documents to handle file uploads
+    if (Array.isArray(processedData.other_documents)) {
+      processedData.other_documents = processedData.other_documents.map(doc => {
+        // If there's a file_obj property, move it to file
+        if (doc.file_obj) {
+          doc.file = doc.file_obj;
+          delete doc.file_obj;
+        }
+        return doc;
+      });
     }
-
-    // Map vehicle type based on class
-    let mappedVehicleType: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van' = 'truck';
-    if (data.class) {
-      const classLower = data.class.toLowerCase();
-      if (classLower.includes('tempo')) mappedVehicleType = 'tempo';
-      else if (classLower.includes('trailer')) mappedVehicleType = 'trailer';
-      else if (classLower.includes('pickup')) mappedVehicleType = 'pickup';
-      else if (classLower.includes('van')) mappedVehicleType = 'van';
-    }
-
-    // Set form values
-    setValue('registration_number', data.license_plate || registrationNumber);
-    setValue('chassis_number', data.chassis_number);
-    setValue('engine_number', data.engine_number);
-    setValue('make', data.brand_name);
-    setValue('model', data.brand_model);
-    setValue('year', manufacturingYear);
-    setValue('type', mappedVehicleType);
-    setValue('fuel_type', mappedFuelType);
-    setValue('owner_name', data.owner_name);
-    setValue('registration_date', data.registration_date);
-    setValue('rc_expiry_date', data.fit_up_to);
     
-    // Insurance details
-    setValue('insurer_name', data.insurance_company);
-    setValue('policy_number', data.insurance_policy);
-    setValue('insurance_end_date', data.insurance_expiry);
-    
-    // Fitness details
-    setValue('fitness_expiry_date', data.fit_up_to);
-
-    // Permit details
-    setValue('permit_number', data.permit_number);
-    setValue('permit_issuing_state', data.rto_name.split(",")[1].trim());
-   setValue('permit_issue_date', data.permit_issue_date||data.permit_valid_from);
-   setValue('permit_expiry_date', data.permit_valid_upto);
-   setValue('permit_type', data.permit_type || 'national');
-
-    // PUCC details
-    setValue('puc_certificate_number', data.pucc_number);
-    setValue('puc_expiry_date', data.pucc_upto);
-    setValue('permit_number', data.permit_number);
-    
-    // Additional details
-    setValue('financer', data.financer);
-    setValue('class', data.class);
-    setValue('color', data.color);
-    setValue('cubic_capacity', parseFloat(data.cubic_capacity) || undefined);
-    setValue('cylinders', parseInt(data.cylinders) || undefined);
-    setValue('gross_weight', parseFloat(data.gross_weight) || undefined);
-    setValue('seating_capacity', parseInt(data.seating_capacity) || undefined);
-    setValue('emission_norms', data.norms);
-    setValue('rc_status', data.rc_status);
-    setValue('national_permit_number', data.national_permit_number);
-    setValue('national_permit_upto', data.national_permit_upto);
-  };
-
-  const handleFormSubmit = async (data: Omit<Vehicle, 'id'>) => {
-    try {
-      setUploadingFiles(true);
-      
-      // Create a copy of the data to modify
-      const formData: any = { ...data };
-      
-      // Upload RC document if provided
-      if (rcFile) {
-        try {
-          const rcUrl = await uploadVehicleDocument(rcFile, initialData?.id || 'new', 'rc');
-          formData.rc_document_url = rcUrl;
-          formData.rc_copy = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading RC document:', error);
-          toast.error('Failed to upload RC document');
-        }
-      }
-      
-      // Upload insurance document if provided
-      if (insuranceFile) {
-        try {
-          const insuranceUrl = await uploadVehicleDocument(insuranceFile, initialData?.id || 'new', 'insurance');
-          formData.insurance_document_url = insuranceUrl;
-          formData.insurance_document = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading insurance document:', error);
-          toast.error('Failed to upload insurance document');
-        }
-      }
-      
-      // Upload fitness document if provided
-      if (fitnessFile) {
-        try {
-          const fitnessUrl = await uploadVehicleDocument(fitnessFile, initialData?.id || 'new', 'fitness');
-          formData.fitness_document_url = fitnessUrl;
-          formData.fitness_document = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading fitness document:', error);
-          toast.error('Failed to upload fitness document');
-        }
-      }
-      
-      // Upload tax document if provided
-      if (taxFile) {
-        try {
-          const taxUrl = await uploadVehicleDocument(taxFile, initialData?.id || 'new', 'tax');
-          formData.tax_document_url = taxUrl;
-          formData.tax_receipt_document = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading tax document:', error);
-          toast.error('Failed to upload tax document');
-        }
-      }
-      
-      // Upload permit document if provided
-      if (permitFile) {
-        try {
-          const permitUrl = await uploadVehicleDocument(permitFile, initialData?.id || 'new', 'permit');
-          formData.permit_document_url = permitUrl;
-          formData.permit_document = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading permit document:', error);
-          toast.error('Failed to upload permit document');
-        }
-      }
-      
-      // Upload PUC document if provided
-      if (pucFile) {
-        try {
-          const pucUrl = await uploadVehicleDocument(pucFile, initialData?.id || 'new', 'puc');
-          formData.puc_document_url = pucUrl;
-          formData.puc_document = true; // Set the legacy flag for backward compatibility
-        } catch (error) {
-          console.error('Error uploading PUC document:', error);
-          toast.error('Failed to upload PUC document');
-        }
-      }
-      
-      // Process other documents
-      if (otherDocuments.length > 0) {
-        const processedDocs = await Promise.all(otherDocuments.map(async (doc) => {
-          const processedDoc: any = {
-            id: doc.id,
-            name: doc.name,
-            issue_date: doc.issueDate,
-            expiry_date: doc.expiryDate,
-            cost: doc.cost
-          };
-          
-          // If there's a new file to upload
-          if (doc.file_obj) {
-            try {
-              const fileUrl = await uploadVehicleDocument(
-                doc.file_obj, 
-                initialData?.id || 'new', 
-                `other_${doc.id}`
-              );
-              processedDoc.file = fileUrl;
-            } catch (error) {
-              console.error(`Error uploading other document ${doc.name}:`, error);
-              toast.error(`Failed to upload ${doc.name}`);
-              // Keep existing URL if available
-              processedDoc.file = doc.file_url;
-            }
-          } else {
-            // Keep existing URL if available
-            processedDoc.file = doc.file_url;
-          }
-          
-          return processedDoc;
-        }));
-        
-        formData.other_documents = processedDocs;
-      }
-
-      // Process Other Information & Documents
-      if (otherInfoDocuments.length > 0) {
-        try {
-          const otherInfoDocUrls = await Promise.all(otherInfoDocuments.map(async (file) => {
-            const url = await uploadVehicleDocument(
-              file,
-              initialData?.id || 'new',
-              `other_info_${Date.now()}_${file.name}`
-            );
-            return url;
-          }));
-          
-          formData.other_info_documents = otherInfoDocUrls;
-        } catch (error) {
-          console.error('Error uploading other info documents:', error);
-          toast.error('Failed to upload some additional documents');
-        }
-      }
-      
-      // Remove file objects from the form data
-      delete formData.rc_copy_file;
-      delete formData.insurance_document_file;
-      delete formData.fitness_document_file;
-      delete formData.tax_receipt_document_file;
-      delete formData.permit_document_file;
-      delete formData.puc_document_file;
-      
-      // Submit the form data
-      onSubmit(formData);
-    } catch (error) {
-      console.error('Error processing form submission:', error);
-      toast.error('An error occurred while saving the vehicle');
-    } finally {
-      setUploadingFiles(false);
-    }
-  };
-
-  const addOtherDocument = () => {
-    setOtherDocuments([...otherDocuments, { 
-      id: `doc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, 
-      name: '' 
-    }]);
-  };
-
-  const removeOtherDocument = (id: string) => {
-    setOtherDocuments(otherDocuments.filter(doc => doc.id !== id));
-  };
-
-  const updateOtherDocument = (id: string, field: keyof OtherDocument, value: any) => {
-    setOtherDocuments(otherDocuments.map(doc => 
-      doc.id === id ? { ...doc, [field]: value } : doc
-    ));
-  };
-
-  // Helper function to get default days before from template
-  const getDefaultDaysBefore = (reminderType: ReminderAssignedType): number => {
-    const template = reminderTemplates.find(t => t.reminder_type === reminderType);
-    return template?.default_days_before || 14; // Default to 14 days if no template found
-  };
-
-  // Get contacts for a specific reminder type or global contacts
-  const getContactsForType = (reminderType: ReminderAssignedType): ReminderContact[] => {
-    // First, get all global contacts
-    const globalContacts = reminderContacts.filter(c => c.is_global && c.is_active);
-    
-    // Then, get contacts assigned to this specific type
-    const typeContacts = reminderContacts.filter(
-      c => c.is_active && !c.is_global && c.assigned_types.includes(reminderType)
-    );
-    
-    // Return global contacts first, then type-specific contacts
-    return [...globalContacts, ...typeContacts];
-  };
-
-  // Render reminder settings for a specific document type
-  const renderReminderSettings = (
-    documentType: ReminderAssignedType,
-    remindField: string,
-    contactIdField: string,
-    daysBeforeField: string
-  ) => {
-    const contacts = getContactsForType(documentType);
-    const defaultDaysBefore = getDefaultDaysBefore(documentType);
-    
-    return (
-      <div className="mt-3 pl-6 border-l-2 border-gray-100">
-        <div className="flex items-center mb-2">
-          <Bell className="h-4 w-4 text-primary-500 mr-2" />
-          <span className="text-sm font-medium text-primary-600">Reminder Settings</span>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Controller
-            control={control}
-            name={contactIdField as any}
-            render={({ field }) => (
-              <Select
-                label="Contact"
-                options={[
-                  { value: '', label: 'Select Contact' },
-                  ...contacts.map(contact => ({
-                    value: contact.id,
-                    label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
-                  }))
-                ]}
-                disabled={fieldsDisabled}
-                {...field}
-              />
-            )}
-          />
-          
-          <Input
-            label={`Days Before (Default: ${defaultDaysBefore})`}
-            type="number"
-            min="1"
-            max="365"
-            placeholder={defaultDaysBefore.toString()}
-            disabled={fieldsDisabled}
-            {...register(daysBeforeField as any, {
-              valueAsNumber: true,
-              min: { value: 1, message: 'Must be at least 1 day' },
-              max: { value: 365, message: 'Cannot exceed 365 days' }
-            })}
-          />
-        </div>
-      </div>
-    );
+    onSubmit(processedData);
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Basic Information Section - Always Expanded */}
-      <CollapsibleSection 
-        title="Basic Information" 
-        icon={<Truck className="h-5 w-5" />} 
-        defaultExpanded={true}
-        iconColor="text-blue-600"
-      >
+      {/* Basic Information */}
+      <CollapsibleSection title="Basic Information" icon={<Truck className="h-5 w-5" />} defaultExpanded>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Input
-                label="Vehicle Number"
-                placeholder="CG04AB1234"
-                error={errors.registration_number?.message}
-                required
-                disabled={false} // This field is always enabled
-                {...register('registration_number', { 
-                  required: 'Vehicle number is required',
-                  setValueAs: (v) => v?.toUpperCase()
-                })}
-              />
+          <div>
+            <Input
+              label="Vehicle Number"
+              placeholder="CG04NJ5907"
+              error={errors.registration_number?.message}
+              required
+              {...register('registration_number', { required: 'Vehicle number is required' })}
+            />
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={fetchVehicleDetails}
+              >
+                Get Details
+              </Button>
             </div>
-            <Button
-              type="button"
-              onClick={fetchVehicleDetails}
-              isLoading={fetchingDetails}
-              icon={fetchingDetails ? <Loader className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              className="mb-0"
-            >
-              {fetchingDetails ? 'Fetching...' : 'Get Details'}
-            </Button>
           </div>
-
-          {/* Service Status Alert */}
-          {fieldsDisabled && !fetchingDetails && (
-            <div className="md:col-span-2">
-              <div className="flex items-center p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-amber-600 mr-2 flex-shrink-0" />
-                <div className="text-sm text-amber-800">
-                  <p className="font-medium">Auto-fill unavailable</p>
-                  <p>Click "Get Details" to fetch vehicle information automatically, or enter details manually below.</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           <Input
             label="Chassis Number"
+            placeholder="17 characters"
             error={errors.chassis_number?.message}
             required
-            disabled={fieldsDisabled}
-            placeholder="17 characters"
-            {...register('chassis_number', { 
-              required: 'Chassis number is required',
-              minLength: {
-                value: 17,
-                message: 'Chassis number should be 17 characters'
-              },
-              maxLength: {
-                value: 17,
-                message: 'Chassis number should be 17 characters'
-              }
-            })}
+            {...register('chassis_number', { required: 'Chassis number is required' })}
           />
 
           <Input
             label="Engine Number"
             error={errors.engine_number?.message}
             required
-            disabled={fieldsDisabled}
             {...register('engine_number', { required: 'Engine number is required' })}
           />
 
           <Input
             label="Make"
+            placeholder="Tata, Ashok Leyland, etc."
             error={errors.make?.message}
             required
-            disabled={fieldsDisabled}
-            placeholder="Tata, Ashok Leyland, etc."
             {...register('make', { required: 'Make is required' })}
           />
 
           <Input
             label="Model"
+            placeholder="407, 1109, etc."
             error={errors.model?.message}
             required
-            disabled={fieldsDisabled}
-            placeholder="407, 1109, etc."
             {...register('model', { required: 'Model is required' })}
           />
 
@@ -683,11 +302,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             render={({ field }) => (
               <Select
                 label="Year"
-                options={yearOptions}
+                options={Array.from({ length: 30 }, (_, i) => {
+                  const year = new Date().getFullYear() - i;
+                  return { value: year.toString(), label: year.toString() };
+                })}
                 error={errors.year?.message}
                 required
-                disabled={fieldsDisabled}
                 {...field}
+                value={field.value?.toString()}
+                onChange={e => field.onChange(parseInt(e.target.value))}
               />
             )}
           />
@@ -695,7 +318,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Owner Name"
             placeholder="Enter owner's name"
-            disabled={fieldsDisabled}
             {...register('owner_name')}
           />
 
@@ -708,14 +330,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Vehicle Type"
                 options={[
                   { value: 'truck', label: 'Truck' },
-                  { value: 'pickup', label: 'Pickup' },
-                  { value: 'van', label: 'Van' },
                   { value: 'tempo', label: 'Tempo' },
                   { value: 'trailer', label: 'Trailer' }
                 ]}
                 error={errors.type?.message}
                 required
-                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -731,12 +350,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 options={[
                   { value: 'diesel', label: 'Diesel' },
                   { value: 'petrol', label: 'Petrol' },
-                  { value: 'cng', label: 'CNG' },
-                  { value: 'ev', label: 'Electric' }
+                  { value: 'cng', label: 'CNG' }
                 ]}
                 error={errors.fuel_type?.message}
                 required
-                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -745,36 +362,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tyre Size"
             placeholder="e.g., 215/75 R15"
-            disabled={fieldsDisabled}
             {...register('tyre_size')}
           />
 
           <Input
             label="Number of Tyres"
             type="number"
-            min="4"
             placeholder="6, 10, etc."
-            disabled={fieldsDisabled}
-            {...register('number_of_tyres', {
-              valueAsNumber: true,
-              min: {
-                value: 4,
-                message: 'Minimum 4 tyres required'
-              }
-            })}
+            {...register('number_of_tyres', { valueAsNumber: true })}
           />
 
           <Input
             label="Registration Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('registration_date')}
           />
 
           <Input
             label="RC Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('rc_expiry_date')}
           />
 
@@ -783,287 +389,252 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             error={errors.current_odometer?.message}
             required
-            disabled={fieldsDisabled}
-            {...register('current_odometer', {
-              required: 'Current odometer reading is required',
+            {...register('current_odometer', { 
+              required: 'Current odometer is required',
               valueAsNumber: true,
-              min: { value: 0, message: 'Odometer reading must be positive' }
+              min: { value: 0, message: 'Odometer must be positive' }
             })}
           />
 
           <Controller
             control={control}
-            name="rc_status"
+            name="status"
             rules={{ required: 'Status is required' }}
             render={({ field }) => (
               <Select
                 label="Status"
                 options={[
                   { value: 'active', label: 'Active' },
-                  { value: 'maintenance', label: 'Under Maintenance' },
+                  { value: 'maintenance', label: 'Maintenance' },
                   { value: 'inactive', label: 'Inactive' },
                   { value: 'stood', label: 'Stood' }
                 ]}
-                error={errors.rc_status?.message}
+                error={errors.status?.message}
                 required
-                disabled={fieldsDisabled}
                 {...field}
               />
             )}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="rc_copy_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
                 label="Upload RC"
-                accept=".jpg,.jpeg,.png,.pdf"
+                buttonMode
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setRcFile(file as File);
+                  if (file) handleRCUpload(file);
                 }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
       </CollapsibleSection>
 
-      {/* Insurance Details Section */}
-      <CollapsibleSection 
-        title="Insurance Details" 
-        icon={<Shield className="h-5 w-5" />}
-        iconColor="text-purple-600"
-      >
+      {/* Insurance Details */}
+      <CollapsibleSection title="Insurance Details" icon={<FileText className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
             label="Policy Number"
             placeholder="e.g., POL123456789"
-            disabled={fieldsDisabled}
             {...register('policy_number')}
           />
 
           <Input
             label="Insurer Name"
             placeholder="e.g., ICICI Lombard"
-            disabled={fieldsDisabled}
             {...register('insurer_name')}
           />
 
           <Input
-            label="Start Date"
+            label="Insurance Start Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('insurance_start_date')}
           />
 
           <Input
-            label="Expiry Date"
+            label="Insurance Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
-            {...register('insurance_end_date')}
+            {...register('insurance_expiry_date')}
           />
 
           <Input
             label="Premium Amount (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 25000"
-            disabled={fieldsDisabled}
-            {...register('insurance_premium_amount', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Premium amount must be positive'
-              }
-            })}
+            {...register('insurance_premium_amount', { valueAsNumber: true })}
           />
 
           <Input
             label="IDV Amount (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 500000"
-            disabled={fieldsDisabled}
-            {...register('insurance_idv', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'IDV amount must be positive'
-              }
-            })}
+            {...register('insurance_idv', { valueAsNumber: true })}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="insurance_document_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
-                label="Upload Insurance PDF"
-                accept=".jpg,.jpeg,.png,.pdf"
+                label="Upload Insurance"
+                buttonMode
                 value={value as File | null}
                 onChange={(file) => {
                   onChange(file);
-                  setInsuranceFile(file as File);
+                  if (file) handleInsuranceUpload(file);
                 }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
 
-        {/* Insurance Reminder Settings */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Controller
-            control={control}
-            name="remind_insurance"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Set Insurance Expiry Reminder"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-                icon={<Bell className="h-4 w-4" />}
-                disabled={fieldsDisabled}
-              />
-            )}
+        <div className="mt-4">
+          <Checkbox
+            label="Set Insurance Expiry Reminder"
+            checked={remindInsurance}
+            onChange={(e) => setValue('remind_insurance', e.target.checked)}
           />
-          
-          {remindInsurance && renderReminderSettings(
-            ReminderAssignedType.Insurance,
-            'remind_insurance',
-            'insurance_reminder_contact_id',
-            'insurance_reminder_days_before'
+
+          {remindInsurance && (
+            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+              <Controller
+                control={control}
+                name="insurance_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Notify Contact"
+                    options={[
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Input
+                label="Days Before Expiry"
+                type="number"
+                placeholder="e.g., 30"
+                {...register('insurance_reminder_days_before', { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* Fitness Certificate Section */}
-      <CollapsibleSection 
-        title="Fitness Certificate" 
-        icon={<FileCheck className="h-5 w-5" />}
-        iconColor="text-green-600"
-      >
+      {/* Fitness Certificate */}
+      <CollapsibleSection title="Fitness Certificate" icon={<FileText className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
-            label="Certificate Number"
+            label="Fitness Certificate Number"
             placeholder="e.g., FC123456789"
-            disabled={fieldsDisabled}
             {...register('fitness_certificate_number')}
           />
 
           <Input
-            label="Issue Date"
+            label="Fitness Issue Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('fitness_issue_date')}
           />
 
           <Input
-            label="Expiry Date"
+            label="Fitness Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('fitness_expiry_date')}
           />
 
           <Input
             label="Fitness Cost (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 2000"
-            disabled={fieldsDisabled}
-            {...register('fitness_cost', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Cost must be positive'
-              }
-            })}
+            {...register('fitness_cost', { valueAsNumber: true })}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="fitness_document_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
                 label="Upload Fitness Certificate"
-                accept=".jpg,.jpeg,.png,.pdf"
+                buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  setFitnessFile(file as File);
-                }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                onChange={onChange}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
 
-        {/* Fitness Reminder Settings */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Controller
-            control={control}
-            name="remind_fitness"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Set Fitness Certificate Expiry Reminder"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-                icon={<Bell className="h-4 w-4" />}
-                disabled={fieldsDisabled}
-              />
-            )}
+        <div className="mt-4">
+          <Checkbox
+            label="Set Fitness Expiry Reminder"
+            checked={remindFitness}
+            onChange={(e) => setValue('remind_fitness', e.target.checked)}
           />
-          
-          {remindFitness && renderReminderSettings(
-            ReminderAssignedType.Fitness,
-            'remind_fitness',
-            'fitness_reminder_contact_id',
-            'fitness_reminder_days_before'
+
+          {remindFitness && (
+            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+              <Controller
+                control={control}
+                name="fitness_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Notify Contact"
+                    options={[
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Input
+                label="Days Before Expiry"
+                type="number"
+                placeholder="e.g., 30"
+                {...register('fitness_reminder_days_before', { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* Tax Details Section */}
-      <CollapsibleSection 
-        title="Tax Details" 
-        icon={<Receipt className="h-5 w-5" />}
-        iconColor="text-yellow-600"
-      >
+      {/* Tax Details */}
+      <CollapsibleSection title="Tax Details" icon={<FileText className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
             label="Tax Receipt Number"
             placeholder="e.g., TR123456789"
-            disabled={fieldsDisabled}
             {...register('tax_receipt_number')}
           />
 
           <Input
             label="Tax Amount (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 5000"
-            disabled={fieldsDisabled}
-            {...register('tax_amount', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Tax amount must be positive'
-              }
-            })}
+            {...register('tax_amount', { valueAsNumber: true })}
           />
 
           <Controller
@@ -1073,12 +644,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               <Select
                 label="Tax Period"
                 options={[
-                  { value: 'monthly', label: 'Monthly' },
-                  { value: 'quarterly', label: 'Quarterly' },
-                  { value: 'half-yearly', label: 'Half-yearly' },
-                  { value: 'yearly', label: 'Yearly' }
+                  { value: 'Monthly', label: 'Monthly' },
+                  { value: 'Quarterly', label: 'Quarterly' },
+                  { value: 'Half-Yearly', label: 'Half-Yearly' },
+                  { value: 'Annually', label: 'Annually' }
                 ]}
-                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -1087,642 +657,488 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tax Scope"
             placeholder="e.g., State, National"
-            disabled={fieldsDisabled}
             {...register('tax_scope')}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="tax_receipt_document_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
                 label="Upload Tax Receipt"
-                accept=".jpg,.jpeg,.png,.pdf"
+                buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  setTaxFile(file as File);
-                }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                onChange={onChange}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
 
-        {/* Tax Reminder Settings */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Controller
-            control={control}
-            name="remind_tax"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Set Tax Expiry Reminder"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-                icon={<Bell className="h-4 w-4" />}
-                disabled={fieldsDisabled}
-              />
-            )}
+        <div className="mt-4">
+          <Checkbox
+            label="Set Tax Expiry Reminder"
+            checked={remindTax}
+            onChange={(e) => setValue('remind_tax', e.target.checked)}
           />
-          
-          {remindTax && renderReminderSettings(
-            ReminderAssignedType.Tax,
-            'remind_tax',
-            'tax_reminder_contact_id',
-            'tax_reminder_days_before'
+
+          {remindTax && (
+            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+              <Controller
+                control={control}
+                name="tax_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Notify Contact"
+                    options={[
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Input
+                label="Days Before Expiry"
+                type="number"
+                placeholder="e.g., 30"
+                {...register('tax_reminder_days_before', { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* Permit Details Section */}
-      <CollapsibleSection 
-        title="Permit Details" 
-        icon={<Ticket className="h-5 w-5" />}
-        iconColor="text-red-600"
-      >
+      {/* Permit Details */}
+      <CollapsibleSection title="Permit Details" icon={<FileText className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
             label="Permit Number"
             placeholder="e.g., PER123456789"
-            disabled={fieldsDisabled}
             {...register('permit_number')}
           />
 
           <Input
             label="Issuing State"
             placeholder="e.g., Chhattisgarh"
-            disabled={fieldsDisabled}
             {...register('permit_issuing_state')}
           />
 
-          <Controller
-            control={control}
-            name="permit_type"
-            render={({ field }) => (
-              <Select
-                label="Permit Type"
-                options={[
-                  { value: 'national', label: 'National' },
-                  { value: 'state', label: 'State' },
-                  { value: 'contract', label: 'Contract' },
-                  { value: 'tourist', label: 'Tourist' }
-                ]}
-                disabled={fieldsDisabled}
-                {...field}
-              />
-            )}
+          <Input
+            label="Permit Type"
+            placeholder="e.g., National, State"
+            {...register('permit_type')}
           />
 
           <Input
-            label="Issue Date"
+            label="Permit Issue Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('permit_issue_date')}
           />
 
           <Input
-            label="Expiry Date"
+            label="Permit Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('permit_expiry_date')}
           />
 
           <Input
             label="Permit Cost (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 10000"
-            disabled={fieldsDisabled}
-            {...register('permit_cost', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Cost must be positive'
-              }
-            })}
+            {...register('permit_cost', { valueAsNumber: true })}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="permit_document_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
-                label="Upload Permit Document"
-                accept=".jpg,.jpeg,.png,.pdf"
+                label="Upload Permit"
+                buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  setPermitFile(file as File);
-                }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                onChange={onChange}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
 
-        {/* Permit Reminder Settings */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Controller
-            control={control}
-            name="remind_permit"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Set Permit Expiry Reminder"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-                icon={<Bell className="h-4 w-4" />}
-                disabled={fieldsDisabled}
-              />
-            )}
+        <div className="mt-4">
+          <Checkbox
+            label="Set Permit Expiry Reminder"
+            checked={remindPermit}
+            onChange={(e) => setValue('remind_permit', e.target.checked)}
           />
-          
-          {remindPermit && renderReminderSettings(
-            ReminderAssignedType.Permit,
-            'remind_permit',
-            'permit_reminder_contact_id',
-            'permit_reminder_days_before'
+
+          {remindPermit && (
+            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+              <Controller
+                control={control}
+                name="permit_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Notify Contact"
+                    options={[
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Input
+                label="Days Before Expiry"
+                type="number"
+                placeholder="e.g., 30"
+                {...register('permit_reminder_days_before', { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* PUC Section */}
-      <CollapsibleSection 
-        title="Pollution Certificate (PUC)" 
-        icon={<Wind className="h-5 w-5" />}
-        iconColor="text-amber-600"
-      >
+      {/* Pollution Certificate (PUC) */}
+      <CollapsibleSection title="Pollution Certificate (PUC)" icon={<FileText className="h-5 w-5" />}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
-            label="Certificate Number"
+            label="PUC Certificate Number"
             placeholder="e.g., PUC123456789"
-            disabled={fieldsDisabled}
             {...register('puc_certificate_number')}
           />
 
           <Input
-            label="Issue Date"
+            label="PUC Issue Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('puc_issue_date')}
           />
 
           <Input
-            label="Expiry Date"
+            label="PUC Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
             {...register('puc_expiry_date')}
           />
 
           <Input
             label="PUC Cost (₹)"
             type="number"
-            min="0"
             placeholder="e.g., 500"
-            disabled={fieldsDisabled}
-            {...register('puc_cost', {
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Cost must be positive'
-              }
-            })}
+            {...register('puc_cost', { valueAsNumber: true })}
           />
         </div>
-        
+
         <div className="mt-4 flex justify-end">
           <Controller
             control={control}
             name="puc_document_file"
-            render={({ field: { value, onChange } }) => (
+            render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
-                buttonMode={true}
                 label="Upload PUC Certificate"
-                accept=".jpg,.jpeg,.png,.pdf"
+                buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  setPucFile(file as File);
-                }}
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={fieldsDisabled}
+                onChange={onChange}
+                accept=".jpg,.jpeg,.png,.pdf"
+                icon={<Upload className="h-4 w-4" />}
+                {...field}
               />
             )}
           />
         </div>
 
-        {/* PUC Reminder Settings */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <Controller
-            control={control}
-            name="remind_puc"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Set Pollution Certificate Expiry Reminder"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-                icon={<Bell className="h-4 w-4" />}
-                disabled={fieldsDisabled}
-              />
-            )}
+        <div className="mt-4">
+          <Checkbox
+            label="Set PUC Expiry Reminder"
+            checked={remindPuc}
+            onChange={(e) => setValue('remind_puc', e.target.checked)}
           />
-          
-          {remindPuc && renderReminderSettings(
-            ReminderAssignedType.Pollution,
-            'remind_puc',
-            'puc_reminder_contact_id',
-            'puc_reminder_days_before'
+
+          {remindPuc && (
+            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+              <Controller
+                control={control}
+                name="puc_reminder_contact_id"
+                render={({ field }) => (
+                  <Select
+                    label="Notify Contact"
+                    options={[
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                    ]}
+                    {...field}
+                  />
+                )}
+              />
+
+              <Input
+                label="Days Before Expiry"
+                type="number"
+                placeholder="e.g., 15"
+                {...register('puc_reminder_days_before', { valueAsNumber: true })}
+              />
+            </div>
           )}
         </div>
       </CollapsibleSection>
 
-      {/* Service Reminder Section */}
-      <CollapsibleSection 
-        title="Service Reminder" 
-        icon={<Bell className="h-5 w-5" />}
-        iconColor="text-blue-600"
-      >
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-          <p className="text-sm text-blue-700">
-            Configure reminders for regular service intervals based on time or odometer reading.
-          </p>
-        </div>
+      {/* Service Reminder */}
+      <CollapsibleSection title="Service Reminder" icon={<Calendar className="h-5 w-5" />}>
+        <div className="space-y-4">
+          <Checkbox
+            label="Enable Service Reminders"
+            checked={remindService}
+            onChange={(e) => setValue('remind_service', e.target.checked)}
+          />
 
-        <Controller
-          control={control}
-          name="remind_service"
-          render={({ field: { value, onChange } }) => (
-            <Checkbox
-              label="Enable Service Due Reminders"
-              checked={value}
-              onChange={(e) => onChange(e.target.checked)}
-              icon={<Bell className="h-4 w-4" />}
-              disabled={fieldsDisabled}
-            />
-          )}
-        />
-        
-        {remindService && (
-          <div className="mt-3 pl-6 border-l-2 border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {remindService && (
+            <div className="pl-6 border-l-2 border-gray-200 space-y-4">
               <Controller
                 control={control}
                 name="service_reminder_contact_id"
                 render={({ field }) => (
                   <Select
-                    label="Contact"
+                    label="Notify Contact"
                     options={[
-                      { value: '', label: 'Select Contact' },
-                      ...getContactsForType(ReminderAssignedType.ServiceDue).map(contact => ({
-                        value: contact.id,
-                        label: `${contact.full_name}${contact.is_global ? ' (Global)' : ''}`
-                      }))
+                      { value: '', label: 'Default Contact' },
+                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
+                      { value: 'contact2', label: 'Jane Smith (Admin)' }
                     ]}
-                    disabled={fieldsDisabled}
                     {...field}
                   />
                 )}
               />
-              
-              <Input
-                label={`Days Before (Default: ${getDefaultDaysBefore(ReminderAssignedType.ServiceDue)})`}
-                type="number"
-                min="1"
-                max="365"
-                placeholder={getDefaultDaysBefore(ReminderAssignedType.ServiceDue).toString()}
-                disabled={fieldsDisabled}
-                {...register('service_reminder_days_before', {
-                  valueAsNumber: true,
-                  min: { value: 1, message: 'Must be at least 1 day' },
-                  max: { value: 365, message: 'Cannot exceed 365 days' }
-                })}
-              />
-              
-              <Input
-                label="Kilometers Before Service Due"
-                type="number"
-                min="500"
-                max="50000"
-                placeholder="e.g., 5000"
-                disabled={fieldsDisabled}
-                {...register('service_reminder_km', {
-                  valueAsNumber: true,
-                  min: { value: 500, message: 'Must be at least 500 km' },
-                  max: { value: 50000, message: 'Cannot exceed 50000 km' }
-                })}
-              />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Days Before Service"
+                  type="number"
+                  placeholder="e.g., 7"
+                  {...register('service_reminder_days_before', { valueAsNumber: true })}
+                />
+
+                <Input
+                  label="KM Before Service"
+                  type="number"
+                  placeholder="e.g., 500"
+                  {...register('service_reminder_km', { valueAsNumber: true })}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </CollapsibleSection>
+
+      {/* Other Information & Documents */}
+      <CollapsibleSection title="Other Information & Documents" icon={<Database className="h-5 w-5" />}>
+        {/* VAHAN Data Summary */}
+        {initialData && initialData.vahan_last_fetched_at && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
+              <div>
+                <h4 className="text-blue-700 font-medium">VAHAN Data Summary</h4>
+                <p className="text-blue-600 text-sm mt-1">
+                  Last fetched: {new Date(initialData.vahan_last_fetched_at).toLocaleString()}
+                </p>
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  {initialData.vehicle_class && (
+                    <div>
+                      <span className="text-blue-700 font-medium">Vehicle Class:</span>{' '}
+                      <span className="text-blue-600">{initialData.vehicle_class}</span>
+                    </div>
+                  )}
+                  {initialData.financer && (
+                    <div>
+                      <span className="text-blue-700 font-medium">Financer:</span>{' '}
+                      <span className="text-blue-600">{initialData.financer}</span>
+                    </div>
+                  )}
+                  {initialData.cubic_capacity && (
+                    <div>
+                      <span className="text-blue-700 font-medium">Cubic Capacity:</span>{' '}
+                      <span className="text-blue-600">{initialData.cubic_capacity} cc</span>
+                    </div>
+                  )}
+                  {initialData.unladen_weight && (
+                    <div>
+                      <span className="text-blue-700 font-medium">Unladen Weight:</span>{' '}
+                      <span className="text-blue-600">{initialData.unladen_weight} kg</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
-      </CollapsibleSection>
 
-      {/* Other Documents Section */}
-      <CollapsibleSection 
-        title="Other Documents" 
-        icon={<FileText className="h-5 w-5" />}
-        iconColor="text-gray-600"
-      >
-        <div className="space-y-6">
-          {otherDocuments.map((doc, index) => (
-            <div key={doc.id} className="p-4 border border-gray-200 rounded-lg bg-white">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="font-medium text-gray-900">Document #{index + 1}</h4>
-                <button
-                  type="button"
-                  onClick={() => removeOtherDocument(doc.id)}
-                  className="text-error-500 hover:text-error-700"
-                  disabled={fieldsDisabled}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* General Information Fields */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <Input
+            label="Financer"
+            placeholder="e.g., HDFC Bank"
+            {...register('financer')}
+          />
+
+          <Input
+            label="Vehicle Class"
+            placeholder="e.g., LMV"
+            {...register('vehicle_class')}
+          />
+
+          <Input
+            label="Color"
+            placeholder="e.g., White"
+            {...register('color')}
+          />
+
+          <Input
+            label="Cubic Capacity"
+            type="number"
+            placeholder="e.g., 2500"
+            {...register('cubic_capacity', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Cylinders"
+            type="number"
+            placeholder="e.g., 4"
+            {...register('cylinders', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Unladen Weight (kg)"
+            type="number"
+            placeholder="e.g., 3500"
+            {...register('unladen_weight', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Seating Capacity"
+            type="number"
+            placeholder="e.g., 2"
+            {...register('seating_capacity', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Emission Norms"
+            placeholder="e.g., BS6"
+            {...register('emission_norms')}
+          />
+        </div>
+
+        {/* Upload Related Documents */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-700 mb-2">Upload Related Documents</h4>
+          <Controller
+            control={control}
+            name="other_info_documents"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FileUpload
+                label="Upload Documents"
+                value={value as File[] | null}
+                onChange={onChange}
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple
+                maxFiles={5}
+                helperText="Upload up to 5 additional documents (JPG, PNG, PDF)"
+                icon={<Paperclip className="h-4 w-4" />}
+                {...field}
+              />
+            )}
+          />
+        </div>
+
+        {/* Other Documents */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-gray-700">Document List</h4>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: '', file: null })}
+              icon={<Plus className="h-4 w-4" />}
+            >
+              Add Document
+            </Button>
+          </div>
+
+          {fields.map((field, index) => (
+            <div key={field.id} className="p-4 border rounded-lg bg-gray-50 relative">
+              <button
+                type="button"
+                className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
+                onClick={() => remove(index)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <Input
                   label="Document Name"
-                  required
-                  value={doc.name}
-                  onChange={(e) => updateOtherDocument(doc.id, 'name', e.target.value)}
-                  disabled={fieldsDisabled}
+                  placeholder="e.g., National Permit"
+                  {...register(`other_documents.${index}.name` as const)}
                 />
-                
-                <div className="flex items-end space-x-2">
-                  <FileUpload
-                    buttonMode={true}
-                    label="Upload Document"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    value={doc.file_obj || null}
-                    onChange={(file) => updateOtherDocument(doc.id, 'file_obj', file)}
-                    disabled={fieldsDisabled}
-                  />
-                  
-                  {doc.file_url && (
-                    <a 
-                      href={doc.file_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      View
-                    </a>
-                  )}
-                </div>
-                
+
                 <Input
                   label="Issue Date"
                   type="date"
-                  value={doc.issueDate || ''}
-                  onChange={(e) => updateOtherDocument(doc.id, 'issueDate', e.target.value)}
-                  disabled={fieldsDisabled}
+                  {...register(`other_documents.${index}.issue_date` as const)}
                 />
-                
+
                 <Input
                   label="Expiry Date"
                   type="date"
-                  value={doc.expiryDate || ''}
-                  onChange={(e) => updateOtherDocument(doc.id, 'expiryDate', e.target.value)}
-                  disabled={fieldsDisabled}
+                  {...register(`other_documents.${index}.expiry_date` as const)}
                 />
-                
+
                 <Input
                   label="Document Cost (₹)"
                   type="number"
-                  min="0"
-                  value={doc.cost || ''}
-                  onChange={(e) => updateOtherDocument(doc.id, 'cost', parseFloat(e.target.value))}
-                  disabled={fieldsDisabled}
+                  placeholder="e.g., 1000"
+                  {...register(`other_documents.${index}.cost` as const, { valueAsNumber: true })}
                 />
               </div>
+
+              <Controller
+                control={control}
+                name={`other_documents.${index}.file_obj` as const}
+                render={({ field: { value, onChange, ...field } }) => (
+                  <FileUpload
+                    label="Upload Document"
+                    value={value as File | null}
+                    onChange={onChange}
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    icon={<Upload className="h-4 w-4" />}
+                    {...field}
+                  />
+                )}
+              />
             </div>
           ))}
-          
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addOtherDocument}
-            icon={<Plus className="h-4 w-4" />}
-            disabled={fieldsDisabled}
-          >
-            Add Another Document
-          </Button>
-        </div>
-      </CollapsibleSection>
 
-      {/* Other Information & Documents Section */}
-      <CollapsibleSection 
-        title="Other Information & Documents" 
-        icon={<FileText className="h-5 w-5" />}
-        iconColor="text-gray-600"
-        defaultExpanded={false}
-      >
-        <div className="space-y-6 max-w-4xl mx-auto">
-          <div className="p-4 bg-gray-50 border border-gray-100 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-              {/* Financed By */}
-              {initialData?.financer && initialData.financer !== "DUMMY COMPANY" && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Financed By</span>
-                  <span className="text-gray-700">{initialData.financer}</span>
-                </div>
-              )}
-              
-              {/* Engine Number */}
-              {initialData?.engine_number && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Engine Number</span>
-                  <span className="text-gray-700 font-mono">{initialData.engine_number.toUpperCase()}</span>
-                </div>
-              )}
-              
-              {/* Chassis Number */}
-              {initialData?.chassis_number && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Chassis Number</span>
-                  <span className="text-gray-700 font-mono">{initialData.chassis_number.toUpperCase()}</span>
-                </div>
-              )}
-              
-              {/* Fuel Type */}
-              {initialData?.fuel_type && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Fuel Type</span>
-                  <span className="text-gray-700 capitalize">{initialData.fuel_type}</span>
-                </div>
-              )}
-              
-              {/* Vehicle Class */}
-              {initialData?.class && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Vehicle Class</span>
-                  <span className="text-gray-700">{initialData.class}</span>
-                </div>
-              )}
-              
-              {/* Color */}
-              {initialData?.color && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Color</span>
-                  <span className="text-gray-700">{initialData.color}</span>
-                </div>
-              )}
-              
-              {/* Cubic Capacity */}
-              {initialData?.cubic_capacity && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Cubic Capacity (cc)</span>
-                  <span className="text-gray-700">{initialData.cubic_capacity}</span>
-                </div>
-              )}
-              
-              {/* Cylinder Count */}
-              {initialData?.cylinders && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Cylinder Count</span>
-                  <span className="text-gray-700">{initialData.cylinders}</span>
-                </div>
-              )}
-              
-              {/* Unladen Weight */}
-              {initialData?.gross_weight && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Unladen Weight (kg)</span>
-                  <span className="text-gray-700">{initialData.gross_weight}</span>
-                </div>
-              )}
-              
-              {/* Seating Capacity */}
-              {initialData?.seating_capacity && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Seating Capacity</span>
-                  <span className="text-gray-700">{initialData.seating_capacity}</span>
-                </div>
-              )}
-              
-              {/* Emission Norms */}
-              {initialData?.emission_norms && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Emission Norms</span>
-                  <span className="text-gray-700">{initialData.emission_norms}</span>
-                </div>
-              )}
-              
-              {/* NOC Details */}
-              {initialData?.noc_details && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">NOC Details</span>
-                  <span className="text-gray-700">{initialData.noc_details}</span>
-                </div>
-              )}
-              
-              {/* National Permit Number */}
-              {initialData?.national_permit_number && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">National Permit Number</span>
-                  <span className="text-gray-700">{initialData.national_permit_number}</span>
-                </div>
-              )}
-              
-              {/* Permit Valid Till */}
-              {initialData?.national_permit_upto && initialData.national_permit_upto !== "1900-01-01" && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">Permit Valid Till</span>
-                  <span className="text-gray-700">
-                    {new Date(initialData.national_permit_upto).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-              
-              {/* RC Status */}
-              {initialData?.rc_status && (
-                <div className="py-1.5">
-                  <span className="block text-gray-500">RC Status</span>
-                  <span className="text-gray-700">{initialData.rc_status}</span>
-                </div>
-              )}
+          {fields.length === 0 && (
+            <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-500">No documents added yet. Click "Add Document" to add one.</p>
             </div>
-            
-            {/* Last fetched from VAHAN date */}
-            {initialData?.vahan_last_fetched_date && (
-              <div className="text-right mt-4 text-xs text-gray-400">
-                Last fetched from VAHAN: {
-                  new Date(initialData.vahan_last_fetched_date).toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })
-                }
-              </div>
-            )}
-
-            {/* If no data available yet, show a message */}
-            {!initialData?.financer && 
-             !initialData?.engine_number && 
-             !initialData?.chassis_number && 
-             !initialData?.class && 
-             !initialData?.rc_status && (
-              <div className="flex items-center justify-center py-8">
-                <Database className="h-5 w-5 text-gray-400 mr-2" />
-                <span className="text-gray-500">No VAHAN data available for this vehicle</span>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6">
-            <FileUpload
-              label="Upload Related Documents"
-              helperText="Add additional documents related to the vehicle (max 5 files)"
-              accept=".jpg,.jpeg,.png,.pdf"
-              multiple={true}
-              maxFiles={5}
-              value={otherInfoDocuments}
-              onChange={(files) => setOtherInfoDocuments(files as File[])}
-              icon={<Paperclip className="h-4 w-4" />}
-              disabled={fieldsDisabled}
-            />
-
-            {/* Display existing document URLs if any */}
-            {initialData?.other_info_documents && Array.isArray(initialData.other_info_documents) && initialData.other_info_documents.length > 0 && (
-              <div className="mt-4">
-                <h5 className="text-sm font-medium text-gray-700 mb-2">Existing Documents</h5>
-                <div className="space-y-2">
-                  {initialData.other_info_documents.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                      <div className="flex items-center overflow-hidden">
-                        <FileText className="h-4 w-4 text-gray-400 flex-shrink-0 mr-2" />
-                        <span className="text-sm text-gray-700 truncate">
-                          {typeof doc === 'string' ? `Document ${index + 1}` : doc.name}
-                        </span>
-                      </div>
-                      {typeof doc === 'string' && (
-                        <a 
-                          href={doc}
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-primary-600 hover:text-primary-700 text-sm underline"
-                        >
-                          View
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </CollapsibleSection>
 
-      {/* Submit Button */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 mt-8 -mx-4 flex justify-end space-x-4">
+      {/* Form Actions */}
+      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
         {onCancel && (
           <Button
             type="button"
@@ -1734,12 +1150,29 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         )}
         <Button
           type="submit"
-          isLoading={isSubmitting || uploadingFiles}
-          disabled={fieldsDisabled && !initialData}
+          isLoading={isSubmitting}
         >
-          {uploadingFiles ? 'Uploading Files...' : 'Save Vehicle'}
+          {initialData ? 'Update Vehicle' : 'Save Vehicle'}
         </Button>
       </div>
+
+      {/* RC Preview Modal */}
+      {rcPreviewData && (
+        <RCPreviewModal
+          details={rcPreviewData}
+          onConfirm={handleRCConfirm}
+          onClose={() => setRcPreviewData(null)}
+        />
+      )}
+
+      {/* Insurance Preview Modal */}
+      {insurancePreviewData && (
+        <InsurancePreviewModal
+          details={insurancePreviewData}
+          onConfirm={handleInsuranceConfirm}
+          onClose={() => setInsurancePreviewData(null)}
+        />
+      )}
     </form>
   );
 };
