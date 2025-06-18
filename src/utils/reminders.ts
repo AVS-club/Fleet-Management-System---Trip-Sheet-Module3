@@ -76,7 +76,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 30) {
             reminders.push({
-              id: `rc-${vehicle.id}`,
+              id: `rc-${vehicle.id}-${vehicle.rc_expiry_date}`,
               title: `RC Expiring in ${daysLeft} days`,
               entityId: vehicle.id,
               entityName: vehicle.registration_number,
@@ -90,7 +90,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `rc-${vehicle.id}`,
+            id: `rc-${vehicle.id}-${vehicle.rc_expiry_date}`,
             title: 'RC Expired',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -110,7 +110,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 30) {
             reminders.push({
-              id: `insurance-${vehicle.id}`,
+              id: `insurance-${vehicle.id}-${vehicle.insurance_expiry_date}`,
               title: `Insurance Expiring in ${daysLeft} days`,
               entityId: vehicle.id,
               entityName: vehicle.registration_number,
@@ -124,7 +124,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `insurance-${vehicle.id}`,
+            id: `insurance-${vehicle.id}-${vehicle.insurance_expiry_date}`,
             title: 'Insurance Expired',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -144,7 +144,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 15) { // PUC has a shorter threshold (15 days)
             reminders.push({
-              id: `puc-${vehicle.id}`,
+              id: `puc-${vehicle.id}-${vehicle.puc_expiry_date}`,
               title: `PUC Expiring in ${daysLeft} days`,
               entityId: vehicle.id,
               entityName: vehicle.registration_number,
@@ -158,7 +158,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `puc-${vehicle.id}`,
+            id: `puc-${vehicle.id}-${vehicle.puc_expiry_date}`,
             title: 'PUC Expired',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -178,7 +178,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 30) {
             reminders.push({
-              id: `fitness-${vehicle.id}`,
+              id: `fitness-${vehicle.id}-${vehicle.fitness_expiry_date}`,
               title: `Fitness Certificate Expiring in ${daysLeft} days`,
               entityId: vehicle.id,
               entityName: vehicle.registration_number,
@@ -192,7 +192,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `fitness-${vehicle.id}`,
+            id: `fitness-${vehicle.id}-${vehicle.fitness_expiry_date}`,
             title: 'Fitness Certificate Expired',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -212,7 +212,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 30) {
             reminders.push({
-              id: `permit-${vehicle.id}`,
+              id: `permit-${vehicle.id}-${vehicle.permit_expiry_date}`,
               title: `Permit Expiring in ${daysLeft} days`,
               entityId: vehicle.id,
               entityName: vehicle.registration_number,
@@ -226,7 +226,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `permit-${vehicle.id}`,
+            id: `permit-${vehicle.id}-${vehicle.permit_expiry_date}`,
             title: 'Permit Expired',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -249,7 +249,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
 
       if (missingDocs.length > 0) {
         reminders.push({
-          id: `missing-docs-${vehicle.id}`,
+          id: `missing-docs-${vehicle.id}-${Date.now()}`,
           title: `Missing Documents: ${missingDocs.join(', ')}`,
           entityId: vehicle.id,
           entityName: vehicle.registration_number,
@@ -260,19 +260,12 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
       }
     });
 
-    // Sort reminders by status (critical first) and then by days left
+    // Sort reminders by dueDate first, then by daysLeft
     return reminders.sort((a, b) => {
-      // First sort by status
-      const statusOrder = { critical: 0, warning: 1, normal: 2 };
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-      if (statusDiff !== 0) return statusDiff;
-      
-      // Then sort by days left (if available)
-      if (a.daysLeft !== undefined && b.daysLeft !== undefined) {
-        return a.daysLeft - b.daysLeft;
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       }
-      
-      return 0;
+      return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
     console.error('Error in getVehicleReminders:', error);
@@ -313,7 +306,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
           const daysLeft = differenceInDays(expiryDate, today);
           if (daysLeft <= 30) {
             reminders.push({
-              id: `license-${driver.id}`,
+              id: `license-${driver.id}-${driver.license_expiry_date}`,
               title: `License Expiring in ${daysLeft} days`,
               entityId: driver.id,
               entityName: driver.name,
@@ -327,7 +320,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
         } else {
           // Already expired
           reminders.push({
-            id: `license-${driver.id}`,
+            id: `license-${driver.id}-${driver.license_expiry_date}`,
             title: 'License Expired',
             entityId: driver.id,
             entityName: driver.name,
@@ -343,7 +336,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
       // Check for missing documents
       if (!driver.license_document) {
         reminders.push({
-          id: `missing-license-${driver.id}`,
+          id: `missing-license-${driver.id}-${Date.now()}`,
           title: 'Missing License Document',
           entityId: driver.id,
           entityName: driver.name,
@@ -356,7 +349,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
       // Check for inactive drivers
       if (driver.status === 'inactive' || driver.status === 'suspended') {
         reminders.push({
-          id: `inactive-${driver.id}`,
+          id: `inactive-${driver.id}-${Date.now()}`,
           title: `Driver is ${driver.status}`,
           entityId: driver.id,
           entityName: driver.name,
@@ -367,19 +360,12 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
       }
     });
 
-    // Sort reminders by status (critical first) and then by days left
+    // Sort reminders by dueDate first, then by daysLeft
     return reminders.sort((a, b) => {
-      // First sort by status
-      const statusOrder = { critical: 0, warning: 1, normal: 2 };
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-      if (statusDiff !== 0) return statusDiff;
-      
-      // Then sort by days left (if available)
-      if (a.daysLeft !== undefined && b.daysLeft !== undefined) {
-        return a.daysLeft - b.daysLeft;
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       }
-      
-      return 0;
+      return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
     console.error('Error in getDriverReminders:', error);
@@ -444,7 +430,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
             const daysLeft = differenceInDays(dueDate, today);
             if (daysLeft <= 30) {
               reminders.push({
-                id: `service-date-${task.id}`,
+                id: `service-date-${task.id}-${task.next_service_due.date}`,
                 title: `Service Due in ${daysLeft} days`,
                 entityId: task.id,
                 entityName: vehicle.registration_number,
@@ -458,7 +444,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
           } else {
             // Already overdue
             reminders.push({
-              id: `service-date-${task.id}`,
+              id: `service-date-${task.id}-${task.next_service_due.date}`,
               title: 'Service Overdue',
               entityId: task.id,
               entityName: vehicle.registration_number,
@@ -476,7 +462,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
           const kmLeft = task.next_service_due.odometer - vehicle.current_odometer;
           if (kmLeft <= 1000 && kmLeft > 0) {
             reminders.push({
-              id: `service-km-${task.id}`,
+              id: `service-km-${task.id}-${task.next_service_due.odometer}`,
               title: `Service Due in ${kmLeft} km`,
               entityId: task.id,
               entityName: vehicle.registration_number,
@@ -487,7 +473,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
           } else if (kmLeft <= 0) {
             // Already overdue by km
             reminders.push({
-              id: `service-km-${task.id}`,
+              id: `service-km-${task.id}-${task.next_service_due.odometer}`,
               title: 'Service Overdue by Odometer',
               entityId: task.id,
               entityName: vehicle.registration_number,
@@ -505,7 +491,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
         const daysOpen = differenceInDays(today, startDate);
         if (daysOpen > 7) {
           reminders.push({
-            id: `open-task-${task.id}`,
+            id: `open-task-${task.id}-${task.start_date}`,
             title: `Task Open for ${daysOpen} days`,
             entityId: task.id,
             entityName: vehicle.registration_number,
@@ -527,7 +513,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
 
         if (!hasNewerTask) {
           reminders.push({
-            id: `no-recent-maintenance-${vehicle.id}`,
+            id: `no-recent-maintenance-${vehicle.id}-${startDate.toISOString()}`,
             title: 'No Maintenance in 90+ Days',
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
@@ -539,19 +525,12 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
       }
     });
 
-    // Sort reminders by status (critical first) and then by days left
+    // Sort reminders by dueDate first, then by daysLeft
     return reminders.sort((a, b) => {
-      // First sort by status
-      const statusOrder = { critical: 0, warning: 1, normal: 2 };
-      const statusDiff = statusOrder[a.status] - statusOrder[b.status];
-      if (statusDiff !== 0) return statusDiff;
-      
-      // Then sort by days left (if available)
-      if (a.daysLeft !== undefined && b.daysLeft !== undefined) {
-        return a.daysLeft - b.daysLeft;
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       }
-      
-      return 0;
+      return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
     console.error('Error in getMaintenanceReminders:', error);
@@ -592,10 +571,11 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
         const tripEndDate = new Date(trip.trip_end_date);
         if (isBefore(tripEndDate, threeDaysAgo)) {
           reminders.push({
-            id: `missing-fuel-bill-${trip.id}`,
+            id: `missing-fuel-bill-${trip.id}-${trip.trip_end_date}`,
             title: 'Missing Fuel Bill',
             entityId: trip.id,
             entityName: trip.trip_serial_number,
+            dueDate: trip.trip_end_date,
             status: 'warning',
             link: `/trips/${trip.id}`,
             type: 'missing_fuel_bill'
@@ -606,10 +586,11 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
       // Check for missing end km
       if (!trip.end_km && trip.start_km) {
         reminders.push({
-          id: `missing-end-km-${trip.id}`,
+          id: `missing-end-km-${trip.id}-${trip.trip_start_date}`,
           title: 'Missing End KM',
           entityId: trip.id,
           entityName: trip.trip_serial_number,
+          dueDate: trip.trip_start_date,
           status: 'warning',
           link: `/trips/${trip.id}`,
           type: 'missing_end_km'
@@ -619,10 +600,11 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
       // Check for missing fuel data when refueling is marked as done
       if (trip.refueling_done && (!trip.fuel_quantity || !trip.fuel_cost)) {
         reminders.push({
-          id: `missing-fuel-data-${trip.id}`,
+          id: `missing-fuel-data-${trip.id}-${trip.trip_end_date}`,
           title: 'Missing Fuel Data',
           entityId: trip.id,
           entityName: trip.trip_serial_number,
+          dueDate: trip.trip_end_date,
           status: 'warning',
           link: `/trips/${trip.id}`,
           type: 'missing_fuel_data'
@@ -632,10 +614,11 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
       // Check for high route deviation
       if (trip.route_deviation && trip.route_deviation > 20) {
         reminders.push({
-          id: `high-deviation-${trip.id}`,
+          id: `high-deviation-${trip.id}-${trip.trip_end_date}`,
           title: `High Route Deviation: ${trip.route_deviation.toFixed(1)}%`,
           entityId: trip.id,
           entityName: trip.trip_serial_number,
+          dueDate: trip.trip_end_date,
           status: trip.route_deviation > 35 ? 'critical' : 'warning',
           link: `/trips/${trip.id}`,
           type: 'high_route_deviation'
@@ -643,9 +626,13 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
       }
     });
 
-    // Sort reminders by status (critical first)
+    // Sort reminders by dueDate first, then by status
     return reminders.sort((a, b) => {
-      // First sort by status
+      if (a.dueDate && b.dueDate) {
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      
+      // If no dueDate, sort by status
       const statusOrder = { critical: 0, warning: 1, normal: 2 };
       return statusOrder[a.status] - statusOrder[b.status];
     });
