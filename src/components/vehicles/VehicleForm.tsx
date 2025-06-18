@@ -745,7 +745,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
           <Controller
             control={control}
-            name="status"
+            name="rc_status"
             rules={{ required: 'Status is required' }}
             render={({ field }) => (
               <Select
@@ -756,7 +756,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   { value: 'inactive', label: 'Inactive' },
                   { value: 'stood', label: 'Stood' }
                 ]}
-                error={errors.status?.message}
+                error={errors.rc_status?.message}
                 required
                 disabled={fieldsDisabled}
                 {...field}
