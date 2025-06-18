@@ -224,6 +224,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }
 
       const vehicleData = data.data.response;
+      console.log(vehicleData)
       
       // Map API response to form fields
       mapApiResponseToForm(vehicleData);
