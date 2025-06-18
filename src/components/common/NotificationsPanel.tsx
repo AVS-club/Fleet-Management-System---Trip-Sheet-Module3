@@ -132,19 +132,21 @@ const NotificationsPanel = forwardRef<HTMLDivElement, NotificationsPanelProps>(
                   className={`p-2 hover:bg-gray-50 cursor-pointer ${getStatusColor(reminder.status)}`}
                   onClick={() => handleReminderClick(reminder)}
                 >
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-0.5">
                       {getStatusIcon(reminder.status)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{reminder.title}</p>
-                      <p className="text-xs text-gray-600 mt-0.5 truncate">
+                      <p className="text-sm font-medium break-words max-w-full" title={reminder.title}>
+                        {reminder.title}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5 break-words max-w-full" title={reminder.entityName}>
                         {reminder.entityName}
                       </p>
                       {reminder.dueDate && (
                         <div className="flex items-center mt-1 text-xs text-gray-500">
                           <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
-                          <span className="truncate">
+                          <span className="break-words max-w-full">
                             {new Date(reminder.dueDate).toLocaleDateString()}
                           </span>
                         </div>
