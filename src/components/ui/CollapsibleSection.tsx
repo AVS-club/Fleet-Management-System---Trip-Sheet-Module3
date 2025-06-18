@@ -7,6 +7,7 @@ interface CollapsibleSectionProps {
   children: ReactNode;
   defaultExpanded?: boolean;
   iconColor?: string;
+  headerBgClass?: string; // New prop for custom header background
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
@@ -14,7 +15,8 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   icon,
   children,
   defaultExpanded = false,
-  iconColor = 'text-primary-600'
+  iconColor = 'text-primary-600',
+  headerBgClass = 'bg-white' // Default background is white
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
@@ -22,7 +24,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
     <div className="border border-gray-200 rounded-lg mb-6 overflow-hidden">
       <button
         type="button"
-        className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+        className={`w-full flex items-center justify-between p-4 ${headerBgClass} hover:bg-opacity-90 transition-colors duration-200`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center">
