@@ -1,9 +1,10 @@
-import React from 'react';
-import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, PenTool as Tool, IndianRupee, TrendingDown, Fuel } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, PenTool as Tool, IndianRupee, TrendingDown, Fuel, Clipboard } from 'lucide-react';
 import Button from '../ui/Button';
 import { AIAlert } from '../../types';
 import { getVehicle, getDriver } from '../../utils/storage';
 import { format, isValid } from 'date-fns';
+import { toast } from 'react-toastify';
 
 interface AlertDetailsModalProps {
   alert: AIAlert;
@@ -46,7 +47,7 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
   
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return isValid(date) ? format(date, 'dd MMM yyyy HH:mm') : '-';
+    return isValid(date) ? format(date, 'dd MMM yyyy, hh:mm a') : '-';
   };
   
   const getSeverityColor = (severity: string) => {
@@ -67,6 +68,13 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
         return <Tool className="h-5 w-5 text-orange-500" />;
       default:
         return <AlertTriangle className="h-5 w-5 text-warning-500" />;
+    }
+  };
+
+  const copyTripId = () => {
+    if (alert.metadata?.trip_id) {
+      navigator.clipboard.writeText(alert.metadata.trip_id);
+      toast.success('Trip ID copied!');
     }
   };
 
@@ -192,12 +200,6 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                           <span className="font-medium">{alert.metadata.expected_range}</span>
                         </div>
                       )}
-                      {alert.metadata.trip_id && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Trip ID:</span>
-                          <span className="font-medium">{alert.metadata.trip_id}</span>
-                        </div>
-                      )}
                       {alert.metadata.resolution_reason && (
                         <div className="flex justify-between text-sm pt-2 border-t border-gray-200 mt-2">
                           <span className="text-gray-600">Resolution Reason:</span>
@@ -228,7 +230,13 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                       {alert.metadata.recommendations.map((rec, index) => (
                         <li key={index} className="flex items-start">
                           <CheckCircle className="h-4 w-4 text-blue-500 mt-1 mr-2 flex-shrink-0" />
-                          <span className="text-sm text-blue-700">{rec}</span>
+                          <a 
+                            href="#" 
+                            className="text-sm text-blue-700 hover:text-blue-800 cursor-pointer"
+                            title="More info coming soon"
+                          >
+                            {rec}
+                          </a>
                         </li>
                       ))}
                     </ul>
@@ -252,6 +260,20 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 text-center">
                     <Info className="h-5 w-5 mx-auto text-gray-400 mb-2" />
                     <p className="text-gray-500 text-sm">No similar alerts found in the past 30 days</p>
+                  </div>
+                )}
+
+                {/* Trip ID at the bottom */}
+                {alert.metadata?.trip_id && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex items-center">
+                    <span className="text-xs text-gray-500 font-mono">Trip ID: {alert.metadata.trip_id}</span>
+                    <button 
+                      onClick={copyTripId}
+                      className="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      title="Copy to clipboard"
+                    >
+                      <Clipboard className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
               </div>
