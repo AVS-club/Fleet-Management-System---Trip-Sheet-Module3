@@ -18,6 +18,7 @@ export interface ReminderItem {
   status: ReminderStatus;
   link: string;
   type: string;
+  module: ReminderModule;
 }
 
 // Define the module types
@@ -31,15 +32,42 @@ export type ReminderModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips';
 export const getRemindersFor = async (module: ReminderModule): Promise<ReminderItem[]> => {
   switch (module) {
     case 'vehicles':
-      return getVehicleReminders();
+      return getRemindersForVehicles();
     case 'drivers':
-      return getDriverReminders();
+      return getRemindersForDrivers();
     case 'maintenance':
-      return getMaintenanceReminders();
+      return getRemindersForMaintenance();
     case 'trips':
-      return getTripReminders();
+      return getRemindersForTrips();
     default:
       return [];
+  }
+};
+
+/**
+ * Get combined reminders from all modules
+ * @returns A promise that resolves to an array of reminder items from all modules
+ */
+export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
+  try {
+    const [vehicleReminders, driverReminders, maintenanceReminders, tripReminders] = await Promise.all([
+      getRemindersForVehicles(),
+      getRemindersForDrivers(),
+      getRemindersForMaintenance(),
+      getRemindersForTrips()
+    ]);
+    
+    // Combine all reminders and sort by dueDate first, then by daysLeft
+    return [...vehicleReminders, ...driverReminders, ...maintenanceReminders, ...tripReminders]
+      .sort((a, b) => {
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
+      });
+  } catch (error) {
+    console.error('Error in getRemindersForAll:', error);
+    return [];
   }
 };
 
@@ -47,7 +75,7 @@ export const getRemindersFor = async (module: ReminderModule): Promise<ReminderI
  * Get vehicle reminders
  * @returns A promise that resolves to an array of vehicle reminder items
  */
-const getVehicleReminders = async (): Promise<ReminderItem[]> => {
+export const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch vehicles from Supabase
     const { data: vehicles, error } = await supabase
@@ -84,7 +112,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/vehicles/${vehicle.id}`,
-              type: 'rc_expiry'
+              type: 'rc_expiry',
+              module: 'vehicles'
             });
           }
         } else {
@@ -98,7 +127,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/vehicles/${vehicle.id}`,
-            type: 'rc_expiry'
+            type: 'rc_expiry',
+            module: 'vehicles'
           });
         }
       }
@@ -118,7 +148,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/vehicles/${vehicle.id}`,
-              type: 'insurance_expiry'
+              type: 'insurance_expiry',
+              module: 'vehicles'
             });
           }
         } else {
@@ -132,7 +163,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/vehicles/${vehicle.id}`,
-            type: 'insurance_expiry'
+            type: 'insurance_expiry',
+            module: 'vehicles'
           });
         }
       }
@@ -152,7 +184,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/vehicles/${vehicle.id}`,
-              type: 'puc_expiry'
+              type: 'puc_expiry',
+              module: 'vehicles'
             });
           }
         } else {
@@ -166,7 +199,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/vehicles/${vehicle.id}`,
-            type: 'puc_expiry'
+            type: 'puc_expiry',
+            module: 'vehicles'
           });
         }
       }
@@ -186,7 +220,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/vehicles/${vehicle.id}`,
-              type: 'fitness_expiry'
+              type: 'fitness_expiry',
+              module: 'vehicles'
             });
           }
         } else {
@@ -200,7 +235,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/vehicles/${vehicle.id}`,
-            type: 'fitness_expiry'
+            type: 'fitness_expiry',
+            module: 'vehicles'
           });
         }
       }
@@ -220,7 +256,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/vehicles/${vehicle.id}`,
-              type: 'permit_expiry'
+              type: 'permit_expiry',
+              module: 'vehicles'
             });
           }
         } else {
@@ -234,7 +271,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/vehicles/${vehicle.id}`,
-            type: 'permit_expiry'
+            type: 'permit_expiry',
+            module: 'vehicles'
           });
         }
       }
@@ -255,7 +293,8 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
           entityName: vehicle.registration_number,
           status: 'warning',
           link: `/vehicles/${vehicle.id}`,
-          type: 'missing_documents'
+          type: 'missing_documents',
+          module: 'vehicles'
         });
       }
     });
@@ -268,7 +307,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error('Error in getVehicleReminders:', error);
+    console.error('Error in getRemindersForVehicles:', error);
     return [];
   }
 };
@@ -277,7 +316,7 @@ const getVehicleReminders = async (): Promise<ReminderItem[]> => {
  * Get driver reminders
  * @returns A promise that resolves to an array of driver reminder items
  */
-const getDriverReminders = async (): Promise<ReminderItem[]> => {
+export const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch drivers from Supabase
     const { data: drivers, error } = await supabase
@@ -314,7 +353,8 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
               daysLeft,
               status: getStatusFromDays(daysLeft),
               link: `/drivers/${driver.id}`,
-              type: 'license_expiry'
+              type: 'license_expiry',
+              module: 'drivers'
             });
           }
         } else {
@@ -328,7 +368,8 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
             daysLeft: 0,
             status: 'critical',
             link: `/drivers/${driver.id}`,
-            type: 'license_expiry'
+            type: 'license_expiry',
+            module: 'drivers'
           });
         }
       }
@@ -342,7 +383,8 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
           entityName: driver.name,
           status: 'warning',
           link: `/drivers/${driver.id}`,
-          type: 'missing_documents'
+          type: 'missing_documents',
+          module: 'drivers'
         });
       }
 
@@ -355,7 +397,8 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
           entityName: driver.name,
           status: 'warning',
           link: `/drivers/${driver.id}`,
-          type: 'inactive_driver'
+          type: 'inactive_driver',
+          module: 'drivers'
         });
       }
     });
@@ -368,7 +411,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error('Error in getDriverReminders:', error);
+    console.error('Error in getRemindersForDrivers:', error);
     return [];
   }
 };
@@ -377,7 +420,7 @@ const getDriverReminders = async (): Promise<ReminderItem[]> => {
  * Get maintenance reminders
  * @returns A promise that resolves to an array of maintenance reminder items
  */
-const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
+export const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch maintenance tasks and vehicles from Supabase
     const [{ data: tasks, error: tasksError }, { data: vehicles, error: vehiclesError }] = await Promise.all([
@@ -438,7 +481,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
                 daysLeft,
                 status: getStatusFromDays(daysLeft),
                 link: `/maintenance/${task.id}`,
-                type: 'service_due_date'
+                type: 'service_due_date',
+                module: 'maintenance'
               });
             }
           } else {
@@ -452,7 +496,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
               daysLeft: 0,
               status: 'critical',
               link: `/maintenance/${task.id}`,
-              type: 'service_due_date'
+              type: 'service_due_date',
+              module: 'maintenance'
             });
           }
         }
@@ -468,7 +513,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
               entityName: vehicle.registration_number,
               status: kmLeft <= 300 ? 'critical' : kmLeft <= 600 ? 'warning' : 'normal',
               link: `/maintenance/${task.id}`,
-              type: 'service_due_km'
+              type: 'service_due_km',
+              module: 'maintenance'
             });
           } else if (kmLeft <= 0) {
             // Already overdue by km
@@ -479,7 +525,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
               entityName: vehicle.registration_number,
               status: 'critical',
               link: `/maintenance/${task.id}`,
-              type: 'service_due_km'
+              type: 'service_due_km',
+              module: 'maintenance'
             });
           }
         }
@@ -497,7 +544,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
             entityName: vehicle.registration_number,
             status: daysOpen > 14 ? 'critical' : 'warning',
             link: `/maintenance/${task.id}`,
-            type: 'task_open_too_long'
+            type: 'task_open_too_long',
+            module: 'maintenance'
           });
         }
       }
@@ -519,7 +567,8 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
             entityName: vehicle.registration_number,
             status: 'warning',
             link: `/vehicles/${vehicle.id}`,
-            type: 'no_recent_maintenance'
+            type: 'no_recent_maintenance',
+            module: 'maintenance'
           });
         }
       }
@@ -533,7 +582,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error('Error in getMaintenanceReminders:', error);
+    console.error('Error in getRemindersForMaintenance:', error);
     return [];
   }
 };
@@ -542,7 +591,7 @@ const getMaintenanceReminders = async (): Promise<ReminderItem[]> => {
  * Get trip reminders
  * @returns A promise that resolves to an array of trip reminder items
  */
-const getTripReminders = async (): Promise<ReminderItem[]> => {
+export const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch trips from Supabase
     const { data: trips, error } = await supabase
@@ -578,7 +627,8 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
             dueDate: trip.trip_end_date,
             status: 'warning',
             link: `/trips/${trip.id}`,
-            type: 'missing_fuel_bill'
+            type: 'missing_fuel_bill',
+            module: 'trips'
           });
         }
       }
@@ -593,7 +643,8 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
           dueDate: trip.trip_start_date,
           status: 'warning',
           link: `/trips/${trip.id}`,
-          type: 'missing_end_km'
+          type: 'missing_end_km',
+          module: 'trips'
         });
       }
 
@@ -607,7 +658,8 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
           dueDate: trip.trip_end_date,
           status: 'warning',
           link: `/trips/${trip.id}`,
-          type: 'missing_fuel_data'
+          type: 'missing_fuel_data',
+          module: 'trips'
         });
       }
 
@@ -621,7 +673,8 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
           dueDate: trip.trip_end_date,
           status: trip.route_deviation > 35 ? 'critical' : 'warning',
           link: `/trips/${trip.id}`,
-          type: 'high_route_deviation'
+          type: 'high_route_deviation',
+          module: 'trips'
         });
       }
     });
@@ -637,7 +690,7 @@ const getTripReminders = async (): Promise<ReminderItem[]> => {
       return statusOrder[a.status] - statusOrder[b.status];
     });
   } catch (error) {
-    console.error('Error in getTripReminders:', error);
+    console.error('Error in getRemindersForTrips:', error);
     return [];
   }
 };
@@ -655,8 +708,9 @@ const getStatusFromDays = (daysLeft: number): ReminderStatus => {
 
 export default {
   getRemindersFor,
-  getVehicleReminders,
-  getDriverReminders,
-  getMaintenanceReminders,
-  getTripReminders
+  getRemindersForAll,
+  getRemindersForVehicles,
+  getRemindersForDrivers,
+  getRemindersForMaintenance,
+  getRemindersForTrips
 };

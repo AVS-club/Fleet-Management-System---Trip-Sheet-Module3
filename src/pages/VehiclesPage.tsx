@@ -18,7 +18,7 @@ import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { toast } from 'react-toastify';
 import StatCard from '../components/dashboard/StatCard';
-import RemindersButton from '../components/common/RemindersButton';
+import NotificationsButton from '../components/common/NotificationsButton';
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -166,7 +166,7 @@ const VehiclesPage: React.FC = () => {
       actions={
         !isAddingVehicle && (
           <div className="flex space-x-3">
-            <RemindersButton module="vehicles" />
+            <NotificationsButton module="vehicles" />
             <Button
               variant="outline"
               onClick={() => setShowArchived(!showArchived)}

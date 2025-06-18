@@ -24,6 +24,7 @@ import DriverPage from './pages/DriverPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import VehicleManagementPage from './pages/admin/VehicleManagementPage';
+import NotificationsPage from './pages/NotificationsPage';
 import { updateAllTripMileage } from './utils/storage';
 import { ThemeProvider } from './utils/themeContext';
 
@@ -176,6 +177,7 @@ function App() {
             <Route path="/vehicles/:id" element={<VehiclePage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/drivers/:id" element={<DriverPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
           </Route>
           <Route path="*" element={<Navigate to={session ? "/" : "/login"} replace />} />
         </Routes>

@@ -9,8 +9,9 @@ import StatCard from '../components/dashboard/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
-import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee } from 'lucide-react';
+import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
+import NotificationsPanel from '../components/common/NotificationsPanel';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -279,7 +280,22 @@ const DashboardPage: React.FC = () => {
             </div>
             
             <div className="lg:col-span-1">
-              <AVSChatbot />
+              <section className="mt-4">
+                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                  <Bell className="h-5 w-5 text-primary-500 mr-2" />
+                  Notifications & Reminders
+                </h3>
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <NotificationsPanel 
+                    module="vehicles" 
+                    onClose={() => {}} 
+                    maxItems={5} 
+                    scrollable={true} 
+                    height={180} 
+                    showViewAll={true} 
+                  />
+                </div>
+              </section>
             </div>
           </div>
         )}
@@ -290,4 +306,3 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
-<AVSChatbot />
