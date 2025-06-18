@@ -589,7 +589,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               onClick={fetchVehicleDetails}
               isLoading={fetchingDetails}
               icon={fetchingDetails ? undefined : <Search className="h-4 w-4" />}
-              className="mb-0.5"
+              className="mb-0"
             >
               {fetchingDetails ? 'Fetching...' : 'Get Details'}
             </Button>
