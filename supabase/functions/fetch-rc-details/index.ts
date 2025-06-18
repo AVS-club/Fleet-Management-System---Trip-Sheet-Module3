@@ -14,17 +14,26 @@ const RATE_LIMIT = {
   window: 60 * 1000,  // Time window in milliseconds (1 minute)
 };
 
-// Rate limit tracking using KV storage
-async function checkRateLimit(identifier: string): Promise<{allowed: boolean; remaining: number; reset: number}> {
-  // Get or create KV namespace
-  const kv = await Deno.openKv();
-  const key = ["ratelimit", identifier];
+// Simple in-memory rate limiter (since Deno.openKv is not available)
+const rateLimitStore = new Map<string, { count: number; reset: number }>();
+
+// Clean up expired rate limit entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of rateLimitStore.entries()) {
+    if (now >= data.reset) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60000); // Clean up every minute
+
+// Rate limit checking function using in-memory storage
+function checkRateLimit(identifier: string): {allowed: boolean; remaining: number; reset: number} {
   const now = Date.now();
   const resetTime = now + RATE_LIMIT.window;
   
-  // Attempt to get the current rate limit data
-  const result = await kv.get(key);
-  let data = result.value as { count: number; reset: number } | null;
+  // Get current rate limit data
+  let data = rateLimitStore.get(identifier);
   
   // If no data exists or it's expired, create a new entry
   if (!data || now >= data.reset) {
@@ -33,14 +42,12 @@ async function checkRateLimit(identifier: string): Promise<{allowed: boolean; re
   
   // Check if the rate limit has been exceeded
   if (data.count >= RATE_LIMIT.requests) {
-    await kv.close();
     return { allowed: false, remaining: 0, reset: Math.ceil((data.reset - now) / 1000) };
   }
   
-  // Increment the count and update the KV store
+  // Increment the count and update the store
   data.count++;
-  await kv.set(key, data, { expireIn: RATE_LIMIT.window });
-  await kv.close();
+  rateLimitStore.set(identifier, data);
   
   return {
     allowed: true,
@@ -76,7 +83,7 @@ Deno.serve(async (req) => {
   const clientId = getClientIdentifier(req);
   
   // Check rate limit
-  const rateLimitResult = await checkRateLimit(clientId);
+  const rateLimitResult = checkRateLimit(clientId);
   
   // Prepare rate limit headers
   const rateLimitHeaders = {
