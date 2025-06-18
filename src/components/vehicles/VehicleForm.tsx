@@ -246,7 +246,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const mapApiResponseToForm = (data: any) => {
     // Map API response fields to form fields
     const manufacturingYear = data.manufacturing_date_formatted ? 
-      parseInt(data.manufacturing_date_formatted.split('-')[0]) : 
+      parseInt(data.manufacturing_date_formatted.split('-')[0]) : data.manufacturing_date?parseInt(data.manufacturing_date_formatted.split('/')[1]):
       null;
 
     // Map fuel type from API to our enum values
