@@ -12,7 +12,8 @@
     "seed:driver": "tsx scripts/seedDriver.ts",
     "seed:trip": "tsx scripts/seedTrip.ts",
     "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
-    "fetch:drivers": "tsx scripts/fetchDrivers.ts"
+    "fetch:drivers": "tsx scripts/fetchDrivers.ts",
+    "clean:db": "tsx scripts/clean-database.ts"
   },
   "dependencies": {
     "@google-cloud/documentai": "^8.2.0",
