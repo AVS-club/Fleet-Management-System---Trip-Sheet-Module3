@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as PenToolIcon, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Truck, User, BarChart2, FileText, Shield, AlertTriangle, PenTool as PenToolIcon, Settings, LogOut, Bell } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -7,6 +7,7 @@ import ThemeToggle from '../ui/ThemeToggle';
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -36,6 +37,26 @@ const Header: React.FC = () => {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
+
+  // Fetch notification count
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        // This would be replaced with an actual API call in a real application
+        // For now, we'll just set a placeholder value
+        setNotificationCount(3);
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
+    };
+
+    fetchNotificationCount();
+    
+    // Set up a polling interval to periodically check for new notifications
+    const interval = setInterval(fetchNotificationCount, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const navLinks = [
     { name: 'Dashboard', path: '/', icon: <BarChart2 className="h-5 w-5" /> },
@@ -83,6 +104,20 @@ const Header: React.FC = () => {
                 <span>{link.name}</span>
               </Link>
             ))}
+            
+            {/* Notifications */}
+            <Link
+              to="/notifications"
+              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors relative"
+            >
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-error-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </Link>
+            
             <div className="flex items-center ml-4">
               <ThemeToggle />
             </div>
@@ -129,6 +164,23 @@ const Header: React.FC = () => {
               <span>{link.name}</span>
             </Link>
           ))}
+          
+          {/* Notifications for mobile */}
+          <Link
+            to="/notifications"
+            className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            <div className="relative">
+              <Bell className="h-5 w-5" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-error-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {notificationCount > 9 ? '9+' : notificationCount}
+                </span>
+              )}
+            </div>
+            <span>Notifications</span>
+          </Link>
+          
           <div className="flex items-center justify-between px-3 py-3">
             <ThemeToggle />
             <button
