@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PenTool as Tool } from 'lucide-react';
-import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance';
+import { useQuery } from '@tanstack/react-query';
+import { getMaintenanceTasksCatalog, convertCatalogToSelectorFormat } from '../../utils/maintenanceCatalog';
 
 interface MaintenanceSelectorProps {
   selectedItems: string[];
@@ -22,6 +23,21 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  
+  // Fetch maintenance tasks catalog from database
+  const { data: catalogData, isLoading, isError } = useQuery({
+    queryKey: ['maintenanceTasksCatalog'],
+    queryFn: getMaintenanceTasksCatalog,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Convert catalog data to the format expected by the component
+  const { items: maintenanceItems, groups: maintenanceGroups } = React.useMemo(() => {
+    if (!catalogData) {
+      return { items: [], groups: {} };
+    }
+    return convertCatalogToSelectorFormat(catalogData);
+  }, [catalogData]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -67,10 +83,18 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   };
 
   // Filter items based on search term
-  const filteredItems = MAINTENANCE_ITEMS.filter(item => {
+  const filteredItems = maintenanceItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch && !item.inactive;
   });
+
+  if (isLoading) {
+    return <div className="animate-pulse h-10 bg-gray-200 rounded"></div>;
+  }
+
+  if (isError) {
+    return <div className="text-error-500 text-sm">Error loading maintenance tasks</div>;
+  }
 
   return (
     <div className="space-y-2">
@@ -90,7 +114,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
           {selectedItems.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {selectedItems.map(id => {
-                const item = MAINTENANCE_ITEMS.find(i => i.id === id);
+                const item = maintenanceItems.find(i => i.id === id);
                 return item ? (
                   <span
                     key={item.id}
@@ -139,14 +163,21 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
             <div className="max-h-[250px] overflow-y-auto">
               {showGroupView ? (
                 // Grouped View
-                Object.entries(MAINTENANCE_GROUPS).map(([groupKey, group]) => (
-                  <div key={groupKey} className="border-b last:border-b-0">
-                    <div className="p-2 bg-gray-50 font-medium text-sm text-gray-700 sticky top-[41px] z-10">
-                      {group.title}
-                    </div>
-                    {group.items
-                      .filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()) && !item.inactive)
-                      .map(item => (
+                Object.entries(maintenanceGroups).map(([groupKey, group]) => {
+                  // Filter items in this group based on search
+                  const filteredGroupItems = group.items.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) && !item.inactive
+                  );
+                  
+                  // Only render the group if it has items matching the search
+                  if (filteredGroupItems.length === 0) return null;
+                  
+                  return (
+                    <div key={groupKey} className="border-b last:border-b-0">
+                      <div className="p-2 bg-gray-50 font-medium text-sm text-gray-700 sticky top-[41px] z-10">
+                        {group.title}
+                      </div>
+                      {filteredGroupItems.map(item => (
                         <div
                           key={item.id}
                           className={`p-3 cursor-pointer hover:bg-gray-50 ${
@@ -162,8 +193,9 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
                           </div>
                         </div>
                       ))}
-                  </div>
-                ))
+                    </div>
+                  );
+                })
               ) : (
                 // List View
                 filteredItems.map(item => (

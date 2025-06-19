@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
-import { DEMO_VENDORS, PART_BRANDS, DEMO_GARAGES } from '../../types/maintenance';
+import { MaintenanceTask, Vehicle } from '../../types';
 import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -10,10 +9,9 @@ import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
-import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
-import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic } from 'lucide-react';
+import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -24,6 +22,22 @@ interface MaintenanceTaskFormProps {
   vehicles: Vehicle[];
   initialData?: Partial<MaintenanceTask>;
   isSubmitting?: boolean;
+}
+
+// Battery data shape
+interface BatteryData {
+  serialNumber: string;
+  brand: string;
+}
+
+// Tyre position type
+type TyrePosition = 'FL' | 'FR' | 'RL' | 'RR' | 'Stepney';
+
+// Tyre data shape
+interface TyreData {
+  positions: TyrePosition[];
+  brand: string;
+  serialNumbers: string;
 }
 
 const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
@@ -260,6 +274,38 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
+      // Process battery and tyre data for each service group
+      if (Array.isArray(data.service_groups)) {
+        data.service_groups = data.service_groups.map((group: any) => {
+          const { battery_tracking, battery_serial, battery_brand, tyre_tracking, tyre_positions, tyre_brand, tyre_serials, ...rest } = group;
+          
+          // Process battery data if tracking is enabled
+          let batteryData = null;
+          if (battery_tracking) {
+            batteryData = {
+              serialNumber: battery_serial || '',
+              brand: battery_brand || ''
+            };
+          }
+          
+          // Process tyre data if tracking is enabled
+          let tyreData = null;
+          if (tyre_tracking) {
+            tyreData = {
+              positions: Array.isArray(tyre_positions) ? tyre_positions : [],
+              brand: tyre_brand || '',
+              serialNumbers: tyre_serials || ''
+            };
+          }
+          
+          return {
+            ...rest,
+            battery_data: batteryData,
+            tyre_data: tyreData
+          };
+        });
+      }
+      
       onSubmit(data);
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -267,19 +313,16 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   };
 
-  // Filter out archived vehicles
-  const activeVehicles = vehicles.filter(v => v.status !== 'archived');
-
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       {/* Vehicle & Basic Info */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
           Basic Information
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Controller
             control={control}
             name="vehicle_id"
@@ -288,7 +331,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               <Select
                 label="Vehicle"
                 icon={<Truck className="h-4 w-4" />}
-                options={activeVehicles.map(vehicle => ({
+                options={vehicles.map(vehicle => ({
                   value: vehicle.id,
                   label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
                 }))}
@@ -321,45 +364,30 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Controller
-            control={control}
-            name="garage_id"
-            rules={{ required: 'Garage is required' }}
-            render={({ field: { value, onChange }, fieldState: { error } }) => (
-              <GarageSelector
-                selectedGarage={value}
-                onChange={onChange}
-                error={error?.message}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="priority"
-            rules={{ required: 'Priority is required' }}
-            render={({ field }) => (
-              <Select
-                label="Priority"
-                icon={<AlertTriangle className="h-4 w-4" />}
-                options={[
-                  { value: 'low', label: 'Low' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'high', label: 'High' },
-                  { value: 'critical', label: 'Critical' }
-                ]}
-                error={errors.priority?.message}
-                required
-                {...field}
-              />
-            )}
-          />
-        </div>
+        <Controller
+          control={control}
+          name="priority"
+          rules={{ required: 'Priority is required' }}
+          render={({ field }) => (
+            <Select
+              label="Priority"
+              icon={<AlertTriangle className="h-4 w-4" />}
+              options={[
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+                { value: 'critical', label: 'Critical' }
+              ]}
+              error={errors.priority?.message}
+              required
+              {...field}
+            />
+          )}
+        />
       </div>
 
       {/* Maintenance Tasks */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
           Service Groups
@@ -428,6 +456,104 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   />
                 </div>
 
+                {/* Battery Tracking Toggle */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.battery_tracking` as const}
+                    defaultValue={false}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        label="Battery Replacement"
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        icon={<Battery className="h-4 w-4 text-blue-500" />}
+                      />
+                    )}
+                  />
+                  
+                  {/* Conditionally show battery fields */}
+                  {watch(`service_groups.${index}.battery_tracking`) && (
+                    <div className="mt-3 ml-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-l-2 border-gray-200 pl-4">
+                      <Input
+                        label="Battery Serial Number"
+                        placeholder="Enter serial number"
+                        {...register(`service_groups.${index}.battery_serial` as const)}
+                      />
+                      <Input
+                        label="Battery Brand"
+                        placeholder="E.g., Exide, Amaron"
+                        {...register(`service_groups.${index}.battery_brand` as const)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Tyre Tracking Toggle */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <Controller
+                    control={control}
+                    name={`service_groups.${index}.tyre_tracking` as const}
+                    defaultValue={false}
+                    render={({ field: { value, onChange } }) => (
+                      <Checkbox
+                        label="Tyre Replacement/Rotation"
+                        checked={value}
+                        onChange={(e) => onChange(e.target.checked)}
+                        icon={<Disc className="h-4 w-4 text-gray-500" />}
+                      />
+                    )}
+                  />
+                  
+                  {/* Conditionally show tyre fields */}
+                  {watch(`service_groups.${index}.tyre_tracking`) && (
+                    <div className="mt-3 ml-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-l-2 border-gray-200 pl-4">
+                      <Controller
+                        control={control}
+                        name={`service_groups.${index}.tyre_positions` as const}
+                        defaultValue={[]}
+                        render={({ field: { value, onChange } }) => (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Tyre Position(s)
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
+                                <label key={position} className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={value?.includes(position)}
+                                    onChange={(e) => {
+                                      const newPositions = e.target.checked
+                                        ? [...(value || []), position]
+                                        : (value || []).filter(p => p !== position);
+                                      onChange(newPositions);
+                                    }}
+                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                  />
+                                  <span className="text-sm text-gray-600">{position}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      />
+                      <Input
+                        label="Tyre Brand"
+                        placeholder="E.g., MRF, Apollo, CEAT"
+                        {...register(`service_groups.${index}.tyre_brand` as const)}
+                      />
+                      <div className="col-span-1 md:col-span-2">
+                        <Input
+                          label="Tyre Serial Numbers (comma separated)"
+                          placeholder="Enter serial numbers"
+                          {...register(`service_groups.${index}.tyre_serials` as const)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 items-end">
                   {/* Bill upload */}
                   <Controller
@@ -456,7 +582,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             onClick={() => append({
               vendor_id: '',
               tasks: [],
-              cost: 0
+              cost: 0,
+              battery_tracking: false,
+              tyre_tracking: false
             })}
             icon={<Plus className="h-4 w-4" />}
           >
@@ -477,13 +605,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Complaint & Resolution */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
           Complaint & Resolution
         </h3>
         
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">
@@ -551,10 +679,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Service Details */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
         <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Input
             label="Start Date"
             type="date"
@@ -633,7 +761,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Next Service Reminder */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
             <Bell className="h-5 w-5 mr-2 text-primary-500" />
@@ -647,7 +775,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         {setReminder && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <Input
               label="Next Service Date"
               type="date"
@@ -669,7 +797,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Documents */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
         <h3 className="text-lg font-medium text-gray-900">Documents</h3>
 
         <Controller
@@ -720,7 +848,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       )}
 
       {/* Submit Button */}
-      <div className="flex justify-end space-x-4 pt-6">
+      <div className="flex justify-end space-x-4 pt-5">
         <Button
           type="submit"
           isLoading={isSubmitting}
