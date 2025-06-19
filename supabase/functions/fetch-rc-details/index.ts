@@ -14,7 +14,7 @@ const RATE_LIMIT = {
   window: 60 * 1000,  // Time window in milliseconds (1 minute)
 };
 
-// Simple in-memory rate limiter (since Deno.openKv is not available)
+// Simple in-memory rate limiter
 const rateLimitStore = new Map<string, { count: number; reset: number }>();
 
 // Clean up expired rate limit entries periodically
