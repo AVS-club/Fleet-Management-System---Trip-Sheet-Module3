@@ -8,9 +8,7 @@ import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { generateVehiclePDF, downloadVehicleDocuments, createShareableVehicleLink } from '../utils/exportUtils';
 import { toast } from 'react-toastify';
-import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
-import DocumentStatusPanel from '../components/vehicles/DocumentStatusPanel';
-import DateRangeFilter, { DateRangeFilterType } from '../components/ui/DateRangeFilter';
+import { format } from 'date-fns';
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,13 +23,6 @@ const VehiclePage: React.FC = () => {
   const [stats, setStats] = useState<{ totalTrips: number; totalDistance: number; averageKmpl?: number }>({
     totalTrips: 0,
     totalDistance: 0
-  });
-  
-  // Date range filter state
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilterType>('thisMonth');
-  const [customDateRange, setCustomDateRange] = useState({
-    start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
   });
   
   useEffect(() => {
@@ -104,68 +95,29 @@ const VehiclePage: React.FC = () => {
     );
   }
 
-  // Calculate date range based on filter
-  const getDateRange = () => {
-    const now = new Date();
+  // Helper functions for document status
+  const getDocumentStatus = (docUrl?: string, expiryDate?: string) => {
+    if (!docUrl) return { status: 'missing', label: 'Missing', color: 'bg-gray-100 text-gray-800' };
     
-    switch (dateRangeFilter) {
-      case 'today':
-        return {
-          start: new Date(now.setHours(0, 0, 0, 0)),
-          end: new Date()
-        };
-      case 'yesterday':
-        const yesterday = subDays(now, 1);
-        return {
-          start: new Date(yesterday.setHours(0, 0, 0, 0)),
-          end: new Date(yesterday.setHours(23, 59, 59, 999))
-        };
-      case 'thisWeek':
-        return {
-          start: subDays(now, now.getDay()),
-          end: now
-        };
-      case 'lastWeek':
-        return {
-          start: subDays(now, now.getDay() + 7),
-          end: subDays(now, now.getDay() + 1)
-        };
-      case 'thisMonth':
-        return {
-          start: startOfMonth(now),
-          end: now
-        };
-      case 'lastMonth':
-        const lastMonth = subMonths(now, 1);
-        return {
-          start: startOfMonth(lastMonth),
-          end: endOfMonth(lastMonth)
-        };
-      case 'thisYear':
-        return {
-          start: startOfYear(now),
-          end: now
-        };
-      case 'lastYear':
-        const lastYear = subYears(now, 1);
-        return {
-          start: startOfYear(lastYear),
-          end: endOfYear(lastYear)
-        };
-      case 'custom':
-        return {
-          start: new Date(customDateRange.start),
-          end: new Date(customDateRange.end)
-        };
-      default:
-        return {
-          start: startOfMonth(now),
-          end: now
-        };
+    if (expiryDate) {
+      const expiry = new Date(expiryDate);
+      const now = new Date();
+      if (expiry < now) {
+        return { status: 'expired', label: 'Expired', color: 'bg-error-100 text-error-800' };
+      }
+      
+      // Check if expiring soon (within 30 days)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(now.getDate() + 30);
+      
+      if (expiry < thirtyDaysFromNow) {
+        return { status: 'expiring', label: 'Expiring Soon', color: 'bg-warning-100 text-warning-800' };
+      }
     }
+    
+    return { status: 'valid', label: 'Valid', color: 'bg-success-100 text-success-800' };
   };
-
-  // Format date for display
+  
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     try {
@@ -174,6 +126,14 @@ const VehiclePage: React.FC = () => {
       return 'Invalid Date';
     }
   };
+
+  // Calculate document statuses
+  const rcStatus = getDocumentStatus(vehicle.rc_document_url, vehicle.rc_expiry_date);
+  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_url, vehicle.insurance_expiry_date);
+  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_url, vehicle.fitness_expiry_date);
+  const taxStatus = getDocumentStatus(vehicle.tax_document_url, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
+  const permitStatus = getDocumentStatus(vehicle.permit_document_url, vehicle.permit_expiry_date);
+  const pucStatus = getDocumentStatus(vehicle.puc_document_url, vehicle.puc_expiry_date);
 
   // Handle export as PDF
   const handleExportPDF = async () => {
@@ -277,19 +237,6 @@ const VehiclePage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Date Range Filter */}
-          <div className="flex justify-end">
-            <div className="w-full max-w-md">
-              <DateRangeFilter
-                value={dateRangeFilter}
-                onChange={setDateRangeFilter}
-                customDateRange={customDateRange}
-                onCustomDateRangeChange={setCustomDateRange}
-                compact
-              />
-            </div>
-          </div>
-
           {/* Main Content Grid - 3 Sections */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* SECTION 1: VEHICLE INFORMATION */}
@@ -379,192 +326,305 @@ const VehiclePage: React.FC = () => {
             </div>
             
             {/* SECTION 2: DOCUMENT STATUS */}
-            <div className="lg:col-span-2">
-              <DocumentStatusPanel vehicle={vehicle} />
-            </div>
-          </div>
-          
-          {/* Financial Summary Card */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
-                Financial Summary
-              </h3>
+            <div className="bg-white p-6 rounded-lg shadow-sm space-y-5">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-medium text-gray-900">Compliance Documents</h3>
+                <Shield className="h-5 w-5 text-primary-500" />
+              </div>
+              
+              <div className="space-y-4">
+                {/* RC Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">RC Document</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${rcStatus.color}`}>
+                        {rcStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.rc_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.rc_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.rc_document_url && (
+                    <a 
+                      href={vehicle.rc_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                
+                {/* Insurance Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Insurance</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${insuranceStatus.color}`}>
+                        {insuranceStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.insurer_name && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        {vehicle.insurer_name} 
+                        {vehicle.policy_number && ` • ${vehicle.policy_number}`}
+                      </p>
+                    )}
+                    {vehicle.insurance_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.insurance_expiry_date)}
+                      </p>
+                    )}
+                    {vehicle.insurance_premium_amount && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Premium: ₹{vehicle.insurance_premium_amount.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.insurance_document_url && (
+                    <a 
+                      href={vehicle.insurance_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                
+                {/* Fitness Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Fitness Certificate</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${fitnessStatus.color}`}>
+                        {fitnessStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.fitness_certificate_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Cert: {vehicle.fitness_certificate_number}
+                      </p>
+                    )}
+                    {vehicle.fitness_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.fitness_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.fitness_document_url && (
+                    <a 
+                      href={vehicle.fitness_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                
+                {/* Permit Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Permit</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${permitStatus.color}`}>
+                        {permitStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.permit_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        {vehicle.permit_number}
+                        {vehicle.permit_type && ` (${vehicle.permit_type.charAt(0).toUpperCase() + vehicle.permit_type.slice(1)})`}
+                      </p>
+                    )}
+                    {vehicle.permit_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.permit_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.permit_document_url && (
+                    <a 
+                      href={vehicle.permit_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                
+                {/* PUC Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">PUC Certificate</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${pucStatus.color}`}>
+                        {pucStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.puc_certificate_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Cert: {vehicle.puc_certificate_number}
+                      </p>
+                    )}
+                    {vehicle.puc_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Expires: {formatDate(vehicle.puc_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.puc_document_url && (
+                    <a 
+                      href={vehicle.puc_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+                
+                {/* Tax Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium">Tax Receipt</span>
+                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${taxStatus.color}`}>
+                        {taxStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.tax_receipt_number && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Receipt: {vehicle.tax_receipt_number}
+                      </p>
+                    )}
+                    {vehicle.tax_amount && (
+                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
+                        Amount: ₹{vehicle.tax_amount.toLocaleString()}
+                        {vehicle.tax_period && ` (${vehicle.tax_period})`}
+                      </p>
+                    )}
+                  </div>
+                  {vehicle.tax_document_url && (
+                    <a 
+                      href={vehicle.tax_document_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Insurance Details */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
-                  <Shield className="h-4 w-4 mr-1 text-blue-500" />
-                  Insurance
-                </h4>
-                <dl className="space-y-1">
-                  {vehicle.insurance_premium_amount && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Premium</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.insurance_premium_amount.toLocaleString()}</dd>
+            {/* SECTION 3: PERFORMANCE STATS */}
+            <div className="space-y-5">
+              {/* Performance Stats Card */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Performance</h3>
+                  <BarChart2 className="h-5 w-5 text-primary-500" />
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Total Trips</span>
                     </div>
-                  )}
-                  {vehicle.insurance_idv && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">IDV</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.insurance_idv.toLocaleString()}</dd>
+                    <span className="text-lg font-medium text-gray-900">
+                      {stats?.totalTrips || 0}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Truck className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Distance Covered</span>
                     </div>
-                  )}
-                  {vehicle.insurance_start_date && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Start Date</dt>
-                      <dd className="text-sm">{formatDate(vehicle.insurance_start_date)}</dd>
+                    <span className="text-lg font-medium text-gray-900">
+                      {stats?.totalDistance?.toLocaleString() || 0} km
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <Fuel className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-700">Average Mileage</span>
                     </div>
-                  )}
-                </dl>
-              </div>
-              
-              {/* Tax Details */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
-                  <IndianRupee className="h-4 w-4 mr-1 text-green-500" />
-                  Tax
-                </h4>
-                <dl className="space-y-1">
-                  {vehicle.tax_amount && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Amount</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.tax_amount.toLocaleString()}</dd>
-                    </div>
-                  )}
-                  {vehicle.tax_period && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Period</dt>
-                      <dd className="text-sm font-medium capitalize">{vehicle.tax_period}</dd>
-                    </div>
-                  )}
-                  {vehicle.tax_scope && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Scope</dt>
-                      <dd className="text-sm">{vehicle.tax_scope}</dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-              
-              {/* Other Costs */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
-                  <IndianRupee className="h-4 w-4 mr-1 text-purple-500" />
-                  Other Costs
-                </h4>
-                <dl className="space-y-1">
-                  {vehicle.fitness_cost && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Fitness Cert.</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.fitness_cost.toLocaleString()}</dd>
-                    </div>
-                  )}
-                  {vehicle.permit_cost && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">Permit</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.permit_cost.toLocaleString()}</dd>
-                    </div>
-                  )}
-                  {vehicle.puc_cost && (
-                    <div className="flex justify-between">
-                      <dt className="text-xs text-gray-500">PUC</dt>
-                      <dd className="text-sm font-medium">₹{vehicle.puc_cost.toLocaleString()}</dd>
-                    </div>
-                  )}
-                </dl>
-              </div>
-            </div>
-          </div>
-          
-          {/* Document Alerts Section */}
-          {(vehicle.insurance_expiry_date && new Date(vehicle.insurance_expiry_date) < new Date() ||
-            vehicle.fitness_expiry_date && new Date(vehicle.fitness_expiry_date) < new Date() ||
-            vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) < new Date() ||
-            vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) < new Date()) && (
-            <div className="bg-error-50 border border-error-200 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-error-500 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-error-800 font-medium">Expired Document Alert</h3>
-                  <ul className="mt-1 text-error-700 list-disc list-inside text-sm">
-                    {vehicle.insurance_expiry_date && new Date(vehicle.insurance_expiry_date) < new Date() && (
-                      <li>Insurance expired on {formatDate(vehicle.insurance_expiry_date)}</li>
-                    )}
-                    {vehicle.fitness_expiry_date && new Date(vehicle.fitness_expiry_date) < new Date() && (
-                      <li>Fitness certificate expired on {formatDate(vehicle.fitness_expiry_date)}</li>
-                    )}
-                    {vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) < new Date() && (
-                      <li>Permit expired on {formatDate(vehicle.permit_expiry_date)}</li>
-                    )}
-                    {vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) < new Date() && (
-                      <li>PUC certificate expired on {formatDate(vehicle.puc_expiry_date)}</li>
-                    )}
-                  </ul>
-                  <p className="mt-2 text-sm text-error-700">Please update these documents to maintain compliance.</p>
+                    <span className="text-lg font-medium text-success-600">
+                      {stats?.averageKmpl?.toFixed(2) || '--'} km/L
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Expiring Soon Alert */}
-          {(vehicle.insurance_expiry_date && 
-            new Date(vehicle.insurance_expiry_date) > new Date() && 
-            new Date(vehicle.insurance_expiry_date) < addDays(new Date(), 30) ||
-            vehicle.fitness_expiry_date && 
-            new Date(vehicle.fitness_expiry_date) > new Date() && 
-            new Date(vehicle.fitness_expiry_date) < addDays(new Date(), 30) ||
-            vehicle.permit_expiry_date && 
-            new Date(vehicle.permit_expiry_date) > new Date() && 
-            new Date(vehicle.permit_expiry_date) < addDays(new Date(), 30) ||
-            vehicle.puc_expiry_date && 
-            new Date(vehicle.puc_expiry_date) > new Date() && 
-            new Date(vehicle.puc_expiry_date) < addDays(new Date(), 30)) && 
-          !(vehicle.insurance_expiry_date && new Date(vehicle.insurance_expiry_date) < new Date() ||
-            vehicle.fitness_expiry_date && new Date(vehicle.fitness_expiry_date) < new Date() ||
-            vehicle.permit_expiry_date && new Date(vehicle.permit_expiry_date) < new Date() ||
-            vehicle.puc_expiry_date && new Date(vehicle.puc_expiry_date) < new Date()) && (
-            <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-warning-500 mt-0.5" />
-                <div className="ml-3">
-                  <h3 className="text-warning-800 font-medium">Documents Expiring Soon</h3>
-                  <ul className="mt-1 text-warning-700 list-disc list-inside text-sm">
-                    {vehicle.insurance_expiry_date && 
-                      new Date(vehicle.insurance_expiry_date) > new Date() && 
-                      new Date(vehicle.insurance_expiry_date) < addDays(new Date(), 30) && (
-                      <li>Insurance expires on {formatDate(vehicle.insurance_expiry_date)}</li>
-                    )}
-                    {vehicle.fitness_expiry_date && 
-                      new Date(vehicle.fitness_expiry_date) > new Date() && 
-                      new Date(vehicle.fitness_expiry_date) < addDays(new Date(), 30) && (
-                      <li>Fitness certificate expires on {formatDate(vehicle.fitness_expiry_date)}</li>
-                    )}
-                    {vehicle.permit_expiry_date && 
-                      new Date(vehicle.permit_expiry_date) > new Date() && 
-                      new Date(vehicle.permit_expiry_date) < addDays(new Date(), 30) && (
-                      <li>Permit expires on {formatDate(vehicle.permit_expiry_date)}</li>
-                    )}
-                    {vehicle.puc_expiry_date && 
-                      new Date(vehicle.puc_expiry_date) > new Date() && 
-                      new Date(vehicle.puc_expiry_date) < addDays(new Date(), 30) && (
-                      <li>PUC certificate expires on {formatDate(vehicle.puc_expiry_date)}</li>
-                    )}
-                  </ul>
-                  <p className="mt-2 text-sm text-warning-700">Please prepare for renewal soon.</p>
+              
+              {/* Reminders Card */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Service Reminders</h3>
+                  <Clock className="h-5 w-5 text-primary-500" />
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-2">
+                    <span className="text-sm text-gray-700">Reminders Enabled</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${vehicle.remind_service ? 'bg-success-100 text-success-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {vehicle.remind_service ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                  
+                  {vehicle.remind_service && (
+                    <>
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">Days Before Service</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_days_before || 'Default'} days
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">KM Before Service</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_km?.toLocaleString() || 'Default'} km
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-2">
+                        <span className="text-sm text-gray-700">Contact Assigned</span>
+                        <span className="text-sm font-medium">
+                          {vehicle.service_reminder_contact_id ? 'Yes' : 'Default Contact'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {!vehicle.remind_service && (
+                    <div className="bg-gray-50 p-3 rounded-lg text-center">
+                      <p className="text-sm text-gray-500">Service reminders are disabled for this vehicle</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-          
-          {/* Mileage Chart */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Mileage Trends</h3>
-            <div className="h-64">
-              <MileageChart trips={trips} />
             </div>
           </div>
           
@@ -683,7 +743,243 @@ const VehiclePage: React.FC = () => {
                 <span className="text-gray-500">No additional information available for this vehicle</span>
               </div>
             )}
+            
+            {/* Other Info Documents */}
+            {vehicle.other_info_documents && Array.isArray(vehicle.other_info_documents) && vehicle.other_info_documents.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Additional Documents</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {vehicle.other_info_documents.map((doc, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm text-gray-700 truncate max-w-[150px]">
+                          Document {index + 1}
+                        </span>
+                      </div>
+                      {typeof doc === 'string' && (
+                        <a 
+                          href={doc} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+          
+          {/* Financial Summary Card */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
+                Financial Summary
+              </h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Insurance Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <Shield className="h-4 w-4 mr-1 text-blue-500" />
+                  Insurance
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.insurance_premium_amount && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Premium</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.insurance_premium_amount.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.insurance_idv && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">IDV</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.insurance_idv.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.insurance_start_date && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Start Date</dt>
+                      <dd className="text-sm">{formatDate(vehicle.insurance_start_date)}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              
+              {/* Tax Details */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <IndianRupee className="h-4 w-4 mr-1 text-green-500" />
+                  Tax
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.tax_amount && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Amount</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.tax_amount.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.tax_period && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Period</dt>
+                      <dd className="text-sm font-medium capitalize">{vehicle.tax_period}</dd>
+                    </div>
+                  )}
+                  {vehicle.tax_scope && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Scope</dt>
+                      <dd className="text-sm">{vehicle.tax_scope}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+              
+              {/* Other Costs */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-900 mb-2 flex items-center">
+                  <IndianRupee className="h-4 w-4 mr-1 text-purple-500" />
+                  Other Costs
+                </h4>
+                <dl className="space-y-1">
+                  {vehicle.fitness_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Fitness Cert.</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.fitness_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.permit_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">Permit</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.permit_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                  {vehicle.puc_cost && (
+                    <div className="flex justify-between">
+                      <dt className="text-xs text-gray-500">PUC</dt>
+                      <dd className="text-sm font-medium">₹{vehicle.puc_cost.toLocaleString()}</dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            </div>
+          </div>
+          
+          {/* Document Alerts Section */}
+          {(insuranceStatus.status === 'expired' || fitnessStatus.status === 'expired' || permitStatus.status === 'expired' || pucStatus.status === 'expired') && (
+            <div className="bg-error-50 border border-error-200 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-error-500 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-error-800 font-medium">Expired Document Alert</h3>
+                  <ul className="mt-1 text-error-700 list-disc list-inside text-sm">
+                    {insuranceStatus.status === 'expired' && (
+                      <li>Insurance expired on {formatDate(vehicle.insurance_expiry_date)}</li>
+                    )}
+                    {fitnessStatus.status === 'expired' && (
+                      <li>Fitness certificate expired on {formatDate(vehicle.fitness_expiry_date)}</li>
+                    )}
+                    {permitStatus.status === 'expired' && (
+                      <li>Permit expired on {formatDate(vehicle.permit_expiry_date)}</li>
+                    )}
+                    {pucStatus.status === 'expired' && (
+                      <li>PUC certificate expired on {formatDate(vehicle.puc_expiry_date)}</li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-sm text-error-700">Please update these documents to maintain compliance.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Expiring Soon Alert */}
+          {(insuranceStatus.status === 'expiring' || fitnessStatus.status === 'expiring' || permitStatus.status === 'expiring' || pucStatus.status === 'expiring') && 
+          !(insuranceStatus.status === 'expired' || fitnessStatus.status === 'expired' || permitStatus.status === 'expired' || pucStatus.status === 'expired') && (
+            <div className="bg-warning-50 border border-warning-200 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-warning-500 mt-0.5" />
+                <div className="ml-3">
+                  <h3 className="text-warning-800 font-medium">Documents Expiring Soon</h3>
+                  <ul className="mt-1 text-warning-700 list-disc list-inside text-sm">
+                    {insuranceStatus.status === 'expiring' && (
+                      <li>Insurance expires on {formatDate(vehicle.insurance_expiry_date)}</li>
+                    )}
+                    {fitnessStatus.status === 'expiring' && (
+                      <li>Fitness certificate expires on {formatDate(vehicle.fitness_expiry_date)}</li>
+                    )}
+                    {permitStatus.status === 'expiring' && (
+                      <li>Permit expires on {formatDate(vehicle.permit_expiry_date)}</li>
+                    )}
+                    {pucStatus.status === 'expiring' && (
+                      <li>PUC certificate expires on {formatDate(vehicle.puc_expiry_date)}</li>
+                    )}
+                  </ul>
+                  <p className="mt-2 text-sm text-warning-700">Please prepare for renewal soon.</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Mileage Chart */}
+          <div className="bg-white p-6 rounded-lg shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Mileage Trends</h3>
+            <div className="h-64">
+              <MileageChart trips={trips} />
+            </div>
+          </div>
+          
+          {/* Other Documents Display */}
+          {vehicle.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Other Documents</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {vehicle.other_documents.map((doc, index) => (
+                  <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                        <span className="text-sm font-medium text-gray-900">
+                          {doc.name || `Document ${index + 1}`}
+                        </span>
+                      </div>
+                      {doc.file && typeof doc.file === 'string' && (
+                        <a 
+                          href={doc.file} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                        >
+                          View
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {doc.issue_date && (
+                        <p className="text-xs text-gray-500">
+                          Issued: {formatDate(doc.issue_date)}
+                        </p>
+                      )}
+                      {doc.expiry_date && (
+                        <p className="text-xs text-gray-500">
+                          Expires: {formatDate(doc.expiry_date)}
+                        </p>
+                      )}
+                      {doc.cost && (
+                        <p className="text-xs text-gray-500">
+                          Cost: ₹{doc.cost.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Layout>

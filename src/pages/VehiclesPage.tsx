@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Vehicle } from '../types'; // Import the Vehicle interface
-import { DateRangeFilterType } from '../components/ui/DateRangeFilter';
-import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -21,8 +19,6 @@ import VehicleForm from '../components/vehicles/VehicleForm';
 import { toast } from 'react-toastify';
 import StatCard from '../components/dashboard/StatCard';
 import NotificationsButton from '../components/common/NotificationsButton';
-import DateRangeFilter from '../components/ui/DateRangeFilter';
-import DocumentMetrics from '../components/vehicles/DocumentMetrics';
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,85 +34,6 @@ const VehiclesPage: React.FC = () => {
   const [vehiclesZeroTrips, setVehiclesZeroTrips] = useState(0);
   const [avgOdometer, setAvgOdometer] = useState(0);
   const [docsPendingVehicles, setDocsPendingVehicles] = useState(0);
-  
-  // Date range filter state
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilterType>('thisMonth');
-  const [customDateRange, setCustomDateRange] = useState({
-    start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
-  });
-  
-  // Calculate date ranges based on filter
-  const getDateRange = () => {
-    const now = new Date();
-    
-    switch (dateRangeFilter) {
-      case 'today':
-        return {
-          start: new Date(now.setHours(0, 0, 0, 0)),
-          end: new Date()
-        };
-      case 'yesterday':
-        const yesterday = subDays(now, 1);
-        return {
-          start: new Date(yesterday.setHours(0, 0, 0, 0)),
-          end: new Date(yesterday.setHours(23, 59, 59, 999))
-        };
-      case 'thisWeek':
-        return {
-          start: subDays(now, now.getDay()),
-          end: now
-        };
-      case 'lastWeek':
-        return {
-          start: subDays(now, now.getDay() + 7),
-          end: subDays(now, now.getDay() + 1)
-        };
-      case 'thisMonth':
-        return {
-          start: startOfMonth(now),
-          end: now
-        };
-      case 'lastMonth':
-        const lastMonth = subMonths(now, 1);
-        return {
-          start: startOfMonth(lastMonth),
-          end: endOfMonth(lastMonth)
-        };
-      case 'thisYear':
-        return {
-          start: startOfYear(now),
-          end: now
-        };
-      case 'lastYear':
-        const lastYear = subYears(now, 1);
-        return {
-          start: startOfYear(lastYear),
-          end: endOfYear(lastYear)
-        };
-      case 'custom':
-        return {
-          start: new Date(customDateRange.start),
-          end: new Date(customDateRange.end)
-        };
-      default:
-        return {
-          start: startOfMonth(now),
-          end: now
-        };
-    }
-  };
-  
-  // Calculate previous period date range
-  const getPreviousDateRange = () => {
-    const currentRange = getDateRange();
-    const duration = currentRange.end.getTime() - currentRange.start.getTime();
-    
-    return {
-      start: new Date(currentRange.start.getTime() - duration),
-      end: new Date(currentRange.end.getTime() - duration)
-    };
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -242,10 +159,6 @@ const VehiclesPage: React.FC = () => {
   // Filter vehicles based on archived status
   const filteredVehicles = vehicles.filter(v => showArchived ? v.status === 'archived' : v.status !== 'archived');
 
-  // Get current and previous date ranges
-  const currentDateRange = getDateRange();
-  const previousDateRange = getPreviousDateRange();
-
   return (
     <Layout
       title="Vehicles"
@@ -297,28 +210,6 @@ const VehiclesPage: React.FC = () => {
           {/* Vehicle Stats Section */}
           {!showArchived && (
             <>
-              {/* Date Range Filter */}
-              <div className="mb-6 flex justify-end">
-                <div className="w-full max-w-md">
-                  <DateRangeFilter
-                    value={dateRangeFilter}
-                    onChange={setDateRangeFilter}
-                    customDateRange={customDateRange}
-                    onCustomDateRangeChange={setCustomDateRange}
-                    compact
-                  />
-                </div>
-              </div>
-              
-              {/* Document Metrics */}
-              <div className="mb-6">
-                <DocumentMetrics 
-                  vehicles={filteredVehicles}
-                  dateRange={currentDateRange}
-                  previousDateRange={previousDateRange}
-                />
-              </div>
-              
               {statsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   {[...Array(4)].map((_, i) => (
