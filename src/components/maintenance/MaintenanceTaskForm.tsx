@@ -5,6 +5,7 @@ import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
+import Switch from '../ui/Switch';
 import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
@@ -459,106 +460,123 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   />
                 </div>
 
-                {/* Battery Tracking Toggle */}
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.battery_tracking` as const}
-                    defaultValue={false}
-                    render={({ field: { value, onChange } }) => (
-                      <Checkbox
-                        label="Battery Replacement"
-                        checked={value}
-                        onChange={(e) => onChange(e.target.checked)}
-                        icon={<Battery className="h-4 w-4 text-blue-500" />}
-                      />
-                    )}
-                  />
-                  
-                  {/* Conditionally show battery fields */}
-                  {watch(`service_groups.${index}.battery_tracking`) && (
-                    <div className="mt-3 ml-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-l-2 border-gray-200 pl-4">
-                      <Input
-                        label="Battery Serial Number"
-                        placeholder="Enter serial number"
-                        {...register(`service_groups.${index}.battery_serial` as const)}
-                      />
-                      <Input
-                        label="Battery Brand"
-                        placeholder="E.g., Exide, Amaron"
-                        {...register(`service_groups.${index}.battery_brand` as const)}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Tyre Tracking Toggle */}
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.tyre_tracking` as const}
-                    defaultValue={false}
-                    render={({ field: { value, onChange } }) => (
-                      <Checkbox
-                        label="Tyre Replacement/Rotation"
-                        checked={value}
-                        onChange={(e) => onChange(e.target.checked)}
-                        icon={<Disc className="h-4 w-4 text-gray-500" />}
-                      />
-                    )}
-                  />
-                  
-                  {/* Conditionally show tyre fields */}
-                  {watch(`service_groups.${index}.tyre_tracking`) && (
-                    <div className="mt-3 ml-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-l-2 border-gray-200 pl-4">
+                {/* Battery & Tyre Tracking Section */}
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
+                  {/* Battery Tracking Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Battery className="h-5 w-5 text-blue-500 mr-2" />
+                        <h5 className="font-medium text-gray-700">Battery Replacement</h5>
+                      </div>
                       <Controller
                         control={control}
-                        name={`service_groups.${index}.tyre_positions` as const}
-                        defaultValue={[]}
+                        name={`service_groups.${index}.battery_tracking` as const}
+                        defaultValue={false}
                         render={({ field: { value, onChange } }) => (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Tyre Position(s)
-                            </label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
-                                <label key={position} className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={value?.includes(position)}
-                                    onChange={(e) => {
-                                      const newPositions = e.target.checked
-                                        ? [...(value || []), position]
-                                        : (value || []).filter(p => p !== position);
-                                      onChange(newPositions);
-                                    }}
-                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                                  />
-                                  <span className="text-sm text-gray-600">{position}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
+                          <Switch
+                            checked={value}
+                            onChange={(e) => onChange(e.target.checked)}
+                            size="sm"
+                          />
                         )}
                       />
-                      <Input
-                        label="Tyre Brand"
-                        placeholder="E.g., MRF, Apollo, CEAT"
-                        {...register(`service_groups.${index}.tyre_brand` as const)}
-                      />
-                      <div className="col-span-1 md:col-span-2">
+                    </div>
+                    
+                    {/* Conditionally show battery fields */}
+                    {watch(`service_groups.${index}.battery_tracking`) && (
+                      <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-blue-200">
                         <Input
-                          label="Tyre Serial Numbers (comma separated)"
-                          placeholder="Enter serial numbers"
-                          {...register(`service_groups.${index}.tyre_serials` as const)}
+                          label="Battery Serial Number"
+                          placeholder="Enter serial number"
+                          size="sm"
+                          {...register(`service_groups.${index}.battery_serial` as const)}
+                        />
+                        <Input
+                          label="Battery Brand"
+                          placeholder="E.g., Exide, Amaron"
+                          size="sm"
+                          {...register(`service_groups.${index}.battery_brand` as const)}
                         />
                       </div>
+                    )}
+                  </div>
+                  
+                  {/* Tyre Tracking Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Disc className="h-5 w-5 text-gray-600 mr-2" />
+                        <h5 className="font-medium text-gray-700">Tyre Replacement</h5>
+                      </div>
+                      <Controller
+                        control={control}
+                        name={`service_groups.${index}.tyre_tracking` as const}
+                        defaultValue={false}
+                        render={({ field: { value, onChange } }) => (
+                          <Switch
+                            checked={value}
+                            onChange={(e) => onChange(e.target.checked)}
+                            size="sm"
+                          />
+                        )}
+                      />
                     </div>
-                  )}
+                    
+                    {/* Conditionally show tyre fields */}
+                    {watch(`service_groups.${index}.tyre_tracking`) && (
+                      <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-gray-200">
+                        <Controller
+                          control={control}
+                          name={`service_groups.${index}.tyre_positions` as const}
+                          defaultValue={[]}
+                          render={({ field: { value, onChange } }) => (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Tyre Positions
+                              </label>
+                              <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
+                                {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
+                                  <label key={position} className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={value?.includes(position)}
+                                      onChange={(e) => {
+                                        const newPositions = e.target.checked
+                                          ? [...(value || []), position]
+                                          : (value || []).filter(p => p !== position);
+                                        onChange(newPositions);
+                                      }}
+                                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                    />
+                                    <span className="text-sm text-gray-600">{position}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Input
+                            label="Tyre Brand"
+                            placeholder="E.g., MRF, Apollo"
+                            size="sm"
+                            {...register(`service_groups.${index}.tyre_brand` as const)}
+                          />
+                          <Input
+                            label="Tyre Serial Numbers"
+                            placeholder="Comma separated"
+                            size="sm"
+                            {...register(`service_groups.${index}.tyre_serials` as const)}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 items-end">
-                  {/* Bill upload */}
+                {/* Bill upload */}
+                <div className="mt-3">
                   <Controller
                     control={control}
                     name={`service_groups.${index}.bill_file` as const}
@@ -771,10 +789,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <Bell className="h-5 w-5 mr-2 text-primary-500" />
             Next Service Reminder
           </h3>
-          <Checkbox
-            label="Set Reminder"
+          <Switch
             checked={setReminder}
             onChange={(e) => setSetReminder(e.target.checked)}
+            label="Set Reminder"
+            size="sm"
           />
         </div>
 
