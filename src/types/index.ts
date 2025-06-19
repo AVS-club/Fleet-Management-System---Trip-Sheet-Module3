@@ -256,6 +256,7 @@ export interface Trip {
   route_deviation?: number;
   fuel_bill_url?: string;
   material_type_ids?: string[];
+  estimated_toll_cost?: number;
   created_at: string;
   updated_at: string;
 }
@@ -298,8 +299,8 @@ export interface Destination {
   type: 'district' | 'city' | 'town' | 'village';
   state: 'chhattisgarh' | 'odisha';
   active?: boolean;
-  place_id?: string; // Google Places unique identifier
-  formatted_address?: string; // Full formatted address from Google Places
+  place_id?: string; // Google Places unique identifier for the location
+  formatted_address?: string; // Full formatted address from Google Places API
   created_at?: string;
   updated_at?: string;
 }
