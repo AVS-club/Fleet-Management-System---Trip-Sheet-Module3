@@ -1,7 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Upload, File, X, Paperclip } from 'lucide-react';
+import { Upload, File, X, Paperclip, FileText, Image } from 'lucide-react';
 
 export interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   label?: string;
@@ -32,7 +32,43 @@ const FileUpload: React.FC<FileUploadProps> = ({
   ...props
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [filePreviews, setFilePreviews] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Generate previews when files change
+  useEffect(() => {
+    // Clear old previews
+    Object.values(filePreviews).forEach(url => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    
+    const newPreviews: Record<string, string> = {};
+    
+    if (value) {
+      if (Array.isArray(value)) {
+        value.forEach((file, index) => {
+          if (file.type.startsWith('image/')) {
+            newPreviews[`${file.name}-${index}`] = URL.createObjectURL(file);
+          }
+        });
+      } else if (value.type.startsWith('image/')) {
+        newPreviews[value.name] = URL.createObjectURL(value);
+      }
+    }
+    
+    setFilePreviews(newPreviews);
+    
+    // Cleanup function to revoke object URLs
+    return () => {
+      Object.values(newPreviews).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [value]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -212,6 +248,28 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
   };
 
+  // Helper to get file icon based on file type
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <Image className="h-5 w-5 text-blue-500" />;
+    } else if (file.type === 'application/pdf') {
+      return <FileText className="h-5 w-5 text-red-500" />;
+    } else {
+      return <File className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (sizeInBytes: number): string => {
+    if (sizeInBytes < 1024) {
+      return `${sizeInBytes} B`;
+    } else if (sizeInBytes < 1024 * 1024) {
+      return `${(sizeInBytes / 1024).toFixed(1)} KB`;
+    } else {
+      return `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+  };
+
   const renderFilesList = () => {
     if (!multiple || !Array.isArray(value) || value.length === 0) {
       return null;
@@ -222,9 +280,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
         {value.map((file, index) => (
           <li key={`${file.name}-${index}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
             <div className="flex items-center overflow-hidden">
-              <File className="h-4 w-4 text-gray-400 flex-shrink-0 mr-2" />
-              <span className="text-sm text-gray-700 truncate">{file.name}</span>
-              <span className="text-xs text-gray-500 ml-2">({Math.round(file.size / 1024)} KB)</span>
+              {file.type.startsWith('image/') && filePreviews[`${file.name}-${index}`] ? (
+                <img 
+                  src={filePreviews[`${file.name}-${index}`]} 
+                  alt={file.name}
+                  className="h-8 w-8 object-cover rounded mr-2 flex-shrink-0"
+                />
+              ) : (
+                getFileIcon(file)
+              )}
+              <div className="ml-2 overflow-hidden">
+                <p className="text-sm text-gray-700 truncate">{file.name}</p>
+                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+              </div>
             </div>
             <button
               type="button"
@@ -288,7 +356,20 @@ const FileUpload: React.FC<FileUploadProps> = ({
         ) : buttonMode && value ? (
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
-              <File className="h-4 w-4 text-primary-600 mr-2" />
+              {!Array.isArray(value) ? (
+                value.type.startsWith('image/') && filePreviews[value.name] ? (
+                  <img 
+                    src={filePreviews[value.name]} 
+                    alt={value.name}
+                    className="h-6 w-6 object-cover rounded mr-2 flex-shrink-0"
+                  />
+                ) : (
+                  getFileIcon(value)
+                )
+              ) : (
+                <File className="h-4 w-4 text-primary-600 mr-2" />
+              )}
+              
               {multiple && Array.isArray(value) ? (
                 <span className="text-sm text-gray-700">{value.length} file{value.length !== 1 ? 's' : ''} selected</span>
               ) : (
@@ -312,11 +393,28 @@ const FileUpload: React.FC<FileUploadProps> = ({
         ) : value ? (
           <div className="space-y-2">
             {!multiple || !Array.isArray(value) ? (
-              // Single file display
+              // Single file display with preview for images
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <File className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-sm text-gray-700">{(value as File)?.name ?? 'No file selected'}</span>
+                  {value.type.startsWith('image/') && filePreviews[value.name] ? (
+                    <img 
+                      src={filePreviews[value.name]} 
+                      alt={value.name}
+                      className="h-16 w-16 object-cover rounded mr-3 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="mr-3 flex items-center justify-center h-16 w-16 bg-gray-100 rounded">
+                      {value.type === 'application/pdf' ? (
+                        <FileText className="h-8 w-8 text-red-500" />
+                      ) : (
+                        <File className="h-8 w-8 text-gray-400" />
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{(value as File)?.name ?? 'No file selected'}</p>
+                    <p className="text-xs text-gray-500">{formatFileSize((value as File)?.size || 0)}</p>
+                  </div>
                 </div>
                 <button
                   type="button"
