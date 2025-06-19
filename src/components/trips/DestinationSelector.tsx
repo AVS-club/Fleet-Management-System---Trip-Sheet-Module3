@@ -79,7 +79,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       try {
         const response = await autocompleteService.getPlacePredictions({
           input: searchTerm,
-          types: ['(cities)'], // Fixed: Using only one type as per Google Places API requirements
+          types: ['establishment'], // Use establishment to find businesses and points of interest
           componentRestrictions: { country: 'in' },
           bounds: new google.maps.LatLngBounds(
             { lat: 17.7,  lng: 80.1 }, // Southwest corner of Chhattisgarh/Odisha
@@ -204,7 +204,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         placesService.getDetails(
           {
             placeId: prediction.place_id,
-            fields: ['name', 'geometry', 'formatted_address']
+            fields: ['geometry.location', 'formatted_address', 'name', 'place_id']
           },
           (result, status) => {
             if (status === google.maps.places.PlacesServiceStatus.OK && result) {
@@ -232,6 +232,8 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         historical_deviation: 5, // Default value
         type: 'city', // Default value
         state: 'chhattisgarh', // Default value
+        place_id: placeDetails.place_id, // Store the Google Place ID
+        formatted_address: placeDetails.formatted_address // Store the full formatted address
       };
 
       // Add the destination to storage and select it
@@ -239,8 +241,10 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         onAddAndSelectDestination(newDestination);
       } else {
         // Fallback to old behavior if prop not provided
-        const savedDestination = createDestination(newDestination);
-        toggleDestination(savedDestination.id);
+        const savedDestination = await createDestination(newDestination);
+        if (savedDestination) {
+          toggleDestination(savedDestination.id);
+        }
       }
       
       // Clear search and close dropdown

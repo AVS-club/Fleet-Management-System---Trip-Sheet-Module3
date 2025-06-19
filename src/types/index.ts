@@ -298,6 +298,8 @@ export interface Destination {
   type: 'district' | 'city' | 'town' | 'village';
   state: 'chhattisgarh' | 'odisha';
   active?: boolean;
+  place_id?: string; // Google Places unique identifier
+  formatted_address?: string; // Full formatted address from Google Places
   created_at?: string;
   updated_at?: string;
 }
