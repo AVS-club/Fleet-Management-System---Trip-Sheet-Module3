@@ -1,7 +1,8 @@
 import React from 'react';
 import { Trip, Vehicle, Driver } from '../../types';
 import { format, isValid, parseISO } from 'date-fns';
-import { Fuel } from 'lucide-react';
+import { Fuel, FileText } from 'lucide-react';
+import EmptyState from './EmptyState';
 
 interface RecentTripsTableProps {
   trips: Trip[];
@@ -25,93 +26,103 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
     : [];
   
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Recent Trips</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Trips</h3>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trip
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vehicle
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Driver
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Distance
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Mileage
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {Array.isArray(sortedTrips) && sortedTrips.length > 0 ? (
-              sortedTrips.map((trip) => {
-                const vehicle = Array.isArray(vehicles) ? vehicles.find(v => v.id === trip.vehicle_id) : undefined;
-                const driver = Array.isArray(drivers) ? drivers.find(d => d.id === trip.driver_id) : undefined;
-                const distance = trip.end_km - trip.start_km;
-                
-                return (
-                  <tr 
-                    key={trip.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => onSelectTrip(trip)}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {trip.trip_serial_number}
-                        {trip.refueling_done && (
-                          <Fuel className="ml-2 h-4 w-4 text-amber-500" />
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(parseISO(trip.trip_end_date), 'dd MMM yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {vehicle?.registration_number || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {driver?.name || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={trip.short_trip ? "text-gray-400" : "text-gray-900 font-medium"}>
-                        {distance.toLocaleString()} km
-                        {trip.short_trip && <span className="ml-1 text-xs">(local)</span>}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {trip.calculated_kmpl ? (
-                        <span className="text-success-700 font-medium">
-                          {trip.calculated_kmpl.toFixed(2)} km/L
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
+      {sortedTrips.length === 0 ? (
+        <div className="p-4">
+          <EmptyState 
+            type="trips" 
+            message="No trips recorded yet. Start by recording your first trip to track mileage and expenses."
+          />
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr>
-                <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                  No trips available
-                </td>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Trip
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Vehicle
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Driver
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Distance
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Mileage
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {Array.isArray(sortedTrips) && sortedTrips.length > 0 ? (
+                sortedTrips.map((trip) => {
+                  const vehicle = Array.isArray(vehicles) ? vehicles.find(v => v.id === trip.vehicle_id) : undefined;
+                  const driver = Array.isArray(drivers) ? drivers.find(d => d.id === trip.driver_id) : undefined;
+                  const distance = trip.end_km - trip.start_km;
+                  
+                  return (
+                    <tr 
+                      key={trip.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                      onClick={() => onSelectTrip(trip)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {trip.trip_serial_number}
+                          {trip.refueling_done && (
+                            <Fuel className="ml-2 h-4 w-4 text-amber-500" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {format(parseISO(trip.trip_end_date), 'dd MMM yyyy')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {vehicle?.registration_number || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {driver?.name || 'Unknown'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={trip.short_trip ? "text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-gray-100 font-medium"}>
+                          {distance.toLocaleString()} km
+                          {trip.short_trip && <span className="ml-1 text-xs">(local)</span>}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {trip.calculated_kmpl ? (
+                          <span className="text-success-700 dark:text-success-500 font-medium">
+                            {trip.calculated_kmpl.toFixed(2)} km/L
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-500">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                    <FileText className="h-8 w-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p>No trips available</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

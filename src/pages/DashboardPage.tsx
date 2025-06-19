@@ -9,6 +9,9 @@ import StatCard from '../components/dashboard/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
+import DashboardSummary from '../components/dashboard/DashboardSummary';
+import DashboardTip from '../components/dashboard/DashboardTip';
+import EmptyState from '../components/dashboard/EmptyState';
 import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 import NotificationsPanel from '../components/common/NotificationsPanel';
@@ -80,7 +83,14 @@ const DashboardPage: React.FC = () => {
     
     // Get mileage insights
     const mileageInsights = getMileageInsights(trips);
-    // We'll handle these asynchronously in a separate effect
+    
+    // Calculate date range for summary
+    const tripDates = Array.isArray(trips) && trips.length > 0 
+      ? trips.map(t => new Date(t.trip_start_date || new Date()).getTime())
+      : [];
+    
+    const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
+    const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
     
     return {
       totalTrips: trips.length,
@@ -95,7 +105,9 @@ const DashboardPage: React.FC = () => {
       bestVehicleMileage: mileageInsights.bestVehicleMileage,
       bestDriver: null,
       bestDriverMileage: mileageInsights.bestDriverMileage,
-      estimatedFuelSaved: mileageInsights.estimatedFuelSaved
+      estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
+      earliestTripDate,
+      latestTripDate
     };
   }, [trips]);
 
@@ -138,6 +150,10 @@ const DashboardPage: React.FC = () => {
   const handleSelectVehicle = (vehicle: Vehicle) => {
     navigate(`/vehicles/${vehicle.id}`);
   };
+
+  // Check if we have enough data to show insights
+  const hasEnoughData = Array.isArray(trips) && trips.length > 0;
+  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.refueling_done && trip.fuel_quantity);
   
   return (
     <Layout 
@@ -146,89 +162,117 @@ const DashboardPage: React.FC = () => {
     >
       {loading ? (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       ) : (
       <div className="space-y-6">
+        {/* Date Range Summary */}
+        {hasEnoughData && (
+          <DashboardSummary 
+            earliestTripDate={stats.earliestTripDate}
+            latestTripDate={stats.latestTripDate}
+            vehicleCount={vehicles.filter(v => v.status !== 'archived').length}
+          />
+        )}
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Trips"
             value={stats.totalTrips}
-            icon={<BarChart className="h-5 w-5 text-primary-600" />}
-            trend={{
+            icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+            trend={stats.tripsThisMonth > 0 ? {
               value: 12,
               label: "vs last month",
               isPositive: true
-            }}
+            } : undefined}
           />
           
           <StatCard
             title="Total Distance"
             value={stats.totalDistance.toLocaleString()}
             subtitle="km"
-            icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
+            icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
           />
           
-          <StatCard
-            title="Average Mileage"
-            value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
-            subtitle="km/L"
-            icon={<Calculator className="h-5 w-5 text-primary-600" />}
-          />
-          
-          <StatCard
-            title="Total Fuel Used"
-            value={stats.totalFuel.toLocaleString()}
-            subtitle="L"
-            icon={<Fuel className="h-5 w-5 text-primary-600" />}
-          />
+          {hasRefuelingData ? (
+            <>
+              <StatCard
+                title="Average Mileage"
+                value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+                subtitle="km/L"
+                icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+              
+              <StatCard
+                title="Total Fuel Used"
+                value={stats.totalFuel.toLocaleString()}
+                subtitle="L"
+                icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+            </>
+          ) : (
+            <>
+              <div className="col-span-2 bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center">
+                <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Mileage and fuel consumption insights will appear after trips with refueling are logged.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Mileage Insights */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {bestVehicle && (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
+        {hasRefuelingData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {bestVehicle && (
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Vehicle</h3>
+                  <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
+                  <p className="mt-2 text-success-600 dark:text-success-400 font-medium">
+                    {stats.bestVehicleMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {bestDriver && (
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Driver</h3>
+                  <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-4">
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="mt-2 text-success-600 dark:text-success-400 font-medium">
+                    {stats.bestDriverMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Best Vehicle</h3>
-                <Truck className="h-6 w-6 text-success-500" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Potential Savings</h3>
+                <IndianRupee className="h-6 w-6 text-success-500 dark:text-success-400" />
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-gray-900">{bestVehicle.registration_number}</p>
-                <p className="text-sm text-gray-500">{bestVehicle.make} {bestVehicle.model}</p>
-                <p className="mt-2 text-success-600 font-medium">
-                  {stats.bestVehicleMileage?.toFixed(2)} km/L
-                </p>
+                <p className="text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
               </div>
-            </div>
-          )}
-
-          {bestDriver && (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Best Driver</h3>
-                <Users className="h-6 w-6 text-success-500" />
-              </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-gray-900">{bestDriver.name}</p>
-                <p className="text-sm text-gray-500">License: {bestDriver.license_number}</p>
-                <p className="mt-2 text-success-600 font-medium">
-                  {stats.bestDriverMileage?.toFixed(2)} km/L
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Potential Savings</h3>
-              <IndianRupee className="h-6 w-6 text-success-500" />
-            </div>
-            <div className="mt-4">
-              <p className="text-2xl font-bold text-success-600">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-              <p className="text-sm text-gray-500">Estimated monthly savings with best practices</p>
             </div>
           </div>
-        </div>
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -251,41 +295,42 @@ const DashboardPage: React.FC = () => {
           />
         </div>
         
-        {Array.isArray(trips) && trips.length > 0 && (
+        {/* Dashboard Tip */}
+        {hasEnoughData && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-            <div className="lg:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex">
-              <AlertTriangle className="h-5 w-5 text-blue-600" />
-              <div className="ml-3">
-                <h3 className="text-blue-800 font-medium">AI Insights</h3>
-                <div className="mt-2 text-blue-700 text-sm">
-                  <p>
-                    Our AI analysis suggests the following insights:
-                  </p>
-                  <ul className="list-disc list-inside mt-2 space-y-1">
-                    <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
-                    {bestDriver && (
-                      <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
-                    )}
-                    {bestVehicle && (
-                      <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
-                    )}
-                    {stats.estimatedFuelSaved > 0 && (
-                      <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
-                    )}
-                  </ul>
+            <div className="lg:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div className="ml-3">
+                  <h3 className="text-blue-800 dark:text-blue-300 font-medium">AI Insights</h3>
+                  <div className="mt-2 text-blue-700 dark:text-blue-400 text-sm">
+                    <p>
+                      Our AI analysis suggests the following insights:
+                    </p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
+                      {bestDriver && (
+                        <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
+                      )}
+                      {bestVehicle && (
+                        <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
+                      )}
+                      {stats.estimatedFuelSaved > 0 && (
+                        <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
             </div>
             
             <div className="lg:col-span-1">
               <section className="mt-4">
                 <h3 className="text-lg font-semibold mb-2 flex items-center">
-                  <Bell className="h-5 w-5 text-primary-500 mr-2" />
+                  <Bell className="h-5 w-5 text-primary-500 dark:text-primary-400 mr-2" />
                   Notifications & Reminders
                 </h3>
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <NotificationsPanel 
                     module="vehicles" 
                     onClose={() => {}} 
@@ -297,6 +342,29 @@ const DashboardPage: React.FC = () => {
                 </div>
               </section>
             </div>
+          </div>
+        )}
+
+        {/* Tip Section */}
+        {hasEnoughData && (
+          <DashboardTip 
+            title="Did you know?"
+            content="You can track insurance, permit, and PUC expiry reminders for every vehicle."
+            link={{
+              text: "Go to Vehicles → Edit → Enable Reminders",
+              url: "/vehicles"
+            }}
+          />
+        )}
+
+        {/* Empty Dashboard State */}
+        {!hasEnoughData && (
+          <div className="mt-8">
+            <EmptyState 
+              type="generic"
+              message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
+              showAction={true}
+            />
           </div>
         )}
       </div>

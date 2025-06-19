@@ -1,24 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { Vehicle, RCDetails, InsuranceDetails } from '../../types';
 import { processRCDocument, extractRCDetails } from '../../utils/ocrService';
-import { 
-  Truck, 
-  Calendar, 
-  FileText, 
-  Upload, 
-  X, 
-  Plus, 
-  Database, 
-  Info, 
-  Paperclip,
-  Shield, 
-  CheckCircle, 
-  BadgeCheck, 
-  CloudRain, 
-  Bell, 
-  IndianRupee 
-} from 'lucide-react';
+import { Truck, Calendar, FileText, Upload, X, Plus, Database, Info, Paperclip, IndianRupee, Shield, CheckSquare, FileCheck, BadgeCheck, Wind, Bell } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
@@ -260,10 +244,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       {/* Basic Information */}
       <CollapsibleSection 
         title="Basic Information" 
-        icon={<Truck className="h-5 w-5" />}
-        iconColor="text-gray-600"
-        headerBgClass="bg-gray-100"
+        icon={<Truck className="h-5 w-5" />} 
         defaultExpanded
+        iconColor="text-gray-600"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -466,7 +449,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         title="Insurance Details" 
         icon={<Shield className="h-5 w-5" />}
         iconColor="text-blue-600"
-        headerBgClass="bg-blue-100"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -568,9 +550,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       {/* Fitness Certificate */}
       <CollapsibleSection 
         title="Fitness Certificate" 
-        icon={<CheckCircle className="h-5 w-5" />}
+        icon={<FileCheck className="h-5 w-5" />}
         iconColor="text-green-600"
-        headerBgClass="bg-green-100"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -658,7 +639,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         title="Tax Details" 
         icon={<IndianRupee className="h-5 w-5" />}
         iconColor="text-yellow-600"
-        headerBgClass="bg-yellow-100"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -747,7 +727,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         title="Permit Details" 
         icon={<BadgeCheck className="h-5 w-5" />}
         iconColor="text-orange-600"
-        headerBgClass="bg-orange-100"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -845,9 +824,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       {/* Pollution Certificate (PUC) */}
       <CollapsibleSection 
         title="Pollution Certificate (PUC)" 
-        icon={<CloudRain className="h-5 w-5" />}
+        icon={<Wind className="h-5 w-5" />}
         iconColor="text-gray-600"
-        headerBgClass="bg-gray-100"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -935,7 +913,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         title="Service Reminder" 
         icon={<Bell className="h-5 w-5" />}
         iconColor="text-indigo-600"
-        headerBgClass="bg-indigo-100"
       >
         <div className="space-y-4">
           <Checkbox
@@ -987,7 +964,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         title="Other Information & Documents" 
         icon={<Database className="h-5 w-5" />}
         iconColor="text-slate-600"
-        headerBgClass="bg-slate-100"
       >
         {/* VAHAN Data Summary */}
         {initialData && initialData.vahan_last_fetched_at && (

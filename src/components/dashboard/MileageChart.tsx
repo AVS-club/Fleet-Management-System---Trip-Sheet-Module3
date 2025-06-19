@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip } from '../../types';
+import EmptyState from './EmptyState';
 
 interface MileageChartProps {
   trips: Trip[] | null;
@@ -40,20 +41,22 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
   
   if (chartData.length < 2) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-5">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Mileage Trends</h3>
-        <div className="h-64 flex items-center justify-center">
-          <p className="text-gray-500">Not enough data to display mileage trends. Add more trips with refueling.</p>
-        </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Mileage Trends</h3>
+        <EmptyState 
+          type="mileage" 
+          message="Not enough data to display mileage trends. Add more trips with refueling to see your vehicle's performance over time."
+          showAction={false}
+        />
       </div>
     );
   }
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-5">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-gray-900">Mileage Trends</h3>
-        <div className="text-sm text-gray-600">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Mileage Trends</h3>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
           Average: <span className="font-medium">{avgMileage.toFixed(2)} km/L</span>
         </div>
       </div>
