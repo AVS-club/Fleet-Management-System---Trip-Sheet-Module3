@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Building2, MapPin, Phone } from 'lucide-react';
+import { Building2, MapPin, Phone, Check } from 'lucide-react';
 import { MaintenanceVendor, DEMO_VENDORS } from '../../types/maintenance';
 
 interface VendorSelectorProps {
@@ -72,36 +72,24 @@ const VendorSelector: React.FC<VendorSelectorProps> = ({
       <div className="relative" ref={dropdownRef}>
         <div
           ref={inputContainerRef}
-          className={`min-h-[42px] p-4 border rounded-lg bg-white cursor-pointer hover:bg-gray-50 ${
+          className={`min-h-[42px] p-2 border rounded-lg bg-white cursor-pointer hover:bg-gray-50 ${
             error ? 'border-error-500' : 'border-gray-300'
           }`}
           onClick={() => setIsOpen(true)}
         >
           {selectedVendorDetails ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-gray-400" />
-                  <span className="font-medium text-gray-900">{selectedVendorDetails.name}</span>
-                </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  selectedVendorDetails.active 
-                    ? 'bg-success-100 text-success-700'
-                    : 'bg-gray-100 text-gray-700'
-                }`}>
-                  {selectedVendorDetails.active ? 'ACTIVE' : 'INACTIVE'}
-                </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-gray-400" />
+                <span className="font-medium text-gray-900">{selectedVendorDetails.name}</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm text-gray-500">
-                <div className="flex items-center gap-1 truncate">
-                  <MapPin className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{selectedVendorDetails.address}</span>
-                </div>
-                <div className="flex items-center gap-1 truncate">
-                  <Phone className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{selectedVendorDetails.contact}</span>
-                </div>
-              </div>
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                selectedVendorDetails.active 
+                  ? 'bg-success-100 text-success-700'
+                  : 'bg-gray-100 text-gray-700'
+              }`}>
+                {selectedVendorDetails.active ? 'ACTIVE' : 'INACTIVE'}
+              </span>
             </div>
           ) : (
             <div className="text-gray-500">Select a service vendor</div>
@@ -156,13 +144,18 @@ const VendorSelector: React.FC<VendorSelectorProps> = ({
                       <Building2 className="h-5 w-5 text-gray-400" />
                       <span className="font-medium text-gray-900">{vendor.name}</span>
                     </div>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      vendor.active 
-                        ? 'bg-success-100 text-success-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {vendor.active ? 'ACTIVE' : 'INACTIVE'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        vendor.active 
+                          ? 'bg-success-100 text-success-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        {vendor.active ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                      {selectedVendor === vendor.id && (
+                        <Check className="h-4 w-4 text-primary-600" />
+                      )}
+                    </div>
                   </div>
                   
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-500">

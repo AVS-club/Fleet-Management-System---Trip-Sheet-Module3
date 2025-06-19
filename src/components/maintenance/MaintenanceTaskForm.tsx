@@ -1,44 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle } from '../../types';
+import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup, BATTERY_BRANDS, TYRE_BRANDS } from '../../types';
+import { DEMO_VENDORS, DEMO_GARAGES } from '../../types/maintenance';
 import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
-import Switch from '../ui/Switch';
 import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
 import MaintenanceSelector from './MaintenanceSelector';
 import VendorSelector from './VendorSelector';
+import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
-import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc } from 'lucide-react';
+import SearchableSelect from '../ui/SearchableSelect';
+import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc, Pin } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
+import Switch from '../ui/Switch';
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
   vehicles: Vehicle[];
   initialData?: Partial<MaintenanceTask>;
   isSubmitting?: boolean;
-}
-
-// Battery data shape
-interface BatteryData {
-  serialNumber: string;
-  brand: string;
-}
-
-// Tyre position type
-type TyrePosition = 'FL' | 'FR' | 'RL' | 'RR' | 'Stepney';
-
-// Tyre data shape
-interface TyreData {
-  positions: TyrePosition[];
-  brand: string;
-  serialNumbers: string;
 }
 
 const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
@@ -261,6 +248,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
       
+      if (!data.garage_id) {
+        toast.error("Please select a garage");
+        return;
+      }
+      
       if (!data.start_date) {
         toast.error("Please set a start date");
         return;
@@ -276,38 +268,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       if (!data.service_groups?.[0]?.vendor_id) {
         toast.error("Please select a vendor for the service");
         return;
-      }
-      
-      // Process battery and tyre data for each service group
-      if (Array.isArray(data.service_groups)) {
-        data.service_groups = data.service_groups.map((group: any) => {
-          const { battery_tracking, battery_serial, battery_brand, tyre_tracking, tyre_positions, tyre_brand, tyre_serials, ...rest } = group;
-          
-          // Process battery data if tracking is enabled
-          let batteryData = null;
-          if (battery_tracking) {
-            batteryData = {
-              serialNumber: battery_serial || '',
-              brand: battery_brand || ''
-            };
-          }
-          
-          // Process tyre data if tracking is enabled
-          let tyreData = null;
-          if (tyre_tracking) {
-            tyreData = {
-              positions: Array.isArray(tyre_positions) ? tyre_positions : [],
-              brand: tyre_brand || '',
-              serialNumbers: tyre_serials || ''
-            };
-          }
-          
-          return {
-            ...rest,
-            battery_data: batteryData,
-            tyre_data: tyreData
-          };
-        });
       }
       
       onSubmit(data);
@@ -461,9 +421,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 </div>
 
                 {/* Battery & Tyre Tracking Section */}
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg">
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Battery Tracking Section */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Battery className="h-5 w-5 text-blue-500 mr-2" />
@@ -486,24 +446,40 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     {/* Conditionally show battery fields */}
                     {watch(`service_groups.${index}.battery_tracking`) && (
                       <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-blue-200">
-                        <Input
-                          label="Battery Serial Number"
-                          placeholder="Enter serial number"
-                          size="sm"
-                          {...register(`service_groups.${index}.battery_serial` as const)}
-                        />
-                        <Input
-                          label="Battery Brand"
-                          placeholder="E.g., Exide, Amaron"
-                          size="sm"
-                          {...register(`service_groups.${index}.battery_brand` as const)}
+                        <div className="relative">
+                          <Input
+                            label={
+                              <div className="flex items-center">
+                                Battery Serial Number
+                                <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
+                              </div>
+                            }
+                            placeholder="Enter serial number"
+                            size="sm"
+                            {...register(`service_groups.${index}.battery_serial` as const)}
+                          />
+                        </div>
+                        
+                        <Controller
+                          control={control}
+                          name={`service_groups.${index}.battery_brand` as const}
+                          render={({ field }) => (
+                            <SearchableSelect
+                              label="Battery Brand"
+                              options={BATTERY_BRANDS}
+                              value={field.value || ''}
+                              onChange={(value) => field.onChange(value)}
+                              placeholder="Select or search brand"
+                              size="sm"
+                            />
+                          )}
                         />
                       </div>
                     )}
                   </div>
                   
                   {/* Tyre Tracking Section */}
-                  <div className="space-y-3">
+                  <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Disc className="h-5 w-5 text-gray-600 mr-2" />
@@ -532,8 +508,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                           defaultValue={[]}
                           render={({ field: { value, onChange } }) => (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                                 Tyre Positions
+                                <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
                               </label>
                               <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
                                 {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
@@ -557,11 +534,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                           )}
                         />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <Input
-                            label="Tyre Brand"
-                            placeholder="E.g., MRF, Apollo"
-                            size="sm"
-                            {...register(`service_groups.${index}.tyre_brand` as const)}
+                          <Controller
+                            control={control}
+                            name={`service_groups.${index}.tyre_brand` as const}
+                            render={({ field }) => (
+                              <SearchableSelect
+                                label="Tyre Brand"
+                                options={TYRE_BRANDS}
+                                value={field.value || ''}
+                                onChange={(value) => field.onChange(value)}
+                                placeholder="Select or search brand"
+                                size="sm"
+                              />
+                            )}
                           />
                           <Input
                             label="Tyre Serial Numbers"

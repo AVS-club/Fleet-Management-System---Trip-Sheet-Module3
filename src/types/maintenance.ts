@@ -26,6 +26,22 @@ export interface MaintenanceServiceGroup {
   bill_file?: File; // For frontend handling before upload
   created_at?: string;
   updated_at?: string;
+  battery_tracking?: boolean;
+  battery_serial?: string;
+  battery_brand?: string;
+  tyre_tracking?: boolean;
+  tyre_positions?: string[];
+  tyre_brand?: string;
+  tyre_serials?: string;
+  battery_data?: {
+    serialNumber: string;
+    brand: string;
+  };
+  tyre_data?: {
+    positions: string[];
+    brand: string;
+    serialNumbers: string;
+  };
 }
 
 // Add new interfaces for maintenance form
@@ -666,4 +682,42 @@ export const PART_BRANDS = [
   'MRF',
   'Apollo',
   'CEAT'
+];
+
+// Define battery brands (India, Commercial Use)
+export const BATTERY_BRANDS = [
+  'Exide',
+  'Amaron',
+  'SF Sonic',
+  'Tata Green',
+  'Okaya',
+  'Luminous',
+  'HBL',
+  'Base',
+  'Amco',
+  'Livguard',
+  'PowerZone',
+  'Su-Kam',
+  'Prestolite',
+  'Microtek',
+  'Bosch'
+];
+
+// Define tyre brands (Commercial Segment)
+export const TYRE_BRANDS = [
+  'MRF',
+  'Apollo',
+  'CEAT',
+  'JK Tyre',
+  'Bridgestone',
+  'Michelin',
+  'Goodyear',
+  'TVS Eurogrip',
+  'Continental',
+  'Yokohama',
+  'BKT',
+  'Dunlop',
+  'Metro Tyres',
+  'Pirelli',
+  'Falken'
 ];
