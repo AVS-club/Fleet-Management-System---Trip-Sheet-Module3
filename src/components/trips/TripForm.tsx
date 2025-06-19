@@ -216,6 +216,44 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [fuelQuantity, fuelCost, setValue]);
 
+  // Fetch toll estimates when route is selected
+  useEffect(() => {
+    const fetchTollEstimate = async () => {
+      // Only fetch toll estimates if we have all required data
+      if (!warehouseId || !vehicleId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0) {
+        return;
+      }
+      
+      setTollLoading(true);
+      try {
+        const tollData = await estimateTollCost(warehouseId, selectedDestinations, vehicleId);
+        
+        if (tollData) {
+          let cost = tollData.estimatedTollCost;
+          
+          // Double the toll cost for return trips
+          if (isReturnTrip) {
+            cost *= 2;
+          }
+          
+          setEstimatedTollCost(cost);
+          
+          // Store the estimated toll cost in the form data
+          setValue('estimated_toll_cost', cost);
+        } else {
+          setEstimatedTollCost(null);
+        }
+      } catch (error) {
+        console.error('Error fetching toll estimate:', error);
+        setEstimatedTollCost(null);
+      } finally {
+        setTollLoading(false);
+      }
+    };
+    
+    fetchTollEstimate();
+  }, [warehouseId, vehicleId, selectedDestinations, isReturnTrip, setValue]);
+
   useEffect(() => {
     const fetchRouteAnalysis = async () => {
       if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || 
@@ -288,44 +326,6 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [warehouseId, selectedDestinations, startKm, endKm, vehicleId, watch]);
 
-  // Fetch toll estimates when route is selected
-  useEffect(() => {
-    const fetchTollEstimate = async () => {
-      // Only fetch toll estimates if we have all required data
-      if (!warehouseId || !vehicleId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0) {
-        return;
-      }
-      
-      setTollLoading(true);
-      try {
-        const tollData = await estimateTollCost(warehouseId, selectedDestinations, vehicleId);
-        
-        if (tollData) {
-          let cost = tollData.estimatedTollCost;
-          
-          // Double the toll cost for return trips
-          if (isReturnTrip) {
-            cost *= 2;
-          }
-          
-          setEstimatedTollCost(cost);
-          
-          // Store the estimated toll cost in the form data
-          setValue('estimated_toll_cost', cost);
-        } else {
-          setEstimatedTollCost(null);
-        }
-      } catch (error) {
-        console.error('Error fetching toll estimate:', error);
-        setEstimatedTollCost(null);
-      } finally {
-        setTollLoading(false);
-      }
-    };
-    
-    fetchTollEstimate();
-  }, [warehouseId, vehicleId, selectedDestinations, isReturnTrip, setValue]);
-
   const validateEndKm = (value: number) => {
     return !startKm || value > startKm || 'End KM must be greater than Start KM';
   };
@@ -382,6 +382,15 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   };
 
+  // Remove a destination at a specific index
+  const removeDestinationAtIndex = (index: number) => {
+    if (!Array.isArray(selectedDestinations)) return;
+    
+    const newSelection = [...selectedDestinations];
+    newSelection.splice(index, 1);
+    onChange(newSelection);
+  };
+
   if (loading) {
     return <div className="p-4 text-center">Loading form data...</div>;
   }
@@ -389,12 +398,12 @@ const TripForm: React.FC<TripFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Trip Type Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
-          <Repeat className="h-5 w-5 mr-2 text-primary-500" />
-          🚚 Trip Type
-        </h3>
-        
+      <CollapsibleSection 
+        title="🚚 Trip Type" 
+        icon={<Repeat className="h-5 w-5" />}
+        iconColor="text-slate-600"
+        defaultExpanded={true}
+      >
         <div className="flex flex-wrap gap-6">
           <div className="flex items-center">
             <Controller
@@ -421,7 +430,7 @@ const TripForm: React.FC<TripFormProps> = ({
             />
           </div>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Basic Information */}
       <CollapsibleSection 
@@ -506,7 +515,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Route Information */}
       <CollapsibleSection 
-        title="Route Information" 
+        title="📍 Route Information" 
         icon={<MapPin className="h-5 w-5" />}
         iconColor="text-red-600"
         defaultExpanded={true}
@@ -622,7 +631,7 @@ const TripForm: React.FC<TripFormProps> = ({
               <TripMap
                 warehouse={warehouses.find(w => w.id === warehouseId)}
                 destinations={selectedDestinationObjects}
-                className="h-[400px]"
+                className="h-[300px]"
               />
             )}
           </div>
@@ -637,9 +646,9 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </CollapsibleSection>
 
-      {/* Odometer & Weight Section */}
+      {/* Odometer & Load Section */}
       <CollapsibleSection 
-        title="Odometer & Load" 
+        title="🛞 Odometer & Load" 
         icon={<Truck className="h-5 w-5" />}
         iconColor="text-gray-600"
         defaultExpanded={true}
@@ -751,7 +760,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Trip Expenses Section */}
       <CollapsibleSection 
-        title="Trip Expenses" 
+        title="💰 Trip Expenses" 
         icon={<IndianRupee className="h-5 w-5" />}
         iconColor="text-green-600"
         defaultExpanded={false}
@@ -798,7 +807,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Attachments & Notes Section */}
       <CollapsibleSection 
-        title="Attachments & Notes" 
+        title="📎 Attachments & Notes" 
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-blue-600"
         defaultExpanded={false}

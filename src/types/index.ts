@@ -247,7 +247,6 @@ export interface Trip {
   unloading_expense: number;
   driver_expense: number;
   road_rto_expense: number;
-  breakdown_expense: number;
   miscellaneous_expense?: number;
   total_road_expenses: number;
   short_trip: boolean;
