@@ -3,7 +3,7 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
 import { BATTERY_BRANDS, TYRE_BRANDS } from '../../types/maintenance';
 import { DEMO_VENDORS, DEMO_GARAGES } from '../../types/maintenance';
-import { addDays, addHours, format, parse } from 'date-fns';
+import { addDays, addHours, format, parse, addYears } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -331,6 +331,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <Controller
           control={control}
+          name="garage_id"
+          rules={{ required: 'Garage is required' }}
+          render={({ field: { value, onChange }, fieldState: { error } }) => (
+            <GarageSelector
+              selectedGarage={value}
+              onChange={onChange}
+              error={error?.message}
+            />
+          )}
+        />
+
+        <Controller
+          control={control}
           name="priority"
           rules={{ required: 'Priority is required' }}
           render={({ field }) => (
@@ -448,33 +461,66 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     {watch(`service_groups.${index}.battery_tracking`) && (
                       <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-blue-200">
                         <div className="relative">
-                          <Input
-                            label={
-                              <div className="flex items-center">
-                                Battery Serial Number
-                                <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
-                              </div>
-                            }
-                            placeholder="Enter serial number"
-                            size="sm"
-                            {...register(`service_groups.${index}.battery_serial` as const)}
-                          />
+                          <div className="flex items-center">
+                            <Input
+                              label={
+                                <div className="flex items-center">
+                                  Battery Serial Number
+                                  <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
+                                </div>
+                              }
+                              placeholder="Enter serial number"
+                              size="sm"
+                              {...register(`service_groups.${index}.battery_serial` as const)}
+                            />
+                            <div className="absolute right-2 top-8">
+                              <Controller
+                                control={control}
+                                name={`service_groups.${index}.battery_warranty_file` as const}
+                                render={({ field: { value, onChange } }) => (
+                                  <FileUpload
+                                    buttonMode
+                                    value={value as File | null}
+                                    onChange={onChange}
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    icon={<Pin className="h-4 w-4" />}
+                                  />
+                                )}
+                              />
+                            </div>
+                          </div>
                         </div>
                         
-                        <Controller
-                          control={control}
-                          name={`service_groups.${index}.battery_brand` as const}
-                          render={({ field }) => (
-                            <SearchableSelect
-                              label="Battery Brand"
-                              options={BATTERY_BRANDS}
-                              value={field.value || ''}
-                              onChange={(value) => field.onChange(value)}
-                              placeholder="Select or search brand"
-                              size="sm"
-                            />
-                          )}
-                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <Controller
+                            control={control}
+                            name={`service_groups.${index}.battery_brand` as const}
+                            render={({ field }) => (
+                              <SearchableSelect
+                                label="Battery Brand"
+                                options={BATTERY_BRANDS}
+                                value={field.value || ''}
+                                onChange={(value) => field.onChange(value)}
+                                placeholder="Select or search brand"
+                                size="sm"
+                              />
+                            )}
+                          />
+                          
+                          <Controller
+                            control={control}
+                            name={`service_groups.${index}.battery_warranty_expiry_date` as const}
+                            defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
+                            render={({ field }) => (
+                              <Input
+                                type="date"
+                                placeholder="Warranty Expiry"
+                                size="sm"
+                                {...field}
+                              />
+                            )}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -508,10 +554,25 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                           name={`service_groups.${index}.tyre_positions` as const}
                           defaultValue={[]}
                           render={({ field: { value, onChange } }) => (
-                            <div>
+                            <div className="relative">
                               <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
                                 Tyre Positions
                                 <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
+                                <div className="absolute right-0 top-0">
+                                  <Controller
+                                    control={control}
+                                    name={`service_groups.${index}.tyre_warranty_file` as const}
+                                    render={({ field: { value, onChange } }) => (
+                                      <FileUpload
+                                        buttonMode
+                                        value={value as File | null}
+                                        onChange={onChange}
+                                        accept=".jpg,.jpeg,.png,.pdf"
+                                        icon={<Pin className="h-4 w-4" />}
+                                      />
+                                    )}
+                                  />
+                                </div>
                               </label>
                               <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
                                 {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
@@ -534,7 +595,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                             </div>
                           )}
                         />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <Controller
                             control={control}
                             name={`service_groups.${index}.tyre_brand` as const}
@@ -549,12 +610,29 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                               />
                             )}
                           />
-                          <Input
-                            label="Tyre Serial Numbers"
-                            placeholder="Comma separated"
-                            size="sm"
-                            {...register(`service_groups.${index}.tyre_serials` as const)}
-                          />
+                          
+                          <div className="grid grid-cols-1 gap-2">
+                            <Input
+                              label="Tyre Serial Numbers"
+                              placeholder="Comma separated"
+                              size="sm"
+                              {...register(`service_groups.${index}.tyre_serials` as const)}
+                            />
+                            
+                            <Controller
+                              control={control}
+                              name={`service_groups.${index}.tyre_warranty_expiry_date` as const}
+                              defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
+                              render={({ field }) => (
+                                <Input
+                                  type="date"
+                                  placeholder="Warranty Expiry"
+                                  size="sm"
+                                  {...field}
+                                />
+                              )}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}

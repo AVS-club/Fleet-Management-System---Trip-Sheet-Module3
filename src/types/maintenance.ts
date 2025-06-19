@@ -42,6 +42,10 @@ export interface MaintenanceServiceGroup {
     brand: string;
     serialNumbers: string;
   };
+  battery_warranty_file?: File;
+  tyre_warranty_file?: File;
+  battery_warranty_expiry_date?: string;
+  tyre_warranty_expiry_date?: string;
 }
 
 // Add new interfaces for maintenance form
