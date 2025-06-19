@@ -257,6 +257,7 @@ export interface Trip {
   fuel_bill_url?: string;
   material_type_ids?: string[];
   estimated_toll_cost?: number;
+  is_return_trip?: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../../types';
 import Button from '../ui/Button';
-import { Calendar, MapPin, Truck, User, FileText, Fuel, AlertTriangle, ChevronLeft, Trash2, Edit } from 'lucide-react';
+import { Calendar, MapPin, Truck, User, FileText, Fuel, AlertTriangle, ChevronLeft, Trash2, Edit, IndianRupee } from 'lucide-react';
 
 interface TripDetailsProps {
   trip: Trip;
@@ -76,9 +76,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 flex items-center">
             Trip {trip.trip_serial_number}
-            {trip.short_trip && (
-              <span className="ml-3 bg-gray-100 text-gray-600 text-xs py-1 px-2 rounded-full">
-                Local Trip
+            {trip.is_return_trip && (
+              <span className="ml-3 bg-blue-100 text-blue-600 text-xs py-1 px-2 rounded-full">
+                Return Trip
               </span>
             )}
           </h2>
@@ -196,15 +196,15 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 </div>
               )}
               
-              {trip.short_trip && (
-                <div className="mt-4 p-3 bg-gray-100 rounded-md border border-gray-200 flex items-center gap-3">
-                  <div className="bg-gray-200 rounded-full p-2">
-                    <AlertTriangle className="h-5 w-5 text-gray-500" />
+              {trip.estimated_toll_cost && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200 flex items-center gap-3">
+                  <div className="bg-blue-100 rounded-full p-2">
+                    <IndianRupee className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="text-gray-700 font-medium">Local/Short Trip</p>
-                    <p className="text-gray-600 text-sm">
-                      This trip is excluded from mileage calculations
+                    <p className="text-blue-700 font-medium">FASTag Toll Cost</p>
+                    <p className="text-blue-600 text-sm">
+                      Estimated toll cost: <span className="font-bold">₹{trip.estimated_toll_cost.toFixed(2)}</span>
                     </p>
                   </div>
                 </div>

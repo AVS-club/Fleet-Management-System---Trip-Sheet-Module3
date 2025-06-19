@@ -3,8 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
-import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
-import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip } from '../utils/storage';
+import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
+import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse } from '../utils/storage';
+import TripMap from '../components/maps/TripMap';
+import { MapPin, X } from 'lucide-react';
+import Button from '../components/ui/Button';
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +19,9 @@ const TripDetailsPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [showMapModal, setShowMapModal] = useState(false);
   
   // Load trip data
   useEffect(() => {
@@ -35,6 +41,19 @@ const TripDetailsPage: React.FC = () => {
             
             setVehicle(vehicleData || undefined);
             setDriver(driverData || undefined);
+            
+            // Load warehouse and destinations for map
+            if (tripData.warehouse_id) {
+              const warehouseData = await getWarehouse(tripData.warehouse_id);
+              setWarehouse(warehouseData);
+            }
+            
+            if (Array.isArray(tripData.destinations) && tripData.destinations.length > 0) {
+              const destinationPromises = tripData.destinations.map(destId => getDestination(destId));
+              const destinationResults = await Promise.all(destinationPromises);
+              const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
+              setDestinations(validDestinations);
+            }
           } else {
             // Trip not found, redirect back to trips page
             navigate('/trips');
@@ -109,6 +128,19 @@ const TripDetailsPage: React.FC = () => {
           const updatedDriver = await getDriver(updatedTrip.driver_id);
           setDriver(updatedDriver);
         }
+        
+        // Update warehouse and destinations if they changed
+        if (updatedTrip.warehouse_id !== trip.warehouse_id) {
+          const updatedWarehouse = await getWarehouse(updatedTrip.warehouse_id);
+          setWarehouse(updatedWarehouse);
+        }
+        
+        if (JSON.stringify(updatedTrip.destinations) !== JSON.stringify(trip.destinations)) {
+          const destinationPromises = updatedTrip.destinations.map(destId => getDestination(destId));
+          const destinationResults = await Promise.all(destinationPromises);
+          const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
+          setDestinations(validDestinations);
+        }
       }
       
       setIsEditing(false);
@@ -181,24 +213,76 @@ const TripDetailsPage: React.FC = () => {
               unloading_expense: trip.unloading_expense,
               driver_expense: trip.driver_expense,
               road_rto_expense: trip.road_rto_expense,
-              breakdown_expense: trip.breakdown_expense,
-              short_trip: trip.short_trip,
+              is_return_trip: trip.is_return_trip,
               remarks: trip.remarks,
-              trip_serial_number: trip.trip_serial_number // Pass the original serial number
+              trip_serial_number: trip.trip_serial_number, // Pass the original serial number
+              estimated_toll_cost: trip.estimated_toll_cost
             }}
             onSubmit={handleUpdate}
             isSubmitting={isSubmitting}
           />
         </div>
       ) : (
-        <TripDetails
-          trip={trip}
-          vehicle={vehicle}
-          driver={driver}
-          onBack={handleBack}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <>
+          <TripDetails
+            trip={trip}
+            vehicle={vehicle}
+            driver={driver}
+            onBack={handleBack}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+          
+          {/* Route Overview Section */}
+          {warehouse && destinations.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+                <MapPin className="h-5 w-5 mr-2 text-primary-500" />
+                Route Overview
+              </h3>
+              
+              <TripMap
+                warehouse={warehouse}
+                destinations={destinations}
+                className="h-[300px] rounded-lg overflow-hidden"
+              />
+              
+              <div className="mt-4 flex justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMapModal(true)}
+                >
+                  Expand Full Map
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Full Map Modal */}
+          {showMapModal && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Route Map</h3>
+                  <button
+                    onClick={() => setShowMapModal(false)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="flex-1 p-4 overflow-hidden">
+                  <TripMap
+                    warehouse={warehouse}
+                    destinations={destinations}
+                    className="h-[70vh] rounded-lg overflow-hidden"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </Layout>
   );

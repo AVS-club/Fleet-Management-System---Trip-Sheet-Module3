@@ -59,12 +59,11 @@ const TripForm: React.FC<TripFormProps> = ({
       trip_start_date: format(new Date(), 'yyyy-MM-dd'),
       trip_end_date: format(new Date(), 'yyyy-MM-dd'),
       refueling_done: false,
+      is_return_trip: false,
       manual_trip_id: false,
       unloading_expense: 0,
       driver_expense: 0,
       road_rto_expense: 0,
-      breakdown_expense: 0,
-      miscellaneous_expense: 0,
       gross_weight: 0,
       warehouse_id: '',
       destinations: [],
@@ -84,8 +83,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const unloadingExpense = watch('unloading_expense') || 0;
   const driverExpense = watch('driver_expense') || 0;
   const roadRtoExpense = watch('road_rto_expense') || 0;
-  const breakdownExpense = watch('breakdown_expense') || 0;
-  const miscellaneousExpense = watch('miscellaneous_expense') || 0;
   const warehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
 
@@ -209,9 +206,9 @@ const TripForm: React.FC<TripFormProps> = ({
   }, [tripStartDate, tripEndDate, setValue]);
 
   useEffect(() => {
-    const total = unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense + miscellaneousExpense;
+    const total = unloadingExpense + driverExpense + roadRtoExpense;
     setValue('total_road_expenses', total);
-  }, [unloadingExpense, driverExpense, roadRtoExpense, breakdownExpense, miscellaneousExpense, setValue]);
+  }, [unloadingExpense, driverExpense, roadRtoExpense, setValue]);
 
   useEffect(() => {
     if (fuelQuantity && fuelCost) {
@@ -257,9 +254,7 @@ const TripForm: React.FC<TripFormProps> = ({
           unloading_expense: watch('unloading_expense') || 0,
           driver_expense: watch('driver_expense') || 0,
           road_rto_expense: watch('road_rto_expense') || 0,
-          breakdown_expense: watch('breakdown_expense') || 0,
           total_road_expenses: watch('total_road_expenses') || 0,
-          short_trip: false, // Removed short_trip field
           remarks: watch('remarks'),
           calculated_kmpl: watch('calculated_kmpl'),
           material_type_ids: watch('material_type_ids'),
@@ -369,6 +364,8 @@ const TripForm: React.FC<TripFormProps> = ({
 
   const handleReturnTripToggle = (checked: boolean) => {
     setIsReturnTrip(checked);
+    setValue('is_return_trip', checked);
+    
     if (checked && Array.isArray(selectedDestinations) && selectedDestinations.length > 0) {
       // Store original destinations if not already stored
       if (originalDestinations.length === 0) {
@@ -395,7 +392,7 @@ const TripForm: React.FC<TripFormProps> = ({
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
           <Repeat className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Type
+          🚚 Trip Type
         </h3>
         
         <div className="flex flex-wrap gap-6">
@@ -427,12 +424,12 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Basic Information */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Truck className="h-5 w-5 mr-2 text-primary-500" />
-          Basic Information
-        </h3>
-
+      <CollapsibleSection 
+        title="Basic Information" 
+        icon={<Truck className="h-5 w-5" />}
+        iconColor="text-blue-600"
+        defaultExpanded={true}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <Controller
             control={control}
@@ -505,15 +502,15 @@ const TripForm: React.FC<TripFormProps> = ({
             {...register('trip_end_date', { required: 'Trip end date is required' })}
           />
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Route Information */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <MapPin className="h-5 w-5 mr-2 text-primary-500" />
-          Route Information
-        </h3>
-
+      <CollapsibleSection 
+        title="Route Information" 
+        icon={<MapPin className="h-5 w-5" />}
+        iconColor="text-red-600"
+        defaultExpanded={true}
+      >
         <Controller
           control={control}
           name="warehouse_id"
@@ -584,7 +581,7 @@ const TripForm: React.FC<TripFormProps> = ({
           </h4>
           <p className="text-sm text-gray-500">Select the types of materials being transported</p>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 flex-wrap">
             {materialTypes.length === 0 ? (
               <p className="text-sm text-gray-500 col-span-full">No material types available</p>
             ) : (
@@ -638,15 +635,15 @@ const TripForm: React.FC<TripFormProps> = ({
             onAlertAction={handleAlertAction}
           />
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Odometer & Weight Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Truck className="h-5 w-5 mr-2 text-primary-500" />
-          Odometer & Weight
-        </h3>
-
+      <CollapsibleSection 
+        title="Odometer & Load" 
+        icon={<Truck className="h-5 w-5" />}
+        iconColor="text-gray-600"
+        defaultExpanded={true}
+      >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className={`relative ${lastTripMileage && refuelingDone ? 'bg-blue-50 rounded-lg' : ''}`}>
             <Input
@@ -750,15 +747,16 @@ const TripForm: React.FC<TripFormProps> = ({
             )}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {/* Trip Expenses Section */}
       <CollapsibleSection 
         title="Trip Expenses" 
         icon={<IndianRupee className="h-5 w-5" />}
         iconColor="text-green-600"
+        defaultExpanded={false}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input
             label="Unloading Expense (₹)"
             type="number"
@@ -770,7 +768,7 @@ const TripForm: React.FC<TripFormProps> = ({
           />
 
           <Input
-            label="Driver Expense (₹)"
+            label="Driver/Misc Expense (₹)"
             type="number"
             icon={<IndianRupee className="h-4 w-4" />}
             {...register('driver_expense', {
@@ -788,31 +786,12 @@ const TripForm: React.FC<TripFormProps> = ({
               min: { value: 0, message: 'Expense must be positive' }
             })}
           />
-
-          <Input
-            label="Breakdown Expense (₹)"
-            type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('breakdown_expense', {
-              valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
-            })}
-          />
-
-          <Input
-            label="Miscellaneous Expense (₹)"
-            type="number"
-            icon={<IndianRupee className="h-4 w-4" />}
-            {...register('miscellaneous_expense', {
-              valueAsNumber: true,
-              min: { value: 0, message: 'Expense must be positive' }
-            })}
-          />
         </div>
 
         <div className="mt-4 bg-primary-50 p-3 rounded-md">
           <p className="text-primary-700 font-medium">
-            Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense + miscellaneousExpense).toLocaleString()}
+            Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense).toLocaleString()}
+            {estimatedTollCost ? ` + ₹${estimatedTollCost.toFixed(2)} (FASTag)` : ''}
           </p>
         </div>
       </CollapsibleSection>
@@ -822,6 +801,7 @@ const TripForm: React.FC<TripFormProps> = ({
         title="Attachments & Notes" 
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-blue-600"
+        defaultExpanded={false}
       >
         <Controller
           control={control}
