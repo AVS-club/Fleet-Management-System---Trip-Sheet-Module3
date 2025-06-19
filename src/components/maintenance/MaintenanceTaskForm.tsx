@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup, BATTERY_BRANDS, TYRE_BRANDS } from '../../types';
+import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
+import { BATTERY_BRANDS, TYRE_BRANDS } from '../../types/maintenance';
 import { DEMO_VENDORS, DEMO_GARAGES } from '../../types/maintenance';
 import { addDays, addHours, format, parse } from 'date-fns';
 import Input from '../ui/Input';
