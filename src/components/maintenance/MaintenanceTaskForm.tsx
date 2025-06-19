@@ -15,7 +15,7 @@ import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import SpeechToTextButton from '../ui/SpeechToTextButton';
 import SearchableSelect from '../ui/SearchableSelect';
-import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc, Pin } from 'lucide-react';
+import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -460,34 +460,29 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     {/* Conditionally show battery fields */}
                     {watch(`service_groups.${index}.battery_tracking`) && (
                       <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-blue-200">
-                        <div className="relative">
-                          <div className="flex items-center">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-grow">
                             <Input
-                              label={
-                                <div className="flex items-center">
-                                  Battery Serial Number
-                                  <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
-                                </div>
-                              }
+                              label="Battery Serial Number"
                               placeholder="Enter serial number"
                               size="sm"
                               {...register(`service_groups.${index}.battery_serial` as const)}
                             />
-                            <div className="absolute right-2 top-8">
-                              <Controller
-                                control={control}
-                                name={`service_groups.${index}.battery_warranty_file` as const}
-                                render={({ field: { value, onChange } }) => (
-                                  <FileUpload
-                                    buttonMode
-                                    value={value as File | null}
-                                    onChange={onChange}
-                                    accept=".jpg,.jpeg,.png,.pdf"
-                                    icon={<Pin className="h-4 w-4" />}
-                                  />
-                                )}
-                              />
-                            </div>
+                          </div>
+                          <div className="mt-6">
+                            <Controller
+                              control={control}
+                              name={`service_groups.${index}.battery_warranty_file` as const}
+                              render={({ field: { value, onChange } }) => (
+                                <FileUpload
+                                  iconOnly
+                                  value={value as File | null}
+                                  onChange={onChange}
+                                  accept=".jpg,.jpeg,.png,.pdf"
+                                  icon={<Paperclip className="h-4 w-4" />}
+                                />
+                              )}
+                            />
                           </div>
                         </div>
                         
@@ -549,52 +544,56 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     {/* Conditionally show tyre fields */}
                     {watch(`service_groups.${index}.tyre_tracking`) && (
                       <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-gray-200">
-                        <Controller
-                          control={control}
-                          name={`service_groups.${index}.tyre_positions` as const}
-                          defaultValue={[]}
-                          render={({ field: { value, onChange } }) => (
-                            <div className="relative">
-                              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                                Tyre Positions
-                                <Pin className="h-3.5 w-3.5 ml-1 text-gray-400" title="Track this component in vehicle profile" />
-                                <div className="absolute right-0 top-0">
-                                  <Controller
-                                    control={control}
-                                    name={`service_groups.${index}.tyre_warranty_file` as const}
-                                    render={({ field: { value, onChange } }) => (
-                                      <FileUpload
-                                        buttonMode
-                                        value={value as File | null}
-                                        onChange={onChange}
-                                        accept=".jpg,.jpeg,.png,.pdf"
-                                        icon={<Pin className="h-4 w-4" />}
-                                      />
-                                    )}
-                                  />
-                                </div>
-                              </label>
-                              <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
-                                {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
-                                  <label key={position} className="flex items-center space-x-2">
-                                    <input
-                                      type="checkbox"
-                                      checked={value?.includes(position)}
-                                      onChange={(e) => {
-                                        const newPositions = e.target.checked
-                                          ? [...(value || []), position]
-                                          : (value || []).filter(p => p !== position);
-                                        onChange(newPositions);
-                                      }}
-                                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        <div className="flex items-center justify-between">
+                          <div className="flex-grow">
+                            <Controller
+                              control={control}
+                              name={`service_groups.${index}.tyre_positions` as const}
+                              defaultValue={[]}
+                              render={({ field: { value, onChange } }) => (
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">
+                                      Tyre Positions
+                                    </label>
+                                    <Controller
+                                      control={control}
+                                      name={`service_groups.${index}.tyre_warranty_file` as const}
+                                      render={({ field: { value, onChange } }) => (
+                                        <FileUpload
+                                          iconOnly
+                                          value={value as File | null}
+                                          onChange={onChange}
+                                          accept=".jpg,.jpeg,.png,.pdf"
+                                          icon={<Paperclip className="h-4 w-4" />}
+                                        />
+                                      )}
                                     />
-                                    <span className="text-sm text-gray-600">{position}</span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        />
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
+                                    {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
+                                      <label key={position} className="flex items-center space-x-2">
+                                        <input
+                                          type="checkbox"
+                                          checked={value?.includes(position)}
+                                          onChange={(e) => {
+                                            const newPositions = e.target.checked
+                                              ? [...(value || []), position]
+                                              : (value || []).filter(p => p !== position);
+                                            onChange(newPositions);
+                                          }}
+                                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                        />
+                                        <span className="text-sm text-gray-600">{position}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            />
+                          </div>
+                        </div>
+                        
                         <div className="grid grid-cols-2 gap-3">
                           <Controller
                             control={control}

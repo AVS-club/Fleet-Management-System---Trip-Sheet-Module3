@@ -13,6 +13,7 @@ export interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInpu
   buttonMode?: boolean;
   multiple?: boolean;
   maxFiles?: number;
+  iconOnly?: boolean;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -29,6 +30,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   buttonMode = false,
   multiple = false,
   maxFiles = 5,
+  iconOnly = false,
   ...props
 }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -308,6 +310,39 @@ const FileUpload: React.FC<FileUploadProps> = ({
     );
   };
 
+  // Icon-only mode
+  if (iconOnly) {
+    return (
+      <div className="inline-block">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileSelect}
+          accept={accept}
+          disabled={disabled}
+          multiple={multiple}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => !disabled && fileInputRef.current?.click()}
+          className={twMerge(
+            clsx(
+              "p-1 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-full",
+              disabled && "opacity-50 cursor-not-allowed",
+              className
+            )
+          )}
+          title={label || "Upload file"}
+          disabled={disabled}
+        >
+          {icon}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="form-group">
       {label && (
@@ -349,8 +384,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
             className="flex items-center cursor-pointer"
             onClick={() => !disabled && fileInputRef.current?.click()}
           >
-            <Paperclip className="h-4 w-4 mr-2" />
-            <span>{label || "Upload File"}</span>
+            {icon}
+            <span className="ml-2">{label || "Upload File"}</span>
             {multiple && <span className="text-xs text-gray-500 ml-1">(max {maxFiles})</span>}
           </div>
         ) : buttonMode && value ? (
