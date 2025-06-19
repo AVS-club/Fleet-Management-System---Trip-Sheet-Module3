@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
 import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, getTrips, createDestination, getVehicle } from '../../utils/storage';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
-import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat } from 'lucide-react';
+import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -16,6 +16,7 @@ import DestinationSelector from './DestinationSelector';
 import TripMap from '../maps/TripMap';
 import RouteAnalysisComponent from './RouteAnalysis';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
+import CollapsibleSection from '../ui/CollapsibleSection';
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -41,6 +42,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [loading, setLoading] = useState(true);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
+  const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
 
   const {
     register,
@@ -54,7 +56,6 @@ const TripForm: React.FC<TripFormProps> = ({
       trip_start_date: format(new Date(), 'yyyy-MM-dd'),
       trip_end_date: format(new Date(), 'yyyy-MM-dd'),
       refueling_done: false,
-      short_trip: false,
       manual_trip_id: false,
       unloading_expense: 0,
       driver_expense: 0,
@@ -125,10 +126,10 @@ const TripForm: React.FC<TripFormProps> = ({
             return acc;
           }, {} as Record<string, number>);
           
-          // Sort warehouses by frequency and take top 5
+          // Sort warehouses by frequency and take top 3
           const topWarehouses = Object.entries(warehouseCounts)
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
+            .slice(0, 3)
             .map(([id]) => warehousesData.find(w => w.id === id))
             .filter((w): w is Warehouse => w !== undefined);
           
@@ -170,7 +171,7 @@ const TripForm: React.FC<TripFormProps> = ({
             const vehicleTrips = Array.isArray(tripsData) 
               ? tripsData
                   .filter(trip => trip.vehicle_id === vehicleId)
-                  .sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime())
+                  .sort((a, b) => new Date(b.trip_end_date || 0).getTime() - new Date(a.trip_end_date || 0).getTime())
               : [];
 
             // Get the most recent trip
@@ -255,7 +256,7 @@ const TripForm: React.FC<TripFormProps> = ({
           road_rto_expense: watch('road_rto_expense') || 0,
           breakdown_expense: watch('breakdown_expense') || 0,
           total_road_expenses: watch('total_road_expenses') || 0,
-          short_trip: watch('short_trip') || false,
+          short_trip: false, // Removed short_trip field
           remarks: watch('remarks'),
           calculated_kmpl: watch('calculated_kmpl'),
           material_type_ids: watch('material_type_ids'),
@@ -328,10 +329,18 @@ const TripForm: React.FC<TripFormProps> = ({
   const handleReturnTripToggle = (checked: boolean) => {
     setIsReturnTrip(checked);
     if (checked && Array.isArray(selectedDestinations) && selectedDestinations.length > 0) {
+      // Store original destinations if not already stored
+      if (originalDestinations.length === 0) {
+        setOriginalDestinations([...selectedDestinations]);
+      }
+      
       // Create a return trip by adding the destinations in reverse order
       // Skip the first destination (origin) to avoid duplication
       const returnDestinations = [...selectedDestinations, ...selectedDestinations.slice(0, -1).reverse()];
       setValue('destinations', returnDestinations);
+    } else if (!checked && originalDestinations.length > 0) {
+      // Restore original destinations
+      setValue('destinations', originalDestinations);
     }
   };
 
@@ -341,54 +350,42 @@ const TripForm: React.FC<TripFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Trip Type Toggles */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900">New Trip Details</h2>
-        <div className="flex space-x-4">
-          <Controller
-            control={control}
-            name="refueling_done"
-            render={({ field: { value, onChange, ...field } }) => (
-              <Checkbox
-                label="Refueling Trip"
-                checked={value}
-                onChange={e => onChange(e.target.checked)}
-                {...field}
-              />
-            )}
-          />
-          <Checkbox
-            label="Return Trip to Origin"
-            checked={isReturnTrip}
-            onChange={e => handleReturnTripToggle(e.target.checked)}
-          />
+      {/* Trip Type Section */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+          <Repeat className="h-5 w-5 mr-2 text-primary-500" />
+          Trip Type
+        </h3>
+        
+        <div className="flex flex-wrap gap-6">
+          <div className="flex items-center">
+            <Controller
+              control={control}
+              name="refueling_done"
+              render={({ field: { value, onChange, ...field } }) => (
+                <Checkbox
+                  label="Refueling Trip"
+                  checked={value}
+                  onChange={e => onChange(e.target.checked)}
+                  {...field}
+                  helperText="Mileage will be calculated from last refueling"
+                />
+              )}
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <Checkbox
+              label="Return Trip to Origin"
+              checked={isReturnTrip}
+              onChange={e => handleReturnTripToggle(e.target.checked)}
+              helperText="Vehicle will return to the origin warehouse. Route distance will be doubled."
+            />
+          </div>
         </div>
       </div>
 
-      {/* Smart Suggestions */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <h3 className="text-blue-800 text-sm font-medium flex items-center mb-2">
-          <span className="mr-2">💡</span>
-          Trip Details
-        </h3>
-        <p className="text-blue-700 text-sm">
-          {selectedVehicle ? (
-            <>
-              Vehicle <span className="font-medium">{selectedVehicle.registration_number}</span> currently has odometer reading of <span className="font-medium">{selectedVehicle.current_odometer.toLocaleString()}</span> km.
-              {lastTripMileage !== undefined && (
-                <> Last trip ended at <span className="font-medium">{lastTripMileage.toLocaleString()}</span> km.</>
-              )}
-              {distance && distance > 0 && (
-                <> This trip will add <span className="font-medium">{distance.toLocaleString()}</span> km.</>
-              )}
-            </>
-          ) : (
-            'Select a vehicle to see trip details'
-          )}
-        </p>
-      </div>
-
-      {/* Basic Info */}
+      {/* Basic Information */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
@@ -422,20 +419,27 @@ const TripForm: React.FC<TripFormProps> = ({
             name="driver_id"
             rules={{ required: 'Driver is required' }}
             render={({ field }) => (
-              <Select
-                key={field.value} // Add key to force re-render on value change
-                label="Driver"
-                options={[
-                  { value: '', label: 'Select Driver*' },
-                  ...drivers.map(driver => ({
-                    value: driver.id,
-                    label: driver.name
-                  }))
-                ]}
-                error={errors.driver_id?.message}
-                required
-                {...field}
-              />
+              <div className="relative">
+                <Select
+                  key={field.value} // Add key to force re-render on value change
+                  label="Driver"
+                  options={[
+                    { value: '', label: 'Select Driver*' },
+                    ...drivers.map(driver => ({
+                      value: driver.id,
+                      label: driver.name
+                    }))
+                  ]}
+                  error={errors.driver_id?.message}
+                  required
+                  {...field}
+                />
+                {selectedVehicle?.primary_driver_id === field.value && field.value && (
+                  <span className="absolute top-0 right-0 bg-primary-100 text-primary-700 text-xs px-2 py-1 rounded-full">
+                    Auto-filled
+                  </span>
+                )}
+              </div>
             )}
           />
         </div>
@@ -462,11 +466,11 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </div>
 
-      {/* Warehouse and Destination Selection */}
+      {/* Route Information */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <MapPin className="h-5 w-5 mr-2 text-primary-500" />
-          Origin & Destinations
+          Route Information
         </h3>
 
         <Controller
@@ -503,9 +507,51 @@ const TripForm: React.FC<TripFormProps> = ({
           )}
         />
 
+        {/* Material Types Section */}
+        <div className="space-y-4">
+          <h4 className="text-base font-medium text-gray-800 flex items-center">
+            <Package className="h-4 w-4 mr-2 text-gray-600" />
+            Material Carried
+          </h4>
+          <p className="text-sm text-gray-500">Select the types of materials being transported</p>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
+            {materialTypes.length === 0 ? (
+              <p className="text-sm text-gray-500 col-span-full">No material types available</p>
+            ) : (
+              materialTypes.map(type => (
+                <div key={type.id} className="flex items-center">
+                  <Controller
+                    control={control}
+                    name="material_type_ids"
+                    render={({ field }) => (
+                      <input
+                        type="checkbox"
+                        id={`material-${type.id}`}
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        checked={field.value?.includes(type.id) || false}
+                        onChange={(e) => {
+                          const currentValues = field.value || [];
+                          const newValues = e.target.checked
+                            ? [...currentValues, type.id]
+                            : currentValues.filter(id => id !== type.id);
+                          field.onChange(newValues);
+                        }}
+                      />
+                    )}
+                  />
+                  <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
+                    {type.name}
+                  </label>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {warehouseId && Array.isArray(selectedDestinations) && selectedDestinations.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Route Preview</h3>
+            <h4 className="text-base font-medium text-gray-800">Route Preview</h4>
             {selectedDestinationObjects.length > 0 && (
               <TripMap
                 warehouse={warehouses.find(w => w.id === warehouseId)}
@@ -525,49 +571,7 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </div>
 
-      {/* Material Types Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <Package className="h-5 w-5 mr-2 text-primary-500" />
-          Material Carried
-        </h3>
-        <p className="text-sm text-gray-500">Select the types of materials being transported</p>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4">
-          {materialTypes.length === 0 ? (
-            <p className="text-sm text-gray-500 col-span-full">No material types available</p>
-          ) : (
-            materialTypes.map(type => (
-              <div key={type.id} className="flex items-center">
-                <Controller
-                  control={control}
-                  name="material_type_ids"
-                  render={({ field }) => (
-                    <input
-                      type="checkbox"
-                      id={`material-${type.id}`}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                      checked={field.value?.includes(type.id) || false}
-                      onChange={(e) => {
-                        const currentValues = field.value || [];
-                        const newValues = e.target.checked
-                          ? [...currentValues, type.id]
-                          : currentValues.filter(id => id !== type.id);
-                        field.onChange(newValues);
-                      }}
-                    />
-                  )}
-                />
-                <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
-                  {type.name}
-                </label>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Odometer & Fuel Section */}
+      {/* Odometer & Weight Section */}
       <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
@@ -575,20 +579,28 @@ const TripForm: React.FC<TripFormProps> = ({
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="Start KM"
-            type="number"
-            error={errors.start_km?.message}
-            required
-            {...register('start_km', {
-              required: 'Start KM is required',
-              valueAsNumber: true,
-              min: {
-                value: 0,
-                message: 'Start KM must be a positive number'
-              }
-            })}
-          />
+          <div className={`relative ${lastTripMileage && refuelingDone ? 'bg-blue-50 rounded-lg' : ''}`}>
+            <Input
+              label="Start KM"
+              type="number"
+              error={errors.start_km?.message}
+              required
+              className={lastTripMileage && refuelingDone ? 'border-blue-300' : ''}
+              {...register('start_km', {
+                required: 'Start KM is required',
+                valueAsNumber: true,
+                min: {
+                  value: 0,
+                  message: 'Start KM must be a positive number'
+                }
+              })}
+            />
+            {lastTripMileage && refuelingDone && (
+              <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                Auto-filled from last trip
+              </div>
+            )}
+          </div>
 
           <Input
             label="End KM"
@@ -671,13 +683,12 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </div>
 
-      {/* Expenses Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Expenses
-        </h3>
-
+      {/* Trip Expenses Section */}
+      <CollapsibleSection 
+        title="Trip Expenses" 
+        icon={<IndianRupee className="h-5 w-5" />}
+        iconColor="text-green-600"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Input
             label="Unloading Expense (₹)"
@@ -730,20 +741,19 @@ const TripForm: React.FC<TripFormProps> = ({
           />
         </div>
 
-        <div className="bg-primary-50 p-3 rounded-md">
+        <div className="mt-4 bg-primary-50 p-3 rounded-md">
           <p className="text-primary-700 font-medium">
             Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense + breakdownExpense + miscellaneousExpense).toLocaleString()}
           </p>
         </div>
-      </div>
+      </CollapsibleSection>
 
-      {/* Trip Slip Upload */}
-      <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <FileText className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Slip & Notes
-        </h3>
-
+      {/* Attachments & Notes Section */}
+      <CollapsibleSection 
+        title="Attachments & Notes" 
+        icon={<FileText className="h-5 w-5" />}
+        iconColor="text-blue-600"
+      >
         <Controller
           control={control}
           name="fuel_bill_file"
@@ -766,20 +776,22 @@ const TripForm: React.FC<TripFormProps> = ({
           error={errors.remarks?.message}
           {...register('remarks')}
         />
-      </div>
+      </CollapsibleSection>
 
-      <Controller
-        control={control}
-        name="short_trip"
-        render={({ field: { value, onChange, ...field } }) => (
-          <Checkbox
-            label="Short/Local Trip (exclude from mileage)"
-            checked={value}
-            onChange={e => onChange(e.target.checked)}
-            {...field}
-          />
-        )}
-      />
+      {/* Smart Suggestions */}
+      {isReturnTrip && distance && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
+            <div>
+              <h4 className="text-blue-700 font-medium">Return Trip Information</h4>
+              <p className="text-blue-600 text-sm mt-1">
+                This is a return trip to the origin warehouse. The estimated round trip distance is approximately {distance * 2} km.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
         <Button
