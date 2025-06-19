@@ -66,12 +66,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       start_date: new Date().toISOString().split('T')[0],
       title: [],
       warranty_claimed: false,
+      downtime_period: '2hr', // Default to 2 hours
       service_groups: initialData?.service_groups && initialData.service_groups.length > 0 
         ? initialData.service_groups 
         : [{ 
             vendor_id: '', 
             tasks: [], 
-            cost: 0
+            cost: 0,
+            battery_tracking: false,
+            tyre_tracking: false
           }],
       ...initialData
     }
@@ -638,7 +641,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
             </div>
             <textarea
-              className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Detailed description of the complaint or issue..."
               {...register('complaint_description')}
             />
@@ -670,7 +673,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               </div>
             </div>
             <textarea
-              className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
+              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
               placeholder="Summary of the resolution or fix applied..."
               {...register('resolution_summary')}
             />
@@ -703,6 +706,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           <Controller
             control={control}
             name="downtime_period"
+            defaultValue="2hr"
             render={({ field }) => (
               <Select
                 label="Downtime Period"

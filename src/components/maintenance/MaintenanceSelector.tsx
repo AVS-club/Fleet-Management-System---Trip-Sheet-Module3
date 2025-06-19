@@ -54,12 +54,12 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   useEffect(() => {
     if (isOpen && inputContainerRef.current && dropdownMenuRef.current) {
       const inputRect = inputContainerRef.current.getBoundingClientRect();
-      const dropdownHeight = Math.min(dropdownMenuRef.current.scrollHeight, 300); // Max height of dropdown
+      const dropdownHeight = Math.min(dropdownMenuRef.current.scrollHeight, 250); // Reduced from 300px to 250px
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - inputRect.bottom;
       const spaceAbove = inputRect.top;
 
-      // If there's not enough space below and more space above, show dropdown above
+      // If not enough space below and more space above, show above
       if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
         setIsMenuAbove(true);
       } else {
@@ -97,7 +97,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 relative z-20">
       <label className="block text-sm font-medium text-gray-700">
         Maintenance Tasks
         <span className="text-error-500 ml-1">*</span>
@@ -144,10 +144,20 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
         {isOpen && (
           <div 
             ref={dropdownMenuRef}
-            className={`absolute z-50 w-full bg-white border rounded-lg shadow-lg ${
-              isMenuAbove ? 'bottom-full mb-1' : 'top-full mt-1'
-            }`}
-            style={{ maxHeight: '300px', overflowY: 'auto' }}
+            style={{
+              position: 'absolute',
+              [isMenuAbove ? 'bottom' : 'top']: isMenuAbove ? 'calc(100% + 4px)' : 'calc(100% + 4px)',
+              left: 0,
+              right: 0,
+              maxHeight: '250px', // Reduced from 300px to 250px
+              overflowY: 'auto',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              zIndex: 50,
+              border: '1px solid #e5e7eb'
+            }}
+            className="z-50 w-full bg-white border rounded-lg shadow-lg"
           >
             <input
               ref={searchInputRef}
@@ -160,7 +170,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
               autoFocus
             />
 
-            <div className="max-h-[250px] overflow-y-auto">
+            <div className="max-h-[200px] overflow-y-auto">
               {showGroupView ? (
                 // Grouped View
                 Object.entries(maintenanceGroups).map(([groupKey, group]) => {
