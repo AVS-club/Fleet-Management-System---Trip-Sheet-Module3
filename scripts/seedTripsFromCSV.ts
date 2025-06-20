@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { parse } from 'papaparse';
+import Papa from 'papaparse';
 
 // Get directory path in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -13,12 +13,12 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Error: Missing Supabase environment variables');
-  console.error('Make sure SUPABASE_URL and SUPABASE_ANON_KEY are set in your .env file');
+  console.error('Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
   process.exit(1);
 }
 
@@ -32,7 +32,7 @@ async function seedTripsFromCSV() {
   const csvData = fs.readFileSync(csvPath, 'utf-8');
   
   // Parse the CSV data
-  const { data, errors } = parse(csvData, { 
+  const { data, errors } = Papa.parse(csvData, { 
     header: true, 
     skipEmptyLines: true,
     dynamicTyping: true // Automatically convert numeric values
