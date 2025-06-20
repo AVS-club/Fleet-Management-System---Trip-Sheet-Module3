@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Destination, Warehouse } from '../../types';
-import { MapPin, Clock, TrendingUp, AlertTriangle, ArrowLeftRight, CheckCircle } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, AlertTriangle, CheckCircle, Plus } from 'lucide-react';
 import { createDestination, getDestination } from '../../utils/storage';
 import { Loader } from '@googlemaps/js-api-loader';
-import Button from '../ui/Button';
 import { checkRouteOptimization } from '../../utils/routeOptimizer';
 
 interface GooglePrediction {
@@ -31,7 +30,6 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [isTwoWay, setIsTwoWay] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
@@ -42,6 +40,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
   // Ensure destinations is an array
   const destinationsArray = Array.isArray(destinations) ? destinations : [];
+  
+  // Get the last selected destination for "+1" feature
+  const lastSelectedDestination = selectedDestinationDetails.length > 0
+    ? selectedDestinationDetails[selectedDestinationDetails.length - 1]
+    : null;
 
   // Initialize Google Maps services
   useEffect(() => {
@@ -60,6 +63,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
     loader.load().then(() => {
       setAutocompleteService(new google.maps.places.AutocompleteService());
+      
       // Create a dummy div for PlacesService (required)
       const placesDiv = document.createElement('div');
       setPlacesService(new google.maps.places.PlacesService(placesDiv));
@@ -79,21 +83,21 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       try {
         const response = await autocompleteService.getPlacePredictions({
           input: searchTerm,
-          types: ['establishment'], // Use establishment to find businesses and points of interest
+          types: ['establishment', 'geocode'],
           componentRestrictions: { country: 'in' },
           bounds: new google.maps.LatLngBounds(
-            { lat: 17.7,  lng: 80.1 }, // Southwest corner of Chhattisgarh/Odisha
-            { lat: 24.1,  lng: 87.5 }  // Northeast corner of Chhattisgarh/Odisha
+            { lat: 17.7, lng: 80.1 }, // Southwest corner
+            { lat: 24.1, lng: 87.5 }  // Northeast corner
           )
         });
 
         if (response && response.predictions) {
-          // Mark these as Google predictions
-          const googleResults = response.predictions.map(prediction => ({
+          // Limit to 5-6 suggestions as requested
+          const limitedPredictions = response.predictions.slice(0, 6).map(prediction => ({
             ...prediction,
             isGoogle: true
           }));
-          setGooglePredictions(googleResults);
+          setGooglePredictions(limitedPredictions);
         }
       } catch (error) {
         console.error('Error getting place predictions:', error);
@@ -250,22 +254,21 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       // Clear search and close dropdown
       setSearchTerm('');
       setGooglePredictions([]);
+      setIsOpen(false);
     } catch (error) {
       console.error('Error selecting Google place:', error);
     }
   };
 
-  const toggleTwoWay = () => {
-    setIsTwoWay(!isTwoWay);
-    if (!isTwoWay && Array.isArray(selectedDestinations)) {
-      // Add return journey (reverse the destinations)
-      const withReturns = [...selectedDestinations, ...selectedDestinations.slice(0).reverse()];
-      onChange(withReturns);
-    } else if (Array.isArray(selectedDestinations)) {
-      // Keep only the first half when disabling two-way
-      const withoutReturns = selectedDestinations.slice(0, Math.ceil(selectedDestinations.length / 2));
-      onChange(withoutReturns);
-    }
+  // Add the same destination again ("+1" feature)
+  const handleAddSameAgain = () => {
+    if (!lastSelectedDestination) return;
+    
+    const newSelection = [
+      ...(Array.isArray(selectedDestinations) ? selectedDestinations : []), 
+      lastSelectedDestination.id
+    ];
+    onChange(newSelection);
   };
 
   // Remove a destination at a specific index
@@ -288,128 +291,162 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       <p className="text-xs text-gray-500 -mt-1">Select in the order of actual delivery route</p>
 
       <div className="relative" ref={dropdownRef}>
-        <div
-          className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text"
-          onClick={() => setIsOpen(true)}
-        >
+        {/* Selected destinations display */}
+        <div className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text">
           {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {selectedDestinationDetails.map((dest, index) => (
                 <span
                   key={`${dest.id}-${index}`}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-100 text-primary-700"
+                  className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-100 text-primary-700 border border-primary-200"
                 >
-                  <div className="flex items-center justify-center bg-primary-200 text-primary-800 rounded-full w-4 h-4 mr-1 text-xs font-medium">
+                  <div className="flex items-center justify-center bg-primary-200 text-primary-800 rounded-full w-5 h-5 mr-1.5 text-xs font-medium">
                     {index + 1}
                   </div>
                   {dest.name}
                   <button
                     type="button"
-                    className="ml-1 hover:text-primary-900"
+                    className="ml-1.5 text-primary-400 hover:text-primary-700 rounded-full hover:bg-primary-200 p-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeDestinationAtIndex(index);
                     }}
                   >
-                    ×
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 6L6 18"></path>
+                      <path d="M6 6l12 12"></path>
+                    </svg>
                   </button>
                 </span>
               ))}
+              
+              {/* +1 button for the last destination */}
+              {lastSelectedDestination && (
+                <button
+                  type="button"
+                  onClick={handleAddSameAgain}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-50 text-primary-600 hover:bg-primary-100 border border-primary-100"
+                  title="Add same destination again"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-0.5" />
+                  <span className="text-xs">Same again</span>
+                </button>
+              )}
             </div>
           ) : (
-            <div className="text-gray-500">Select destinations</div>
+            <div 
+              className="text-gray-500 flex items-center"
+              onClick={() => setIsOpen(true)}
+            >
+              Select destinations
+              <button 
+                className="ml-1.5 text-primary-400 hover:text-primary-700 rounded-full hover:bg-primary-50 p-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(true);
+                }}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Add destination button (when there are already 2+ destinations) */}
+          {Array.isArray(selectedDestinations) && selectedDestinations.length >= 2 && !isOpen && (
+            <button
+              type="button"
+              className="mt-2 flex items-center text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50"
+              onClick={() => setIsOpen(true)}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Add another destination
+            </button>
           )}
         </div>
 
+        {/* Destination search dropdown */}
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-            <input
-              type="text"
-              ref={searchInputRef}
-              className="w-full p-2 border-b"
-              placeholder="Search destinations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
+          <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg">
+            <div className="p-2 border-b sticky top-0 bg-white z-10">
+              <input
+                type="text"
+                ref={searchInputRef}
+                className="w-full p-2 pl-8 border rounded-md"
+                placeholder="Search destinations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <MapPin className="absolute left-4 top-5 h-4 w-4 text-gray-400" />
+            </div>
 
-            <div className="max-h-60 overflow-y-auto">
+            <div className="max-h-[250px] overflow-y-auto">
               {/* Admin-saved destinations */}
               {filteredAdminDestinations.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700">Saved Destinations</div>
+                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-[52px] z-10">Saved Destinations</div>
               )}
               {filteredAdminDestinations.map(dest => (
                 <div 
                   key={dest.id}
-                  className={`p-3 cursor-pointer hover:bg-gray-50 ${
+                  className={`px-3 py-2.5 cursor-pointer hover:bg-gray-50 ${
                     Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) ? 'bg-primary-50' : ''
                   }`}
                   onClick={() => toggleDestination(dest.id)}
                 >
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="font-medium">{dest.name}</span>
-                      <span className="bg-primary-100 text-primary-700 text-xs px-1.5 py-0.5 rounded-full flex items-center">
-                        <CheckCircle className="h-3 w-3 mr-1" />Saved
-                      </span>
+                    <div className="flex items-start">
+                      <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-gray-900">{dest.name}</div>
+                        <div className="flex items-center mt-1 space-x-3">
+                          <span className="flex items-center text-xs text-gray-500">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            <span>{dest.standard_distance} km</span>
+                          </span>
+                          <span className="flex items-center text-xs text-gray-500">
+                            <Clock className="h-3 w-3 mr-1" />
+                            <span>{dest.estimated_time}</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     {Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) && (
-                      <span className="text-primary-600">✓</span>
+                      <CheckCircle className="h-4 w-4 text-primary-600 ml-2" />
                     )}
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-3 gap-4 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <TrendingUp className="h-3 w-3 mr-1" />
-                      {dest.standard_distance} km
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {dest.estimated_time}
-                    </div>
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
-                      {dest.historical_deviation}% dev
-                    </div>
                   </div>
                 </div>
               ))}
 
               {/* Google Maps suggestions */}
               {filteredGooglePredictions.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700">Google Maps Suggestions</div>
+                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-[52px] z-10">Google Maps Suggestions</div>
               )}
               {filteredGooglePredictions.map(prediction => (
                 <div
                   key={prediction.place_id}
-                  className="p-3 cursor-pointer hover:bg-gray-50"
+                  className="p-3 cursor-pointer hover:bg-gray-50 border-t border-gray-100 first:border-t-0"
                   onClick={() => handleSelectGooglePlace(prediction)}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="font-medium">
+                  <div className="flex items-start">
+                    <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-gray-900">
                         {prediction.description.split(',')[0]}
                       </span>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {prediction.description.split(',').slice(1).join(',')}
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500 ml-6">
-                    {prediction.description.split(',').slice(1).join(',')}
                   </div>
                 </div>
               ))}
 
               {/* No results message */}
-              {filteredAdminDestinations.length === 0 && filteredGooglePredictions.length === 0 && searchTerm.length > 0 && (
-                <div className="p-3 text-center text-gray-500 border-t">
-                  No destinations found matching "{searchTerm}"
-                </div>
-              )}
-              
-              {filteredAdminDestinations.length === 0 && filteredGooglePredictions.length === 0 && searchTerm.length === 0 && (
-                <div className="p-3 text-center text-gray-500 border-t">
-                  No destinations found
+              {filteredAdminDestinations.length === 0 && filteredGooglePredictions.length === 0 && (
+                <div className="p-4 text-center text-gray-500">
+                  {searchTerm.length > 0 
+                    ? `No destinations found matching "${searchTerm}"`
+                    : 'Type to search for destinations'}
                 </div>
               )}
             </div>
