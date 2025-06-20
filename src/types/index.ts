@@ -7,8 +7,13 @@ export interface RCDetails {
   model?: string;
   yearOfManufacture?: string;
   color?: string;
-  unladenWeight?: string;
-  horsePower?: string;
+  fuelType?: string;
+  ownerName?: string;
+  manufactureDate?: string;
+  seatingCapacity?: number;
+  wheelBase?: string;
+  axleCount?: number;
+  bodyType?: string;
   confidence: number;
   rawText?: string;
 }
@@ -36,7 +41,7 @@ export interface Vehicle {
   type: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van';
   fuel_type: 'diesel' | 'petrol' | 'cng' | 'ev';
   current_odometer: number;
-  status: 'active' | 'maintenance' | 'inactive' | 'stood';
+  status: 'active' | 'maintenance' | 'inactive' | 'stood' | 'archived';
   chassis_number?: string;
   engine_number?: string;
   owner_name?: string;
@@ -53,13 +58,13 @@ export interface Vehicle {
   permit_document_file?: File;
   puc_document_file?: File;
   
-  // Document URLs for storage
-  rc_document_url?: string;
-  insurance_document_url?: string;
-  fitness_document_url?: string;
-  tax_document_url?: string;
-  permit_document_url?: string;
-  puc_document_url?: string;
+  // Document paths for storage
+  rc_document_path?: string;
+  insurance_document_path?: string;
+  fitness_document_path?: string;
+  tax_document_path?: string;
+  permit_document_path?: string;
+  puc_document_path?: string;
   
   // Legacy boolean flags (for backward compatibility)
   rc_copy?: boolean;
@@ -73,7 +78,7 @@ export interface Vehicle {
   policy_number?: string;
   insurer_name?: string;
   insurance_start_date?: string;
-  insurance_end_date?: string;
+  insurance_expiry_date?: string;
   insurance_premium_amount?: number;
   insurance_idv?: number;
   
@@ -109,9 +114,9 @@ export interface Vehicle {
   other_documents?: Array<{
     id?: string;
     name: string;
-    file?: File | string;
+    file_path?: string;
+    file?: string;
     file_obj?: File;
-    file_url?: string;
     issue_date?: string;
     expiry_date?: string;
     cost?: number;
@@ -169,6 +174,7 @@ export interface Vehicle {
   
   created_at?: string;
   updated_at?: string;
+  primary_driver_id?: string;
 }
 
 // Add Driver interface
@@ -184,7 +190,9 @@ export interface Driver {
   primary_vehicle_id?: string;
   photo?: File | null;
   driver_photo_url?: string;
+  driver_photo_path?: string;
   license_document?: string | File;
+  license_document_path?: string;
   license_expiry_date?: string;
   documents_verified?: boolean;
   driver_status_reason?: string;

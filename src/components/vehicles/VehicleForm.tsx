@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { Vehicle, RCDetails, InsuranceDetails } from '../../types';
-import { processRCDocument, extractRCDetails } from '../../utils/ocrService';
+import { Vehicle } from '../../types';
 import { Truck, Calendar, FileText, Upload, X, Plus, Database, Info, Paperclip, IndianRupee, Shield, CheckSquare, FileCheck, BadgeCheck, Wind, Bell } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
 import FileUpload from '../ui/FileUpload';
 import Checkbox from '../ui/Checkbox';
-import RCPreviewModal from './RCPreviewModal';
-import InsurancePreviewModal from './InsurancePreviewModal';
 import { toast } from 'react-toastify';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
@@ -26,10 +23,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   onCancel,
   isSubmitting = false
 }) => {
-  const [rcPreviewData, setRcPreviewData] = useState<RCDetails[] | null>(null);
-  const [insurancePreviewData, setInsurancePreviewData] = useState<InsuranceDetails | null>(null);
-  const [rcProcessing, setRcProcessing] = useState(false);
-  const [insuranceProcessing, setInsuranceProcessing] = useState(false);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Vehicle>({
     defaultValues: {
@@ -59,189 +53,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const remindPermit = watch('remind_permit');
   const remindService = watch('remind_service');
 
-  // Process RC document
-  const handleRCUpload = async (file: File) => {
-    if (!file) return;
-
-    setRcProcessing(true);
-    try {
-      const result = await processRCDocument(file);
-      setRcPreviewData([result]);
-    } catch (error) {
-      console.error('Error processing RC document:', error);
-      
-      // Handle different types of errors more robustly
-      if (error instanceof Error) {
-        // Check if it's a service unavailable error
-        if (error.name === 'ServiceUnavailableError') {
-          toast.error('RC processing service is temporarily unavailable. Please try again later.');
-        } else if (error.name === 'ValidationError') {
-          toast.error(`Document validation failed: ${error.message}`);
-        } else if (error.name === 'AuthenticationError') {
-          toast.error('Authentication failed. Please contact support.');
-        } else if (error.name === 'ProcessingError') {
-          toast.error(`Document processing failed: ${error.message}`);
-        } else {
-          // Generic error handling
-          toast.error(`Failed to process RC document: ${error.message}`);
-        }
-      } else {
-        toast.error('Failed to process RC document: Unknown error occurred');
-      }
-    } finally {
-      setRcProcessing(false);
-    }
-  };
-
-  // Process Insurance document
-  const handleInsuranceUpload = async (file: File) => {
-    if (!file) return;
-
-    setInsuranceProcessing(true);
-    try {
-      // This would be replaced with actual insurance document processing
-      // For now, we'll just simulate it
-      setTimeout(() => {
-        const mockData: InsuranceDetails = {
-          policyNumber: 'POL' + Math.floor(Math.random() * 10000000),
-          insurerName: 'Sample Insurance Co.',
-          validFrom: new Date().toISOString(),
-          validUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
-          vehicleNumber: watch('registration_number'),
-          coverage: 'Comprehensive',
-          premium: 25000,
-          confidence: 0.9
-        };
-        setInsurancePreviewData(mockData);
-        setInsuranceProcessing(false);
-      }, 1500);
-    } catch (error) {
-      console.error('Error processing insurance document:', error);
-      toast.error('Failed to process insurance document');
-      setInsuranceProcessing(false);
-    }
-  };
-
-  // Handle RC details confirmation
-  const handleRCConfirm = (details: RCDetails) => {
-    setValue('registration_number', details.registrationNumber || watch('registration_number'));
-    setValue('chassis_number', details.chassisNumber || watch('chassis_number'));
-    setValue('engine_number', details.engineNumber || watch('engine_number'));
-    setValue('make', details.make || watch('make'));
-    setValue('model', details.model || watch('model'));
-    setValue('year', parseInt(details.yearOfManufacture || watch('year').toString()));
-    setValue('fuel_type', (details.fuelType?.toLowerCase() as 'diesel' | 'petrol' | 'cng') || watch('fuel_type'));
-    setValue('owner_name', details.ownerName || watch('owner_name'));
-    setValue('color', details.color || watch('color'));
-    
-    // Set RC document flag
-    setValue('rc_copy', true);
-    
-    setRcPreviewData(null);
-  };
-
-  // Handle Insurance details confirmation
-  const handleInsuranceConfirm = (details: InsuranceDetails) => {
-    setValue('policy_number', details.policyNumber || watch('policy_number'));
-    setValue('insurer_name', details.insurerName || watch('insurer_name'));
-    setValue('insurance_start_date', details.validFrom ? new Date(details.validFrom).toISOString().split('T')[0] : watch('insurance_start_date'));
-    setValue('insurance_expiry_date', details.validUntil ? new Date(details.validUntil).toISOString().split('T')[0] : watch('insurance_expiry_date'));
-    setValue('insurance_premium_amount', details.premium || watch('insurance_premium_amount'));
-    
-    // Set insurance document flag
-    setValue('insurance_document', true);
-    
-    setInsurancePreviewData(null);
-  };
-
-  // Fetch vehicle details from external API
-  const fetchVehicleDetails = async () => {
-    const registrationNumber = watch('registration_number');
-    if (!registrationNumber || registrationNumber.length < 6) {
-      toast.error('Please enter a valid registration number');
-      return;
-    }
-
-    try {
-      toast.info('Fetching vehicle details...');
-      
-      // Call the Supabase Edge Function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-rc-details`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-          },
-          body: JSON.stringify({ registration_number: registrationNumber })
-        }
-      );
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`API request failed with status ${response.status}: ${errorData.message || errorData.error || 'Unknown error'}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        // Process the vehicle data
-        const vehicleData = data.data;
-        
-        // Update form fields with the fetched data
-        setValue('make', vehicleData.maker || watch('make'));
-        setValue('model', vehicleData.model || watch('model'));
-        setValue('chassis_number', vehicleData.chasi_no || watch('chassis_number'));
-        setValue('engine_number', vehicleData.engine_no || watch('engine_number'));
-        setValue('registration_date', vehicleData.regn_dt ? new Date(vehicleData.regn_dt).toISOString().split('T')[0] : watch('registration_date'));
-        setValue('owner_name', vehicleData.owner_name || watch('owner_name'));
-        setValue('fuel_type', (vehicleData.fuel_type?.toLowerCase() as 'diesel' | 'petrol' | 'cng') || watch('fuel_type'));
-        
-        // Set additional VAHAN fields
-        setValue('vehicle_class', vehicleData.vehicle_class || watch('vehicle_class'));
-        setValue('color', vehicleData.color || watch('color'));
-        setValue('seating_capacity', vehicleData.seating_capacity ? parseInt(vehicleData.seating_capacity) : watch('seating_capacity'));
-        setValue('cubic_capacity', vehicleData.cubic_capacity ? parseFloat(vehicleData.cubic_capacity) : watch('cubic_capacity'));
-        setValue('unladen_weight', vehicleData.unld_wt ? parseFloat(vehicleData.unld_wt) : watch('unladen_weight'));
-        setValue('vahan_last_fetched_at', new Date().toISOString());
-        
-        toast.success('Vehicle details fetched successfully');
-      } else {
-        toast.warning('No vehicle details found');
-      }
-    } catch (error) {
-      console.error('Error fetching vehicle details:', error);
-      
-      if (error instanceof Error) {
-        if (error.message.includes('service unavailable') || error.message.includes('Service Unavailable')) {
-          toast.error('Vehicle details service is temporarily unavailable. Please try again later.');
-        } else {
-          toast.error(`Failed to fetch vehicle details: ${error.message}`);
-        }
-      } else {
-        toast.error('Failed to fetch vehicle details');
-      }
-    }
-  };
-
   const handleFormSubmit = (data: Vehicle) => {
-    // Process file uploads
-    const processedData = { ...data };
-    
-    // Process other documents to handle file uploads
-    if (Array.isArray(processedData.other_documents)) {
-      processedData.other_documents = processedData.other_documents.map(doc => {
-        // If there's a file_obj property, move it to file
-        if (doc.file_obj) {
-          doc.file = doc.file_obj;
-          delete doc.file_obj;
-        }
-        return doc;
-      });
+    setIsSubmittingForm(true);
+    try {
+      onSubmit(data);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast.error("Form submission failed: " + (error instanceof Error ? error.message : "Unknown error"));
+      setIsSubmittingForm(false);
     }
-    
-    onSubmit(processedData);
   };
 
   return (
@@ -267,7 +87,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={fetchVehicleDetails}
+                onClick={() => toast.info("Fetching vehicle details from external service...")}
               >
                 Get Details
               </Button>
@@ -436,10 +256,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Upload RC"
                 buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  if (file) handleRCUpload(file);
-                }}
+                onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
                 {...field}
@@ -504,10 +321,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Upload Insurance"
                 buttonMode
                 value={value as File | null}
-                onChange={(file) => {
-                  onChange(file);
-                  if (file) handleInsuranceUpload(file);
-                }}
+                onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
                 {...field}
@@ -1096,7 +910,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ name: '', file: null })}
+              onClick={() => append({ name: '', file_path: '' })}
               icon={<Plus className="h-4 w-4" />}
             >
               Add Document
@@ -1178,29 +992,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         )}
         <Button
           type="submit"
-          isLoading={isSubmitting}
+          isLoading={isSubmitting || isSubmittingForm}
         >
           {initialData ? 'Update Vehicle' : 'Save Vehicle'}
         </Button>
       </div>
-
-      {/* RC Preview Modal */}
-      {rcPreviewData && (
-        <RCPreviewModal
-          details={rcPreviewData}
-          onConfirm={handleRCConfirm}
-          onClose={() => setRcPreviewData(null)}
-        />
-      )}
-
-      {/* Insurance Preview Modal */}
-      {insurancePreviewData && (
-        <InsurancePreviewModal
-          details={insurancePreviewData}
-          onConfirm={handleInsuranceConfirm}
-          onClose={() => setInsurancePreviewData(null)}
-        />
-      )}
     </form>
   );
 };
