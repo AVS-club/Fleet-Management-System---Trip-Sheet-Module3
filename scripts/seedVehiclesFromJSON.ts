@@ -302,7 +302,6 @@ async function seedVehiclesFromJSON() {
       // Default values for other fields not in JSON
       photo_url: null,
       other_documents: [],
-      primary_driver_id: null,
       vahan_last_fetched_at: now,
       
       created_at: now,
