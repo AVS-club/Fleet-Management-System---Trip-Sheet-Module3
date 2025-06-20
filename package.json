@@ -12,6 +12,7 @@
     "seed:driver": "tsx scripts/seedDriver.ts",
     "seed:trip": "tsx scripts/seedTrip.ts",
     "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
+    "seed:vehicles-json": "tsx scripts/seedVehiclesFromJSON.ts",
     "fetch:drivers": "tsx scripts/fetchDrivers.ts",
     "clean:db": "tsx scripts/clean-database.ts",
     "delete:alerts": "tsx scripts/delete-ai-alerts.ts"
