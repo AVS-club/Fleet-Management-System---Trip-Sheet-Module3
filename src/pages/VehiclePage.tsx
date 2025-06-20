@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
 import { getSignedDocumentUrl } from '../utils/supabaseStorage';
-import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown, Eye, Clock, Info, BarChart2, Database, IndianRupee } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown, Eye, Clock, Info, BarChart2, Database, IndianRupee, User } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleForm from '../components/vehicles/VehicleForm';
