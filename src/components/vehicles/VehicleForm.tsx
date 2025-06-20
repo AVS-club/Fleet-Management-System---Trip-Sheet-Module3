@@ -70,18 +70,23 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     } catch (error) {
       console.error('Error processing RC document:', error);
       
-      // Try to extract data from OCR text if available
-      if (error instanceof Error && error.message.includes('text')) {
-        try {
-          const text = error.message.split('text:')[1] || '';
-          const extractedData = extractRCDetails(text);
-          setRcPreviewData(extractedData);
-        } catch (extractError) {
-          console.error('Error extracting RC details:', extractError);
-          toast.error('Failed to process RC document');
+      // Handle different types of errors more robustly
+      if (error instanceof Error) {
+        // Check if it's a service unavailable error
+        if (error.name === 'ServiceUnavailableError') {
+          toast.error('RC processing service is temporarily unavailable. Please try again later.');
+        } else if (error.name === 'ValidationError') {
+          toast.error(`Document validation failed: ${error.message}`);
+        } else if (error.name === 'AuthenticationError') {
+          toast.error('Authentication failed. Please contact support.');
+        } else if (error.name === 'ProcessingError') {
+          toast.error(`Document processing failed: ${error.message}`);
+        } else {
+          // Generic error handling
+          toast.error(`Failed to process RC document: ${error.message}`);
         }
       } else {
-        toast.error('Failed to process RC document');
+        toast.error('Failed to process RC document: Unknown error occurred');
       }
     } finally {
       setRcProcessing(false);
