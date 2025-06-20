@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { nanoid } from 'nanoid'; // Import nanoid for unique IDs
+import fs from 'fs';
 
 // Get directory path in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -20,8 +21,9 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Import the JSON data
-import tripsData from '../data/finalTripSeedData.json\' assert { type: 'json' };
+// Read the JSON data from file
+const tripsPath = path.resolve(__dirname, '../data/finalTripSeedData.json');
+const tripsData = JSON.parse(fs.readFileSync(tripsPath, 'utf-8'));
 
 async function seedTripsFromJSON() {
   console.log('Starting trip seeding process...');
