@@ -1,6 +1,7 @@
 import { Trip, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../types'; 
 import { supabase } from './supabaseClient';
 import { logVehicleActivity } from './vehicleActivity';
+import { uploadVehicleDocument } from './supabaseStorage';
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) => 
@@ -284,14 +285,55 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...vehicle,
-    // Set document flags based on URL presence
-    rc_copy: !!vehicle.rc_document_url,
-    insurance_document: !!vehicle.insurance_document_url,
-    fitness_document: !!vehicle.fitness_document_url,
-    tax_receipt_document: !!vehicle.tax_document_url,
-    permit_document: !!vehicle.permit_document_url,
-    puc_document: !!vehicle.puc_document_url,
   };
+  
+  // Handle document file uploads
+  try {
+    // Upload RC document if provided
+    if (processedVehicle.rc_copy_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.rc_copy_file, 'temp-id', 'rc');
+      processedVehicle.rc_document_path = filePath;
+      processedVehicle.rc_copy = true;
+    }
+    
+    // Upload insurance document if provided
+    if (processedVehicle.insurance_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.insurance_document_file, 'temp-id', 'insurance');
+      processedVehicle.insurance_document_path = filePath;
+      processedVehicle.insurance_document = true;
+    }
+    
+    // Upload fitness document if provided
+    if (processedVehicle.fitness_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.fitness_document_file, 'temp-id', 'fitness');
+      processedVehicle.fitness_document_path = filePath;
+      processedVehicle.fitness_document = true;
+    }
+    
+    // Upload tax document if provided
+    if (processedVehicle.tax_receipt_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.tax_receipt_document_file, 'temp-id', 'tax');
+      processedVehicle.tax_document_path = filePath;
+      processedVehicle.tax_receipt_document = true;
+    }
+    
+    // Upload permit document if provided
+    if (processedVehicle.permit_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.permit_document_file, 'temp-id', 'permit');
+      processedVehicle.permit_document_path = filePath;
+      processedVehicle.permit_document = true;
+    }
+    
+    // Upload PUC document if provided
+    if (processedVehicle.puc_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.puc_document_file, 'temp-id', 'puc');
+      processedVehicle.puc_document_path = filePath;
+      processedVehicle.puc_document = true;
+    }
+  } catch (error) {
+    console.error('Error uploading vehicle documents:', error);
+    // Continue with vehicle creation even if document uploads fail
+  }
   
   // Remove file objects as they can't be stored in the database
   delete (processedVehicle as any).rc_copy_file;
@@ -303,13 +345,33 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
   
   // Process other documents to ensure they have the right format
   if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
-    processedVehicle.other_documents = processedVehicle.other_documents.map(doc => ({
-      name: doc.name,
-      file: doc.file_url || doc.file,
-      issue_date: doc.issue_date || doc.issueDate,
-      expiry_date: doc.expiry_date || doc.expiryDate,
-      cost: doc.cost
-    }));
+    const processedOtherDocs = [];
+    
+    for (const doc of processedVehicle.other_documents) {
+      const processedDoc = {
+        name: doc.name,
+        issue_date: doc.issue_date || doc.issueDate,
+        expiry_date: doc.expiry_date || doc.expiryDate,
+        cost: doc.cost
+      };
+      
+      // If there's a file to upload
+      if (doc.file_obj) {
+        try {
+          const filePath = await uploadVehicleDocument(doc.file_obj, 'temp-id', `other_${doc.name.replace(/\s+/g, '_').toLowerCase()}`);
+          processedDoc.file_path = filePath;
+        } catch (error) {
+          console.error(`Error uploading other document "${doc.name}":`, error);
+          // Continue with other documents even if one fails
+        }
+      } else if (doc.file) {
+        processedDoc.file_path = doc.file;
+      }
+      
+      processedOtherDocs.push(processedDoc);
+    }
+    
+    processedVehicle.other_documents = processedOtherDocs;
   }
 
   const { data, error } = await supabase
@@ -323,8 +385,137 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
     return null;
   }
 
-  // Upload vehicle profile JSON to storage
+  // Now that we have the real vehicle ID, update the document paths
   if (data) {
+    const updates: Partial<Vehicle> = {};
+    let needsUpdate = false;
+    
+    // Update document paths with the real vehicle ID
+    if (processedVehicle.rc_document_path) {
+      const newPath = processedVehicle.rc_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.rc_document_path, newPath);
+        
+      if (!error) {
+        updates.rc_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    if (processedVehicle.insurance_document_path) {
+      const newPath = processedVehicle.insurance_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.insurance_document_path, newPath);
+        
+      if (!error) {
+        updates.insurance_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    if (processedVehicle.fitness_document_path) {
+      const newPath = processedVehicle.fitness_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.fitness_document_path, newPath);
+        
+      if (!error) {
+        updates.fitness_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    if (processedVehicle.tax_document_path) {
+      const newPath = processedVehicle.tax_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.tax_document_path, newPath);
+        
+      if (!error) {
+        updates.tax_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    if (processedVehicle.permit_document_path) {
+      const newPath = processedVehicle.permit_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.permit_document_path, newPath);
+        
+      if (!error) {
+        updates.permit_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    if (processedVehicle.puc_document_path) {
+      const newPath = processedVehicle.puc_document_path.replace('temp-id', data.id);
+      const { error } = await supabase.storage
+        .from('vehicle-docs')
+        .move(processedVehicle.puc_document_path, newPath);
+        
+      if (!error) {
+        updates.puc_document_path = newPath;
+        needsUpdate = true;
+      }
+    }
+    
+    // Update other documents paths
+    if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+      const updatedOtherDocs = [];
+      let otherDocsUpdated = false;
+      
+      for (const doc of processedVehicle.other_documents) {
+        const updatedDoc = { ...doc };
+        
+        if (doc.file_path && doc.file_path.includes('temp-id')) {
+          const newPath = doc.file_path.replace('temp-id', data.id);
+          const { error } = await supabase.storage
+            .from('vehicle-docs')
+            .move(doc.file_path, newPath);
+            
+          if (!error) {
+            updatedDoc.file_path = newPath;
+            otherDocsUpdated = true;
+          }
+        }
+        
+        updatedOtherDocs.push(updatedDoc);
+      }
+      
+      if (otherDocsUpdated) {
+        updates.other_documents = updatedOtherDocs;
+        needsUpdate = true;
+      }
+    }
+    
+    // Update the vehicle record if needed
+    if (needsUpdate) {
+      const { data: updatedData, error: updateError } = await supabase
+        .from('vehicles')
+        .update(updates)
+        .eq('id', data.id)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error('Error updating vehicle document paths:', updateError);
+      } else if (updatedData) {
+        // Use the updated data
+        data.rc_document_path = updatedData.rc_document_path;
+        data.insurance_document_path = updatedData.insurance_document_path;
+        data.fitness_document_path = updatedData.fitness_document_path;
+        data.tax_document_path = updatedData.tax_document_path;
+        data.permit_document_path = updatedData.permit_document_path;
+        data.puc_document_path = updatedData.puc_document_path;
+        data.other_documents = updatedData.other_documents;
+      }
+    }
+    
+    // Upload vehicle profile JSON to storage
     await uploadVehicleProfile(data);
   }
 
@@ -343,18 +534,71 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
 };
 
 export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>): Promise<Vehicle | null> => {
+  // Get the current vehicle data
+  const { data: currentVehicle } = await supabase
+    .from('vehicles')
+    .select('*')
+    .eq('id', id)
+    .single();
+    
+  if (!currentVehicle) {
+    console.error('Vehicle not found:', id);
+    return null;
+  }
+  
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...updatedVehicle,
-    // Set document flags based on URL presence
-    rc_copy: updatedVehicle.rc_document_url ? true : updatedVehicle.rc_copy,
-    insurance_document: updatedVehicle.insurance_document_url ? true : updatedVehicle.insurance_document,
-    fitness_document: updatedVehicle.fitness_document_url ? true : updatedVehicle.fitness_document,
-    tax_receipt_document: updatedVehicle.tax_document_url ? true : updatedVehicle.tax_receipt_document,
-    permit_document: updatedVehicle.permit_document_url ? true : updatedVehicle.permit_document,
-    puc_document: updatedVehicle.puc_document_url ? true : updatedVehicle.puc_document,
     updated_at: new Date().toISOString()
   };
+  
+  // Handle document file uploads
+  try {
+    // Upload RC document if provided
+    if (processedVehicle.rc_copy_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.rc_copy_file, id, 'rc');
+      processedVehicle.rc_document_path = filePath;
+      processedVehicle.rc_copy = true;
+    }
+    
+    // Upload insurance document if provided
+    if (processedVehicle.insurance_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.insurance_document_file, id, 'insurance');
+      processedVehicle.insurance_document_path = filePath;
+      processedVehicle.insurance_document = true;
+    }
+    
+    // Upload fitness document if provided
+    if (processedVehicle.fitness_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.fitness_document_file, id, 'fitness');
+      processedVehicle.fitness_document_path = filePath;
+      processedVehicle.fitness_document = true;
+    }
+    
+    // Upload tax document if provided
+    if (processedVehicle.tax_receipt_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.tax_receipt_document_file, id, 'tax');
+      processedVehicle.tax_document_path = filePath;
+      processedVehicle.tax_receipt_document = true;
+    }
+    
+    // Upload permit document if provided
+    if (processedVehicle.permit_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.permit_document_file, id, 'permit');
+      processedVehicle.permit_document_path = filePath;
+      processedVehicle.permit_document = true;
+    }
+    
+    // Upload PUC document if provided
+    if (processedVehicle.puc_document_file) {
+      const filePath = await uploadVehicleDocument(processedVehicle.puc_document_file, id, 'puc');
+      processedVehicle.puc_document_path = filePath;
+      processedVehicle.puc_document = true;
+    }
+  } catch (error) {
+    console.error('Error uploading vehicle documents:', error);
+    // Continue with vehicle update even if document uploads fail
+  }
   
   // Remove file objects as they can't be stored in the database
   delete (processedVehicle as any).rc_copy_file;
@@ -366,13 +610,33 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
   
   // Process other documents to ensure they have the right format
   if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
-    processedVehicle.other_documents = processedVehicle.other_documents.map(doc => ({
-      name: doc.name,
-      file: doc.file_url || doc.file,
-      issue_date: doc.issue_date || doc.issueDate,
-      expiry_date: doc.expiry_date || doc.expiryDate,
-      cost: doc.cost
-    }));
+    const processedOtherDocs = [];
+    
+    for (const doc of processedVehicle.other_documents) {
+      const processedDoc = {
+        name: doc.name,
+        issue_date: doc.issue_date || doc.issueDate,
+        expiry_date: doc.expiry_date || doc.expiryDate,
+        cost: doc.cost
+      };
+      
+      // If there's a file to upload
+      if (doc.file_obj) {
+        try {
+          const filePath = await uploadVehicleDocument(doc.file_obj, id, `other_${doc.name.replace(/\s+/g, '_').toLowerCase()}`);
+          processedDoc.file_path = filePath;
+        } catch (error) {
+          console.error(`Error uploading other document "${doc.name}":`, error);
+          // Continue with other documents even if one fails
+        }
+      } else if (doc.file) {
+        processedDoc.file_path = doc.file;
+      }
+      
+      processedOtherDocs.push(processedDoc);
+    }
+    
+    processedVehicle.other_documents = processedOtherDocs;
   }
 
   const { data, error } = await supabase

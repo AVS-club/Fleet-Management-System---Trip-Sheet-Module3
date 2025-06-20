@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Vehicle, Driver } from '../types';
 import { supabase } from './supabaseClient';
+import { getSignedDocumentUrl } from './supabaseStorage';
 
 // Helper function to add a section title to the PDF
 const addSectionTitle = (doc: jsPDF, title: string, y: number): number => {
@@ -292,11 +293,15 @@ export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> 
     const downloadPromises: Promise<void>[] = [];
     
     // Helper function to add a document to the zip
-    const addDocumentToZip = async (url: string | undefined, fileName: string) => {
-      if (!url) return;
+    const addDocumentToZip = async (filePath: string | undefined, fileName: string) => {
+      if (!filePath) return;
       
       try {
-        const response = await fetch(url);
+        // Generate a signed URL for the document
+        const signedUrl = await getSignedDocumentUrl(filePath);
+        
+        // Fetch the document using the signed URL
+        const response = await fetch(signedUrl);
         if (!response.ok) throw new Error(`Failed to fetch ${fileName}`);
         
         const blob = await response.blob();
@@ -307,46 +312,46 @@ export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> 
     };
     
     // Add RC document
-    if (vehicle.rc_document_url) {
+    if (vehicle.rc_document_path) {
       downloadPromises.push(
-        addDocumentToZip(vehicle.rc_document_url, `RC_${vehicle.registration_number}.pdf`)
+        addDocumentToZip(vehicle.rc_document_path, `RC_${vehicle.registration_number}.pdf`)
       );
     }
     
     // Add insurance document
-    if (vehicle.insurance_document_url) {
+    if (vehicle.insurance_document_path) {
       downloadPromises.push(
-        addDocumentToZip(vehicle.insurance_document_url, `Insurance_${vehicle.registration_number}.pdf`)
+        addDocumentToZip(vehicle.insurance_document_path, `Insurance_${vehicle.registration_number}.pdf`)
       );
     }
     
     // Add fitness document
-    if (vehicle.fitness_document_url) {
+    if (vehicle.fitness_document_path) {
       downloadPromises.push(
-        addDocumentToZip(vehicle.fitness_document_url, `Fitness_${vehicle.registration_number}.pdf`)
+        addDocumentToZip(vehicle.fitness_document_path, `Fitness_${vehicle.registration_number}.pdf`)
       );
     }
     
     // Add permit document
-    if (vehicle.permit_document_url) {
+    if (vehicle.permit_document_path) {
       downloadPromises.push(
-        addDocumentToZip(vehicle.permit_document_url, `Permit_${vehicle.registration_number}.pdf`)
+        addDocumentToZip(vehicle.permit_document_path, `Permit_${vehicle.registration_number}.pdf`)
       );
     }
     
     // Add PUC document
-    if (vehicle.puc_document_url) {
+    if (vehicle.puc_document_path) {
       downloadPromises.push(
-        addDocumentToZip(vehicle.puc_document_url, `PUC_${vehicle.registration_number}.pdf`)
+        addDocumentToZip(vehicle.puc_document_path, `PUC_${vehicle.registration_number}.pdf`)
       );
     }
     
     // Add other documents
     if (vehicle.other_documents && Array.isArray(vehicle.other_documents)) {
       vehicle.other_documents.forEach((doc, index) => {
-        if (doc.file) {
+        if (doc.file_path) {
           downloadPromises.push(
-            addDocumentToZip(doc.file as unknown as string, `Other_${index + 1}_${doc.name}.pdf`)
+            addDocumentToZip(doc.file_path, `Other_${index + 1}_${doc.name}.pdf`)
           );
         }
       });
@@ -386,7 +391,17 @@ const uploadVehicleProfile = async (vehicleId: string, vehicleData: any): Promis
     puc_expiry_date: vehicleData.puc_expiry_date,
     created_at: vehicleData.created_at,
     updated_at: vehicleData.updated_at,
-    generated_at: new Date().toISOString()
+    generated_at: new Date().toISOString(),
+    // Add document paths for signed URL generation
+    document_paths: {
+      rc: vehicleData.rc_document_path,
+      insurance: vehicleData.insurance_document_path,
+      fitness: vehicleData.fitness_document_path,
+      tax: vehicleData.tax_document_path,
+      permit: vehicleData.permit_document_path,
+      puc: vehicleData.puc_document_path,
+      other: vehicleData.other_documents?.map((doc: any) => doc.file_path).filter(Boolean) || []
+    }
   };
 
   const { error } = await supabase.storage
@@ -421,32 +436,18 @@ const getVehicleData = async (vehicleId: string): Promise<any> => {
 // Function to create a shareable link for a vehicle profile
 export const createShareableVehicleLink = async (vehicleId: string): Promise<string> => {
   try {
-    // First, try to create a signed URL
+    // Get vehicle data from database
+    const vehicleData = await getVehicleData(vehicleId);
+    
+    // Upload the vehicle profile to storage with document paths
+    await uploadVehicleProfile(vehicleId, vehicleData);
+    
+    // Create a signed URL for the profile JSON
     const { data, error } = await supabase.storage
       .from('vehicle-profiles')
       .createSignedUrl(`${vehicleId}.json`, 60 * 60 * 24 * 7); // 7 days in seconds
     
     if (error) {
-      // If the error is "Object not found", create the profile first
-      if (error.message.includes('Object not found') || error.message.includes('not_found')) {
-        console.log('Vehicle profile not found in storage, creating it...');
-        
-        // Get vehicle data from database
-        const vehicleData = await getVehicleData(vehicleId);
-        
-        // Upload the vehicle profile to storage
-        await uploadVehicleProfile(vehicleId, vehicleData);
-        
-        // Retry creating the signed URL
-        const { data: retryData, error: retryError } = await supabase.storage
-          .from('vehicle-profiles')
-          .createSignedUrl(`${vehicleId}.json`, 60 * 60 * 24 * 7);
-        
-        if (retryError) throw retryError;
-        return retryData.signedUrl;
-      }
-      
-      // If it's a different error, throw it
       throw error;
     }
     
@@ -474,7 +475,12 @@ const uploadDriverProfile = async (driverId: string, driverData: any): Promise<v
     driver_status_reason: driverData.driver_status_reason,
     created_at: driverData.created_at,
     updated_at: driverData.updated_at,
-    generated_at: new Date().toISOString()
+    generated_at: new Date().toISOString(),
+    // Add document paths for signed URL generation
+    document_paths: {
+      license: driverData.license_document_path,
+      photo: driverData.driver_photo_path
+    }
   };
 
   const { error } = await supabase.storage
@@ -509,32 +515,18 @@ const getDriverData = async (driverId: string): Promise<any> => {
 // Function to create a shareable link for a driver profile
 export const createShareableDriverLink = async (driverId: string): Promise<string> => {
   try {
-    // First, try to create a signed URL
+    // Get driver data from database
+    const driverData = await getDriverData(driverId);
+    
+    // Upload the driver profile to storage with document paths
+    await uploadDriverProfile(driverId, driverData);
+    
+    // Create a signed URL for the profile JSON
     const { data, error } = await supabase.storage
       .from('driver-profiles')
       .createSignedUrl(`${driverId}.json`, 60 * 60 * 24 * 7); // 7 days in seconds
     
     if (error) {
-      // If the error is "Object not found", create the profile first
-      if (error.message.includes('Object not found') || error.message.includes('not_found')) {
-        console.log('Driver profile not found in storage, creating it...');
-        
-        // Get driver data from database
-        const driverData = await getDriverData(driverId);
-        
-        // Upload the driver profile to storage
-        await uploadDriverProfile(driverId, driverData);
-        
-        // Retry creating the signed URL
-        const { data: retryData, error: retryError } = await supabase.storage
-          .from('driver-profiles')
-          .createSignedUrl(`${driverId}.json`, 60 * 60 * 24 * 7);
-        
-        if (retryError) throw retryError;
-        return retryData.signedUrl;
-      }
-      
-      // If it's a different error, throw it
       throw error;
     }
     

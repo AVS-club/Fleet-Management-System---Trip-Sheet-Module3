@@ -5,7 +5,7 @@ import { supabase } from './supabaseClient';
  * @param file The file to upload
  * @param vehicleId The ID of the vehicle
  * @param docType The type of document (e.g., 'rc', 'insurance', 'fitness')
- * @returns The public URL of the uploaded file
+ * @returns The file path of the uploaded file (not the public URL)
  */
 export const uploadVehicleDocument = async (
   file: File,
@@ -21,7 +21,7 @@ export const uploadVehicleDocument = async (
   // Create a unique filename
   const fileName = `${vehicleId}/${docType}_${Date.now()}.${fileExt}`;
   const filePath = fileName;
-
+  
   // Upload the file
   const { error: uploadError } = await supabase.storage
     .from('vehicle-docs')
@@ -29,18 +29,45 @@ export const uploadVehicleDocument = async (
       upsert: true,
       contentType: file.type
     });
-
+    
   if (uploadError) {
     console.error('Error uploading vehicle document:', uploadError);
-    throw new Error(`Error uploading document: ${uploadError.message}`);
+    throw uploadError;
+  }
+  
+  // Return the file path instead of the public URL
+  return filePath;
+};
+
+/**
+ * Generates a signed URL for a vehicle document
+ * @param filePath The path of the file in storage
+ * @param expiresIn Expiration time in seconds (default: 7 days)
+ * @returns The signed URL for the file
+ */
+export const getSignedDocumentUrl = async (
+  filePath: string,
+  expiresIn: number = 604800 // 7 days in seconds
+): Promise<string> => {
+  if (!filePath) {
+    throw new Error('No file path provided');
   }
 
-  // Get the public URL
-  const { data } = supabase.storage
-    .from('vehicle-docs')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  try {
+    const { data, error } = await supabase.storage
+      .from('vehicle-docs')
+      .createSignedUrl(filePath, expiresIn);
+      
+    if (error) {
+      console.error('Error generating signed URL:', error);
+      throw error;
+    }
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error in getSignedDocumentUrl:', error);
+    throw error;
+  }
 };
 
 /**
@@ -48,7 +75,7 @@ export const uploadVehicleDocument = async (
  * @param file The file to upload
  * @param driverId The ID of the driver
  * @param docType The type of document (e.g., 'license', 'photo')
- * @returns The public URL of the uploaded file
+ * @returns The file path of the uploaded file
  */
 export const uploadDriverDocument = async (
   file: File,
@@ -78,10 +105,37 @@ export const uploadDriverDocument = async (
     throw new Error(`Error uploading document: ${uploadError.message}`);
   }
 
-  // Get the public URL
-  const { data } = supabase.storage
-    .from('drivers')
-    .getPublicUrl(filePath);
+  // Return the file path instead of the public URL
+  return filePath;
+};
 
-  return data.publicUrl;
+/**
+ * Generates a signed URL for a driver document
+ * @param filePath The path of the file in storage
+ * @param expiresIn Expiration time in seconds (default: 7 days)
+ * @returns The signed URL for the file
+ */
+export const getSignedDriverDocumentUrl = async (
+  filePath: string,
+  expiresIn: number = 604800 // 7 days in seconds
+): Promise<string> => {
+  if (!filePath) {
+    throw new Error('No file path provided');
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from('drivers')
+      .createSignedUrl(filePath, expiresIn);
+      
+    if (error) {
+      console.error('Error generating signed URL for driver document:', error);
+      throw error;
+    }
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error in getSignedDriverDocumentUrl:', error);
+    throw error;
+  }
 };

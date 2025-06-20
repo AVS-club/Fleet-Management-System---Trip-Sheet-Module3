@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
+import { getSignedDocumentUrl } from '../utils/supabaseStorage';
 import { Truck, Calendar, PenTool as PenToolIcon, AlertTriangle, ChevronLeft, Fuel, FileText, Shield, Download, Share2, FileDown, Eye, Clock, Info, BarChart2, Database, IndianRupee } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MileageChart from '../components/dashboard/MileageChart';
@@ -25,6 +26,19 @@ const VehiclePage: React.FC = () => {
     totalDistance: 0
   });
   
+  // State for signed document URLs
+  const [signedDocUrls, setSignedDocUrls] = useState<{
+    rc?: string;
+    insurance?: string;
+    fitness?: string;
+    tax?: string;
+    permit?: string;
+    puc?: string;
+    other: Record<string, string>;
+  }>({
+    other: {}
+  });
+  
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
@@ -40,6 +54,11 @@ const VehiclePage: React.FC = () => {
         setVehicle(vehicleData);
         setTrips(Array.isArray(tripsData) ? tripsData.filter(trip => trip.vehicle_id === id) : []);
         setStats(vehicleStats || { totalTrips: 0, totalDistance: 0 });
+        
+        // Generate signed URLs for documents
+        if (vehicleData) {
+          await generateSignedUrls(vehicleData);
+        }
       } catch (error) {
         console.error('Error fetching vehicle data:', error);
       } finally {
@@ -49,6 +68,68 @@ const VehiclePage: React.FC = () => {
     
     fetchData();
   }, [id]);
+  
+  // Function to generate signed URLs for all documents
+  const generateSignedUrls = async (vehicleData: Vehicle) => {
+    const urls: {
+      rc?: string;
+      insurance?: string;
+      fitness?: string;
+      tax?: string;
+      permit?: string;
+      puc?: string;
+      other: Record<string, string>;
+    } = {
+      other: {}
+    };
+    
+    try {
+      // Generate signed URL for RC document
+      if (vehicleData.rc_document_path) {
+        urls.rc = await getSignedDocumentUrl(vehicleData.rc_document_path);
+      }
+      
+      // Generate signed URL for insurance document
+      if (vehicleData.insurance_document_path) {
+        urls.insurance = await getSignedDocumentUrl(vehicleData.insurance_document_path);
+      }
+      
+      // Generate signed URL for fitness document
+      if (vehicleData.fitness_document_path) {
+        urls.fitness = await getSignedDocumentUrl(vehicleData.fitness_document_path);
+      }
+      
+      // Generate signed URL for tax document
+      if (vehicleData.tax_document_path) {
+        urls.tax = await getSignedDocumentUrl(vehicleData.tax_document_path);
+      }
+      
+      // Generate signed URL for permit document
+      if (vehicleData.permit_document_path) {
+        urls.permit = await getSignedDocumentUrl(vehicleData.permit_document_path);
+      }
+      
+      // Generate signed URL for PUC document
+      if (vehicleData.puc_document_path) {
+        urls.puc = await getSignedDocumentUrl(vehicleData.puc_document_path);
+      }
+      
+      // Generate signed URLs for other documents
+      if (vehicleData.other_documents && Array.isArray(vehicleData.other_documents)) {
+        for (let i = 0; i < vehicleData.other_documents.length; i++) {
+          const doc = vehicleData.other_documents[i];
+          if (doc.file_path) {
+            urls.other[`other_${i}`] = await getSignedDocumentUrl(doc.file_path);
+          }
+        }
+      }
+      
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+      toast.error('Failed to generate document access links');
+    }
+  };
   
   if (!vehicle) {
     return (
@@ -96,8 +177,8 @@ const VehiclePage: React.FC = () => {
   }
 
   // Helper functions for document status
-  const getDocumentStatus = (docUrl?: string, expiryDate?: string) => {
-    if (!docUrl) return { status: 'missing', label: 'Missing', color: 'bg-gray-100 text-gray-800' };
+  const getDocumentStatus = (docPath?: string, expiryDate?: string) => {
+    if (!docPath) return { status: 'missing', label: 'Missing', color: 'bg-gray-100 text-gray-800' };
     
     if (expiryDate) {
       const expiry = new Date(expiryDate);
@@ -128,12 +209,12 @@ const VehiclePage: React.FC = () => {
   };
 
   // Calculate document statuses
-  const rcStatus = getDocumentStatus(vehicle.rc_document_url, vehicle.rc_expiry_date);
-  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_url, vehicle.insurance_expiry_date);
-  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_url, vehicle.fitness_expiry_date);
-  const taxStatus = getDocumentStatus(vehicle.tax_document_url, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
-  const permitStatus = getDocumentStatus(vehicle.permit_document_url, vehicle.permit_expiry_date);
-  const pucStatus = getDocumentStatus(vehicle.puc_document_url, vehicle.puc_expiry_date);
+  const rcStatus = getDocumentStatus(vehicle.rc_document_path, vehicle.rc_expiry_date);
+  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_path, vehicle.insurance_expiry_date);
+  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_path, vehicle.fitness_expiry_date);
+  const taxStatus = getDocumentStatus(vehicle.tax_document_path, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
+  const permitStatus = getDocumentStatus(vehicle.permit_document_path, vehicle.permit_expiry_date);
+  const pucStatus = getDocumentStatus(vehicle.puc_document_path, vehicle.puc_expiry_date);
 
   // Handle export as PDF
   const handleExportPDF = async () => {
@@ -349,9 +430,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.rc_document_url && (
+                  {signedDocUrls.rc && (
                     <a 
-                      href={vehicle.rc_document_url} 
+                      href={signedDocUrls.rc} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -388,9 +469,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.insurance_document_url && (
+                  {signedDocUrls.insurance && (
                     <a 
-                      href={vehicle.insurance_document_url} 
+                      href={signedDocUrls.insurance} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -421,9 +502,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.fitness_document_url && (
+                  {signedDocUrls.fitness && (
                     <a 
-                      href={vehicle.fitness_document_url} 
+                      href={signedDocUrls.fitness} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -455,9 +536,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.permit_document_url && (
+                  {signedDocUrls.permit && (
                     <a 
-                      href={vehicle.permit_document_url} 
+                      href={signedDocUrls.permit} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -488,9 +569,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.puc_document_url && (
+                  {signedDocUrls.puc && (
                     <a 
-                      href={vehicle.puc_document_url} 
+                      href={signedDocUrls.puc} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -522,9 +603,9 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {vehicle.tax_document_url && (
+                  {signedDocUrls.tax && (
                     <a 
-                      href={vehicle.tax_document_url} 
+                      href={signedDocUrls.tax} 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -745,21 +826,21 @@ const VehiclePage: React.FC = () => {
             )}
             
             {/* Other Info Documents */}
-            {vehicle.other_info_documents && Array.isArray(vehicle.other_info_documents) && vehicle.other_info_documents.length > 0 && (
+            {vehicle.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && (
               <div className="mt-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Additional Documents</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {vehicle.other_info_documents.map((doc, index) => (
+                  {vehicle.other_documents.map((doc, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                       <div className="flex items-center">
                         <FileText className="h-4 w-4 text-gray-400 mr-2" />
                         <span className="text-sm text-gray-700 truncate max-w-[150px]">
-                          Document {index + 1}
+                          {doc.name || `Document ${index + 1}`}
                         </span>
                       </div>
-                      {typeof doc === 'string' && (
+                      {signedDocUrls.other[`other_${index}`] && (
                         <a 
-                          href={doc} 
+                          href={signedDocUrls.other[`other_${index}`]} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
@@ -947,9 +1028,9 @@ const VehiclePage: React.FC = () => {
                           {doc.name || `Document ${index + 1}`}
                         </span>
                       </div>
-                      {doc.file && typeof doc.file === 'string' && (
+                      {signedDocUrls.other[`other_${index}`] && (
                         <a 
-                          href={doc.file} 
+                          href={signedDocUrls.other[`other_${index}`]} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
