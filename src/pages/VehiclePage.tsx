@@ -1013,54 +1013,6 @@ const VehiclePage: React.FC = () => {
               <MileageChart trips={trips} />
             </div>
           </div>
-          
-          {/* Other Documents Display */}
-          {vehicle.other_documents && Array.isArray(vehicle.other_documents) && vehicle.other_documents.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Other Documents</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {vehicle.other_documents.map((doc, index) => (
-                  <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {doc.name || `Document ${index + 1}`}
-                        </span>
-                      </div>
-                      {signedDocUrls.other[`other_${index}`] && (
-                        <a 
-                          href={signedDocUrls.other[`other_${index}`]} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                        >
-                          View
-                        </a>
-                      )}
-                    </div>
-                    <div className="mt-2 space-y-1">
-                      {doc.issue_date && (
-                        <p className="text-xs text-gray-500">
-                          Issued: {formatDate(doc.issue_date)}
-                        </p>
-                      )}
-                      {doc.expiry_date && (
-                        <p className="text-xs text-gray-500">
-                          Expires: {formatDate(doc.expiry_date)}
-                        </p>
-                      )}
-                      {doc.cost && (
-                        <p className="text-xs text-gray-500">
-                          Cost: ₹{doc.cost.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </Layout>

@@ -22,6 +22,8 @@ export const uploadVehicleDocument = async (
   const fileName = `${vehicleId}/${docType}_${Date.now()}.${fileExt}`;
   const filePath = fileName;
   
+  console.log(`Uploading ${docType} document for vehicle ${vehicleId}...`);
+  
   // Upload the file
   const { error: uploadError } = await supabase.storage
     .from('vehicle-docs')
@@ -34,6 +36,8 @@ export const uploadVehicleDocument = async (
     console.error('Error uploading vehicle document:', uploadError);
     throw uploadError;
   }
+  
+  console.log(`Successfully uploaded ${docType} document to path: ${filePath}`);
   
   // Return the file path instead of the public URL
   return filePath;
@@ -54,6 +58,8 @@ export const getSignedDocumentUrl = async (
   }
 
   try {
+    console.log(`Generating signed URL for document: ${filePath}`);
+    
     const { data, error } = await supabase.storage
       .from('vehicle-docs')
       .createSignedUrl(filePath, expiresIn);
@@ -63,6 +69,7 @@ export const getSignedDocumentUrl = async (
       throw error;
     }
     
+    console.log(`Successfully generated signed URL for ${filePath}`);
     return data.signedUrl;
   } catch (error) {
     console.error('Error in getSignedDocumentUrl:', error);
