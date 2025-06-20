@@ -18,6 +18,7 @@ import RouteAnalysisComponent from './RouteAnalysis';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { estimateTollCost } from '../../utils/tollEstimator';
+import MaterialSelector from './MaterialSelector';
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -50,8 +51,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const {
     register,
     handleSubmit,
-    control,
     watch,
+    control,
     setValue,
     formState: { errors }
   } = useForm<TripFormData>({
@@ -85,6 +86,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const roadRtoExpense = watch('road_rto_expense') || 0;
   const warehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
+  const materialTypeIds = watch('material_type_ids') || [];
 
   // Convert destination IDs to destination objects for the map (with safety checks)
   const selectedDestinationObjects = useMemo(() => {
@@ -382,19 +384,6 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   };
 
-  // Remove a destination at a specific index
-  const removeDestinationAtIndex = (index: number) => {
-    if (!Array.isArray(selectedDestinations)) return;
-    
-    const newSelection = [...selectedDestinations];
-    newSelection.splice(index, 1);
-    onChange(newSelection);
-  };
-
-  if (loading) {
-    return <div className="p-4 text-center">Loading form data...</div>;
-  }
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Trip Type Section */}
@@ -584,44 +573,16 @@ const TripForm: React.FC<TripFormProps> = ({
 
         {/* Material Types Section */}
         <div className="space-y-4">
-          <h4 className="text-base font-medium text-gray-800 flex items-center">
-            <Package className="h-4 w-4 mr-2 text-gray-600" />
-            Material Carried
-          </h4>
-          <p className="text-sm text-gray-500">Select the types of materials being transported</p>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 flex-wrap">
-            {materialTypes.length === 0 ? (
-              <p className="text-sm text-gray-500 col-span-full">No material types available</p>
-            ) : (
-              materialTypes.map(type => (
-                <div key={type.id} className="flex items-center">
-                  <Controller
-                    control={control}
-                    name="material_type_ids"
-                    render={({ field }) => (
-                      <input
-                        type="checkbox"
-                        id={`material-${type.id}`}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                        checked={field.value?.includes(type.id) || false}
-                        onChange={(e) => {
-                          const currentValues = field.value || [];
-                          const newValues = e.target.checked
-                            ? [...currentValues, type.id]
-                            : currentValues.filter(id => id !== type.id);
-                          field.onChange(newValues);
-                        }}
-                      />
-                    )}
-                  />
-                  <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
-                    {type.name}
-                  </label>
-                </div>
-              ))
+          <Controller
+            control={control}
+            name="material_type_ids"
+            render={({ field: { value, onChange } }) => (
+              <MaterialSelector
+                selectedMaterials={value || []}
+                onChange={onChange}
+              />
             )}
-          </div>
+          />
         </div>
 
         {warehouseId && Array.isArray(selectedDestinations) && selectedDestinations.length > 0 && (
