@@ -1,0 +1,100 @@
+trip_id,vehicle_number,driver_name,origin,destinations,start_km,end_km,distance_km,fuel_liters,fuel_amount,material_carried,refueling_trip,return_trip,start_date,end_date,unloading_expense,driver_bata,rto_expense,breakdown_expense
+f82fd7b1-c8b3-49d4-ba5e-df160c16c184,GJ03BW8184,Imran Shaikh,North Depot,"Jaipur, Surat",98300,99154,854,226.98,21812.78,"Plastic Buckets, Wooden Pallets",False,True,2024-01-03,2024-01-04,235,290,139,52
+92365c0f-401c-4e5d-85e3-9d30937862cf,GJ03BW8184,Imran Shaikh,South Warehouse,Surat,99154,99971,817,216.24,20780.66,Wooden Pallets,True,True,2024-01-05,2024-01-06,259,161,179,187
+b841d0fc-c232-40f7-b386-1e1aa9e11323,GJ03BW8184,Imran Shaikh,South Warehouse,Indore,99971,100784,813,216.56,20811.42,Sandpaper Boxes,True,True,2024-01-07,2024-01-08,240,355,182,66
+7e9afcbf-fcf3-4a7d-b508-5c7824b4758c,GJ03BW8184,Imran Shaikh,East Depot,"Nagpur, Pune",100784,101599,815,217.08,20861.39,"Plastic Buckets, Empty Tins, Empty Tins",True,True,2024-01-09,2024-01-10,119,292,153,247
+94e3e950-95dd-4621-9d73-0adcfd623b12,GJ03BW8184,Rajesh Yadav,East Depot,"Bhilai, Ahmedabad",101599,102384,785,252.35,24250.83,Paint Cans,True,True,2024-01-11,2024-01-12,122,374,56,131
+2eac603e-b772-4522-831e-5c1347dc82a8,GJ03BW8184,Imran Shaikh,North Depot,Jaipur,102384,103264,880,233.66,22454.73,Sandpaper Boxes,True,True,2024-01-13,2024-01-14,196,183,200,148
+0e36b0fa-560b-47ce-acfb-25ff3e7b5085,GJ03BW8184,Imran Shaikh,Main Warehouse,"Udaipur, Durg",103264,104064,800,212.95,20464.49,"Paint Machines, Paint Machines, Hardware Kits",True,True,2024-01-15,2024-01-16,252,328,196,230
+bb05cb94-ca0e-4783-a89b-8d3c9c78495a,GJ03BW8184,Imran Shaikh,Main Warehouse,"Ahmedabad, Bilaspur",104064,104902,838,223.19,21448.56,"Hardware Kits, Cardboard Sheets",True,True,2024-01-17,2024-01-18,241,241,146,57
+ebfd209f-54a2-48b4-b55a-e1f74d6cdd87,GJ03BW8184,Imran Shaikh,South Warehouse,Durg,104902,105655,753,200.03,19222.88,"Spare Tyres, Wooden Pallets",True,True,2024-01-19,2024-01-20,274,294,101,258
+6cf9a760-2249-4d85-991c-6ad534d53bb7,GJ03BW8184,Imran Shaikh,North Depot,Bilaspur,105655,106452,797,211.62,20336.68,Paint Cans,True,True,2024-01-21,2024-01-22,198,211,112,76
+c8efa9d8-aee4-4ba6-9b37-89d7f8a07750,GJ03BW8184,Imran Shaikh,East Depot,"Mumbai, Surat",106452,107207,755,200.45,19263.24,"Empty Tins, Empty Tins",True,True,2024-01-23,2024-01-24,134,304,94,119
+f3ffa407-4597-4b73-99cf-3bf59a9105fc,GJ03BW8184,Imran Shaikh,Main Warehouse,"Indore, Durg",107207,107945,738,196.34,18868.27,"Hardware Kits, Thinner Drums",True,True,2024-01-25,2024-01-26,260,274,147,193
+49eecbda-0dba-47b9-8de6-72d8f529cdef,GJ03BW8184,Imran Shaikh,Main Warehouse,"Bhilai, Bilaspur",107945,108822,877,233.81,22469.14,Empty Tins,True,True,2024-01-27,2024-01-28,242,313,177,113
+4c90d028-48cb-4cd4-bfcb-d5f2d72048e9,GJ03BW8184,Imran Shaikh,South Warehouse,"Udaipur, Raipur",108822,109667,845,225.08,21630.19,"Sandpaper Boxes, Paint Cans",False,True,2024-01-29,2024-01-30,156,309,162,188
+23a3818f-c911-4c46-8669-8df02b8db82a,GJ03BW8184,Imran Shaikh,South Warehouse,"Durg, Bilaspur",109667,110441,774,205.7,19767.77,"Spare Tyres, Plastic Buckets, Spare Tyres",True,True,2024-01-31,2024-02-01,129,303,59,23
+04bd4132-1aaa-41be-8663-c1fe7b1e0239,GJ03BW8184,Imran Shaikh,Main Warehouse,"Jaipur, Nagpur",110441,111190,749,199.9,19210.39,"Hardware Kits, Paint Machines, Wooden Pallets",True,True,2024-02-02,2024-02-03,213,157,94,280
+ea4a431d-7860-4802-a2b5-97510ffac9cd,GJ03BW8184,Imran Shaikh,East Depot,Bilaspur,111190,111983,793,209.99,20180.04,"Sandpaper Boxes, Empty Tins",True,True,2024-02-04,2024-02-05,291,364,94,243
+ed776520-fb69-478a-a756-8c7b726d6491,GJ03BW8184,Imran Shaikh,East Depot,"Durg, Surat",111983,112794,811,215.06,20667.27,"Spare Tyres, Spare Tyres, Plastic Buckets",True,True,2024-02-06,2024-02-07,230,215,146,145
+194f2be1-51fc-4dfe-9121-7ec6b93e0ff4,GJ03BW8184,Imran Shaikh,East Depot,"Indore, Bilaspur",112794,113545,751,199.43,19165.22,"Plastic Buckets, Sandpaper Boxes, Thinner Drums",True,True,2024-02-08,2024-02-09,225,306,123,66
+840be8f9-3ca4-4c3a-a177-0fd976dbba26,GJ03BW8184,Sunit Chauhan,North Depot,Bilaspur,113545,114399,854,275.17,26443.84,"Cardboard Sheets, Empty Tins",True,True,2024-02-10,2024-02-11,250,270,86,217
+fd15457a-d95c-4a15-bed5-5ae9254a7a69,GJ03BW8184,Imran Shaikh,Main Warehouse,"Bhilai, Nagpur",114399,115185,786,208.24,20011.86,"Cardboard Sheets, Thinner Drums, Plastic Buckets",True,True,2024-02-12,2024-02-13,112,285,198,93
+0436abbb-a456-4b07-ae0c-f95739a77fe1,GJ03BW8184,Imran Shaikh,Main Warehouse,"Ahmedabad, Udaipur",115185,115972,787,209.23,20107.0,"Thinner Drums, Wooden Pallets, Spare Tyres",True,True,2024-02-14,2024-02-15,201,341,106,34
+44da6609-4efe-4ce4-b9b9-bd7204cb6567,GJ03BW8184,Sunit Chauhan,Main Warehouse,Mumbai,115972,116723,751,239.91,23055.35,"Plastic Buckets, Paint Machines, Plastic Buckets",True,True,2024-02-16,2024-02-17,230,336,159,69
+bf9facb6-5b95-4ddd-b1b8-6b7dd35d68b8,GJ03BW8184,Imran Shaikh,South Warehouse,Durg,116723,117519,796,211.91,20364.55,Plastic Buckets,True,True,2024-02-18,2024-02-19,217,369,200,212
+afd246e5-e2e7-41b4-92cb-e7f00bba3370,GJ03BW8184,Imran Shaikh,Main Warehouse,Pune,117519,118306,787,208.53,20039.73,"Metal Drums, Hardware Kits",False,True,2024-02-20,2024-02-21,229,204,170,269
+6f475b04-d206-4067-bb76-e86f7752d5f3,GJ03BW8184,Imran Shaikh,North Depot,"Durg, Bilaspur",118306,119052,746,198.31,19057.59,"Paint Machines, Cardboard Sheets, Wooden Pallets",True,True,2024-02-22,2024-02-23,192,200,119,237
+c808e553-b7b5-4274-8ddd-b719ad203092,GJ03BW8184,Imran Shaikh,East Depot,"Mumbai, Nagpur",119052,119851,799,211.39,20314.58,"Metal Drums, Empty Tins, Hardware Kits",True,True,2024-02-24,2024-02-25,104,304,141,63
+ba9b2cac-c595-4543-aa34-d69865a64080,GJ03BW8184,Rajesh Yadav,Main Warehouse,Mumbai,119851,120686,835,260.51,25035.01,"Hardware Kits, Paint Machines, Paint Machines",True,True,2024-02-26,2024-02-27,200,278,144,15
+c34a1c68-31ea-4e96-bbe2-587af7716ce3,GJ03BW8184,Rajesh Yadav,South Warehouse,Durg,120686,121452,766,240.57,23118.78,"Spare Tyres, Cardboard Sheets",True,True,2024-02-28,2024-02-29,267,295,180,109
+a137464a-f6d5-4bfb-a259-24d3af0feca7,GJ03BW8184,Imran Shaikh,Main Warehouse,"Nagpur, Bhilai",121452,122204,752,199.66,19187.33,"Empty Tins, Paint Cans, Paint Cans",True,True,2024-03-01,2024-03-02,222,293,125,253
+acf02550-d309-4f1d-907d-004feb365de1,GJ03BW8184,Imran Shaikh,North Depot,Ahmedabad,122204,123003,799,211.6,20334.76,"Metal Drums, Thinner Drums",True,True,2024-03-03,2024-03-04,186,191,194,197
+0167d19c-d181-4827-a00d-2b08585acdc1,GJ03BW8184,Imran Shaikh,North Depot,"Mumbai, Udaipur",123003,123822,819,217.17,20870.04,Empty Tins,True,True,2024-03-05,2024-03-06,107,169,199,113
+08bdb24b-b491-4347-88af-031bf0747a85,GJ03BW8184,Sunit Chauhan,North Depot,"Raipur, Pune",123822,124637,815,255.86,24588.15,"Empty Tins, Metal Drums",True,True,2024-03-07,2024-03-08,176,154,177,182
+7fffdb42-ada9-4931-b93b-d9664e4566a5,MP09KV1123,Amit Rane,Main Warehouse,"Mumbai, Durg",72300,73041,741,197.62,18991.28,"Cardboard Sheets, Paint Cans, Empty Tins",True,True,2024-03-09,2024-03-10,241,274,142,81
+d583f44b-18f2-41a5-b093-700a9f379aaa,MP09KV1123,Sunit Chauhan,Main Warehouse,"Surat, Bilaspur",73041,73837,796,257.11,24708.27,"Cardboard Sheets, Empty Tins",True,True,2024-03-11,2024-03-12,190,188,163,278
+d16d1c51-f350-418d-8974-002e83e33b70,MP09KV1123,Amit Rane,East Depot,"Jaipur, Mumbai",73837,74637,800,213.3,20498.13,Spare Tyres,True,True,2024-03-13,2024-03-14,163,179,117,226
+3069c385-ce33-4137-87b7-824112da7d6f,MP09KV1123,Sunit Chauhan,Main Warehouse,"Durg, Mumbai",74637,75468,831,258.18,24811.1,"Spare Tyres, Cardboard Sheets, Paint Machines",True,True,2024-03-15,2024-03-16,181,222,96,193
+04253462-ffec-4491-bbcd-48f03d8da38d,MP09KV1123,Amit Rane,Main Warehouse,"Pune, Nagpur",75468,76219,751,199.69,19190.21,"Empty Tins, Thinner Drums",True,True,2024-03-17,2024-03-18,157,320,163,179
+318e7e4d-6e56-42c6-95d7-5d0824eb9b14,MP09KV1123,Amit Rane,South Warehouse,Nagpur,76219,77055,836,221.66,21301.53,"Hardware Kits, Thinner Drums, Wooden Pallets",True,True,2024-03-19,2024-03-20,155,235,140,62
+8fa76597-3de7-4aa2-973f-f42bc2a0e767,MP09KV1123,Amit Rane,North Depot,Surat,77055,77926,871,230.64,22164.5,Paint Cans,True,True,2024-03-21,2024-03-22,127,284,167,83
+11da3b12-ea64-49e9-89d7-fc1610d4480c,MP09KV1123,Amit Rane,North Depot,Mumbai,77926,78672,746,197.66,18995.13,Hardware Kits,True,True,2024-03-23,2024-03-24,118,193,67,163
+cb829664-75d4-4bc5-91be-4724b3aced89,MP09KV1123,Amit Rane,East Depot,Indore,78672,79455,783,207.29,19920.57,"Empty Tins, Thinner Drums",True,True,2024-03-25,2024-03-26,221,381,163,35
+33eef0ad-69db-40c9-a93e-8af6d949dc03,MP09KV1123,Amit Rane,North Depot,Pune,79455,80238,783,208.95,20080.09,Spare Tyres,True,True,2024-03-27,2024-03-28,219,371,71,181
+59dbc5bd-e2b4-4948-a4a8-97c470a71abd,MP09KV1123,Amit Rane,North Depot,"Surat, Indore",80238,81013,775,206.36,19831.2,"Cardboard Sheets, Paint Machines",True,True,2024-03-29,2024-03-30,104,160,117,31
+ce8505db-7dd3-4c18-af07-89cf79b251c7,MP09KV1123,Amit Rane,North Depot,"Ahmedabad, Nagpur",81013,81794,781,207.45,19935.94,"Metal Drums, Empty Tins, Wooden Pallets",True,True,2024-03-31,2024-04-01,213,389,62,228
+b1b58bfe-a3e6-4695-acb5-7b9b685091b7,MP09KV1123,Amit Rane,East Depot,Pune,81794,82587,793,210.93,20270.37,"Cardboard Sheets, Metal Drums, Metal Drums",True,True,2024-04-02,2024-04-03,232,312,77,292
+cc7f69c3-7bf4-4b56-b7f0-6e1dcc88e83b,MP09KV1123,Rajesh Yadav,South Warehouse,"Surat, Ahmedabad",82587,83374,787,250.0,24025.0,"Empty Tins, Metal Drums, Hardware Kits",True,True,2024-04-04,2024-04-05,147,265,100,89
+2753c514-5589-4f90-b376-1e5a204f4ccf,MP09KV1123,Sunit Chauhan,North Depot,Raipur,83374,84143,769,242.96,23348.46,"Plastic Buckets, Spare Tyres, Paint Cans",True,True,2024-04-06,2024-04-07,172,319,152,224
+af570f57-4a07-45e1-866e-973ddf348377,MP09KV1123,Amit Rane,North Depot,"Bhilai, Indore",84143,84852,709,189.12,18174.43,Thinner Drums,True,True,2024-04-08,2024-04-09,255,219,112,270
+56ffd3a7-fe8b-46f5-b142-2739d3edf0e7,MP09KV1123,Amit Rane,North Depot,Surat,84852,85724,872,231.68,22264.45,"Spare Tyres, Empty Tins, Thinner Drums",False,True,2024-04-10,2024-04-11,188,260,121,281
+b64aea6d-cc0b-4103-a5e8-ce5050bce00e,MP09KV1123,Amit Rane,North Depot,Pune,85724,86549,825,219.89,21131.43,"Thinner Drums, Plastic Buckets",True,True,2024-04-12,2024-04-13,240,236,53,42
+56a57ad3-9520-4907-98ec-a39e369822e9,MP09KV1123,Amit Rane,North Depot,"Bhilai, Durg",86549,87351,802,213.49,20516.39,Sandpaper Boxes,True,True,2024-04-14,2024-04-15,296,293,79,190
+2ce6e835-12c8-4142-909d-afecd831194e,MP09KV1123,Sunit Chauhan,North Depot,"Nagpur, Raipur",87351,88125,774,245.74,23615.61,"Paint Cans, Plastic Buckets",True,True,2024-04-16,2024-04-17,145,162,97,206
+a7400aad-c524-4db7-954e-5470342bbefc,MP09KV1123,Amit Rane,North Depot,Mumbai,88125,88947,822,218.65,21012.26,Metal Drums,True,True,2024-04-18,2024-04-19,266,358,157,295
+c7be499c-1ce1-4ae4-b129-50a6d8b89b85,MP09KV1123,Amit Rane,South Warehouse,"Jaipur, Bhilai",88947,89721,774,206.0,19796.6,Sandpaper Boxes,True,True,2024-04-20,2024-04-21,204,308,138,287
+8162758d-bfd6-4c90-9cad-cc775f55a169,MP09KV1123,Amit Rane,North Depot,"Pune, Jaipur",89721,90564,843,223.36,21464.9,Sandpaper Boxes,True,True,2024-04-22,2024-04-23,129,188,107,297
+f09697fe-b89a-4951-8c5a-a894bb577e36,MP09KV1123,Amit Rane,Main Warehouse,"Indore, Mumbai",90564,91356,792,210.77,20255.0,"Spare Tyres, Metal Drums",True,True,2024-04-24,2024-04-25,120,294,170,107
+add9d142-228c-429e-ab9b-21dc3c424432,MP09KV1123,Amit Rane,Main Warehouse,"Udaipur, Indore",91356,92265,909,240.91,23151.45,"Plastic Buckets, Cardboard Sheets",True,True,2024-04-26,2024-04-27,134,213,112,42
+5f9c941b-2c50-404c-9a53-a0fca6341f3a,MP09KV1123,Sunit Chauhan,East Depot,Pune,92265,93064,799,256.33,24633.31,"Hardware Kits, Thinner Drums, Paint Machines",True,True,2024-04-28,2024-04-29,186,173,73,120
+4d6d3f15-6769-4fe3-af7b-de8c40f72e55,MP09KV1123,Amit Rane,North Depot,"Bhilai, Surat",93064,93767,703,186.8,17951.48,"Thinner Drums, Metal Drums",True,True,2024-04-30,2024-05-01,135,185,191,72
+50ceb856-a45b-40a4-94a2-d6e9236ad0e9,MP09KV1123,Amit Rane,North Depot,"Durg, Ahmedabad",93767,94588,821,218.38,20986.32,"Paint Cans, Metal Drums",True,True,2024-05-02,2024-05-03,159,276,145,130
+03d95ae5-0069-4c1e-8153-e359e8ac6ae0,MP09KV1123,Sunit Chauhan,North Depot,Udaipur,94588,95360,772,248.28,23859.71,Hardware Kits,True,True,2024-05-04,2024-05-05,173,369,149,13
+663cd78a-d77b-4c43-a2ba-8917f0b5c800,MP09KV1123,Amit Rane,East Depot,Indore,95360,96162,802,214.05,20570.2,"Paint Cans, Plastic Buckets, Hardware Kits",True,True,2024-05-06,2024-05-07,127,334,69,197
+68212b90-d4ca-4a7d-8a78-d9ca4b167be0,MP09KV1123,Amit Rane,Main Warehouse,"Mumbai, Bilaspur",96162,96954,792,210.42,20221.36,"Paint Machines, Paint Machines",True,True,2024-05-08,2024-05-09,102,167,186,5
+4be5e3d7-d260-43b4-b3bb-344cd0fc6ae1,MP09KV1123,Amit Rane,North Depot,"Pune, Indore",96954,97788,834,222.11,21344.77,"Plastic Buckets, Sandpaper Boxes, Metal Drums",True,True,2024-05-10,2024-05-11,237,262,152,216
+9924c75f-8bd3-4cad-ad26-cc253dda5aae,MP09KV1123,Amit Rane,South Warehouse,Surat,97788,98599,811,216.29,20785.47,Thinner Drums,True,True,2024-05-12,2024-05-13,102,271,102,266
+1425aa5b-bee4-4b91-8117-42bf9eee1ab3,MH04KL5678,Manish Verma,North Depot,Indore,18350,19129,779,206.91,19884.05,"Empty Tins, Plastic Buckets, Plastic Buckets",True,True,2024-05-14,2024-05-15,190,390,128,189
+0e1123ee-8999-4b47-8c2d-63ec5fdbf497,MH04KL5678,Manish Verma,East Depot,"Durg, Ahmedabad",19129,19894,765,203.34,19540.97,"Sandpaper Boxes, Paint Cans",True,True,2024-05-16,2024-05-17,175,335,99,165
+e969ddb0-d329-45f1-b6a5-b77358e17c80,MH04KL5678,Manish Verma,East Depot,"Jaipur, Surat",19894,20720,826,220.24,21165.06,Wooden Pallets,True,True,2024-05-18,2024-05-19,187,256,79,69
+bfc84571-92d3-4b06-a3de-8f64a389576d,MH04KL5678,Manish Verma,South Warehouse,Nagpur,20720,21548,828,220.96,21234.26,"Paint Machines, Paint Machines",True,True,2024-05-20,2024-05-21,299,363,181,5
+1acc43cd-efb6-4118-8bcf-52556a6e5cae,MH04KL5678,Manish Verma,Main Warehouse,Mumbai,21548,22361,813,216.01,20758.56,Hardware Kits,True,True,2024-05-22,2024-05-23,241,304,86,178
+d7e19dae-1c5d-4c67-8f3d-dec03313ed79,MH04KL5678,Sunit Chauhan,South Warehouse,"Durg, Mumbai",22361,23144,783,249.73,23999.05,"Spare Tyres, Hardware Kits",True,True,2024-05-24,2024-05-25,124,185,154,228
+23ce07e3-ea15-4e39-968d-ec6883b5b097,MH04KL5678,Manish Verma,Main Warehouse,"Pune, Mumbai",23144,23912,768,203.95,19599.59,"Plastic Buckets, Thinner Drums, Paint Cans",True,True,2024-05-26,2024-05-27,238,290,78,212
+064d63f4-37aa-492a-88f3-139ce67ef725,MH04KL5678,Manish Verma,South Warehouse,"Durg, Jaipur",23912,24702,790,210.47,20226.17,Wooden Pallets,True,True,2024-05-28,2024-05-29,107,163,94,151
+6017042b-b645-4980-9aad-6d89700c7da1,MH04KL5678,Sunit Chauhan,North Depot,Nagpur,24702,25412,710,227.12,21826.23,"Paint Machines, Spare Tyres",True,True,2024-05-30,2024-05-31,259,319,171,283
+c7ebf8e9-2859-4daa-abc6-5e55a751d0cb,MH04KL5678,Manish Verma,Main Warehouse,"Mumbai, Bhilai",25412,26193,781,207.29,19920.57,"Thinner Drums, Cardboard Sheets",True,True,2024-06-01,2024-06-02,113,172,111,274
+9f3f85d8-c681-4e3f-a249-88e4319cca5f,MH04KL5678,Manish Verma,North Depot,"Ahmedabad, Indore",26193,27018,825,220.16,21157.38,"Spare Tyres, Metal Drums, Metal Drums",True,True,2024-06-03,2024-06-04,138,279,154,114
+c22c4825-7554-4dbc-a948-57cb18622674,MH04KL5678,Manish Verma,North Depot,Surat,27018,27832,814,216.9,20844.09,Hardware Kits,True,True,2024-06-05,2024-06-06,117,309,110,200
+18a0d1f3-2ba5-4a84-b2a3-c992670dd109,MH04KL5678,Manish Verma,East Depot,"Raipur, Nagpur",27832,28609,777,207.05,19897.51,"Wooden Pallets, Hardware Kits",True,True,2024-06-07,2024-06-08,256,246,104,180
+8f6a4edd-a75c-4882-bf8c-affbc7c6354b,MH04KL5678,Manish Verma,North Depot,"Udaipur, Surat",28609,29446,837,223.08,21437.99,"Empty Tins, Hardware Kits, Empty Tins",True,True,2024-06-09,2024-06-10,136,219,123,259
+1650e10b-2c54-43ff-8749-cd39f5938fda,MH04KL5678,Sunit Chauhan,East Depot,"Durg, Indore",29446,30267,821,263.07,25281.03,Metal Drums,True,True,2024-06-11,2024-06-12,153,355,123,58
+a7a895e1-54e1-4469-b95e-5aa627e511e1,MH04KL5678,Manish Verma,South Warehouse,"Indore, Ahmedabad",30267,31022,755,200.28,19246.91,"Plastic Buckets, Paint Machines, Sandpaper Boxes",True,True,2024-06-13,2024-06-14,168,187,114,190
+e8b29022-468a-4ecb-abfd-138356bcdfa0,MH04KL5678,Manish Verma,North Depot,"Pune, Raipur",31022,31778,756,200.68,19285.35,"Metal Drums, Spare Tyres, Empty Tins",True,True,2024-06-15,2024-06-16,155,188,81,84
+df31258d-0072-438a-9c47-4cbc3e14b489,MH04KL5678,Manish Verma,South Warehouse,"Raipur, Durg",31778,32608,830,220.89,21227.53,"Hardware Kits, Metal Drums, Empty Tins",True,True,2024-06-17,2024-06-18,180,343,152,238
+2f309ad7-4756-4b64-a818-d640dc403642,MH04KL5678,Manish Verma,East Depot,Bhilai,32608,33391,783,207.3,19921.53,"Hardware Kits, Wooden Pallets",True,True,2024-06-19,2024-06-20,298,151,136,232
+cebd0e74-6e12-4f54-809c-b4c193a84702,MH04KL5678,Manish Verma,East Depot,Raipur,33391,34220,829,221.18,21255.4,"Paint Cans, Thinner Drums, Hardware Kits",True,True,2024-06-21,2024-06-22,262,356,85,152
+86792874-0bdb-449f-a312-3c8cdf73f140,MH04KL5678,Manish Verma,Main Warehouse,Ahmedabad,34220,35044,824,218.33,20981.51,"Sandpaper Boxes, Plastic Buckets",True,True,2024-06-23,2024-06-24,190,203,190,196
+16280111-be33-4f17-ab6c-be7b5b18a2de,MH04KL5678,Manish Verma,South Warehouse,Mumbai,35044,35894,850,226.73,21788.75,"Spare Tyres, Spare Tyres, Plastic Buckets",True,True,2024-06-25,2024-06-26,199,241,74,171
+816f274e-5264-4fff-bcd4-d7f694889434,MH04KL5678,Manish Verma,East Depot,"Mumbai, Durg",35894,36745,851,225.41,21661.9,"Wooden Pallets, Cardboard Sheets",True,True,2024-06-27,2024-06-28,174,251,67,94
+fd6d2b9e-ebbc-41d8-bc1f-12d3e287b61f,MH04KL5678,Manish Verma,North Depot,"Nagpur, Durg",36745,37476,731,194.86,18726.05,Plastic Buckets,True,True,2024-06-29,2024-06-30,153,381,98,40
+515f22bf-0ccd-481b-9642-078da397758a,MH04KL5678,Rajesh Yadav,North Depot,"Udaipur, Bhilai",37476,38287,811,259.74,24961.01,Thinner Drums,True,True,2024-07-01,2024-07-02,115,398,171,232
+0bf6903e-706f-4734-abd8-2491bf0db62f,MH04KL5678,Manish Verma,East Depot,Udaipur,38287,39072,785,208.76,20061.84,"Thinner Drums, Wooden Pallets, Cardboard Sheets",True,True,2024-07-03,2024-07-04,147,379,181,17
+a50129dd-116d-4f91-965c-4a352430dbe2,MH04KL5678,Manish Verma,Main Warehouse,"Pune, Durg",39072,39900,828,220.25,21166.02,"Spare Tyres, Metal Drums",True,True,2024-07-05,2024-07-06,180,336,162,44
+19f1d250-555e-438a-9133-8f3ee7d98cc7,MH04KL5678,Manish Verma,Main Warehouse,Durg,39900,40738,838,222.55,21387.06,Sandpaper Boxes,True,True,2024-07-07,2024-07-08,270,338,157,260
+93c2a3f7-1c66-4926-b3ed-9c0f73fc1509,MH04KL5678,Manish Verma,North Depot,Mumbai,40738,41518,780,207.63,19953.24,Paint Machines,True,True,2024-07-09,2024-07-10,286,236,154,67
+008095b8-bec1-4e6b-a01c-e50ebd66a6c9,MH04KL5678,Manish Verma,South Warehouse,Bilaspur,41518,42271,753,199.79,19199.82,"Cardboard Sheets, Plastic Buckets, Cardboard Sheets",True,True,2024-07-11,2024-07-12,212,336,160,282
+199431e0-1200-4bbe-8f38-72a10a489545,MH04KL5678,Manish Verma,East Depot,Pune,42271,43117,846,224.15,21540.81,Empty Tins,True,True,2024-07-13,2024-07-14,201,285,153,175
+43a44447-33c3-491d-8d2f-a1099997db4b,MH04KL5678,Manish Verma,North Depot,"Durg, Surat",43117,43933,816,217.22,20874.84,"Empty Tins, Paint Machines, Paint Cans",True,True,2024-07-15,2024-07-16,299,151,149,42
+ff5907d2-3f25-4301-902f-960cfcc7d73a,MH04KL5678,Manish Verma,Main Warehouse,"Ahmedabad, Nagpur",43933,44763,830,219.58,21101.64,Cardboard Sheets,True,True,2024-07-17,2024-07-18,218,361,100,123

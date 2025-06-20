@@ -12,6 +12,7 @@
     "seed:driver": "tsx scripts/seedDriver.ts",
     "seed:trip": "tsx scripts/seedTrip.ts",
     "seed:trips-json": "tsx scripts/seedTripsFromJSON.ts",
+    "seed:trips-csv": "tsx scripts/seedTripsFromCSV.ts",
     "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
     "seed:vehicles-json": "tsx scripts/seedVehiclesFromJSON.ts",
     "seed:destinations": "tsx scripts/seedDestinations.ts",
