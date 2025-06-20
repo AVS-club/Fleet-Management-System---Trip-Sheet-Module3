@@ -21,12 +21,8 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Import the JSON data
-import fs from 'fs';
-import path from 'path';
+import tripsData from '../data/finalTripSeedData.json\' assert { type: 'json' };
 
-const tripJsonPath = path.resolve(__dirname, '../data/finalTripSeedData.json');
-const jsonRaw = fs.readFileSync(tripJsonPath, 'utf-8');
-const tripData = JSON.parse(jsonRaw);
 async function seedTripsFromJSON() {
   console.log('Starting trip seeding process...');
 
@@ -53,7 +49,7 @@ async function seedTripsFromJSON() {
   const destinationMap = new Map(destinations.map(d => [d.name, d.id]));
   const materialTypeMap = new Map(materialTypes.map(mt => [mt.name.toLowerCase(), mt.id]));
 
-  const mappedTrips = tripData.map(trip => {
+  const mappedTrips = tripsData.map(trip => {
     const vehicle_id = vehicleMap.get(trip.vehicle_number);
     const driver_id = driverMap.get(trip.driver_name);
     const warehouse_id = warehouseMap.get(trip.warehouse_name);
