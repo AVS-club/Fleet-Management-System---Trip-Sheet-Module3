@@ -114,6 +114,33 @@ export async function processRCDocument(file: File): Promise<RCDetails> {
     if (error instanceof DocumentAIError) {
       throw error;
     }
+    
+    // Check for network errors (TypeError is commonly thrown for "Failed to fetch")
+    if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+      throw new ServiceUnavailableError(
+        'Network error occurred while processing document. Please check your connection and try again.',
+        {
+          originalError: error.message,
+          type: 'NETWORK_ERROR'
+        }
+      );
+    }
+    
+    // Check for other common network-related errors
+    if (error instanceof Error && (
+      error.message.toLowerCase().includes('network') ||
+      error.message.toLowerCase().includes('connection') ||
+      error.message.toLowerCase().includes('timeout')
+    )) {
+      throw new ServiceUnavailableError(
+        'Service is temporarily unavailable. Please try again later.',
+        {
+          originalError: error.message,
+          type: 'SERVICE_ERROR'
+        }
+      );
+    }
+    
     throw new ProcessingError(
       'An unexpected error occurred while processing the document',
       error instanceof Error ? error.message : 'Unknown error'
