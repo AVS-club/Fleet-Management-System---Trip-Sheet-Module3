@@ -21,7 +21,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Import the JSON data
-import tripsData from '../data/finalTripSeedData.json' assert { type: 'json' };
+import tripsData from '../data/finalTripSeedData.json\' assert { type: 'json' };
 
 async function seedTripsFromJSON() {
   console.log('Starting trip seeding process...');
