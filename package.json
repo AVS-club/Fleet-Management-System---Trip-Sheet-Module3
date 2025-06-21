@@ -14,6 +14,7 @@
     "seed:trips-json": "tsx scripts/seedTripsFromJSON.ts",
     "seed:trips-csv": "tsx scripts/seedTripsFromCSV.ts",
     "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
+    "seed:maintenance-csv": "tsx scripts/seedMaintenanceFromCSV.ts",
     "seed:vehicles-json": "tsx scripts/seedVehiclesFromJSON.ts",
     "seed:destinations": "tsx scripts/seedDestinations.ts",
     "seed:warehouses": "tsx scripts/seedWarehouse.ts",
