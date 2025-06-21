@@ -3,7 +3,7 @@ import { X, Calendar, IndianRupee, AlertCircle, FileCheck, ArrowLeft, ArrowRight
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area, Legend } from 'recharts';
 import { supabase } from '../../utils/supabaseClient';
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { Vehicle } from '../../types';
@@ -33,7 +33,7 @@ interface VehicleDocuments {
   };
 }
 
-// Expenditure interfaces
+// Updated MonthlyExpenditure interface to include separate properties for each document type
 interface MonthlyExpenditure {
   month: string;
   rc: number;
@@ -42,6 +42,7 @@ interface MonthlyExpenditure {
   permit: number;
   puc: number;
   tax: number;
+  other: number;
 }
 
 interface VehicleExpenditure {
@@ -53,6 +54,7 @@ interface VehicleExpenditure {
 interface DocumentMetrics {
   thisMonth: {
     totalExpense: number;
+    expectedExpense: number; // New field for expected expense
     renewalsCount: number;
     lapsedCount: number;
   };
@@ -60,6 +62,17 @@ interface DocumentMetrics {
     totalExpense: number;
   };
 }
+
+// Define document type colors as requested
+const DOC_TYPE_COLORS = {
+  rc: '#757575', // Gray
+  insurance: '#4B9CD3', // Blue
+  fitness: '#A86BA1', // Purple
+  permit: '#FFD54F', // Yellow
+  puc: '#EF5350', // Red
+  tax: '#66BB6A', // Green
+  other: '#9E9E9E' // Light Gray
+};
 
 // Function to determine document status based on expiry date
 const getExpiryStatus = (expiryDate: string | null): 'expired' | 'expiring' | 'valid' | 'missing' => {
@@ -88,17 +101,87 @@ const getStatusColorClass = (status: string) => {
   }
 };
 
-// Function to get bar color for expenditure charts
-const getBarColor = (docType: string) => {
+// Helper function to get the cost field name for a document type
+const getCostFieldName = (docType: string): string => {
   switch(docType) {
-    case 'rc': return '#4CAF50';
-    case 'insurance': return '#2196F3';
-    case 'fitness': return '#FFC107';
-    case 'permit': return '#9C27B0';
-    case 'puc': return '#F44336';
-    case 'tax': return '#607D8B';
-    default: return '#607D8B';
+    case 'insurance': return 'insurance_premium_amount';
+    case 'fitness': return 'fitness_cost';
+    case 'permit': return 'permit_cost';
+    case 'puc': return 'puc_cost';
+    case 'tax': return 'tax_amount';
+    case 'rc': return 'rc_cost'; // This might not exist, will need a fallback
+    default: return '';
   }
+};
+
+// Helper function to get the last renewal cost for a document type
+const getLastRenewalCost = (vehicle: Vehicle, docType: string): number => {
+  const costFieldName = getCostFieldName(docType);
+  const cost = vehicle[costFieldName as keyof Vehicle];
+  
+  // Default costs for types that might not have specific fields
+  if (docType === 'rc' && (!cost || typeof cost !== 'number')) return 2000; // Nominal RC cost
+  
+  return typeof cost === 'number' ? cost : 0;
+};
+
+// Helper function to get fleet average cost for a document type
+const getFleetAverageCost = (docType: string, vehicles: Vehicle[]): number => {
+  const costFieldName = getCostFieldName(docType);
+  
+  // Default values for each document type if no data is available
+  const defaultCosts: Record<string, number> = {
+    rc: 2000,
+    insurance: 15000,
+    fitness: 5000,
+    permit: 8000,
+    puc: 1000,
+    tax: 10000,
+    other: 3000
+  };
+  
+  if (!vehicles || vehicles.length === 0) return defaultCosts[docType] || 3000;
+  
+  // Count vehicles with the specified cost and sum up those costs
+  let sum = 0;
+  let count = 0;
+  
+  for (const vehicle of vehicles) {
+    const cost = vehicle[costFieldName as keyof Vehicle];
+    if (typeof cost === 'number' && cost > 0) {
+      sum += cost;
+      count++;
+    }
+  }
+  
+  // Return the average or default if no vehicles have this cost
+  return count > 0 ? sum / count : defaultCosts[docType] || 3000;
+};
+
+// Helper function to get inflation rate for document type
+const getInflationRateForDocType = (docType: string): number => {
+  switch(docType) {
+    case 'insurance': return -0.075; // -7.5% (average between -5% and -10%)
+    case 'fitness': return 0.05; // +5%
+    case 'permit': return 0; // 0% (fixed)
+    case 'puc': return 0.05; // +5%
+    case 'tax': return 0.075; // +7.5% (average between +5% and +10%)
+    case 'rc': return 0.05; // +5% for RC
+    case 'other':
+    default: return 0.08; // +8% general inflation
+  }
+};
+
+// Check if a date is within the current month
+const isWithinThisMonth = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const startOfThisMonth = startOfMonth(now);
+  const endOfThisMonth = endOfMonth(now);
+  
+  return isWithinInterval(date, { start: startOfThisMonth, end: endOfThisMonth });
 };
 
 const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose }) => {
@@ -228,6 +311,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     const result = {
       thisMonth: {
         totalExpense: 0,
+        expectedExpense: 0,
         renewalsCount: 0,
         lapsedCount: 0
       },
@@ -237,54 +321,114 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     };
 
     // Simulating document expenses (in a real app, this would come from the database)
-    vehicles.forEach(vehicle => {
-      // Calculate this month's document expenses
-      const monthlyExpense = (
-        (vehicle.insurance_premium_amount || 0) + 
-        (vehicle.fitness_cost || 0) + 
-        (vehicle.permit_cost || 0) + 
-        (vehicle.puc_cost || 0) +
-        (vehicle.tax_amount || 0)
-      ) / 12; // Rough monthly amortization
+    const monthlyExpense = (
+      vehicles.reduce((sum, vehicle) => {
+        return sum + 
+          (vehicle.insurance_premium_amount || 0) / 12 + 
+          (vehicle.fitness_cost || 0) / 12 + 
+          (vehicle.permit_cost || 0) / 12 + 
+          (vehicle.puc_cost || 0) / 12 +
+          (vehicle.tax_amount || 0) / 12;
+      }, 0)
+    );
+    
+    result.thisMonth.totalExpense = monthlyExpense;
+    result.thisYear.totalExpense = monthlyExpense * 12;
+
+    // Calculate expected expense for this month
+    const today = new Date();
+    const expiringDocsThisMonth = vehicles.flatMap(vehicle => {
+      const expiring = [];
       
-      result.thisMonth.totalExpense += monthlyExpense;
-      result.thisYear.totalExpense += monthlyExpense * 12;
-
-      // Count renewals (documents expiring in the current month)
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-
-      [
-        vehicle.rc_expiry_date,
-        vehicle.insurance_expiry_date,
-        vehicle.fitness_expiry_date,
-        vehicle.permit_expiry_date,
-        vehicle.puc_expiry_date,
-        vehicle.tax_paid_upto
-      ].forEach(date => {
-        if (date) {
-          const expiryDate = new Date(date);
-          if (expiryDate.getMonth() === currentMonth && expiryDate.getFullYear() === currentYear) {
-            result.thisMonth.renewalsCount++;
-          }
-        }
-      });
-
-      // Count lapsed documents (already expired)
-      [
-        { date: vehicle.rc_expiry_date, status: getExpiryStatus(vehicle.rc_expiry_date || null) },
-        { date: vehicle.insurance_expiry_date, status: getExpiryStatus(vehicle.insurance_expiry_date || null) },
-        { date: vehicle.fitness_expiry_date, status: getExpiryStatus(vehicle.fitness_expiry_date || null) },
-        { date: vehicle.permit_expiry_date, status: getExpiryStatus(vehicle.permit_expiry_date || null) },
-        { date: vehicle.puc_expiry_date, status: getExpiryStatus(vehicle.puc_expiry_date || null) },
-        { date: vehicle.tax_paid_upto, status: getExpiryStatus(vehicle.tax_paid_upto || null) }
-      ].forEach(doc => {
-        if (doc.status === 'expired') {
-          result.thisMonth.lapsedCount++;
-        }
-      });
+      if (isWithinThisMonth(vehicle.insurance_expiry_date)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'insurance',
+          vehicle
+        });
+      }
+      
+      if (isWithinThisMonth(vehicle.fitness_expiry_date)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'fitness',
+          vehicle
+        });
+      }
+      
+      if (isWithinThisMonth(vehicle.permit_expiry_date)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'permit',
+          vehicle
+        });
+      }
+      
+      if (isWithinThisMonth(vehicle.puc_expiry_date)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'puc',
+          vehicle
+        });
+      }
+      
+      if (isWithinThisMonth(vehicle.tax_paid_upto)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'tax',
+          vehicle
+        });
+      }
+      
+      if (isWithinThisMonth(vehicle.rc_expiry_date)) {
+        expiring.push({
+          vehicleId: vehicle.id, 
+          type: 'rc',
+          vehicle
+        });
+      }
+      
+      return expiring;
     });
+    
+    const expectedExpense = expiringDocsThisMonth.reduce((total, doc) => {
+      let previousCost = getLastRenewalCost(doc.vehicle, doc.type);
+      
+      // If no specific cost found, use fleet average
+      if (!previousCost) {
+        previousCost = getFleetAverageCost(doc.type, vehicles);
+      }
+      
+      const inflationRate = getInflationRateForDocType(doc.type);
+      const projectedCost = previousCost * (1 + inflationRate);
+      
+      return total + projectedCost;
+    }, 0);
+    
+    result.thisMonth.expectedExpense = Math.round(expectedExpense);
+    result.thisMonth.renewalsCount = expiringDocsThisMonth.length;
+    
+    // Count lapsed/expired documents
+    const lapsedDocs = vehicles.flatMap(vehicle => {
+      const lapsed = [];
+      
+      const checkLapsed = (dateField: string | null, type: string) => {
+        if (dateField && getExpiryStatus(dateField) === 'expired') {
+          lapsed.push({ vehicleId: vehicle.id, type });
+        }
+      };
+      
+      checkLapsed(vehicle.rc_expiry_date, 'rc');
+      checkLapsed(vehicle.insurance_expiry_date, 'insurance');
+      checkLapsed(vehicle.fitness_expiry_date, 'fitness');
+      checkLapsed(vehicle.permit_expiry_date, 'permit');
+      checkLapsed(vehicle.puc_expiry_date, 'puc');
+      checkLapsed(vehicle.tax_paid_upto, 'tax');
+      
+      return lapsed;
+    });
+    
+    result.thisMonth.lapsedCount = lapsedDocs.length;
 
     return result;
   }, [vehicles]);
@@ -302,15 +446,16 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
       const month = subMonths(today, i);
       const monthName = format(month, 'MMM');
       
-      // Create monthly data with randomized but realistic values
+      // Create monthly data with randomized but realistic values for each document type
       const monthData: MonthlyExpenditure = {
         month: monthName,
-        rc: Math.floor(Math.random() * 15000),
-        insurance: Math.floor(Math.random() * 30000) + 30000,
+        rc: Math.floor(Math.random() * 5000) + 1000, // RC costs tend to be lower
+        insurance: Math.floor(Math.random() * 30000) + 30000, // Insurance costs are higher
         fitness: Math.floor(Math.random() * 5000) + 4000,
         permit: Math.floor(Math.random() * 10000) + 5000,
-        puc: Math.floor(Math.random() * 2000) + 1000,
-        tax: Math.floor(Math.random() * 8000) + 2000
+        puc: Math.floor(Math.random() * 2000) + 1000, // PUC costs are lower
+        tax: Math.floor(Math.random() * 8000) + 2000,
+        other: Math.floor(Math.random() * 5000) + 1000
       };
       
       months.push(monthData);
@@ -394,8 +539,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
             </div>
           ) : (
             <>
-              {/* Date Range Filter */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              {/* Date Range Filter - Made Sticky */}
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 sticky top-0 z-10">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Select
@@ -451,9 +596,12 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-sm text-gray-500">Total Doc Expense (Month)</p>
-                      <p className="mt-1 text-2xl font-semibold text-gray-900">
-                        ₹{metrics.thisMonth.totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      <p className="text-sm text-gray-500">Expected Doc Expense (Month)</p>
+                      <p className="mt-1 text-2xl font-semibold text-gray-900" title="Based on expiring documents this month and their last renewal cost (adjusted for inflation)">
+                        ₹{metrics.thisMonth.expectedExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Based on upcoming renewals with inflation
                       </p>
                     </div>
                     <div className="bg-primary-50 p-2 rounded-md">
@@ -676,26 +824,64 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                 
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
+                    <AreaChart
                       data={monthlyExpenditure}
                       margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
-                      barSize={20}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="month" />
                       <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
                       <Tooltip 
-                        formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, '']}
-                        itemSorter={(item: any) => -item.value}
+                        formatter={(value: any, name: string) => [`₹${value.toLocaleString('en-IN')}`, name]}
+                        labelFormatter={(label) => `Month: ${label}`}
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          borderRadius: '0.5rem',
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                        }}
                       />
-                      <Bar dataKey="rc" stackId="a" name="RC" fill={getBarColor('rc')} />
-                      <Bar dataKey="insurance" stackId="a" name="Insurance" fill={getBarColor('insurance')} />
-                      <Bar dataKey="fitness" stackId="a" name="Fitness" fill={getBarColor('fitness')} />
-                      <Bar dataKey="permit" stackId="a" name="Permit" fill={getBarColor('permit')} />
-                      <Bar dataKey="puc" stackId="a" name="PUC" fill={getBarColor('puc')} />
-                      <Bar dataKey="tax" stackId="a" name="Tax" fill={getBarColor('tax')} />
-                    </BarChart>
+                      <Area type="monotone" dataKey="rc" stackId="1" stroke={DOC_TYPE_COLORS.rc} fill={DOC_TYPE_COLORS.rc} name="RC" />
+                      <Area type="monotone" dataKey="insurance" stackId="1" stroke={DOC_TYPE_COLORS.insurance} fill={DOC_TYPE_COLORS.insurance} name="Insurance" />
+                      <Area type="monotone" dataKey="fitness" stackId="1" stroke={DOC_TYPE_COLORS.fitness} fill={DOC_TYPE_COLORS.fitness} name="Fitness" />
+                      <Area type="monotone" dataKey="permit" stackId="1" stroke={DOC_TYPE_COLORS.permit} fill={DOC_TYPE_COLORS.permit} name="Permit" />
+                      <Area type="monotone" dataKey="puc" stackId="1" stroke={DOC_TYPE_COLORS.puc} fill={DOC_TYPE_COLORS.puc} name="PUC" />
+                      <Area type="monotone" dataKey="tax" stackId="1" stroke={DOC_TYPE_COLORS.tax} fill={DOC_TYPE_COLORS.tax} name="Tax" />
+                      <Area type="monotone" dataKey="other" stackId="1" stroke={DOC_TYPE_COLORS.other} fill={DOC_TYPE_COLORS.other} name="Other" />
+                    </AreaChart>
                   </ResponsiveContainer>
+                </div>
+                
+                {/* Legend for document types */}
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.rc }}></span>
+                    <span className="text-xs">RC</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.insurance }}></span>
+                    <span className="text-xs">Insurance</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.fitness }}></span>
+                    <span className="text-xs">Fitness</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.permit }}></span>
+                    <span className="text-xs">Permit</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.puc }}></span>
+                    <span className="text-xs">PUC</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.tax }}></span>
+                    <span className="text-xs">Tax</span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.other }}></span>
+                    <span className="text-xs">Other</span>
+                  </div>
                 </div>
               </div>
 
