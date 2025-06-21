@@ -28,7 +28,12 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
             setWarehouseData(warehouse);
           } catch (error) {
             console.error('Error fetching warehouse:', error);
-            // Don't set loading error for warehouse failures, just log them
+            // Set loading error for warehouse failures
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+              setLoadingError('Unable to load warehouse data due to connection issues');
+            } else if (error instanceof Error && error.message.includes('Network connection failed')) {
+              setLoadingError('Unable to load warehouse data due to connection issues');
+            }
           }
         }
         
