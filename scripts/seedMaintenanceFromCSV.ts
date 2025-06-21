@@ -14,27 +14,29 @@ import { supabase } from '../src/utils/supabaseClient';
 interface MaintenanceCSVRecord {
   vehicle_number: string;
   maintenance_type: string;
-  vendor_name: string;
-  city: string;
-  contact_person: string;
-  maintenance_location: string;
+  service_vendor: string;
+  priority: string;
+  maintenance_tasks: string;
+  service_start_date: string;
+  service_end_date: string;
   odometer_reading: string;
-  maintenance_date: string;
-  invoice_number: string;
-  invoice_amount: string;
+  battery_serial_number: string;
   battery_brand: string;
-  tire_brand: string;
-  upload_url: string;
+  tyre_positions: string;
+  tyre_brand: string;
+  tyre_serial_numbers: string;
+  complaint_description: string;
+  resolution_summary: string;
+  total_cost: string;
+  status: string;
+  next_service_reminder: string;
+  is_battery_replaced: string;
+  is_tyre_replaced: string;
 }
 
 interface VehicleRecord {
   id: string;
   registration_number: string;
-}
-
-interface VendorRecord {
-  id: string;
-  name: string;
 }
 
 interface MaintenanceTaskCatalog {
@@ -49,13 +51,10 @@ const getTaskType = (maintenanceType: string) => {
   switch (maintenanceType.toLowerCase()) {
     case 'general':
       return 'general_scheduled_service';
-    case 'repair/replacement':
+    case 'repair':
       return 'wear_and_tear_replacement_repairs';
     case 'accidental':
       return 'accidental';
-    case 'battery replacement':
-    case 'tyre replacement':
-      return 'wear_and_tear_replacement_repairs';
     default:
       return 'others';
   }
@@ -65,70 +64,72 @@ const getTaskCategory = (maintenanceType: string) => {
   switch (maintenanceType.toLowerCase()) {
     case 'general':
       return 'General';
-    case 'repair/replacement':
+    case 'repair':
       return 'Repair/Replacement';
     case 'accidental':
       return 'Accidental';
-    case 'battery replacement':
-      return 'Battery Replacement';
-    case 'tyre replacement':
-      return 'Tyre Replacement';
     default:
       return 'Others';
   }
 };
 
-const getPriority = (maintenanceType: string) => {
-  switch (maintenanceType.toLowerCase()) {
-    case 'accidental':
+const getPriority = (priority: string) => {
+  switch (priority.toLowerCase()) {
+    case 'high':
       return 'high';
-    case 'repair/replacement':
-    case 'battery replacement':
-    case 'tyre replacement':
+    case 'medium':
       return 'medium';
-    default:
+    case 'low':
       return 'low';
+    default:
+      return 'medium';
   }
 };
 
-// Get appropriate task ids from catalog based on maintenance type
-const getTaskIdsFromCatalog = (maintenanceType: string, catalog: MaintenanceTaskCatalog[]): string[] => {
-  let category = '';
-  let taskName = '';
+// Parse tasks string into an array of task names
+const parseMaintenanceTasks = (tasksString: string): string[] => {
+  if (!tasksString) return [];
+  return tasksString.split(',').map(task => task.trim());
+};
 
-  switch (maintenanceType.toLowerCase()) {
-    case 'general':
-      category = 'Engine & Oil';
-      taskName = 'Engine Oil Change';
-      break;
-    case 'repair/replacement':
-      category = 'Engine & Oil';
-      taskName = 'Fuel Injector Cleaning';
-      break;
-    case 'battery replacement':
-      category = 'Electrical';
-      taskName = 'Battery Replacement';
-      break;
-    case 'tyre replacement':
-      category = 'Tyres & Wheels';
-      taskName = 'Front Tyre Change';
-      break;
-    case 'accidental':
-      category = 'Body & Exterior';
-      taskName = 'Denting & Painting';
-      break;
-    default:
-      category = 'Interior & Cabin';
-      taskName = 'AC Gas Refill';
+// Get appropriate task ids from catalog based on task names
+const getTaskIdsFromCatalog = (taskNames: string[], catalog: MaintenanceTaskCatalog[]): string[] => {
+  const taskIds: string[] = [];
+
+  taskNames.forEach(taskName => {
+    const task = catalog.find(t => !t.is_category && t.task_name.toLowerCase() === taskName.toLowerCase());
+    if (task) {
+      taskIds.push(task.id);
+    }
+  });
+
+  // If no matching tasks found, use a fallback approach
+  if (taskIds.length === 0 && taskNames.length > 0) {
+    // Look for partial matches
+    taskNames.forEach(taskName => {
+      const task = catalog.find(t => !t.is_category && t.task_name.toLowerCase().includes(taskName.toLowerCase()));
+      if (task) {
+        taskIds.push(task.id);
+      }
+    });
   }
 
-  // Find the matching task in the catalog
-  const task = catalog.find(
-    t => !t.is_category && 
-    t.task_name.toLowerCase() === taskName.toLowerCase()
-  );
+  // If still no matches, return at least one task ID (first non-category in the catalog)
+  if (taskIds.length === 0) {
+    const fallbackTask = catalog.find(t => !t.is_category);
+    if (fallbackTask) {
+      taskIds.push(fallbackTask.id);
+    }
+  }
 
-  return task ? [task.id] : [];
+  return taskIds;
+};
+
+const getStatusFromCSV = (status: string): 'open' | 'in_progress' | 'resolved' | 'escalated' | 'rework' => {
+  if (status.toLowerCase() === 'closed') {
+    return 'resolved';
+  }
+  return 'open'; // Default to 'open' for any other status
 };
 
 const seedMaintenanceFromCSV = async () => {
@@ -136,7 +137,7 @@ const seedMaintenanceFromCSV = async () => {
     console.log('Starting maintenance records seeding from CSV...');
     
     // Read the CSV file
-    const csvFilePath = path.resolve('data/avs_maintenance_seed.csv');
+    const csvFilePath = path.resolve('data/AVS_Maintenance_Seed_Data (1).csv');
     const csvData = fs.readFileSync(csvFilePath, 'utf8');
     
     // Parse the CSV data
@@ -163,20 +164,6 @@ const seedMaintenanceFromCSV = async () => {
     }
 
     console.log(`Found ${vehicles.length} vehicles in database`);
-
-    // Create a lookup for vendors and create any missing ones
-    const vendors = new Map<string, string>();
-    
-    // Create a temporary mapping for vendor_id to use in tasks
-    // In a real system, this would be fetched from the database
-    for (const record of data) {
-      if (!vendors.has(record.vendor_name)) {
-        const vendorId = nanoid(10);
-        vendors.set(record.vendor_name, vendorId);
-      }
-    }
-
-    console.log(`Created ${vendors.size} vendor mappings`);
 
     // Fetch maintenance task catalog
     const { data: tasksCatalog, error: catalogError } = await supabase
@@ -208,24 +195,23 @@ const seedMaintenanceFromCSV = async () => {
           continue;
         }
 
-        // Get vendor ID from the map
-        const vendorId = vendors.get(record.vendor_name);
-        if (!vendorId) {
-          console.warn(`Vendor not found: ${record.vendor_name}`);
-          errorCount++;
-          continue;
-        }
-
         // Convert maintenance_type to task_type
         const taskType = getTaskType(record.maintenance_type);
         const category = getTaskCategory(record.maintenance_type);
-        const priority = getPriority(record.maintenance_type);
+        const priority = getPriority(record.priority);
+        
+        // Parse maintenance tasks string into an array of task names
+        const taskNames = parseMaintenanceTasks(record.maintenance_tasks);
         
         // Get task IDs from catalog
-        const taskIds = getTaskIdsFromCatalog(record.maintenance_type, tasksCatalog);
+        const taskIds = getTaskIdsFromCatalog(taskNames, tasksCatalog);
 
-        // Parse date
-        const maintenanceDate = new Date(record.maintenance_date);
+        // Parse dates
+        const startDate = new Date(record.service_start_date);
+        const endDate = new Date(record.service_end_date);
+
+        // Map status from CSV (Closed/Open) to database status
+        const status = getStatusFromCSV(record.status);
         
         // Create maintenance_task record
         const { data: maintenanceTask, error: taskError } = await supabase
@@ -234,25 +220,31 @@ const seedMaintenanceFromCSV = async () => {
             vehicle_id: vehicle.id,
             task_type: taskType,
             title: taskIds, // Using task IDs as title
-            description: `${record.maintenance_type} - ${record.invoice_number}`,
-            status: 'resolved', // Assuming all imported tasks are resolved
+            description: `${record.maintenance_tasks} - ${record.complaint_description}`,
+            status: status,
             priority: priority,
-            garage_id: vendorId,
-            vendor_id: vendorId,
-            estimated_cost: parseFloat(record.invoice_amount),
-            actual_cost: parseFloat(record.invoice_amount),
+            garage_id: record.service_vendor, // Use service_vendor for garage_id (text type)
+            vendor_id: record.service_vendor, // Use service_vendor for vendor_id (text type)
+            estimated_cost: parseFloat(record.total_cost),
+            actual_cost: parseFloat(record.total_cost),
             bills: [{
               description: record.maintenance_type,
-              amount: parseFloat(record.invoice_amount),
-              vendor_name: record.vendor_name,
-              bill_number: record.invoice_number,
-              bill_date: record.maintenance_date
+              amount: parseFloat(record.total_cost),
+              vendor_name: record.service_vendor,
+              bill_number: nanoid(8),
+              bill_date: record.service_start_date
             }],
-            start_date: maintenanceDate.toISOString(),
-            end_date: maintenanceDate.toISOString(),
-            downtime_days: 1, // Assuming 1 day downtime for imported records
+            complaint_description: record.complaint_description,
+            resolution_summary: record.resolution_summary,
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            downtime_days: Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)),
             odometer_reading: parseInt(record.odometer_reading),
-            category: category
+            category: category,
+            next_service_due: record.next_service_reminder ? {
+              date: new Date(record.next_service_reminder).toISOString(),
+              reminder_set: true
+            } : null
           })
           .select()
           .single();
@@ -266,30 +258,26 @@ const seedMaintenanceFromCSV = async () => {
         // Prepare service task data
         const serviceTaskData: any = {
           maintenance_task_id: maintenanceTask.id,
-          vendor_id: vendorId,
+          vendor_id: record.service_vendor,
           tasks: taskIds,
-          cost: parseFloat(record.invoice_amount)
+          cost: parseFloat(record.total_cost)
         };
 
         // Add battery or tyre data if present
-        if (record.battery_brand) {
+        if (record.is_battery_replaced === 'true' && record.battery_brand) {
           serviceTaskData.battery_tracking = true;
-          serviceTaskData.battery_brand = record.battery_brand;
-          serviceTaskData.battery_serial = `SEED-${nanoid(8)}`;
           serviceTaskData.battery_data = {
-            serialNumber: `SEED-${nanoid(8)}`,
+            serialNumber: record.battery_serial_number || `SEED-${nanoid(8)}`,
             brand: record.battery_brand
           };
         }
 
-        if (record.tire_brand) {
+        if (record.is_tyre_replaced === 'true' && record.tyre_brand) {
           serviceTaskData.tyre_tracking = true;
-          serviceTaskData.tyre_brand = record.tire_brand;
-          serviceTaskData.tyre_positions = ['FL', 'FR'];
           serviceTaskData.tyre_data = {
-            positions: ['FL', 'FR'],
-            brand: record.tire_brand,
-            serialNumbers: `SEED-${nanoid(8)}`
+            positions: record.tyre_positions.split(',').map(pos => pos.trim()),
+            brand: record.tyre_brand,
+            serialNumbers: record.tyre_serial_numbers || `SEED-${nanoid(8)}`
           };
         }
 
@@ -305,7 +293,7 @@ const seedMaintenanceFromCSV = async () => {
         }
 
         successCount++;
-        console.log(`✓ Created maintenance record for ${record.vehicle_number}: ${record.maintenance_type} - ${record.invoice_number}`);
+        console.log(`✓ Created maintenance record for ${record.vehicle_number}: ${record.maintenance_type} - ${record.maintenance_tasks}`);
       } catch (error) {
         console.error(`Error processing record for ${record.vehicle_number}:`, error);
         errorCount++;
