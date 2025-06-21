@@ -1,11 +1,14 @@
-import { supabase } from '../src/utils/supabaseClient';
+// Load environment variables first, before any imports that might use them
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Now import other dependencies
 import fs from 'fs';
 import Papa from 'papaparse';
 import path from 'path';
-import dotenv from 'dotenv';
 import { nanoid } from 'nanoid';
-
-dotenv.config();
+// Import supabase client after environment variables are loaded
+import { supabase } from '../src/utils/supabaseClient';
 
 // Define interfaces for data models
 interface MaintenanceCSVRecord {
