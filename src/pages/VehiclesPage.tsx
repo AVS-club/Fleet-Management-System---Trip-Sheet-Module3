@@ -13,7 +13,7 @@ interface VehicleWithStats extends Vehicle {
 
 import { getVehicles, getVehicleStats, createVehicle, getTrips } from '../utils/storage';
 import { supabase } from '../utils/supabaseClient';
-import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText, AlertTriangle, FileCheck, TrendingUp, Trash2, Bell, Archive } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText, AlertTriangle, FileCheck, TrendingUp, Archive, Bell } from 'lucide-react';
 import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { toast } from 'react-toastify';
