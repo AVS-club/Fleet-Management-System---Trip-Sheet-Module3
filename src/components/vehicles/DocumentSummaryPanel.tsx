@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Vehicle } from '../../types';
 import { getVehicles } from '../../utils/storage';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;
