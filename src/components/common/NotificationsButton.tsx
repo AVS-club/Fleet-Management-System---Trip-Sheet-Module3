@@ -8,9 +8,15 @@ interface NotificationsButtonProps {
   module: ReminderModule;
   className?: string;
   count?: number;
+  iconOnly?: boolean;
 }
 
-const NotificationsButton: React.FC<NotificationsButtonProps> = ({ module, className, count }) => {
+const NotificationsButton: React.FC<NotificationsButtonProps> = ({ 
+  module, 
+  className, 
+  count,
+  iconOnly = false
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -59,9 +65,10 @@ const NotificationsButton: React.FC<NotificationsButtonProps> = ({ module, class
         className={className}
         aria-expanded={isOpen}
         aria-haspopup="true"
+        title="View Notifications"
       >
-        <Bell className="h-4 w-4 mr-2" />
-        Notifications
+        <Bell className="h-4 w-4" />
+        {!iconOnly && <span className="ml-2">Notifications</span>}
         {count && count > 0 && (
           <span className="ml-1 px-1.5 py-0.5 text-xs font-medium rounded-full bg-error-500 text-white">
             {count > 99 ? '99+' : count}

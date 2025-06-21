@@ -13,12 +13,13 @@ interface VehicleWithStats extends Vehicle {
 
 import { getVehicles, getVehicleStats, createVehicle, getTrips } from '../utils/storage';
 import { supabase } from '../utils/supabaseClient';
-import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText, AlertTriangle, FileCheck, TrendingUp } from 'lucide-react';
+import { Truck, Calendar, PenTool as PenToolIcon, PlusCircle, FileText, AlertTriangle, FileCheck, TrendingUp, Trash2, Bell, Archive } from 'lucide-react';
 import Button from '../components/ui/Button';
 import VehicleForm from '../components/vehicles/VehicleForm';
 import { toast } from 'react-toastify';
 import StatCard from '../components/dashboard/StatCard';
 import NotificationsButton from '../components/common/NotificationsButton';
+import DocumentSummaryPanel from '../components/vehicles/DocumentSummaryPanel';
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const VehiclesPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
+  const [showDocumentPanel, setShowDocumentPanel] = useState(false);
   
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -166,13 +168,27 @@ const VehiclesPage: React.FC = () => {
       actions={
         !isAddingVehicle && (
           <div className="flex space-x-3">
-            <NotificationsButton module="vehicles" />
+            <NotificationsButton 
+              module="vehicles" 
+              iconOnly={true}
+            />
+            
+            <Button
+              variant="outline"
+              onClick={() => setShowDocumentPanel(true)}
+              icon={<FileText className="h-4 w-4" />}
+              size="sm"
+              title="Vehicle Document Summary"
+            />
+            
             <Button
               variant="outline"
               onClick={() => setShowArchived(!showArchived)}
-            >
-              {showArchived ? 'Show Active Vehicles' : 'Show Archived Vehicles'}
-            </Button>
+              icon={<Archive className="h-4 w-4" />}
+              size="sm"
+              title={showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"}
+            />
+            
             <Button
               onClick={() => setIsAddingVehicle(true)}
               icon={<PlusCircle className="h-4 w-4" />}
@@ -397,6 +413,12 @@ const VehiclesPage: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Document Summary Panel */}
+      <DocumentSummaryPanel 
+        isOpen={showDocumentPanel} 
+        onClose={() => setShowDocumentPanel(false)} 
+      />
     </Layout>
   );
 };
