@@ -1,8 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Simplified environment variable access for Vite
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Handle both Vite (browser) and Node.js environments
+const getEnvVar = (key: string): string | undefined => {
+  // Check if we're in a Vite environment (browser)
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    return import.meta.env[key];
+  }
+  // Fallback to Node.js environment
+  return process.env[key];
+};
+
+// Get environment variables with cross-environment support
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 // Check if the environment variables are properly set
 const isValidUrl = (url: string | undefined): boolean => {
@@ -141,7 +151,8 @@ const createSupabaseClient = () => {
     supabaseUrl,
     hasAnonKey: !!supabaseAnonKey,
     isConfigured,
-    urlValid: isValidUrl(supabaseUrl)
+    urlValid: isValidUrl(supabaseUrl),
+    environment: typeof import.meta !== 'undefined' && import.meta.env ? 'Vite' : 'Node.js'
   });
 
   if (!isConfigured) {
