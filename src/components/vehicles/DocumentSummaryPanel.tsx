@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, IndianRupee, AlertCircle, FileCheck, ArrowLeft, ArrowRight, Download, Printer, Search, Bell } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell } from 'lucide-react';
+import { Vehicle } from '../../types';
+import { getVehicles } from '../../utils/storage';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area, Legend } from 'recharts';
-import { supabase } from '../../utils/supabaseClient';
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
-import { Vehicle } from '../../types';
+import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 
-// Types for document summary panel
-interface DocumentSummaryProps {
+interface DocumentSummaryPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// Document matrix interface
+// Types for document summary panel
 interface DocumentInfo {
   date: string | null;
   status: 'expired' | 'expiring' | 'valid' | 'missing';
@@ -176,19 +174,34 @@ const getInflationRateForDocType = (docType: string): number => {
 const isWithinThisMonth = (dateString: string | null): boolean => {
   if (!dateString) return false;
   
-  const date = new Date(dateString);
-  const now = new Date();
-  const startOfThisMonth = startOfMonth(now);
-  const endOfThisMonth = endOfMonth(now);
-  
-  return isWithinInterval(date, { start: startOfThisMonth, end: endOfThisMonth });
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const startOfThisMonth = startOfMonth(now);
+    const endOfThisMonth = endOfMonth(now);
+    
+    return isWithinInterval(date, { start: startOfThisMonth, end: endOfThisMonth });
+  } catch (error) {
+    return false;
+  }
 };
 
-const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose }) => {
+const isWithinDateRange = (dateString: string | null, dateRange: { start: Date, end: Date }): boolean => {
+  if (!dateString) return false;
+  
+  try {
+    const date = new Date(dateString);
+    return isWithinInterval(date, dateRange);
+  } catch (error) {
+    return false;
+  }
+};
+
+const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onClose }) => {
   // State variables
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'custom'>('thisMonth');
+  const [dateRange, setDateRange] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom'>('thisMonth');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
@@ -212,16 +225,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
       const fetchVehicles = async () => {
         setLoading(true);
         try {
-          const { data, error } = await supabase
-            .from('vehicles')
-            .select('*')
-            .order('registration_number');
-            
-          if (error) {
-            throw error;
-          }
-          
-          setVehicles(data || []);
+          const data = await getVehicles();
+          setVehicles(Array.isArray(data) ? data : []);
         } catch (error) {
           console.error('Error fetching vehicles:', error);
         } finally {
@@ -252,9 +257,16 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
       }
       case 'thisYear':
         return {
-          start: new Date(now.getFullYear(), 0, 1),
+          start: startOfYear(now),
           end: now
         };
+      case 'lastYear': {
+        const lastYear = subYears(now, 1);
+        return {
+          start: startOfYear(lastYear),
+          end: endOfYear(lastYear)
+        };
+      }
       case 'custom':
         return {
           start: new Date(customStartDate || new Date().toISOString().split('T')[0]),
@@ -268,12 +280,26 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     }
   }, [dateRange, customStartDate, customEndDate]);
 
-  // Generate document matrix data from vehicles
+  // Filter vehicles based on vehicle filter and search term
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter(vehicle => {
+      // Filter by vehicle id if selected
+      if (vehicleFilter !== 'all' && vehicle.id !== vehicleFilter) {
+        return false;
+      }
+
+      // Filter by search term if provided
+      if (searchTerm && !vehicle.registration_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [vehicles, vehicleFilter, searchTerm]);
+
+  // Generate document matrix data from filtered vehicles
   const documentMatrix = useMemo((): VehicleDocuments[] => {
-    return vehicles.filter(vehicle => 
-      !searchTerm || 
-      vehicle.registration_number.toLowerCase().includes(searchTerm.toLowerCase())
-    ).map(vehicle => ({
+    return filteredVehicles.map(vehicle => ({
       id: vehicle.id,
       registration: vehicle.registration_number,
       documents: {
@@ -303,9 +329,9 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         }
       }
     }));
-  }, [vehicles, searchTerm]);
+  }, [filteredVehicles]);
 
-  // Generate metrics data
+  // Generate metrics data based on filtered vehicles and date range
   const metrics = useMemo((): DocumentMetrics => {
     const result = {
       thisMonth: {
@@ -321,7 +347,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
 
     // Simulating document expenses (in a real app, this would come from the database)
     const monthlyExpense = (
-      vehicles.reduce((sum, vehicle) => {
+      filteredVehicles.reduce((sum, vehicle) => {
         return sum + 
           (vehicle.insurance_premium_amount || 0) / 12 + 
           (vehicle.fitness_cost || 0) / 12 + 
@@ -334,12 +360,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     result.thisMonth.totalExpense = monthlyExpense;
     result.thisYear.totalExpense = monthlyExpense * 12;
 
-    // Calculate expected expense for this month
+    // Calculate expected expense for filtered vehicles within date range
     const today = new Date();
-    const expiringDocsThisMonth = vehicles.flatMap(vehicle => {
+    const expiringDocsInRange = filteredVehicles.flatMap(vehicle => {
       const expiring = [];
       
-      if (isWithinThisMonth(vehicle.insurance_expiry_date)) {
+      // Check if document expiry dates fall within the selected date range
+      if (vehicle.insurance_expiry_date && isWithinDateRange(vehicle.insurance_expiry_date, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'insurance',
@@ -347,7 +374,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         });
       }
       
-      if (isWithinThisMonth(vehicle.fitness_expiry_date)) {
+      if (vehicle.fitness_expiry_date && isWithinDateRange(vehicle.fitness_expiry_date, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'fitness',
@@ -355,7 +382,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         });
       }
       
-      if (isWithinThisMonth(vehicle.permit_expiry_date)) {
+      if (vehicle.permit_expiry_date && isWithinDateRange(vehicle.permit_expiry_date, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'permit',
@@ -363,7 +390,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         });
       }
       
-      if (isWithinThisMonth(vehicle.puc_expiry_date)) {
+      if (vehicle.puc_expiry_date && isWithinDateRange(vehicle.puc_expiry_date, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'puc',
@@ -371,7 +398,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         });
       }
       
-      if (isWithinThisMonth(vehicle.tax_paid_upto)) {
+      if (vehicle.tax_paid_upto && isWithinDateRange(vehicle.tax_paid_upto, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'tax',
@@ -379,7 +406,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         });
       }
       
-      if (isWithinThisMonth(vehicle.rc_expiry_date)) {
+      if (vehicle.rc_expiry_date && isWithinDateRange(vehicle.rc_expiry_date, effectiveDateRange)) {
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'rc',
@@ -390,12 +417,12 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
       return expiring;
     });
     
-    const expectedExpense = expiringDocsThisMonth.reduce((total, doc) => {
+    const expectedExpense = expiringDocsInRange.reduce((total, doc) => {
       let previousCost = getLastRenewalCost(doc.vehicle, doc.type);
       
       // If no specific cost found, use fleet average
       if (!previousCost) {
-        previousCost = getFleetAverageCost(doc.type, vehicles);
+        previousCost = getFleetAverageCost(doc.type, filteredVehicles);
       }
       
       const inflationRate = getInflationRateForDocType(doc.type);
@@ -405,10 +432,10 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     }, 0);
     
     result.thisMonth.expectedExpense = Math.round(expectedExpense);
-    result.thisMonth.renewalsCount = expiringDocsThisMonth.length;
+    result.thisMonth.renewalsCount = expiringDocsInRange.length;
     
-    // Count lapsed/expired documents
-    const lapsedDocs = vehicles.flatMap(vehicle => {
+    // Count lapsed/expired documents for filtered vehicles
+    const lapsedDocs = filteredVehicles.flatMap(vehicle => {
       const lapsed = [];
       
       const checkLapsed = (dateField: string | null, type: string) => {
@@ -430,12 +457,12 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
     result.thisMonth.lapsedCount = lapsedDocs.length;
 
     return result;
-  }, [vehicles]);
+  }, [filteredVehicles, effectiveDateRange]);
 
-  // Generate monthly expenditure data
+  // Generate monthly expenditure data for filtered vehicles
   const monthlyExpenditure = useMemo((): MonthlyExpenditure[] => {
     // In a real app, this data would come from the database with actual costs
-    // For now, we'll generate mock data based on the current date
+    // For now, we'll generate data based on filtered vehicles
     
     const today = new Date();
     const months: MonthlyExpenditure[] = [];
@@ -445,27 +472,31 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
       const month = subMonths(today, i);
       const monthName = format(month, 'MMM');
       
+      // Simulate costs for this month based on filtered vehicles
+      const baseMultiplier = filteredVehicles.length / Math.max(vehicles.length, 1);
+      const randomFactor = 0.7 + Math.random() * 0.6; // Between 0.7 and 1.3
+      
       // Create monthly data with randomized but realistic values for each document type
       const monthData: MonthlyExpenditure = {
         month: monthName,
-        rc: Math.floor(Math.random() * 5000) + 1000, // RC costs tend to be lower
-        insurance: Math.floor(Math.random() * 30000) + 30000, // Insurance costs are higher
-        fitness: Math.floor(Math.random() * 5000) + 4000,
-        permit: Math.floor(Math.random() * 10000) + 5000,
-        puc: Math.floor(Math.random() * 2000) + 1000, // PUC costs are lower
-        tax: Math.floor(Math.random() * 8000) + 2000,
-        other: Math.floor(Math.random() * 5000) + 1000
+        rc: Math.floor((Math.random() * 5000) + 1000) * baseMultiplier * randomFactor, 
+        insurance: Math.floor((Math.random() * 30000) + 30000) * baseMultiplier * randomFactor,
+        fitness: Math.floor((Math.random() * 5000) + 4000) * baseMultiplier * randomFactor,
+        permit: Math.floor((Math.random() * 10000) + 5000) * baseMultiplier * randomFactor,
+        puc: Math.floor((Math.random() * 2000) + 1000) * baseMultiplier * randomFactor,
+        tax: Math.floor((Math.random() * 8000) + 2000) * baseMultiplier * randomFactor,
+        other: Math.floor((Math.random() * 5000) + 1000) * baseMultiplier * randomFactor
       };
       
       months.push(monthData);
     }
     
     return months;
-  }, []);
+  }, [filteredVehicles, vehicles.length]);
 
-  // Generate vehicle expenditure data
+  // Generate vehicle expenditure data for filtered vehicles
   const vehicleExpenditure = useMemo((): VehicleExpenditure[] => {
-    return vehicles.map(vehicle => {
+    return filteredVehicles.map(vehicle => {
       // Calculate total document expenses for this vehicle
       const totalAmount = (
         (vehicle.insurance_premium_amount || 0) + 
@@ -480,7 +511,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
         amount: totalAmount || Math.floor(Math.random() * 80000) + 20000 // Fallback to random amount if no data
       };
     }).sort((a, b) => b.amount - a.amount); // Sort by highest amount first
-  }, [vehicles]);
+  }, [filteredVehicles]);
 
   // Format date for display
   const formatDate = (dateString: string | null) => {
@@ -509,7 +540,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
               variant="outline"
               size="sm"
               onClick={() => {}}
-              icon={<Printer className="h-4 w-4" />}
+              icon={<Print className="h-4 w-4" />}
               title="Print Report"
             />
             <Button
@@ -548,6 +579,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                         { value: 'thisMonth', label: 'This Month' },
                         { value: 'lastMonth', label: 'Last Month' },
                         { value: 'thisYear', label: 'This Year' },
+                        { value: 'lastYear', label: 'Last Year' },
                         { value: 'custom', label: 'Custom Range' }
                       ]}
                       value={dateRange}
@@ -653,7 +685,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
               </div>
 
               {/* Matrix Table - Document Status */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                   <h3 className="font-medium text-gray-700">Document Status Matrix</h3>
                   <div className="flex items-center gap-3">
@@ -687,36 +719,36 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
                           Vehicle Number
                         </th>
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             RC Expiry
                           </th>
                         )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Insurance
                           </th>
                         )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Fitness Certificate
                           </th>
                         )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Permit
                           </th>
                         )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             PUC
                           </th>
                         )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
-                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Tax
                           </th>
                         )}
@@ -726,47 +758,47 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                       {documentMatrix.length > 0 ? (
                         documentMatrix.map((vehicle) => (
                           <tr key={vehicle.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-100">
+                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-100">
                               {vehicle.registration}
                             </td>
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.rc.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.rc.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.rc.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.rc.status}</div>
                               </td>
                             )}
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.insurance.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.insurance.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.insurance.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.insurance.status}</div>
                               </td>
                             )}
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.fitness.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.fitness.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.fitness.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.fitness.status}</div>
                               </td>
                             )}
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.permit.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.permit.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.permit.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.permit.status}</div>
                               </td>
                             )}
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.puc.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.puc.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.puc.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.puc.status}</div>
                               </td>
                             )}
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
-                              <td className={`px-4 py-3 text-center ${getStatusColorClass(vehicle.documents.tax.status)}`}>
+                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.tax.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.tax.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.tax.status}</div>
                               </td>
@@ -775,7 +807,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                          <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
                             {searchTerm ? 'No vehicles found matching your search criteria' : 'No vehicle documents found'}
                           </td>
                         </tr>
@@ -827,6 +859,36 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                       data={monthlyExpenditure}
                       margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
                     >
+                      <defs>
+                        <linearGradient id="rcGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.rc} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.rc} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="insuranceGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.insurance} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.insurance} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="fitnessGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.fitness} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.fitness} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="permitGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.permit} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.permit} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="pucGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.puc} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.puc} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="taxGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.tax} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.tax} stopOpacity={0.2}/>
+                        </linearGradient>
+                        <linearGradient id="otherGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.other} stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.other} stopOpacity={0.2}/>
+                        </linearGradient>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis 
                         dataKey="month" 
@@ -844,13 +906,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                           boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
                         }}
                       />
-                      <Area type="monotone" dataKey="rc" stackId="1" stroke={DOC_TYPE_COLORS.rc} fill={DOC_TYPE_COLORS.rc} name="RC" />
-                      <Area type="monotone" dataKey="insurance" stackId="1" stroke={DOC_TYPE_COLORS.insurance} fill={DOC_TYPE_COLORS.insurance} name="Insurance" />
-                      <Area type="monotone" dataKey="fitness" stackId="1" stroke={DOC_TYPE_COLORS.fitness} fill={DOC_TYPE_COLORS.fitness} name="Fitness" />
-                      <Area type="monotone" dataKey="permit" stackId="1" stroke={DOC_TYPE_COLORS.permit} fill={DOC_TYPE_COLORS.permit} name="Permit" />
-                      <Area type="monotone" dataKey="puc" stackId="1" stroke={DOC_TYPE_COLORS.puc} fill={DOC_TYPE_COLORS.puc} name="PUC" />
-                      <Area type="monotone" dataKey="tax" stackId="1" stroke={DOC_TYPE_COLORS.tax} fill={DOC_TYPE_COLORS.tax} name="Tax" />
-                      <Area type="monotone" dataKey="other" stackId="1" stroke={DOC_TYPE_COLORS.other} fill={DOC_TYPE_COLORS.other} name="Other" />
+                      <Area type="monotone" dataKey="rc" stackId="1" stroke={DOC_TYPE_COLORS.rc} fill="url(#rcGradient)" name="RC" />
+                      <Area type="monotone" dataKey="insurance" stackId="1" stroke={DOC_TYPE_COLORS.insurance} fill="url(#insuranceGradient)" name="Insurance" />
+                      <Area type="monotone" dataKey="fitness" stackId="1" stroke={DOC_TYPE_COLORS.fitness} fill="url(#fitnessGradient)" name="Fitness" />
+                      <Area type="monotone" dataKey="permit" stackId="1" stroke={DOC_TYPE_COLORS.permit} fill="url(#permitGradient)" name="Permit" />
+                      <Area type="monotone" dataKey="puc" stackId="1" stroke={DOC_TYPE_COLORS.puc} fill="url(#pucGradient)" name="PUC" />
+                      <Area type="monotone" dataKey="tax" stackId="1" stroke={DOC_TYPE_COLORS.tax} fill="url(#taxGradient)" name="Tax" />
+                      <Area type="monotone" dataKey="other" stackId="1" stroke={DOC_TYPE_COLORS.other} fill="url(#otherGradient)" name="Other" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
