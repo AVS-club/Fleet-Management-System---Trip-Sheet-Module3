@@ -12,6 +12,7 @@ import AlertActionModal from '../components/alerts/AlertActionModal';
 import AlertDetailsModal from '../components/alerts/AlertDetailsModal';
 import AlertTypeTag from '../components/alerts/AlertTypeTag';
 import { safeFormatDate, formatRelativeDate } from '../utils/dateUtils';
+import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
 import { Vehicle } from '../types';
 import { toast } from 'react-toastify';
@@ -157,21 +158,44 @@ const AIAlertsPage: React.FC = () => {
     
     const { expected_value, actual_value, deviation } = alert.metadata;
     
-    if (expected_value !== undefined && actual_value !== undefined && deviation !== undefined) {
-      const deviationSymbol = deviation > 0 ? '↑' : '↓';
-      const absDeviation = Math.abs(Number(deviation));
-      
-      return (
-        <div>
-          <div className="font-medium">{alert.title}</div>
-          <div className="text-xs text-gray-600 mt-1">
-            Expected: {expected_value}, Actual: {actual_value} 
-            <span className={deviation > 0 ? 'text-error-600' : 'text-success-600'}>
-              {' '}{deviationSymbol}{absDeviation.toFixed(1)}%
-            </span>
+    if (expected_value !== undefined && actual_value !== undefined) {
+      // Special handling for fuel anomaly alerts
+      if (alert.alert_type === 'fuel_anomaly') {
+        const expectedMileage = Number(expected_value);
+        const actualMileage = Number(actual_value);
+        const calculatedDeviation = ((actualMileage - expectedMileage) / expectedMileage) * 100;
+        
+        const formattedExpected = expectedMileage.toFixed(2);
+        const formattedActual = actualMileage.toFixed(2);
+        const formattedDeviation = calculatedDeviation.toFixed(1);
+        
+        return (
+          <div>
+            <div className="font-medium">Fuel anomaly detected: {formattedActual} km/L ({formattedDeviation}%)</div>
+            <div className="text-xs text-gray-600 mt-1">
+              Expected: {formattedExpected}, Actual: {formattedActual}
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
+      
+      // General handling for other alert types with deviation
+      if (deviation !== undefined) {
+        const deviationSymbol = deviation > 0 ? '↑' : '↓';
+        const absDeviation = Math.abs(Number(deviation));
+        
+        return (
+          <div>
+            <div className="font-medium">{alert.title}</div>
+            <div className="text-xs text-gray-600 mt-1">
+              Expected: {expected_value}, Actual: {actual_value} 
+              <span className={deviation > 0 ? 'text-error-600' : 'text-success-600'}>
+                {' '}{deviationSymbol}{absDeviation.toFixed(1)}%
+              </span>
+            </div>
+          </div>
+        );
+      }
     }
     
     return alert.description;
