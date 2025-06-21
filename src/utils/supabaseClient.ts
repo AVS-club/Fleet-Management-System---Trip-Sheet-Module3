@@ -1,8 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Simplified environment variable access for Vite
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Detect environment and get appropriate env variables
+let supabaseUrl: string | undefined;
+let supabaseAnonKey: string | undefined;
+
+// In Node.js environment (scripts)
+if (typeof process !== 'undefined' && process.env) {
+  supabaseUrl = process.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  console.log('Node.js environment detected, using process.env');
+} else {
+  // In browser environment (Vite)
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  console.log('Browser environment detected, using import.meta.env');
+}
 
 // Check if the environment variables are properly set
 const isValidUrl = (url: string | undefined): boolean => {
@@ -141,7 +153,8 @@ const createSupabaseClient = () => {
     supabaseUrl,
     hasAnonKey: !!supabaseAnonKey,
     isConfigured,
-    urlValid: isValidUrl(supabaseUrl)
+    urlValid: isValidUrl(supabaseUrl),
+    environment: typeof process !== 'undefined' && process.env ? 'Node.js' : 'Browser'
   });
 
   if (!isConfigured) {
@@ -155,7 +168,7 @@ const createSupabaseClient = () => {
 
   try {
     // Create the client with standard configuration
-    const client = createClient(supabaseUrl, supabaseAnonKey, {
+    const client = createClient(supabaseUrl!, supabaseAnonKey!, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
