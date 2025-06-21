@@ -1,43 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Handle both Vite and Node.js environments for environment variables
-const getEnvVar = (key: string): string | undefined => {
-  // Try Vite environment first (browser/dev)
-  try {
-    if (typeof import.meta === 'object' && import.meta !== null && 'env' in import.meta && typeof import.meta.env === 'object' && import.meta.env !== null) {
-      const value = import.meta.env[key];
-      if (value) return value;
-    }
-  } catch (e) {
-    // Ignore errors if import.meta is not available or not properly defined
-  }
-  
-  // Fall back to Node.js environment (scripts)
-  try {
-    if (typeof process === 'object' && process !== null && 'env' in process && typeof process.env === 'object' && process.env !== null) {
-      // Try with the original key
-      const value = process.env[key];
-      if (value) return value;
-      
-      // Try without VITE_ prefix if key starts with VITE_
-      if (key.startsWith('VITE_')) {
-        const nonViteKey = key.substring(5); // Remove 'VITE_' prefix
-        const nonViteValue = process.env[nonViteKey];
-        if (nonViteValue) return nonViteValue;
-      }
-    }
-  } catch (e) {
-    // Ignore errors if process.env is not available or not properly defined
-  }
-  
-  return undefined;
-};
-
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+// Simplified environment variable access for Vite
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Check if the environment variables are properly set
-const isValidUrl = (url: string) => {
+const isValidUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
   try {
     new URL(url);
     return true;
@@ -167,8 +136,20 @@ const createMockClient = () => {
 
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
+  // Add debugging information
+  console.log('Supabase configuration check:', {
+    supabaseUrl,
+    hasAnonKey: !!supabaseAnonKey,
+    isConfigured,
+    urlValid: isValidUrl(supabaseUrl)
+  });
+
   if (!isConfigured) {
     console.warn('Supabase is not properly configured. Using mock client.');
+    console.warn('Environment variables:', {
+      VITE_SUPABASE_URL: supabaseUrl,
+      VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? 'Present' : 'Missing'
+    });
     return createMockClient() as any;
   }
 
@@ -186,6 +167,7 @@ const createSupabaseClient = () => {
       }
     });
 
+    console.log('Supabase client created successfully');
     return client;
   } catch (error) {
     console.error('Error initializing Supabase client:', error);
@@ -245,12 +227,3 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     return false;
   }
 };
-
-// Log configuration status on startup
-if (typeof window !== 'undefined') {
-  console.log('Supabase configuration status:', {
-    configured: isConfigured,
-    url: supabaseUrl,
-    hasAnonKey: !!supabaseAnonKey
-  });
-}
