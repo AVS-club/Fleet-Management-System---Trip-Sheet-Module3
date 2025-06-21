@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, IndianRupee, AlertCircle, FileCheck, ArrowLeft, ArrowRight, Download, Printer, Search } from 'lucide-react';
+import { X, Calendar, IndianRupee, AlertCircle, FileCheck, ArrowLeft, ArrowRight, Download, Printer, Search, Bell } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -91,13 +91,13 @@ const getExpiryStatus = (expiryDate: string | null): 'expired' | 'expiring' | 'v
 const getStatusColorClass = (status: string) => {
   switch(status) {
     case 'expired':
-      return 'bg-error-100 text-error-800 border border-error-200';
+      return 'bg-error-100 border-error-200 text-error-800';
     case 'expiring':
-      return 'bg-warning-100 text-warning-800 border border-warning-200';
+      return 'bg-warning-100 border-warning-200 text-warning-800';
     case 'valid':
-      return 'bg-success-100 text-success-800 border border-success-200';
+      return 'bg-success-100 border-success-200 text-success-800';
     default:
-      return 'bg-gray-100 text-gray-800 border border-gray-200';
+      return 'bg-gray-100 border-gray-200 text-gray-800';
   }
 };
 
@@ -188,7 +188,6 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
   // State variables
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [dateRange, setDateRange] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'custom'>('thisMonth');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -628,12 +627,12 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-sm text-gray-500">Renewals This Month</p>
-                      <p className="mt-1 text-2xl font-semibold text-primary-600">
+                      <p className="mt-1 text-2xl font-semibold text-success-600">
                         {metrics.thisMonth.renewalsCount}
                       </p>
                     </div>
-                    <div className="bg-primary-50 p-2 rounded-md">
-                      <FileCheck className="h-5 w-5 text-primary-600" />
+                    <div className="bg-success-50 p-2 rounded-md">
+                      <FileCheck className="h-5 w-5 text-success-600" />
                     </div>
                   </div>
                 </div>
@@ -829,7 +828,11 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
                       margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="month" />
+                      <XAxis 
+                        dataKey="month" 
+                        tick={{ fontSize: 12 }}
+                        tickLine={false}
+                      />
                       <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
                       <Tooltip 
                         formatter={(value: any, name: string) => [`₹${value.toLocaleString('en-IN')}`, name]}
@@ -888,7 +891,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryProps> = ({ isOpen, onClose 
               {/* Expenditure by Vehicle Chart */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium text-gray-700">Documentation Expenditure by Vehicle</h3>
+                  <h3 className="font-medium text-gray-700">Expenditure by Vehicle</h3>
                 </div>
                 
                 <div className="h-80">
