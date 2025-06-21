@@ -3,13 +3,33 @@ import { createClient } from '@supabase/supabase-js';
 // Handle both Vite and Node.js environments for environment variables
 const getEnvVar = (key: string): string | undefined => {
   // Try Vite environment first (browser/dev)
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    return import.meta.env[key];
+  try {
+    if (typeof import.meta === 'object' && import.meta !== null && 'env' in import.meta && typeof import.meta.env === 'object' && import.meta.env !== null) {
+      const value = import.meta.env[key];
+      if (value) return value;
+    }
+  } catch (e) {
+    // Ignore errors if import.meta is not available or not properly defined
   }
+  
   // Fall back to Node.js environment (scripts)
-  if (typeof process !== 'undefined' && process.env) {
-    return process.env[key];
+  try {
+    if (typeof process === 'object' && process !== null && 'env' in process && typeof process.env === 'object' && process.env !== null) {
+      // Try with the original key
+      const value = process.env[key];
+      if (value) return value;
+      
+      // Try without VITE_ prefix if key starts with VITE_
+      if (key.startsWith('VITE_')) {
+        const nonViteKey = key.substring(5); // Remove 'VITE_' prefix
+        const nonViteValue = process.env[nonViteKey];
+        if (nonViteValue) return nonViteValue;
+      }
+    }
+  } catch (e) {
+    // Ignore errors if process.env is not available or not properly defined
   }
+  
   return undefined;
 };
 
