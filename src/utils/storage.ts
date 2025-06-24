@@ -1,54 +1,65 @@
-import { Trip, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../types'; 
-import { supabase } from './supabaseClient';
-import { logVehicleActivity } from './vehicleActivity';
-import { uploadVehicleDocument } from './supabaseStorage';
+import {
+  Trip,
+  Vehicle,
+  Driver,
+  Warehouse,
+  Destination,
+  RouteAnalysis,
+  Alert,
+} from "../types";
+import { supabase } from "./supabaseClient";
+import { logVehicleActivity } from "./vehicleActivity";
+import { uploadVehicleDocument } from "./supabaseStorage";
 
 // Helper function to convert camelCase to snake_case
-const toSnakeCase = (str: string) => 
-  str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+const toSnakeCase = (str: string) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
 // Convert object keys from camelCase to snake_case
-const convertKeysToSnakeCase = (obj: Record<string, any>): Record<string, any> => {
+const convertKeysToSnakeCase = (
+  obj: Record<string, any>
+): Record<string, any> => {
   const newObj: Record<string, any> = {};
-  
-  Object.keys(obj).forEach(key => {
+
+  Object.keys(obj).forEach((key) => {
     const newKey = toSnakeCase(key);
     const value = obj[key];
-    
-    newObj[newKey] = value && typeof value === 'object' && !Array.isArray(value)
-      ? convertKeysToSnakeCase(value)
-      : value;
+
+    newObj[newKey] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? convertKeysToSnakeCase(value)
+        : value;
   });
-  
+
   return newObj;
 };
-import { calculateMileage } from './mileageCalculator';
+import { calculateMileage } from "./mileageCalculator";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
   try {
     const fileName = `${vehicle.id}.json`;
     const filePath = fileName;
-    
+
     // Create JSON blob
     const jsonBlob = new Blob([JSON.stringify(vehicle, null, 2)], {
-      type: 'application/json'
+      type: "application/json",
     });
-    
+
     // Upload to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from('vehicle-profiles')
+      .from("vehicle-profiles")
       .upload(filePath, jsonBlob, {
         upsert: true,
-        contentType: 'application/json'
+        contentType: "application/json",
       });
-      
+
     if (uploadError) {
-      console.error('Error uploading vehicle profile:', uploadError);
+      console.error("Error uploading vehicle profile:", uploadError);
       // Don't throw error to avoid breaking the main operation
     }
   } catch (error) {
-    console.error('Error creating vehicle profile JSON:', error);
+    console.error("Error creating vehicle profile JSON:", error);
     // Don't throw error to avoid breaking the main operation
   }
 };
@@ -57,7 +68,7 @@ const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
 const generateTripId = async (vehicleId: string): Promise<string> => {
   // Validate vehicleId
   if (!vehicleId) {
-    throw new Error('Vehicle ID is required to generate a trip ID');
+    throw new Error("Vehicle ID is required to generate a trip ID");
   }
 
   const vehicle = await getVehicle(vehicleId);
@@ -69,52 +80,59 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
   // Extract last 4 digits from registration number
   const regMatch = vehicle.registration_number.match(/\d{4}$/);
   if (!regMatch) {
-    console.error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
-    throw new Error(`Invalid registration format for vehicle: ${vehicle.registration_number}`);
+    console.error(
+      `Invalid registration format for vehicle: ${vehicle.registration_number}`
+    );
+    throw new Error(
+      `Invalid registration format for vehicle: ${vehicle.registration_number}`
+    );
   }
-  
+
   const prefix = regMatch[0];
-  
+
   // Get latest trip number for this vehicle
   const { data: latestTrip } = await supabase
-    .from('trips')
-    .select('trip_serial_number')
-    .eq('vehicle_id', vehicleId)
-    .order('trip_serial_number', { ascending: false })
+    .from("trips")
+    .select("trip_serial_number")
+    .eq("vehicle_id", vehicleId)
+    .order("trip_serial_number", { ascending: false })
     .limit(1);
 
-  const lastNum = latestTrip?.[0]?.trip_serial_number 
+  const lastNum = latestTrip?.[0]?.trip_serial_number
     ? parseInt(latestTrip[0].trip_serial_number.slice(-4))
     : 0;
 
   const nextNum = lastNum + 1;
 
   // Format: XXXX0001 where XXXX is last 4 digits of registration
-  return `${prefix}${String(nextNum).padStart(4, '0')}`;
+  return `${prefix}${String(nextNum).padStart(4, "0")}`;
 };
 
 // Trips CRUD operations with Supabase
 export const getTrips = async (): Promise<Trip[]> => {
   try {
     const { data, error } = await supabase
-      .from('trips')
-      .select('*')
-      .order('trip_start_date', { ascending: false });
+      .from("trips")
+      .select("*")
+      .order("trip_start_date", { ascending: false });
 
     if (error) {
-      console.error('Error fetching trips:', error);
+      console.error("Error fetching trips:", error);
       // If it's a network error, throw it to be handled by the calling component
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error('Network connection failed while fetching trips');
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching trips");
       }
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Error in getTrips:', error);
+    console.error("Error in getTrips:", error);
     // Re-throw network errors so they can be handled appropriately
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
       throw error;
     }
     return [];
@@ -124,84 +142,92 @@ export const getTrips = async (): Promise<Trip[]> => {
 export const getTrip = async (id: string): Promise<Trip | null> => {
   try {
     const { data, error } = await supabase
-      .from('trips')
-      .select('*')
-      .eq('id', id)
+      .from("trips")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error('Error fetching trip:', error);
+      console.error("Error fetching trip:", error);
       // If it's a network error, throw it to be handled by the calling component
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error('Network connection failed while fetching trip');
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching trip");
       }
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getTrip:', error);
+    console.error("Error in getTrip:", error);
     // Re-throw network errors so they can be handled appropriately
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
       throw error;
     }
     return null;
   }
 };
 
-export const createTrip = async (trip: Omit<Trip, 'id' | 'trip_serial_number'>): Promise<Trip | null> => {
+export const createTrip = async (
+  trip: Omit<Trip, "id" | "trip_serial_number">
+): Promise<Trip | null> => {
   // Validate required fields
   if (!trip.vehicle_id) {
-    console.error('Vehicle ID is missing for trip creation');
-    throw new Error('Vehicle ID is required to create a trip');
+    console.error("Vehicle ID is missing for trip creation");
+    throw new Error("Vehicle ID is required to create a trip");
   }
 
   const tripId = await generateTripId(trip.vehicle_id);
-  
+
   // Ensure material_type_ids is properly handled
   const tripData = {
     ...trip,
-    trip_serial_number: tripId
+    trip_serial_number: tripId,
   };
-  
+
   const { data, error } = await supabase
-    .from('trips')
+    .from("trips")
     .insert(tripData)
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating trip:', error);
+    console.error("Error creating trip:", error);
     return null;
   }
 
   return data;
 };
 
-export const updateTrip = async (id: string, updatedTrip: Partial<Trip>): Promise<Trip | null> => {
+export const updateTrip = async (
+  id: string,
+  updatedTrip: Partial<Trip>
+): Promise<Trip | null> => {
   const { data: oldTrip } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('id', id)
+    .from("trips")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (!oldTrip) {
-    console.error('Trip not found:', id);
+    console.error("Trip not found:", id);
     return null;
   }
 
   const { data, error } = await supabase
-    .from('trips')
+    .from("trips")
     .update({
       ...updatedTrip,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating trip:', error);
+    console.error("Error updating trip:", error);
     return null;
   }
 
@@ -209,35 +235,35 @@ export const updateTrip = async (id: string, updatedTrip: Partial<Trip>): Promis
 };
 
 export const deleteTrip = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('trips')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("trips").delete().eq("id", id);
 
   if (error) {
-    console.error('Error deleting trip:', error);
+    console.error("Error deleting trip:", error);
     return false;
   }
 
   return true;
 };
 
-export const recalculateMileageForAffectedTrips = async (changedTrip: Trip): Promise<void> => {
+export const recalculateMileageForAffectedTrips = async (
+  changedTrip: Trip
+): Promise<void> => {
   const { data: trips } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('vehicle_id', changedTrip.vehicle_id)
-    .gte('trip_end_date', changedTrip.trip_end_date)
-    .order('trip_end_date', { ascending: true });
+    .from("trips")
+    .select("*")
+    .eq("vehicle_id", changedTrip.vehicle_id)
+    .gte("trip_end_date", changedTrip.trip_end_date)
+    .order("trip_end_date", { ascending: true });
 
   if (!trips || !Array.isArray(trips) || trips.length === 0) return;
 
   // Find all refueling trips for the same vehicle that occurred after the changed trip
-  const affectedTrips = trips.filter(trip => 
-    trip.refueling_done &&
-    trip.fuel_quantity &&
-    trip.fuel_quantity > 0 &&
-    trip.id !== changedTrip.id
+  const affectedTrips = trips.filter(
+    (trip) =>
+      trip.refueling_done &&
+      trip.fuel_quantity &&
+      trip.fuel_quantity > 0 &&
+      trip.id !== changedTrip.id
   );
 
   if (affectedTrips.length === 0) return;
@@ -245,21 +271,21 @@ export const recalculateMileageForAffectedTrips = async (changedTrip: Trip): Pro
   for (const trip of affectedTrips) {
     const calculatedKmpl = calculateMileage(trip, trips);
     await supabase
-      .from('trips')
+      .from("trips")
       .update({ calculated_kmpl: calculatedKmpl })
-      .eq('id', trip.id);
+      .eq("id", trip.id);
   }
 };
 
 // Vehicles CRUD operations with Supabase
 export const getVehicles = async (): Promise<Vehicle[]> => {
   const { data, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .order('registration_number');
+    .from("vehicles")
+    .select("*")
+    .order("registration_number");
 
   if (error) {
-    console.error('Error fetching vehicles:', error);
+    console.error("Error fetching vehicles:", error);
     return [];
   }
 
@@ -268,73 +294,99 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
 
 export const getVehicle = async (id: string): Promise<Vehicle | null> => {
   const { data, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', id)
+    .from("vehicles")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (error) {
-    console.error('Error fetching vehicle:', error);
+    console.error("Error fetching vehicle:", error);
     return null;
   }
 
   return data;
 };
 
-export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle | null> => {
+export const createVehicle = async (
+  vehicle: Omit<Vehicle, "id">
+): Promise<Vehicle | null> => {
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...vehicle,
   };
-  
+
   // Handle document file uploads
   try {
     // Upload RC document if provided
     if (processedVehicle.rc_copy_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.rc_copy_file, 'temp-id', 'rc');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.rc_copy_file,
+        "temp-id",
+        "rc"
+      );
       processedVehicle.rc_document_path = filePath;
       processedVehicle.rc_copy = true;
     }
-    
+
     // Upload insurance document if provided
     if (processedVehicle.insurance_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.insurance_document_file, 'temp-id', 'insurance');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.insurance_document_file,
+        "temp-id",
+        "insurance"
+      );
       processedVehicle.insurance_document_path = filePath;
       processedVehicle.insurance_document = true;
     }
-    
+
     // Upload fitness document if provided
     if (processedVehicle.fitness_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.fitness_document_file, 'temp-id', 'fitness');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.fitness_document_file,
+        "temp-id",
+        "fitness"
+      );
       processedVehicle.fitness_document_path = filePath;
       processedVehicle.fitness_document = true;
     }
-    
+
     // Upload tax document if provided
     if (processedVehicle.tax_receipt_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.tax_receipt_document_file, 'temp-id', 'tax');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.tax_receipt_document_file,
+        "temp-id",
+        "tax"
+      );
       processedVehicle.tax_document_path = filePath;
       processedVehicle.tax_receipt_document = true;
     }
-    
+
     // Upload permit document if provided
     if (processedVehicle.permit_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.permit_document_file, 'temp-id', 'permit');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.permit_document_file,
+        "temp-id",
+        "permit"
+      );
       processedVehicle.permit_document_path = filePath;
       processedVehicle.permit_document = true;
     }
-    
+
     // Upload PUC document if provided
     if (processedVehicle.puc_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.puc_document_file, 'temp-id', 'puc');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.puc_document_file,
+        "temp-id",
+        "puc"
+      );
       processedVehicle.puc_document_path = filePath;
       processedVehicle.puc_document = true;
     }
   } catch (error) {
-    console.error('Error uploading vehicle documents:', error);
+    console.error("Error uploading vehicle documents:", error);
     // Continue with vehicle creation even if document uploads fail
   }
-  
+
   // Remove file objects as they can't be stored in the database
   delete (processedVehicle as any).rc_copy_file;
   delete (processedVehicle as any).insurance_document_file;
@@ -342,23 +394,30 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
   delete (processedVehicle as any).tax_receipt_document_file;
   delete (processedVehicle as any).permit_document_file;
   delete (processedVehicle as any).puc_document_file;
-  
+
   // Process other documents to ensure they have the right format
-  if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+  if (
+    processedVehicle.other_documents &&
+    Array.isArray(processedVehicle.other_documents)
+  ) {
     const processedOtherDocs = [];
-    
+
     for (const doc of processedVehicle.other_documents) {
       const processedDoc = {
         name: doc.name,
         issue_date: doc.issue_date || doc.issueDate,
         expiry_date: doc.expiry_date || doc.expiryDate,
-        cost: doc.cost
+        cost: doc.cost,
       };
-      
+
       // If there's a file to upload
       if (doc.file_obj) {
         try {
-          const filePath = await uploadVehicleDocument(doc.file_obj, 'temp-id', `other_${doc.name.replace(/\s+/g, '_').toLowerCase()}`);
+          const filePath = await uploadVehicleDocument(
+            doc.file_obj,
+            "temp-id",
+            `other_${doc.name.replace(/\s+/g, "_").toLowerCase()}`
+          );
           processedDoc.file_path = filePath;
         } catch (error) {
           console.error(`Error uploading other document "${doc.name}":`, error);
@@ -367,21 +426,68 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
       } else if (doc.file) {
         processedDoc.file_path = doc.file;
       }
-      
+
       processedOtherDocs.push(processedDoc);
     }
-    
+
     processedVehicle.other_documents = processedOtherDocs;
   }
 
   const { data, error } = await supabase
-    .from('vehicles')
-    .insert(convertKeysToSnakeCase(processedVehicle))
+    .from("vehicles")
+    .insert({
+      ...convertKeysToSnakeCase(processedVehicle),
+      tax_paid_upto:
+        (processedVehicle.tax_paid_upto &&
+          !isNaN(new Date(processedVehicle.tax_paid_upto).getTime()) &&
+          new Date(processedVehicle.tax_paid_upto)) ||
+        null,
+      national_permit_upto:
+        (processedVehicle.national_permit_upto &&
+          !isNaN(new Date(processedVehicle.national_permit_upto).getTime()) &&
+          new Date(processedVehicle.national_permit_upto)) ||
+        null,
+      registration_date:
+        (processedVehicle.registration_date &&
+          !isNaN(new Date(processedVehicle.registration_date).getTime()) &&
+          new Date(processedVehicle.registration_date)) ||
+        null,
+      puc_issue_date:
+        (processedVehicle.puc_issue_date &&
+          !isNaN(new Date(processedVehicle.puc_issue_date).getTime()) &&
+          new Date(processedVehicle.puc_issue_date)) ||
+        null,
+      permit_issue_date:
+        (processedVehicle.permit_issue_date &&
+          !isNaN(new Date(processedVehicle.permit_issue_date).getTime()) &&
+          new Date(processedVehicle.permit_issue_date)) ||
+        null,
+      fitness_issue_date:
+        (processedVehicle.fitness_issue_date &&
+          !isNaN(new Date(processedVehicle.fitness_issue_date).getTime()) &&
+          new Date(processedVehicle.fitness_issue_date)) ||
+        null,
+      insurance_expiry_date:
+        (processedVehicle.insurance_expiry_date &&
+          !isNaN(new Date(processedVehicle.insurance_expiry_date).getTime()) &&
+          new Date(processedVehicle.insurance_expiry_date)) ||
+        null,
+      insurance_start_date:
+        (processedVehicle.insurance_start_date &&
+          !isNaN(new Date(processedVehicle.insurance_start_date).getTime()) &&
+          new Date(processedVehicle.insurance_start_date)) ||
+        null,
+      rc_expiry_date:
+        (processedVehicle.rc_expiry_date &&
+          !isNaN(new Date(processedVehicle.rc_expiry_date).getTime()) &&
+          new Date(processedVehicle.rc_expiry_date)) ||
+        null,
+    })
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating vehicle:', error);
+    console.error("Error creating vehicle:", error);
     return null;
   }
 
@@ -389,120 +495,141 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
   if (data) {
     const updates: Partial<Vehicle> = {};
     let needsUpdate = false;
-    
+
     // Update document paths with the real vehicle ID
     if (processedVehicle.rc_document_path) {
-      const newPath = processedVehicle.rc_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.rc_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.rc_document_path, newPath);
-        
+
       if (!error) {
         updates.rc_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     if (processedVehicle.insurance_document_path) {
-      const newPath = processedVehicle.insurance_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.insurance_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.insurance_document_path, newPath);
-        
+
       if (!error) {
         updates.insurance_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     if (processedVehicle.fitness_document_path) {
-      const newPath = processedVehicle.fitness_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.fitness_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.fitness_document_path, newPath);
-        
+
       if (!error) {
         updates.fitness_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     if (processedVehicle.tax_document_path) {
-      const newPath = processedVehicle.tax_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.tax_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.tax_document_path, newPath);
-        
+
       if (!error) {
         updates.tax_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     if (processedVehicle.permit_document_path) {
-      const newPath = processedVehicle.permit_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.permit_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.permit_document_path, newPath);
-        
+
       if (!error) {
         updates.permit_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     if (processedVehicle.puc_document_path) {
-      const newPath = processedVehicle.puc_document_path.replace('temp-id', data.id);
+      const newPath = processedVehicle.puc_document_path.replace(
+        "temp-id",
+        data.id
+      );
       const { error } = await supabase.storage
-        .from('vehicle-docs')
+        .from("vehicle-docs")
         .move(processedVehicle.puc_document_path, newPath);
-        
+
       if (!error) {
         updates.puc_document_path = newPath;
         needsUpdate = true;
       }
     }
-    
+
     // Update other documents paths
-    if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+    if (
+      processedVehicle.other_documents &&
+      Array.isArray(processedVehicle.other_documents)
+    ) {
       const updatedOtherDocs = [];
       let otherDocsUpdated = false;
-      
+
       for (const doc of processedVehicle.other_documents) {
         const updatedDoc = { ...doc };
-        
-        if (doc.file_path && doc.file_path.includes('temp-id')) {
-          const newPath = doc.file_path.replace('temp-id', data.id);
+
+        if (doc.file_path && doc.file_path.includes("temp-id")) {
+          const newPath = doc.file_path.replace("temp-id", data.id);
           const { error } = await supabase.storage
-            .from('vehicle-docs')
+            .from("vehicle-docs")
             .move(doc.file_path, newPath);
-            
+
           if (!error) {
             updatedDoc.file_path = newPath;
             otherDocsUpdated = true;
           }
         }
-        
+
         updatedOtherDocs.push(updatedDoc);
       }
-      
+
       if (otherDocsUpdated) {
         updates.other_documents = updatedOtherDocs;
         needsUpdate = true;
       }
     }
-    
+
     // Update the vehicle record if needed
     if (needsUpdate) {
       const { data: updatedData, error: updateError } = await supabase
-        .from('vehicles')
+        .from("vehicles")
         .update(updates)
-        .eq('id', data.id)
+        .eq("id", data.id)
         .select()
         .single();
-        
+
       if (updateError) {
-        console.error('Error updating vehicle document paths:', updateError);
+        console.error("Error updating vehicle document paths:", updateError);
       } else if (updatedData) {
         // Use the updated data
         data.rc_document_path = updatedData.rc_document_path;
@@ -514,92 +641,121 @@ export const createVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehic
         data.other_documents = updatedData.other_documents;
       }
     }
-    
+
     // Upload vehicle profile JSON to storage
     await uploadVehicleProfile(data);
   }
 
   // Log the vehicle creation activity
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (data && user) {
     await logVehicleActivity(
       data.id,
-      'updated',
+      "updated",
       user.email || user.id,
-      'Vehicle created'
+      "Vehicle created"
     );
   }
 
   return data;
 };
 
-export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>): Promise<Vehicle | null> => {
+export const updateVehicle = async (
+  id: string,
+  updatedVehicle: Partial<Vehicle>
+): Promise<Vehicle | null> => {
   // Get the current vehicle data
   const { data: currentVehicle } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', id)
+    .from("vehicles")
+    .select("*")
+    .eq("id", id)
     .single();
-    
+
   if (!currentVehicle) {
-    console.error('Vehicle not found:', id);
+    console.error("Vehicle not found:", id);
     return null;
   }
-  
+
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...updatedVehicle,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
-  
+
   // Handle document file uploads
   try {
     // Upload RC document if provided
     if (processedVehicle.rc_copy_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.rc_copy_file, id, 'rc');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.rc_copy_file,
+        id,
+        "rc"
+      );
       processedVehicle.rc_document_path = filePath;
       processedVehicle.rc_copy = true;
     }
-    
+
     // Upload insurance document if provided
     if (processedVehicle.insurance_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.insurance_document_file, id, 'insurance');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.insurance_document_file,
+        id,
+        "insurance"
+      );
       processedVehicle.insurance_document_path = filePath;
       processedVehicle.insurance_document = true;
     }
-    
+
     // Upload fitness document if provided
     if (processedVehicle.fitness_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.fitness_document_file, id, 'fitness');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.fitness_document_file,
+        id,
+        "fitness"
+      );
       processedVehicle.fitness_document_path = filePath;
       processedVehicle.fitness_document = true;
     }
-    
+
     // Upload tax document if provided
     if (processedVehicle.tax_receipt_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.tax_receipt_document_file, id, 'tax');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.tax_receipt_document_file,
+        id,
+        "tax"
+      );
       processedVehicle.tax_document_path = filePath;
       processedVehicle.tax_receipt_document = true;
     }
-    
+
     // Upload permit document if provided
     if (processedVehicle.permit_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.permit_document_file, id, 'permit');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.permit_document_file,
+        id,
+        "permit"
+      );
       processedVehicle.permit_document_path = filePath;
       processedVehicle.permit_document = true;
     }
-    
+
     // Upload PUC document if provided
     if (processedVehicle.puc_document_file) {
-      const filePath = await uploadVehicleDocument(processedVehicle.puc_document_file, id, 'puc');
+      const filePath = await uploadVehicleDocument(
+        processedVehicle.puc_document_file,
+        id,
+        "puc"
+      );
       processedVehicle.puc_document_path = filePath;
       processedVehicle.puc_document = true;
     }
   } catch (error) {
-    console.error('Error uploading vehicle documents:', error);
+    console.error("Error uploading vehicle documents:", error);
     // Continue with vehicle update even if document uploads fail
   }
-  
+
   // Remove file objects as they can't be stored in the database
   delete (processedVehicle as any).rc_copy_file;
   delete (processedVehicle as any).insurance_document_file;
@@ -607,23 +763,30 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
   delete (processedVehicle as any).tax_receipt_document_file;
   delete (processedVehicle as any).permit_document_file;
   delete (processedVehicle as any).puc_document_file;
-  
+
   // Process other documents to ensure they have the right format
-  if (processedVehicle.other_documents && Array.isArray(processedVehicle.other_documents)) {
+  if (
+    processedVehicle.other_documents &&
+    Array.isArray(processedVehicle.other_documents)
+  ) {
     const processedOtherDocs = [];
-    
+
     for (const doc of processedVehicle.other_documents) {
       const processedDoc = {
         name: doc.name,
         issue_date: doc.issue_date || doc.issueDate,
         expiry_date: doc.expiry_date || doc.expiryDate,
-        cost: doc.cost
+        cost: doc.cost,
       };
-      
+
       // If there's a file to upload
       if (doc.file_obj) {
         try {
-          const filePath = await uploadVehicleDocument(doc.file_obj, id, `other_${doc.name.replace(/\s+/g, '_').toLowerCase()}`);
+          const filePath = await uploadVehicleDocument(
+            doc.file_obj,
+            id,
+            `other_${doc.name.replace(/\s+/g, "_").toLowerCase()}`
+          );
           processedDoc.file_path = filePath;
         } catch (error) {
           console.error(`Error uploading other document "${doc.name}":`, error);
@@ -632,22 +795,22 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
       } else if (doc.file) {
         processedDoc.file_path = doc.file;
       }
-      
+
       processedOtherDocs.push(processedDoc);
     }
-    
+
     processedVehicle.other_documents = processedOtherDocs;
   }
 
   const { data, error } = await supabase
-    .from('vehicles')
+    .from("vehicles")
     .update(convertKeysToSnakeCase(processedVehicle))
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating vehicle:', error);
+    console.error("Error updating vehicle:", error);
     return null;
   }
 
@@ -657,34 +820,35 @@ export const updateVehicle = async (id: string, updatedVehicle: Partial<Vehicle>
   }
 
   // Log the vehicle update activity
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (data && user) {
-    let actionType: 'updated' | 'archived' | 'assigned_driver' | 'unassigned_driver' = 'updated';
-    let notes = 'Vehicle information updated';
+    let actionType:
+      | "updated"
+      | "archived"
+      | "assigned_driver"
+      | "unassigned_driver" = "updated";
+    let notes = "Vehicle information updated";
 
     // Determine the action type based on the updated fields
-    if (updatedVehicle.status === 'archived') {
-      actionType = 'archived';
-      notes = 'Vehicle archived';
-    } else if (updatedVehicle.status === 'active' && data.status === 'active') {
-      actionType = 'updated';
-      notes = 'Vehicle unarchived';
+    if (updatedVehicle.status === "archived") {
+      actionType = "archived";
+      notes = "Vehicle archived";
+    } else if (updatedVehicle.status === "active" && data.status === "active") {
+      actionType = "updated";
+      notes = "Vehicle unarchived";
     } else if (updatedVehicle.primary_driver_id !== undefined) {
       if (updatedVehicle.primary_driver_id === null) {
-        actionType = 'unassigned_driver';
-        notes = 'Driver unassigned from vehicle';
+        actionType = "unassigned_driver";
+        notes = "Driver unassigned from vehicle";
       } else {
-        actionType = 'assigned_driver';
-        notes = 'Driver assigned to vehicle';
+        actionType = "assigned_driver";
+        notes = "Driver assigned to vehicle";
       }
     }
 
-    await logVehicleActivity(
-      id,
-      actionType,
-      user.email || user.id,
-      notes
-    );
+    await logVehicleActivity(id, actionType, user.email || user.id, notes);
   }
 
   return data;
@@ -694,34 +858,36 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
   try {
     // Instead of deleting, change the vehicle status to 'archived'
     const { data, error } = await supabase
-      .from('vehicles')
-      .update({ 
-        status: 'archived',
-        updated_at: new Date().toISOString()
+      .from("vehicles")
+      .update({
+        status: "archived",
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error archiving vehicle:', error);
+      console.error("Error archiving vehicle:", error);
       throw new Error(`Failed to archive vehicle: ${error.message}`);
     }
-    
+
     // Log the archive activity
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       await logVehicleActivity(
         id,
-        'archived',
+        "archived",
         user.email || user.id,
-        'Vehicle archived'
+        "Vehicle archived"
       );
     }
 
     return true;
   } catch (error) {
-    console.error('Error in vehicle archiving process:', error);
+    console.error("Error in vehicle archiving process:", error);
     throw error;
   }
 };
@@ -730,45 +896,47 @@ export const unarchiveVehicle = async (id: string): Promise<boolean> => {
   try {
     // Change the vehicle status from 'archived' back to 'active'
     const { data, error } = await supabase
-      .from('vehicles')
-      .update({ 
-        status: 'active',
-        updated_at: new Date().toISOString()
+      .from("vehicles")
+      .update({
+        status: "active",
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error('Error unarchiving vehicle:', error);
+      console.error("Error unarchiving vehicle:", error);
       throw new Error(`Failed to unarchive vehicle: ${error.message}`);
     }
-    
+
     // Log the unarchive activity
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
       await logVehicleActivity(
         id,
-        'updated',
+        "updated",
         user.email || user.id,
-        'Vehicle unarchived'
+        "Vehicle unarchived"
       );
     }
 
     return true;
   } catch (error) {
-    console.error('Error in vehicle unarchiving process:', error);
+    console.error("Error in vehicle unarchiving process:", error);
     throw error;
   }
 };
 
 export const bulkUpdateVehicles = async (
-  vehicleIds: string[], 
+  vehicleIds: string[],
   updates: Partial<Vehicle>
 ): Promise<{ success: number; failed: number }> => {
   let successCount = 0;
   let failedCount = 0;
-  
+
   for (const id of vehicleIds) {
     try {
       const result = await updateVehicle(id, updates);
@@ -782,7 +950,7 @@ export const bulkUpdateVehicles = async (
       failedCount++;
     }
   }
-  
+
   return { success: successCount, failed: failedCount };
 };
 
@@ -791,7 +959,7 @@ export const bulkArchiveVehicles = async (
 ): Promise<{ success: number; failed: number }> => {
   let successCount = 0;
   let failedCount = 0;
-  
+
   for (const id of vehicleIds) {
     try {
       const result = await deleteVehicle(id); // This now archives instead of deleting
@@ -805,7 +973,7 @@ export const bulkArchiveVehicles = async (
       failedCount++;
     }
   }
-  
+
   return { success: successCount, failed: failedCount };
 };
 
@@ -814,7 +982,7 @@ export const bulkUnarchiveVehicles = async (
 ): Promise<{ success: number; failed: number }> => {
   let successCount = 0;
   let failedCount = 0;
-  
+
   for (const id of vehicleIds) {
     try {
       const result = await unarchiveVehicle(id);
@@ -828,7 +996,7 @@ export const bulkUnarchiveVehicles = async (
       failedCount++;
     }
   }
-  
+
   return { success: successCount, failed: failedCount };
 };
 
@@ -837,12 +1005,12 @@ export const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward com
 // Drivers CRUD operations with Supabase
 export const getDrivers = async (): Promise<Driver[]> => {
   const { data, error } = await supabase
-    .from('drivers')
-    .select('*')
-    .order('name');
+    .from("drivers")
+    .select("*")
+    .order("name");
 
   if (error) {
-    console.error('Error fetching drivers:', error);
+    console.error("Error fetching drivers:", error);
     return [];
   }
 
@@ -851,55 +1019,60 @@ export const getDrivers = async (): Promise<Driver[]> => {
 
 export const getDriver = async (id: string): Promise<Driver | null> => {
   const { data, error } = await supabase
-    .from('drivers')
-    .select('*')
-    .eq('id', id)
+    .from("drivers")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (error) {
-    console.error('Error fetching driver:', error);
+    console.error("Error fetching driver:", error);
     return null;
   }
 
   return data;
 };
 
-export const createDriver = async (driver: Omit<Driver, 'id'>): Promise<Driver | null> => {
+export const createDriver = async (
+  driver: Omit<Driver, "id">
+): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
   const { photo, ...driverData } = driver as any;
-  
+
   const { data, error } = await supabase
-    .from('drivers')
+    .from("drivers")
     .insert(convertKeysToSnakeCase(driverData))
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating driver:', error);
+    console.error("Error creating driver:", error);
     return null;
   }
 
   return data;
 };
 
-export const updateDriver = async (id: string, updatedDriver: Partial<Driver>): Promise<Driver | null> => {
+export const updateDriver = async (
+  id: string,
+  updatedDriver: Partial<Driver>
+): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
   const { photo, ...driverData } = updatedDriver as any;
-  
+
   const mappedDriverData = {
     ...driverData,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
-  
+
   const { data, error } = await supabase
-    .from('drivers')
+    .from("drivers")
     .update(mappedDriverData)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating driver:', error);
+    console.error("Error updating driver:", error);
     return null;
   }
 
@@ -907,13 +1080,10 @@ export const updateDriver = async (id: string, updatedDriver: Partial<Driver>): 
 };
 
 export const deleteDriver = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('drivers')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("drivers").delete().eq("id", id);
 
   if (error) {
-    console.error('Error deleting driver:', error);
+    console.error("Error deleting driver:", error);
     return false;
   }
 
@@ -921,33 +1091,34 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
 };
 
 // Upload driver photo to Supabase Storage
-export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string> => {
-  if (!file) throw new Error('No file provided');
-  
+export const uploadDriverPhoto = async (
+  file: File,
+  driverId: string
+): Promise<string> => {
+  if (!file) throw new Error("No file provided");
+
   // Get file extension
-  const fileExt = file.name.split('.').pop();
+  const fileExt = file.name.split(".").pop();
   // Create a unique filename
   const fileName = `${driverId}.${fileExt}`;
   const filePath = `driver_photos/${fileName}`;
-  
+
   // Upload the file
   const { error: uploadError } = await supabase.storage
-    .from('drivers')
+    .from("drivers")
     .upload(filePath, file, {
       upsert: true,
-      contentType: file.type
+      contentType: file.type,
     });
-    
+
   if (uploadError) {
-    console.error('Error uploading driver photo:', uploadError);
+    console.error("Error uploading driver photo:", uploadError);
     throw uploadError;
   }
-  
+
   // Get the public URL
-  const { data } = supabase.storage
-    .from('drivers')
-    .getPublicUrl(filePath);
-    
+  const { data } = supabase.storage.from("drivers").getPublicUrl(filePath);
+
   return data.publicUrl;
 };
 
@@ -958,11 +1129,12 @@ export const getDriverStats = async (driverId: string) => {
   if (!driver) return { totalTrips: 0, totalDistance: 0 };
 
   const { data: trips } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('driver_name', driver.name);
+    .from("trips")
+    .select("*")
+    .eq("driver_name", driver.name);
 
-  if (!trips || !Array.isArray(trips)) return { totalTrips: 0, totalDistance: 0 };
+  if (!trips || !Array.isArray(trips))
+    return { totalTrips: 0, totalDistance: 0 };
 
   const totalTrips = trips.length;
   const totalDistance = trips.reduce((sum, trip) => {
@@ -971,27 +1143,33 @@ export const getDriverStats = async (driverId: string) => {
     return sum + (endKm - startKm);
   }, 0);
 
-  const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
-  const averageKmpl = tripsWithKmpl.length > 0
-    ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
-    : undefined;
+  const tripsWithKmpl = trips.filter(
+    (trip) => trip.calculated_kmpl !== undefined && !trip.short_trip
+  );
+  const averageKmpl =
+    tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce(
+          (sum, trip) => sum + (trip.calculated_kmpl || 0),
+          0
+        ) / tripsWithKmpl.length
+      : undefined;
 
   return {
     totalTrips,
     totalDistance,
-    averageKmpl
+    averageKmpl,
   };
 };
 
 // Warehouses CRUD operations with Supabase
 export const getWarehouses = async (): Promise<Warehouse[]> => {
   const { data, error } = await supabase
-    .from('warehouses')
-    .select('*')
-    .order('name');
+    .from("warehouses")
+    .select("*")
+    .order("name");
 
   if (error) {
-    console.error('Error fetching warehouses:', error);
+    console.error("Error fetching warehouses:", error);
     return [];
   }
 
@@ -1001,79 +1179,87 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
 export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
   try {
     const { data, error } = await supabase
-      .from('warehouses')
-      .select('*')
-      .eq('id', id)
+      .from("warehouses")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error('Error fetching warehouse:', error);
+      console.error("Error fetching warehouse:", error);
       // If it's a network error, throw it to be handled by the calling component
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error('Network connection failed while fetching warehouse');
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching warehouse");
       }
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getWarehouse:', error);
+    console.error("Error in getWarehouse:", error);
     // Re-throw network errors so they can be handled appropriately
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
       throw error;
     }
     return null;
   }
 };
 
-export const createWarehouse = async (warehouse: Omit<Warehouse, 'id'>): Promise<Warehouse | null> => {
+export const createWarehouse = async (
+  warehouse: Omit<Warehouse, "id">
+): Promise<Warehouse | null> => {
   // Ensure material_type_ids is an array
   const warehouseData = {
     ...warehouse,
-    material_type_ids: warehouse.materialTypeIds || []
+    material_type_ids: warehouse.materialTypeIds || [],
   };
-  
+
   // Delete the camelCase property as we're using the snake_case version
-  if ('materialTypeIds' in warehouseData) {
+  if ("materialTypeIds" in warehouseData) {
     delete (warehouseData as any).materialTypeIds;
   }
 
   const { data, error } = await supabase
-    .from('warehouses')
+    .from("warehouses")
     .insert(convertKeysToSnakeCase(warehouseData))
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating warehouse:', error);
+    console.error("Error creating warehouse:", error);
     return null;
   }
 
   return data;
 };
 
-export const updateWarehouse = async (id: string, updates: Partial<Warehouse>): Promise<Warehouse | null> => {
+export const updateWarehouse = async (
+  id: string,
+  updates: Partial<Warehouse>
+): Promise<Warehouse | null> => {
   // Ensure material_type_ids is an array
   const warehouseUpdates = {
     ...updates,
     material_type_ids: updates.materialTypeIds || updates.material_type_ids,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
-  
+
   // Delete the camelCase property as we're using the snake_case version
-  if ('materialTypeIds' in warehouseUpdates) {
+  if ("materialTypeIds" in warehouseUpdates) {
     delete (warehouseUpdates as any).materialTypeIds;
   }
 
   const { data, error } = await supabase
-    .from('warehouses')
+    .from("warehouses")
     .update(warehouseUpdates)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating warehouse:', error);
+    console.error("Error updating warehouse:", error);
     return null;
   }
 
@@ -1081,13 +1267,10 @@ export const updateWarehouse = async (id: string, updates: Partial<Warehouse>): 
 };
 
 export const deleteWarehouse = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('warehouses')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("warehouses").delete().eq("id", id);
 
   if (error) {
-    console.error('Error deleting warehouse:', error);
+    console.error("Error deleting warehouse:", error);
     return false;
   }
 
@@ -1097,88 +1280,101 @@ export const deleteWarehouse = async (id: string): Promise<boolean> => {
 // Destinations CRUD operations with Supabase
 export const getDestinations = async (): Promise<Destination[]> => {
   const { data, error } = await supabase
-    .from('destinations')
-    .select('*')
-    .order('name');
+    .from("destinations")
+    .select("*")
+    .order("name");
 
   if (error) {
-    console.error('Error fetching destinations:', error);
+    console.error("Error fetching destinations:", error);
     return [];
   }
 
   return data || [];
 };
 
-export const getDestination = async (id: string): Promise<Destination | null> => {
+export const getDestination = async (
+  id: string
+): Promise<Destination | null> => {
   // Validate the ID parameter before making the request
-  if (!id || typeof id !== 'string' || id.trim() === '') {
-    console.error('Invalid destination ID provided:', id);
+  if (!id || typeof id !== "string" || id.trim() === "") {
+    console.error("Invalid destination ID provided:", id);
     return null;
   }
 
   try {
     const { data, error } = await supabase
-      .from('destinations')
-      .select('*')
-      .eq('id', id)
+      .from("destinations")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error('Error fetching destination:', error);
+      console.error("Error fetching destination:", error);
       // If it's a network error, throw it to be handled by the calling component
-      if (error.message && error.message.includes('Failed to fetch')) {
-        throw new Error('Network connection failed while fetching destination');
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching destination");
       }
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getDestination:', error);
+    console.error("Error in getDestination:", error);
     // Re-throw network errors so they can be handled appropriately
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
       throw error;
     }
     return null;
   }
 };
 
-export const createDestination = async (destination: Omit<Destination, 'id'>): Promise<Destination | null> => {
+export const createDestination = async (
+  destination: Omit<Destination, "id">
+): Promise<Destination | null> => {
   // Prepare the data for insertion, removing empty id field if present
   const destinationData = convertKeysToSnakeCase(destination);
-  
+
   // Remove id field if it's empty or undefined to let Supabase auto-generate it
-  if ('id' in destinationData && (!destinationData.id || destinationData.id === '')) {
+  if (
+    "id" in destinationData &&
+    (!destinationData.id || destinationData.id === "")
+  ) {
     delete destinationData.id;
   }
 
   const { data, error } = await supabase
-    .from('destinations')
+    .from("destinations")
     .insert(destinationData)
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating destination:', error);
+    console.error("Error creating destination:", error);
     return null;
   }
 
   return data;
 };
 
-export const updateDestination = async (id: string, updates: Partial<Destination>): Promise<Destination | null> => {
+export const updateDestination = async (
+  id: string,
+  updates: Partial<Destination>
+): Promise<Destination | null> => {
   const { data, error } = await supabase
-    .from('destinations')
+    .from("destinations")
     .update({
       ...updates,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating destination:', error);
+    console.error("Error updating destination:", error);
     return null;
   }
 
@@ -1186,13 +1382,10 @@ export const updateDestination = async (id: string, updates: Partial<Destination
 };
 
 export const deleteDestination = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('destinations')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.from("destinations").delete().eq("id", id);
 
   if (error) {
-    console.error('Error deleting destination:', error);
+    console.error("Error deleting destination:", error);
     return false;
   }
 
@@ -1206,22 +1399,28 @@ export const analyzeRoute = async (
 ): Promise<RouteAnalysis | undefined> => {
   const warehouse = await getWarehouse(warehouseId);
   const { data: destinations } = await supabase
-    .from('destinations')
-    .select('*')
-    .in('id', destinationIds);
+    .from("destinations")
+    .select("*")
+    .in("id", destinationIds);
 
-  if (!warehouse || !destinations || !Array.isArray(destinations) || destinations.length === 0) return undefined;
+  if (
+    !warehouse ||
+    !destinations ||
+    !Array.isArray(destinations) ||
+    destinations.length === 0
+  )
+    return undefined;
 
   // Calculate total standard distance and estimated time
   let totalDistance = 0;
   let totalMinutes = 0;
 
-  destinations.forEach(dest => {
+  destinations.forEach((dest) => {
     totalDistance += dest.standardDistance;
     const timeMatch = dest.estimated_time.match(/(\d+)h\s*(?:(\d+)m)?/);
     if (timeMatch) {
-      const hours = parseInt(timeMatch[1] || '0');
-      const minutes = parseInt(timeMatch[2] || '0');
+      const hours = parseInt(timeMatch[1] || "0");
+      const minutes = parseInt(timeMatch[2] || "0");
       totalMinutes += hours * 60 + minutes;
     }
   });
@@ -1233,21 +1432,25 @@ export const analyzeRoute = async (
     estimated_time: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
     waypoints: [
       { lat: warehouse.latitude, lng: warehouse.longitude },
-      ...destinations.map(d => ({ lat: d.latitude, lng: d.longitude }))
-    ]
+      ...destinations.map((d) => ({ lat: d.latitude, lng: d.longitude })),
+    ],
   };
 };
 
 // Generate alerts based on route analysis
-export const generateAlerts = async (analysis: RouteAnalysis): Promise<Alert[]> => {
+export const generateAlerts = async (
+  analysis: RouteAnalysis
+): Promise<Alert[]> => {
   const alerts: Alert[] = [];
 
   if (Math.abs(analysis.deviation) > 15) {
     alerts.push({
-      type: 'deviation',
-      message: 'Significant route deviation detected',
-      severity: Math.abs(analysis.deviation) > 25 ? 'high' : 'medium',
-      details: `Route shows ${Math.abs(analysis.deviation).toFixed(1)}% deviation from standard distance`
+      type: "deviation",
+      message: "Significant route deviation detected",
+      severity: Math.abs(analysis.deviation) > 25 ? "high" : "medium",
+      details: `Route shows ${Math.abs(analysis.deviation).toFixed(
+        1
+      )}% deviation from standard distance`,
     });
   }
 
@@ -1257,23 +1460,33 @@ export const generateAlerts = async (analysis: RouteAnalysis): Promise<Alert[]> 
 // Vehicle stats
 export const getVehicleStats = async (vehicleId: string) => {
   const { data: trips } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('vehicle_id', vehicleId);
+    .from("trips")
+    .select("*")
+    .eq("vehicle_id", vehicleId);
 
-  if (!trips || !Array.isArray(trips)) return { totalTrips: 0, totalDistance: 0 };
+  if (!trips || !Array.isArray(trips))
+    return { totalTrips: 0, totalDistance: 0 };
 
   const totalTrips = trips.length;
-  const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-  const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
-  const averageKmpl = tripsWithKmpl.length > 0
-    ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
-    : undefined;
+  const totalDistance = trips.reduce(
+    (sum, trip) => sum + (trip.end_km - trip.start_km),
+    0
+  );
+  const tripsWithKmpl = trips.filter(
+    (trip) => trip.calculated_kmpl !== undefined && !trip.short_trip
+  );
+  const averageKmpl =
+    tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce(
+          (sum, trip) => sum + (trip.calculated_kmpl || 0),
+          0
+        ) / tripsWithKmpl.length
+      : undefined;
 
   return {
     totalTrips,
     totalDistance,
-    averageKmpl
+    averageKmpl,
   };
 };
 
@@ -1281,9 +1494,9 @@ export const getVehicleStats = async (vehicleId: string) => {
 export const updateAllTripMileage = async (): Promise<void> => {
   try {
     const { data: trips } = await supabase
-      .from('trips')
-      .select('*')
-      .order('trip_end_date', { ascending: true });
+      .from("trips")
+      .select("*")
+      .order("trip_end_date", { ascending: true });
 
     if (!trips || !Array.isArray(trips)) return;
 
@@ -1291,28 +1504,36 @@ export const updateAllTripMileage = async (): Promise<void> => {
       if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
         const calculatedKmpl = calculateMileage(trip, trips);
         await supabase
-          .from('trips')
+          .from("trips")
           .update({ calculated_kmpl: calculatedKmpl })
-          .eq('id', trip.id);
+          .eq("id", trip.id);
       }
     }
   } catch (error) {
-    console.error('Error updating trip mileage:', error);
+    console.error("Error updating trip mileage:", error);
     // Re-throw network errors so they can be handled appropriately
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
       throw error;
     }
   }
 };
 
 // Export vehicle data to CSV
-export const exportVehicleData = async (vehicleData: any[]): Promise<string> => {
+export const exportVehicleData = async (
+  vehicleData: any[]
+): Promise<string> => {
   // Get the current user for logging
-  const { data: { user } } = await supabase.auth.getUser();
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   // Create CSV header and content
-  let csvContent = 'Registration Number,Make,Model,Year,Type,Fuel Type,Status,Current Odometer,Total Trips,Total Distance,Average Mileage\n';
-  
+  let csvContent =
+    "Registration Number,Make,Model,Year,Type,Fuel Type,Status,Current Odometer,Total Trips,Total Distance,Average Mileage\n";
+
   for (const vehicle of vehicleData) {
     const row = [
       vehicle.registration_number,
@@ -1325,22 +1546,24 @@ export const exportVehicleData = async (vehicleData: any[]): Promise<string> => 
       vehicle.current_odometer,
       vehicle.stats?.totalTrips || 0,
       vehicle.stats?.totalDistance || 0,
-      vehicle.stats?.averageKmpl ? vehicle.stats.averageKmpl.toFixed(2) : 'N/A'
-    ].map(value => `"${value}"`).join(',');
-    
-    csvContent += row + '\n';
-    
+      vehicle.stats?.averageKmpl ? vehicle.stats.averageKmpl.toFixed(2) : "N/A",
+    ]
+      .map((value) => `"${value}"`)
+      .join(",");
+
+    csvContent += row + "\n";
+
     // Log export activity for each vehicle
     if (user) {
       await logVehicleActivity(
         vehicle.id,
-        'exported',
+        "exported",
         user.email || user.id,
-        'Vehicle data exported to CSV'
+        "Vehicle data exported to CSV"
       );
     }
   }
-  
+
   return csvContent;
 };
 
@@ -1374,5 +1597,5 @@ export default {
   generateAlerts,
   getVehicleStats,
   updateAllTripMileage,
-  exportVehicleData
+  exportVehicleData,
 };

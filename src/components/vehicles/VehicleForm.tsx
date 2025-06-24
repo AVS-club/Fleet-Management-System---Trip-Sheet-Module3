@@ -1,18 +1,37 @@
-import React, { useState } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { Vehicle } from '../../types';
-import { Truck, Calendar, FileText, Upload, X, Plus, Database, Info, Paperclip, IndianRupee, Shield, CheckSquare, FileCheck, BadgeCheck, Wind, Bell } from 'lucide-react';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
-import FileUpload from '../ui/FileUpload';
-import Checkbox from '../ui/Checkbox';
-import Button from '../ui/Button';
-import { toast } from 'react-toastify';
-import CollapsibleSection from '../ui/CollapsibleSection';
+import React, { useState, useEffect } from "react";
+import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { Vehicle } from "../../types";
+import {
+  Truck,
+  Calendar,
+  FileText,
+  Upload,
+  X,
+  Plus,
+  Database,
+  Info,
+  Paperclip,
+  IndianRupee,
+  Shield,
+  CheckSquare,
+  FileCheck,
+  BadgeCheck,
+  Wind,
+  Bell,
+} from "lucide-react";
+import Input from "../ui/Input";
+import Select from "../ui/Select";
+import FileUpload from "../ui/FileUpload";
+import Checkbox from "../ui/Checkbox";
+import Button from "../ui/Button";
+import { toast } from "react-toastify";
+import CollapsibleSection from "../ui/CollapsibleSection";
+import { supabase } from "../../utils/supabaseClient";
+import { get } from "http";
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
-  onSubmit: (data: Omit<Vehicle, 'id'>) => void;
+  onSubmit: (data: Omit<Vehicle, "id">) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
 }
@@ -21,37 +40,53 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
   onSubmit,
   onCancel,
-  isSubmitting = false
+  isSubmitting = false,
 }) => {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
+  const [fieldsDisabled, setFieldsDisabled] = useState(true); // <-- NEW
+  const [isFetching, setIsFetching] = useState(false); // <-- NEW
 
-  const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<Vehicle>({
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+    reset,
+    getValues,
+  } = useForm<Vehicle>({
     defaultValues: {
-      registration_number: '',
-      make: '',
-      model: '',
+      registration_number: "",
+      make: "",
+      model: "",
       year: new Date().getFullYear(),
-      type: 'truck',
-      fuel_type: 'diesel',
+      type: "truck",
+      fuel_type: "diesel",
       current_odometer: 0,
-      status: 'active',
-      ...initialData
-    }
+      status: "active",
+      ...initialData,
+    },
   });
+
+  // Enable fields if initialData is present (for edit mode)
+  useEffect(() => {
+    if (initialData) setFieldsDisabled(false);
+  }, [initialData]);
 
   // Field array for other documents
   const { fields, append, remove } = useFieldArray({
     control,
-    name: 'other_documents'
+    name: "other_documents",
   });
 
   // Watch values for conditional rendering
-  const remindInsurance = watch('remind_insurance');
-  const remindFitness = watch('remind_fitness');
-  const remindPuc = watch('remind_puc');
-  const remindTax = watch('remind_tax');
-  const remindPermit = watch('remind_permit');
-  const remindService = watch('remind_service');
+  const remindInsurance = watch("remind_insurance");
+  const remindFitness = watch("remind_fitness");
+  const remindPuc = watch("remind_puc");
+  const remindTax = watch("remind_tax");
+  const remindPermit = watch("remind_permit");
+  const remindService = watch("remind_service");
 
   const handleFormSubmit = (data: Vehicle) => {
     setIsSubmittingForm(true);
@@ -59,17 +94,118 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       onSubmit(data);
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast.error("Form submission failed: " + (error instanceof Error ? error.message : "Unknown error"));
+      toast.error(
+        "Form submission failed: " +
+          (error instanceof Error ? error.message : "Unknown error")
+      );
       setIsSubmittingForm(false);
+    }
+  };
+  // console.log(getValues());
+  // --- NEW: Fetch RC details handler ---
+  const handleFetchDetails = async () => {
+    const regNum = watch("registration_number");
+    if (!regNum) {
+      toast.error("Please enter a vehicle number first.");
+      return;
+    }
+    setIsFetching(true);
+    setFieldsDisabled(true);
+    try {
+      // Use supabase.functions.invoke for Edge Functions
+      const { data: result, error } = await supabase.functions.invoke(
+        "fetch-rc-details",
+        {
+          body: { registration_number: regNum },
+        }
+      );
+
+      if (error || !result?.success) {
+        throw new Error(
+          result?.message || error?.message || "Failed to fetch details"
+        );
+      }
+
+      // console.log(result);
+      const rc = result.data?.response || {};
+      const mapApiToForm = (rc: any, regNum: string) => ({
+        registration_number:
+          rc.license_plate || rc.registrationNumber || regNum,
+        chassis_number: rc.chassis_number || rc.chassisNumber || "",
+        engine_number: rc.engine_number || rc.engineNumber || "",
+        make: rc.brand_name || rc.make || "",
+        model: rc.brand_model || rc.model || "",
+        year: rc.manufacturing_date_formatted
+          ? parseInt(rc.manufacturing_date_formatted.split("-")[0])
+          : rc.yearOfManufacture
+          ? parseInt(rc.yearOfManufacture)
+          : rc.registration_date
+          ? parseInt(rc.registration_date.split("-")[0])
+          : undefined,
+        color: rc.color || "",
+        fuel_type:
+          (rc.fuel_type || rc.fuelType || "").toLowerCase() || "diesel",
+        owner_name: rc.owner_name || rc.ownerName || "",
+        seating_capacity: rc.seating_capacity
+          ? parseInt(rc.seating_capacity)
+          : rc.seatingCapacity
+          ? parseInt(rc.seatingCapacity)
+          : undefined,
+        registration_date: rc.registration_date || "",
+        rc_expiry_date: rc.rc_expiry_date || "",
+        permit_number: rc.permit_number || "",
+        permit_issuing_state: rc.rto_name
+          ? rc.rto_name?.split(",")[1]?.trim()
+          : "",
+        permit_issue_date: rc.permit_issue_date || "",
+        permit_expiry_date: rc.permit_valid_upto || rc.permit_valid_from || "",
+        permit_type: rc.permit_type || "",
+        insurance_expiry_date: rc.insurance_expiry || "",
+        insurer_name: rc.insurance_company || "",
+        policy_number: rc.insurance_policy || "",
+        fitness_expiry_date: rc.fit_up_to || "",
+        fitness_issue_date: rc.fitness_issue_date || "",
+        puc_expiry_date: rc.pucc_upto || "",
+        puc_certificate_number: rc.pucc_number || "",
+        tax_paid_upto: rc.tax_paid_upto || "",
+        vehicle_class: rc.class || "",
+        emission_norms: rc.norms || "",
+        unladen_weight: rc.unladen_weight
+          ? parseInt(rc.unladen_weight)
+          : undefined,
+        cubic_capacity: rc.cubic_capacity
+          ? parseFloat(rc.cubic_capacity)
+          : undefined,
+        cylinders: rc.cylinders ? parseInt(rc.cylinders) : undefined,
+        noc_details: rc.noc_details || "",
+        status: (rc.rc_status || "").toLowerCase() || "active",
+        rc_status: rc.rc_status || "",
+        financer: rc.financer || "",
+        current_odometer: 0,
+
+        // Add more mappings as needed
+      });
+
+      const mapped = mapApiToForm(rc, regNum);
+      reset(mapped);
+      setFieldsDisabled(false);
+      toast.success(
+        "Vehicle details fetched. Please verify and complete the form."
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to fetch vehicle details.");
+      setFieldsDisabled(false);
+    } finally {
+      setIsFetching(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Basic Information */}
-      <CollapsibleSection 
-        title="Basic Information" 
-        icon={<Truck className="h-5 w-5" />} 
+      <CollapsibleSection
+        title="Basic Information"
+        icon={<Truck className="h-5 w-5" />}
         defaultExpanded
         iconColor="text-gray-600"
       >
@@ -80,14 +216,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               placeholder="CG04NJ5907"
               error={errors.registration_number?.message}
               required
-              {...register('registration_number', { required: 'Vehicle number is required' })}
+              disabled={isFetching || isSubmittingForm || isSubmitting}
+              {...register("registration_number", {
+                required: "Vehicle number is required",
+              })}
             />
             <div className="mt-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => toast.info("Fetching vehicle details from external service...")}
+                onClick={handleFetchDetails}
+                isLoading={isFetching}
+                disabled={isFetching || isSubmittingForm || isSubmitting}
               >
                 Get Details
               </Button>
@@ -99,14 +240,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="17 characters"
             error={errors.chassis_number?.message}
             required
-            {...register('chassis_number', { required: 'Chassis number is required' })}
+            disabled={fieldsDisabled}
+            {...register("chassis_number", {
+              required: "Chassis number is required",
+            })}
           />
 
           <Input
             label="Engine Number"
             error={errors.engine_number?.message}
             required
-            {...register('engine_number', { required: 'Engine number is required' })}
+            disabled={fieldsDisabled}
+            {...register("engine_number", {
+              required: "Engine number is required",
+            })}
           />
 
           <Input
@@ -114,7 +261,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="Tata, Ashok Leyland, etc."
             error={errors.make?.message}
             required
-            {...register('make', { required: 'Make is required' })}
+            disabled={fieldsDisabled}
+            {...register("make", { required: "Make is required" })}
           />
 
           <Input
@@ -122,13 +270,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="407, 1109, etc."
             error={errors.model?.message}
             required
-            {...register('model', { required: 'Model is required' })}
+            disabled={fieldsDisabled}
+            {...register("model", { required: "Model is required" })}
           />
 
           <Controller
             control={control}
             name="year"
-            rules={{ required: 'Year is required' }}
+            rules={{ required: "Year is required" }}
             render={({ field }) => (
               <Select
                 label="Year"
@@ -138,9 +287,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 })}
                 error={errors.year?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
                 value={field.value?.toString()}
-                onChange={e => field.onChange(parseInt(e.target.value))}
+                onChange={(e) => field.onChange(parseInt(e.target.value))}
               />
             )}
           />
@@ -148,23 +298,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Owner Name"
             placeholder="Enter owner's name"
-            {...register('owner_name')}
+            disabled={fieldsDisabled}
+            {...register("owner_name")}
           />
 
           <Controller
             control={control}
             name="type"
-            rules={{ required: 'Vehicle type is required' }}
+            rules={{ required: "Vehicle type is required" }}
             render={({ field }) => (
               <Select
                 label="Vehicle Type"
                 options={[
-                  { value: 'truck', label: 'Truck' },
-                  { value: 'tempo', label: 'Tempo' },
-                  { value: 'trailer', label: 'Trailer' }
+                  { value: "truck", label: "Truck" },
+                  { value: "tempo", label: "Tempo" },
+                  { value: "trailer", label: "Trailer" },
                 ]}
                 error={errors.type?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -173,17 +325,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Controller
             control={control}
             name="fuel_type"
-            rules={{ required: 'Fuel type is required' }}
+            rules={{ required: "Fuel type is required" }}
             render={({ field }) => (
               <Select
                 label="Fuel Type"
                 options={[
-                  { value: 'diesel', label: 'Diesel' },
-                  { value: 'petrol', label: 'Petrol' },
-                  { value: 'cng', label: 'CNG' }
+                  { value: "diesel", label: "Diesel" },
+                  { value: "petrol", label: "Petrol" },
+                  { value: "cng", label: "CNG" },
                 ]}
                 error={errors.fuel_type?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -192,26 +345,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tyre Size"
             placeholder="e.g., 215/75 R15"
-            {...register('tyre_size')}
+            disabled={fieldsDisabled}
+            {...register("tyre_size")}
           />
 
           <Input
             label="Number of Tyres"
             type="number"
             placeholder="6, 10, etc."
-            {...register('number_of_tyres', { valueAsNumber: true })}
+            disabled={fieldsDisabled}
+            {...register("number_of_tyres", { valueAsNumber: true })}
           />
 
           <Input
             label="Registration Date"
             type="date"
-            {...register('registration_date')}
+            disabled={fieldsDisabled}
+            {...register("registration_date")}
           />
 
           <Input
             label="RC Expiry Date"
             type="date"
-            {...register('rc_expiry_date')}
+            disabled={fieldsDisabled}
+            {...register("rc_expiry_date")}
           />
 
           <Input
@@ -219,28 +376,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             error={errors.current_odometer?.message}
             required
-            {...register('current_odometer', { 
-              required: 'Current odometer is required',
+            disabled={fieldsDisabled}
+            {...register("current_odometer", {
+              required: "Current odometer is required",
               valueAsNumber: true,
-              min: { value: 0, message: 'Odometer must be positive' }
+              min: { value: 0, message: "Odometer must be positive" },
             })}
           />
 
           <Controller
             control={control}
             name="status"
-            rules={{ required: 'Status is required' }}
+            rules={{ required: "Status is required" }}
             render={({ field }) => (
               <Select
                 label="Status"
                 options={[
-                  { value: 'active', label: 'Active' },
-                  { value: 'maintenance', label: 'Maintenance' },
-                  { value: 'inactive', label: 'Inactive' },
-                  { value: 'stood', label: 'Stood' }
+                  { value: "active", label: "Active" },
+                  { value: "maintenance", label: "Maintenance" },
+                  { value: "inactive", label: "Inactive" },
+                  { value: "stood", label: "Stood" },
                 ]}
                 error={errors.status?.message}
                 required
+                disabled={fieldsDisabled}
                 {...field}
               />
             )}
@@ -267,8 +426,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Insurance Details */}
-      <CollapsibleSection 
-        title="Insurance Details" 
+      <CollapsibleSection
+        title="Insurance Details"
         icon={<Shield className="h-5 w-5" />}
         iconColor="text-blue-600"
       >
@@ -276,39 +435,39 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Policy Number"
             placeholder="e.g., POL123456789"
-            {...register('policy_number')}
+            {...register("policy_number")}
           />
 
           <Input
             label="Insurer Name"
             placeholder="e.g., ICICI Lombard"
-            {...register('insurer_name')}
+            {...register("insurer_name")}
           />
 
           <Input
             label="Insurance Start Date"
             type="date"
-            {...register('insurance_start_date')}
+            {...register("insurance_start_date")}
           />
 
           <Input
             label="Insurance Expiry Date"
             type="date"
-            {...register('insurance_expiry_date')}
+            {...register("insurance_expiry_date")}
           />
 
           <Input
             label="Premium Amount (₹)"
             type="number"
             placeholder="e.g., 25000"
-            {...register('insurance_premium_amount', { valueAsNumber: true })}
+            {...register("insurance_premium_amount", { valueAsNumber: true })}
           />
 
           <Input
             label="IDV Amount (₹)"
             type="number"
             placeholder="e.g., 500000"
-            {...register('insurance_idv', { valueAsNumber: true })}
+            {...register("insurance_idv", { valueAsNumber: true })}
           />
         </div>
 
@@ -334,7 +493,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Set Insurance Expiry Reminder"
             checked={remindInsurance}
-            onChange={(e) => setValue('remind_insurance', e.target.checked)}
+            onChange={(e) => setValue("remind_insurance", e.target.checked)}
           />
 
           {remindInsurance && (
@@ -346,9 +505,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -359,7 +518,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
-                {...register('insurance_reminder_days_before', { valueAsNumber: true })}
+                {...register("insurance_reminder_days_before", {
+                  valueAsNumber: true,
+                })}
               />
             </div>
           )}
@@ -367,8 +528,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Fitness Certificate */}
-      <CollapsibleSection 
-        title="Fitness Certificate" 
+      <CollapsibleSection
+        title="Fitness Certificate"
         icon={<FileCheck className="h-5 w-5" />}
         iconColor="text-green-600"
       >
@@ -376,26 +537,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Fitness Certificate Number"
             placeholder="e.g., FC123456789"
-            {...register('fitness_certificate_number')}
+            {...register("fitness_certificate_number")}
           />
 
           <Input
             label="Fitness Issue Date"
             type="date"
-            {...register('fitness_issue_date')}
+            {...register("fitness_issue_date")}
           />
 
           <Input
             label="Fitness Expiry Date"
             type="date"
-            {...register('fitness_expiry_date')}
+            {...register("fitness_expiry_date")}
           />
 
           <Input
             label="Fitness Cost (₹)"
             type="number"
             placeholder="e.g., 2000"
-            {...register('fitness_cost', { valueAsNumber: true })}
+            {...register("fitness_cost", { valueAsNumber: true })}
           />
         </div>
 
@@ -421,7 +582,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Set Fitness Expiry Reminder"
             checked={remindFitness}
-            onChange={(e) => setValue('remind_fitness', e.target.checked)}
+            onChange={(e) => setValue("remind_fitness", e.target.checked)}
           />
 
           {remindFitness && (
@@ -433,9 +594,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -446,7 +607,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
-                {...register('fitness_reminder_days_before', { valueAsNumber: true })}
+                {...register("fitness_reminder_days_before", {
+                  valueAsNumber: true,
+                })}
               />
             </div>
           )}
@@ -454,8 +617,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Tax Details */}
-      <CollapsibleSection 
-        title="Tax Details" 
+      <CollapsibleSection
+        title="Tax Details"
         icon={<IndianRupee className="h-5 w-5" />}
         iconColor="text-yellow-600"
       >
@@ -463,27 +626,27 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tax Receipt Number"
             placeholder="e.g., TR123456789"
-            {...register('tax_receipt_number')}
+            {...register("tax_receipt_number")}
           />
 
           <Input
             label="Tax Amount (₹)"
             type="number"
             placeholder="e.g., 5000"
-            {...register('tax_amount', { valueAsNumber: true })}
+            {...register("tax_amount", { valueAsNumber: true })}
           />
 
           <Input
             label="Tax Scope"
             placeholder="e.g., State, National"
-            {...register('tax_scope')}
+            {...register("tax_scope")}
           />
 
           <Input
             label="Tax Paid Up To"
             type="date"
             placeholder="e.g., 2025-03-31"
-            {...register('tax_paid_upto')}
+            {...register("tax_paid_upto")}
           />
         </div>
 
@@ -509,7 +672,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Set Tax Expiry Reminder"
             checked={remindTax}
-            onChange={(e) => setValue('remind_tax', e.target.checked)}
+            onChange={(e) => setValue("remind_tax", e.target.checked)}
           />
 
           {remindTax && (
@@ -521,9 +684,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -534,7 +697,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
-                {...register('tax_reminder_days_before', { valueAsNumber: true })}
+                {...register("tax_reminder_days_before", {
+                  valueAsNumber: true,
+                })}
               />
             </div>
           )}
@@ -542,8 +707,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Permit Details */}
-      <CollapsibleSection 
-        title="Permit Details" 
+      <CollapsibleSection
+        title="Permit Details"
         icon={<BadgeCheck className="h-5 w-5" />}
         iconColor="text-orange-600"
       >
@@ -551,38 +716,38 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Permit Number"
             placeholder="e.g., PER123456789"
-            {...register('permit_number')}
+            {...register("permit_number")}
           />
 
           <Input
             label="Issuing State"
             placeholder="e.g., Chhattisgarh"
-            {...register('permit_issuing_state')}
+            {...register("permit_issuing_state")}
           />
 
           <Input
             label="Permit Type"
             placeholder="e.g., National, State"
-            {...register('permit_type')}
+            {...register("permit_type")}
           />
 
           <Input
             label="Permit Issue Date"
             type="date"
-            {...register('permit_issue_date')}
+            {...register("permit_issue_date")}
           />
 
           <Input
             label="Permit Expiry Date"
             type="date"
-            {...register('permit_expiry_date')}
+            {...register("permit_expiry_date")}
           />
 
           <Input
             label="Permit Cost (₹)"
             type="number"
             placeholder="e.g., 10000"
-            {...register('permit_cost', { valueAsNumber: true })}
+            {...register("permit_cost", { valueAsNumber: true })}
           />
         </div>
 
@@ -608,7 +773,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Set Permit Expiry Reminder"
             checked={remindPermit}
-            onChange={(e) => setValue('remind_permit', e.target.checked)}
+            onChange={(e) => setValue("remind_permit", e.target.checked)}
           />
 
           {remindPermit && (
@@ -620,9 +785,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -633,7 +798,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
-                {...register('permit_reminder_days_before', { valueAsNumber: true })}
+                {...register("permit_reminder_days_before", {
+                  valueAsNumber: true,
+                })}
               />
             </div>
           )}
@@ -641,8 +808,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Pollution Certificate (PUC) */}
-      <CollapsibleSection 
-        title="Pollution Certificate (PUC)" 
+      <CollapsibleSection
+        title="Pollution Certificate (PUC)"
         icon={<Wind className="h-5 w-5" />}
         iconColor="text-gray-600"
       >
@@ -650,26 +817,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="PUC Certificate Number"
             placeholder="e.g., PUC123456789"
-            {...register('puc_certificate_number')}
+            {...register("puc_certificate_number")}
           />
 
           <Input
             label="PUC Issue Date"
             type="date"
-            {...register('puc_issue_date')}
+            {...register("puc_issue_date")}
           />
 
           <Input
             label="PUC Expiry Date"
             type="date"
-            {...register('puc_expiry_date')}
+            {...register("puc_expiry_date")}
           />
 
           <Input
             label="PUC Cost (₹)"
             type="number"
             placeholder="e.g., 500"
-            {...register('puc_cost', { valueAsNumber: true })}
+            {...register("puc_cost", { valueAsNumber: true })}
           />
         </div>
 
@@ -695,7 +862,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Set PUC Expiry Reminder"
             checked={remindPuc}
-            onChange={(e) => setValue('remind_puc', e.target.checked)}
+            onChange={(e) => setValue("remind_puc", e.target.checked)}
           />
 
           {remindPuc && (
@@ -707,9 +874,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -720,7 +887,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 15"
-                {...register('puc_reminder_days_before', { valueAsNumber: true })}
+                {...register("puc_reminder_days_before", {
+                  valueAsNumber: true,
+                })}
               />
             </div>
           )}
@@ -728,8 +897,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Service Reminder */}
-      <CollapsibleSection 
-        title="Service Reminder" 
+      <CollapsibleSection
+        title="Service Reminder"
         icon={<Bell className="h-5 w-5" />}
         iconColor="text-indigo-600"
       >
@@ -737,7 +906,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Checkbox
             label="Enable Service Reminders"
             checked={remindService}
-            onChange={(e) => setValue('remind_service', e.target.checked)}
+            onChange={(e) => setValue("remind_service", e.target.checked)}
           />
 
           {remindService && (
@@ -749,9 +918,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <Select
                     label="Notify Contact"
                     options={[
-                      { value: '', label: 'Default Contact' },
-                      { value: 'contact1', label: 'John Doe (Fleet Manager)' },
-                      { value: 'contact2', label: 'Jane Smith (Admin)' }
+                      { value: "", label: "Default Contact" },
+                      { value: "contact1", label: "John Doe (Fleet Manager)" },
+                      { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
                     {...field}
                   />
@@ -763,14 +932,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Days Before Service"
                   type="number"
                   placeholder="e.g., 7"
-                  {...register('service_reminder_days_before', { valueAsNumber: true })}
+                  {...register("service_reminder_days_before", {
+                    valueAsNumber: true,
+                  })}
                 />
 
                 <Input
                   label="KM Before Service"
                   type="number"
                   placeholder="e.g., 500"
-                  {...register('service_reminder_km', { valueAsNumber: true })}
+                  {...register("service_reminder_km", { valueAsNumber: true })}
                 />
               </div>
             </div>
@@ -779,8 +950,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Other Information & Documents */}
-      <CollapsibleSection 
-        title="Other Information & Documents" 
+      <CollapsibleSection
+        title="Other Information & Documents"
         icon={<Database className="h-5 w-5" />}
         iconColor="text-slate-600"
       >
@@ -790,33 +961,52 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             <div className="flex items-start">
               <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
               <div>
-                <h4 className="text-blue-700 font-medium">VAHAN Data Summary</h4>
+                <h4 className="text-blue-700 font-medium">
+                  VAHAN Data Summary
+                </h4>
                 <p className="text-blue-600 text-sm mt-1">
-                  Last fetched: {new Date(initialData.vahan_last_fetched_at).toLocaleString()}
+                  Last fetched:{" "}
+                  {new Date(initialData.vahan_last_fetched_at).toLocaleString()}
                 </p>
                 <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   {initialData.vehicle_class && (
                     <div>
-                      <span className="text-blue-700 font-medium">Vehicle Class:</span>{' '}
-                      <span className="text-blue-600">{initialData.vehicle_class}</span>
+                      <span className="text-blue-700 font-medium">
+                        Vehicle Class:
+                      </span>{" "}
+                      <span className="text-blue-600">
+                        {initialData.vehicle_class}
+                      </span>
                     </div>
                   )}
                   {initialData.financer && (
                     <div>
-                      <span className="text-blue-700 font-medium">Financer:</span>{' '}
-                      <span className="text-blue-600">{initialData.financer}</span>
+                      <span className="text-blue-700 font-medium">
+                        Financer:
+                      </span>{" "}
+                      <span className="text-blue-600">
+                        {initialData.financer}
+                      </span>
                     </div>
                   )}
                   {initialData.cubic_capacity && (
                     <div>
-                      <span className="text-blue-700 font-medium">Cubic Capacity:</span>{' '}
-                      <span className="text-blue-600">{initialData.cubic_capacity} cc</span>
+                      <span className="text-blue-700 font-medium">
+                        Cubic Capacity:
+                      </span>{" "}
+                      <span className="text-blue-600">
+                        {initialData.cubic_capacity} cc
+                      </span>
                     </div>
                   )}
                   {initialData.unladen_weight && (
                     <div>
-                      <span className="text-blue-700 font-medium">Unladen Weight:</span>{' '}
-                      <span className="text-blue-600">{initialData.unladen_weight} kg</span>
+                      <span className="text-blue-700 font-medium">
+                        Unladen Weight:
+                      </span>{" "}
+                      <span className="text-blue-600">
+                        {initialData.unladen_weight} kg
+                      </span>
                     </div>
                   )}
                 </div>
@@ -830,59 +1020,61 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Financer"
             placeholder="e.g., HDFC Bank"
-            {...register('financer')}
+            {...register("financer")}
           />
 
           <Input
             label="Vehicle Class"
             placeholder="e.g., LMV"
-            {...register('vehicle_class')}
+            {...register("vehicle_class")}
           />
 
           <Input
             label="Color"
             placeholder="e.g., White"
-            {...register('color')}
+            {...register("color")}
           />
 
           <Input
             label="Cubic Capacity"
             type="number"
             placeholder="e.g., 2500"
-            {...register('cubic_capacity', { valueAsNumber: true })}
+            {...register("cubic_capacity", { valueAsNumber: true })}
           />
 
           <Input
             label="Cylinders"
             type="number"
             placeholder="e.g., 4"
-            {...register('cylinders', { valueAsNumber: true })}
+            {...register("cylinders", { valueAsNumber: true })}
           />
 
           <Input
             label="Unladen Weight (kg)"
             type="number"
             placeholder="e.g., 3500"
-            {...register('unladen_weight', { valueAsNumber: true })}
+            {...register("unladen_weight", { valueAsNumber: true })}
           />
 
           <Input
             label="Seating Capacity"
             type="number"
             placeholder="e.g., 2"
-            {...register('seating_capacity', { valueAsNumber: true })}
+            {...register("seating_capacity", { valueAsNumber: true })}
           />
 
           <Input
             label="Emission Norms"
             placeholder="e.g., BS6"
-            {...register('emission_norms')}
+            {...register("emission_norms")}
           />
         </div>
 
         {/* Upload Related Documents */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Upload Related Documents</h4>
+          <h4 className="text-sm font-medium text-gray-700 mb-2">
+            Upload Related Documents
+          </h4>
           <Controller
             control={control}
             name="other_info_documents"
@@ -910,7 +1102,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => append({ name: '', file_path: '' })}
+              onClick={() => append({ name: "", file_path: "" })}
               icon={<Plus className="h-4 w-4" />}
             >
               Add Document
@@ -918,7 +1110,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           </div>
 
           {fields.map((field, index) => (
-            <div key={field.id} className="p-4 border rounded-lg bg-gray-50 relative">
+            <div
+              key={field.id}
+              className="p-4 border rounded-lg bg-gray-50 relative"
+            >
               <button
                 type="button"
                 className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
@@ -950,7 +1145,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Document Cost (₹)"
                   type="number"
                   placeholder="e.g., 1000"
-                  {...register(`other_documents.${index}.cost` as const, { valueAsNumber: true })}
+                  {...register(`other_documents.${index}.cost` as const, {
+                    valueAsNumber: true,
+                  })}
                 />
               </div>
 
@@ -973,7 +1170,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
           {fields.length === 0 && (
             <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">No documents added yet. Click "Add Document" to add one.</p>
+              <p className="text-gray-500">
+                No documents added yet. Click "Add Document" to add one.
+              </p>
             </div>
           )}
         </div>
@@ -982,19 +1181,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       {/* Form Actions */}
       <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
         {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
         )}
-        <Button
-          type="submit"
-          isLoading={isSubmitting || isSubmittingForm}
-        >
-          {initialData ? 'Update Vehicle' : 'Save Vehicle'}
+        <Button type="submit" isLoading={isSubmitting || isSubmittingForm}>
+          {initialData ? "Update Vehicle" : "Save Vehicle"}
         </Button>
       </div>
     </form>
