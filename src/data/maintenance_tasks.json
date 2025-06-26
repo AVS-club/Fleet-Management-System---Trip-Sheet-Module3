@@ -11,7 +11,7 @@
   },
   {
     "task_category": "Engine & Oil",
-    "task_name": "Oil Filter Change",
+    "task_name": "Oil Filter Replacement",
     "is_category": false
   },
   {
@@ -170,57 +170,57 @@
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Tyre & Wheel Work",
     "is_category": true
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Front Left Tyre Change",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Front Right Tyre Change",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Rear Left Tyre Change",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Rear Right Tyre Change",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Spare Tyre Fitment",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Tyre Rotation",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Puncture Repair",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Wheel Alignment",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Wheel Balancing",
     "is_category": false
   },
   {
-    "task_category": "Tyre & Wheel",
+    "task_category": "Tyres & Wheel",
     "task_name": "Rim Change or Denting",
     "is_category": false
   },
