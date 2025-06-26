@@ -5,7 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import FileUpload from '../ui/FileUpload';
 import Button from '../ui/Button';
-import { User, Phone, Mail, Calendar, FileText, Upload, Trash2, Plus, Truck, Users, FileCheck, Droplet } from 'lucide-react';
+import { User, Phone, Mail, Calendar, FileText, Upload, Trash2, Plus, Truck, Users, FileCheck, Droplet, Database } from 'lucide-react';
 import { getVehicles } from '../../utils/storage';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
@@ -69,6 +69,42 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Top-level Fetch Block */}
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+        <p className="text-sm text-gray-600 mb-3">Fetch Driver Info from Government Portal</p>
+        <div className="flex flex-col md:flex-row items-end gap-4">
+          <div className="w-full md:w-2/5">
+            <Input
+              label="License Number"
+              icon={<FileText className="h-4 w-4" />}
+              error={errors.license_number?.message}
+              required
+              disabled={isSubmitting}
+              {...register('license_number', { required: 'License number is required' })}
+            />
+          </div>
+          <div className="w-full md:w-2/5">
+            <Input
+              label="Date of Birth"
+              type="date"
+              icon={<Calendar className="h-4 w-4" />}
+              placeholder="DD-MM-YYYY"
+              disabled={isSubmitting}
+              {...register('dob')}
+            />
+          </div>
+          <div className="w-full md:w-1/5">
+            <Button
+              type="button"
+              disabled={isSubmitting}
+              className="w-full"
+            >
+              Fetch Details
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Driver Photo */}
       <div className="flex justify-center mb-4">
         <div className="relative">
@@ -456,6 +492,28 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Notes */}
+      <CollapsibleSection 
+        title="Notes" 
+        icon={<Database className="h-5 w-5" />}
+        iconColor="text-gray-600"
+        defaultExpanded={false}
+      >
+        <div className="space-y-4">
+          <div className="form-group">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Remarks / Internal Notes
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              rows={4}
+              placeholder="Add any additional notes or remarks about this driver (for internal use only)"
+              {...register('notes')}
+            ></textarea>
           </div>
         </div>
       </CollapsibleSection>
