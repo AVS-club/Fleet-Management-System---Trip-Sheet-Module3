@@ -108,6 +108,35 @@ const DriversPage: React.FC = () => {
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).photo;
       
+      // Process other documents
+      if (Array.isArray(driverData.other_documents)) {
+        const processedDocs = [];
+        
+        for (const doc of driverData.other_documents) {
+          const processedDoc: any = {
+            name: doc.name,
+            issue_date: doc.issue_date
+          };
+          
+          // Handle file upload for each document
+          if (doc.file_obj instanceof File) {
+            try {
+              const fileId = editingDriver?.id || `temp-${Date.now()}-${processedDocs.length}`;
+              const filePath = await uploadDriverPhoto(doc.file_obj, fileId);
+              processedDoc.file_path = filePath;
+            } catch (error) {
+              console.error(`Error uploading document "${doc.name}":`, error);
+            }
+          } else if (doc.file_path) {
+            processedDoc.file_path = doc.file_path;
+          }
+          
+          processedDocs.push(processedDoc);
+        }
+        
+        driverData.other_documents = processedDocs;
+      }
+      
       if (editingDriver) {
         // Update existing driver
         const updatedDriver = await updateDriver(editingDriver.id, driverData);
@@ -134,6 +163,39 @@ const DriversPage: React.FC = () => {
               newDriver.driver_photo_url = finalPhotoUrl;
             } catch (error) {
               console.error('Error updating photo with final ID:', error);
+            }
+          }
+          
+          // Update other documents with the correct driver ID
+          if (Array.isArray(newDriver.other_documents) && newDriver.other_documents.length > 0) {
+            const updatedDocs = [];
+            
+            for (const doc of newDriver.other_documents) {
+              const updatedDoc = { ...doc };
+              
+              if (doc.file_path && doc.file_path.includes('temp-')) {
+                try {
+                  // Find the original file object
+                  const originalDoc = data.other_documents?.find(d => d.name === doc.name);
+                  if (originalDoc && originalDoc.file_obj) {
+                    // Re-upload with the correct ID
+                    const finalFilePath = await uploadDriverPhoto(
+                      originalDoc.file_obj as File, 
+                      `${newDriver.id}-${doc.name.replace(/\s+/g, '-').toLowerCase()}`
+                    );
+                    updatedDoc.file_path = finalFilePath;
+                  }
+                } catch (error) {
+                  console.error(`Error updating document "${doc.name}" with final ID:`, error);
+                }
+              }
+              
+              updatedDocs.push(updatedDoc);
+            }
+            
+            if (updatedDocs.length > 0) {
+              await updateDriver(newDriver.id, { other_documents: updatedDocs });
+              newDriver.other_documents = updatedDocs;
             }
           }
           
