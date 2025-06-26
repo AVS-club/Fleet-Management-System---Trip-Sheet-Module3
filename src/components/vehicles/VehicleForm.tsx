@@ -3,8 +3,6 @@ import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { Vehicle } from "../../types";
 import {
   Truck,
-  Calendar,
-  FileText,
   Upload,
   X,
   Plus,
@@ -13,7 +11,6 @@ import {
   Paperclip,
   IndianRupee,
   Shield,
-  CheckSquare,
   FileCheck,
   BadgeCheck,
   Wind,
@@ -21,13 +18,13 @@ import {
 } from "lucide-react";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
+import MultiSelect from "../ui/MultiSelect";
 import FileUpload from "../ui/FileUpload";
 import Checkbox from "../ui/Checkbox";
 import Button from "../ui/Button";
 import { toast } from "react-toastify";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { supabase } from "../../utils/supabaseClient";
-import { get } from "http";
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -54,7 +51,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     watch,
     formState: { errors },
     reset,
-    getValues,
   } = useForm<Vehicle>({
     defaultValues: {
       registration_number: "",
