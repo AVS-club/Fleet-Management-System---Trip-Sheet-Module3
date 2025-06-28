@@ -76,45 +76,27 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
           This chart shows the kilometers run between consecutive maintenance visits for each vehicle.
           Higher values indicate longer distances between maintenance, which can be better for operational efficiency.
         </p>
-        <div className="h-80 md:h-64 relative overflow-x-auto">
-          {/* Scrolling indicator for mobile */}
-          <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 md:hidden"></div>
-          <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 md:hidden"></div>
-          
-          <div className="min-w-[600px] md:min-w-0 h-full">
-          <ResponsiveContainer width="100%" height="100%" className="overflow-visible">
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={processedData.chartData}
-              margin={{ top: 5, right: 20, left: 10, bottom: 30 }}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 10 }}
-                angle={-45}
-                textAnchor="end"
-                height={50}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(value) => `${(value/1000).toFixed(1)}k km`}
-                tick={{ fontSize: 10 }}
+                tickFormatter={(value) => `${value.toLocaleString()} km`}
               />
               <Tooltip 
                 formatter={(value: number) => [`${value.toLocaleString()} km`, 'Distance']}
-                wrapperStyle={{ maxWidth: '80vw', overflow: 'hidden' }}
               />
-              <Legend 
-                wrapperStyle={{ 
-                  paddingTop: 10, 
-                  paddingBottom: 0,
-                  fontSize: 10
-                }}
-                iconSize={10}
-              />
+              <Legend />
               {processedData.vehicleRegistrations.map((registration, index) => (
                 <Line
                   key={registration}
@@ -128,7 +110,6 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
               ))}
             </LineChart>
           </ResponsiveContainer>
-          </div>
         </div>
       </div>
     </CollapsibleSection>

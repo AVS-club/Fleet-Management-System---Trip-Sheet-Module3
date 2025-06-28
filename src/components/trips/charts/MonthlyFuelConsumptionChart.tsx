@@ -73,14 +73,11 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
       </div>
       
       <div className="h-80 overflow-x-auto">
-        <div className="min-w-[320px] md:min-w-[800px] h-full relative">
-          {/* Scrolling indicators */}
-          <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none z-10 md:hidden"></div>
-          <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none z-10 md:hidden"></div>
+        <div className="min-w-[800px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 30, left: 10, bottom: 30 }}
+              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
             >
               <defs>
                 <linearGradient id="fuelGradient" x1="0" y1="0" x2="0" y2="1">
@@ -91,21 +88,18 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 10 }}
-                angle={-45}
-                textAnchor="end"
-                height={60}
+                tick={{ fontSize: 12 }}
                 tickLine={false}
               />
               <YAxis 
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 12 }}
                 label={{ 
                   value: 'Liters', 
                   angle: -90, 
                   position: 'insideLeft',
-                  style: { textAnchor: 'middle', fontSize: 10 }
+                  style: { textAnchor: 'middle', fontSize: 12 }
                 }}
               />
               <Tooltip

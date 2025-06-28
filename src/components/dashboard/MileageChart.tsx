@@ -65,7 +65,7 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
-            margin={{ top: 5, right: 20, left: 10, bottom: 20 }}
+            margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis 
@@ -73,14 +73,11 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: '#e5e7eb' }}
-              angle={-45}
-              textAnchor="end"
-              height={50}
             />
             <YAxis 
               tickLine={false}
               axisLine={{ stroke: '#e5e7eb' }}
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 12 }}
               domain={['auto', 'auto']}
             />
             <Tooltip 
@@ -90,10 +87,7 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
                 backgroundColor: 'white', 
                 borderRadius: '0.5rem',
                 border: '1px solid #e5e7eb',
-                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                maxWidth: '80vw',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
               }}
             />
             <Line 

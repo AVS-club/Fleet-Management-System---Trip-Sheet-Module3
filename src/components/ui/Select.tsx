@@ -59,11 +59,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               clsx(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 appearance-none pr-8 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                sizeClasses[size], 
+                sizeClasses[size],
                 className
               )
             )}
-            style={{ minHeight: size === 'sm' ? '38px' : size === 'lg' ? '50px' : '42px' }}
             {...props}
           >
             {options.map((option) => (

@@ -74,7 +74,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             )}
             {...props}
           />
-              "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 appearance-auto",
+          
           {icon && iconPosition === 'right' && (
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
@@ -82,7 +82,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         
-          style={type === 'date' || type === 'datetime-local' ? { minHeight: size === 'sm' ? '38px' : size === 'lg' ? '50px' : '42px' } : undefined}
         {(helperText || error) && (
           <p className={clsx(
             "mt-1 text-sm",
