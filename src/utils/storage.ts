@@ -1518,6 +1518,33 @@ export const updateAllTripMileage = async (): Promise<void> => {
     ) {
       throw error;
     }
+    
+    // Also handle Supabase-specific network errors
+    if (
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string' &&
+      (error.message.includes("Failed to fetch") ||
+       error.message.includes("Network request failed") ||
+       error.message.includes("fetch is not defined"))
+    ) {
+      throw new TypeError("Network connection failed while updating trip mileage");
+    }
+    
+    // Handle cases where the error might be wrapped
+    if (
+      error &&
+      typeof error === 'object' &&
+      'error' in error &&
+      error.error &&
+      typeof error.error === 'object' &&
+      'message' in error.error &&
+      typeof error.error.message === 'string' &&
+      error.error.message.includes("Failed to fetch")
+    ) {
+      throw new TypeError("Network connection failed while updating trip mileage");
+    }
   }
 };
 

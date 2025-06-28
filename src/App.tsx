@@ -95,8 +95,15 @@ function App() {
 
         // If the error is a network/connection error, show connection error
         if (
-          error instanceof TypeError &&
-          error.message.includes("Failed to fetch")
+          (error instanceof TypeError &&
+           error.message.includes("Failed to fetch")) ||
+          (error && 
+           typeof error === 'object' && 
+           'message' in error &&
+           typeof error.message === 'string' &&
+           (error.message.includes("Failed to fetch") ||
+            error.message.includes("Network connection failed") ||
+            error.message.includes("Network request failed")))
         ) {
           setConnectionError(
             "Network connection failed while initializing data. Please check your internet connection and Supabase configuration."
