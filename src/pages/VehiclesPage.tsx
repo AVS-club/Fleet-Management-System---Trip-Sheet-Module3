@@ -399,10 +399,7 @@ const VehiclesPage: React.FC = () => {
                           {vehicle.status}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-500">
-                        {vehicle.make} {vehicle.model} ({vehicle.year})
-                      </p>
-
+                      
                       {/* VehicleSummaryChips Component */}
                       <VehicleSummaryChips vehicle={vehicle} className="mt-3" />
                     </div>
