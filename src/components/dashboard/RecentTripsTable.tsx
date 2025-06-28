@@ -57,8 +57,8 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
                 </th>
                 <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">
                   Distance
-                <td colSpan={6} className="px-2 sm:px-6 py-6 sm:py-10 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
-                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300 dark:text-gray-600 mx-auto mb-1 sm:mb-2" />
+                </th>
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">
                   Mileage
                 </th>
               </tr>
