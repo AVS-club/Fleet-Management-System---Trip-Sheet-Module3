@@ -1493,30 +1493,61 @@ export const getVehicleStats = async (vehicleId: string) => {
 // Update all trip mileage
 export const updateAllTripMileage = async (): Promise<void> => {
   try {
-    const { data: trips } = await supabase
+    // Add timeout to prevent hanging on CORS issues
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout - possible CORS issue')), 15000)
+    );
+    
+    const queryPromise = supabase
       .from("trips")
       .select("*")
       .order("trip_end_date", { ascending: true });
+    
+    const { data: trips } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
     if (!trips || !Array.isArray(trips)) return;
 
     for (const trip of trips) {
       if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
         const calculatedKmpl = calculateMileage(trip, trips);
-        await supabase
+        
+        // Add timeout for updates as well
+        const updatePromise = supabase
           .from("trips")
           .update({ calculated_kmpl: calculatedKmpl })
           .eq("id", trip.id);
+          
+        const updateTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Update timeout - possible CORS issue')), 10000)
+        );
+        
+        await Promise.race([updatePromise, updateTimeoutPromise]);
       }
     }
   } catch (error) {
     console.error("Error updating trip mileage:", error);
+    
+    // Provide more specific error messages for common issues
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('CORS')) {
+        throw new Error(`Connection timeout while updating trip data. This is likely a CORS configuration issue.
+        
+Please ensure your Supabase project allows requests from ${window.location.origin}:
+1. Go to your Supabase Dashboard
+2. Navigate to Settings → API → CORS  
+3. Add ${window.location.origin} to allowed origins
+4. Save and reload the page`);
+      }
+    }
+    
     // Re-throw network errors so they can be handled appropriately
     if (
       error instanceof TypeError &&
       error.message.includes("Failed to fetch")
     ) {
-      throw error;
+      throw new Error(`Network connection failed while updating trip mileage. This is likely a CORS issue.
+      
+Please configure CORS in your Supabase project to allow requests from ${window.location.origin}`);
     }
     
     // Also handle Supabase-specific network errors
@@ -1529,7 +1560,9 @@ export const updateAllTripMileage = async (): Promise<void> => {
        error.message.includes("Network request failed") ||
        error.message.includes("fetch is not defined"))
     ) {
-      throw new TypeError("Network connection failed while updating trip mileage");
+      throw new TypeError(`Network connection failed while updating trip mileage. 
+      
+This is likely a CORS configuration issue. Please add ${window.location.origin} to your Supabase CORS settings.`);
     }
     
     // Handle cases where the error might be wrapped
@@ -1543,7 +1576,9 @@ export const updateAllTripMileage = async (): Promise<void> => {
       typeof error.error.message === 'string' &&
       error.error.message.includes("Failed to fetch")
     ) {
-      throw new TypeError("Network connection failed while updating trip mileage");
+      throw new TypeError(`Network connection failed while updating trip mileage.
+      
+This is likely a CORS configuration issue. Please add ${window.location.origin} to your Supabase CORS settings.`);
     }
   }
 };

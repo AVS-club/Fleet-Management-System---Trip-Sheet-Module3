@@ -62,24 +62,42 @@ function App() {
         const isConnected = await testSupabaseConnection();
 
         if (!isConnected) {
-          setConnectionError(
-            "Could not connect to Supabase. Please check your API keys and network connection."
-          );
+          setConnectionError("Could not connect to Supabase. Please check your configuration.");
           setLoading(false);
           return;
         }
       } catch (error) {
         console.error("Connection test failed:", error);
-        if (
+        
+        // Handle CORS-specific errors with detailed instructions
+        if (error instanceof Error && error.message.includes('CORS configuration required')) {
+          setConnectionError(
+            error.message
+          );
+        } else if (
           error instanceof TypeError &&
           error.message.includes("Failed to fetch")
         ) {
-          setConnectionError(
-            "Network connection failed during startup. Please check your internet connection and Supabase configuration."
+          setConnectionError(`CORS Configuration Required
+
+This error indicates that your Supabase project needs to be configured to allow requests from this domain.
+
+To fix this:
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard
+2. Select your project
+3. Navigate to Settings → API → CORS
+4. Add these URLs to allowed origins:
+   • ${window.location.origin}
+   • http://localhost:5173
+   • https://localhost:5173
+5. Save the changes and wait 1-2 minutes
+6. Reload this page
+
+Current URL: ${window.location.origin}`
           );
         } else {
           setConnectionError(
-            "Could not connect to Supabase. Please check your API keys and network connection."
+            error instanceof Error ? error.message : "Could not connect to Supabase. Please check your API keys and network connection."
           );
         }
         setLoading(false);
@@ -93,20 +111,32 @@ function App() {
       } catch (error) {
         console.warn("Failed to update trip mileage:", error);
 
-        // If the error is a network/connection error, show connection error
-        if (
-          (error instanceof TypeError &&
-           error.message.includes("Failed to fetch")) ||
-          (error && 
-           typeof error === 'object' && 
-           'message' in error &&
+        // If the error is a CORS/network error during data initialization, show CORS-specific error
+        const isCorsError = (error instanceof TypeError && error.message.includes("Failed to fetch")) ||
+          (error && typeof error === 'object' && 'message' in error &&
            typeof error.message === 'string' &&
            (error.message.includes("Failed to fetch") ||
             error.message.includes("Network connection failed") ||
-            error.message.includes("Network request failed")))
-        ) {
+            error.message.includes("Network request failed") ||
+            error.message.includes("CORS")));
+        
+        if (isCorsError) {
           setConnectionError(
-            "Network connection failed while initializing data. Please check your internet connection and Supabase configuration."
+            `CORS Configuration Required
+
+The application cannot load data due to CORS restrictions.
+
+To fix this:
+1. Open your Supabase Dashboard: https://supabase.com/dashboard
+2. Go to Settings → API → CORS
+3. Add these URLs to allowed origins:
+   • ${window.location.origin}
+   • http://localhost:5173
+   • https://localhost:5173
+4. Save and wait 1-2 minutes for changes to take effect
+5. Reload this page
+
+Current domain: ${window.location.origin}`
           );
           setLoading(false);
           return;
@@ -230,40 +260,25 @@ function App() {
             <p className="font-medium text-gray-900 mb-2">
               Troubleshooting steps:
             </p>
-            <ol className="list-decimal pl-5 text-sm space-y-2 text-gray-600">
+            <ol className="list-decimal pl-5 text-sm space-y-3 text-gray-600">
+              <li className="font-medium text-red-700">
+                <strong>CORS Configuration (Most Common Issue):</strong>
+                <ul className="list-disc pl-5 mt-2 space-y-1 font-normal">
+                  <li>Go to Settings → API → CORS in your Supabase dashboard</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">{window.location.origin}</code> to allowed origins</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">http://localhost:5173</code> to allowed origins</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">https://localhost:5173</code> to allowed origins</li>
+                  <li>Save and wait 1-2 minutes for changes to propagate</li>
+                </ul>
+              </li>
               <li>
                 Check that your Supabase URL and anon key are correctly set in
                 the .env file
               </li>
               <li>Ensure your Supabase project is up and running</li>
               <li>Verify that your network can access the Supabase API</li>
-              <li className="font-medium text-red-700">
-                <strong>CORS Configuration Required:</strong> In your Supabase
-                project dashboard:
-                <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li>Go to Settings → API → CORS</li>
-                  <li>
-                    Add{" "}
-                    <code className="bg-gray-100 px-1 rounded text-xs">
-                      http://localhost:5173
-                    </code>{" "}
-                    to allowed origins
-                  </li>
-                  <li>
-                    Add{" "}
-                    <code className="bg-gray-100 px-1 rounded text-xs">
-                      {window.location.origin}
-                    </code>{" "}
-                    to allowed origins
-                  </li>
-                  <li>
-                    Save the changes and wait a few minutes for them to take
-                    effect
-                  </li>
-                </ul>
-              </li>
               <li>
-                Try reloading the page after fixing the CORS configuration
+                Try reloading the page after making configuration changes
               </li>
             </ol>
           </div>

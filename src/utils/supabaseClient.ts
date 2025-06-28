@@ -215,59 +215,90 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
   }
 
   try {
-    // Test 1: Try a simple count query
-    const { error: countError } = await supabase
+    // Test 1: Try a simple auth check first (most basic connection test)
+    const { error: authError } = await supabase.auth.getSession();
+    
+    if (authError) {
+      console.error("Supabase connection test failed (auth):", authError.message);
+      
+      // Check if it's a CORS error specifically
+      if (authError.message.includes('Failed to fetch') || 
+          authError.message.includes('CORS') ||
+          authError.message.includes('Network request failed')) {
+        throw new Error('CORS_ERROR');
+      }
+      
+      return false;
+    }
+
+    // Test 2: Try a simple count query with timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('REQUEST_TIMEOUT')), 10000)
+    );
+    
+    const queryPromise = supabase
       .from("vehicles")
       .select("count", { count: "exact", head: true });
+    
+    const { error: countError } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
     if (countError) {
-      console.error(
-        "Supabase connection test failed (count query):",
-        countError.message
-      );
-      return false;
-    }
-
-    // Test 2: Try to actually fetch some data to test more comprehensive access
-    const { error: selectError } = await supabase
-      .from("vehicles")
-      .select("id")
-      .limit(1);
-
-    if (selectError) {
-      console.error(
-        "Supabase connection test failed (select query):",
-        selectError.message
-      );
-      return false;
-    }
-
-    // Test 3: Check if we can access trips table (used by updateAllTripMileage)
-    const { error: tripError } = await supabase
-      .from("trips")
-      .select("id")
-      .limit(1);
-
-    if (tripError) {
-      console.error(
-        "Supabase connection test failed (trips query):",
-        tripError.message
-      );
+      console.error("Supabase connection test failed (count query):", countError.message);
+      
+      // Check if it's a CORS error specifically
+      if (countError.message.includes('Failed to fetch') || 
+          countError.message.includes('CORS') ||
+          countError.message.includes('Network request failed')) {
+        throw new Error('CORS_ERROR');
+      }
+      
       return false;
     }
 
     return true;
   } catch (error) {
     console.error("Supabase connection test error:", error);
+    
+    // Handle CORS-specific errors
+    if (error instanceof Error && error.message === 'CORS_ERROR') {
+      throw new Error(`CORS configuration required. Please add your domain to Supabase CORS settings:
+
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard
+2. Select your project
+3. Navigate to Settings → API → CORS
+4. Add these URLs to allowed origins:
+   - ${window.location.origin}
+   - http://localhost:5173
+   - https://localhost:5173
+5. Save the changes and wait 1-2 minutes for them to take effect
+6. Reload this page
+
+Current origin: ${window.location.origin}`);
+    }
+    
+    // Handle timeout errors
+    if (error instanceof Error && error.message === 'REQUEST_TIMEOUT') {
+      throw new Error('Connection timeout. Please check your internet connection and Supabase project status.');
+    }
 
     // Check if it's a network error specifically
     if (
       error instanceof TypeError &&
       error.message.includes("Failed to fetch")
     ) {
-      console.error(
-        "Network connection failed. Please check your internet connection and Supabase URL."
-      );
+      throw new Error(`Network connection failed. This is likely a CORS issue.
+
+Please configure CORS in your Supabase project:
+1. Go to https://supabase.com/dashboard
+2. Select your project
+3. Navigate to Settings → API → CORS
+4. Add ${window.location.origin} to allowed origins
+5. Save and reload this page
+
+If the issue persists, check:
+- Your internet connection
+- Supabase project status
+- Firewall/proxy settings`);
     }
 
     return false;
