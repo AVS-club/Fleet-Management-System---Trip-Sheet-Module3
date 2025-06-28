@@ -80,7 +80,7 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={processedData.chartData}
-              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              margin={{ top: 20, right: 20, left: 10, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
@@ -91,7 +91,8 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
               <YAxis 
                 axisLine={false}
                 tickLine={false}
-                tickFormatter={(value) => `${value.toLocaleString()} km`}
+                tick={{ fontSize: 10 }}
+                tickFormatter={(value) => `${value/1000}k km`}
               />
               <Tooltip 
                 formatter={(value: number) => [`${value.toLocaleString()} km`, 'Distance']}
@@ -99,25 +100,19 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
               <Legend />
               {processedData.vehicleRegistrations.map((registration, index) => (
                 <Line
-                margin={{ top: 20, right: 20, left: 10, bottom: 5 }}
+                  key={registration}
                   type="monotone"
-                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
-                <XAxis
-                <YAxis
-                  axisLine={false} 
-                  tick={{ fontSize: 10 }}
-                  tickFormatter={(value) => `${value/1000}k km`} 
-                  tick={{ fontSize: 10 }}
+                  dataKey={registration}
+                  stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
                 />
-              )
-              )
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
     </CollapsibleSection>
-  )
   );
 };
 
