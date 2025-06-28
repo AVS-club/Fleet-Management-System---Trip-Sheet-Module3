@@ -287,7 +287,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           Basic Information
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <Controller
             control={control}
             name="vehicle_id"
@@ -766,7 +766,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
         <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <Input
             label="Start Date"
             type="date"
@@ -934,7 +934,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       )}
 
       {/* Submit Button */}
-      <div className="flex justify-end space-x-4 pt-5">
+      <div className="flex flex-wrap justify-end gap-4 pt-4 border-t border-gray-200">
         <Button
           type="submit"
           isLoading={isSubmitting}

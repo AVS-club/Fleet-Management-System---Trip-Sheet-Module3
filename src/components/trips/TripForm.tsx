@@ -614,7 +614,7 @@ const TripForm: React.FC<TripFormProps> = ({
         iconColor="text-gray-600"
         defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className={`relative ${lastTripMileage && refuelingDone ? 'bg-blue-50 rounded-lg' : ''}`}>
             <Input
               label="Start KM"
@@ -632,7 +632,7 @@ const TripForm: React.FC<TripFormProps> = ({
               })}
             />
             {lastTripMileage && refuelingDone && (
-              <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+              <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full max-w-[90%] truncate">
                 Auto-filled from last trip
               </div>
             )}

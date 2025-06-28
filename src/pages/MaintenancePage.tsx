@@ -118,7 +118,7 @@ const MaintenancePage = () => {
       title="Maintenance Dashboard"
       subtitle="Track and analyze vehicle maintenance performance"
       actions={
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-3">
           <NotificationsButton module="maintenance" />
           <Button
             onClick={() => navigate('/maintenance/new')}

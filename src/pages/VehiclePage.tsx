@@ -267,7 +267,7 @@ const VehiclePage: React.FC = () => {
       title={`Vehicle: ${vehicle.registration_number}`}
       subtitle={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}
       actions={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             onClick={() => navigate('/vehicles')}

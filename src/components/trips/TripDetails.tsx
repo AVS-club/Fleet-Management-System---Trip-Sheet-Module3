@@ -42,17 +42,19 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          icon={<ChevronLeft className="h-4 w-4" />}
-          onClick={onBack}
-        >
-          Back to Trips
-        </Button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<ChevronLeft className="h-4 w-4" />}
+            onClick={onBack}
+          >
+            Back to Trips
+          </Button>
+        </div>
         
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             size="sm"

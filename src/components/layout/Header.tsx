@@ -109,7 +109,7 @@ const Header: React.FC = () => {
       </div>
 
       <div
-        className={`md:hidden bg-white dark:bg-gray-900 shadow-lg overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`md:hidden bg-white dark:bg-gray-900 shadow-lg overflow-hidden transition-all duration-300 ease-in-out z-20 ${
           isMenuOpen ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
@@ -129,15 +129,17 @@ const Header: React.FC = () => {
               <span>{link.name}</span>
             </Link>
           ))}
-          <div className="flex items-center justify-between px-3 py-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-3 py-3">
             <ThemeToggle />
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
+            <div className="w-full">
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

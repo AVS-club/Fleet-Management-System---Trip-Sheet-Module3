@@ -165,7 +165,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       </div>
 
       {/* Top 3 Material Buttons */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {topMaterials.map(material => (
           <button
             key={material.id}

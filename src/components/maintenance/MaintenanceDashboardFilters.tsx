@@ -25,9 +25,9 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+          <div className="w-full sm:w-auto">
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
             <div className="flex items-center">
               <Select
@@ -55,33 +55,37 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
           </div>
           
           {(dateRangeFilter === 'custom' || isExpanded) && (
-            <div className="flex gap-2 items-end">
-              <Input
-                type="date"
-                value={customDateRange.start}
-                onChange={(e) => onCustomDateRangeChange({ 
-                  ...customDateRange, 
-                  start: e.target.value 
-                })}
-                label="Start Date"
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              <span className="mx-1 mb-2">to</span>
-              <Input
-                type="date"
-                value={customDateRange.end}
-                onChange={(e) => onCustomDateRangeChange({ 
-                  ...customDateRange, 
-                  end: e.target.value 
-                })}
-                label="End Date"
-                icon={<Calendar className="h-4 w-4" />}
-              />
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+              <div className="w-full sm:w-auto">
+                <Input
+                  type="date"
+                  value={customDateRange.start}
+                  onChange={(e) => onCustomDateRangeChange({ 
+                    ...customDateRange, 
+                    start: e.target.value 
+                  })}
+                  label="Start Date"
+                  icon={<Calendar className="h-4 w-4" />}
+                />
+              </div>
+              <span className="hidden sm:block mx-1 mb-2">to</span>
+              <div className="w-full sm:w-auto">
+                <Input
+                  type="date"
+                  value={customDateRange.end}
+                  onChange={(e) => onCustomDateRangeChange({ 
+                    ...customDateRange, 
+                    end: e.target.value 
+                  })}
+                  label="End Date"
+                  icon={<Calendar className="h-4 w-4" />}
+                />
+              </div>
             </div>
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"

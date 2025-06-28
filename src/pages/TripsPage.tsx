@@ -101,7 +101,7 @@ const TripsPage: React.FC = () => {
       subtitle="Log and track all vehicle trips"
       actions={
         !isAddingTrip ? (
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             <NotificationsButton module="trips" />
             <Button
               variant="outline"

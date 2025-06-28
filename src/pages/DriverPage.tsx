@@ -124,7 +124,7 @@ const DriverPage: React.FC = () => {
       title={`Driver: ${driver.name}`}
       subtitle={`License: ${driver.license_number}`}
       actions={
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             onClick={() => navigate('/drivers')}

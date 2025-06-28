@@ -294,7 +294,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         {/* Selected destinations display */}
         <div className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text">
           {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               {selectedDestinationDetails.map((dest, index) => (
                 <span
                   key={`${dest.id}-${index}`}

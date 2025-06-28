@@ -208,7 +208,7 @@ const VehiclesPage: React.FC = () => {
       subtitle="Manage your fleet vehicles"
       actions={
         !isAddingVehicle && (
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             <NotificationsButton module="vehicles" iconOnly={true} />
 
             <Button

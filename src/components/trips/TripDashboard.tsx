@@ -233,8 +233,8 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
     <div className="space-y-6">
       {/* Sticky Date Filter */}
       <div className="bg-white p-4 rounded-lg shadow-sm sticky top-16 z-10 border-b border-gray-200">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[200px]">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
+          <div className="w-full sm:w-auto sm:flex-1 min-w-[200px]">
             <Select
               label="Date Range"
               options={[
@@ -251,7 +251,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           
           {filterType === 'custom' && (
             <>
-              <div className="w-40">
+              <div className="w-full sm:w-40">
                 <Input
                   label="Start Date"
                   type="date"
@@ -259,7 +259,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
                   onChange={(e) => setCustomStartDate(e.target.value)}
                 />
               </div>
-              <div className="w-40">
+              <div className="w-full sm:w-40">
                 <Input
                   label="End Date"
                   type="date"
@@ -270,7 +270,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
             </>
           )}
           
-          <div className="ml-auto text-sm text-gray-500 flex items-center">
+          <div className="w-full sm:w-auto sm:ml-auto text-sm text-gray-500 flex items-center">
             <Calendar className="h-4 w-4 mr-1" />
             <span>
               {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}

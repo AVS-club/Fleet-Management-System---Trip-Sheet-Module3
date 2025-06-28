@@ -114,14 +114,14 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
               <div className="space-y-6">
                 {/* Alert Info */}
                 <div className={`p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
-                  <div className="flex justify-between mb-2">
-                    <div className="flex items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
+                    <div className="flex items-center flex-wrap">
                       <span className="text-sm font-medium">Alert Type:</span>
                       <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
                         {alert.alert_type.replace('_', ' ')}
                       </span>
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-center flex-wrap">
                       <span className="text-sm font-medium">Created:</span>
                       <span className="ml-2 text-sm">{formatDate(alert.created_at)}</span>
                     </div>

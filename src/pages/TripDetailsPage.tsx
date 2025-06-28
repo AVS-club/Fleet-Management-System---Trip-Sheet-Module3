@@ -181,7 +181,7 @@ const TripDetailsPage: React.FC = () => {
   return (
     <Layout
       title={`Trip ${trip.trip_serial_number}`}
-      subtitle={`Created on ${new Date(trip.created_at).toLocaleDateString()}`}
+      subtitle={`Created on ${new Date(trip.created_at || '').toLocaleDateString()}`}
     >
       {isEditing ? (
         <div className="bg-white shadow-sm rounded-lg p-6">

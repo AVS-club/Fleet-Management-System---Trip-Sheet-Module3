@@ -181,9 +181,9 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="w-40">
+      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="w-full sm:w-40">
             <Select
               options={[
                 { value: 'today', label: 'Today' },
@@ -202,7 +202,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           
           {filterType === 'custom' && !showFullYear && (
             <>
-              <div className="w-32">
+              <div className="w-full sm:w-32">
                 <Input
                   type="date"
                   value={customStartDate}
@@ -210,7 +210,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                   disabled={showFullYear}
                 />
               </div>
-              <div className="w-32">
+              <div className="w-full sm:w-32">
                 <Input
                   type="date"
                   value={customEndDate}
@@ -222,14 +222,17 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           )}
         </div>
         
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowFullYear(!showFullYear)}
-          icon={<ChevronRight className="h-4 w-4" />}
-        >
-          {showFullYear ? 'Custom Date Range' : 'Show Full Year'}
-        </Button>
+        <div className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFullYear(!showFullYear)}
+            icon={<ChevronRight className="h-4 w-4" />}
+            className="w-full sm:w-auto"
+          >
+            {showFullYear ? 'Custom Date Range' : 'Show Full Year'}
+          </Button>
+        </div>
       </div>
       
       <div className="h-80 overflow-x-auto">

@@ -320,7 +320,7 @@ const DriversPage: React.FC = () => {
       actions={
         !isAddingDriver &&
         !editingDriver && (
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             <NotificationsButton module="drivers" />
             <Button
               onClick={() => setIsAddingDriver(true)}
