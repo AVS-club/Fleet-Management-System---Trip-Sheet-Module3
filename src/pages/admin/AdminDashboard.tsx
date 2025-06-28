@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar } from 'lucide-react';
+import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar, FileCheck, BarChart2, Database, MessageSquare, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '../../types';
@@ -149,7 +149,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/drivers"
+                to="/admin/driver-management"
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -215,6 +215,88 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </Link>
+
+              <Link
+                to="/admin/document-rules"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <FileCheck className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Document Rules</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                      Configure document requirements and validation rules
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/driver-ranking-settings"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <BarChart2 className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Ranking</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                      Configure performance metrics for driver rankings
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/message-templates"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <MessageSquare className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Message Templates</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                      Manage message templates for notifications
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/activity-logs"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <Activity className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Activity Logs</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                      View system activity and audit logs
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
+                    <Database className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-400">Database Backup</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-400">
+                      Coming soon
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <RunDiagnosis />
@@ -288,9 +370,14 @@ const AdminDashboard: React.FC = () => {
                       <h2 className="text-lg font-medium text-gray-900">Driver Management</h2>
                       <p className="text-sm text-gray-500">Manage driver master data and configurations</p>
                     </div>
-                    <Link to="/drivers">
-                      <Button>Manage Drivers</Button>
-                    </Link>
+                    <div className="flex space-x-3">
+                      <Link to="/drivers">
+                        <Button>Standard View</Button>
+                      </Link>
+                      <Link to="/admin/driver-management">
+                        <Button variant="primary">Advanced Management</Button>
+                      </Link>
+                    </div>
                   </div>
                   <DataTable
                     columns={driverColumns}

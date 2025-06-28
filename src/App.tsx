@@ -40,6 +40,7 @@ import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import ActivityLogPage from "./pages/admin/ActivityLogPage";
+import AdminDriversPage from "./pages/admin/AdminDriversPage";
 
 interface ProtectedRouteProps {
   session: Session | null;
@@ -354,6 +355,10 @@ Current domain: ${window.location.origin}`
             <Route
               path="/admin/activity-logs"
               element={<ActivityLogPage />}
+            />
+            <Route
+              path="/admin/driver-management"
+              element={<AdminDriversPage />}
             />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/:id" element={<VehiclePage />} />
