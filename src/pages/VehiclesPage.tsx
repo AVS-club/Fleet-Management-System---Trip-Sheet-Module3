@@ -107,13 +107,14 @@ const VehiclesPage: React.FC = () => {
 
         // Calculate vehicles with documents pending
         const docsPendingCount = activeVehicles.filter((vehicle) => {
+          // Check for actual document paths instead of boolean flags
           const docsCount = [
-            vehicle.rc_copy,
-            vehicle.insurance_document,
-            vehicle.fitness_document,
-            vehicle.tax_receipt_document,
-            vehicle.permit_document,
-            vehicle.puc_document,
+            vehicle.rc_document_path,
+            vehicle.insurance_document_path,
+            vehicle.fitness_document_path,
+            vehicle.tax_document_path,
+            vehicle.permit_document_path,
+            vehicle.puc_document_path,
           ].filter(Boolean).length;
 
           return docsCount < 6;
@@ -178,19 +179,20 @@ const VehiclesPage: React.FC = () => {
     }
   };
 
-  // Helper function to count uploaded documents
+  // Helper function to count uploaded documents - updated to check for actual file paths
   const countDocuments = (
     vehicle: Vehicle
   ): { uploaded: number; total: number } => {
     let uploaded = 0;
     const total = 6; // RC, Insurance, Fitness, Tax, Permit, PUC
 
-    if (vehicle.rc_copy) uploaded++;
-    if (vehicle.insurance_document) uploaded++;
-    if (vehicle.fitness_document) uploaded++;
-    if (vehicle.tax_receipt_document) uploaded++;
-    if (vehicle.permit_document) uploaded++;
-    if (vehicle.puc_document) uploaded++;
+    // Check for actual document paths instead of boolean flags
+    if (vehicle.rc_document_path) uploaded++;
+    if (vehicle.insurance_document_path) uploaded++;
+    if (vehicle.fitness_document_path) uploaded++;
+    if (vehicle.tax_document_path) uploaded++;
+    if (vehicle.permit_document_path) uploaded++;
+    if (vehicle.puc_document_path) uploaded++;
 
     return { uploaded, total };
   };
@@ -351,7 +353,7 @@ const VehiclesPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVehicles.map((vehicle) => {
-                // Count documents
+                // Count documents using actual document paths
                 const { uploaded, total } = countDocuments(vehicle);
 
                 return (

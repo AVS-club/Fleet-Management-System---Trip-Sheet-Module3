@@ -13,12 +13,6 @@ const VehicleSummaryChips: React.FC<VehicleSummaryChipsProps> = ({
 }) => {
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
-      {/* Registration */}
-      <div className="flex items-center bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs md:text-sm">
-        <Truck className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
-        {vehicle.registration_number}
-      </div>
-      
       {/* Make & Model */}
       <div className="flex items-center bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-xs md:text-sm">
         <FileText className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5" />
