@@ -207,12 +207,12 @@ const DriverForm: React.FC<DriverFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Top-level Fetch Block */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200 mb-6">
         <p className="text-sm text-gray-600 mb-3">
           Fetch Driver Info from Government Portal
         </p>
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="w-full md:w-2/5">
+        <div className="flex flex-col md:flex-row items-center gap-3 sm:gap-4">
+          <div className="w-full md:w-2/5 mb-2 md:mb-0">
             <Input
               label="License Number"
               placeholder="CG0419900078925"
@@ -225,7 +225,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
               })}
             />
           </div>
-          <div className="w-full md:w-2/5">
+          <div className="w-full md:w-2/5 mb-2 md:mb-0">
             <Input
               label="Date of Birth"
               type="date"
@@ -235,7 +235,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
               {...register("dob")}
             />
           </div>
-          <div className="w-full md:w-1/5 pt-2">
+          <div className="w-full md:w-1/5 pt-0 md:pt-2">
             <Button
               type="button"
               disabled={isFetching || isSubmitting}
@@ -299,7 +299,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-blue-600"
         defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <Input
             label="Full Name"
             icon={<User className="h-4 w-4" />}
@@ -357,7 +357,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             )}
           />
         </div>
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Controller
             control={control}
             name="address"
@@ -382,7 +382,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-green-600"
         defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <Input
             label="Contact Number"
             icon={<Phone className="h-4 w-4" />}
@@ -423,7 +423,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4">
           <Input
             label="License Issue Date"
             type="date"
@@ -458,7 +458,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-orange-600"
         defaultExpanded={false}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <Input
             label="RTO Code"
             placeholder="e.g., CG06"
@@ -503,7 +503,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-purple-600"
         defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <Input
             label="Join Date"
             type="date"
@@ -544,7 +544,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Controller
             control={control}
             name="status"
@@ -575,7 +575,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-red-600"
         defaultExpanded={true}
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <Controller
             control={control}
             name="license_document"
@@ -591,7 +591,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
 
           {/* Other Documents */}
-          <div className="mt-6">
+          <div className="mt-4 sm:mt-6">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm font-medium text-gray-700">
                 Other Documents
@@ -618,7 +618,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 {fields.map((field, index) => (
                   <div
                     key={field.id}
-                    className="p-4 border rounded-lg bg-gray-50 relative"
+                    className="p-3 sm:p-4 border rounded-lg bg-gray-50 relative"
                   >
                     <button
                       type="button"
@@ -628,7 +628,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       <Trash2 className="h-4 w-4" />
                     </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                       <Input
                         label="Document Name"
                         placeholder="e.g., Medical Certificate"
@@ -672,13 +672,13 @@ const DriverForm: React.FC<DriverFormProps> = ({
         iconColor="text-gray-600"
         defaultExpanded={false}
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="form-group">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Remarks / Internal Notes
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
               rows={4}
               placeholder="Add any additional notes or remarks about this driver (for internal use only)"
               {...register("notes")}
@@ -688,7 +688,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       </CollapsibleSection>
 
       {/* Submit Button */}
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end pt-3 sm:pt-4">
         <Button type="submit" isLoading={isSubmitting}>
           {initialData?.id ? "Update Driver" : "Add Driver"}
         </Button>

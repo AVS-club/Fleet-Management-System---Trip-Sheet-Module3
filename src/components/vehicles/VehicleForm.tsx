@@ -205,8 +205,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         defaultExpanded
         iconColor="text-gray-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          <div className="space-y-2">
             <Input
               label="Vehicle Number"
               placeholder="CG04NJ5907"
@@ -217,7 +217,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 required: "Vehicle number is required",
               })}
             />
-            <div className="mt-2">
+            <div>
               <Button
                 type="button"
                 variant="outline"
@@ -402,7 +402,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="rc_copy_file"
@@ -427,7 +427,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<Shield className="h-5 w-5" />}
         iconColor="text-blue-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="Policy Number"
             placeholder="e.g., POL123456789"
@@ -467,7 +467,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="insurance_document_file"
@@ -485,7 +485,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Checkbox
             label="Set Insurance Expiry Reminder"
             checked={remindInsurance}
@@ -493,7 +493,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindInsurance && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="insurance_reminder_contact_id"
@@ -529,7 +529,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<FileCheck className="h-5 w-5" />}
         iconColor="text-green-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="Fitness Certificate Number"
             placeholder="e.g., FC123456789"
@@ -556,7 +556,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="fitness_document_file"
@@ -574,7 +574,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Checkbox
             label="Set Fitness Expiry Reminder"
             checked={remindFitness}
@@ -582,7 +582,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindFitness && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="fitness_reminder_contact_id"
@@ -618,7 +618,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<IndianRupee className="h-5 w-5" />}
         iconColor="text-yellow-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="Tax Receipt Number"
             placeholder="e.g., TR123456789"
@@ -646,7 +646,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="tax_receipt_document_file"
@@ -664,7 +664,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Checkbox
             label="Set Tax Expiry Reminder"
             checked={remindTax}
@@ -672,7 +672,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindTax && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="tax_reminder_contact_id"
@@ -708,7 +708,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<BadgeCheck className="h-5 w-5" />}
         iconColor="text-orange-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="Permit Number"
             placeholder="e.g., PER123456789"
@@ -747,7 +747,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="permit_document_file"
@@ -765,7 +765,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Checkbox
             label="Set Permit Expiry Reminder"
             checked={remindPermit}
@@ -773,7 +773,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindPermit && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="permit_reminder_contact_id"
@@ -809,7 +809,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<Wind className="h-5 w-5" />}
         iconColor="text-gray-600"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Input
             label="PUC Certificate Number"
             placeholder="e.g., PUC123456789"
@@ -836,7 +836,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-3 sm:mt-4 flex justify-end">
           <Controller
             control={control}
             name="puc_document_file"
@@ -854,7 +854,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
 
-        <div className="mt-4">
+        <div className="mt-3 sm:mt-4">
           <Checkbox
             label="Set PUC Expiry Reminder"
             checked={remindPuc}
@@ -862,7 +862,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindPuc && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="puc_reminder_contact_id"
@@ -898,7 +898,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<Bell className="h-5 w-5" />}
         iconColor="text-indigo-600"
       >
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <Checkbox
             label="Enable Service Reminders"
             checked={remindService}
@@ -906,7 +906,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           {remindService && (
-            <div className="pl-6 border-l-2 border-gray-200 space-y-4">
+            <div className="pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
               <Controller
                 control={control}
                 name="service_reminder_contact_id"
@@ -923,7 +923,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Days Before Service"
                   type="number"
@@ -953,7 +953,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       >
         {/* VAHAN Data Summary */}
         {initialData && initialData.vahan_last_fetched_at && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
             <div className="flex items-start">
               <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
               <div>
@@ -964,7 +964,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   Last fetched:{" "}
                   {new Date(initialData.vahan_last_fetched_at).toLocaleString()}
                 </p>
-                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2 text-sm">
                   {initialData.vehicle_class && (
                     <div>
                       <span className="text-blue-700 font-medium">
@@ -1012,7 +1012,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         )}
 
         {/* General Information Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <Input
             label="Financer"
             placeholder="e.g., HDFC Bank"
@@ -1067,7 +1067,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
 
         {/* Upload Related Documents */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <h4 className="text-sm font-medium text-gray-700 mb-2">
             Upload Related Documents
           </h4>
@@ -1091,7 +1091,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
 
         {/* Other Documents */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-gray-700">Document List</h4>
             <Button
@@ -1108,7 +1108,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           {fields.map((field, index) => (
             <div
               key={field.id}
-              className="p-4 border rounded-lg bg-gray-50 relative"
+              className="p-3 sm:p-4 border rounded-lg bg-gray-50 relative"
             >
               <button
                 type="button"
@@ -1118,7 +1118,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 <X className="h-5 w-5" />
               </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                 <Input
                   label="Document Name"
                   placeholder="e.g., National Permit"
@@ -1165,7 +1165,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           ))}
 
           {fields.length === 0 && (
-            <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-gray-500">
                 No documents added yet. Click "Add Document" to add one.
               </p>
@@ -1175,7 +1175,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CollapsibleSection>
 
       {/* Form Actions */}
-      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+      <div className="flex justify-end space-x-3 sm:space-x-4 pt-4 sm:pt-6 border-t border-gray-200">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
