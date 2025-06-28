@@ -95,7 +95,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
         <div
           className={twMerge(
             clsx(
-              "flex items-center justify-between px-3 py-2 border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
+              "flex items-center justify-between px-3 py-2 pr-10 border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
               error ? "border-error-500 dark:border-error-500" : "border-gray-300 dark:border-gray-600",
               disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary-500 dark:hover:border-primary-400",
               sizeClasses[size],

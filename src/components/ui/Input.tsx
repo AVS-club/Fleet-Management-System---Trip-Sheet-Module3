@@ -44,6 +44,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     // Don't show icon for date inputs to avoid conflict with browser's date picker icon
     const shouldShowIcon = icon && type !== 'date';
 
+    // Add additional padding for inputs with browser controls
+    const needsRightPadding = type === 'number' || type === 'date' || type === 'time' || type === 'datetime-local';
+
     return (
       <div className={clsx("form-group", fullWidth && "w-full")}>
         {label && (
@@ -72,7 +75,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
                 shouldShowIcon && iconPosition === 'left' && iconSizeClasses[size],
-                shouldShowIcon && iconPosition === 'right' && "pr-9",
+                shouldShowIcon && iconPosition === 'right' && "pr-10",
+                needsRightPadding && "pr-10", // Extra padding for browser controls
                 sizeClasses[size],
                 className
               )
