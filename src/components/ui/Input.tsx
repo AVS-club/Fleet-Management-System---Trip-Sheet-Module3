@@ -35,9 +35,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     };
 
     const iconSizeClasses = {
-      sm: 'pl-8',
-      md: 'pl-10',
-      lg: 'pl-12'
+      sm: iconPosition === 'left' ? 'pl-8' : 'pr-8',
+      md: iconPosition === 'left' ? 'pl-10' : 'pr-10',
+      lg: iconPosition === 'left' ? 'pl-12' : 'pr-12'
+    };
+
+    const iconContainerClasses = {
+      sm: 'w-8',
+      md: 'w-10',
+      lg: 'w-12'
     };
 
     return (
@@ -54,7 +60,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         
         <div className={clsx("relative", fullWidth && "w-full")}>
           {icon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
+            <div className={`absolute inset-y-0 left-0 flex items-center justify-center ${iconContainerClasses[size]} pointer-events-none text-gray-400 dark:text-gray-500`}>
               {icon}
             </div>
           )}
@@ -66,8 +72,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               clsx(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                icon && iconPosition === 'left' && iconSizeClasses[size],
-                icon && iconPosition === 'right' && "pr-9",
+                icon && iconSizeClasses[size],
                 sizeClasses[size],
                 className
               )
@@ -76,7 +81,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           />
           
           {icon && iconPosition === 'right' && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-500">
+            <div className={`absolute inset-y-0 right-0 flex items-center justify-center ${iconContainerClasses[size]} pointer-events-none text-gray-400 dark:text-gray-500`}>
               {icon}
             </div>
           )}

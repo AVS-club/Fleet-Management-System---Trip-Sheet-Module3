@@ -93,7 +93,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         tabIndex={0}
         className={twMerge(
           clsx(
-            "relative min-h-[2.5rem] flex flex-wrap items-center gap-1 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer transition-colors duration-200",
+            "relative min-h-[2.5rem] flex flex-wrap items-center gap-1 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer transition-colors duration-200 p-2",
             error
               ? "border-error-500 dark:border-error-500"
               : "border-gray-300 dark:border-gray-600 focus-within:border-primary-400 dark:focus-within:border-primary-500",
