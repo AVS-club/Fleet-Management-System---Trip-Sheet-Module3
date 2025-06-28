@@ -25,7 +25,6 @@ import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
-import NotificationsButton from "../components/common/NotificationsButton";
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -320,8 +319,7 @@ const DriversPage: React.FC = () => {
       actions={
         !isAddingDriver &&
         !editingDriver && (
-          <div className="flex flex-wrap gap-3">
-            <NotificationsButton module="drivers" />
+          <div>
             <Button
               onClick={() => setIsAddingDriver(true)}
               icon={<PlusCircle className="h-4 w-4" />}

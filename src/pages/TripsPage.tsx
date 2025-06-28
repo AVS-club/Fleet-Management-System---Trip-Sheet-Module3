@@ -9,7 +9,6 @@ import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
 import { PlusCircle, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
-import NotificationsButton from '../components/common/NotificationsButton';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -102,7 +101,6 @@ const TripsPage: React.FC = () => {
       actions={
         !isAddingTrip ? (
           <div className="flex flex-wrap gap-3">
-            <NotificationsButton module="trips" />
             <Button
               variant="outline"
               onClick={() => setShowDashboard(!showDashboard)}

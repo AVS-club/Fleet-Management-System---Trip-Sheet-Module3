@@ -20,21 +20,13 @@ import {
 import { supabase } from "../utils/supabaseClient";
 import {
   Truck,
-  Calendar,
-  PenTool as PenToolIcon,
-  PlusCircle,
-  FileText,
-  AlertTriangle,
-  FileCheck,
-  TrendingUp,
-  Archive,
-  Bell,
+  Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
+  AlertTriangle, FileCheck, TrendingUp, Archive
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
-import NotificationsButton from "../components/common/NotificationsButton";
 import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
 
 const VehiclesPage: React.FC = () => {
@@ -209,8 +201,6 @@ const VehiclesPage: React.FC = () => {
       actions={
         !isAddingVehicle && (
           <div className="flex flex-wrap gap-3">
-            <NotificationsButton module="vehicles" iconOnly={true} />
-
             <Button
               variant="outline"
               onClick={() => setShowDocumentPanel(true)}

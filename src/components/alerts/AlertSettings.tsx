@@ -63,8 +63,8 @@ const AlertSettings: React.FC = () => {
       <div className="space-y-4">
         <Checkbox
           label="Show alerts automatically"
-          checked={settings.auto_popup}
-          onChange={(e) => handleSettingChange('auto_popup', e.target.checked)}
+          checked={settings.show_popup_modal_on_load}
+          onChange={(e) => handleSettingChange('show_popup_modal_on_load', e.target.checked)}
           helperText="Alerts will pop up when you open the dashboard"
         />
 
@@ -87,6 +87,13 @@ const AlertSettings: React.FC = () => {
           ]}
           value={settings.group_by}
           onChange={(e) => handleSettingChange('group_by', e.target.value)}
+        />
+        
+        <Checkbox
+          label="Show popup notification modal on dashboard load"
+          checked={settings.auto_popup}
+          onChange={(e) => handleSettingChange('auto_popup', e.target.checked)}
+          helperText="A modal with all notifications will appear when you open the dashboard"
         />
       </div>
 

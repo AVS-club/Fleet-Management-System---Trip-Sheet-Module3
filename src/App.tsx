@@ -11,7 +11,6 @@ import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingScreen from "./components/LoadingScreen";
-import AVSChatbot from "./components/AVSChatbot";
 import DashboardPage from "./pages/DashboardPage";
 import TripsPage from "./pages/TripsPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
@@ -32,6 +31,8 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VehicleManagementPage from "./pages/admin/VehicleManagementPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import NotificationModal from "./components/notifications/NotificationModal";
+import { getAlertSettings } from "./utils/alertSettings";
 import { updateAllTripMileage } from "./utils/storage";
 import { ThemeProvider } from "./utils/themeContext";
 
@@ -50,6 +51,8 @@ function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<any>(null);
   const navigate = useNavigate(); // For programmatic navigation
 
   useEffect(() => {
@@ -109,6 +112,26 @@ function App() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        
+        // Get alert settings
+        if (session) {
+          try {
+            const settings = await getAlertSettings();
+            setAlertSettings(settings);
+            
+            // Check if we should show the notification modal
+            if (settings.show_popup_modal_on_load) {
+              // Check if the modal has been dismissed in this session
+              const modalDismissed = sessionStorage.getItem('notificationModalDismissed');
+              if (!modalDismissed) {
+                setShowNotificationModal(true);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to get alert settings:', error);
+          }
+        }
+        
         setSession(session);
       } catch (error) {
         console.error("Failed to get session:", error);
@@ -128,7 +151,26 @@ function App() {
     };
 
     initializeApp();
+    
+    // Handle route changes to reset notification modal state
+    const handleRouteChange = () => {
+      // If we're navigating to the dashboard, check if we should show the modal
+      if (window.location.pathname === '/' && alertSettings?.show_popup_modal_on_load) {
+        const modalDismissed = sessionStorage.getItem('notificationModalDismissed');
+        if (!modalDismissed) {
+          setShowNotificationModal(true);
+        }
+      }
+    };
+    
+    window.addEventListener('popstate', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [alertSettings]);
 
+  // Set up auth state change listener
+  useEffect(() => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -148,7 +190,7 @@ function App() {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [loading, navigate]);
+  }, [navigate]);
 
   if (loading) {
     return <LoadingScreen isLoading={true} />;
@@ -283,7 +325,18 @@ function App() {
           />
         </Routes>
       </Suspense>
-      {session && <AVSChatbot />} {/* Show chatbot only if logged in */}
+      
+      {/* Notification Modal */}
+      {session && (
+        <NotificationModal 
+          isOpen={showNotificationModal} 
+          onClose={() => {
+            setShowNotificationModal(false);
+            // Mark as dismissed for this session
+            sessionStorage.setItem('notificationModalDismissed', 'true');
+          }}
+        />
+      )}
     </ErrorBoundary>
   );
 }

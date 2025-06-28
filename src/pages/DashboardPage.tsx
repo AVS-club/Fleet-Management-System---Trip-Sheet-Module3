@@ -1,4 +1,3 @@
-import AVSChatbot from '../components/AVSChatbot';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -12,16 +11,14 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell } from 'lucide-react';
+import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
-import NotificationsPanel from '../components/common/NotificationsPanel';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [showChatbot, setShowChatbot] = useState(false);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
@@ -280,22 +277,32 @@ const DashboardPage: React.FC = () => {
           </div>
           
           <VehicleStatsList 
-            vehicles={vehicles} 
-            trips={trips} 
-            onSelectVehicle={handleSelectVehicle} 
-          />
-        </div>
-        
-        <div className="mt-6">
-          <RecentTripsTable
-            trips={trips}
-            vehicles={vehicles}
-            drivers={drivers}
-            onSelectTrip={handleSelectTrip}
-          />
-        </div>
-        
-        {/* Dashboard Tip */}
+            {/* AI Insights section */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex">
+                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <div className="ml-3">
+                  <h3 className="text-blue-800 dark:text-blue-300 font-medium">AI Insights</h3>
+                  <div className="mt-2 text-blue-700 dark:text-blue-400 text-sm">
+                    <p>
+                      Our AI analysis suggests the following insights:
+                    </p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
+                      {bestDriver && (
+                        <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
+                      )}
+                      {bestVehicle && (
+                        <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
+                      )}
+                      {stats.estimatedFuelSaved > 0 && (
+                        <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
         {hasEnoughData && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">

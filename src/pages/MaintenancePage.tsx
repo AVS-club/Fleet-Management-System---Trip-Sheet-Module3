@@ -14,7 +14,6 @@ import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMainte
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
 import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
-import NotificationsButton from '../components/common/NotificationsButton';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
@@ -118,8 +117,7 @@ const MaintenancePage = () => {
       title="Maintenance Dashboard"
       subtitle="Track and analyze vehicle maintenance performance"
       actions={
-        <div className="flex flex-wrap gap-3">
-          <NotificationsButton module="maintenance" />
+        <div>
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
