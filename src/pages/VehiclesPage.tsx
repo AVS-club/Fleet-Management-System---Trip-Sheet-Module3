@@ -24,7 +24,7 @@ import {
   Truck,
   Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
   AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare, User,
-  Medal
+  Medal, MapPin
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
