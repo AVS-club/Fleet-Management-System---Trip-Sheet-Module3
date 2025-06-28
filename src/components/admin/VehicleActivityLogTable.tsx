@@ -219,7 +219,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto scroll-indicator">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

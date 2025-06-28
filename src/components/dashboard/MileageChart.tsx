@@ -68,16 +68,16 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
             margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 12 }}
+            <XAxis
+              dataKey="date"
+              tick={{ fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: '#e5e7eb' }}
             />
-            <YAxis 
+            <YAxis
               tickLine={false}
               axisLine={{ stroke: '#e5e7eb' }}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 10 }}
               domain={['auto', 'auto']}
             />
             <Tooltip 
@@ -93,10 +93,10 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
             <Line 
               type="monotone" 
               dataKey="kmpl" 
-              stroke="#4f46e5" 
+              stroke="#4f46e5"
               strokeWidth={2}
-              dot={{ r: 4, stroke: '#4f46e5', fill: 'white', strokeWidth: 2 }}
-              activeDot={{ r: 6, stroke: '#4f46e5', fill: '#4f46e5', strokeWidth: 0 }}
+              dot={{ r: 3, stroke: '#4f46e5', fill: 'white', strokeWidth: 2 }}
+              activeDot={{ r: 5, stroke: '#4f46e5', fill: '#4f46e5', strokeWidth: 0 }}
             />
           </LineChart>
         </ResponsiveContainer>

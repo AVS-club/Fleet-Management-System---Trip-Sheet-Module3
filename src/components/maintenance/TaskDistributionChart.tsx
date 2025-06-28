@@ -79,11 +79,15 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
                 data={dataWithPercent}
                 cx="50%"
                 cy="50%"
-                labelLine={true}
+                labelLine={false}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+                label={({ name, percent }) => {
+                  const percentValue = (percent * 100).toFixed(0);
+                  return percentValue > 5 ? `${percentValue}%` : '';
+                }}
               >
                 {dataWithPercent.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />

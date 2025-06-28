@@ -363,7 +363,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex justify-between items-center">
             <h3 className="text-base font-medium text-gray-900">
               Tasks 
@@ -376,9 +376,10 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             </div>
           </div>
           
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
+          <div className="overflow-x-auto scroll-indicator">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
                   onClick={() => handleSort('vehicle')}

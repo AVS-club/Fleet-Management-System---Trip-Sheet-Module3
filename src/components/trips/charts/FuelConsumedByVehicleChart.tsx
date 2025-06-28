@@ -81,28 +81,28 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 20, right: 30, left: 70, bottom: 20 }}
+              margin={{ top: 20, right: 20, left: 60, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
                 type="number"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
                 axisLine={true}
                 label={{ 
                   value: 'Liters', 
                   position: 'insideBottom',
-                  offset: -15,
-                  style: { textAnchor: 'middle', fontSize: 12 }
+                  offset: -10,
+                  style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
               <YAxis 
                 type="category"
                 dataKey="vehicleNumber" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                width={60}
+                width={50}
               />
               <Tooltip
                 formatter={(value: number, name: string, props: any) => {
@@ -122,11 +122,12 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
               <Bar 
                 dataKey="fuelLiters" 
                 name="Fuel Consumed"
-                label={{ 
-                  position: 'right', 
+                label={{
+                  position: 'right',
                   formatter: (value: number) => `${value} L`,
-                  fontSize: 11,
-                  fill: '#4B5563'
+                  fontSize: 9,
+                  fill: '#4B5563',
+                  dx: 5
                 }}
                 barSize={20}
                 fill="#0277BD"

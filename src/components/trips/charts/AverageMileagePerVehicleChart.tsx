@@ -240,23 +240,23 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="vehicleNumber" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
               />
               <YAxis 
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 label={{ 
                   value: 'km/L', 
                   angle: -90, 
                   position: 'insideLeft',
-                  style: { textAnchor: 'middle', fontSize: 12 }
+                  style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
               <Tooltip
@@ -297,11 +297,12 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
               <Bar 
                 dataKey="mileage" 
                 name="Mileage"
-                label={{ 
-                  position: 'top', 
+                label={{
+                  position: 'top',
                   formatter: (value: number) => `${value.toFixed(1)} km/L`,
-                  fontSize: 11,
-                  fill: '#4B5563'
+                  fontSize: 9,
+                  fill: '#4B5563',
+                  dy: -4
                 }}
                 barSize={30}
                 fill={(entry: any) => entry.lowMileage ? '#F59E0B' : '#0277BD'}

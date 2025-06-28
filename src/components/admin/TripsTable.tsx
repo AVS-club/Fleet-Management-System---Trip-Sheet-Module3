@@ -278,7 +278,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -356,9 +356,10 @@ const TripsTable: React.FC<TripsTableProps> = ({
                     </button>
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
+          <div className="overflow-x-auto scroll-indicator">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
                 <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-gray-500">
                   No trips match your filter criteria
                 </td>

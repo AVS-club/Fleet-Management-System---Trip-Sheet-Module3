@@ -77,7 +77,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
             >
               <defs>
                 <linearGradient id="fuelGradient" x1="0" y1="0" x2="0" y2="1">
@@ -88,18 +88,18 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
               />
               <YAxis 
                 tickLine={false}
                 axisLine={false}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 label={{ 
                   value: 'Liters', 
                   angle: -90, 
                   position: 'insideLeft',
-                  style: { textAnchor: 'middle', fontSize: 12 }
+                  style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
               <Tooltip
@@ -116,10 +116,11 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
                 dataKey="fuelLiters" 
                 name="Fuel Consumed"
                 label={{ 
-                  position: 'top', 
+                  position: 'top',
                   formatter: (value: number) => `${value} L`,
-                  fontSize: 11,
-                  fill: '#4B5563'
+                  fontSize: 9,
+                  fill: '#4B5563',
+                  dy: -4
                 }}
                 barSize={30}
                 fill="url(#fuelGradient)"

@@ -99,13 +99,15 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
               <Legend />
               {processedData.vehicleRegistrations.map((registration, index) => (
                 <Line
-                  key={registration}
+                margin={{ top: 20, right: 20, left: 10, bottom: 5 }}
                   type="monotone"
-                  dataKey={registration}
-                  stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                  strokeWidth={2}
-                  dot={{ r: 4, strokeWidth: 2, fill: "white" }}
-                  activeDot={{ r: 6 }}
+                <CartesianGrid strokeDasharray="3 3" vertical={false}/>
+                <XAxis
+                <YAxis
+                  axisLine={false} 
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(value) => `${value/1000}k km`} 
+                  tick={{ fontSize: 10 }}
                 />
               ))}
             </LineChart>

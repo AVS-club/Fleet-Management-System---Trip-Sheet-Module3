@@ -110,3 +110,47 @@
     opacity: 1;
   }
 }
+
+/* Horizontal scroll indicator */
+.scroll-indicator {
+  position: relative;
+  overflow-x: auto;
+}
+
+.scroll-indicator::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.05), transparent);
+  pointer-events: none;
+}
+
+.dark .scroll-indicator::after {
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.05), transparent);
+}
+
+/* Add left indicator as well for when scrolled right */
+.scroll-indicator::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 24px;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.05), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.dark .scroll-indicator::before {
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.05), transparent);
+}
+
+/* Show left indicator when scrolled */
+.scroll-indicator.scrolled-right::before {
+  opacity: 1;
+}

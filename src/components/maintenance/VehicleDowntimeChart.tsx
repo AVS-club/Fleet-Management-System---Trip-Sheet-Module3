@@ -99,21 +99,23 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
             <BarChart
               data={displayData}
               layout="vertical"
-              margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
+              margin={{ top: 5, right: 20, left: 60, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
                 type="number" 
                 axisLine={false}
                 tickLine={false}
-                domain={[0, 'auto']}
+                domain={[0, 'auto']} 
+                tick={{ fontSize: 10 }}
               />
               <YAxis 
                 type="category" 
                 dataKey="registration" 
                 axisLine={false}
                 tickLine={false}
-                width={70}
+                width={60} 
+                tick={{ fontSize: 10 }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
@@ -123,7 +125,7 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
                   position: 'right',
                   formatter: (value: number) => `${value} days`,
                   fill: '#6B7280',
-                  fontSize: 12
+                  fontSize: 10
                 }}
               >
                 {displayData.map((entry, index) => (

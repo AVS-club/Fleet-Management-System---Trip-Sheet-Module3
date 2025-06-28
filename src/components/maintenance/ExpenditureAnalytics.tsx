@@ -83,17 +83,17 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                   margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis 
-                    dataKey="month" 
+                  <XAxis
+                    dataKey="month"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 10 }}
                   />
-                  <YAxis 
+                  <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
                   />
                   <Tooltip content={<CustomMonthlyTooltip />} />
                   <Line
@@ -128,21 +128,21 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis 
-                    type="number" 
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+                  <XAxis
+                    type="number"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
                   />
-                  <YAxis 
-                    type="category" 
-                    dataKey="registration" 
+                  <YAxis
+                    type="category"
+                    dataKey="registration"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    width={80}
+                    tick={{ fontSize: 10 }}
+                    width={60}
                   />
                   <Tooltip
                     formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
@@ -177,21 +177,21 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis 
-                    type="number" 
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+                  <XAxis
+                    type="number"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
                   />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
+                  <YAxis
+                    type="category"
+                    dataKey="name"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    width={100}
+                    tick={{ fontSize: 10 }}
+                    width={80}
                   />
                   <Tooltip
                     formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
