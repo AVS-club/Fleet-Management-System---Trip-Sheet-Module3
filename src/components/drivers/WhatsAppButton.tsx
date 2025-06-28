@@ -43,11 +43,10 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
       variant={variant}
       onClick={handleClick}
       disabled={!phoneNumber}
-      className={className}
-      icon={<MessageSquare className="h-4 w-4" />}
+      className={`text-green-600 hover:text-green-800 ${className}`}
       title={phoneNumber ? "Share on WhatsApp" : "No phone number available"}
     >
-      WhatsApp
+      <MessageSquare className="h-4 w-4" />
     </Button>
   );
 };

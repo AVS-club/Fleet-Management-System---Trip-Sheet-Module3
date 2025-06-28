@@ -423,11 +423,12 @@ const DriversPage: React.FC = () => {
                 return (
                   <div
                     key={driver.id}
-                    className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow relative"
+                    className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative"
+                    onClick={() => navigate(`/drivers/${driver.id}`)}
                   >
                     {/* Edit Button */}
                     <button
-                      className="absolute top-4 right-4 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors"
+                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditDriver(driver);
@@ -436,29 +437,26 @@ const DriversPage: React.FC = () => {
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
-                    
-                    {/* Summary Chips at the top */}
-                    <div className="mb-4">
-                      <DriverSummaryChips driver={driver} />
+
+                    {/* Driver Photo - Positioned at top-right */}
+                    <div className="absolute top-10 right-3">
+                      {driver.driver_photo_url ? (
+                        <img
+                          src={driver.driver_photo_url}
+                          alt={driver.name}
+                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                          <User className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="flex items-start space-x-4 mb-4">
-                      {/* Driver Photo */}
-                      <div className="flex-shrink-0">
-                        {driver.driver_photo_url ? (
-                          <img
-                            src={driver.driver_photo_url}
-                            alt={driver.name}
-                            className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                            <User className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0">
+                    {/* Main Content - Adjusted for photo position */}
+                    <div className="pr-20">
+                      {/* Driver Name & License Section */}
+                      <div className="mb-3">
                         <h3 className="text-lg font-medium text-gray-900 truncate">
                           {driver.name}
                         </h3>
@@ -478,15 +476,17 @@ const DriversPage: React.FC = () => {
                                   : "bg-success-100 text-success-800"
                               }`}
                             >
-                              {licenseStatus.label}{" "}
-                              {driver.license_expiry_date &&
-                                `(${formatDate(driver.license_expiry_date)})`}
+                              {licenseStatus.label}
                             </span>
                           </div>
                         )}
                       </div>
+
+                      {/* DriverSummaryChips Component */}
+                      <DriverSummaryChips driver={driver} />
                     </div>
 
+                    {/* Trip Stats Section */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
@@ -523,11 +523,14 @@ const DriversPage: React.FC = () => {
                         phoneNumber={driver.contact_number}
                         message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
                         variant="ghost"
-                        className="text-xs"
+                        className="text-green-600 hover:text-green-800"
                       />
                       
                       <button
-                        onClick={() => navigate(`/drivers/${driver.id}`)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/drivers/${driver.id}`);
+                        }}
                         className="text-primary-600 hover:text-primary-800 text-sm font-medium"
                       >
                         View Details
