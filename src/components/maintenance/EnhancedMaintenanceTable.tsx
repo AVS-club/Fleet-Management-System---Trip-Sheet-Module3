@@ -380,152 +380,153 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('vehicle')}
-                >
-                  <div className="flex items-center">
-                    Vehicle
-                    {sortConfig?.key === 'vehicle' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('type')}
-                >
-                  <div className="flex items-center">
-                    Type
-                    {sortConfig?.key === 'type' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center">
-                    Status
-                    {sortConfig?.key === 'status' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('priority')}
-                >
-                  <div className="flex items-center">
-                    Priority
-                    {sortConfig?.key === 'priority' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('start_date')}
-                >
-                  <div className="flex items-center">
-                    Start Date
-                    {sortConfig?.key === 'start_date' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('downtime')}
-                >
-                  <div className="flex items-center">
-                    Downtime
-                    {sortConfig?.key === 'downtime' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('cost')}
-                >
-                  <div className="flex items-center">
-                    Cost
-                    {sortConfig?.key === 'cost' && (
-                      sortConfig.direction === 'asc' ? 
-                        <ChevronUp className="ml-1 h-4 w-4" /> : 
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                    )}
-                  </div>
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedTasks.map(task => (
-                <tr key={task.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {getVehicleRegistration(task.vehicle_id)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatTaskType(task.task_type)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusColor(task.status)}`}>
-                      {formatStatus(task.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getPriorityColor(task.priority)}`}>
-                      {task.priority.toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(task.start_date), 'dd MMM yyyy')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {task.downtime_days || 0}d
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ₹{(task.actual_cost || task.estimated_cost || 0).toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/maintenance/${task.id}`)}
-                      icon={<Eye className="h-4 w-4" />}
-                    >
-                      View
-                    </Button>
-                  </td>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('vehicle')}
+                  >
+                    <div className="flex items-center">
+                      Vehicle
+                      {sortConfig?.key === 'vehicle' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('type')}
+                  >
+                    <div className="flex items-center">
+                      Type
+                      {sortConfig?.key === 'type' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      {sortConfig?.key === 'status' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('priority')}
+                  >
+                    <div className="flex items-center">
+                      Priority
+                      {sortConfig?.key === 'priority' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('start_date')}
+                  >
+                    <div className="flex items-center">
+                      Start Date
+                      {sortConfig?.key === 'start_date' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('downtime')}
+                  >
+                    <div className="flex items-center">
+                      Downtime
+                      {sortConfig?.key === 'downtime' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('cost')}
+                  >
+                    <div className="flex items-center">
+                      Cost
+                      {sortConfig?.key === 'cost' && (
+                        sortConfig.direction === 'asc' ? 
+                          <ChevronUp className="ml-1 h-4 w-4" /> : 
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-              
-              {filteredAndSortedTasks.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
-                    No maintenance tasks match your filters
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAndSortedTasks.map(task => (
+                  <tr key={task.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {getVehicleRegistration(task.vehicle_id)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatTaskType(task.task_type)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusColor(task.status)}`}>
+                        {formatStatus(task.status)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getPriorityColor(task.priority)}`}>
+                        {task.priority.toUpperCase()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(task.start_date), 'dd MMM yyyy')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {task.downtime_days || 0}d
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      ₹{(task.actual_cost || task.estimated_cost || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/maintenance/${task.id}`)}
+                        icon={<Eye className="h-4 w-4" />}
+                      >
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+                
+                {filteredAndSortedTasks.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-10 text-center text-gray-500">
+                      No maintenance tasks match your filters
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </CollapsibleSection>
