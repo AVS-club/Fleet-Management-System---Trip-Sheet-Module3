@@ -279,94 +279,95 @@ const TripsTable: React.FC<TripsTableProps> = ({
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {columns.map(column => (
-                <th
-                  key={column.id}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    column.width ? `w-[${column.width}]` : ''
-                  }`}
-                  onClick={() => column.sortable && handleSort(column.id)}
-                  style={{ cursor: column.sortable ? 'pointer' : 'default' }}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>{column.label}</span>
-                    {column.sortable && sortConfig?.key === column.id && (
-                      sortConfig.direction === 'asc' ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )
-                    )}
-                  </div>
-                </th>
-              ))}
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {sortedTrips.length > 0 ? (
-              sortedTrips.map(trip => (
-                <tr key={trip.id} className="hover:bg-gray-50">
-                  {columns.map(column => (
-                    <td
-                      key={`${trip.id}-${column.id}`}
-                      className="px-6 py-4 whitespace-nowrap text-sm"
-                      onClick={() => column.editable && setEditingCell({
-                        tripId: trip.id,
-                        columnId: column.id
-                      })}
-                    >
-                      {editingCell?.tripId === trip.id && 
-                       editingCell?.columnId === column.id ? (
-                        column.type === 'select' ? (
-                          <Select
-                            options={column.options || []}
-                            value={column.id === 'vehicle' ? trip.vehicle_id : trip.driver_id}
-                            onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
-                            autoFocus
-                          />
+        <div className="overflow-x-auto scroll-indicator">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {columns.map(column => (
+                  <th
+                    key={column.id}
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                      column.width ? `w-[${column.width}]` : ''
+                    }`}
+                    onClick={() => column.sortable && handleSort(column.id)}
+                    style={{ cursor: column.sortable ? 'pointer' : 'default' }}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>{column.label}</span>
+                      {column.sortable && sortConfig?.key === column.id && (
+                        sortConfig.direction === 'asc' ? (
+                          <ChevronUp className="h-4 w-4" />
                         ) : (
-                          <Input
-                            type={column.type || 'text'}
-                            value={column.accessor(trip, vehicles, drivers).toString()}
-                            onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
-                            autoFocus
-                            onBlur={() => setEditingCell(null)}
-                          />
+                          <ChevronDown className="h-4 w-4" />
                         )
-                      ) : (
-                        <span className={column.editable ? 'cursor-pointer' : ''}>
-                          {column.accessor(trip, vehicles, drivers)}
-                        </span>
                       )}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {sortedTrips.length > 0 ? (
+                sortedTrips.map(trip => (
+                  <tr key={trip.id} className="hover:bg-gray-50">
+                    {columns.map(column => (
+                      <td
+                        key={`${trip.id}-${column.id}`}
+                        className="px-6 py-4 whitespace-nowrap text-sm"
+                        onClick={() => column.editable && setEditingCell({
+                          tripId: trip.id,
+                          columnId: column.id
+                        })}
+                      >
+                        {editingCell?.tripId === trip.id && 
+                         editingCell?.columnId === column.id ? (
+                          column.type === 'select' ? (
+                            <Select
+                              options={column.options || []}
+                              value={column.id === 'vehicle' ? trip.vehicle_id : trip.driver_id}
+                              onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
+                              autoFocus
+                            />
+                          ) : (
+                            <Input
+                              type={column.type || 'text'}
+                              value={column.accessor(trip, vehicles, drivers).toString()}
+                              onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
+                              autoFocus
+                              onBlur={() => setEditingCell(null)}
+                            />
+                          )
+                        ) : (
+                          <span className={column.editable ? 'cursor-pointer' : ''}>
+                            {column.accessor(trip, vehicles, drivers)}
+                          </span>
+                        )}
+                      </td>
+                    ))}
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => handleDeleteTrip(trip.id)}
+                        className="text-error-600 hover:text-error-900"
+                        title="Delete Trip"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
-                  ))}
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleDeleteTrip(trip.id)}
-                      className="text-error-600 hover:text-error-900"
-                      title="Delete Trip"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-gray-500">
+                    No trips match your filter criteria
                   </td>
                 </tr>
-          <div className="overflow-x-auto scroll-indicator">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-gray-500">
-                  No trips match your filter criteria
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
