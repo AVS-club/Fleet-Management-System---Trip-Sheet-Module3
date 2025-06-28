@@ -114,14 +114,14 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           .map((option) => (
             <span
               key={option!.value}
-              className="flex items-center bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 rounded px-2 py-0.5 text-xs mr-1 mb-1"
+              className="flex items-center bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 rounded px-2 py-1 text-xs mr-1 mb-1"
               onClick={(e) => {
                 e.stopPropagation();
                 handleRemove(option!.value);
               }}
             >
               {option!.label}
-              <X className="ml-1 h-3 w-3 cursor-pointer" />
+              <X className="ml-1 h-4 w-4 cursor-pointer" />
             </span>
           ))}
         <span className="ml-auto flex items-center pointer-events-none">
@@ -149,7 +149,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
                   type="checkbox"
                   checked={value.includes(option.value)}
                   readOnly
-                  className="mr-2 accent-primary-600"
+                  className="mr-2 accent-primary-600 h-4 w-4"
                   tabIndex={-1}
                   disabled={option.disabled}
                 />

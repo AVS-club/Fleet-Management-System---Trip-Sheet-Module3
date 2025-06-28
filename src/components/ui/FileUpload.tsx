@@ -391,8 +391,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
         ) : buttonMode && value ? (
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center">
-              {!Array.isArray(value) ? (
-                value.type.startsWith('image/') && filePreviews[value.name] ? (
+              {!Array.isArray(value) ? 
+                (value.type.startsWith('image/') && filePreviews[value.name] ? (
                   <img 
                     src={filePreviews[value.name]} 
                     alt={value.name}
@@ -400,15 +400,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   />
                 ) : (
                   getFileIcon(value)
-                )
-              ) : (
+                ))
+              : (
                 <File className="h-4 w-4 text-primary-600 mr-2" />
               )}
               
               {multiple && Array.isArray(value) ? (
                 <span className="text-sm text-gray-700">{value.length} file{value.length !== 1 ? 's' : ''} selected</span>
               ) : (
-                <span className="text-sm text-gray-700 truncate max-w-[150px]">
+                <span className="text-sm text-gray-700 truncate max-w-[120px] sm:max-w-[150px]">
                   {Array.isArray(value) && value.length > 0 ? value[0].name : (value as File)?.name || 'No file'}
                 </span>
               )}
@@ -426,7 +426,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             </button>
           </div>
         ) : value ? (
-          <div className="space-y-2">
+          <div className="space-y-1 sm:space-y-2">
             {!multiple || !Array.isArray(value) ? (
               // Single file display with preview for images
               <div className="flex items-center justify-between">
@@ -435,10 +435,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
                     <img 
                       src={filePreviews[value.name]} 
                       alt={value.name}
-                      className="h-16 w-16 object-cover rounded mr-3 flex-shrink-0"
+                      className="h-12 w-12 sm:h-16 sm:w-16 object-cover rounded mr-2 sm:mr-3 flex-shrink-0"
                     />
                   ) : (
-                    <div className="mr-3 flex items-center justify-center h-16 w-16 bg-gray-100 rounded">
+                    <div className="mr-2 sm:mr-3 flex items-center justify-center h-12 w-12 sm:h-16 sm:w-16 bg-gray-100 rounded">
                       {value.type === 'application/pdf' ? (
                         <FileText className="h-8 w-8 text-red-500" />
                       ) : (
@@ -471,16 +471,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
             onClick={() => !disabled && fileInputRef.current?.click()}
           >
             {icon}
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-gray-600 text-center">
               Drag and drop {multiple ? 'files' : 'a file'} here, or click to select
             </p>
             {accept && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 text-center">
                 Accepted formats: {accept}
               </p>
             )}
             {multiple && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 text-center">
                 Maximum {maxFiles} files
               </p>
             )}
@@ -488,7 +488,11 @@ const FileUpload: React.FC<FileUploadProps> = ({
         )}
       </div>
 
-      {multiple && Array.isArray(value) && value.length > 0 && !buttonMode && renderFilesList()}
+      {multiple && Array.isArray(value) && value.length > 0 && !buttonMode && 
+        <div className="mt-2">
+          {renderFilesList()}
+        </div>
+      }
 
       {(helperText || error) && (
         <p className={clsx(
