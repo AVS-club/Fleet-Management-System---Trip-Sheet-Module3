@@ -34,10 +34,10 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Vehicle Stats</h3>
       </div>
-      <div className="p-1 max-h-[400px] overflow-y-auto space-y-2">
+      <div className="p-1 max-h-[350px] sm:max-h-[400px] overflow-y-auto space-y-1 sm:space-y-2">
         {sortedVehicles.map((vehicle) => {
           // Calculate basic stats directly from trips
           const vehicleTrips = Array.isArray(trips) ? trips.filter(trip => trip.vehicle_id === vehicle.id) : [];
@@ -51,15 +51,15 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
           return (
             <div 
               key={vehicle.id}
-              className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors"
+              className="p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-md cursor-pointer transition-colors"
               onClick={() => onSelectVehicle(vehicle)}
             >
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center">
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100">{vehicle.registration_number}</h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{vehicle.make} {vehicle.model}</p>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">{vehicle.registration_number}</h4>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{vehicle.make} {vehicle.model}</p>
                 </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${
+                <div className={`px-2 py-0.5 sm:py-1 rounded-full text-xs font-medium capitalize ${
                   vehicle.status === 'active' 
                     ? 'bg-success-50 text-success-700 dark:bg-success-900/30 dark:text-success-400'
                     : vehicle.status === 'maintenance'
@@ -70,29 +70,29 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
                 </div>
               </div>
               
-              <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="grid grid-cols-3 gap-1 sm:gap-2 mt-2 sm:mt-3">
                 <div className="flex flex-col">
-                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5 text-[10px] sm:text-xs">
                     <Activity className="h-3 w-3 mr-1" />
                     Trips
                   </div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{totalTrips}</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">{totalTrips}</span>
                 </div>
                 
                 <div className="flex flex-col">
-                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5 text-[10px] sm:text-xs">
                     <TrendingUp className="h-3 w-3 mr-1" />
                     Distance
                   </div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{totalDistance.toLocaleString()} km</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">{totalDistance.toLocaleString()} km</span>
                 </div>
                 
                 <div className="flex flex-col">
-                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5">
+                  <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mb-0.5 text-[10px] sm:text-xs">
                     <Fuel className="h-3 w-3 mr-1" />
                     Avg Mileage
                   </div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
+                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">
                     {averageKmpl ? `${averageKmpl.toFixed(1)} km/L` : '-'}
                   </span>
                 </div>

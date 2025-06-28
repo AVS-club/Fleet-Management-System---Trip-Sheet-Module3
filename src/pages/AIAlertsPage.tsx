@@ -319,9 +319,9 @@ const AIAlertsPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {/* Enhanced Filter Bar */}
-          <div className="bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <div className="md:flex-1">
+          <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
+              <div className="w-full md:flex-1">
                 <Input
                   placeholder="Search alerts..."
                   icon={<Search className="h-4 w-4" />}
@@ -330,7 +330,7 @@ const AIAlertsPage: React.FC = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 w-full">
                 <Select
                   options={[
                     { value: 'all', label: 'All Types' },
@@ -383,18 +383,21 @@ const AIAlertsPage: React.FC = () => {
                 />
               </div>
               
-              <div className="flex items-center justify-between md:justify-end gap-3">
-                <Checkbox
+              <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 sm:gap-3 w-full md:w-auto">
+                <div className="w-full xs:w-auto">
+                  <Checkbox
                   label="Group by Vehicle"
                   checked={groupByVehicle}
                   onChange={e => setGroupByVehicle(e.target.checked)}
-                />
+                  />
+                </div>
                 
                 <Button
                   onClick={handleRunAICheck}
                   isLoading={runningCheck}
                   icon={<RefreshCw className="h-4 w-4" />}
                   size="sm"
+                  className="w-full xs:w-auto"
                 >
                   Run AI Check
                 </Button>

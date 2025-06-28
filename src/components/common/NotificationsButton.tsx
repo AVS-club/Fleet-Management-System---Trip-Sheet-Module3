@@ -66,11 +66,12 @@ const NotificationsButton: React.FC<NotificationsButtonProps> = ({
         aria-expanded={isOpen}
         aria-haspopup="true"
         title="View Notifications"
+        size="sm"
       >
         <Bell className="h-4 w-4" />
         {!iconOnly && <span className="ml-2">Notifications</span>}
         {count && count > 0 && (
-          <span className="ml-1 px-1.5 py-0.5 text-xs font-medium rounded-full bg-error-500 text-white">
+          <span className="ml-1 px-1.5 py-0.5 text-[10px] sm:text-xs font-medium rounded-full bg-error-500 text-white">
             {count > 99 ? '99+' : count}
           </span>
         )}

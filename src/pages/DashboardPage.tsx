@@ -176,7 +176,7 @@ const DashboardPage: React.FC = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard
             title="Total Trips"
             value={stats.totalTrips}
@@ -228,17 +228,17 @@ const DashboardPage: React.FC = () => {
 
         {/* Mileage Insights */}
         {hasRefuelingData && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {bestVehicle && (
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Vehicle</h3>
                   <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
-                  <p className="mt-2 text-success-600 dark:text-success-400 font-medium">
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
                     {stats.bestVehicleMileage?.toFixed(2)} km/L
                   </p>
                 </div>
@@ -246,35 +246,35 @@ const DashboardPage: React.FC = () => {
             )}
 
             {bestDriver && (
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between">
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
                   <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Driver</h3>
                   <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
-                  <p className="mt-2 text-success-600 dark:text-success-400 font-medium">
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
                     {stats.bestDriverMileage?.toFixed(2)} km/L
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between gap-2">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Potential Savings</h3>
                 <IndianRupee className="h-6 w-6 text-success-500 dark:text-success-400" />
               </div>
-              <div className="mt-4">
-                <p className="text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
+              <div className="mt-3 sm:mt-4">
+                <p className="text-xl sm:text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
               </div>
             </div>
           </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           <div className="lg:col-span-2">
             <MileageChart trips={trips} />
           </div>

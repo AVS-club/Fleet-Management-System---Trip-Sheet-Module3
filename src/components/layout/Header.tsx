@@ -48,31 +48,31 @@ const Header: React.FC = () => {
   ];
 
   return (
-    <header 
+    <header
       className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
         scrolled ? 'bg-white dark:bg-gray-900 shadow-md' : 'bg-transparent'
       }`}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center -ml-2 sm:ml-0">
               <div className="flex items-center">
                 <img
                   src="/assets/logo.png"
                   alt="Auto Vital Solution Logo"
-                  className="h-12 w-auto object-contain"
+                  className="h-9 sm:h-12 w-auto object-contain"
                 />
               </div>
             </Link>
           </div>
 
-          <div className="hidden md:flex space-x-6">
+          <div className="hidden md:flex space-x-3 lg:space-x-6">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`flex items-center space-x-1 px-2 lg:px-3 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors ${
                   location.pathname === link.path || 
                   (link.path !== '/' && location.pathname.startsWith(link.path))
                     ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
@@ -80,7 +80,7 @@ const Header: React.FC = () => {
                 }`}
               >
                 {link.icon}
-                <span>{link.name}</span>
+                <span className="whitespace-nowrap">{name}</span>
               </Link>
             ))}
             <div className="flex items-center ml-4">
@@ -88,7 +88,7 @@ const Header: React.FC = () => {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
             >
               <LogOut className="h-5 w-5" />
               <span>Logout</span>
@@ -118,7 +118,7 @@ const Header: React.FC = () => {
             <Link
               key={link.path}
               to={link.path}
-              className={`flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium transition-colors ${
+              className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-colors ${
                 location.pathname === link.path || 
                 (link.path !== '/' && location.pathname.startsWith(link.path))
                   ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'

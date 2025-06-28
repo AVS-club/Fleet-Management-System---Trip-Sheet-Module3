@@ -27,7 +27,7 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
   
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Recent Trips</h3>
       </div>
       
@@ -40,25 +40,25 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800/50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-[10px] sm:text-xs">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[25%]">
                   Trip
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell w-[15%]">
                   Date
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell w-[15%]">
                   Vehicle
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell w-[15%]">
                   Driver
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th scope="col" className="px-2 sm:px-6 py-2 sm:py-3 text-left font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[15%]">
                   Distance
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <td colSpan={6} className="px-2 sm:px-6 py-6 sm:py-10 text-center text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-gray-300 dark:text-gray-600 mx-auto mb-1 sm:mb-2" />
                   Mileage
                 </th>
               </tr>
@@ -76,30 +76,30 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
                       className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
                       onClick={() => onSelectTrip(trip)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {trip.trip_serial_number}
                           {trip.refueling_done && (
-                            <Fuel className="ml-2 h-4 w-4 text-amber-500" />
+                            <Fuel className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                         {format(parseISO(trip.trip_end_date), 'dd MMM yyyy')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
                         {vehicle?.registration_number || 'Unknown'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">
                         {driver?.name || 'Unknown'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                         <span className={trip.short_trip ? "text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-gray-100 font-medium"}>
                           {distance.toLocaleString()} km
-                          {trip.short_trip && <span className="ml-1 text-xs">(local)</span>}
+                          {trip.short_trip && <span className="ml-1 text-[10px] sm:text-xs">(local)</span>}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                         {trip.calculated_kmpl ? (
                           <span className="text-success-700 dark:text-success-500 font-medium">
                             {trip.calculated_kmpl.toFixed(2)} km/L

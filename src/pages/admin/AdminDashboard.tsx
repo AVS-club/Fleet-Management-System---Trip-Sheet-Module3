@@ -95,19 +95,19 @@ const AdminDashboard: React.FC = () => {
     >
       <div className="space-y-6">
         {activeTab === 'overview' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <Link
                 to="/admin/trips"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <FileText className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Trip Management</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Manage trip records and configurations
                     </p>
                   </div>
@@ -116,15 +116,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/trip-locations"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <MapPin className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Trip Locations</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Locations</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Manage warehouses and destinations
                     </p>
                   </div>
@@ -133,15 +133,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/vehicle-management"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Truck className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Vehicle Management</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Vehicle Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Advanced vehicle management and administration
                     </p>
                   </div>
@@ -150,15 +150,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/drivers"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Users className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Driver Management</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Manage drivers and assignments
                     </p>
                   </div>
@@ -167,15 +167,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/maintenance-tasks"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Tool className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Maintenance Tasks</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Maintenance Tasks</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Configure maintenance task types
                     </p>
                   </div>
@@ -184,15 +184,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/alert-settings"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Bell className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Alert Settings</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Alert Settings</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Configure alert rules and notifications
                     </p>
                   </div>
@@ -201,15 +201,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/reminders"
-                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start space-x-4">
-                  <div className="bg-primary-50 p-3 rounded-lg">
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Calendar className="h-5 w-5 text-primary-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Reminders</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Reminders</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       Configure reminder contacts and timing rules
                     </p>
                   </div>
@@ -222,13 +222,13 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {activeTab !== 'overview' && (
-          <div className="bg-white rounded-lg shadow-sm">
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="border-b border-gray-200">
-              <div className="flex space-x-4 p-4">
+              <div className="flex flex-wrap gap-2 p-3 sm:p-4">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-sm ${
                       activeTab === tab.id 
                         ? 'bg-primary-50 text-primary-700 font-medium'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -242,16 +242,16 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               {activeTab === 'trips' && (
                 <div className="space-y-6">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">Trip Management</h2>
-                      <p className="text-sm text-gray-500">View and manage all trip records</p>
+                      <h2 className="text-base sm:text-lg font-medium text-gray-900">Trip Management</h2>
+                      <p className="text-xs sm:text-sm text-gray-500">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
-                      <Button>View All Trips</Button>
+                      <Button size="sm" className="w-full sm:w-auto">View All Trips</Button>
                     </Link>
                   </div>
                 </div>

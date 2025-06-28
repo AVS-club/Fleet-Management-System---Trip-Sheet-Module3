@@ -18,14 +18,14 @@ const LoginPage: React.FC = () => {
         <div className="flex justify-center mb-4">
           <Truck className="h-12 w-12 text-primary-600 dark:text-primary-400" />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Auto Vital Solution</h1>
-        <p className="mt-2 text-gray-600 dark:text-gray-400">Intelligent Fleet Management</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Auto Vital Solution</h1>
+        <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Intelligent Fleet Management</p>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-full max-w-md border border-gray-200 dark:border-gray-700">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">Login</h2>
+      <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-md w-full max-w-md border border-gray-200 dark:border-gray-700">
+        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-gray-900 dark:text-white">Login</h2>
         <LoginForm />
-        <p className="mt-4 text-center text-gray-600 dark:text-gray-400">
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Don't have an account?{' '}
           <Link to="/register" className="text-primary-600 dark:text-primary-400 hover:underline">
             Register here

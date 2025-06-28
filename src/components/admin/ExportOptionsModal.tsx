@@ -51,8 +51,8 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex justify-between items-start">
+          <div className="bg-white px-4 pt-4 pb-3 sm:p-6 sm:pb-4">
+            <div className="flex justify-between items-start mb-3">
               <h3 className="text-lg font-medium text-gray-900">Export Options</h3>
               <button
                 onClick={onClose}
@@ -63,8 +63,8 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
               </button>
             </div>
 
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Input
                   label="Start Date"
                   type="date"
@@ -86,7 +86,7 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
               </div>
 
               <Select
-                label="Vehicle"
+                label="Vehicle" 
                 options={[
                   { value: '', label: 'All Vehicles' },
                   ...vehicles.map(v => ({
@@ -148,17 +148,18 @@ const ExportOptionsModal: React.FC<ExportOptionsProps> = ({
             </div>
           </div>
 
-          <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+          <div className="bg-gray-50 px-3 py-2 sm:px-6 sm:py-3 sm:flex sm:flex-row-reverse">
             <Button
               onClick={handleExport}
               icon={<Download className="h-4 w-4" />}
+              className="w-full mb-2 sm:w-auto sm:mb-0"
             >
               Export
             </Button>
             <Button
               variant="outline"
               onClick={onClose}
-              className="mr-3"
+              className="mr-0 w-full sm:mr-3 sm:w-auto sm:mt-0"
             >
               Cancel
             </Button>

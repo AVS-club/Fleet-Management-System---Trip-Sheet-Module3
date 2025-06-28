@@ -47,8 +47,8 @@ const DataTable: React.FC<DataTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="w-full sm:w-64">
+      <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
+        <div className="w-full sm:w-60">
           <Input
             placeholder={searchPlaceholder}
             icon={<Search className="h-4 w-4" />}
@@ -60,6 +60,7 @@ const DataTable: React.FC<DataTableProps> = ({
           <Button
             variant="outline"
             onClick={onDownloadTemplate}
+            className="w-full sm:w-auto"
             icon={<Download className="h-4 w-4" />}
           >
             Download Template
@@ -112,12 +113,13 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex flex-1 justify-between sm:hidden">
             <Button
               onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
               disabled={currentPage === 1}
               variant="outline"
+              size="sm"
             >
               Previous
             </Button>
@@ -125,13 +127,14 @@ const DataTable: React.FC<DataTableProps> = ({
               onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
               disabled={currentPage === totalPages}
               variant="outline"
+              size="sm"
             >
               Next
             </Button>
           </div>
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700">
+              <p className="text-xs sm:text-sm text-gray-700">
                 Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
                 <span className="font-medium">
                   {Math.min(startIndex + itemsPerPage, filteredData.length)}
@@ -140,11 +143,11 @@ const DataTable: React.FC<DataTableProps> = ({
               </p>
             </div>
             <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm text-sm" aria-label="Pagination">
                 <button
                   onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  className="relative inline-flex items-center rounded-l-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                 >
                   <span className="sr-only">Previous</span>
                   <ChevronLeft className="h-5 w-5" />
@@ -152,7 +155,7 @@ const DataTable: React.FC<DataTableProps> = ({
                 <button
                   onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
                   disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  className="relative inline-flex items-center rounded-r-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                 >
                   <span className="sr-only">Next</span>
                   <ChevronRight className="h-5 w-5" />
