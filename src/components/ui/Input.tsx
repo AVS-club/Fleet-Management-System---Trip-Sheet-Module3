@@ -24,6 +24,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     size = 'md',
     required,
     id,
+    type,
     ...props 
   }, ref) => {
     const inputId = id || `input-${React.useId()}`;
@@ -35,16 +36,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     };
 
     const iconSizeClasses = {
-      sm: iconPosition === 'left' ? 'pl-8' : 'pr-8',
-      md: iconPosition === 'left' ? 'pl-10' : 'pr-10',
-      lg: iconPosition === 'left' ? 'pl-12' : 'pr-12'
+      sm: 'pl-8',
+      md: 'pl-10',
+      lg: 'pl-12'
     };
 
-    const iconContainerClasses = {
-      sm: 'w-8',
-      md: 'w-10',
-      lg: 'w-12'
-    };
+    // Don't show icon for date inputs to avoid conflict with browser's date picker icon
+    const shouldShowIcon = icon && type !== 'date';
 
     return (
       <div className={clsx("form-group", fullWidth && "w-full")}>
@@ -59,8 +57,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         
         <div className={clsx("relative", fullWidth && "w-full")}>
-          {icon && iconPosition === 'left' && (
-            <div className={`absolute inset-y-0 left-0 flex items-center justify-center ${iconContainerClasses[size]} pointer-events-none text-gray-400 dark:text-gray-500`}>
+          {shouldShowIcon && iconPosition === 'left' && (
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
@@ -68,11 +66,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             id={inputId}
             ref={ref}
+            type={type}
             className={twMerge(
               clsx(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                icon && iconSizeClasses[size],
+                shouldShowIcon && iconPosition === 'left' && iconSizeClasses[size],
+                shouldShowIcon && iconPosition === 'right' && "pr-9",
                 sizeClasses[size],
                 className
               )
@@ -80,8 +80,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           
-          {icon && iconPosition === 'right' && (
-            <div className={`absolute inset-y-0 right-0 flex items-center justify-center ${iconContainerClasses[size]} pointer-events-none text-gray-400 dark:text-gray-500`}>
+          {shouldShowIcon && iconPosition === 'right' && (
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}
