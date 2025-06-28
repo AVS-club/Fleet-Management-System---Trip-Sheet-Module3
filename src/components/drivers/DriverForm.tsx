@@ -21,6 +21,9 @@ import {
   FileCheck,
   Droplet,
   Database,
+  CheckCircle,
+  AlertTriangle,
+  Loader,
 } from "lucide-react";
 import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
@@ -43,9 +46,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
     initialData?.driver_photo_url || null
   );
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-
   const [fieldsDisabled, setFieldsDisabled] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<
+    "idle" | "fetching" | "success" | "error"
+  >("idle");
 
   const {
     register,
@@ -71,7 +76,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
   // Enable fields if initialData is present (for edit mode)
   useEffect(() => {
-    if (initialData) setFieldsDisabled(false);
+    if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
 
   // Field array for other documents
@@ -92,6 +97,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         setVehicles(activeVehicles);
       } catch (error) {
         console.error("Error fetching vehicles:", error);
+        toast.error("Failed to load vehicles");
       }
     };
 
@@ -113,17 +119,20 @@ const DriverForm: React.FC<DriverFormProps> = ({
   // --- Fetch Driver Details Handler ---
   const handleFetchDetails = async () => {
     const licenseNumber = watch("dl_number");
-    console.log(licenseNumber);
     const dob = watch("dob");
-    const dob_formatted = dob.split("-").reverse().join("-");
-    console.log(dob_formatted);
+    
     if (!licenseNumber || !dob) {
       toast.error("Please enter license number and date of birth.");
       return;
     }
+    
     setIsFetching(true);
+    setFetchStatus("fetching");
     setFieldsDisabled(true);
+    
     try {
+      const dob_formatted = dob.split("-").reverse().join("-");
+      
       const { data: result, error } = await supabase.functions.invoke(
         "fetch-driver-details",
         {
@@ -133,19 +142,23 @@ const DriverForm: React.FC<DriverFormProps> = ({
           },
         }
       );
+      
       if (error || !result?.success) {
         throw new Error(
           result?.message || error?.message || "Failed to fetch details"
         );
       }
+      
       const driver = result.response || result.data?.response || {};
+      
       // Convert base64 image to data URL if present
       let photoUrl = null;
       if (driver.image) {
         photoUrl = `data:image/jpeg;base64,${driver.image}`;
         setPhotoPreview(photoUrl);
       }
-      // Map API response to form fieldsg
+      
+      // Map API response to form fields
       const mapped: Driver = {
         id: initialData?.id || undefined,
         name: driver.holder_name || "",
@@ -191,19 +204,22 @@ const DriverForm: React.FC<DriverFormProps> = ({
         photo: null, // keep as null, preview is handled separately
         // ...add more mappings as needed
       };
+      
       reset(mapped);
       setFieldsDisabled(false);
+      setFetchStatus("success");
       toast.success(
         "Driver details fetched. Please verify and complete the form."
       );
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch driver details.");
       setFieldsDisabled(false);
+      setFetchStatus("error");
     } finally {
       setIsFetching(false);
     }
   };
-  console.log(getValues());
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* Top-level Fetch Block */}
@@ -243,8 +259,24 @@ const DriverForm: React.FC<DriverFormProps> = ({
               className="w-full"
               onClick={handleFetchDetails}
             >
-              Fetch Details
+              {isFetching ? "Fetching..." : "Fetch Details"}
             </Button>
+            {fetchStatus === "success" && (
+              <div className="text-center mt-1">
+                <span className="text-xs text-success-600 flex items-center justify-center">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Details found!
+                </span>
+              </div>
+            )}
+            {fetchStatus === "error" && (
+              <div className="text-center mt-1">
+                <span className="text-xs text-error-600 flex items-center justify-center">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Not found
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -283,6 +315,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       onChange(file);
                       handlePhotoChange(file);
                     }}
+                    disabled={fieldsDisabled || isSubmitting}
                     {...field}
                   />
                 </label>
@@ -305,14 +338,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
             icon={<User className="h-4 w-4" />}
             error={errors.name?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("name", { required: "Full name is required" })}
           />
 
           <Input
             label="Father/Husband Name"
             icon={<Users className="h-4 w-4" />}
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("father_or_husband_name")}
           />
 
@@ -327,7 +360,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                   { value: "FEMALE", label: "Female" },
                   { value: "OTHER", label: "Other" },
                 ]}
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -339,7 +372,6 @@ const DriverForm: React.FC<DriverFormProps> = ({
             render={({ field }) => (
               <Select
                 label="Blood Group"
-                // icon={<Droplet className="h-4 w-4" />}
                 options={[
                   { value: "", label: "Select Blood Group" },
                   { value: "A+", label: "A+" },
@@ -351,7 +383,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                   { value: "O+", label: "O+" },
                   { value: "O-", label: "O-" },
                 ]}
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -367,7 +399,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 placeholder="Enter full address"
                 error={errors.address?.message}
                 required
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -388,6 +420,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             icon={<Phone className="h-4 w-4" />}
             error={errors.contact_number?.message}
             required
+            disabled={fieldsDisabled || isSubmitting}
             {...register("contact_number", {
               required: "Contact number is required",
             })}
@@ -398,6 +431,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             type="email"
             icon={<Mail className="h-4 w-4" />}
             error={errors.email?.message}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("email")}
           />
 
@@ -407,7 +441,6 @@ const DriverForm: React.FC<DriverFormProps> = ({
             render={({ field }) => (
               <MultiSelect
                 label="Vehicle Class"
-                // icon={<Truck className="h-4 w-4" />}
                 options={[
                   { value: "LMV", label: "LMV - Light Motor Vehicle" },
                   { value: "HMV", label: "HMV - Heavy Motor Vehicle" },
@@ -416,7 +449,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 ]}
                 value={field.value || []}
                 onChange={field.onChange}
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 required
               />
             )}
@@ -428,6 +461,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             label="License Issue Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("license_issue_date")}
           />
 
@@ -435,6 +469,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             label="Valid From"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("valid_from")}
           />
 
@@ -444,6 +479,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             icon={<Calendar className="h-4 w-4" />}
             error={errors.license_expiry_date?.message}
             required
+            disabled={fieldsDisabled || isSubmitting}
             {...register("license_expiry_date", {
               required: "License expiry date is required",
             })}
@@ -462,37 +498,23 @@ const DriverForm: React.FC<DriverFormProps> = ({
           <Input
             label="RTO Code"
             placeholder="e.g., CG06"
+            disabled={fieldsDisabled || isSubmitting}
             {...register("rto_code")}
           />
 
           <Input
             label="RTO Name"
             placeholder="e.g., MAHASAMUND"
+            disabled={fieldsDisabled || isSubmitting}
             {...register("rto")}
           />
+          
           <Input
             label="State"
             placeholder="Chhattisgarh"
+            disabled={fieldsDisabled || isSubmitting}
             {...register("state")}
           />
-
-          {/* <Controller
-            control={control}
-            name="state"
-            render={({ field }) => (
-              <Select
-                label="State"
-                options={[
-                  { value: "", label: "Select State" },
-                  { value: "CHHATTISGARH", label: "Chhattisgarh" },
-                  { value: "ODISHA", label: "Odisha" },
-                  { value: "MAHARASHTRA", label: "Maharashtra" },
-                  { value: "MADHYA PRADESH", label: "Madhya Pradesh" },
-                ]}
-                {...field}
-              />
-            )}
-          /> */}
         </div>
       </CollapsibleSection>
 
@@ -510,6 +532,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             icon={<Calendar className="h-4 w-4" />}
             error={errors.join_date?.message}
             required
+            disabled={isSubmitting}
             {...register("join_date", { required: "Join date is required" })}
           />
 
@@ -518,6 +541,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             type="number"
             error={errors.experience_years?.message}
             required
+            disabled={isSubmitting}
             {...register("experience_years", {
               required: "Experience is required",
               valueAsNumber: true,
@@ -538,6 +562,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                     label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`,
                   })),
                 ]}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -561,6 +586,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 ]}
                 error={errors.status?.message}
                 required
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -585,6 +611,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 accept=".jpg,.jpeg,.png,.pdf"
                 value={value as File | null}
                 onChange={onChange}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -602,6 +629,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 variant="outline"
                 onClick={() => append({ name: "", file_obj: undefined })}
                 icon={<Plus className="h-4 w-4" />}
+                disabled={isSubmitting}
               >
                 Add Document
               </Button>
@@ -624,6 +652,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       type="button"
                       className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
                       onClick={() => remove(index)}
+                      disabled={isSubmitting}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -632,12 +661,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       <Input
                         label="Document Name"
                         placeholder="e.g., Medical Certificate"
+                        disabled={isSubmitting}
                         {...register(`other_documents.${index}.name` as const)}
                       />
 
                       <Input
                         label="Issue/Expiry Date"
                         type="date"
+                        disabled={isSubmitting}
                         {...register(
                           `other_documents.${index}.issue_date` as const
                         )}
@@ -647,16 +678,38 @@ const DriverForm: React.FC<DriverFormProps> = ({
                     <Controller
                       control={control}
                       name={`other_documents.${index}.file_obj` as const}
-                      render={({ field: { value, onChange, ...field } }) => (
-                        <FileUpload
-                          label="Upload Document"
-                          value={value as File | null}
-                          onChange={onChange}
-                          accept=".jpg,.jpeg,.png,.pdf"
-                          {...field}
-                        />
-                      )}
+                      render={({ field: { value, onChange, ...field } }) => {
+                        // For editing existing documents, check if there's a file_path to display
+                        const existingFilePath = initialData?.other_documents?.[index]?.file_path;
+                        
+                        return (
+                          <FileUpload
+                            label="Upload Document"
+                            value={value as File | null}
+                            onChange={onChange}
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            helperText={existingFilePath ? "A document is already uploaded" : undefined}
+                            disabled={isSubmitting}
+                            {...field}
+                          />
+                        );
+                      }}
                     />
+                    
+                    {/* Show existing document path/link if available */}
+                    {initialData?.other_documents?.[index]?.file_path && (
+                      <div className="mt-2 text-xs text-primary-600">
+                        <a 
+                          href={initialData.other_documents[index].file_path} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center hover:underline"
+                        >
+                          <FileText className="h-3 w-3 mr-1" />
+                          View existing document
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -681,6 +734,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
               className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
               rows={4}
               placeholder="Add any additional notes or remarks about this driver (for internal use only)"
+              disabled={isSubmitting}
               {...register("notes")}
             ></textarea>
           </div>
