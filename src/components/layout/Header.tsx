@@ -47,6 +47,20 @@ const Header: React.FC = () => {
     { name: 'Admin', path: '/admin', icon: <Settings className="h-5 w-5" /> }
   ];
 
+  // Admin sub-links - not displayed in top nav but used for highlighting "Admin" when on these paths
+  const adminSubPaths = [
+    '/admin/trips',
+    '/admin/alert-settings',
+    '/admin/maintenance-tasks',
+    '/admin/trip-locations',
+    '/admin/reminders',
+    '/admin/vehicle-management',
+    '/admin/document-rules',
+    '/admin/driver-ranking-settings',
+    '/admin/message-templates',
+    '/admin/activity-logs'
+  ];
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
@@ -68,21 +82,26 @@ const Header: React.FC = () => {
           </div>
 
           <div className="hidden md:flex space-x-3 lg:space-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center space-x-1 px-2 lg:px-3 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors ${
-                  location.pathname === link.path || 
-                  (link.path !== '/' && location.pathname.startsWith(link.path))
-                    ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-              >
-                {link.icon}
-                <span className="whitespace-nowrap">{name}</span>
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = 
+                location.pathname === link.path || 
+                (link.path === '/admin' && adminSubPaths.some(path => location.pathname.startsWith(path)));
+              
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`flex items-center space-x-1 px-2 lg:px-3 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {link.icon}
+                  <span className="whitespace-nowrap">{link.name}</span>
+                </Link>
+              );
+            })}
             <div className="flex items-center ml-4">
               <ThemeToggle />
             </div>
@@ -114,21 +133,26 @@ const Header: React.FC = () => {
         }`}
       >
         <div className="container mx-auto px-4 py-2 space-y-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.path}
-              to={link.path}
-              className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-colors ${
-                location.pathname === link.path || 
-                (link.path !== '/' && location.pathname.startsWith(link.path))
-                  ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
-              }`}
-            >
-              {link.icon}
-              <span>{link.name}</span>
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = 
+              location.pathname === link.path || 
+              (link.path === '/admin' && adminSubPaths.some(path => location.pathname.startsWith(path)));
+            
+            return (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-colors ${
+                  isActive
+                    ? 'text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                {link.icon}
+                <span>{link.name}</span>
+              </Link>
+            );
+          })}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-3 py-3">
             <ThemeToggle />
             <div className="w-full">

@@ -35,6 +35,11 @@ import NotificationModal from "./components/notifications/NotificationModal";
 import { getAlertSettings } from "./utils/alertSettings";
 import { updateAllTripMileage } from "./utils/storage";
 import { ThemeProvider } from "./utils/themeContext";
+// Import new admin pages
+import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
+import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
+import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
+import ActivityLogPage from "./pages/admin/ActivityLogPage";
 
 interface ProtectedRouteProps {
   session: Session | null;
@@ -250,7 +255,7 @@ Current domain: ${window.location.origin}`
               d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
             />
           </svg>
-          <h2 className="text-2xl font-bold text-red-800 mb-2">
+          <h2 className="text-2xl font-semibold text-red-800 mb-2">
             Connection Error
           </h2>
           <p className="text-red-600 mb-6">{connectionError}</p>
@@ -332,6 +337,23 @@ Current domain: ${window.location.origin}`
             <Route
               path="/admin/vehicle-management"
               element={<VehicleManagementPage />}
+            />
+            {/* New Admin Routes */}
+            <Route
+              path="/admin/document-rules"
+              element={<AdminDocumentRulesPage />}
+            />
+            <Route
+              path="/admin/driver-ranking-settings"
+              element={<DriverRankingSettingsPage />}
+            />
+            <Route
+              path="/admin/message-templates"
+              element={<MessageTemplatesPage />}
+            />
+            <Route
+              path="/admin/activity-logs"
+              element={<ActivityLogPage />}
             />
             <Route path="/vehicles" element={<VehiclesPage />} />
             <Route path="/vehicles/:id" element={<VehiclePage />} />
