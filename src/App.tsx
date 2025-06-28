@@ -156,14 +156,28 @@ Current domain: ${window.location.origin}`
             const settings = await getAlertSettings();
             setAlertSettings(settings);
             
-            // Check if we should show the notification modal
-            if (settings.show_popup_modal_on_load) {
-              // Check if the modal has been dismissed in this session
+            // Check if we should show the notification modal based on frequency setting
+            const frequency = settings.popup_display_frequency || 'always';
+            
+            if (frequency === 'always') {
+              // Always show the modal
+              setShowNotificationModal(true);
+            } else if (frequency === 'once_per_session') {
+              // Show once per browser session
               const modalDismissed = sessionStorage.getItem('notificationModalDismissed');
               if (!modalDismissed) {
                 setShowNotificationModal(true);
               }
+            } else if (frequency === 'daily') {
+              // Show once per day
+              const lastShownDate = localStorage.getItem('notificationModalLastShown');
+              const today = new Date().toDateString();
+              
+              if (lastShownDate !== today) {
+                setShowNotificationModal(true);
+              }
             }
+            // If frequency is 'never', modal will not be shown
           } catch (error) {
             console.error('Failed to get alert settings:', error);
           }
@@ -188,23 +202,7 @@ Current domain: ${window.location.origin}`
     };
 
     initializeApp();
-    
-    // Handle route changes to reset notification modal state
-    const handleRouteChange = () => {
-      // If we're navigating to the dashboard, check if we should show the modal
-      if (window.location.pathname === '/' && alertSettings?.show_popup_modal_on_load) {
-        const modalDismissed = sessionStorage.getItem('notificationModalDismissed');
-        if (!modalDismissed) {
-          setShowNotificationModal(true);
-        }
-      }
-    };
-    
-    window.addEventListener('popstate', handleRouteChange);
-    return () => {
-      window.removeEventListener('popstate', handleRouteChange);
-    };
-  }, [alertSettings]);
+  }, []);
 
   // Set up auth state change listener
   useEffect(() => {
@@ -354,8 +352,17 @@ Current domain: ${window.location.origin}`
           isOpen={showNotificationModal} 
           onClose={() => {
             setShowNotificationModal(false);
-            // Mark as dismissed for this session
-            sessionStorage.setItem('notificationModalDismissed', 'true');
+            
+            // Handle dismissal based on frequency setting
+            const frequency = alertSettings?.popup_display_frequency || 'always';
+            
+            if (frequency === 'once_per_session') {
+              // Mark as dismissed for this session
+              sessionStorage.setItem('notificationModalDismissed', 'true');
+            } else if (frequency === 'daily') {
+              // Mark as dismissed for today
+              localStorage.setItem('notificationModalLastShown', new Date().toDateString());
+            }
           }}
         />
       )}
