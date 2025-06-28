@@ -1,4 +1,4 @@
-import { Trip } from '../types';
+import { Trip, Vehicle } from '../types';
 
 export interface TripEntry {
   start_km: number;
@@ -82,70 +82,323 @@ export function predictMileage(vehicle_id: string, allTrips: Trip[]): number | u
   return parseFloat((weightedSum / totalWeight).toFixed(2));
 }
 
-export function getMileageInsights(trips: Trip[]) {
+interface SegmentWiseSavings {
+  [segment: string]: number;
+}
+
+interface MileageInsights {
+  avgMileage: number;
+  bestVehicle?: string;
+  bestVehicleMileage?: number;
+  bestDriver?: string;
+  bestDriverMileage?: number;
+  estimatedFuelSaved: number;
+  segmentWiseSavings?: SegmentWiseSavings;
+}
+
+export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): MileageInsights {
+  // Default implementation with overall stats
   const mileageByVehicle: Record<string, number[]> = {};
   const mileageByDriver: Record<string, number[]> = {};
 
+  // If no vehicles are provided, use the original calculation
+  if (!vehicles || !Array.isArray(vehicles) || vehicles.length === 0) {
+    let totalKm = 0;
+    let totalFuel = 0;
+
+    if (Array.isArray(trips)) {
+      for (const trip of trips) {
+        if (!trip.short_trip && trip.calculated_kmpl) {
+          const distance = trip.end_km - trip.start_km;
+          const fuel = trip.fuel_quantity || 0;
+
+          if (distance > 0 && fuel > 0) {
+            totalKm += distance;
+            totalFuel += fuel;
+
+            if (trip.vehicle_id) {
+              mileageByVehicle[trip.vehicle_id] ??= [];
+              mileageByVehicle[trip.vehicle_id].push(trip.calculated_kmpl);
+            }
+
+            if (trip.driver_id) {
+              mileageByDriver[trip.driver_id] ??= [];
+              mileageByDriver[trip.driver_id].push(trip.calculated_kmpl);
+            }
+          }
+        }
+      }
+    }
+
+    const avgMileage = totalFuel > 0 ? parseFloat((totalKm / totalFuel).toFixed(2)) : 0;
+
+    const bestVehicle = Object.keys(mileageByVehicle).length > 0 
+      ? Object.entries(mileageByVehicle)
+        .map(([vehicle, values]) => [vehicle, values.reduce((a, b) => a + b, 0) / values.length] as const)
+        .sort((a, b) => b[1] - a[1])[0]
+      : undefined;
+
+    const bestDriver = Object.keys(mileageByDriver).length > 0
+      ? Object.entries(mileageByDriver)
+        .map(([driver, values]) => [driver, values.reduce((a, b) => a + b, 0) / values.length] as const)
+        .sort((a, b) => b[1] - a[1])[0]
+      : undefined;
+
+    const worstDriver = Object.keys(mileageByDriver).length > 0
+      ? Object.entries(mileageByDriver)
+        .map(([driver, values]) => [driver, values.reduce((a, b) => a + b, 0) / values.length] as const)
+        .sort((a, b) => a[1] - b[1])[0]
+      : undefined;
+
+    const fuelCostPerLiter = 90;
+    const fuelDiff = (bestDriver?.[1] || 0) - (worstDriver?.[1] || 0);
+    const distanceSample = 1000;
+    const estimatedFuelSaved = bestDriver?.[1] 
+      ? parseFloat(((fuelDiff > 0 ? fuelDiff : 0) * distanceSample * fuelCostPerLiter / bestDriver[1]).toFixed(2))
+      : 0;
+
+    return {
+      avgMileage,
+      bestVehicle: bestVehicle?.[0],
+      bestVehicleMileage: bestVehicle?.[1],
+      bestDriver: bestDriver?.[0],
+      bestDriverMileage: bestDriver?.[1],
+      estimatedFuelSaved,
+    };
+  }
+
+  // New implementation with segment-wise calculations
+  
+  // Define relevant segment tags to look for
+  const segmentTags = ['4W Pickup', '6W Truck', '10W Truck', 'LMV', 'HMV', 'Light Truck', 'Heavy Truck'];
+  
+  // Create vehicle map to quickly look up vehicle data
+  const vehicleMap = new Map<string, Vehicle>();
+  vehicles.forEach(v => vehicleMap.set(v.id, v));
+
+  // Group vehicles by segment tag
+  const vehiclesBySegment: Record<string, string[]> = {};
+  
+  vehicles.forEach(vehicle => {
+    // Skip archived vehicles
+    if (vehicle.status === 'archived') {
+      return;
+    }
+    
+    // Check if vehicle has tags
+    if (Array.isArray(vehicle.tags)) {
+      // Find the first matching segment tag
+      const matchingTag = vehicle.tags.find(tag => segmentTags.includes(tag));
+      if (matchingTag) {
+        if (!vehiclesBySegment[matchingTag]) {
+          vehiclesBySegment[matchingTag] = [];
+        }
+        vehiclesBySegment[matchingTag].push(vehicle.id);
+      }
+    }
+  });
+  
+  // If no segments were found, create a default "All Vehicles" segment
+  if (Object.keys(vehiclesBySegment).length === 0) {
+    const allVehicleIds = vehicles
+      .filter(v => v.status !== 'archived')
+      .map(v => v.id);
+    
+    if (allVehicleIds.length > 0) {
+      vehiclesBySegment['All Vehicles'] = allVehicleIds;
+    }
+  }
+  
+  // Data structures to track mileage by driver per segment
+  interface DriverMileageData {
+    driverId: string;
+    totalDistance: number;
+    totalFuel: number;
+    tripCount: number;
+    mileage: number;
+  }
+  
+  const segmentData: Record<string, {
+    vehicleIds: string[];
+    driverMileage: Record<string, DriverMileageData>;
+    bestDriver?: { driverId: string; mileage: number };
+    worstDriver?: { driverId: string; mileage: number };
+    estimatedSavings: number;
+  }> = {};
+  
+  // Initialize segment data
+  Object.entries(vehiclesBySegment).forEach(([segment, vehicleIds]) => {
+    segmentData[segment] = {
+      vehicleIds,
+      driverMileage: {},
+      estimatedSavings: 0
+    };
+  });
+  
+  // Process all trips to accumulate data per segment
+  if (Array.isArray(trips)) {
+    trips.forEach(trip => {
+      if (!trip.short_trip && trip.calculated_kmpl && trip.vehicle_id && trip.driver_id) {
+        const vehicle = vehicleMap.get(trip.vehicle_id);
+        
+        if (!vehicle) return; // Skip if vehicle not found
+        
+        // Find which segment this vehicle belongs to
+        let segment: string | undefined;
+        
+        if (Array.isArray(vehicle.tags)) {
+          // Find the first matching segment tag
+          const matchingTag = vehicle.tags.find(tag => segmentTags.includes(tag));
+          if (matchingTag) {
+            segment = matchingTag;
+          }
+        }
+        
+        // Use default segment if no matching tag found
+        if (!segment && Object.keys(vehiclesBySegment).includes('All Vehicles')) {
+          segment = 'All Vehicles';
+        }
+        
+        if (!segment) return; // Skip if no segment found
+        
+        // Process trip data for this segment
+        const distance = trip.end_km - trip.start_km;
+        const fuel = trip.fuel_quantity || 0;
+        
+        if (distance > 0 && fuel > 0) {
+          const driverId = trip.driver_id;
+          
+          // Initialize driver data if not exists
+          if (!segmentData[segment].driverMileage[driverId]) {
+            segmentData[segment].driverMileage[driverId] = {
+              driverId,
+              totalDistance: 0,
+              totalFuel: 0,
+              tripCount: 0,
+              mileage: 0
+            };
+          }
+          
+          // Update driver's stats
+          const driverData = segmentData[segment].driverMileage[driverId];
+          driverData.totalDistance += distance;
+          driverData.totalFuel += fuel;
+          driverData.tripCount++;
+          
+          // Calculate updated average mileage
+          driverData.mileage = driverData.totalDistance / driverData.totalFuel;
+        }
+      }
+    });
+  }
+  
+  // Calculate best and worst driver for each segment
+  const fuelCostPerLiter = 90;
+  const distanceSample = 1000;
+  let totalSavings = 0;
+  const segmentWiseSavings: SegmentWiseSavings = {};
+  
+  Object.entries(segmentData).forEach(([segment, data]) => {
+    const drivers = Object.values(data.driverMileage);
+    
+    // Need at least 2 drivers to calculate savings
+    if (drivers.length < 2) {
+      data.estimatedSavings = 0;
+      segmentWiseSavings[segment] = 0;
+      return;
+    }
+    
+    // Filter drivers with valid mileage data
+    const validDrivers = drivers.filter(d => d.tripCount > 0 && d.mileage > 0);
+    if (validDrivers.length < 2) {
+      data.estimatedSavings = 0;
+      segmentWiseSavings[segment] = 0;
+      return;
+    }
+    
+    // Find best and worst drivers
+    const sortedDrivers = [...validDrivers].sort((a, b) => b.mileage - a.mileage);
+    const bestDriver = sortedDrivers[0];
+    const worstDriver = sortedDrivers[sortedDrivers.length - 1];
+    
+    // Update segment data
+    data.bestDriver = { driverId: bestDriver.driverId, mileage: bestDriver.mileage };
+    data.worstDriver = { driverId: worstDriver.driverId, mileage: worstDriver.mileage };
+    
+    // Calculate savings
+    const mileageDiff = bestDriver.mileage - worstDriver.mileage;
+    if (mileageDiff > 0) {
+      // Formula: (mileageDiff * distanceSample * fuelCostPerLiter) / bestMileage
+      const segmentSavings = parseFloat(((mileageDiff * distanceSample * fuelCostPerLiter) / bestDriver.mileage).toFixed(2));
+      data.estimatedSavings = segmentSavings;
+      segmentWiseSavings[segment] = segmentSavings;
+      totalSavings += segmentSavings;
+    } else {
+      data.estimatedSavings = 0;
+      segmentWiseSavings[segment] = 0;
+    }
+  });
+  
+  // Calculate overall averages from trips for compatibility
   let totalKm = 0;
   let totalFuel = 0;
-
+  
   if (Array.isArray(trips)) {
     for (const trip of trips) {
       if (!trip.short_trip && trip.calculated_kmpl) {
         const distance = trip.end_km - trip.start_km;
         const fuel = trip.fuel_quantity || 0;
-
+        
         if (distance > 0 && fuel > 0) {
           totalKm += distance;
           totalFuel += fuel;
-
-          if (trip.vehicle_id) {
-            mileageByVehicle[trip.vehicle_id] ??= [];
-            mileageByVehicle[trip.vehicle_id].push(trip.calculated_kmpl);
-          }
-
-          if (trip.driver_id) {
-            mileageByDriver[trip.driver_id] ??= [];
-            mileageByDriver[trip.driver_id].push(trip.calculated_kmpl);
-          }
         }
       }
     }
   }
-
+  
   const avgMileage = totalFuel > 0 ? parseFloat((totalKm / totalFuel).toFixed(2)) : 0;
-
+  
+  // Get overall best vehicle and driver (for compatibility)
   const bestVehicle = Object.keys(mileageByVehicle).length > 0 
     ? Object.entries(mileageByVehicle)
       .map(([vehicle, values]) => [vehicle, values.reduce((a, b) => a + b, 0) / values.length] as const)
       .sort((a, b) => b[1] - a[1])[0]
     : undefined;
-
-  const bestDriver = Object.keys(mileageByDriver).length > 0
-    ? Object.entries(mileageByDriver)
-      .map(([driver, values]) => [driver, values.reduce((a, b) => a + b, 0) / values.length] as const)
-      .sort((a, b) => b[1] - a[1])[0]
+    
+  // Find overall best driver
+  const allDriverMileages = Object.values(segmentData)
+    .flatMap(segment => Object.values(segment.driverMileage))
+    .reduce((acc, curr) => {
+      if (!acc[curr.driverId]) {
+        acc[curr.driverId] = {
+          driverId: curr.driverId,
+          totalDistance: 0,
+          totalFuel: 0,
+          tripCount: 0,
+          mileage: 0
+        };
+      }
+      acc[curr.driverId].totalDistance += curr.totalDistance;
+      acc[curr.driverId].totalFuel += curr.totalFuel;
+      acc[curr.driverId].tripCount += curr.tripCount;
+      acc[curr.driverId].mileage = acc[curr.driverId].totalDistance / acc[curr.driverId].totalFuel;
+      return acc;
+    }, {} as Record<string, DriverMileageData>);
+    
+  const overallBestDriver = Object.values(allDriverMileages).length > 0
+    ? Object.values(allDriverMileages)
+      .filter(d => d.mileage > 0)
+      .sort((a, b) => b.mileage - a.mileage)[0]
     : undefined;
-
-  const worstDriver = Object.keys(mileageByDriver).length > 0
-    ? Object.entries(mileageByDriver)
-      .map(([driver, values]) => [driver, values.reduce((a, b) => a + b, 0) / values.length] as const)
-      .sort((a, b) => a[1] - b[1])[0]
-    : undefined;
-
-  const fuelCostPerLiter = 90;
-  const fuelDiff = (bestDriver?.[1] || 0) - (worstDriver?.[1] || 0);
-  const distanceSample = 1000;
-  const estimatedFuelSaved = bestDriver?.[1] 
-    ? parseFloat(((fuelDiff > 0 ? fuelDiff : 0) * distanceSample * fuelCostPerLiter / bestDriver[1]).toFixed(2))
-    : 0;
-
+  
   return {
     avgMileage,
-    bestVehicle: bestVehicle?.[0] || undefined,
-    bestVehicleMileage: bestVehicle?.[1] || undefined,
-    bestDriver: bestDriver?.[0] || undefined,
-    bestDriverMileage: bestDriver?.[1] || undefined,
-    estimatedFuelSaved,
+    bestVehicle: bestVehicle?.[0],
+    bestVehicleMileage: bestVehicle?.[1],
+    bestDriver: overallBestDriver?.driverId,
+    bestDriverMileage: overallBestDriver?.mileage,
+    estimatedFuelSaved: parseFloat(totalSavings.toFixed(2)),
+    segmentWiseSavings
   };
 }
