@@ -279,13 +279,6 @@ const DashboardPage: React.FC = () => {
           <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
         </div>
 
-        {/* Recent Trips */}
-        {hasEnoughData && (
-          <div className="mt-6">
-            <RecentTripsTable trips={trips} onSelectTrip={handleSelectTrip} />
-          </div>
-        )}
-
         {/* Tip Section */}
         {hasEnoughData && (
           <DashboardTip 
