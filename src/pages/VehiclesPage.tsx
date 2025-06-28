@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { Vehicle } from "../types"; // Import the Vehicle interface
+import { Vehicle, Driver, Trip } from "../types"; // Import the Vehicle interface
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -16,12 +16,14 @@ import {
   getVehicleStats,
   createVehicle,
   getTrips,
+  getDrivers,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
+import { format, parseISO, isValid } from "date-fns";
 import {
   Truck,
   Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
-  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare
+  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare, User
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -35,6 +37,8 @@ import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -56,12 +60,18 @@ const VehiclesPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
-        const [vehiclesData, tripsData] = await Promise.all([
+        const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
+          getDrivers(),
           getTrips(),
         ]);
 
         const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
+        const driversArray = Array.isArray(driversData) ? driversData : [];
+        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
+
+        setDrivers(driversArray);
+        setTrips(tripsArray);
 
         // Fetch stats for each vehicle
         const vehiclesWithStats = await Promise.all(
@@ -206,8 +216,35 @@ const VehiclesPage: React.FC = () => {
     // Set contact number (use a real contact number here if available)
     // For example, get it from the primary driver if assigned
     if (vehicle.primary_driver_id) {
-      // This is placeholder logic - in a real app, you would fetch the driver's contact
-      // For now we'll use the default fallback number set in state
+      const assignedDriver = drivers.find(d => d.id === vehicle.primary_driver_id);
+      if (assignedDriver && assignedDriver.contact_number) {
+        setContactNumber(assignedDriver.contact_number);
+      }
+    }
+  };
+
+  // Find the latest trip for a vehicle
+  const getLatestTrip = (vehicleId: string): Trip | undefined => {
+    return Array.isArray(trips) 
+      ? trips
+          .filter(t => t.vehicle_id === vehicleId)
+          .sort((a, b) => 
+            new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime()
+          )[0]
+      : undefined;
+  };
+
+  // Format date helper function
+  const formatDate = (dateString?: string): string | null => {
+    if (!dateString) return null;
+    
+    try {
+      const date = parseISO(dateString);
+      if (!isValid(date)) return null;
+      
+      return format(date, 'dd MMM yyyy');
+    } catch (error) {
+      return null;
     }
   };
 
@@ -356,6 +393,15 @@ const VehiclesPage: React.FC = () => {
                 // Count documents using actual document paths
                 const { uploaded, total } = countDocuments(vehicle);
 
+                // Get the assigned driver
+                const assignedDriver = vehicle.primary_driver_id 
+                  ? drivers.find(d => d.id === vehicle.primary_driver_id) 
+                  : undefined;
+
+                // Get the latest trip for this vehicle
+                const latestTrip = getLatestTrip(vehicle.id);
+                const lastTripDate = latestTrip ? formatDate(latestTrip.trip_end_date) : null;
+
                 return (
                   <div
                     key={vehicle.id}
@@ -401,7 +447,16 @@ const VehiclesPage: React.FC = () => {
                       </div>
                       
                       {/* VehicleSummaryChips Component */}
-                      <VehicleSummaryChips vehicle={vehicle} className="mt-3" />
+                      <VehicleSummaryChips vehicle={vehicle} className="mt-2" />
+
+                      {/* Odometer reading with Last Trip Date */}
+                      <div className="mt-2 flex flex-wrap items-center text-sm text-gray-600">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                        <span>{vehicle.current_odometer?.toLocaleString() || 0} km</span>
+                        {lastTripDate && (
+                          <span className="ml-1 text-xs text-gray-500">• {lastTripDate}</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Trip Stats Section */}
@@ -440,8 +495,8 @@ const VehiclesPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Documents and WhatsApp Section */}
-                      <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                      {/* Documents, Driver, and WhatsApp Section */}
+                      <div className="mt-3 pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-y-2">
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm text-gray-500">Docs:</span>
@@ -455,9 +510,19 @@ const VehiclesPage: React.FC = () => {
                             {uploaded}/{total}
                           </span>
                         </div>
+
+                        {/* Assigned Driver Display */}
+                        <div className="flex items-center mx-1">
+                          <User className="h-4 w-4 text-gray-400 mr-1" />
+                          <span className="text-xs text-gray-600 truncate max-w-[100px]" title={assignedDriver?.name}>
+                            {assignedDriver ? assignedDriver.name : (
+                              <span className="text-gray-400">Unassigned</span>
+                            )}
+                          </span>
+                        </div>
                         
                         <WhatsAppButton
-                          phoneNumber={contactNumber}
+                          phoneNumber={assignedDriver?.contact_number || contactNumber}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenShareModal(vehicle, e);
