@@ -11,7 +11,7 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee } from 'lucide-react';
+import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 
 const DashboardPage: React.FC = () => {
@@ -276,79 +276,13 @@ const DashboardPage: React.FC = () => {
             <MileageChart trips={trips} />
           </div>
           
-          <VehicleStatsList 
-            {/* AI Insights section */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                <div className="ml-3">
-                  <h3 className="text-blue-800 dark:text-blue-300 font-medium">AI Insights</h3>
-                  <div className="mt-2 text-blue-700 dark:text-blue-400 text-sm">
-                    <p>
-                      Our AI analysis suggests the following insights:
-                    </p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
-                      {bestDriver && (
-                        <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
-                      )}
-                      {bestVehicle && (
-                        <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
-                      )}
-                      {stats.estimatedFuelSaved > 0 && (
-                        <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+        </div>
+
+        {/* Recent Trips */}
         {hasEnoughData && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-            <div className="lg:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex">
-                <AlertTriangle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                <div className="ml-3">
-                  <h3 className="text-blue-800 dark:text-blue-300 font-medium">AI Insights</h3>
-                  <div className="mt-2 text-blue-700 dark:text-blue-400 text-sm">
-                    <p>
-                      Our AI analysis suggests the following insights:
-                    </p>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>The average fuel efficiency across your fleet is {stats.avgMileage ? stats.avgMileage.toFixed(2) : "calculating"} km/L</li>
-                      {bestDriver && (
-                        <li>{bestDriver.name} is your most efficient driver with {stats.bestDriverMileage?.toFixed(2)} km/L average</li>
-                      )}
-                      {bestVehicle && (
-                        <li>{bestVehicle.registration_number} shows the best fuel economy at {stats.bestVehicleMileage?.toFixed(2)} km/L</li>
-                      )}
-                      {stats.estimatedFuelSaved > 0 && (
-                        <li>Potential monthly savings of ₹{stats.estimatedFuelSaved.toLocaleString()} by adopting best practices</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="lg:col-span-1">
-              <section className="mt-4">
-                <h3 className="text-lg font-semibold mb-2 flex items-center">
-                  <Bell className="h-5 w-5 text-primary-500 dark:text-primary-400 mr-2" />
-                  Notifications & Reminders
-                </h3>
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                  <NotificationsPanel 
-                    module="vehicles" 
-                    onClose={() => {}} 
-                    maxItems={5} 
-                    scrollable={true} 
-                    height={180} 
-                    showViewAll={true} 
-                  />
-                </div>
-              </section>
-            </div>
+          <div className="mt-6">
+            <RecentTripsTable trips={trips} onSelectTrip={handleSelectTrip} />
           </div>
         )}
 
