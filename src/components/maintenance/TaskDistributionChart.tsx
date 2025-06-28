@@ -34,9 +34,9 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
-          <p className="font-medium text-sm">{payload[0].name}</p>
-          <p className="text-sm">{payload[0].value} tasks ({Math.round(payload[0].payload.percent * 100)}%)</p>
+        <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-md shadow-sm">
+          <p className="font-medium text-xs sm:text-sm">{payload[0].name}</p>
+          <p className="text-xs sm:text-sm">{payload[0].value} tasks ({Math.round(payload[0].payload.percent * 100)}%)</p>
         </div>
       );
     }
@@ -83,7 +83,7 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
-                labelLine={false}
+                nameKey="name"
                 label={({ name, percent }) => {
                   const percentValue = (percent * 100).toFixed(0);
                   return percentValue > 5 ? `${percentValue}%` : '';
@@ -93,8 +93,17 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend />
+              <Tooltip 
+                content={<CustomTooltip />}
+                formatter={(value: number) => [`${value} tasks`, 'Count']}
+                labelFormatter={(name) => `Type: ${name}`}
+              />
+              <Legend 
+                layout="horizontal" 
+                verticalAlign="bottom" 
+                align="center"
+                wrapperStyle={{ fontSize: '10px' }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>

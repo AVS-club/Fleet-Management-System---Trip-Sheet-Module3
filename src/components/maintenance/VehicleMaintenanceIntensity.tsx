@@ -109,12 +109,15 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
                   tickFormatter={(value) => `${value/1000}k km`} 
                   tick={{ fontSize: 10 }}
                 />
+              )
+              )
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
     </CollapsibleSection>
+  )
   );
 };
 

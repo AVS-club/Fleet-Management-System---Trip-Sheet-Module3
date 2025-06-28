@@ -7,6 +7,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import { ThemeProvider } from "./utils/themeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { initScrollDetectors } from "./utils/scrollDetector";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -46,3 +47,6 @@ setTimeout(() => {
     </StrictMode>
   );
 }, 1500); // Show loader for 1.5 seconds
+
+// Initialize scroll detectors
+initScrollDetectors();

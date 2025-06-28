@@ -893,10 +893,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis 
                         dataKey="month" 
-                        tick={{ fontSize: 12 }}
+                        tick={{ fontSize: 10 }}
                         tickLine={false}
                       />
-                      <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
+                      <YAxis 
+                        tickFormatter={(value) => `₹${value/1000}k`} 
+                        tick={{ fontSize: 10 }}
+                      />
                       <Tooltip 
                         formatter={(value: any, name: string) => [`₹${value.toLocaleString('en-IN')}`, name]}
                         labelFormatter={(label) => `Month: ${label}`}
@@ -962,11 +965,24 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                     <BarChart
                       data={vehicleExpenditure}
                       layout="vertical"
-                      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                      <XAxis type="number" tickFormatter={(value) => `₹${value/1000}k`} />
-                      <YAxis type="category" dataKey="vehicle" width={100} />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+                      <XAxis
+                        type="number" 
+                        axisLine={false}
+                        tickLine={false}
+                        tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
+                        tick={{ fontSize: 10 }}
+                      />
+                      <YAxis
+                        type="category" 
+                        dataKey="vehicle" 
+                        axisLine={false}
+                        tickLine={false}
+                        width={60}
+                        tick={{ fontSize: 10 }}
+                      />
                       <Tooltip formatter={(value: any) => [`₹${value.toLocaleString('en-IN')}`, 'Total Expense']} />
                       <Bar dataKey="amount" name="Amount">
                         {vehicleExpenditure.map((entry, index) => (

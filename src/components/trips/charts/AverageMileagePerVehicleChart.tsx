@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { format, parseISO, isValid, subDays, startOfMonth, endOfMonth, startOfYear, subMonths, endOfYear } from 'date-fns';
+import { format, parseISO, isValid, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 import Select from '../../ui/Select';
 import Input from '../../ui/Input';
 import Button from '../../ui/Button';
@@ -180,9 +180,9 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
   }, [trips, vehicles, dateRange]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 w-full sm:w-auto">
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <div className="w-full sm:w-40">
             <Select
               options={[
@@ -201,7 +201,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           </div>
           
           {filterType === 'custom' && !showFullYear && (
-            <>
+            <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
               <div className="w-full sm:w-32">
                 <Input
                   type="date"
@@ -218,7 +218,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                   disabled={showFullYear}
                 />
               </div>
-            </>
+            </div>
           )}
         </div>
         
@@ -235,7 +235,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
         </div>
       </div>
       
-      <div className="h-80 overflow-x-auto">
+      <div className="h-80 overflow-x-auto scroll-indicator">
         <div className="min-w-[600px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -260,32 +260,31 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                 }}
               />
               <Tooltip
-                formatter={(value: number, name: string, props: any) => {
-                  if (name === 'Mileage') {
-                    return [`${value.toFixed(2)} km/L`, name];
-                  }
-                  return [value, name];
+                formatter={(value: number, name: string) => {
+                  return [`${value.toFixed(2)} km/L`, 'Mileage'];
                 }}
                 labelFormatter={(label) => `Vehicle: ${label}`}
                 contentStyle={{ 
                   backgroundColor: 'white', 
                   borderRadius: '0.5rem',
                   border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                  fontSize: '12px',
+                  padding: '8px'
                 }}
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     const data = payload[0].payload;
                     return (
-                      <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
-                        <p className="font-medium text-gray-900">{label}</p>
-                        <p className="text-sm text-gray-600">
+                      <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-md shadow-sm">
+                        <p className="font-medium text-sm text-gray-900">{label}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">
                           <span className="font-medium">Mileage:</span> {data.mileage.toFixed(2)} km/L
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           <span className="font-medium">Distance:</span> {data.totalDistance.toLocaleString()} km
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           <span className="font-medium">Fuel:</span> {data.totalFuel.toLocaleString()} L
                         </p>
                       </div>
@@ -314,7 +313,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
       </div>
       
       {chartData.length === 0 && (
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+        <div className="text-center py-6 sm:py-8 text-gray-500 bg-gray-50 rounded-lg">
           No mileage data available for the selected period
         </div>
       )}
