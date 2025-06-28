@@ -144,25 +144,12 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
         {isOpen && (
           <div 
             ref={dropdownMenuRef}
-            style={{
-              position: 'absolute',
-              [isMenuAbove ? 'bottom' : 'top']: isMenuAbove ? 'calc(100% + 4px)' : 'calc(100% + 4px)',
-              left: 0,
-              right: 0,
-              maxHeight: '250px', // Reduced from 300px to 250px
-              overflowY: 'auto',
-              backgroundColor: 'white',
-              borderRadius: '0.5rem',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-              zIndex: 50,
-              border: '1px solid #e5e7eb'
-            }}
-            className="z-50 w-full bg-white border rounded-lg shadow-lg"
+            className={`absolute ${isMenuAbove ? 'bottom-full mb-1' : 'top-full mt-1'} left-0 right-0 max-h-[50vh] min-h-[200px] overflow-y-auto bg-white border rounded-lg shadow-lg z-50`}
           >
             <input
               ref={searchInputRef}
               type="text"
-              className="w-full p-2 border-b sticky top-0 bg-white z-10"
+              className="w-full p-3 border-b sticky top-0 bg-white z-10 text-base"
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -170,7 +157,7 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
               autoFocus
             />
 
-            <div className="max-h-[200px] overflow-y-auto">
+            <div className="overflow-y-auto">
               {showGroupView ? (
                 // Grouped View
                 Object.entries(maintenanceGroups).map(([groupKey, group]) => {

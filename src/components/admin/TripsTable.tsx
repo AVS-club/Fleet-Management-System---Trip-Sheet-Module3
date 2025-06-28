@@ -279,35 +279,40 @@ const TripsTable: React.FC<TripsTableProps> = ({
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {columns.map(column => (
-                <th
-                  key={column.id}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                    column.width ? `w-[${column.width}]` : ''
-                  }`}
-                  onClick={() => column.sortable && handleSort(column.id)}
-                  style={{ cursor: column.sortable ? 'pointer' : 'default' }}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>{column.label}</span>
-                    {column.sortable && sortConfig?.key === column.id && (
-                      sortConfig.direction === 'asc' ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )
-                    )}
-                  </div>
+        <div className="overflow-x-auto relative">
+          {/* Scrolling indicators */}
+          <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
+          <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
+          
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {columns.map(column => (
+                  <th
+                    key={column.id}
+                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                      column.width ? `w-[${column.width}]` : ''
+                    }`}
+                    onClick={() => column.sortable && handleSort(column.id)}
+                    style={{ cursor: column.sortable ? 'pointer' : 'default' }}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>{column.label}</span>
+                      {column.sortable && sortConfig?.key === column.id && (
+                        sortConfig.direction === 'asc' ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )
+                      )}
+                    </div>
+                  </th>
+                ))}
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
-              ))}
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
+              </tr>
+            </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {sortedTrips.length > 0 ? (
               sortedTrips.map(trip => (

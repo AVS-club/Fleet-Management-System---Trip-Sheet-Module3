@@ -63,7 +63,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Monthly Expenditure Chart */}
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure Over Time</h3>
               {previousPeriodComparison && (
                 <div className={`text-xs font-medium px-2 py-1 rounded-full 
@@ -77,25 +77,31 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
               )}
             </div>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" className="relative">
                 <LineChart
                   data={monthlyExpenditure}
-                  margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+                  margin={{ top: 10, right: 20, left: 15, bottom: 30 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis 
                     dataKey="month" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 10 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={50}
                   />
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                    tick={{ fontSize: 10 }}
+                    tickFormatter={(value) => `₹${(value/1000).toLocaleString()}k`}
                   />
-                  <Tooltip content={<CustomMonthlyTooltip />} />
+                  <Tooltip 
+                    content={<CustomMonthlyTooltip />}
+                    wrapperStyle={{ maxWidth: '80vw', overflow: 'hidden' }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="cost"

@@ -220,6 +220,11 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
       </div>
 
       <div className="overflow-x-auto">
+        <div className="relative">
+          {/* Scrolling indicators */}
+          <div className="absolute top-0 bottom-0 left-0 w-4 bg-gradient-to-r from-white to-transparent pointer-events-none z-10"></div>
+          <div className="absolute top-0 bottom-0 right-0 w-4 bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
+        </div>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

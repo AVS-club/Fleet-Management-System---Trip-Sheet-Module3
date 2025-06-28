@@ -70,11 +70,11 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
       iconColor="text-red-600"
     >
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
           <p className="text-sm text-gray-600">
             Shows the total days vehicles were down for maintenance
           </p>
-          <div className="flex border rounded-md overflow-hidden">
+          <div className="flex flex-wrap border rounded-md overflow-hidden">
             <Button
               variant={viewMode === 'thisMonth' ? 'primary' : 'outline'}
               size="sm"
@@ -99,7 +99,7 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
             <BarChart
               data={displayData}
               layout="vertical"
-              margin={{ top: 5, right: 30, left: 70, bottom: 5 }}
+              margin={{ top: 5, right: 20, left: 65, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
@@ -107,13 +107,15 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
                 axisLine={false}
                 tickLine={false}
                 domain={[0, 'auto']}
+                tick={{ fontSize: 10 }}
               />
               <YAxis 
                 type="category" 
                 dataKey="registration" 
                 axisLine={false}
                 tickLine={false}
-                width={70}
+                width={65}
+                tick={{ fontSize: 10 }}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 

@@ -43,12 +43,18 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
     return null;
   };
 
-  // Calculate percentages for each item
+                  labelLine={false}
   const total = chartData.reduce((sum, item) => sum + item.value, 0);
   const dataWithPercent = chartData.map(item => ({
     ...item,
     percent: total > 0 ? item.value / total : 0
-  }));
+                  label={({ name, percent }) => {
+                    // Only show label if percentage is greater than 5%
+                    if (percent < 0.05) return null;
+                    // Truncate long names
+                    const displayName = name.length > 15 ? name.slice(0, 12) + '...' : name;
+                    return `${displayName}: ${(percent * 100).toFixed(0)}%`;
+                  }}
 
   // If no data, show placeholder
   if (chartData.length === 0) {
@@ -57,9 +63,16 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
         title="Task Type Distribution" 
         iconColor="text-purple-600"
       >
+                  wrapperStyle={{ maxWidth: '80vw', overflow: 'hidden' }}
         <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-gray-500">No task type data available for the selected period</p>
+                <Legend 
+                  layout="horizontal" 
+                  verticalAlign="bottom" 
+                  align="center"
+                  wrapperStyle={{ paddingTop: 20, fontSize: 10 }}
+                />
+          <div className="h-[300px] sm:h-64 overflow-visible">
+            <ResponsiveContainer width="100%" height="100%" className="mt-4">
           </div>
         </div>
       </CollapsibleSection>

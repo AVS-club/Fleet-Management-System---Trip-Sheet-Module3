@@ -76,33 +76,33 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
       </div>
       
       <div className="h-80 overflow-y-auto">
-        <div className="min-h-[400px] h-full">
+        <div className="min-h-[400px] h-full relative">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 20, right: 30, left: 70, bottom: 20 }}
+              margin={{ top: 20, right: 20, left: 75, bottom: 20 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
                 type="number"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
                 axisLine={true}
                 label={{ 
                   value: 'Liters', 
                   position: 'insideBottom',
                   offset: -15,
-                  style: { textAnchor: 'middle', fontSize: 12 }
+                  style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
               <YAxis 
                 type="category"
                 dataKey="vehicleNumber" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 tickLine={false}
                 axisLine={false}
-                width={60}
+                width={75}
               />
               <Tooltip
                 formatter={(value: number, name: string, props: any) => {
@@ -116,7 +116,9 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
                   backgroundColor: 'white', 
                   borderRadius: '0.5rem',
                   border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                  maxWidth: '80vw',
+                  overflow: 'hidden'
                 }}
               />
               <Bar 

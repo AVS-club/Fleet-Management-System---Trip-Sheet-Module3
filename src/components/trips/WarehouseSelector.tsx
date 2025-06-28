@@ -71,7 +71,7 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       </label>
       
       {/* Quick select buttons for most frequent warehouses */}
-      <div className="flex flex-wrap gap-2 mb-2">
+      <div className="flex flex-wrap gap-2 mb-3">
         {Array.isArray(frequentWarehouseData) && frequentWarehouseData.length > 0 ? (
           <>
             {frequentWarehouseData.map((warehouse) => (
@@ -121,12 +121,12 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       
       {/* All warehouses grid - shown when "More Warehouses" is clicked or if there are no frequent warehouses */}
       {showAllWarehouses && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-[300px] overflow-y-auto p-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3 max-h-[50vh] overflow-y-auto p-1">
           {Array.isArray(warehouseData) && warehouseData.length > 0 ? warehouseData.map((warehouse) => (
             <button
               key={warehouse.id}
               type="button"
-              className={`flex flex-col items-start p-3 border rounded-lg transition-colors text-left ${
+              className={`flex flex-col items-start p-4 border rounded-lg transition-colors text-left ${
                 selectedWarehouse === warehouse.id
                   ? 'border-primary-500 bg-primary-50 text-primary-700'
                   : 'border-gray-200 hover:border-primary-200 hover:bg-gray-50'

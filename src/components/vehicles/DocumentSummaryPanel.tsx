@@ -854,11 +854,11 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                   </div>
                 </div>
                 
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%" className="relative">
                     <AreaChart
                       data={monthlyExpenditure}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+                      margin={{ top: 20, right: 20, left: 10, bottom: 40 }}
                     >
                       <defs>
                         <linearGradient id="rcGradient" x1="0" y1="0" x2="0" y2="1">
@@ -890,30 +890,36 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                           <stop offset="95%" stopColor={DOC_TYPE_COLORS.other} stopOpacity={0.2}/>
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis 
-                        dataKey="month" 
-                        tick={{ fontSize: 12 }}
-                        tickLine={false}
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" 
+                        tick={{ fontSize: 10 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                       />
-                      <YAxis tickFormatter={(value) => `₹${value/1000}k`} />
+                      <YAxis 
+                        yAxisId="left" 
+                        tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
+                        tick={{ fontSize: 10 }}
+                      />
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right" 
+                        tick={{ fontSize: 10 }}
+                        tickFormatter={(value) => `₹${(value/1000).toFixed(0)}k`}
+                      />
                       <Tooltip 
                         formatter={(value: any, name: string) => [`₹${value.toLocaleString('en-IN')}`, name]}
                         labelFormatter={(label) => `Month: ${label}`}
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          borderRadius: '0.5rem',
-                          border: '1px solid #e5e7eb',
-                          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                        }}
+                        wrapperStyle={{ maxWidth: '80vw', overflow: 'hidden' }}
                       />
-                      <Area type="monotone" dataKey="rc" stackId="1" stroke={DOC_TYPE_COLORS.rc} fill="url(#rcGradient)" name="RC" />
-                      <Area type="monotone" dataKey="insurance" stackId="1" stroke={DOC_TYPE_COLORS.insurance} fill="url(#insuranceGradient)" name="Insurance" />
-                      <Area type="monotone" dataKey="fitness" stackId="1" stroke={DOC_TYPE_COLORS.fitness} fill="url(#fitnessGradient)" name="Fitness" />
-                      <Area type="monotone" dataKey="permit" stackId="1" stroke={DOC_TYPE_COLORS.permit} fill="url(#permitGradient)" name="Permit" />
-                      <Area type="monotone" dataKey="puc" stackId="1" stroke={DOC_TYPE_COLORS.puc} fill="url(#pucGradient)" name="PUC" />
-                      <Area type="monotone" dataKey="tax" stackId="1" stroke={DOC_TYPE_COLORS.tax} fill="url(#taxGradient)" name="Tax" />
-                      <Area type="monotone" dataKey="other" stackId="1" stroke={DOC_TYPE_COLORS.other} fill="url(#otherGradient)" name="Other" />
+                      <Area yAxisId="left" dataKey="rc" fill="url(#rcGradient)" name="RC" />
+                      <Area yAxisId="left" dataKey="insurance" fill="url(#insuranceGradient)" name="Insurance" />
+                      <Area yAxisId="left" dataKey="fitness" fill="url(#fitnessGradient)" name="Fitness" />
+                      <Area yAxisId="left" dataKey="permit" fill="url(#permitGradient)" name="Permit" />
+                      <Area yAxisId="left" dataKey="puc" fill="url(#pucGradient)" name="PUC" />
+                      <Area yAxisId="left" dataKey="tax" fill="url(#taxGradient)" name="Tax" />
+                      <Area yAxisId="left" dataKey="other" fill="url(#otherGradient)" name="Other" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
