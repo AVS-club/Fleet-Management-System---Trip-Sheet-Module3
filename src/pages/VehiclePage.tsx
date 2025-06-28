@@ -10,6 +10,7 @@ import VehicleForm from '../components/vehicles/VehicleForm';
 import { generateVehiclePDF, downloadVehicleDocuments, createShareableVehicleLink } from '../utils/exportUtils';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import VehicleWhatsAppShareModal from '../components/vehicles/VehicleWhatsAppShareModal';
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,9 @@ const VehiclePage: React.FC = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback
+  
   const [stats, setStats] = useState<{ totalTrips: number; totalDistance: number; averageKmpl?: number }>({
     totalTrips: 0,
     totalDistance: 0
@@ -261,6 +265,11 @@ const VehiclePage: React.FC = () => {
       setShareLoading(false);
     }
   };
+  
+  // Handle WhatsApp share
+  const handleWhatsAppShare = () => {
+    setShowShareModal(true);
+  };
 
   return (
     <Layout
@@ -296,7 +305,7 @@ const VehiclePage: React.FC = () => {
           
           <Button
             variant="outline"
-            onClick={handleCreateShareableLink}
+            onClick={handleWhatsAppShare}
             isLoading={shareLoading}
             icon={<Share2 className="h-4 w-4" />}
           >
@@ -1014,6 +1023,16 @@ const VehiclePage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* WhatsApp Share Modal */}
+      {showShareModal && (
+        <VehicleWhatsAppShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          vehicle={vehicle}
+          contactNumber={contactNumber}
+        />
       )}
     </Layout>
   );

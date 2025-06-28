@@ -21,13 +21,16 @@ import { supabase } from "../utils/supabaseClient";
 import {
   Truck,
   Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
-  AlertTriangle, FileCheck, TrendingUp, Archive
+  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
 import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
+import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
+import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
+import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +40,9 @@ const VehiclesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedVehicleForShare, setSelectedVehicleForShare] = useState<Vehicle | null>(null);
+  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -44,7 +50,7 @@ const VehiclesPage: React.FC = () => {
   const [vehiclesZeroTrips, setVehiclesZeroTrips] = useState(0);
   const [avgOdometer, setAvgOdometer] = useState(0);
   const [docsPendingVehicles, setDocsPendingVehicles] = useState(0);
-  console.log("jdhcbjsh");
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -187,6 +193,20 @@ const VehiclesPage: React.FC = () => {
     if (vehicle.puc_document) uploaded++;
 
     return { uploaded, total };
+  };
+  
+  // Open WhatsApp share modal
+  const handleOpenShareModal = (vehicle: Vehicle, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setSelectedVehicleForShare(vehicle);
+    setShowShareModal(true);
+    
+    // Set contact number (use a real contact number here if available)
+    // For example, get it from the primary driver if assigned
+    if (vehicle.primary_driver_id) {
+      // This is placeholder logic - in a real app, you would fetch the driver's contact
+      // For now we'll use the default fallback number set in state
+    }
   };
 
   // Filter vehicles based on archived status
@@ -337,81 +357,62 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow ${
+                    className={`bg-white rounded-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        {/* Vehicle Photo (circular) */}
-                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200 mr-3 flex-shrink-0">
-                          {vehicle.photo_url ? (
-                            <img
-                              src={vehicle.photo_url}
-                              alt={vehicle.registration_number}
-                              className="h-full w-full object-cover rounded-full"
-                            />
-                          ) : (
-                            <Truck className="h-6 w-6 text-gray-400" />
-                          )}
+                    {/* Vehicle Photo (top-right) */}
+                    <div className="absolute top-10 right-3">
+                      {vehicle.photo_url ? (
+                        <img
+                          src={vehicle.photo_url}
+                          alt={vehicle.registration_number}
+                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                          <Truck className="h-8 w-8 text-gray-400" />
                         </div>
-
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {vehicle.registration_number}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {vehicle.make} {vehicle.model}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
-                          vehicle.status === "active"
-                            ? "bg-success-100 text-success-800"
-                            : vehicle.status === "maintenance"
-                            ? "bg-warning-100 text-warning-800"
-                            : vehicle.status === "archived"
-                            ? "bg-gray-100 text-gray-600"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {vehicle.status}
-                      </span>
+                      )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm text-gray-500">Type</span>
-                        <p className="font-medium capitalize">{vehicle.type}</p>
+                    <div className="pr-20">
+                      {/* Vehicle Title & Status Section */}
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-medium text-gray-900">
+                          {vehicle.registration_number}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
+                            vehicle.status === "active"
+                              ? "bg-success-100 text-success-800"
+                              : vehicle.status === "maintenance"
+                              ? "bg-warning-100 text-warning-800"
+                              : vehicle.status === "archived"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {vehicle.status}
+                        </span>
                       </div>
-                      <div>
-                        <span className="text-sm text-gray-500">Year</span>
-                        <p className="font-medium">{vehicle.year}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500">Odometer</span>
-                        <p className="font-medium">
-                          {typeof vehicle.current_odometer === "number"
-                            ? vehicle.current_odometer.toLocaleString()
-                            : "N/A"}{" "}
-                          km
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500">Fuel Type</span>
-                        <p className="font-medium capitalize">
-                          {vehicle.fuel_type}
-                        </p>
-                      </div>
+                      <p className="text-sm text-gray-500">
+                        {vehicle.make} {vehicle.model} ({vehicle.year})
+                      </p>
+
+                      {/* VehicleSummaryChips Component */}
+                      <VehicleSummaryChips vehicle={vehicle} className="mt-3" />
                     </div>
 
+                    {/* Trip Stats Section */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
                           <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500">Trips</span>
+                          <span className="text-sm text-gray-500 block">
+                            Trips
+                          </span>
                           <p className="font-medium">
                             {vehicle.stats.totalTrips}
                           </p>
@@ -419,7 +420,7 @@ const VehiclesPage: React.FC = () => {
 
                         <div className="text-center">
                           <Calendar className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 block">
                             Distance
                           </span>
                           <p className="font-medium">
@@ -431,7 +432,7 @@ const VehiclesPage: React.FC = () => {
 
                         <div className="text-center">
                           <PenToolIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 block">
                             Avg KMPL
                           </span>
                           <p className="font-medium">
@@ -440,25 +441,31 @@ const VehiclesPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Document Status */}
+                      {/* Documents and WhatsApp Section */}
                       <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm text-gray-500">Docs:</span>
-                        </div>
-                        <div className="flex items-center">
-                          <span
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${
-                              uploaded === total
-                                ? "bg-success-100 text-success-800"
-                                : uploaded === 0
-                                ? "bg-error-100 text-error-800"
-                                : "bg-warning-100 text-warning-800"
-                            }`}
-                          >
+                          <span className={`ml-1 text-xs font-medium px-2 py-1 rounded-full ${
+                            uploaded === total
+                              ? "bg-success-100 text-success-800"
+                              : uploaded === 0
+                              ? "bg-error-100 text-error-800"
+                              : "bg-warning-100 text-warning-800"
+                          }`}>
                             {uploaded}/{total}
                           </span>
                         </div>
+                        
+                        <WhatsAppButton
+                          phoneNumber={contactNumber}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenShareModal(vehicle, e);
+                          }}
+                          className="text-green-600 hover:text-green-800"
+                          variant="ghost"
+                        />
                       </div>
                     </div>
                   </div>
@@ -474,6 +481,16 @@ const VehiclesPage: React.FC = () => {
         isOpen={showDocumentPanel}
         onClose={() => setShowDocumentPanel(false)}
       />
+
+      {/* WhatsApp Share Modal */}
+      {showShareModal && selectedVehicleForShare && (
+        <VehicleWhatsAppShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          vehicle={selectedVehicleForShare}
+          contactNumber={contactNumber}
+        />
+      )}
     </Layout>
   );
 };
