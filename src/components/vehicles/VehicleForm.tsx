@@ -15,6 +15,8 @@ import {
   BadgeCheck,
   Wind,
   Bell,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
@@ -40,8 +42,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isSubmitting = false,
 }) => {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
-  const [fieldsDisabled, setFieldsDisabled] = useState(true); // <-- NEW
-  const [isFetching, setIsFetching] = useState(false); // <-- NEW
+  const [fieldsDisabled, setFieldsDisabled] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<
+    "idle" | "fetching" | "success" | "error"
+  >("idle");
 
   const {
     register,
@@ -97,7 +102,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       setIsSubmittingForm(false);
     }
   };
-  // console.log(getValues());
+
   // --- NEW: Fetch RC details handler ---
   const handleFetchDetails = async () => {
     const regNum = watch("registration_number");
@@ -105,8 +110,23 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       toast.error("Please enter a vehicle number first.");
       return;
     }
+    
     setIsFetching(true);
+    setFetchStatus("fetching");
     setFieldsDisabled(true);
+    
+    // Clear form before fetching new data
+    reset({
+      registration_number: regNum,
+      make: "",
+      model: "",
+      year: new Date().getFullYear(),
+      type: "truck",
+      fuel_type: "diesel",
+      current_odometer: 0,
+      status: "active",
+    });
+    
     try {
       // Use supabase.functions.invoke for Edge Functions
       const { data: result, error } = await supabase.functions.invoke(
@@ -178,19 +198,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         rc_status: rc.rc_status || "",
         financer: rc.financer || "",
         current_odometer: 0,
-
-        // Add more mappings as needed
       });
 
       const mapped = mapApiToForm(rc, regNum);
       reset(mapped);
       setFieldsDisabled(false);
+      setFetchStatus("success");
       toast.success(
         "Vehicle details fetched. Please verify and complete the form."
       );
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch vehicle details.");
       setFieldsDisabled(false);
+      setFetchStatus("error");
     } finally {
       setIsFetching(false);
     }
@@ -228,6 +248,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               >
                 Get Details
               </Button>
+              {fetchStatus === "success" && (
+                <span className="text-xs text-success-600 flex items-center ml-2 inline-block">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Details found!
+                </span>
+              )}
+              {fetchStatus === "error" && (
+                <span className="text-xs text-error-600 flex items-center ml-2 inline-block">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Not found
+                </span>
+              )}
             </div>
           </div>
 
@@ -236,7 +268,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="17 characters"
             error={errors.chassis_number?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("chassis_number", {
               required: "Chassis number is required",
             })}
@@ -246,7 +278,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Engine Number"
             error={errors.engine_number?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("engine_number", {
               required: "Engine number is required",
             })}
@@ -257,7 +289,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="Tata, Ashok Leyland, etc."
             error={errors.make?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("make", { required: "Make is required" })}
           />
 
@@ -266,7 +298,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             placeholder="407, 1109, etc."
             error={errors.model?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("model", { required: "Model is required" })}
           />
 
@@ -283,7 +315,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 })}
                 error={errors.year?.message}
                 required
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
                 value={field.value?.toString()}
                 onChange={(e) => field.onChange(parseInt(e.target.value))}
@@ -294,7 +326,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Owner Name"
             placeholder="Enter owner's name"
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("owner_name")}
           />
 
@@ -312,7 +344,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.type?.message}
                 required
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -332,7 +364,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.fuel_type?.message}
                 required
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -341,7 +373,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tyre Size"
             placeholder="e.g., 215/75 R15"
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("tyre_size")}
           />
 
@@ -349,21 +381,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Number of Tyres"
             type="number"
             placeholder="6, 10, etc."
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("number_of_tyres", { valueAsNumber: true })}
           />
 
           <Input
             label="Registration Date"
             type="date"
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("registration_date")}
           />
 
           <Input
             label="RC Expiry Date"
             type="date"
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("rc_expiry_date")}
           />
 
@@ -372,7 +404,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             type="number"
             error={errors.current_odometer?.message}
             required
-            disabled={fieldsDisabled}
+            disabled={fieldsDisabled || isSubmitting}
             {...register("current_odometer", {
               required: "Current odometer is required",
               valueAsNumber: true,
@@ -395,7 +427,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 ]}
                 error={errors.status?.message}
                 required
-                disabled={fieldsDisabled}
+                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
@@ -414,6 +446,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -431,24 +464,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Policy Number"
             placeholder="e.g., POL123456789"
+            disabled={isSubmitting}
             {...register("policy_number")}
           />
 
           <Input
             label="Insurer Name"
             placeholder="e.g., ICICI Lombard"
+            disabled={isSubmitting}
             {...register("insurer_name")}
           />
 
           <Input
             label="Insurance Start Date"
             type="date"
+            disabled={isSubmitting}
             {...register("insurance_start_date")}
           />
 
           <Input
             label="Insurance Expiry Date"
             type="date"
+            disabled={isSubmitting}
             {...register("insurance_expiry_date")}
           />
 
@@ -456,6 +493,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Premium Amount (₹)"
             type="number"
             placeholder="e.g., 25000"
+            disabled={isSubmitting}
             {...register("insurance_premium_amount", { valueAsNumber: true })}
           />
 
@@ -463,6 +501,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="IDV Amount (₹)"
             type="number"
             placeholder="e.g., 500000"
+            disabled={isSubmitting}
             {...register("insurance_idv", { valueAsNumber: true })}
           />
         </div>
@@ -479,6 +518,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -490,6 +530,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Set Insurance Expiry Reminder"
             checked={remindInsurance}
             onChange={(e) => setValue("remind_insurance", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindInsurance && (
@@ -505,6 +546,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -514,6 +556,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
+                disabled={isSubmitting}
                 {...register("insurance_reminder_days_before", {
                   valueAsNumber: true,
                 })}
@@ -533,18 +576,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Fitness Certificate Number"
             placeholder="e.g., FC123456789"
+            disabled={isSubmitting}
             {...register("fitness_certificate_number")}
           />
 
           <Input
             label="Fitness Issue Date"
             type="date"
+            disabled={isSubmitting}
             {...register("fitness_issue_date")}
           />
 
           <Input
             label="Fitness Expiry Date"
             type="date"
+            disabled={isSubmitting}
             {...register("fitness_expiry_date")}
           />
 
@@ -552,6 +598,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Fitness Cost (₹)"
             type="number"
             placeholder="e.g., 2000"
+            disabled={isSubmitting}
             {...register("fitness_cost", { valueAsNumber: true })}
           />
         </div>
@@ -568,6 +615,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -579,6 +627,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Set Fitness Expiry Reminder"
             checked={remindFitness}
             onChange={(e) => setValue("remind_fitness", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindFitness && (
@@ -594,6 +643,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -603,6 +653,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
+                disabled={isSubmitting}
                 {...register("fitness_reminder_days_before", {
                   valueAsNumber: true,
                 })}
@@ -622,6 +673,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Tax Receipt Number"
             placeholder="e.g., TR123456789"
+            disabled={isSubmitting}
             {...register("tax_receipt_number")}
           />
 
@@ -629,12 +681,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Tax Amount (₹)"
             type="number"
             placeholder="e.g., 5000"
+            disabled={isSubmitting}
             {...register("tax_amount", { valueAsNumber: true })}
           />
 
           <Input
             label="Tax Scope"
             placeholder="e.g., State, National"
+            disabled={isSubmitting}
             {...register("tax_scope")}
           />
 
@@ -642,6 +696,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Tax Paid Up To"
             type="date"
             placeholder="e.g., 2025-03-31"
+            disabled={isSubmitting}
             {...register("tax_paid_upto")}
           />
         </div>
@@ -658,6 +713,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -669,6 +725,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Set Tax Expiry Reminder"
             checked={remindTax}
             onChange={(e) => setValue("remind_tax", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindTax && (
@@ -684,6 +741,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -693,6 +751,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
+                disabled={isSubmitting}
                 {...register("tax_reminder_days_before", {
                   valueAsNumber: true,
                 })}
@@ -712,30 +771,35 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Permit Number"
             placeholder="e.g., PER123456789"
+            disabled={isSubmitting}
             {...register("permit_number")}
           />
 
           <Input
             label="Issuing State"
             placeholder="e.g., Chhattisgarh"
+            disabled={isSubmitting}
             {...register("permit_issuing_state")}
           />
 
           <Input
             label="Permit Type"
             placeholder="e.g., National, State"
+            disabled={isSubmitting}
             {...register("permit_type")}
           />
 
           <Input
             label="Permit Issue Date"
             type="date"
+            disabled={isSubmitting}
             {...register("permit_issue_date")}
           />
 
           <Input
             label="Permit Expiry Date"
             type="date"
+            disabled={isSubmitting}
             {...register("permit_expiry_date")}
           />
 
@@ -743,6 +807,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Permit Cost (₹)"
             type="number"
             placeholder="e.g., 10000"
+            disabled={isSubmitting}
             {...register("permit_cost", { valueAsNumber: true })}
           />
         </div>
@@ -759,6 +824,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -770,6 +836,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Set Permit Expiry Reminder"
             checked={remindPermit}
             onChange={(e) => setValue("remind_permit", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindPermit && (
@@ -785,6 +852,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -794,6 +862,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 30"
+                disabled={isSubmitting}
                 {...register("permit_reminder_days_before", {
                   valueAsNumber: true,
                 })}
@@ -813,18 +882,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="PUC Certificate Number"
             placeholder="e.g., PUC123456789"
+            disabled={isSubmitting}
             {...register("puc_certificate_number")}
           />
 
           <Input
             label="PUC Issue Date"
             type="date"
+            disabled={isSubmitting}
             {...register("puc_issue_date")}
           />
 
           <Input
             label="PUC Expiry Date"
             type="date"
+            disabled={isSubmitting}
             {...register("puc_expiry_date")}
           />
 
@@ -832,6 +904,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="PUC Cost (₹)"
             type="number"
             placeholder="e.g., 500"
+            disabled={isSubmitting}
             {...register("puc_cost", { valueAsNumber: true })}
           />
         </div>
@@ -848,6 +921,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
                 icon={<Upload className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -859,6 +933,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Set PUC Expiry Reminder"
             checked={remindPuc}
             onChange={(e) => setValue("remind_puc", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindPuc && (
@@ -874,6 +949,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -883,6 +959,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 label="Days Before Expiry"
                 type="number"
                 placeholder="e.g., 15"
+                disabled={isSubmitting}
                 {...register("puc_reminder_days_before", {
                   valueAsNumber: true,
                 })}
@@ -903,6 +980,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Enable Service Reminders"
             checked={remindService}
             onChange={(e) => setValue("remind_service", e.target.checked)}
+            disabled={isSubmitting}
           />
 
           {remindService && (
@@ -918,6 +996,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -928,6 +1007,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Days Before Service"
                   type="number"
                   placeholder="e.g., 7"
+                  disabled={isSubmitting}
                   {...register("service_reminder_days_before", {
                     valueAsNumber: true,
                   })}
@@ -937,6 +1017,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="KM Before Service"
                   type="number"
                   placeholder="e.g., 500"
+                  disabled={isSubmitting}
                   {...register("service_reminder_km", { valueAsNumber: true })}
                 />
               </div>
@@ -951,83 +1032,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<Database className="h-5 w-5" />}
         iconColor="text-slate-600"
       >
-        {/* VAHAN Data Summary */}
-        {initialData && initialData.vahan_last_fetched_at && (
-          <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-            <div className="flex items-start">
-              <Info className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
-              <div>
-                <h4 className="text-blue-700 font-medium">
-                  VAHAN Data Summary
-                </h4>
-                <p className="text-blue-600 text-sm mt-1">
-                  Last fetched:{" "}
-                  {new Date(initialData.vahan_last_fetched_at).toLocaleString()}
-                </p>
-                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-3 sm:gap-x-4 gap-y-2 text-sm">
-                  {initialData.vehicle_class && (
-                    <div>
-                      <span className="text-blue-700 font-medium">
-                        Vehicle Class:
-                      </span>{" "}
-                      <span className="text-blue-600">
-                        {initialData.vehicle_class}
-                      </span>
-                    </div>
-                  )}
-                  {initialData.financer && (
-                    <div>
-                      <span className="text-blue-700 font-medium">
-                        Financer:
-                      </span>{" "}
-                      <span className="text-blue-600">
-                        {initialData.financer}
-                      </span>
-                    </div>
-                  )}
-                  {initialData.cubic_capacity && (
-                    <div>
-                      <span className="text-blue-700 font-medium">
-                        Cubic Capacity:
-                      </span>{" "}
-                      <span className="text-blue-600">
-                        {initialData.cubic_capacity} cc
-                      </span>
-                    </div>
-                  )}
-                  {initialData.unladen_weight && (
-                    <div>
-                      <span className="text-blue-700 font-medium">
-                        Unladen Weight:
-                      </span>{" "}
-                      <span className="text-blue-600">
-                        {initialData.unladen_weight} kg
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* General Information Fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
           <Input
             label="Financer"
             placeholder="e.g., HDFC Bank"
+            disabled={isSubmitting}
             {...register("financer")}
           />
 
           <Input
             label="Vehicle Class"
             placeholder="e.g., LMV"
+            disabled={isSubmitting}
             {...register("vehicle_class")}
           />
 
           <Input
             label="Color"
             placeholder="e.g., White"
+            disabled={isSubmitting}
             {...register("color")}
           />
 
@@ -1035,6 +1059,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cubic Capacity"
             type="number"
             placeholder="e.g., 2500"
+            disabled={isSubmitting}
             {...register("cubic_capacity", { valueAsNumber: true })}
           />
 
@@ -1042,6 +1067,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cylinders"
             type="number"
             placeholder="e.g., 4"
+            disabled={isSubmitting}
             {...register("cylinders", { valueAsNumber: true })}
           />
 
@@ -1049,6 +1075,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Unladen Weight (kg)"
             type="number"
             placeholder="e.g., 3500"
+            disabled={isSubmitting}
             {...register("unladen_weight", { valueAsNumber: true })}
           />
 
@@ -1056,12 +1083,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Seating Capacity"
             type="number"
             placeholder="e.g., 2"
+            disabled={isSubmitting}
             {...register("seating_capacity", { valueAsNumber: true })}
           />
 
           <Input
             label="Emission Norms"
             placeholder="e.g., BS6"
+            disabled={isSubmitting}
             {...register("emission_norms")}
           />
         </div>
@@ -1084,6 +1113,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 maxFiles={5}
                 helperText="Upload up to 5 additional documents (JPG, PNG, PDF)"
                 icon={<Paperclip className="h-4 w-4" />}
+                disabled={isSubmitting}
                 {...field}
               />
             )}
@@ -1100,6 +1130,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               size="sm"
               onClick={() => append({ name: "", file_path: "" })}
               icon={<Plus className="h-4 w-4" />}
+              disabled={isSubmitting}
             >
               Add Document
             </Button>
@@ -1114,6 +1145,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 type="button"
                 className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
                 onClick={() => remove(index)}
+                disabled={isSubmitting}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -1122,18 +1154,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 <Input
                   label="Document Name"
                   placeholder="e.g., National Permit"
+                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.name` as const)}
                 />
 
                 <Input
                   label="Issue Date"
                   type="date"
+                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.issue_date` as const)}
                 />
 
                 <Input
                   label="Expiry Date"
                   type="date"
+                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.expiry_date` as const)}
                 />
 
@@ -1141,6 +1176,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Document Cost (₹)"
                   type="number"
                   placeholder="e.g., 1000"
+                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.cost` as const, {
                     valueAsNumber: true,
                   })}
@@ -1157,6 +1193,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     onChange={onChange}
                     accept=".jpg,.jpeg,.png,.pdf"
                     icon={<Upload className="h-4 w-4" />}
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
@@ -1181,7 +1218,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             Cancel
           </Button>
         )}
-        <Button type="submit" isLoading={isSubmitting || isSubmittingForm}>
+        <Button type="submit" isLoading={isSubmittingForm || isSubmitting}>
           {initialData ? "Update Vehicle" : "Save Vehicle"}
         </Button>
       </div>
