@@ -8,6 +8,8 @@ import DriverMetrics from '../components/drivers/DriverMetrics';
 import { getAIAlerts } from '../utils/aiAnalytics';
 import { generateDriverPDF, createShareableDriverLink } from '../utils/exportUtils';
 import { toast } from 'react-toastify';
+import WhatsAppButton from '../components/drivers/WhatsAppButton';
+import DriverSummaryChips from '../components/drivers/DriverSummaryChips';
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +144,11 @@ const DriverPage: React.FC = () => {
             Export PDF
           </Button>
           
+          <WhatsAppButton 
+            phoneNumber={driver.contact_number}
+            message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
+          />
+          
           <Button
             variant="outline"
             onClick={handleCreateShareableLink}
@@ -184,6 +191,13 @@ const DriverPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Driver Summary Chips */}
+        <DriverSummaryChips 
+          driver={driver} 
+          vehicle={primaryVehicle} 
+          className="mb-4"
+        />
 
         {/* License Status Warning */}
         {(hasExpiredLicense || licenseExpiringIn30Days) && (

@@ -25,6 +25,8 @@ import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
+import DriverSummaryChips from "../components/drivers/DriverSummaryChips";
+import WhatsAppButton from "../components/drivers/WhatsAppButton";
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -106,7 +108,7 @@ const DriversPage: React.FC = () => {
 
     fetchData();
   }, []);
-  console.log("jkj");
+  
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
@@ -344,7 +346,7 @@ const DriversPage: React.FC = () => {
           </div>
 
           <DriverForm
-            initialData={editingDriver || undefined}
+            initialData={editingDriver || {}}
             onSubmit={handleSaveDriver}
             isSubmitting={isSubmitting}
           />
@@ -434,6 +436,11 @@ const DriversPage: React.FC = () => {
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
+                    
+                    {/* Summary Chips at the top */}
+                    <div className="mb-4">
+                      <DriverSummaryChips driver={driver} />
+                    </div>
 
                     <div className="flex items-start space-x-4 mb-4">
                       {/* Driver Photo */}
@@ -480,39 +487,6 @@ const DriversPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <span className="text-sm text-gray-500 block">
-                          Experience
-                        </span>
-                        <p className="font-medium">
-                          {driver.experience_years} years
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500 block">
-                          Join Date
-                        </span>
-                        <p className="font-medium">
-                          {formatDate(driver.join_date)}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500 block">
-                          Contact
-                        </span>
-                        <p className="font-medium">{driver.contact_number}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-500 block">
-                          Email
-                        </span>
-                        <p className="font-medium truncate">
-                          {driver.email || "-"}
-                        </p>
-                      </div>
-                    </div>
-
                     <div className="mt-4 pt-4 border-t border-gray-200">
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
@@ -543,8 +517,15 @@ const DriversPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* View Details Link */}
-                    <div className="mt-4 text-center">
+                    {/* WhatsApp and View Details Links */}
+                    <div className="mt-4 flex justify-between items-center">
+                      <WhatsAppButton 
+                        phoneNumber={driver.contact_number}
+                        message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
+                        variant="ghost"
+                        className="text-xs"
+                      />
+                      
                       <button
                         onClick={() => navigate(`/drivers/${driver.id}`)}
                         className="text-primary-600 hover:text-primary-800 text-sm font-medium"
