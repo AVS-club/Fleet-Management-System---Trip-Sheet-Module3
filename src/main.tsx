@@ -14,6 +14,18 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      // Add shorter staleTime to improve performance on mobile
+      staleTime: 60 * 1000, // 1 minute
+      // Add mobile-friendly cacheTime
+      gcTime: 5 * 60 * 1000, // 5 minutes
+    },
+    mutations: {
+      // Add shorter retry delays for mobile connections
+      retry: (failureCount, error) => {
+        if (failureCount > 3) return false;
+        return true;
+      },
+      retryDelay: 1000, // 1 second between retries
     },
   },
 });

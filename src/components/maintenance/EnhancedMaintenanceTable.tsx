@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MaintenanceTask, Vehicle } from '../../types';
 import { ChevronDown, ChevronUp, Search, Filter, Download, RefreshCw, Eye } from 'lucide-react';
 import Button from '../ui/Button';
@@ -36,6 +36,36 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
   } | null>(null);
   
   const [showFilters, setShowFilters] = useState(false);
+
+  // Add ref for scrollable container
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Handle scroll detection for indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!tableContainerRef.current) return;
+      
+      const { scrollLeft } = tableContainerRef.current;
+      
+      // Check if scrolled at all
+      if (scrollLeft > 0) {
+        tableContainerRef.current.classList.add('scrolled-right');
+      } else {
+        tableContainerRef.current.classList.remove('scrolled-right');
+      }
+    };
+    
+    const tableContainer = tableContainerRef.current;
+    if (tableContainer) {
+      tableContainer.addEventListener('scroll', handleScroll);
+    }
+    
+    return () => {
+      if (tableContainer) {
+        tableContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   // Get vehicle registration by id
   const getVehicleRegistration = (vehicleId: string): string => {
@@ -376,7 +406,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             </div>
           </div>
           
-          <div className="overflow-x-auto scroll-indicator">
+          <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

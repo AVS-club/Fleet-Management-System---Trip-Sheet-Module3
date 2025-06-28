@@ -32,7 +32,7 @@ const LoginForm: React.FC = () => {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && <p className="text-error-500 dark:text-error-400 text-sm bg-error-50 dark:bg-error-900/30 p-3 rounded-md">{error}</p>}
+      {error && <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-2 sm:p-3 rounded-md">{error}</p>}
       <div>
         <Input
           id="email"
@@ -57,7 +57,7 @@ const LoginForm: React.FC = () => {
           placeholder="Enter your password"
         />
       </div>
-      <Button type="submit" disabled={loading} fullWidth isLoading={loading}>
+      <Button type="submit" disabled={loading} fullWidth isLoading={loading} size="md" className="py-2 text-sm">
         {loading ? 'Logging in...' : 'Login'}
       </Button>
     </form>

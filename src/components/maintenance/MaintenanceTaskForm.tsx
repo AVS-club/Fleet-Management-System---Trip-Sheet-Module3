@@ -438,7 +438,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Battery Tracking Section */}
                   <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                       <div className="flex items-center">
                         <Battery className="h-5 w-5 text-blue-500 mr-2" />
                         <h5 className="font-medium text-gray-700">Battery Replacement</h5>
@@ -459,7 +459,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     
                     {/* Conditionally show battery fields */}
                     {watch(`service_groups.${index}.battery_tracking`) && (
-                      <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-blue-200">
+                      <div className="grid grid-cols-1 gap-3 pl-2 sm:pl-3 border-l-2 border-blue-200">
                         <div className="flex items-center gap-2">
                           <div className="flex-grow">
                             <Input
@@ -525,7 +525,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Disc className="h-5 w-5 text-gray-600 mr-2" />
-                        <h5 className="font-medium text-gray-700">Tyre Replacement</h5>
+                        <h5 className="font-medium text-gray-700 break-words">Tyre Replacement</h5>
                       </div>
                       <Controller
                         control={control}
@@ -543,7 +543,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     
                     {/* Conditionally show tyre fields */}
                     {watch(`service_groups.${index}.tyre_tracking`) && (
-                      <div className="grid grid-cols-1 gap-3 pl-3 border-l-2 border-gray-200">
+                      <div className="grid grid-cols-1 gap-3 pl-2 sm:pl-3 border-l-2 border-gray-200">
                         <div className="flex items-center justify-between">
                           <div className="flex-grow">
                             <Controller
@@ -572,7 +572,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                                   </div>
                                   <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
                                     {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
-                                      <label key={position} className="flex items-center space-x-2">
+                                      <label key={position} className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
                                         <input
                                           type="checkbox"
                                           checked={value?.includes(position)}
@@ -582,9 +582,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                                               : (value || []).filter(p => p !== position);
                                             onChange(newPositions);
                                           }}
-                                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded min-w-[16px]"
                                         />
-                                        <span className="text-sm text-gray-600">{position}</span>
+                                        <span className="text-xs sm:text-sm text-gray-600">{position}</span>
                                       </label>
                                     ))}
                                   </div>

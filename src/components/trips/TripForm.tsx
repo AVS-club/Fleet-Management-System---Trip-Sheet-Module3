@@ -610,11 +610,11 @@ const TripForm: React.FC<TripFormProps> = ({
       {/* Odometer & Load Section */}
       <CollapsibleSection 
         title="🛞 Odometer & Load" 
-        icon={<Truck className="h-5 w-5" />}
+        icon={<Truck className="h-4 w-4 sm:h-5 sm:w-5" />}
         iconColor="text-gray-600"
         defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <div className={`relative ${lastTripMileage && refuelingDone ? 'bg-blue-50 rounded-lg' : ''}`}>
             <Input
               label="Start KM"
@@ -623,7 +623,10 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               className={lastTripMileage && refuelingDone ? 'border-blue-300' : ''}
               {...register('start_km', {
-                required: 'Start KM is required',
+                required: {
+                  value: true,
+                  message: 'Start KM is required'
+                },
                 valueAsNumber: true,
                 min: {
                   value: 0,
@@ -632,7 +635,7 @@ const TripForm: React.FC<TripFormProps> = ({
               })}
             />
             {lastTripMileage && refuelingDone && (
-              <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full max-w-[90%] truncate">
+              <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full max-w-[90%] truncate">
                 Auto-filled from last trip
               </div>
             )}
@@ -643,8 +646,13 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             error={errors.end_km?.message}
             required
+            inputMode="numeric"
+            pattern="[0-9]*"
             {...register('end_km', {
-              required: 'End KM is required',
+              required: {
+                value: true,
+                message: 'End KM is required'
+              },
               valueAsNumber: true,
               validate: validateEndKm,
               min: {
@@ -660,6 +668,8 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<Weight className="h-4 w-4" />}
             error={errors.gross_weight?.message}
             required
+            inputMode="numeric"
+            pattern="[0-9]*"
             {...register('gross_weight', {
               required: 'Gross weight is required',
               valueAsNumber: true,
@@ -672,12 +682,13 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
 
         {refuelingDone && (
-          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-            <h4 className="font-medium text-gray-900">Fuel Details</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+            <h4 className="font-medium text-gray-900 text-sm sm:text-base">Fuel Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <Input
                 label="Fuel Quantity (Litres)"
                 type="number"
+                inputMode="decimal"
                 icon={<Fuel className="h-4 w-4" />}
                 step="0.01"
                 error={errors.fuel_quantity?.message}
@@ -694,6 +705,7 @@ const TripForm: React.FC<TripFormProps> = ({
               <Input
                 label="Fuel Cost (₹/L)"
                 type="number"
+                inputMode="decimal"
                 icon={<IndianRupee className="h-4 w-4" />}
                 step="0.01"
                 error={errors.fuel_cost?.message}
@@ -709,8 +721,8 @@ const TripForm: React.FC<TripFormProps> = ({
             </div>
 
             {fuelQuantity && fuelCost && (
-              <div className="bg-secondary-50 p-3 rounded-md">
-                <p className="text-secondary-700 font-medium">
+              <div className="bg-secondary-50 p-2 sm:p-3 rounded-md">
+                <p className="text-secondary-700 font-medium text-sm">
                   Total Fuel Cost: ₹{(fuelQuantity * fuelCost).toLocaleString()}
                 </p>
               </div>
@@ -722,14 +734,15 @@ const TripForm: React.FC<TripFormProps> = ({
       {/* Trip Expenses Section */}
       <CollapsibleSection 
         title="💰 Trip Expenses" 
-        icon={<IndianRupee className="h-5 w-5" />}
+        icon={<IndianRupee className="h-4 w-4 sm:h-5 sm:w-5" />}
         iconColor="text-green-600"
         defaultExpanded={false}
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <Input
             label="Unloading Expense (₹)"
             type="number"
+            inputMode="decimal"
             icon={<IndianRupee className="h-4 w-4" />}
             {...register('unloading_expense', {
               valueAsNumber: true,
@@ -740,6 +753,7 @@ const TripForm: React.FC<TripFormProps> = ({
           <Input
             label="Driver/Misc Expense (₹)"
             type="number"
+            inputMode="decimal"
             icon={<IndianRupee className="h-4 w-4" />}
             {...register('driver_expense', {
               valueAsNumber: true,
@@ -750,6 +764,7 @@ const TripForm: React.FC<TripFormProps> = ({
           <Input
             label="Road/RTO Expense (₹)"
             type="number"
+            inputMode="decimal"
             icon={<IndianRupee className="h-4 w-4" />}
             {...register('road_rto_expense', {
               valueAsNumber: true,
@@ -758,8 +773,8 @@ const TripForm: React.FC<TripFormProps> = ({
           />
         </div>
 
-        <div className="mt-4 bg-primary-50 p-3 rounded-md">
-          <p className="text-primary-700 font-medium">
+        <div className="mt-3 sm:mt-4 bg-primary-50 p-2 sm:p-3 rounded-md">
+          <p className="text-primary-700 font-medium text-sm">
             Total Road Expenses: ₹{(unloadingExpense + driverExpense + roadRtoExpense).toLocaleString()}
             {estimatedTollCost ? ` + ₹${estimatedTollCost.toFixed(2)} (FASTag)` : ''}
           </p>

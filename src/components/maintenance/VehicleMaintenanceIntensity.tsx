@@ -68,15 +68,15 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
 
   return (
     <CollapsibleSection 
-      title="KM Run Between Maintenance Visits" 
+      title="KM Between Maintenance" 
       iconColor="text-blue-600"
     >
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <p className="text-sm text-gray-600 mb-4">
-          This chart shows the kilometers run between consecutive maintenance visits for each vehicle.
-          Higher values indicate longer distances between maintenance, which can be better for operational efficiency.
+      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4">
+        <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-4">
+          Kilometers run between consecutive maintenance visits.
+          Higher values indicate longer distances between maintenance.
         </p>
-        <div className="h-64">
+        <div className="h-60 sm:h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={processedData.chartData}

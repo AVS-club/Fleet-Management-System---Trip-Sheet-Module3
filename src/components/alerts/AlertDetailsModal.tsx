@@ -80,16 +80,16 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+      <div className="flex items-end justify-center min-h-screen px-3 sm:px-4 pb-16 sm:pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full sm:w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center">
+          <div className="px-3 sm:px-4 py-3 sm:py-5 border-b border-gray-200 sm:px-6 sticky top-0 bg-white z-10">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center pr-8">
                 {getAlertTypeIcon(alert.alert_type)}
-                <h3 className="ml-2 text-lg leading-6 font-medium text-gray-900">
+                <h3 className="ml-2 text-base sm:text-lg leading-6 font-medium text-gray-900 line-clamp-1">
                   {alert.title}
                 </h3>
               </div>
@@ -98,36 +98,35 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 className="bg-white rounded-md text-gray-400 hover:text-gray-500"
                 onClick={onClose}
               >
-                <span className="sr-only">Close</span>
-                <X className="h-6 w-6" aria-hidden="true" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="px-4 py-5 sm:p-6">
+          <div className="px-3 sm:px-4 py-4 sm:py-5 sm:p-6">
             {loading ? (
               <div className="flex justify-center items-center h-40">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Alert Info */}
-                <div className={`p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
+                <div className={`p-3 sm:p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
                   <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
                     <div className="flex items-center flex-wrap">
-                      <span className="text-sm font-medium">Alert Type:</span>
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                      <span className="text-xs sm:text-sm font-medium">Alert Type:</span>
+                      <span className="ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-800 capitalize">
                         {alert.alert_type.replace('_', ' ')}
                       </span>
                     </div>
                     <div className="flex items-center flex-wrap">
-                      <span className="text-sm font-medium">Created:</span>
-                      <span className="ml-2 text-sm">{formatDate(alert.created_at)}</span>
+                      <span className="text-xs sm:text-sm font-medium">Created:</span>
+                      <span className="ml-2 text-xs sm:text-sm">{formatDate(alert.created_at)}</span>
                     </div>
                   </div>
-                  <p className="text-sm font-medium mb-1">Description:</p>
-                  <p className="text-sm">{alert.description}</p>
+                  <p className="text-xs sm:text-sm font-medium mb-1">Description:</p>
+                  <p className="text-xs sm:text-sm">{alert.description}</p>
                 </div>
 
                 {/* Affected Entity */}
@@ -269,7 +268,8 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                     <span className="text-xs text-gray-500 font-mono">Trip ID: {alert.metadata.trip_id}</span>
                     <button 
                       onClick={copyTripId}
-                      className="ml-2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      size="sm" 
+                      className="text-xs py-1 px-2"
                       title="Copy to clipboard"
                     >
                       <Clipboard className="h-4 w-4" />

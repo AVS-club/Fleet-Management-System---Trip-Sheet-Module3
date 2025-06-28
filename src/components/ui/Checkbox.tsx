@@ -44,9 +44,9 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           
           {label && (
             <label 
-              htmlFor={checkboxId} 
+              htmlFor={checkboxId}
               className={clsx(
-                "text-sm font-medium text-gray-700 dark:text-gray-300",
+                "text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300",
                 labelPlacement === 'start' ? 'mr-2' : 'ml-2'
               )}
             >
@@ -57,7 +57,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         
         {(helperText || error) && (
           <p className={clsx(
-            "mt-1 text-sm ml-6",
+            "mt-1 text-xs sm:text-sm ml-6",
             error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>
             {error || helperText}

@@ -65,14 +65,12 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {(helperText || error) && (
-          <p
-            className={clsx(
-              "mt-1 text-sm",
+          <p className={clsx(
+              "mt-1 text-xs sm:text-sm",
               error
                 ? "text-error-500 dark:text-error-400"
                 : "text-gray-500 dark:text-gray-400"
-            )}
-          >
+            )}>
             {error || helperText}
           </p>
         )}

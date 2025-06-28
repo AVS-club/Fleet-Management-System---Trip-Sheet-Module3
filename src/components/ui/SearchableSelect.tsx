@@ -57,7 +57,9 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && inputRef.current) {
-      inputRef.current.focus();
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [isOpen]);
 
@@ -159,7 +161,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
       {(helperText || error) && (
         <p className={clsx(
-          "mt-1 text-sm",
+          "mt-1 text-xs sm:text-sm",
           error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
         )}>
           {error || helperText}

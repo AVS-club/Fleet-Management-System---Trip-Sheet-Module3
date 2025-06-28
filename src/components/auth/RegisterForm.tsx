@@ -45,8 +45,8 @@ const RegisterForm: React.FC = () => {
 
   return (
     <form onSubmit={handleRegister} className="space-y-4">
-      {error && <p className="text-error-500 dark:text-error-400 text-sm bg-error-50 dark:bg-error-900/30 p-3 rounded-md">{error}</p>}
-      {success && <p className="text-success-500 dark:text-success-400 text-sm bg-success-50 dark:bg-success-900/30 p-3 rounded-md">{success}</p>}
+      {error && <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-2 sm:p-3 rounded-md">{error}</p>}
+      {success && <p className="text-success-500 dark:text-success-400 text-xs sm:text-sm bg-success-50 dark:bg-success-900/30 p-2 sm:p-3 rounded-md">{success}</p>}
       <div>
         <Input
           id="email"
@@ -83,7 +83,7 @@ const RegisterForm: React.FC = () => {
           placeholder="Confirm your password"
         />
       </div>
-      <Button type="submit" disabled={loading} fullWidth isLoading={loading}>
+      <Button type="submit" disabled={loading} fullWidth isLoading={loading} size="md" className="py-2 text-sm">
         {loading ? 'Registering...' : 'Register'}
       </Button>
     </form>

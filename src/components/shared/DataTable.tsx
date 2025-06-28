@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Download, Trash2, Search } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -29,6 +29,36 @@ const DataTable: React.FC<DataTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Add ref for scrollable container
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Handle scroll detection for indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!tableContainerRef.current) return;
+      
+      const { scrollLeft } = tableContainerRef.current;
+      
+      // Check if scrolled at all
+      if (scrollLeft > 0) {
+        tableContainerRef.current.classList.add('scrolled-right');
+      } else {
+        tableContainerRef.current.classList.remove('scrolled-right');
+      }
+    };
+    
+    const tableContainer = tableContainerRef.current;
+    if (tableContainer) {
+      tableContainer.addEventListener('scroll', handleScroll);
+    }
+    
+    return () => {
+      if (tableContainer) {
+        tableContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+  
   const filteredData = data.filter(item =>
     Object.values(item).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
@@ -68,7 +98,7 @@ const DataTable: React.FC<DataTableProps> = ({
         )}
       </div>
 
-      <div className="overflow-x-auto scroll-indicator">
+      <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

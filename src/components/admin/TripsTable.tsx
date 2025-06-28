@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trip, Vehicle, Driver } from '../../types';
 import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2 } from 'lucide-react';
 import Button from '../ui/Button';
@@ -153,6 +153,36 @@ const TripsTable: React.FC<TripsTableProps> = ({
     tripId: string;
     columnId: string;
   } | null>(null);
+  
+  // Add ref for scrollable container
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+  
+  // Handle scroll detection for indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!tableContainerRef.current) return;
+      
+      const { scrollLeft, scrollWidth, clientWidth } = tableContainerRef.current;
+      
+      // Check if scrolled at all
+      if (scrollLeft > 0) {
+        tableContainerRef.current.classList.add('scrolled-right');
+      } else {
+        tableContainerRef.current.classList.remove('scrolled-right');
+      }
+    };
+    
+    const tableContainer = tableContainerRef.current;
+    if (tableContainer) {
+      tableContainer.addEventListener('scroll', handleScroll);
+    }
+    
+    return () => {
+      if (tableContainer) {
+        tableContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   const sortedTrips = useMemo(() => {
     if (!sortConfig) return trips;
@@ -279,7 +309,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto scroll-indicator">
+        <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
