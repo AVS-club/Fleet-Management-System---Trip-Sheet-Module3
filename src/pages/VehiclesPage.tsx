@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { Vehicle, Driver, Trip } from "../types"; // Import the Vehicle interface
@@ -23,7 +23,8 @@ import { format, parseISO, isValid } from "date-fns";
 import {
   Truck,
   Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
-  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare, User
+  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare, User,
+  Medal
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -33,6 +34,7 @@ import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
 import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
 import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
 import WhatsAppButton from "../components/vehicles/WhatsAppButton";
+import TopDriversModal from "../components/vehicles/TopDriversModal";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -45,6 +47,7 @@ const VehiclesPage: React.FC = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showTopDriversModal, setShowTopDriversModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] = useState<Vehicle | null>(null);
   const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
 
@@ -52,7 +55,6 @@ const VehiclesPage: React.FC = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [vehiclesZeroTrips, setVehiclesZeroTrips] = useState(0);
-  const [avgOdometer, setAvgOdometer] = useState(0);
   const [docsPendingVehicles, setDocsPendingVehicles] = useState(0);
 
   useEffect(() => {
@@ -104,17 +106,6 @@ const VehiclesPage: React.FC = () => {
         ).length;
         setVehiclesZeroTrips(zeroTripsCount);
 
-        // Calculate average odometer reading (for active vehicles)
-        const totalOdometer = activeVehicles.reduce(
-          (sum, vehicle) => sum + (vehicle.current_odometer || 0),
-          0
-        );
-        setAvgOdometer(
-          activeVehicles.length > 0
-            ? Math.round(totalOdometer / activeVehicles.length)
-            : 0
-        );
-
         // Calculate vehicles with documents pending
         const docsPendingCount = activeVehicles.filter((vehicle) => {
           // Check for actual document paths instead of boolean flags
@@ -144,6 +135,87 @@ const VehiclesPage: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Calculate Average Distance This Month
+  const averageDistanceThisMonth = useMemo(() => {
+    if (!Array.isArray(trips)) return 0;
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Filter trips for the current month
+    const tripsThisMonth = trips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
+    });
+    
+    if (tripsThisMonth.length === 0) return 0;
+    
+    // Calculate total distance
+    const totalDistance = tripsThisMonth.reduce((sum, trip) => 
+      sum + (trip.end_km - trip.start_km), 0
+    );
+    
+    // Get unique vehicles that had trips this month
+    const uniqueVehicles = new Set(tripsThisMonth.map(t => t.vehicle_id));
+    
+    // Calculate average
+    return totalDistance / uniqueVehicles.size;
+  }, [trips]);
+
+  // Calculate Top Driver This Month
+  const topDriversThisMonth = useMemo(() => {
+    if (!Array.isArray(trips) || !Array.isArray(drivers)) return [];
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Filter trips for the current month with refueling data (for mileage calculation)
+    const tripsThisMonth = trips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate.getMonth() === currentMonth && 
+             tripDate.getFullYear() === currentYear && 
+             trip.calculated_kmpl !== undefined &&
+             trip.calculated_kmpl > 0;
+    });
+    
+    if (tripsThisMonth.length === 0) return [];
+    
+    // Group trips by driver and calculate average mileage for each
+    const driverPerformance = tripsThisMonth.reduce((acc, trip) => {
+      if (!trip.driver_id || !trip.calculated_kmpl) return acc;
+      
+      if (!acc[trip.driver_id]) {
+        acc[trip.driver_id] = {
+          tripCount: 0,
+          totalMileage: 0,
+        };
+      }
+      
+      acc[trip.driver_id].tripCount += 1;
+      acc[trip.driver_id].totalMileage += trip.calculated_kmpl;
+      
+      return acc;
+    }, {} as Record<string, { tripCount: number; totalMileage: number }>);
+    
+    // Calculate average mileage for each driver
+    const driverMileages = Object.entries(driverPerformance).map(([driverId, data]) => {
+      const driver = drivers.find(d => d.id === driverId);
+      return {
+        id: driverId,
+        name: driver?.name || 'Unknown Driver',
+        mileage: data.tripCount > 0 ? data.totalMileage / data.tripCount : 0
+      };
+    });
+    
+    // Sort by mileage (highest first) and take top 5
+    return driverMileages.sort((a, b) => b.mileage - a.mileage).slice(0, 5);
+  }, [trips, drivers]);
+
+  // Get the top driver (if any)
+  const topDriver = topDriversThisMonth.length > 0 ? topDriversThisMonth[0] : null;
 
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
@@ -338,19 +410,25 @@ const VehiclesPage: React.FC = () => {
                     icon={<Calendar className="h-5 w-5 text-warning-600" />}
                     warning={vehiclesZeroTrips > 0}
                   />
-
+                  
                   <StatCard
-                    title="Average Odometer"
-                    value={avgOdometer.toLocaleString()}
-                    subtitle="km"
-                    icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
+                    title="Top Driver (This Month)"
+                    value={topDriver ? (
+                      <div className="flex flex-col">
+                        <span className="text-lg">{topDriver.name.split(' ')[0]}</span>
+                        <span className="text-xs text-gray-500">{topDriver.mileage.toFixed(1)} km/L</span>
+                      </div>
+                    ) : "-"}
+                    icon={<Medal className="h-5 w-5 text-yellow-500" />}
+                    onClick={() => topDriversThisMonth.length > 0 && setShowTopDriversModal(true)}
+                    className={topDriversThisMonth.length > 0 ? "cursor-pointer" : ""}
                   />
 
                   <StatCard
-                    title="Documents Pending"
-                    value={docsPendingVehicles}
-                    icon={<FileCheck className="h-5 w-5 text-error-600" />}
-                    warning={docsPendingVehicles > 0}
+                    title="Average Distance This Month"
+                    value={Math.round(averageDistanceThisMonth).toLocaleString()}
+                    subtitle="km"
+                    icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
                   />
                 </div>
               )}
@@ -555,6 +633,13 @@ const VehiclesPage: React.FC = () => {
           contactNumber={contactNumber}
         />
       )}
+      
+      {/* Top Drivers Modal */}
+      <TopDriversModal 
+        isOpen={showTopDriversModal}
+        onClose={() => setShowTopDriversModal(false)}
+        topDrivers={topDriversThisMonth}
+      />
     </Layout>
   );
 };
