@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip } from '../../../types';
 import { format, parseISO, isValid, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import Button from '../../ui/Button';
@@ -10,8 +10,8 @@ interface MonthlyFuelConsumptionChartProps {
 }
 
 const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = ({ trips }) => {
-  const [showAllMonths, setShowAllMonths] = useState(false);
-
+  const [showAllMonths, setShowAllMonths] = useState(true);
+  
   // Calculate monthly fuel consumption for the last 12 months
   const chartData = useMemo(() => {
     if (!Array.isArray(trips)) return [];

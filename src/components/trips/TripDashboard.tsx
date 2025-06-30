@@ -24,7 +24,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   
   // Calculate date range based on filter type
-  const dateRange = useMemo(() => {
+  const effectiveDateRange = useMemo(() => {
     const now = new Date();
     
     switch (filterType) {
@@ -43,31 +43,17 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           start: startOfYear(now),
           end: now
         };
-      case 'lastYear':
+      case 'lastYear': {
+        const lastYear = subYears(now, 1);
         return {
-          start: startOfYear(subYears(now, 1)),
-          end: endOfYear(subYears(now, 1))
+          start: startOfYear(lastYear),
+          end: endOfYear(lastYear)
         };
+      }
       case 'custom':
-        // Validate custom dates and ensure valid interval
-        const startDate = new Date(customStartDate);
-        const endDate = new Date(customEndDate);
-        
-        // Check if dates are valid
-        const validStartDate = isValid(startDate) ? startDate : subDays(now, 30);
-        const validEndDate = isValid(endDate) ? endDate : now;
-        
-        // Ensure start date is not after end date
-        if (validStartDate > validEndDate) {
-          return {
-            start: validEndDate,
-            end: validStartDate
-          };
-        }
-        
         return {
-          start: validStartDate,
-          end: validEndDate
+          start: new Date(customStartDate || new Date().toISOString().split('T')[0]),
+          end: new Date(customEndDate || new Date().toISOString().split('T')[0])
         };
       default:
         return {
@@ -89,20 +75,20 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
       if (!tripDate || !isValid(tripDate)) return false;
 
       return isWithinInterval(tripDate, {
-        start: dateRange.start,
-        end: dateRange.end
+        start: effectiveDateRange.start,
+        end: effectiveDateRange.end
       });
     });
-  }, [trips, dateRange]);
+  }, [trips, effectiveDateRange]);
   
   // Calculate previous period for comparison
   const previousPeriodRange = useMemo(() => {
-    const duration = dateRange.end.getTime() - dateRange.start.getTime();
+    const duration = effectiveDateRange.end.getTime() - effectiveDateRange.start.getTime();
     return {
-      start: new Date(dateRange.start.getTime() - duration),
-      end: new Date(dateRange.end.getTime() - duration)
+      start: new Date(effectiveDateRange.start.getTime() - duration),
+      end: new Date(effectiveDateRange.end.getTime() - duration)
     };
-  }, [dateRange]);
+  }, [effectiveDateRange]);
   
   // Filter trips for previous period
   const previousPeriodTrips = useMemo(() => {
@@ -273,7 +259,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           <div className="w-full sm:w-auto sm:ml-auto text-sm text-gray-500 flex items-center">
             <Calendar className="h-4 w-4 mr-1" />
             <span>
-              {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}
+              {format(effectiveDateRange.start, 'dd MMM yyyy')} - {format(effectiveDateRange.end, 'dd MMM yyyy')}
             </span>
           </div>
         </div>
@@ -387,7 +373,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           title="Fuel Consumption – Last 12 Months" 
           icon={<BarChart2 className="h-5 w-5" />}
           iconColor="text-green-600"
-          defaultExpanded={false}
+          defaultExpanded={true}
         >
           <MonthlyFuelConsumptionChart trips={trips} />
         </CollapsibleSection>
@@ -397,7 +383,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           title="Fuel Consumption by Vehicle – Last 12 Months" 
           icon={<BarChartHorizontal className="h-5 w-5" />}
           iconColor="text-blue-600"
-          defaultExpanded={false}
+          defaultExpanded={true}
         >
           <FuelConsumedByVehicleChart trips={trips} vehicles={vehicles} />
         </CollapsibleSection>
@@ -407,7 +393,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           title="Average Mileage per Vehicle" 
           icon={<Gauge className="h-5 w-5" />}
           iconColor="text-amber-600"
-          defaultExpanded={false}
+          defaultExpanded={true}
         >
           <AverageMileagePerVehicleChart trips={trips} vehicles={vehicles} />
         </CollapsibleSection>

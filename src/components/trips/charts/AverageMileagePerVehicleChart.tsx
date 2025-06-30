@@ -53,12 +53,13 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
           start: startOfMonth(now),
           end: now
         };
-      case 'lastMonth':
+      case 'lastMonth': {
         const lastMonth = subMonths(now, 1);
         return {
           start: startOfMonth(lastMonth),
           end: endOfMonth(lastMonth)
         };
+      }
       case 'thisYear':
         return {
           start: startOfYear(now),
