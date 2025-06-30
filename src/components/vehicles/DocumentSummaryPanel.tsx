@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Vehicle } from '../../types';
 import { getVehicles } from '../../utils/storage';
@@ -7,6 +8,9 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { useReactToPrint } from 'react-to-print';
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;
@@ -209,6 +213,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   const [documentTypeFilter, setDocumentTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [chartView, setChartView] = useState<'monthly' | 'yearly'>('monthly');
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Initialize date ranges
   useEffect(() => {
@@ -280,17 +285,20 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
         };
     }
   }, [dateRange, customStartDate, customEndDate]);
-
-  // Filter vehicles based on vehicle filter and search term
+  
+  // Filter vehicles based on user selections
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(vehicle => {
-      // Filter by vehicle id if selected
-      if (vehicleFilter !== 'all' && vehicle.id !== vehicleFilter) {
-        return false;
+      // Search filter
+      if (searchTerm && vehicle.registration_number) {
+        const searchLower = searchTerm.toLowerCase();
+        if (!vehicle.registration_number.toLowerCase().includes(searchLower)) {
+          return false;
+        }
       }
 
-      // Filter by search term if provided
-      if (searchTerm && !vehicle.registration_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+      // Vehicle filter
+      if (vehicleFilter !== 'all' && vehicle.id !== vehicleFilter) {
         return false;
       }
 
@@ -525,6 +533,80 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     }
   };
 
+  // Print functionality
+  const handlePrint = useReactToPrint({
+    content: () => contentRef.current,
+    documentTitle: 'Vehicle Document Summary',
+    removeAfterPrint: true,
+    pageStyle: `
+      @page {
+        size: auto;
+        margin: 20mm;
+      }
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        #printable-content, #printable-content * {
+          visibility: visible;
+        }
+        #printable-content {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+        }
+        .no-print {
+          display: none !important;
+        }
+      }
+    `
+  });
+
+  // Download as PDF functionality
+  const handleDownload = async () => {
+    if (!contentRef.current) return;
+    
+    try {
+      const content = contentRef.current;
+      const canvas = await html2canvas(content, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Add subsequent pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
+      pdf.save('Vehicle_Document_Summary.pdf');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -540,14 +622,14 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {}}
+              onClick={handlePrint}
               icon={<Print className="h-4 w-4" />}
               title="Print Report"
             />
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {}}
+              onClick={handleDownload}
               icon={<Download className="h-4 w-4" />}
               title="Export Data"
             />
@@ -562,7 +644,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
         </div>
 
         {/* Panel Content */}
-        <div className="flex-grow overflow-y-auto p-6 space-y-6">
+        <div className="flex-grow overflow-y-auto p-6 space-y-6" ref={contentRef} id="printable-content">
           {loading ? (
             <div className="flex justify-center items-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -571,7 +653,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
           ) : (
             <>
               {/* Date Range Filter - Made Sticky */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 sticky top-0 z-10">
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 sticky top-0 z-10 no-print">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Select
@@ -689,7 +771,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                   <h3 className="font-medium text-gray-700">Document Status Matrix</h3>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 no-print">
                     <Input
                       placeholder="Search vehicles..."
                       icon={<Search className="h-4 w-4" />}
@@ -822,7 +904,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium text-gray-700">Documentation Expenditure Over Time</h3>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 no-print">
                     <button 
                       onClick={() => setChartView('monthly')}
                       className={`px-3 py-1 text-xs rounded-md ${
@@ -843,7 +925,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                     >
                       Yearly
                     </button>
-                    <div className="flex">
+                    <div className="flex no-print">
                       <button className="p-1 rounded-l border border-gray-300 text-gray-600 hover:bg-gray-100">
                         <ArrowLeft className="h-4 w-4" />
                       </button>
