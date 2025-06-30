@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../utils/supabaseClient';
-import Input from '../ui/Input';
-import Button from '../ui/Button';
-import { Mail, Lock } from 'lucide-react';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../utils/supabaseClient";
+import Input from "../ui/Input";
+import Button from "../ui/Button";
+import { Mail, Lock } from "lucide-react";
 
 const LoginForm: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,12 +17,15 @@ const LoginForm: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
-      navigate('/'); // Navigate to dashboard
+      console.log(data);
+      if (data && data.user)
+        localStorage.setItem("user", JSON.stringify(data.user));
+      navigate("/"); // Navigate to dashboard
     } catch (error: any) {
       setError(error.error_description || error.message);
     } finally {
@@ -32,7 +35,11 @@ const LoginForm: React.FC = () => {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4">
-      {error && <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-2 sm:p-3 rounded-md">{error}</p>}
+      {error && (
+        <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-2 sm:p-3 rounded-md">
+          {error}
+        </p>
+      )}
       <div>
         <Input
           id="email"
@@ -57,8 +64,15 @@ const LoginForm: React.FC = () => {
           placeholder="Enter your password"
         />
       </div>
-      <Button type="submit" disabled={loading} fullWidth isLoading={loading} size="md" className="py-2 text-sm">
-        {loading ? 'Logging in...' : 'Login'}
+      <Button
+        type="submit"
+        disabled={loading}
+        fullWidth
+        isLoading={loading}
+        size="md"
+        className="py-2 text-sm"
+      >
+        {loading ? "Logging in..." : "Login"}
       </Button>
     </form>
   );

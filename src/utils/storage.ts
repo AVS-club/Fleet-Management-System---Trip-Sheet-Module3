@@ -1033,14 +1033,58 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
 };
 
 export const createDriver = async (
-  driver: Omit<Driver, "id">
+  driver: Omit<Driver, "id">,
+  userId: string
 ): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
-  const { photo, ...driverData } = driver as any;
+  const { photo, dl_number, license_document, ...driverData } = driver as any;
+  console.log(driverData);
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("driver-docs")
+    .upload(
+      `${userId}/drivingLicence/licence${license_document.name.slice(-4)}`,
+      license_document,
+      {
+        upsert: true,
+      }
+    );
 
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return null;
+  }
+  // Get the public URL
+  const { data: licencePublicUrl } = supabase.storage
+    .from("driver-docs")
+    .getPublicUrl(`${uploadData.path}`);
+  console.log(new Date(driverData.license_expiry_date));
   const { data, error } = await supabase
     .from("drivers")
-    .insert(convertKeysToSnakeCase(driverData))
+    .insert({
+      ...convertKeysToSnakeCase(driverData),
+      license_number: dl_number,
+      license_doc_url: licencePublicUrl.publicUrl,
+      license_issue_date:
+        (driverData.license_issue_date &&
+          !isNaN(new Date(driverData.license_issue_date).getTime()) &&
+          new Date(driverData.license_issue_date)) ||
+        null,
+      dob:
+        (driverData.dob &&
+          !isNaN(new Date(driverData.dob).getTime()) &&
+          new Date(driverData.dob)) ||
+        null,
+      valid_from:
+        (driverData.valid_from &&
+          !isNaN(new Date(driverData.valid_from).getTime()) &&
+          new Date(driverData.valid_from)) ||
+        null,
+      license_expiry_date:
+        (driverData.license_expiry_date &&
+          !isNaN(new Date(driverData.license_expiry_date).getTime()) &&
+          new Date(driverData.license_expiry_date)) ||
+        null,
+    })
     .select()
     .single();
 
@@ -1494,42 +1538,51 @@ export const getVehicleStats = async (vehicleId: string) => {
 export const updateAllTripMileage = async (): Promise<void> => {
   try {
     // Add timeout to prevent hanging on CORS issues
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout - possible CORS issue')), 15000)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Request timeout - possible CORS issue")),
+        15000
+      )
     );
-    
+
     const queryPromise = supabase
       .from("trips")
       .select("*")
       .order("trip_end_date", { ascending: true });
-    
-    const { data: trips } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+    const { data: trips } = (await Promise.race([
+      queryPromise,
+      timeoutPromise,
+    ])) as any;
 
     if (!trips || !Array.isArray(trips)) return;
 
     for (const trip of trips) {
       if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
         const calculatedKmpl = calculateMileage(trip, trips);
-        
+
         // Add timeout for updates as well
         const updatePromise = supabase
           .from("trips")
           .update({ calculated_kmpl: calculatedKmpl })
           .eq("id", trip.id);
-          
-        const updateTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Update timeout - possible CORS issue')), 10000)
+
+        const updateTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Update timeout - possible CORS issue")),
+            10000
+          )
         );
-        
+
         await Promise.race([updatePromise, updateTimeoutPromise]);
       }
     }
   } catch (error) {
     console.error("Error updating trip mileage:", error);
-    
+
     // Provide more specific error messages for common issues
     if (error instanceof Error) {
-      if (error.message.includes('timeout') || error.message.includes('CORS')) {
+      if (error.message.includes("timeout") || error.message.includes("CORS")) {
         throw new Error(`Connection timeout while updating trip data. This is likely a CORS configuration issue.
         
 Please ensure your Supabase project allows requests from ${window.location.origin}:
@@ -1539,7 +1592,7 @@ Please ensure your Supabase project allows requests from ${window.location.origi
 4. Save and reload the page`);
       }
     }
-    
+
     // Re-throw network errors so they can be handled appropriately
     if (
       error instanceof TypeError &&
@@ -1549,31 +1602,31 @@ Please ensure your Supabase project allows requests from ${window.location.origi
       
 Please configure CORS in your Supabase project to allow requests from ${window.location.origin}`);
     }
-    
+
     // Also handle Supabase-specific network errors
     if (
       error &&
-      typeof error === 'object' &&
-      'message' in error &&
-      typeof error.message === 'string' &&
+      typeof error === "object" &&
+      "message" in error &&
+      typeof error.message === "string" &&
       (error.message.includes("Failed to fetch") ||
-       error.message.includes("Network request failed") ||
-       error.message.includes("fetch is not defined"))
+        error.message.includes("Network request failed") ||
+        error.message.includes("fetch is not defined"))
     ) {
       throw new TypeError(`Network connection failed while updating trip mileage. 
       
 This is likely a CORS configuration issue. Please add ${window.location.origin} to your Supabase CORS settings.`);
     }
-    
+
     // Handle cases where the error might be wrapped
     if (
       error &&
-      typeof error === 'object' &&
-      'error' in error &&
+      typeof error === "object" &&
+      "error" in error &&
       error.error &&
-      typeof error.error === 'object' &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
+      typeof error.error === "object" &&
+      "message" in error.error &&
+      typeof error.error.message === "string" &&
       error.error.message.includes("Failed to fetch")
     ) {
       throw new TypeError(`Network connection failed while updating trip mileage.

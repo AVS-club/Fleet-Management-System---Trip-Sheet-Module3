@@ -30,6 +30,7 @@ import WhatsAppButton from "../components/drivers/WhatsAppButton";
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,10 @@ const DriversPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
+        const userdetails = localStorage.getItem("user");
+        if (!userdetails) throw new Error("Cannot get user details");
+        const user = JSON.parse(userdetails);
+        if (user) setUser(user);
         const [driversData, tripsData] = await Promise.all([
           getDrivers(),
           getTrips(),
@@ -108,7 +113,7 @@ const DriversPage: React.FC = () => {
 
     fetchData();
   }, []);
-  
+
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
@@ -131,7 +136,6 @@ const DriversPage: React.FC = () => {
       // Prepare driver data with photo URL
       const driverData = {
         ...data,
-        driver_photo_url: photoUrl,
       };
 
       // Remove the File object as it can't be stored in the database
@@ -185,25 +189,8 @@ const DriversPage: React.FC = () => {
         }
       } else {
         // Create new driver
-        const newDriver = await createDriver(driverData);
+        const newDriver = await createDriver(driverData, user.id);
         if (newDriver) {
-          // If we used a temporary ID for the photo, we need to update it
-          if (photoUrl && photoUrl.includes("temp-")) {
-            try {
-              // Re-upload with the correct ID
-              const finalPhotoUrl = await uploadDriverPhoto(
-                data.photo as File,
-                newDriver.id
-              );
-              await updateDriver(newDriver.id, {
-                driver_photo_url: finalPhotoUrl,
-              });
-              newDriver.driver_photo_url = finalPhotoUrl;
-            } catch (error) {
-              console.error("Error updating photo with final ID:", error);
-            }
-          }
-
           // Update other documents with the correct driver ID
           if (
             Array.isArray(newDriver.other_documents) &&
@@ -519,13 +506,13 @@ const DriversPage: React.FC = () => {
 
                     {/* WhatsApp and View Details Links */}
                     <div className="mt-4 flex justify-between items-center">
-                      <WhatsAppButton 
+                      <WhatsAppButton
                         phoneNumber={driver.contact_number}
                         message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
                         variant="ghost"
                         className="text-green-600 hover:text-green-800"
                       />
-                      
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

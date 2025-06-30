@@ -120,19 +120,19 @@ const DriverForm: React.FC<DriverFormProps> = ({
   const handleFetchDetails = async () => {
     const licenseNumber = watch("dl_number");
     const dob = watch("dob");
-    
+
     if (!licenseNumber || !dob) {
       toast.error("Please enter license number and date of birth.");
       return;
     }
-    
+
     setIsFetching(true);
     setFetchStatus("fetching");
     setFieldsDisabled(true);
-    
+
     try {
       const dob_formatted = dob.split("-").reverse().join("-");
-      
+
       const { data: result, error } = await supabase.functions.invoke(
         "fetch-driver-details",
         {
@@ -142,22 +142,22 @@ const DriverForm: React.FC<DriverFormProps> = ({
           },
         }
       );
-      
+
       if (error || !result?.success) {
         throw new Error(
           result?.message || error?.message || "Failed to fetch details"
         );
       }
-      
+
       const driver = result.response || result.data?.response || {};
-      
+
       // Convert base64 image to data URL if present
-      let photoUrl = null;
+      let photoUrl = undefined;
       if (driver.image) {
         photoUrl = `data:image/jpeg;base64,${driver.image}`;
         setPhotoPreview(photoUrl);
       }
-      
+
       // Map API response to form fields
       const mapped: Driver = {
         id: initialData?.id || undefined,
@@ -201,10 +201,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
         experience_years: 0,
         primary_vehicle_id: "",
         status: "active",
+        driver_photo_url: photoUrl,
         photo: null, // keep as null, preview is handled separately
         // ...add more mappings as needed
       };
-      
+
       reset(mapped);
       setFieldsDisabled(false);
       setFetchStatus("success");
@@ -508,7 +509,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
             disabled={fieldsDisabled || isSubmitting}
             {...register("rto")}
           />
-          
+
           <Input
             label="State"
             placeholder="Chhattisgarh"
@@ -680,28 +681,33 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       name={`other_documents.${index}.file_obj` as const}
                       render={({ field: { value, onChange, ...field } }) => {
                         // For editing existing documents, check if there's a file_path to display
-                        const existingFilePath = initialData?.other_documents?.[index]?.file_path;
-                        
+                        const existingFilePath =
+                          initialData?.other_documents?.[index]?.file_path;
+
                         return (
                           <FileUpload
                             label="Upload Document"
                             value={value as File | null}
                             onChange={onChange}
                             accept=".jpg,.jpeg,.png,.pdf"
-                            helperText={existingFilePath ? "A document is already uploaded" : undefined}
+                            helperText={
+                              existingFilePath
+                                ? "A document is already uploaded"
+                                : undefined
+                            }
                             disabled={isSubmitting}
                             {...field}
                           />
                         );
                       }}
                     />
-                    
+
                     {/* Show existing document path/link if available */}
                     {initialData?.other_documents?.[index]?.file_path && (
                       <div className="mt-2 text-xs text-primary-600">
-                        <a 
-                          href={initialData.other_documents[index].file_path} 
-                          target="_blank" 
+                        <a
+                          href={initialData.other_documents[index].file_path}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center hover:underline"
                         >
