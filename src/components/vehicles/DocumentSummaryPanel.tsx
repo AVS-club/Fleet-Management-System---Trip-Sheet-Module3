@@ -563,8 +563,28 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     `
   });
 
+  // Handle print button click with loading check
+  const handlePrintClick = () => {
+    if (loading) {
+      alert('Please wait for the data to load before printing.');
+      return;
+    }
+    
+    if (!contentRef.current) {
+      alert('Content is not ready for printing. Please try again in a moment.');
+      return;
+    }
+    
+    handlePrint();
+  };
+
   // Download as PDF functionality
   const handleDownload = async () => {
+    if (loading) {
+      alert('Please wait for the data to load before downloading.');
+      return;
+    }
+    
     if (!contentRef.current) return;
     
     try {
@@ -622,9 +642,10 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePrint}
+              onClick={handlePrintClick}
               icon={<Print className="h-4 w-4" />}
               title="Print Report"
+              disabled={loading}
             />
             <Button
               variant="outline"
@@ -632,6 +653,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               onClick={handleDownload}
               icon={<Download className="h-4 w-4" />}
               title="Export Data"
+              disabled={loading}
             />
             <button
               onClick={onClose}
