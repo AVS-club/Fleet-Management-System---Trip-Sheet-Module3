@@ -245,24 +245,21 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
             </div>
           </div>
           
-          <div className="overflow-x-auto max-h-[300px] border rounded-lg">
+          <div className="border rounded-lg max-h-[300px] overflow-y-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="w-[40px] px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Select
                   </th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Document Type
                   </th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="w-[80px] px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Download
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Share Link
+                  <th scope="col" className="w-[80px] px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -296,40 +293,49 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
                         {doc.status === 'available' ? 'Available' : 'Missing'}
                       </span>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center">
-                      {doc.url ? (
-                        <a 
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary-600 hover:text-primary-900 inline-block"
-                          title="Download document"
-                        >
-                          <Download className="h-4 w-4" />
-                        </a>
-                      ) : (
-                        <span className="text-gray-300">
-                          <Download className="h-4 w-4" />
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center">
-                      {doc.url ? (
-                        <button
-                          onClick={() => handleShareLink(doc.url!)}
-                          className="text-primary-600 hover:text-primary-900 inline-block"
-                          title="Copy share link"
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <span className="text-gray-300">
-                          <LinkIcon className="h-4 w-4" />
-                        </span>
-                      )}
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="flex justify-center items-center space-x-3">
+                        {doc.url ? (
+                          <>
+                            <a 
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary-600 hover:text-primary-900"
+                              title="Download document"
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                            <button
+                              onClick={() => handleShareLink(doc.url!)}
+                              className="text-primary-600 hover:text-primary-900"
+                              title="Copy share link"
+                            >
+                              <LinkIcon className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-gray-300 opacity-50">
+                              <Download className="h-4 w-4" />
+                            </span>
+                            <span className="text-gray-300 opacity-50">
+                              <LinkIcon className="h-4 w-4" />
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
+                {documents.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-8 text-center text-gray-500">
+                      <Download className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                      No documents available for download
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
