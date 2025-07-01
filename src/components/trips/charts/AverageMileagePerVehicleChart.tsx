@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { parseISO, isValid, isWithinInterval, format } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
 
 interface AverageMileagePerVehicleChartProps {
   trips: Trip[];
@@ -17,15 +17,26 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
   // Calculate average mileage per vehicle
   const chartData = useMemo(() => {
     if (!Array.isArray(trips) || !Array.isArray(vehicles)) return [];
+    
+    // Safety check for date range validity
+    if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
+      console.warn('Invalid date range:', dateRange);
+      return [];
+    }
 
     // Filter trips by date range
     const filteredTrips = trips.filter(trip => {
-      const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
-      
-      // Validate trip date before using in interval check
-      if (!tripDate || !isValid(tripDate)) return false;
-      
-      return isWithinInterval(tripDate, dateRange);
+      try {
+        const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
+        
+        // Validate trip date before using in interval check
+        if (!tripDate || !isValid(tripDate)) return false;
+        
+        return isWithinInterval(tripDate, dateRange);
+      } catch (error) {
+        console.warn('Error filtering trip by date:', error);
+        return false;
+      }
     });
     
     // Create vehicle lookup map
@@ -111,18 +122,18 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
-          <p className="font-medium text-sm">{label}</p>
-          <p className="text-sm text-primary-600 font-medium">
+        <div className="bg-white p-4 border border-gray-200 rounded-md shadow-sm">
+          <p className="font-medium text-base">{label}</p>
+          <p className="text-base text-primary-600 font-bold mt-1">
             {data.mileage.toFixed(2)} km/L
           </p>
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             Distance: {data.totalDistance.toLocaleString()} km
           </p>
-          <p className="text-xs text-gray-600">
+          <p className="text-sm text-gray-600">
             Fuel: {data.totalFuel.toLocaleString()} L
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-2">
             Period: {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}
           </p>
         </div>
@@ -132,18 +143,18 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="h-80 overflow-x-auto scroll-indicator">
+    <div className="space-y-2">
+      <div className="h-72 overflow-x-auto scroll-indicator">
         <div className="min-w-[600px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              margin={{ top: 15, right: 20, left: 10, bottom: 15 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="vehicleNumber" 
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 11, fontWeight: 500 }}
                 tickLine={false}
               />
               <YAxis 
@@ -164,11 +175,12 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                 label={{
                   position: 'top',
                   formatter: (value: number) => `${value.toFixed(1)}`,
-                  fontSize: 9,
+                  fontSize: 10,
+                  fontWeight: 500,
                   fill: '#4B5563',
                   dy: -4
                 }}
-                barSize={30}
+                barSize={32}
                 fill={(entry: any) => entry.lowMileage ? '#F59E0B' : '#0277BD'}
                 radius={[4, 4, 0, 0]}
               />
@@ -178,7 +190,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
       </div>
       
       {chartData.length === 0 && (
-        <div className="text-center py-6 sm:py-8 text-gray-500 bg-gray-50 rounded-lg">
+        <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
           No mileage data available for the selected period
         </div>
       )}

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip } from '../../../types';
-import { parseISO, isValid, isWithinInterval, format } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
 
 interface MonthlyFuelConsumptionChartProps {
   trips: Trip[];
@@ -15,15 +15,26 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
   // Calculate monthly fuel consumption based on date range
   const chartData = useMemo(() => {
     if (!Array.isArray(trips)) return [];
+    
+    // Safety check for date range validity
+    if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
+      console.warn('Invalid date range:', dateRange);
+      return [];
+    }
 
     // Filter trips based on date range
     const filteredTrips = trips.filter(trip => {
-      const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
-      
-      // Validate trip date before using in interval check
-      if (!tripDate || !isValid(tripDate)) return false;
-      
-      return isWithinInterval(tripDate, dateRange);
+      try {
+        const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
+        
+        // Validate trip date before using in interval check
+        if (!tripDate || !isValid(tripDate)) return false;
+        
+        return isWithinInterval(tripDate, dateRange);
+      } catch (error) {
+        console.warn('Error filtering trip by date:', error);
+        return false;
+      }
     });
 
     // Group trips by month
@@ -63,18 +74,13 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
-          <p className="font-medium text-sm">{label}</p>
-          <p className="text-sm">
-            <span className="text-primary-600 font-medium">
-              {payload[0].value.toLocaleString()} L
-            </span>
+        <div className="bg-white p-4 border border-gray-200 rounded-md shadow-sm">
+          <p className="font-medium text-base">{label}</p>
+          <p className="text-base text-primary-600 font-bold mt-1">
+            {payload[0].value.toLocaleString()} Liters
           </p>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-500 mt-2">
             Fuel consumed in {label}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            Period: {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}
           </p>
         </div>
       );
@@ -83,13 +89,13 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
   };
 
   return (
-    <div className="space-y-4">      
-      <div className="h-80 overflow-x-auto">
+    <div className="space-y-2">      
+      <div className="h-72 overflow-x-auto">
         <div className="min-w-[600px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
-              margin={{ top: 20, right: 20, left: 10, bottom: 20 }}
+              margin={{ top: 15, right: 20, left: 10, bottom: 15 }}
             >
               <defs>
                 <linearGradient id="fuelGradient" x1="0" y1="0" x2="0" y2="1">
@@ -100,7 +106,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 11, fontWeight: 500 }}
                 tickLine={false}
               />
               <YAxis 
@@ -121,7 +127,8 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
                 label={{ 
                   position: 'top',
                   formatter: (value: number) => `${value.toLocaleString()} L`,
-                  fontSize: 9,
+                  fontSize: 10,
+                  fontWeight: 500,
                   fill: '#4B5563',
                   dy: -4
                 }}
@@ -136,7 +143,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
       </div>
       
       {chartData.length === 0 && (
-        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+        <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
           No fuel consumption data available for the selected period
         </div>
       )}
