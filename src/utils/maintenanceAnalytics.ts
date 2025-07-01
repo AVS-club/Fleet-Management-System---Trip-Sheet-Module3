@@ -1,6 +1,7 @@
 import { MaintenanceTask, Vehicle } from '../types';
 import { supabase } from './supabaseClient';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+import { AIAlert } from '../types';
 
 export type DateRange = {
   start: Date;
@@ -14,6 +15,7 @@ export type MaintenanceMetrics = {
   averageCompletionTime: number;
   averageCost: number;
   totalExpenditure: number;
+  documentationCost: number; // Added for documentation cost insights
   monthlyExpenditure: { month: string; cost: number }[];
   expenditureByVehicle: { vehicleId: string; registration: string; cost: number }[];
   expenditureByVendor: { vendorId: string; name: string; cost: number }[];
@@ -152,6 +154,48 @@ export const calculateMaintenanceMetrics = (
   
   const totalExpenditure = Math.max(costsFromServiceGroups, costsFromTasks);
   const averageCost = totalTasks > 0 ? totalExpenditure / totalTasks : 0;
+  
+  // Calculate documentation cost
+  let documentationCost = 0;
+  
+  // Sum up all documentation-related costs from vehicles
+  if (Array.isArray(vehicles)) {
+    vehicles.forEach(vehicle => {
+      // Add insurance premium
+      if (vehicle.insurance_premium_amount) {
+        documentationCost += vehicle.insurance_premium_amount;
+      }
+      
+      // Add fitness certificate cost
+      if (vehicle.fitness_cost) {
+        documentationCost += vehicle.fitness_cost;
+      }
+      
+      // Add permit cost
+      if (vehicle.permit_cost) {
+        documentationCost += vehicle.permit_cost;
+      }
+      
+      // Add PUC cost
+      if (vehicle.puc_cost) {
+        documentationCost += vehicle.puc_cost;
+      }
+      
+      // Add tax amount
+      if (vehicle.tax_amount) {
+        documentationCost += vehicle.tax_amount;
+      }
+      
+      // Add costs from other documents
+      if (vehicle.other_documents && Array.isArray(vehicle.other_documents)) {
+        vehicle.other_documents.forEach(doc => {
+          if (doc.cost) {
+            documentationCost += doc.cost;
+          }
+        });
+      }
+    });
+  }
   
   // Calculate monthly expenditure
   const monthlyExpenditure: { month: string; cost: number }[] = [];
@@ -334,6 +378,7 @@ export const calculateMaintenanceMetrics = (
     averageCompletionTime,
     averageCost,
     totalExpenditure,
+    documentationCost,
     monthlyExpenditure,
     expenditureByVehicle,
     expenditureByVendor,
@@ -341,6 +386,291 @@ export const calculateMaintenanceMetrics = (
     vehicleDowntime,
     kmBetweenMaintenance
   };
+};
+
+/**
+ * Check for rising maintenance costs and create an AI alert if necessary
+ * @param currentMonthExpenditure Current month's total maintenance expenditure
+ * @param previousMonthExpenditure Previous month's total maintenance expenditure
+ * @param dateRange Current date range being analyzed
+ * @returns An AIAlert object if an alert was created, null otherwise
+ */
+export const checkRisingCosts = async (
+  currentMonthExpenditure: number,
+  previousMonthExpenditure: number,
+  dateRange: DateRange
+): Promise<AIAlert | null> => {
+  // Only create alert if we have valid data for both periods
+  if (!currentMonthExpenditure || !previousMonthExpenditure || previousMonthExpenditure === 0) {
+    return null;
+  }
+  
+  // Calculate percentage increase
+  const percentageIncrease = ((currentMonthExpenditure - previousMonthExpenditure) / previousMonthExpenditure) * 100;
+  
+  // Only create alert if increase is more than 20%
+  if (percentageIncrease <= 20) {
+    return null;
+  }
+  
+  // Format date range for alert
+  const startMonth = format(dateRange.start, 'MMMM yyyy');
+  const endMonth = format(dateRange.end, 'MMMM yyyy');
+  const monthKey = startMonth === endMonth ? startMonth : `${startMonth} - ${endMonth}`;
+  
+  // Check if an alert already exists for this period
+  const { data: existingAlerts, error: checkError } = await supabase
+    .from('ai_alerts')
+    .select('*')
+    .eq('alert_type', 'rising_maintenance_costs')
+    .eq('metadata->>period', monthKey)
+    .limit(1);
+    
+  if (checkError) {
+    console.error('Error checking for existing maintenance cost alerts:', checkError);
+    return null;
+  }
+  
+  // If an alert already exists for this period, don't create another one
+  if (existingAlerts && existingAlerts.length > 0) {
+    console.log(`Alert for rising maintenance costs already exists for period ${monthKey}`);
+    return null;
+  }
+  
+  // Determine severity based on percentage increase
+  const severity = percentageIncrease > 35 ? 'high' : 'medium';
+  
+  // Create alert data
+  const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
+    alert_type: 'rising_maintenance_costs',
+    severity,
+    status: 'pending',
+    title: `Maintenance costs increased by ${percentageIncrease.toFixed(1)}%`,
+    description: `Maintenance expenditure for ${monthKey} (₹${currentMonthExpenditure.toLocaleString()}) is ${percentageIncrease.toFixed(1)}% higher than the previous period (₹${previousMonthExpenditure.toLocaleString()}).`,
+    affected_entity: {
+      type: 'maintenance',
+      id: 'cost_analysis'
+    },
+    metadata: {
+      current_value: currentMonthExpenditure,
+      previous_value: previousMonthExpenditure,
+      percentage_increase: percentageIncrease,
+      period: monthKey,
+      recommendations: [
+        'Review maintenance tasks for potential cost optimization',
+        'Check for duplicate or unnecessary maintenance work',
+        'Compare vendor pricing for similar services',
+        'Investigate if any vehicles are requiring excessive maintenance'
+      ]
+    },
+    created_at: new Date().toISOString()
+  };
+  
+  try {
+    // Insert the alert into Supabase
+    const { data, error } = await supabase
+      .from('ai_alerts')
+      .insert(alertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating rising maintenance costs alert:', error);
+      return null;
+    }
+
+    console.log('Created rising maintenance costs alert:', data);
+    return data;
+  } catch (error) {
+    console.error('Exception creating rising maintenance costs alert:', error);
+    return null;
+  }
+};
+
+/**
+ * Check for non-optimal vendor rates and create an AI alert if necessary
+ * @param tasks Maintenance tasks to analyze
+ * @param dateRange Current date range being analyzed
+ * @returns An AIAlert object if an alert was created, null otherwise
+ */
+export const checkNonOptimalVendorRates = async (
+  tasks: MaintenanceTask[],
+  dateRange: DateRange
+): Promise<AIAlert | null> => {
+  // Group tasks by task type and vendor
+  const tasksByTypeAndVendor: Record<string, Record<string, { count: number; totalCost: number }>> = {};
+  
+  // Filter tasks by date range
+  const filteredTasks = tasks.filter(task => {
+    const taskDate = new Date(task.start_date);
+    return isValid(taskDate) && isWithinInterval(taskDate, dateRange);
+  });
+  
+  // Process each task
+  filteredTasks.forEach(task => {
+    if (!Array.isArray(task.service_groups) || task.service_groups.length === 0) {
+      return;
+    }
+    
+    // Process each service group
+    task.service_groups.forEach(group => {
+      if (!group.vendor_id || !Array.isArray(group.tasks) || group.tasks.length === 0) {
+        return;
+      }
+      
+      // Process each task in the service group
+      group.tasks.forEach(taskId => {
+        // Initialize task type if not exists
+        if (!tasksByTypeAndVendor[taskId]) {
+          tasksByTypeAndVendor[taskId] = {};
+        }
+        
+        // Initialize vendor if not exists
+        if (!tasksByTypeAndVendor[taskId][group.vendor_id]) {
+          tasksByTypeAndVendor[taskId][group.vendor_id] = {
+            count: 0,
+            totalCost: 0
+          };
+        }
+        
+        // Update count and cost
+        tasksByTypeAndVendor[taskId][group.vendor_id].count += 1;
+        tasksByTypeAndVendor[taskId][group.vendor_id].totalCost += (typeof group.cost === 'number' ? group.cost : 0);
+      });
+    });
+  });
+  
+  // Find task types with multiple vendors
+  const taskTypesWithMultipleVendors = Object.entries(tasksByTypeAndVendor)
+    .filter(([_, vendors]) => Object.keys(vendors).length > 1);
+  
+  // If no task types have multiple vendors, no comparison can be made
+  if (taskTypesWithMultipleVendors.length === 0) {
+    return null;
+  }
+  
+  // Find vendors with significantly higher rates
+  const nonOptimalVendors: Array<{
+    taskType: string;
+    vendorId: string;
+    avgCost: number;
+    bestVendorId: string;
+    bestVendorAvgCost: number;
+    percentageDifference: number;
+  }> = [];
+  
+  taskTypesWithMultipleVendors.forEach(([taskType, vendors]) => {
+    // Calculate average cost per vendor
+    const vendorAvgCosts = Object.entries(vendors).map(([vendorId, data]) => ({
+      vendorId,
+      avgCost: data.totalCost / data.count
+    }));
+    
+    // Sort by average cost (lowest first)
+    vendorAvgCosts.sort((a, b) => a.avgCost - b.avgCost);
+    
+    // Get the best (lowest cost) vendor
+    const bestVendor = vendorAvgCosts[0];
+    
+    // Check other vendors against the best vendor
+    vendorAvgCosts.slice(1).forEach(vendor => {
+      const percentageDifference = ((vendor.avgCost - bestVendor.avgCost) / bestVendor.avgCost) * 100;
+      
+      // If the vendor's rate is at least 20% higher than the best vendor
+      if (percentageDifference >= 20) {
+        nonOptimalVendors.push({
+          taskType,
+          vendorId: vendor.vendorId,
+          avgCost: vendor.avgCost,
+          bestVendorId: bestVendor.vendorId,
+          bestVendorAvgCost: bestVendor.avgCost,
+          percentageDifference
+        });
+      }
+    });
+  });
+  
+  // If no non-optimal vendors found, no alert needed
+  if (nonOptimalVendors.length === 0) {
+    return null;
+  }
+  
+  // Sort by percentage difference (highest first)
+  nonOptimalVendors.sort((a, b) => b.percentageDifference - a.percentageDifference);
+  
+  // Take the top 3 most significant differences
+  const topDifferences = nonOptimalVendors.slice(0, 3);
+  
+  // Format date range for alert
+  const startMonth = format(dateRange.start, 'MMMM yyyy');
+  const endMonth = format(dateRange.end, 'MMMM yyyy');
+  const periodKey = startMonth === endMonth ? startMonth : `${startMonth} - ${endMonth}`;
+  
+  // Check if an alert already exists for this period
+  const { data: existingAlerts, error: checkError } = await supabase
+    .from('ai_alerts')
+    .select('*')
+    .eq('alert_type', 'non_optimal_vendor_rates')
+    .eq('metadata->>period', periodKey)
+    .limit(1);
+    
+  if (checkError) {
+    console.error('Error checking for existing vendor rate alerts:', checkError);
+    return null;
+  }
+  
+  // If an alert already exists for this period, don't create another one
+  if (existingAlerts && existingAlerts.length > 0) {
+    console.log(`Alert for non-optimal vendor rates already exists for period ${periodKey}`);
+    return null;
+  }
+  
+  // Determine severity based on highest percentage difference
+  const severity = topDifferences[0].percentageDifference > 35 ? 'high' : 'medium';
+  
+  // Create alert data
+  const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
+    alert_type: 'non_optimal_vendor_rates',
+    severity,
+    status: 'pending',
+    title: `Non-optimal vendor rates detected`,
+    description: `Some vendors are charging significantly higher rates for the same maintenance tasks. The highest difference is ${topDifferences[0].percentageDifference.toFixed(1)}% more expensive.`,
+    affected_entity: {
+      type: 'maintenance',
+      id: 'vendor_analysis'
+    },
+    metadata: {
+      period: periodKey,
+      non_optimal_vendors: topDifferences,
+      recommendations: [
+        'Review vendor pricing for similar services',
+        'Consider negotiating rates with higher-cost vendors',
+        'Consolidate maintenance work with more cost-effective vendors',
+        'Request detailed breakdowns for higher-cost services'
+      ]
+    },
+    created_at: new Date().toISOString()
+  };
+  
+  try {
+    // Insert the alert into Supabase
+    const { data, error } = await supabase
+      .from('ai_alerts')
+      .insert(alertData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating non-optimal vendor rates alert:', error);
+      return null;
+    }
+
+    console.log('Created non-optimal vendor rates alert:', data);
+    return data;
+  } catch (error) {
+    console.error('Exception creating non-optimal vendor rates alert:', error);
+    return null;
+  }
 };
 
 export const getMaintenanceMetricsWithComparison = async (
@@ -433,6 +763,14 @@ export const getMaintenanceMetricsWithComparison = async (
     const percentChange = previousExpenditure > 0
       ? ((currentMetrics.totalExpenditure - previousExpenditure) / previousExpenditure) * 100
       : 0;
+    
+    // Check for rising costs and create alert if necessary
+    if (Math.abs(percentChange) > 20) {
+      await checkRisingCosts(currentMetrics.totalExpenditure, previousExpenditure, currentDateRange);
+    }
+    
+    // Check for non-optimal vendor rates
+    await checkNonOptimalVendorRates(tasks, currentDateRange);
     
     return {
       ...currentMetrics,

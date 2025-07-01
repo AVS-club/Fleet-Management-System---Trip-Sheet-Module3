@@ -1,5 +1,5 @@
 import React from 'react';
-import { PenTool as Tool, AlertTriangle, Clock, CheckCircle, IndianRupee, BarChart2 } from 'lucide-react';
+import { PenTool as Tool, AlertTriangle, Clock, CheckCircle, IndianRupee, BarChart2, FileText } from 'lucide-react';
 
 interface KPIPanelProps {
   totalTasks: number;
@@ -8,6 +8,7 @@ interface KPIPanelProps {
   completedTasksThisMonth: number;
   averageCost: number;
   totalExpenditure: number;
+  documentationCost?: number; // Added for documentation cost insights
   previousPeriodComparison?: {
     totalTasks: number;
     totalExpenditure: number;
@@ -22,10 +23,11 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
   completedTasksThisMonth,
   averageCost,
   totalExpenditure,
+  documentationCost = 0, // Default to 0 if not provided
   previousPeriodComparison
 }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
       <div className="bg-white rounded-lg shadow-sm p-3">
         <div className="flex items-center justify-between">
           <div>
@@ -105,6 +107,18 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
             )}
           </div>
           <BarChart2 className="h-6 w-6 text-primary-500" />
+        </div>
+      </div>
+
+      {/* New Documentation Cost Card */}
+      <div className="bg-white rounded-lg shadow-sm p-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500">Documentation Costs</p>
+            <h3 className="text-xl font-bold text-gray-900">₹{documentationCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
+            <p className="text-xs text-gray-500 mt-1">Insurance, permits, etc.</p>
+          </div>
+          <FileText className="h-6 w-6 text-primary-500" />
         </div>
       </div>
     </div>
