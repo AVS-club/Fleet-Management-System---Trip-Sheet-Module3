@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, CheckSquare, Square } from 'lucide-react';
+import { X, Download, CheckSquare, Square, Link as LinkIcon } from 'lucide-react';
 import Button from '../ui/Button';
 import { Vehicle } from '../../types';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { toast } from 'react-toastify';
 
 interface DocumentDownloadModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ interface DocumentItem {
   url?: string;
   selected: boolean;
   size?: string;
+  status: 'available' | 'missing';
 }
 
 const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
@@ -46,6 +48,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.rc,
         selected: !!signedDocUrls.rc,
         size: signedDocUrls.rc ? 'PDF' : undefined,
+        status: signedDocUrls.rc ? 'available' : 'missing'
       },
       {
         id: 'insurance',
@@ -53,6 +56,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.insurance,
         selected: !!signedDocUrls.insurance,
         size: signedDocUrls.insurance ? 'PDF' : undefined,
+        status: signedDocUrls.insurance ? 'available' : 'missing'
       },
       {
         id: 'fitness',
@@ -60,6 +64,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.fitness,
         selected: !!signedDocUrls.fitness,
         size: signedDocUrls.fitness ? 'PDF' : undefined,
+        status: signedDocUrls.fitness ? 'available' : 'missing'
       },
       {
         id: 'tax',
@@ -67,6 +72,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.tax,
         selected: !!signedDocUrls.tax,
         size: signedDocUrls.tax ? 'PDF' : undefined,
+        status: signedDocUrls.tax ? 'available' : 'missing'
       },
       {
         id: 'permit',
@@ -74,6 +80,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.permit,
         selected: !!signedDocUrls.permit,
         size: signedDocUrls.permit ? 'PDF' : undefined,
+        status: signedDocUrls.permit ? 'available' : 'missing'
       },
       {
         id: 'puc',
@@ -81,6 +88,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url: signedDocUrls.puc,
         selected: !!signedDocUrls.puc,
         size: signedDocUrls.puc ? 'PDF' : undefined,
+        status: signedDocUrls.puc ? 'available' : 'missing'
       },
     ];
     
@@ -98,6 +106,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         url,
         selected: true,
         size: 'PDF',
+        status: 'available'
       });
     });
     
@@ -180,8 +189,19 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
       saveAs(content, `${vehicle.registration_number}_documents.zip`);
     } catch (error) {
       console.error('Error creating zip file:', error);
+      toast.error('Failed to download documents');
     } finally {
       setIsDownloading(false);
+    }
+  };
+  
+  const handleShareLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard');
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Failed to copy link');
     }
   };
   
@@ -204,41 +224,58 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
         </div>
         
         <div className="p-4">
-          {anyDocumentsAvailable ? (
-            <>
-              <div className="mb-4 flex justify-between">
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={selectAll}
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={deselectAll}
-                  >
-                    Deselect All
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          <div className="mb-4 flex justify-between">
+            <div className="space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAll}
+                disabled={!anyDocumentsAvailable}
+              >
+                Select All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deselectAll}
+                disabled={!anyDocumentsAvailable}
+              >
+                Deselect All
+              </Button>
+            </div>
+          </div>
+          
+          <div className="overflow-x-auto max-h-[300px] border rounded-lg">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Select
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Document Type
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Download
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Share Link
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border ${
-                      !doc.url ? 'bg-gray-50 text-gray-400' : 'bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center">
+                  <tr key={doc.id} className={!doc.url ? 'bg-gray-50' : ''}>
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <button
                         type="button"
-                        className={`mr-3 ${!doc.url ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                        className={`${!doc.url ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                         onClick={() => doc.url && toggleDocumentSelection(doc.id)}
                         disabled={!doc.url}
+                        title={doc.url ? 'Select document' : 'Document not available'}
                       >
                         {doc.selected && doc.url ? (
                           <CheckSquare className="h-5 w-5 text-primary-600" />
@@ -246,29 +283,56 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
                           <Square className="h-5 w-5 text-gray-400" />
                         )}
                       </button>
-                      <span className={`text-sm ${!doc.url ? 'text-gray-400' : 'text-gray-900'}`}>
-                        {doc.name}
+                    </td>
+                    <td className={`px-3 py-2 whitespace-nowrap text-sm ${!doc.url ? 'text-gray-400' : 'text-gray-900'}`}>
+                      {doc.name}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        doc.status === 'available' 
+                          ? 'bg-success-100 text-success-800' 
+                          : 'bg-gray-100 text-gray-500'
+                      }`}>
+                        {doc.status === 'available' ? 'Available' : 'Missing'}
                       </span>
-                    </div>
-                    {doc.url ? (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                        {doc.size}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                        Missing
-                      </span>
-                    )}
-                  </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                      {doc.url ? (
+                        <a 
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary-600 hover:text-primary-900 inline-block"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-300">
+                          <Download className="h-4 w-4" />
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                      {doc.url ? (
+                        <button
+                          onClick={() => handleShareLink(doc.url!)}
+                          className="text-primary-600 hover:text-primary-900 inline-block"
+                          title="Copy share link"
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                        </button>
+                      ) : (
+                        <span className="text-gray-300">
+                          <LinkIcon className="h-4 w-4" />
+                        </span>
+                      )}
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            </>
-          ) : (
-            <div className="py-8 text-center">
-              <Download className="mx-auto h-10 w-10 text-gray-400 mb-4" />
-              <p className="text-gray-500">No documents available for download</p>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
         </div>
         
         <div className="p-4 border-t border-gray-200 flex justify-end space-x-3">
