@@ -14,12 +14,10 @@ import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMainte
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
 import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
+import { useQuery } from '@tanstack/react-query';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dateRangeFilter, setDateRangeFilter] = useState('last30Days');
   const [customDateRange, setCustomDateRange] = useState({
     start: '',
@@ -45,46 +43,38 @@ const MaintenancePage = () => {
     }
   });
 
+  // Initialize custom date range values
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [tasksData, vehiclesData] = await Promise.all([
-          getTasks(),
-          getVehicles()
-        ]);
-        
-        setTasks(tasksData);
-        setVehicles(vehiclesData);
-        
-        // Set initial custom date range values
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        
-        setCustomDateRange({
-          start: thirtyDaysAgo.toISOString().split('T')[0],
-          end: today.toISOString().split('T')[0]
-        });
-        
-        // Calculate metrics
-        calculateMetrics(tasksData, vehiclesData, dateRangeFilter);
-      } catch (error) {
-        console.error('Error fetching maintenance data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
     
-    fetchData();
+    setCustomDateRange({
+      start: thirtyDaysAgo.toISOString().split('T')[0],
+      end: today.toISOString().split('T')[0]
+    });
   }, []);
-  
-  // Calculate metrics whenever date range changes
+
+  // Use React Query to fetch tasks
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['maintenanceTasks'],
+    queryFn: getTasks,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Use React Query to fetch vehicles
+  const { data: vehicles, isLoading: vehiclesLoading } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: getVehicles,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Calculate metrics whenever date range changes or data is loaded
   useEffect(() => {
-    if (tasks.length > 0 && vehicles.length > 0) {
+    if (!tasksLoading && !vehiclesLoading && tasks && vehicles) {
       calculateMetrics(tasks, vehicles, dateRangeFilter);
     }
-  }, [dateRangeFilter, customDateRange]);
+  }, [dateRangeFilter, customDateRange, tasks, vehicles, tasksLoading, vehiclesLoading]);
   
   const calculateMetrics = async (tasksData: MaintenanceTask[], vehiclesData: Vehicle[], filter: string) => {
     try {
@@ -95,7 +85,11 @@ const MaintenancePage = () => {
       );
       
       // Get metrics with comparison to previous period
-      const metricsData = await getMaintenanceMetricsWithComparison(dateRange);
+      const metricsData = await getMaintenanceMetricsWithComparison(
+        dateRange,
+        tasksData,
+        vehiclesData
+      );
       setMetrics(metricsData);
     } catch (error) {
       console.error('Error calculating maintenance metrics:', error);
@@ -104,13 +98,15 @@ const MaintenancePage = () => {
   
   const handleExportPDF = () => {
     const dateRange = getDateRangeForFilter(dateRangeFilter, customDateRange.start, customDateRange.end);
-    exportMaintenanceReport(tasks, vehicles, 'pdf');
+    exportMaintenanceReport(tasks || [], vehicles || [], 'pdf', dateRange);
   };
   
   const handleExportCSV = () => {
     const dateRange = getDateRangeForFilter(dateRangeFilter, customDateRange.start, customDateRange.end);
-    exportMaintenanceReport(tasks, vehicles, 'csv');
+    exportMaintenanceReport(tasks || [], vehicles || [], 'csv', dateRange);
   };
+
+  const loading = tasksLoading || vehiclesLoading;
 
   return (
     <Layout
@@ -177,8 +173,8 @@ const MaintenancePage = () => {
           
           {/* Enhanced Maintenance Table */}
           <EnhancedMaintenanceTable
-            tasks={tasks}
-            vehicles={vehicles}
+            tasks={tasks || []}
+            vehicles={vehicles || []}
           />
         </div>
       )}

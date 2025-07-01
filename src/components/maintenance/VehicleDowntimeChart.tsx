@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Clock } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import Button from '../ui/Button';
 
 interface VehicleDowntimeChartProps {
   vehicleDowntime: { vehicleId: string; registration: string; downtime: number }[];
@@ -18,8 +17,6 @@ const getDowntimeColor = (downtime: number) => {
 const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
   vehicleDowntime
 }) => {
-  const [viewMode, setViewMode] = useState<'thisMonth' | 'thisYear'>('thisMonth');
-  
   // Sort vehicles by downtime (highest first)
   const sortedDowntime = [...vehicleDowntime].sort((a, b) => b.downtime - a.downtime);
   
@@ -74,24 +71,6 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
           <p className="text-sm text-gray-600">
             Shows the total days vehicles were down for maintenance
           </p>
-          <div className="flex border rounded-md overflow-hidden">
-            <Button
-              variant={viewMode === 'thisMonth' ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('thisMonth')}
-              className="rounded-none border-0"
-            >
-              This Month
-            </Button>
-            <Button
-              variant={viewMode === 'thisYear' ? 'primary' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('thisYear')}
-              className="rounded-none border-0"
-            >
-              This Year
-            </Button>
-          </div>
         </div>
         
         <div className="h-64">
@@ -101,7 +80,7 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
               layout="vertical"
               margin={{ top: 5, right: 20, left: 60, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
               <XAxis 
                 type="number" 
                 axisLine={false}

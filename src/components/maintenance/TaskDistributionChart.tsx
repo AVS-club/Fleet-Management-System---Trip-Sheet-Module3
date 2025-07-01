@@ -8,7 +8,7 @@ interface TaskDistributionChartProps {
 
 // Chart colors
 const CHART_COLORS = [
-  '#4CAF50', '#2196F3', '#FFC107', '#F44336', '#9C27B0',
+  '#4CAF50', '#2196F3', '#FFC107', '#F44336', '#9C27B0', 
   '#00BCD4', '#FF5722', '#795548', '#607D8B', '#3F51B5'
 ];
 

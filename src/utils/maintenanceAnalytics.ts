@@ -1,7 +1,6 @@
-import { MaintenanceTask, MaintenanceServiceGroup } from '../types/maintenance';
-import { Vehicle } from '../types';
+import { MaintenanceTask, Vehicle } from '../types';
 import { supabase } from './supabaseClient';
-import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 
 export type DateRange = {
   start: Date;
@@ -345,7 +344,9 @@ export const calculateMaintenanceMetrics = (
 };
 
 export const getMaintenanceMetricsWithComparison = async (
-  currentDateRange: DateRange
+  currentDateRange: DateRange,
+  tasksData?: MaintenanceTask[],
+  vehiclesData?: Vehicle[]
 ): Promise<MaintenanceMetrics & { 
   previousPeriodComparison: { 
     totalTasks: number;
@@ -364,35 +365,48 @@ export const getMaintenanceMetricsWithComparison = async (
       end: previousEnd
     };
     
-    // Fetch all maintenance tasks from both time periods
-    const { data: tasksData, error: tasksError } = await supabase
-      .from('maintenance_tasks')
-      .select('*, service_groups:maintenance_service_tasks(*)')
-      .gte('start_date', previousStart.toISOString());
-      
-    if (tasksError) {
-      console.error('Error fetching maintenance tasks:', tasksError);
-      throw tasksError;
-    }
+    // If tasks and vehicles are provided, use them
+    let tasks: MaintenanceTask[] = [];
+    let vehicles: Vehicle[] = [];
     
-    // Fetch all vehicles
-    const { data: vehiclesData, error: vehiclesError } = await supabase
-      .from('vehicles')
-      .select('*');
+    if (tasksData && vehiclesData) {
+      tasks = tasksData;
+      vehicles = vehiclesData;
+    } else {
+      // Otherwise fetch from Supabase
+      // Fetch all maintenance tasks from both time periods
+      const { data: fetchedTasks, error: tasksError } = await supabase
+        .from('maintenance_tasks')
+        .select('*, service_groups:maintenance_service_tasks(*)')
+        .gte('start_date', previousStart.toISOString());
+        
+      if (tasksError) {
+        console.error('Error fetching maintenance tasks:', tasksError);
+        throw tasksError;
+      }
       
-    if (vehiclesError) {
-      console.error('Error fetching vehicles:', vehiclesError);
-      throw vehiclesError;
+      // Fetch all vehicles
+      const { data: fetchedVehicles, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select('*');
+        
+      if (vehiclesError) {
+        console.error('Error fetching vehicles:', vehiclesError);
+        throw vehiclesError;
+      }
+      
+      tasks = fetchedTasks || [];
+      vehicles = fetchedVehicles || [];
     }
     
     // Filter tasks for current period
-    const currentTasks = Array.isArray(tasksData) ? tasksData.filter(task => {
+    const currentTasks = Array.isArray(tasks) ? tasks.filter(task => {
       const taskDate = new Date(task.start_date);
       return isValid(taskDate) && isWithinInterval(taskDate, currentDateRange);
     }) : [];
     
     // Filter tasks for previous period
-    const previousTasks = Array.isArray(tasksData) ? tasksData.filter(task => {
+    const previousTasks = Array.isArray(tasks) ? tasks.filter(task => {
       const taskDate = new Date(task.start_date);
       return isValid(taskDate) && isWithinInterval(taskDate, previousDateRange);
     }) : [];
@@ -400,7 +414,7 @@ export const getMaintenanceMetricsWithComparison = async (
     // Calculate metrics for current period
     const currentMetrics = calculateMaintenanceMetrics(
       currentTasks,
-      Array.isArray(vehiclesData) ? vehiclesData : [],
+      Array.isArray(vehicles) ? vehicles : [],
       currentDateRange
     );
     
@@ -437,12 +451,18 @@ export const getMaintenanceMetricsWithComparison = async (
 export const exportMaintenanceReport = (
   tasks: MaintenanceTask[],
   vehicles: Vehicle[],
-  format: 'csv' | 'pdf' = 'csv'
+  format: 'csv' | 'pdf' = 'csv',
+  dateRange?: DateRange
 ) => {
-  // This function would be implemented to export the report data
-  // For CSV, you would use a library like PapaParse
-  // For PDF, you would use jsPDF or another PDF generation library
-  console.log(`Exporting maintenance report in ${format} format`);
+  // Filter tasks by date range if provided
+  const filteredTasks = dateRange 
+    ? tasks.filter(task => {
+        const taskDate = new Date(task.start_date);
+        return isValid(taskDate) && isWithinInterval(taskDate, dateRange);
+      })
+    : tasks;
+    
+  console.log(`Exporting ${filteredTasks.length} maintenance tasks in ${format} format`);
   // Implementation details would depend on the specific libraries used
 };
 
