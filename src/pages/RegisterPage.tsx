@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import RegisterForm from '../components/auth/RegisterForm';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
@@ -7,6 +7,7 @@ import { Truck } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const { theme } = useTheme();
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
@@ -14,23 +15,35 @@ const RegisterPage: React.FC = () => {
         <ThemeToggle />
       </div>
       
-      <div className="mb-8 text-center">
-        <div className="flex justify-center mb-4">
-          <Truck className="h-12 w-12 text-primary-600 dark:text-primary-400" />
+      <div className="mb-6 text-center animate-fade-in">
+        <div className="flex justify-center mb-3">
+          <Truck className="h-14 w-14 text-primary-600 dark:text-primary-400" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Auto Vital Solution</h1>
-        <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Intelligent Fleet Management</p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Smarter Fleet. Less Stress.</p>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-lg shadow-md w-full max-w-md border border-gray-200 dark:border-gray-700">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-center text-gray-900 dark:text-white">Register</h2>
-        <RegisterForm />
-        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md animate-slide-up">
+        <div className="mb-6 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Create an Account</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Join us to manage your fleet efficiently</p>
+        </div>
+        
+        <RegisterForm showPassword={showPassword} setShowPassword={setShowPassword} />
+        
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
-          <Link to="/login" className="text-primary-600 dark:text-primary-400 hover:underline">
-            Login here
+          <Link to="/login" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">
+            Sign in here
           </Link>
         </p>
+        
+        <div className="mt-6 text-center">
+          <p className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+            <span className="mr-1">🔒</span>
+            Your information is encrypted and secure
+          </p>
+        </div>
       </div>
       
       <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">

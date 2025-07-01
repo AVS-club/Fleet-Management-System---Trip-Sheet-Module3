@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const iconSizeClasses = {
       sm: 'pl-8',
-      md: 'pl-10',
+      md: 'pl-11',
       lg: 'pl-12'
     };
 
@@ -61,7 +61,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         
         <div className={clsx("relative", fullWidth && "w-full")}>
           {shouldShowIcon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400 dark:text-gray-500">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
             </div>
           )}

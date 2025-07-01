@@ -3,9 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabaseClient";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
-import { Mail, Lock } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
-const LoginForm: React.FC = () => {
+interface LoginFormProps {
+  showPassword?: boolean;
+  setShowPassword?: (show: boolean) => void;
+}
+
+const LoginForm: React.FC<LoginFormProps> = ({ 
+  showPassword = false, 
+  setShowPassword = () => {} 
+}) => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,9 +42,9 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
+    <form onSubmit={handleLogin} className="space-y-5">
       {error && (
-        <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-2 sm:p-3 rounded-md">
+        <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-3 sm:p-4 rounded-xl">
           {error}
         </p>
       )}
@@ -50,19 +58,28 @@ const LoginForm: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="Enter your email"
+          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
         />
       </div>
-      <div>
+      <div className="relative">
         <Input
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           label="Password"
           icon={<Lock className="h-4 w-4" />}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           placeholder="Enter your password"
+          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
         />
+        <button
+          type="button"
+          className="absolute right-3 top-9 text-gray-400 hover:text-primary-600 transition-colors"
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+        </button>
       </div>
       <Button
         type="submit"
@@ -70,9 +87,9 @@ const LoginForm: React.FC = () => {
         fullWidth
         isLoading={loading}
         size="md"
-        className="py-2 text-sm"
+        className="py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-md transition-all"
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading ? "Signing in..." : "Sign In"}
       </Button>
     </form>
   );
