@@ -37,7 +37,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 
     const iconSizeClasses = {
       sm: 'pl-8',
-      md: 'pl-10',
+      md: 'pl-11',
       lg: 'pl-12'
     };
 
