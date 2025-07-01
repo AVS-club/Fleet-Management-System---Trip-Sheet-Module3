@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { parseISO, isValid, isWithinInterval } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, format } from 'date-fns';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -70,19 +70,23 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
           <p className="font-medium text-sm">{label}</p>
           <p className="text-sm text-primary-600 font-medium">
             {payload[0].value.toLocaleString()} Liters
           </p>
-          {payload[0].payload.totalDistance > 0 && (
-            <p className="text-xs text-gray-500 mt-1">
-              Distance: {payload[0].payload.totalDistance.toLocaleString()} km
+          {data.totalDistance > 0 && (
+            <p className="text-xs text-gray-600 mt-1">
+              Distance: {data.totalDistance.toLocaleString()} km
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-gray-600">
             Vehicle: {label}
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Period: {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}
           </p>
         </div>
       );
@@ -122,7 +126,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
                 width={60} 
                 tick={{ fontSize: 10 }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} />} />
               <Bar 
                 dataKey="fuelLiters" 
                 name="Fuel Consumed"

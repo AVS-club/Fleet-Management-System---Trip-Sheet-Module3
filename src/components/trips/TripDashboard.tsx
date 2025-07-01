@@ -23,7 +23,6 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('last3Months');
   const [customStartDate, setCustomStartDate] = useState<string>(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
-  const [showCustomDateRange, setShowCustomDateRange] = useState(false);
   
   // Calculate effective date range based on the filter type
   const effectiveDateRange = useMemo(() => {
@@ -103,15 +102,6 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
     };
   }, [trips, effectiveDateRange]);
 
-  const handleDateFilterChange = (value: string) => {
-    setDateFilterType(value as DateFilterType);
-    if (value === 'custom') {
-      setShowCustomDateRange(true);
-    } else {
-      setShowCustomDateRange(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -163,11 +153,11 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
                 { value: 'custom', label: 'Custom Range' }
               ]}
               value={dateFilterType}
-              onChange={(e) => handleDateFilterChange(e.target.value)}
+              onChange={(e) => setDateFilterType(e.target.value as DateFilterType)}
               className="w-40 sm:w-48"
             />
             
-            {showCustomDateRange && (
+            {dateFilterType === 'custom' && (
               <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                 <Input
                   type="date"
@@ -190,6 +180,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         
         {/* Monthly Fuel Consumption Chart */}
         <CollapsibleSection 
+          key="fuel-trend-section"
           title="Fuel Consumption Trend" 
           icon={<BarChart2 className="h-5 w-5" />}
           iconColor="text-green-600"
@@ -202,7 +193,8 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         </CollapsibleSection>
 
         {/* Fuel Consumed By Vehicle Chart */}
-        <CollapsibleSection 
+        <CollapsibleSection
+          key="fuel-by-vehicle-section" 
           title="Fuel Consumption by Vehicle" 
           icon={<BarChartHorizontal className="h-5 w-5" />}
           iconColor="text-blue-600"
@@ -216,7 +208,8 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         </CollapsibleSection>
 
         {/* Average Mileage Per Vehicle Chart */}
-        <CollapsibleSection 
+        <CollapsibleSection
+          key="mileage-per-vehicle-section" 
           title="Average Mileage per Vehicle" 
           icon={<Gauge className="h-5 w-5" />}
           iconColor="text-amber-600"

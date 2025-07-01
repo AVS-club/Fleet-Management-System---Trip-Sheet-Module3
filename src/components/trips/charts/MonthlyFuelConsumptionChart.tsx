@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip } from '../../../types';
-import { format, parseISO, isValid, isWithinInterval } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, format } from 'date-fns';
 
 interface MonthlyFuelConsumptionChartProps {
   trips: Trip[];
@@ -73,6 +73,9 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
           <p className="text-xs text-gray-500 mt-1">
             Fuel consumed in {label}
           </p>
+          <p className="text-xs text-gray-500 mt-1">
+            Period: {format(dateRange.start, 'dd MMM yyyy')} - {format(dateRange.end, 'dd MMM yyyy')}
+          </p>
         </div>
       );
     }
@@ -111,7 +114,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
                   style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} />} />
               <Bar 
                 dataKey="fuelLiters" 
                 name="Fuel Consumed"

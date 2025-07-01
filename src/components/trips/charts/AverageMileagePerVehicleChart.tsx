@@ -157,7 +157,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                   style: { textAnchor: 'middle', fontSize: 10 }
                 }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={(props) => <CustomTooltip {...props} />} />
               <Bar 
                 dataKey="mileage" 
                 name="Mileage"
