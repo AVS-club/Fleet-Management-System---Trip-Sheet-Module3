@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { parseISO, isValid, isWithinInterval } from 'date-fns';
+import { parseISO, isValid, isWithinInterval, format } from 'date-fns';
 
 interface AverageMileagePerVehicleChartProps {
   trips: Trip[];
