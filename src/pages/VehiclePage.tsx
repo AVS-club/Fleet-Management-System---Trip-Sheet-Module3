@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
@@ -23,7 +23,7 @@ const VehiclePage: React.FC = () => {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback
+  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
   
   const [stats, setStats] = useState<{ totalTrips: number; totalDistance: number; averageKmpl?: number }>({
     totalTrips: 0,
@@ -439,16 +439,46 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {signedDocUrls.rc && (
-                    <a 
-                      href={signedDocUrls.rc} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.rc ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.rc} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.rc}
+                          download={`${vehicle.registration_number}_RC.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : rcStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 
                 {/* Insurance Document */}
@@ -472,22 +502,47 @@ const VehiclePage: React.FC = () => {
                         Expires: {formatDate(vehicle.insurance_expiry_date)}
                       </p>
                     )}
-                    {vehicle.insurance_premium_amount && (
-                      <p className="text-xs text-gray-500 mt-0.5 ml-6">
-                        Premium: ₹{vehicle.insurance_premium_amount.toLocaleString()}
-                      </p>
-                    )}
                   </div>
-                  {signedDocUrls.insurance && (
-                    <a 
-                      href={signedDocUrls.insurance} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.insurance ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.insurance} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.insurance}
+                          download={`${vehicle.registration_number}_Insurance.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : insuranceStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 
                 {/* Fitness Document */}
@@ -511,16 +566,46 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {signedDocUrls.fitness && (
-                    <a 
-                      href={signedDocUrls.fitness} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.fitness ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.fitness} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.fitness}
+                          download={`${vehicle.registration_number}_Fitness.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : fitnessStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 
                 {/* Permit Document */}
@@ -545,16 +630,46 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {signedDocUrls.permit && (
-                    <a 
-                      href={signedDocUrls.permit} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.permit ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.permit} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.permit}
+                          download={`${vehicle.registration_number}_Permit.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : permitStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 
                 {/* PUC Document */}
@@ -578,16 +693,46 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {signedDocUrls.puc && (
-                    <a 
-                      href={signedDocUrls.puc} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.puc ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.puc} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.puc}
+                          download={`${vehicle.registration_number}_PUC.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : pucStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
                 
                 {/* Tax Document */}
@@ -612,16 +757,46 @@ const VehiclePage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  {signedDocUrls.tax && (
-                    <a 
-                      href={signedDocUrls.tax} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </a>
-                  )}
+                  <div className="flex space-x-2">
+                    {signedDocUrls.tax ? (
+                      <>
+                        <a 
+                          href={signedDocUrls.tax} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="View document"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                        <a 
+                          href={signedDocUrls.tax}
+                          download={`${vehicle.registration_number}_Tax.pdf`}
+                          className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                          title="Download document"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => {
+                            setShowShareModal(true);
+                          }}
+                          className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                          title="Share document"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : taxStatus.status !== 'missing' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        Upload
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -847,16 +1022,38 @@ const VehiclePage: React.FC = () => {
                           {doc.name || `Document ${index + 1}`}
                         </span>
                       </div>
-                      {signedDocUrls.other[`other_${index}`] && (
-                        <a 
-                          href={signedDocUrls.other[`other_${index}`]} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="px-3 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </a>
-                      )}
+                      <div className="flex space-x-2">
+                        {signedDocUrls.other[`other_${index}`] ? (
+                          <>
+                            <a 
+                              href={signedDocUrls.other[`other_${index}`]} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                              title="View document"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </a>
+                            <a 
+                              href={signedDocUrls.other[`other_${index}`]}
+                              download={`${vehicle.registration_number}_${doc.name || `Document_${index + 1}`}.pdf`}
+                              className="px-2 py-1 text-sm font-medium text-primary-600 hover:text-primary-700 bg-white rounded-md border border-primary-200 hover:bg-primary-50"
+                              title="Download document"
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                            <button
+                              onClick={() => {
+                                setShowShareModal(true);
+                              }}
+                              className="px-2 py-1 text-sm font-medium text-green-600 hover:text-green-700 bg-white rounded-md border border-green-200 hover:bg-green-50"
+                              title="Share document"
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1032,6 +1229,7 @@ const VehiclePage: React.FC = () => {
           onClose={() => setShowShareModal(false)}
           vehicle={vehicle}
           contactNumber={contactNumber}
+          signedDocUrls={signedDocUrls}
         />
       )}
     </Layout>
