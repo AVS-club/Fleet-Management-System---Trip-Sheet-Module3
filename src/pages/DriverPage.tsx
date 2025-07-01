@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { getDriver, getVehicle, getTrips } from '../utils/storage';
-import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield, FileDown, Share2 } from 'lucide-react';
+import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
+import { User, Calendar, Truck, ChevronLeft, MapPin, Star, AlertTriangle, FileText, Shield, FileDown, Share2, Download } from 'lucide-react';
 import Button from '../components/ui/Button';
 import DriverMetrics from '../components/drivers/DriverMetrics';
 import { getAIAlerts } from '../utils/aiAnalytics';
@@ -10,6 +11,7 @@ import { generateDriverPDF, createShareableDriverLink } from '../utils/exportUti
 import { toast } from 'react-toastify';
 import WhatsAppButton from '../components/drivers/WhatsAppButton';
 import DriverSummaryChips from '../components/drivers/DriverSummaryChips';
+import DriverDocumentDownloadModal from '../components/drivers/DriverDocumentDownloadModal';
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +23,18 @@ const DriverPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+
+  // State for signed document URLs
+  const [signedDocUrls, setSignedDocUrls] = useState<{
+    license?: string;
+    police_verification?: string;
+    medical_certificate?: string;
+    id_proof?: string;
+    other: Record<string, string>;
+  }>({
+    other: {}
+  });
   
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +67,11 @@ const DriverPage: React.FC = () => {
               )
             : []
         );
+
+        // Generate signed URLs for documents if driver is available
+        if (driverData) {
+          await generateSignedUrls(driverData);
+        }
       } catch (error) {
         console.error('Error fetching driver data:', error);
       } finally {
@@ -62,6 +81,41 @@ const DriverPage: React.FC = () => {
     
     fetchData();
   }, [id]);
+
+  // Function to generate signed URLs for all documents
+  const generateSignedUrls = async (driverData: Driver) => {
+    const urls: {
+      license?: string;
+      police_verification?: string;
+      medical_certificate?: string;
+      id_proof?: string;
+      other: Record<string, string>;
+    } = {
+      other: {}
+    };
+    
+    try {
+      // Generate signed URL for license document
+      if (driverData.license_document_path) {
+        urls.license = await getSignedDriverDocumentUrl(driverData.license_document_path);
+      }
+      
+      // Generate signed URLs for other documents
+      if (driverData.other_documents && Array.isArray(driverData.other_documents)) {
+        for (let i = 0; i < driverData.other_documents.length; i++) {
+          const doc = driverData.other_documents[i];
+          if (doc.file_path) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+          }
+        }
+      }
+      
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+      toast.error('Failed to generate document access links');
+    }
+  };
 
   // Handle export as PDF
   const handleExportPDF = async () => {
@@ -78,6 +132,11 @@ const DriverPage: React.FC = () => {
     } finally {
       setExportLoading(false);
     }
+  };
+
+  // Handle download documents
+  const handleDownloadDocuments = () => {
+    setShowDownloadModal(true);
   };
 
   // Handle create shareable link
@@ -143,6 +202,13 @@ const DriverPage: React.FC = () => {
           >
             Export PDF
           </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleDownloadDocuments}
+            icon={<Download className="h-4 w-4" />}
+            title="Download Documents"
+          />
           
           <WhatsAppButton 
             phoneNumber={driver.contact_number}
@@ -389,6 +455,16 @@ const DriverPage: React.FC = () => {
 
         {/* Performance Metrics */}
         <DriverMetrics driver={driver} trips={trips} />
+
+        {/* Document Download Modal */}
+        {showDownloadModal && (
+          <DriverDocumentDownloadModal
+            isOpen={showDownloadModal}
+            onClose={() => setShowDownloadModal(false)}
+            driver={driver}
+            signedDocUrls={signedDocUrls}
+          />
+        )}
       </div>
       )}
     </Layout>
