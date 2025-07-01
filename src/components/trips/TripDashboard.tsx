@@ -50,9 +50,21 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           end: now
         };
       case 'custom':
+        // Parse custom dates safely using parseISO and validate them
+        const parsedStartDate = customStartDate ? parseISO(customStartDate) : null;
+        const parsedEndDate = customEndDate ? parseISO(customEndDate) : null;
+        
+        // Check if parsed dates are valid, fall back to defaults if not
+        const validStartDate = parsedStartDate && isValid(parsedStartDate) 
+          ? parsedStartDate 
+          : subMonths(now, 3);
+        const validEndDate = parsedEndDate && isValid(parsedEndDate) 
+          ? parsedEndDate 
+          : now;
+        
         return {
-          start: new Date(customStartDate || new Date().toISOString().split('T')[0]),
-          end: new Date(customEndDate || new Date().toISOString().split('T')[0])
+          start: validStartDate,
+          end: validEndDate
         };
       default:
         return {
