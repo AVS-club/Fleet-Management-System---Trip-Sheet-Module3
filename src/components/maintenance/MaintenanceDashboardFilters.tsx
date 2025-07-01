@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Filter, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
@@ -28,34 +28,51 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row flex-wrap gap-4">
           <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 mr-4">Date Range</label>
             <div className="flex items-center">
-              <Select
-                options={[
-                  { value: 'today', label: 'Today' },
-                  { value: 'yesterday', label: 'Yesterday' },
-                  { value: 'last7Days', label: 'Last 7 Days' },
-                  { value: 'thisMonth', label: 'This Month' },
-                  { value: 'lastMonth', label: 'Last Month' },
-                  { value: 'thisYear', label: 'This Year' },
-                  { value: 'lastYear', label: 'Last Year' },
-                  { value: 'custom', label: 'Custom Range' },
-                ]}
-                value={dateRangeFilter}
-                onChange={(e) => onDateRangeFilterChange(e.target.value)}
-                className="w-full"
-              />
+              <div className="flex-grow">
+                <Select
+                  options={[
+                    { value: 'today', label: 'Today' },
+                    { value: 'yesterday', label: 'Yesterday' },
+                    { value: 'last7Days', label: 'Last 7 Days' },
+                    { value: 'thisMonth', label: 'This Month' },
+                    { value: 'lastMonth', label: 'Last Month' },
+                    { value: 'thisYear', label: 'This Year' },
+                    { value: 'lastYear', label: 'Last Year' },
+                    { value: 'custom', label: 'Custom Range' },
+                  ]}
+                  value={dateRangeFilter}
+                  onChange={(e) => onDateRangeFilterChange(e.target.value)}
+                  className="w-full"
+                />
+              </div>
               <button 
-                className="ml-2 text-gray-500 hover:text-gray-700"
+                className="ml-2 text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-md transition-colors"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
                 {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
             </div>
+            
+            {dateRangeFilter !== 'custom' && !isExpanded && (
+              <div className="mt-2 flex items-center">
+                <Calendar className="h-4 w-4 text-gray-500 mr-2" />
+                <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-md font-medium">
+                  {dateRangeFilter === 'today' ? 'Today' : 
+                   dateRangeFilter === 'yesterday' ? 'Yesterday' :
+                   dateRangeFilter === 'last7Days' ? 'Last 7 Days' :
+                   dateRangeFilter === 'thisMonth' ? 'This Month' :
+                   dateRangeFilter === 'lastMonth' ? 'Last Month' :
+                   dateRangeFilter === 'thisYear' ? 'This Year' :
+                   dateRangeFilter === 'lastYear' ? 'Last Year' : 'Custom Range'}
+                </span>
+              </div>
+            )}
           </div>
           
           {(dateRangeFilter === 'custom' || isExpanded) && (
-            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
               <div className="w-full sm:w-auto">
                 <Input
                   type="date"
@@ -68,7 +85,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                   icon={<Calendar className="h-4 w-4" />}
                 />
               </div>
-              <span className="hidden sm:block mx-1 mb-2">to</span>
+              <span className="hidden sm:flex items-center mx-2 mb-2 text-gray-500">to</span>
               <div className="w-full sm:w-auto">
                 <Input
                   type="date"
@@ -85,7 +102,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
           )}
         </div>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             size="sm"
