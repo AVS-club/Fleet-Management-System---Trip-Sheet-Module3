@@ -19,14 +19,15 @@ import {
   UserCheck,
   UserX,
   Clock,
+  Phone,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
-import DriverSummaryChips from "../components/drivers/DriverSummaryChips";
-import WhatsAppButton from "../components/drivers/WhatsAppButton";
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -136,6 +137,7 @@ const DriversPage: React.FC = () => {
       // Prepare driver data with photo URL
       const driverData = {
         ...data,
+        driver_photo_url: photoUrl,
       };
 
       // Remove the File object as it can't be stored in the database
@@ -410,7 +412,9 @@ const DriversPage: React.FC = () => {
                 return (
                   <div
                     key={driver.id}
-                    className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative"
+                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
+                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
+                    }`}
                     onClick={() => navigate(`/drivers/${driver.id}`)}
                   >
                     {/* Edit Button */}
@@ -425,66 +429,73 @@ const DriversPage: React.FC = () => {
                       <Edit2 className="h-4 w-4" />
                     </button>
 
-                    {/* Driver Photo - Positioned at top-right */}
-                    <div className="absolute top-10 right-3">
-                      {driver.driver_photo_url ? (
-                        <img
-                          src={driver.driver_photo_url}
-                          alt={driver.name}
-                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                          <User className="h-8 w-8 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Main Content - Adjusted for photo position */}
-                    <div className="pr-20">
-                      {/* Driver Name & License Section */}
-                      <div className="mb-3">
-                        <h3 className="text-lg font-medium text-gray-900 truncate">
-                          {driver.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {driver.license_number || "License: Not available"}
-                        </p>
-
-                        {/* License Status Badge */}
-                        {driver.license_expiry_date && (
-                          <div className="mt-1">
-                            <span
-                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                licenseStatus.status === "expired"
-                                  ? "bg-error-100 text-error-800"
-                                  : licenseStatus.status === "expiring"
-                                  ? "bg-warning-100 text-warning-800"
-                                  : "bg-success-100 text-success-800"
-                              }`}
-                            >
-                              {licenseStatus.label}
-                            </span>
+                    <div className="flex items-start gap-3">
+                      {/* Driver Photo */}
+                      <div>
+                        {driver.driver_photo_url ? (
+                          <img
+                            src={driver.driver_photo_url}
+                            alt={driver.name}
+                            className="h-16 w-16 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                            <User className="h-8 w-8 text-gray-400" />
                           </div>
                         )}
                       </div>
 
-                      {/* DriverSummaryChips Component */}
-                      <DriverSummaryChips driver={driver} />
+                      <div className="flex-1">
+                        {/* Driver Name & License */}
+                        <h3 className="text-lg font-medium text-gray-900 pr-8">
+                          {driver.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {driver.dl_number || "No license"}
+                        </p>
+
+                        {/* License Status & Experience */}
+                        <div className="mt-2 flex gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              licenseStatus.status === "expired"
+                                ? "bg-error-100 text-error-800"
+                                : licenseStatus.status === "expiring"
+                                ? "bg-warning-100 text-warning-800"
+                                : "bg-success-100 text-success-800"
+                            }`}
+                          >
+                            {licenseStatus.label}
+                          </span>
+                          
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {driver.experience_years} years
+                          </span>
+                        </div>
+                        
+                        {/* Contact Number */}
+                        {driver.contact_number && (
+                          <div className="mt-2 flex items-center text-sm">
+                            <Phone className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-gray-600">{driver.contact_number}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {/* Trip Stats Section */}
                     <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-3 gap-2">
                         <div className="text-center">
-                          <User className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
                           <span className="text-sm text-gray-500 block">
                             Trips
                           </span>
                           <p className="font-medium">{driverTrips.length}</p>
                         </div>
                         <div className="text-center">
-                          <MapPin className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
                           <span className="text-sm text-gray-500 block">
                             Distance
                           </span>
@@ -493,7 +504,7 @@ const DriversPage: React.FC = () => {
                           </p>
                         </div>
                         <div className="text-center">
-                          <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
+                          <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
                           <span className="text-sm text-gray-500 block">
                             Vehicle
                           </span>
@@ -504,15 +515,8 @@ const DriversPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* WhatsApp and View Details Links */}
-                    <div className="mt-4 flex justify-between items-center">
-                      <WhatsAppButton
-                        phoneNumber={driver.contact_number}
-                        message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
-                        variant="ghost"
-                        className="text-green-600 hover:text-green-800"
-                      />
-
+                    {/* View Details Link */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
