@@ -1,46 +1,53 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { format, parseISO, isValid, subMonths } from 'date-fns';
-import Button from '../../ui/Button';
-import { ChevronRight } from 'lucide-react';
+import { parseISO, isValid, isWithinInterval } from 'date-fns';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
   vehicles: Vehicle[] | null;
+  dateRange: { start: Date; end: Date };
 }
 
-const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({ trips, vehicles }) => {
-  const [showAllVehicles, setShowAllVehicles] = useState(true);
+const CHART_COLORS = [
+  '#4CAF50', '#2196F3', '#FFC107', '#F44336', '#9C27B0',
+  '#00BCD4', '#FF5722', '#795548', '#607D8B', '#3F51B5'
+];
 
-  // Calculate fuel consumption by vehicle for the last 12 months
+const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
+  trips,
+  vehicles,
+  dateRange
+}) => {
+  // Calculate fuel consumption by vehicle for the date range
   const chartData = useMemo(() => {
     if (!Array.isArray(trips) || !Array.isArray(vehicles)) return [];
 
-    // Get date 12 months ago
-    const twelveMonthsAgo = subMonths(new Date(), 12);
-    const threeMonthsAgo = subMonths(new Date(), 3);
+    // Filter trips based on date range
+    const filteredTrips = trips.filter(trip => {
+      const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
+      
+      // Validate trip date before using in interval check
+      if (!tripDate || !isValid(tripDate)) return false;
+      
+      return isWithinInterval(tripDate, dateRange);
+    });
 
     // Calculate fuel consumption for each vehicle
-    const vehicleFuelMap: Record<string, { vehicleId: string, fuelLiters: number, totalDistance: number }> = {};
+    const vehicleFuelMap: Record<string, { vehicleId: string; fuelLiters: number; totalDistance: number }> = {};
 
-    trips.forEach(trip => {
+    filteredTrips.forEach(trip => {
       if (trip.refueling_done && trip.fuel_quantity && trip.vehicle_id) {
-        const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
-        const dateToCompare = showAllVehicles ? twelveMonthsAgo : threeMonthsAgo;
-        
-        if (tripDate && isValid(tripDate) && tripDate >= dateToCompare) {
-          if (!vehicleFuelMap[trip.vehicle_id]) {
-            vehicleFuelMap[trip.vehicle_id] = {
-              vehicleId: trip.vehicle_id,
-              fuelLiters: 0,
-              totalDistance: 0
-            };
-          }
-          
-          vehicleFuelMap[trip.vehicle_id].fuelLiters += trip.fuel_quantity;
-          vehicleFuelMap[trip.vehicle_id].totalDistance += (trip.end_km - trip.start_km);
+        if (!vehicleFuelMap[trip.vehicle_id]) {
+          vehicleFuelMap[trip.vehicle_id] = {
+            vehicleId: trip.vehicle_id,
+            fuelLiters: 0,
+            totalDistance: 0
+          };
         }
+        
+        vehicleFuelMap[trip.vehicle_id].fuelLiters += trip.fuel_quantity;
+        vehicleFuelMap[trip.vehicle_id].totalDistance += (trip.end_km - trip.start_km);
       }
     });
 
@@ -51,88 +58,89 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
         const vehicle = vehicles.find(v => v.id === item.vehicleId);
         return {
           vehicleId: item.vehicleId,
-          vehicleNumber: vehicle?.registration_number || 'Unknown',
+          registration: vehicle?.registration_number || 'Unknown',
           fuelLiters: Math.round(item.fuelLiters),
           totalDistance: Math.round(item.totalDistance)
         };
       });
 
-    // Limit to top 5 vehicles if not showing all
-    return showAllVehicles ? sortedData : sortedData.slice(0, 5);
-  }, [trips, vehicles, showAllVehicles]);
+    return sortedData;
+  }, [trips, vehicles, dateRange]);
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-sm text-primary-600 font-medium">
+            {payload[0].value.toLocaleString()} Liters
+          </p>
+          {payload[0].payload.totalDistance > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Distance: {payload[0].payload.totalDistance.toLocaleString()} km
+            </p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            Vehicle: {label}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-base font-medium text-gray-700">Fuel Consumption by Vehicle</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowAllVehicles(!showAllVehicles)}
-          icon={<ChevronRight className="h-4 w-4" />}
-        >
-          {showAllVehicles ? 'Show Top 5 Vehicles' : 'Show All Vehicles'}
-        </Button>
-      </div>
-      
+    <div className="space-y-4">      
       <div className="h-80 overflow-y-auto">
         <div className="min-h-[400px] h-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               layout="vertical"
-              margin={{ top: 20, right: 20, left: 60, bottom: 20 }}
+              margin={{ top: 5, right: 30, left: 60, bottom: 5 }}
             >
               <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
               <XAxis 
-                type="number"
-                tick={{ fontSize: 10 }}
+                type="number" 
+                axisLine={false}
                 tickLine={false}
-                axisLine={true}
-                label={{ 
-                  value: 'Liters', 
+                domain={[0, 'auto']} 
+                tick={{ fontSize: 10 }}
+                label={{
+                  value: 'Liters',
                   position: 'insideBottom',
-                  offset: -10,
-                  style: { textAnchor: 'middle', fontSize: 10 }
+                  offset: -5,
+                  style: { fontSize: 10 }
                 }}
               />
               <YAxis 
-                type="category"
-                dataKey="vehicleNumber" 
-                tick={{ fontSize: 10 }}
-                tickLine={false}
+                type="category" 
+                dataKey="registration" 
                 axisLine={false}
-                width={50}
+                tickLine={false}
+                width={60} 
+                tick={{ fontSize: 10 }}
               />
-              <Tooltip
-                formatter={(value: number, name: string, props: any) => {
-                  if (name === 'Fuel Consumed') {
-                    return [`${value} L`, name];
-                  }
-                  return [value, name];
-                }}
-                labelStyle={{ fontWeight: 'bold' }}
-                contentStyle={{ 
-                  backgroundColor: 'white', 
-                  borderRadius: '0.5rem',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                }}
-              />
+              <Tooltip content={<CustomTooltip />} />
               <Bar 
                 dataKey="fuelLiters" 
                 name="Fuel Consumed"
                 label={{
                   position: 'right',
-                  formatter: (value: number) => `${value} L`,
-                  fontSize: 9,
-                  fill: '#4B5563',
-                  dx: 5
+                  formatter: (value: number) => `${value.toLocaleString()} L`,
+                  fill: '#6B7280',
+                  fontSize: 10
                 }}
                 barSize={20}
-                fill="#0277BD"
-                radius={[0, 4, 4, 0]}
-              />
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>

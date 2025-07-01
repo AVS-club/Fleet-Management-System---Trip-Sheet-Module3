@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Trip, Vehicle, Driver } from '../../types';
 import { Calendar, TrendingUp, Fuel, IndianRupee, Package, MapPin, Truck, AlertTriangle, BarChart2, BarChartHorizontal, Gauge } from 'lucide-react';
-import { format, subDays, startOfYear, endOfYear, subYears, isWithinInterval, isValid, parseISO } from 'date-fns';
+import { format, subDays, startOfYear, endOfYear, subYears, isWithinInterval, isValid, parseISO, subMonths } from 'date-fns';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
+import Button from '../ui/Button';
 import StatCard from '../dashboard/StatCard';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import MonthlyFuelConsumptionChart from './charts/MonthlyFuelConsumptionChart';
@@ -16,40 +17,39 @@ interface TripDashboardProps {
   drivers: Driver[] | null;
 }
 
-type DateFilterType = 'last7' | 'last30' | 'thisYear' | 'lastYear' | 'custom';
+type DateFilterType = 'lastMonth' | 'last3Months' | 'last6Months' | 'last12Months' | 'custom';
 
 const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers }) => {
-  const [filterType, setFilterType] = useState<DateFilterType>('last30');
-  const [customStartDate, setCustomStartDate] = useState<string>(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('last3Months');
+  const [customStartDate, setCustomStartDate] = useState<string>(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+  const [showCustomDateRange, setShowCustomDateRange] = useState(false);
   
-  // Calculate date range based on filter type
+  // Calculate effective date range based on the filter type
   const effectiveDateRange = useMemo(() => {
     const now = new Date();
     
-    switch (filterType) {
-      case 'last7':
+    switch (dateFilterType) {
+      case 'lastMonth':
         return {
-          start: subDays(now, 7),
+          start: subMonths(now, 1),
           end: now
         };
-      case 'last30':
+      case 'last3Months':
         return {
-          start: subDays(now, 30),
+          start: subMonths(now, 3),
           end: now
         };
-      case 'thisYear':
+      case 'last6Months':
         return {
-          start: startOfYear(now),
+          start: subMonths(now, 6),
           end: now
         };
-      case 'lastYear': {
-        const lastYear = subYears(now, 1);
+      case 'last12Months':
         return {
-          start: startOfYear(lastYear),
-          end: endOfYear(lastYear)
+          start: subMonths(now, 12),
+          end: now
         };
-      }
       case 'custom':
         return {
           start: new Date(customStartDate || new Date().toISOString().split('T')[0]),
@@ -57,335 +57,162 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         };
       default:
         return {
-          start: subDays(now, 30),
+          start: subMonths(now, 3),
           end: now
         };
     }
-  }, [filterType, customStartDate, customEndDate]);
+  }, [dateFilterType, customStartDate, customEndDate]);
   
-  // Filter trips based on date range
-  const filteredTrips = useMemo(() => {
-    if (!Array.isArray(trips)) return [];
-
-    return trips.filter(trip => {
-      // Safely parse the date
-      const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
-
-      // Validate trip date before using in interval check
-      if (!tripDate || !isValid(tripDate)) return false;
-
-      return isWithinInterval(tripDate, {
-        start: effectiveDateRange.start,
-        end: effectiveDateRange.end
-      });
-    });
-  }, [trips, effectiveDateRange]);
-  
-  // Calculate previous period for comparison
-  const previousPeriodRange = useMemo(() => {
-    const duration = effectiveDateRange.end.getTime() - effectiveDateRange.start.getTime();
-    return {
-      start: new Date(effectiveDateRange.start.getTime() - duration),
-      end: new Date(effectiveDateRange.end.getTime() - duration)
-    };
-  }, [effectiveDateRange]);
-  
-  // Filter trips for previous period
-  const previousPeriodTrips = useMemo(() => {
-    if (!Array.isArray(trips)) return [];
+  // Calculate stats
+  const stats = useMemo(() => {
+    // Filter out short trips for most calculations
+    const regularTrips = Array.isArray(trips) ? trips.filter(trip => !trip.short_trip) : [];
     
-    return trips.filter(trip => {
-      // Safely parse the date
-      const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
+    // Filter trips based on the selected date range
+    const filteredTrips = regularTrips.filter(trip => {
+      const tripDate = trip.trip_start_date ? parseISO(trip.trip_start_date) : null;
       
       // Validate trip date before using in interval check
       if (!tripDate || !isValid(tripDate)) return false;
       
-      return isWithinInterval(tripDate, {
-        start: previousPeriodRange.start,
-        end: previousPeriodRange.end
-      });
+      return isWithinInterval(tripDate, effectiveDateRange);
     });
-  }, [trips, previousPeriodRange]);
-  
-  // Calculate metrics
-  const metrics = useMemo(() => {
-    // Total trips
-    const totalTrips = filteredTrips.length;
-    const prevTotalTrips = previousPeriodTrips.length;
-    const tripsTrend = prevTotalTrips > 0 
-      ? ((totalTrips - prevTotalTrips) / prevTotalTrips) * 100 
-      : 0;
     
     // Total distance
-    const totalDistance = filteredTrips.reduce((sum, trip) => 
-      sum + (trip.end_km - trip.start_km), 0);
-    const prevTotalDistance = previousPeriodTrips.reduce((sum, trip) => 
-      sum + (trip.end_km - trip.start_km), 0);
-    const distanceTrend = prevTotalDistance > 0 
-      ? ((totalDistance - prevTotalDistance) / prevTotalDistance) * 100 
-      : 0;
+    const totalDistance = filteredTrips.reduce(
+      (sum, trip) => sum + (trip.end_km - trip.start_km), 
+      0
+    );
     
-    // Fuel consumed
-    const fuelConsumed = filteredTrips
+    // Total fuel
+    const totalFuel = filteredTrips
       .filter(trip => trip.refueling_done && trip.fuel_quantity)
       .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
-    const prevFuelConsumed = previousPeriodTrips
-      .filter(trip => trip.refueling_done && trip.fuel_quantity)
-      .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
-    const fuelTrend = prevFuelConsumed > 0 
-      ? ((fuelConsumed - prevFuelConsumed) / prevFuelConsumed) * 100 
-      : 0;
     
     // Average mileage
-    const avgMileage = fuelConsumed > 0 ? totalDistance / fuelConsumed : 0;
-    const prevAvgMileage = prevFuelConsumed > 0 ? prevTotalDistance / prevFuelConsumed : 0;
-    const mileageTrend = prevAvgMileage > 0 
-      ? ((avgMileage - prevAvgMileage) / prevAvgMileage) * 100 
-      : 0;
-    const mileageWarning = prevAvgMileage > 0 && avgMileage < prevAvgMileage * 0.85;
-    
-    // Load delivered
-    const loadDelivered = filteredTrips.reduce((sum, trip) => 
-      sum + (trip.gross_weight || 0), 0);
-    const prevLoadDelivered = previousPeriodTrips.reduce((sum, trip) => 
-      sum + (trip.gross_weight || 0), 0);
-    const loadTrend = prevLoadDelivered > 0 
-      ? ((loadDelivered - prevLoadDelivered) / prevLoadDelivered) * 100 
-      : 0;
-    
-    // Fuel cost
-    const fuelCost = filteredTrips
-      .filter(trip => trip.refueling_done && trip.total_fuel_cost)
-      .reduce((sum, trip) => sum + (trip.total_fuel_cost || 0), 0);
-    const prevFuelCost = previousPeriodTrips
-      .filter(trip => trip.refueling_done && trip.total_fuel_cost)
-      .reduce((sum, trip) => sum + (trip.total_fuel_cost || 0), 0);
-    const fuelCostTrend = prevFuelCost > 0 
-      ? ((fuelCost - prevFuelCost) / prevFuelCost) * 100 
-      : 0;
-    
-    // Trip expenses
-    const tripExpenses = filteredTrips.reduce((sum, trip) => 
-      sum + (trip.total_road_expenses || 0), 0);
-    const prevTripExpenses = previousPeriodTrips.reduce((sum, trip) => 
-      sum + (trip.total_road_expenses || 0), 0);
-    const expensesTrend = prevTripExpenses > 0 
-      ? ((tripExpenses - prevTripExpenses) / prevTripExpenses) * 100 
-      : 0;
-    
-    // Unique destinations
-    const uniqueDestinations = new Set<string>();
-    filteredTrips.forEach(trip => {
-      if (Array.isArray(trip.destinations)) {
-        trip.destinations.forEach(dest => uniqueDestinations.add(dest));
-      }
-    });
-    const destinationsCount = uniqueDestinations.size;
-    
-    const prevUniqueDestinations = new Set<string>();
-    previousPeriodTrips.forEach(trip => {
-      if (Array.isArray(trip.destinations)) {
-        trip.destinations.forEach(dest => prevUniqueDestinations.add(dest));
-      }
-    });
-    const prevDestinationsCount = prevUniqueDestinations.size;
-    const destinationsTrend = prevDestinationsCount > 0 
-      ? ((destinationsCount - prevDestinationsCount) / prevDestinationsCount) * 100 
+    const tripsWithKmpl = filteredTrips.filter(trip => trip.calculated_kmpl);
+    const avgMileage = tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
       : 0;
     
     return {
-      totalTrips,
-      tripsTrend,
+      totalTrips: filteredTrips.length,
       totalDistance,
-      distanceTrend,
-      fuelConsumed,
-      fuelTrend,
-      avgMileage,
-      mileageTrend,
-      mileageWarning,
-      loadDelivered,
-      loadTrend,
-      fuelCost,
-      fuelCostTrend,
-      tripExpenses,
-      expensesTrend,
-      destinationsCount,
-      destinationsTrend
+      totalFuel,
+      avgMileage
     };
-  }, [filteredTrips, previousPeriodTrips]);
-  
+  }, [trips, effectiveDateRange]);
+
+  const handleDateFilterChange = (value: string) => {
+    setDateFilterType(value as DateFilterType);
+    if (value === 'custom') {
+      setShowCustomDateRange(true);
+    } else {
+      setShowCustomDateRange(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Sticky Date Filter */}
-      <div className="bg-white p-4 rounded-lg shadow-sm sticky top-16 z-10 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-4">
-          <div className="w-full sm:w-auto sm:flex-1 min-w-[200px]">
-            <Select
-              label="Date Range"
-              options={[
-                { value: 'last7', label: 'Last 7 Days' },
-                { value: 'last30', label: 'Last 30 Days' },
-                { value: 'thisYear', label: 'This Year' },
-                { value: 'lastYear', label: 'Last Year' },
-                { value: 'custom', label: 'Custom Range' }
-              ]}
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as DateFilterType)}
-            />
-          </div>
-          
-          {filterType === 'custom' && (
-            <>
-              <div className="w-full sm:w-40">
-                <Input
-                  label="Start Date"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                />
-              </div>
-              <div className="w-full sm:w-40">
-                <Input
-                  label="End Date"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                />
-              </div>
-            </>
-          )}
-          
-          <div className="w-full sm:w-auto sm:ml-auto text-sm text-gray-500 flex items-center">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>
-              {format(effectiveDateRange.start, 'dd MMM yyyy')} - {format(effectiveDateRange.end, 'dd MMM yyyy')}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {/* Movement + Efficiency */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Trips"
-          value={metrics.totalTrips}
-          icon={<Truck className="h-5 w-5 text-primary-600" />}
-          trend={metrics.tripsTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.tripsTrend)),
-            label: "vs previous period",
-            isPositive: metrics.tripsTrend > 0
-          } : undefined}
+          value={stats.totalTrips}
+          icon={<BarChart2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
-          title="KM Covered"
-          value={metrics.totalDistance.toLocaleString()}
+          title="Total Distance"
+          value={stats.totalDistance.toLocaleString()}
           subtitle="km"
-          icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
-          trend={metrics.distanceTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.distanceTrend)),
-            label: "vs previous period",
-            isPositive: metrics.distanceTrend > 0
-          } : undefined}
+          icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
-          title="Fuel Consumed"
-          value={metrics.fuelConsumed.toLocaleString()}
+          title="Total Fuel"
+          value={stats.totalFuel.toLocaleString()}
           subtitle="L"
-          icon={<Fuel className="h-5 w-5 text-primary-600" />}
-          trend={metrics.fuelTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.fuelTrend)),
-            label: "vs previous period",
-            isPositive: metrics.fuelTrend > 0
-          } : undefined}
+          icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
           title="Average Mileage"
-          value={metrics.avgMileage.toFixed(2)}
+          value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
           subtitle="km/L"
-          icon={metrics.mileageWarning ? 
-            <AlertTriangle className="h-5 w-5 text-warning-500" /> : 
-            <Fuel className="h-5 w-5 text-primary-600" />
-          }
-          trend={metrics.mileageTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.mileageTrend)),
-            label: "vs previous period",
-            isPositive: metrics.mileageTrend > 0
-          } : undefined}
-          className={metrics.mileageWarning ? "border-l-4 border-warning-500" : ""}
-        />
-        
-        {/* Load + Cost */}
-        <StatCard
-          title="Load Delivered"
-          value={(metrics.loadDelivered / 1000).toFixed(1)}
-          subtitle="tons"
-          icon={<Package className="h-5 w-5 text-primary-600" />}
-          trend={metrics.loadTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.loadTrend)),
-            label: "vs previous period",
-            isPositive: metrics.loadTrend > 0
-          } : undefined}
-        />
-        
-        <StatCard
-          title="Fuel Cost"
-          value={`₹${Math.round(metrics.fuelCost).toLocaleString()}`}
-          icon={<IndianRupee className="h-5 w-5 text-primary-600" />}
-          trend={metrics.fuelCostTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.fuelCostTrend)),
-            label: "vs previous period",
-            isPositive: metrics.fuelCostTrend < 0 // Lower cost is positive
-          } : undefined}
-        />
-        
-        <StatCard
-          title="Trip Expenses"
-          value={`₹${Math.round(metrics.tripExpenses).toLocaleString()}`}
-          icon={<IndianRupee className="h-5 w-5 text-primary-600" />}
-          trend={metrics.expensesTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.expensesTrend)),
-            label: "vs previous period",
-            isPositive: metrics.expensesTrend < 0 // Lower expenses is positive
-          } : undefined}
-        />
-        
-        <StatCard
-          title="Destinations Visited"
-          value={metrics.destinationsCount}
-          icon={<MapPin className="h-5 w-5 text-primary-600" />}
-          trend={metrics.destinationsTrend !== 0 ? {
-            value: Math.abs(Math.round(metrics.destinationsTrend)),
-            label: "vs previous period",
-            isPositive: metrics.destinationsTrend > 0
-          } : undefined}
+          icon={<Gauge className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
       </div>
 
-      {/* Charts Section */}
+      {/* Fuel Consumption AI Analytics Section */}
       <div className="space-y-4 mt-8">
+        {/* Section title and date range filter */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+            <Fuel className="mr-2 h-5 w-5 text-primary-600 dark:text-primary-400" />
+            Fuel Consumption AI Analytics
+          </h2>
+          
+          <div className="flex flex-wrap items-center gap-3 mt-2 sm:mt-0">
+            <Select
+              options={[
+                { value: 'lastMonth', label: 'Last Month' },
+                { value: 'last3Months', label: 'Last 3 Months' },
+                { value: 'last6Months', label: 'Last 6 Months' },
+                { value: 'last12Months', label: 'Last 12 Months' },
+                { value: 'custom', label: 'Custom Range' }
+              ]}
+              value={dateFilterType}
+              onChange={(e) => handleDateFilterChange(e.target.value)}
+              className="w-40 sm:w-48"
+            />
+            
+            {showCustomDateRange && (
+              <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
+                <Input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="w-full sm:w-auto"
+                  size="sm"
+                />
+                <Input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="w-full sm:w-auto"
+                  size="sm"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        
         {/* Monthly Fuel Consumption Chart */}
         <CollapsibleSection 
-          title="Fuel Consumption – Last 12 Months" 
+          title="Fuel Consumption Trend" 
           icon={<BarChart2 className="h-5 w-5" />}
           iconColor="text-green-600"
           defaultExpanded={true}
         >
-          <MonthlyFuelConsumptionChart trips={trips} />
+          <MonthlyFuelConsumptionChart 
+            trips={trips} 
+            dateRange={effectiveDateRange}
+          />
         </CollapsibleSection>
 
         {/* Fuel Consumed By Vehicle Chart */}
         <CollapsibleSection 
-          title="Fuel Consumption by Vehicle – Last 12 Months" 
+          title="Fuel Consumption by Vehicle" 
           icon={<BarChartHorizontal className="h-5 w-5" />}
           iconColor="text-blue-600"
           defaultExpanded={true}
         >
-          <FuelConsumedByVehicleChart trips={trips} vehicles={vehicles} />
+          <FuelConsumedByVehicleChart 
+            trips={trips} 
+            vehicles={vehicles}
+            dateRange={effectiveDateRange}
+          />
         </CollapsibleSection>
 
         {/* Average Mileage Per Vehicle Chart */}
@@ -393,9 +220,13 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
           title="Average Mileage per Vehicle" 
           icon={<Gauge className="h-5 w-5" />}
           iconColor="text-amber-600"
-          defaultExpanded={true}
+          defaultExpanded={false}
         >
-          <AverageMileagePerVehicleChart trips={trips} vehicles={vehicles} />
+          <AverageMileagePerVehicleChart 
+            trips={trips} 
+            vehicles={vehicles}
+            dateRange={effectiveDateRange} 
+          />
         </CollapsibleSection>
       </div>
     </div>
