@@ -22,9 +22,18 @@ import { supabase } from "../utils/supabaseClient";
 import { format, parseISO, isValid } from "date-fns";
 import {
   Truck,
-  Calendar, PenTool as PenToolIcon, PlusCircle, FileText,
-  AlertTriangle, FileCheck, TrendingUp, Archive, MessageSquare, User,
-  Medal, MapPin
+  Calendar,
+  PenTool as PenToolIcon,
+  PlusCircle,
+  FileText,
+  AlertTriangle,
+  FileCheck,
+  TrendingUp,
+  Archive,
+  MessageSquare,
+  User,
+  Medal,
+  MapPin,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -48,7 +57,9 @@ const VehiclesPage: React.FC = () => {
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showTopDriversModal, setShowTopDriversModal] = useState(false);
-  const [selectedVehicleForShare, setSelectedVehicleForShare] = useState<Vehicle | null>(null);
+  const [selectedVehicleForShare, setSelectedVehicleForShare] =
+    useState<Vehicle | null>(null);
+  const [user, setUser] = useState<any>();
   const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
 
   // Stats state
@@ -62,6 +73,10 @@ const VehiclesPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
+        const userdetails = localStorage.getItem("user");
+        if (!userdetails) throw new Error("Cannot get user details");
+        const user = JSON.parse(userdetails);
+        if (user) setUser(user);
         const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
           getDrivers(),
@@ -139,27 +154,31 @@ const VehiclesPage: React.FC = () => {
   // Calculate Average Distance This Month
   const averageDistanceThisMonth = useMemo(() => {
     if (!Array.isArray(trips)) return 0;
-    
+
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    
+
     // Filter trips for the current month
-    const tripsThisMonth = trips.filter(trip => {
+    const tripsThisMonth = trips.filter((trip) => {
       const tripDate = new Date(trip.trip_start_date);
-      return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
+      return (
+        tripDate.getMonth() === currentMonth &&
+        tripDate.getFullYear() === currentYear
+      );
     });
-    
+
     if (tripsThisMonth.length === 0) return 0;
-    
+
     // Calculate total distance
-    const totalDistance = tripsThisMonth.reduce((sum, trip) => 
-      sum + (trip.end_km - trip.start_km), 0
+    const totalDistance = tripsThisMonth.reduce(
+      (sum, trip) => sum + (trip.end_km - trip.start_km),
+      0
     );
-    
+
     // Get unique vehicles that had trips this month
-    const uniqueVehicles = new Set(tripsThisMonth.map(t => t.vehicle_id));
-    
+    const uniqueVehicles = new Set(tripsThisMonth.map((t) => t.vehicle_id));
+
     // Calculate average
     return totalDistance / uniqueVehicles.size;
   }, [trips]);
@@ -167,60 +186,65 @@ const VehiclesPage: React.FC = () => {
   // Calculate Top Driver This Month
   const topDriversThisMonth = useMemo(() => {
     if (!Array.isArray(trips) || !Array.isArray(drivers)) return [];
-    
+
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
-    
+
     // Filter trips for the current month with refueling data (for mileage calculation)
-    const tripsThisMonth = trips.filter(trip => {
+    const tripsThisMonth = trips.filter((trip) => {
       const tripDate = new Date(trip.trip_start_date);
-      return tripDate.getMonth() === currentMonth && 
-             tripDate.getFullYear() === currentYear && 
-             trip.calculated_kmpl !== undefined &&
-             trip.calculated_kmpl > 0;
+      return (
+        tripDate.getMonth() === currentMonth &&
+        tripDate.getFullYear() === currentYear &&
+        trip.calculated_kmpl !== undefined &&
+        trip.calculated_kmpl > 0
+      );
     });
-    
+
     if (tripsThisMonth.length === 0) return [];
-    
+
     // Group trips by driver and calculate average mileage for each
     const driverPerformance = tripsThisMonth.reduce((acc, trip) => {
       if (!trip.driver_id || !trip.calculated_kmpl) return acc;
-      
+
       if (!acc[trip.driver_id]) {
         acc[trip.driver_id] = {
           tripCount: 0,
           totalMileage: 0,
         };
       }
-      
+
       acc[trip.driver_id].tripCount += 1;
       acc[trip.driver_id].totalMileage += trip.calculated_kmpl;
-      
+
       return acc;
     }, {} as Record<string, { tripCount: number; totalMileage: number }>);
-    
+
     // Calculate average mileage for each driver
-    const driverMileages = Object.entries(driverPerformance).map(([driverId, data]) => {
-      const driver = drivers.find(d => d.id === driverId);
-      return {
-        id: driverId,
-        name: driver?.name || 'Unknown Driver',
-        mileage: data.tripCount > 0 ? data.totalMileage / data.tripCount : 0
-      };
-    });
-    
+    const driverMileages = Object.entries(driverPerformance).map(
+      ([driverId, data]) => {
+        const driver = drivers.find((d) => d.id === driverId);
+        return {
+          id: driverId,
+          name: driver?.name || "Unknown Driver",
+          mileage: data.tripCount > 0 ? data.totalMileage / data.tripCount : 0,
+        };
+      }
+    );
+
     // Sort by mileage (highest first) and take top 5
     return driverMileages.sort((a, b) => b.mileage - a.mileage).slice(0, 5);
   }, [trips, drivers]);
 
   // Get the top driver (if any)
-  const topDriver = topDriversThisMonth.length > 0 ? topDriversThisMonth[0] : null;
+  const topDriver =
+    topDriversThisMonth.length > 0 ? topDriversThisMonth[0] : null;
 
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
     try {
-      const newVehicle = await createVehicle(data);
+      const newVehicle = await createVehicle(data, user.id);
       if (newVehicle) {
         const rawStats = await getVehicleStats(newVehicle.id);
         const conformingStats = {
@@ -278,17 +302,19 @@ const VehiclesPage: React.FC = () => {
 
     return { uploaded, total };
   };
-  
+
   // Open WhatsApp share modal
   const handleOpenShareModal = (vehicle: Vehicle, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
     setSelectedVehicleForShare(vehicle);
     setShowShareModal(true);
-    
+
     // Set contact number (use a real contact number here if available)
     // For example, get it from the primary driver if assigned
     if (vehicle.primary_driver_id) {
-      const assignedDriver = drivers.find(d => d.id === vehicle.primary_driver_id);
+      const assignedDriver = drivers.find(
+        (d) => d.id === vehicle.primary_driver_id
+      );
       if (assignedDriver && assignedDriver.contact_number) {
         setContactNumber(assignedDriver.contact_number);
       }
@@ -297,11 +323,13 @@ const VehiclesPage: React.FC = () => {
 
   // Find the latest trip for a vehicle
   const getLatestTrip = (vehicleId: string): Trip | undefined => {
-    return Array.isArray(trips) 
+    return Array.isArray(trips)
       ? trips
-          .filter(t => t.vehicle_id === vehicleId)
-          .sort((a, b) => 
-            new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime()
+          .filter((t) => t.vehicle_id === vehicleId)
+          .sort(
+            (a, b) =>
+              new Date(b.trip_end_date).getTime() -
+              new Date(a.trip_end_date).getTime()
           )[0]
       : undefined;
   };
@@ -309,12 +337,12 @@ const VehiclesPage: React.FC = () => {
   // Format date helper function
   const formatDate = (dateString?: string): string | null => {
     if (!dateString) return null;
-    
+
     try {
       const date = parseISO(dateString);
       if (!isValid(date)) return null;
-      
-      return format(date, 'dd MMM yyyy');
+
+      return format(date, "dd MMM yyyy");
     } catch (error) {
       return null;
     }
@@ -410,23 +438,38 @@ const VehiclesPage: React.FC = () => {
                     icon={<Calendar className="h-5 w-5 text-warning-600" />}
                     warning={vehiclesZeroTrips > 0}
                   />
-                  
+
                   <StatCard
                     title="Top Driver (This Month)"
-                    value={topDriver ? (
-                      <div className="flex flex-col">
-                        <span className="text-lg">{topDriver.name.split(' ')[0]}</span>
-                        <span className="text-xs text-gray-500">{topDriver.mileage.toFixed(1)} km/L</span>
-                      </div>
-                    ) : "-"}
+                    value={
+                      topDriver ? (
+                        <div className="flex flex-col">
+                          <span className="text-lg">
+                            {topDriver.name.split(" ")[0]}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {topDriver.mileage.toFixed(1)} km/L
+                          </span>
+                        </div>
+                      ) : (
+                        "-"
+                      )
+                    }
                     icon={<Medal className="h-5 w-5 text-yellow-500" />}
-                    onClick={() => topDriversThisMonth.length > 0 && setShowTopDriversModal(true)}
-                    className={topDriversThisMonth.length > 0 ? "cursor-pointer" : ""}
+                    onClick={() =>
+                      topDriversThisMonth.length > 0 &&
+                      setShowTopDriversModal(true)
+                    }
+                    className={
+                      topDriversThisMonth.length > 0 ? "cursor-pointer" : ""
+                    }
                   />
 
                   <StatCard
                     title="Average Distance This Month"
-                    value={Math.round(averageDistanceThisMonth).toLocaleString()}
+                    value={Math.round(
+                      averageDistanceThisMonth
+                    ).toLocaleString()}
                     subtitle="km"
                     icon={<TrendingUp className="h-5 w-5 text-primary-600" />}
                   />
@@ -472,13 +515,15 @@ const VehiclesPage: React.FC = () => {
                 const { uploaded, total } = countDocuments(vehicle);
 
                 // Get the assigned driver
-                const assignedDriver = vehicle.primary_driver_id 
-                  ? drivers.find(d => d.id === vehicle.primary_driver_id) 
+                const assignedDriver = vehicle.primary_driver_id
+                  ? drivers.find((d) => d.id === vehicle.primary_driver_id)
                   : undefined;
 
                 // Get the latest trip for this vehicle
                 const latestTrip = getLatestTrip(vehicle.id);
-                const lastTripDate = latestTrip ? formatDate(latestTrip.trip_end_date) : null;
+                const lastTripDate = latestTrip
+                  ? formatDate(latestTrip.trip_end_date)
+                  : null;
 
                 return (
                   <div
@@ -523,16 +568,20 @@ const VehiclesPage: React.FC = () => {
                           {vehicle.status}
                         </span>
                       </div>
-                      
+
                       {/* VehicleSummaryChips Component */}
                       <VehicleSummaryChips vehicle={vehicle} className="mt-2" />
 
                       {/* Odometer reading with Last Trip Date */}
                       <div className="mt-2 flex flex-wrap items-center text-sm text-gray-600">
                         <MapPin className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                        <span>{vehicle.current_odometer?.toLocaleString() || 0} km</span>
+                        <span>
+                          {vehicle.current_odometer?.toLocaleString() || 0} km
+                        </span>
                         {lastTripDate && (
-                          <span className="ml-1 text-xs text-gray-500">• {lastTripDate}</span>
+                          <span className="ml-1 text-xs text-gray-500">
+                            • {lastTripDate}
+                          </span>
                         )}
                       </div>
                     </div>
@@ -578,13 +627,15 @@ const VehiclesPage: React.FC = () => {
                         <div className="flex items-center">
                           <FileText className="h-4 w-4 text-gray-400 mr-1" />
                           <span className="text-sm text-gray-500">Docs:</span>
-                          <span className={`ml-1 text-xs font-medium px-2 py-1 rounded-full ${
-                            uploaded === total
-                              ? "bg-success-100 text-success-800"
-                              : uploaded === 0
-                              ? "bg-error-100 text-error-800"
-                              : "bg-warning-100 text-warning-800"
-                          }`}>
+                          <span
+                            className={`ml-1 text-xs font-medium px-2 py-1 rounded-full ${
+                              uploaded === total
+                                ? "bg-success-100 text-success-800"
+                                : uploaded === 0
+                                ? "bg-error-100 text-error-800"
+                                : "bg-warning-100 text-warning-800"
+                            }`}
+                          >
                             {uploaded}/{total}
                           </span>
                         </div>
@@ -592,15 +643,22 @@ const VehiclesPage: React.FC = () => {
                         {/* Assigned Driver Display */}
                         <div className="flex items-center mx-1">
                           <User className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="text-xs text-gray-600 truncate max-w-[100px]" title={assignedDriver?.name}>
-                            {assignedDriver ? assignedDriver.name : (
+                          <span
+                            className="text-xs text-gray-600 truncate max-w-[100px]"
+                            title={assignedDriver?.name}
+                          >
+                            {assignedDriver ? (
+                              assignedDriver.name
+                            ) : (
                               <span className="text-gray-400">Unassigned</span>
                             )}
                           </span>
                         </div>
-                        
+
                         <WhatsAppButton
-                          phoneNumber={assignedDriver?.contact_number || contactNumber}
+                          phoneNumber={
+                            assignedDriver?.contact_number || contactNumber
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenShareModal(vehicle, e);
@@ -633,9 +691,9 @@ const VehiclesPage: React.FC = () => {
           contactNumber={contactNumber}
         />
       )}
-      
+
       {/* Top Drivers Modal */}
-      <TopDriversModal 
+      <TopDriversModal
         isOpen={showTopDriversModal}
         onClose={() => setShowTopDriversModal(false)}
         topDrivers={topDriversThisMonth}

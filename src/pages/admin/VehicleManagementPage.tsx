@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
-import { 
-  getVehicles, 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "../../components/layout/Layout";
+import {
+  getVehicles,
   getVehicleStats,
   getDrivers,
   bulkUpdateVehicles,
@@ -10,10 +10,10 @@ import {
   bulkUnarchiveVehicles,
   deleteVehicle,
   updateVehicle,
-  exportVehicleData
-} from '../../utils/storage';
-import { 
-  Truck, 
+  exportVehicleData,
+} from "../../utils/storage";
+import {
+  Truck,
   ChevronLeft,
   Trash2,
   Archive,
@@ -27,16 +27,16 @@ import {
   Filter,
   Eye,
   Activity,
-  BarChart2
-} from 'lucide-react';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
-import { Vehicle, Driver } from '../../types';
-import ConfirmationModal from '../../components/admin/ConfirmationModal';
-import VehicleActivityLogTable from '../../components/admin/VehicleActivityLogTable';
-import { toast } from 'react-toastify';
-import { saveAs } from 'file-saver';
+  BarChart2,
+} from "lucide-react";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
+import { Vehicle, Driver } from "../../types";
+import ConfirmationModal from "../../components/admin/ConfirmationModal";
+import VehicleActivityLogTable from "../../components/admin/VehicleActivityLogTable";
+import { toast } from "react-toastify";
+import { saveAs } from "file-saver";
 
 interface VehicleWithStats extends Vehicle {
   stats?: {
@@ -54,45 +54,67 @@ const VehicleManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  
+  const [user, setUser] = useState<any>();
   // State for vehicle filtering
   const [filters, setFilters] = useState({
-    search: '',
-    status: 'active', // Default to 'active' to hide archived vehicles by default
-    type: 'all'
+    search: "",
+    status: "active", // Default to 'active' to hide archived vehicles by default
+    type: "all",
   });
-  
+
   // State for bulk selection
-  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(
+    new Set()
+  );
   const [selectAll, setSelectAll] = useState(false);
-  
+
   // State for confirmation modals
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
-    isOpen: false 
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    vehicleId?: string;
+    vehicleReg?: string;
+  }>({
+    isOpen: false,
   });
-  const [archiveModal, setArchiveModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
-    isOpen: false 
+  const [archiveModal, setArchiveModal] = useState<{
+    isOpen: boolean;
+    vehicleId?: string;
+    vehicleReg?: string;
+  }>({
+    isOpen: false,
   });
-  const [unarchiveModal, setUnarchiveModal] = useState<{ isOpen: boolean; vehicleId?: string; vehicleReg?: string }>({ 
-    isOpen: false 
+  const [unarchiveModal, setUnarchiveModal] = useState<{
+    isOpen: boolean;
+    vehicleId?: string;
+    vehicleReg?: string;
+  }>({
+    isOpen: false,
   });
-  const [bulkArchiveModal, setbulkArchiveModal] = useState<{ isOpen: boolean; count: number }>({ 
-    isOpen: false, count: 0 
+  const [bulkArchiveModal, setbulkArchiveModal] = useState<{
+    isOpen: boolean;
+    count: number;
+  }>({
+    isOpen: false,
+    count: 0,
   });
-  const [bulkUnarchiveModal, setbulkUnarchiveModal] = useState<{ isOpen: boolean; count: number }>({ 
-    isOpen: false, count: 0 
+  const [bulkUnarchiveModal, setbulkUnarchiveModal] = useState<{
+    isOpen: boolean;
+    count: number;
+  }>({
+    isOpen: false,
+    count: 0,
   });
-  
+
   // State for driver assignment
-  const [driverAssignModal, setDriverAssignModal] = useState<{ 
-    isOpen: boolean; 
-    vehicleId?: string; 
+  const [driverAssignModal, setDriverAssignModal] = useState<{
+    isOpen: boolean;
+    vehicleId?: string;
     vehicleReg?: string;
     driverId?: string;
-  }>({ 
-    isOpen: false 
+  }>({
+    isOpen: false,
   });
-  
+
   // State for operation loading
   const [operationLoading, setOperationLoading] = useState(false);
 
@@ -101,9 +123,13 @@ const VehicleManagementPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        const userdetails = localStorage.getItem("user");
+        if (!userdetails) throw new Error("Cannot get user details");
+        const user = JSON.parse(userdetails);
+        if (user) setUser(user);
         // Fetch vehicles with their stats
         const vehiclesData = await getVehicles();
-        
+
         // Fetch stats for each vehicle
         const vehiclesWithStats = await Promise.all(
           vehiclesData.map(async (vehicle) => {
@@ -111,20 +137,20 @@ const VehicleManagementPage: React.FC = () => {
             return { ...vehicle, stats, selected: false };
           })
         );
-        
+
         setVehicles(vehiclesWithStats);
-        
+
         // Fetch drivers for assignment dropdown
         const driversData = await getDrivers();
         setDrivers(driversData);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load vehicle data');
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load vehicle data");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [refreshTrigger]);
 
@@ -135,7 +161,7 @@ const VehicleManagementPage: React.FC = () => {
       setSelectedVehicles(new Set());
     } else {
       // Select all filtered vehicles
-      const filteredVehicleIds = filteredVehicles.map(v => v.id);
+      const filteredVehicleIds = filteredVehicles.map((v) => v.id);
       setSelectedVehicles(new Set(filteredVehicleIds));
     }
     setSelectAll(!selectAll);
@@ -144,37 +170,45 @@ const VehicleManagementPage: React.FC = () => {
   // Handle selecting/deselecting a single vehicle
   const handleSelectVehicle = (vehicleId: string) => {
     const newSelected = new Set(selectedVehicles);
-    
+
     if (newSelected.has(vehicleId)) {
       newSelected.delete(vehicleId);
     } else {
       newSelected.add(vehicleId);
     }
-    
+
     setSelectedVehicles(newSelected);
-    
+
     // Update selectAll state based on if all filtered vehicles are selected
     setSelectAll(
-      filteredVehicles.every(v => newSelected.has(v.id)) && 
-      filteredVehicles.length > 0
+      filteredVehicles.every((v) => newSelected.has(v.id)) &&
+        filteredVehicles.length > 0
     );
   };
 
   // Handle archiving a single vehicle
   const handleArchiveVehicle = async () => {
     if (!archiveModal.vehicleId) return;
-    
+
     setOperationLoading(true);
     try {
-      const result = await updateVehicle(archiveModal.vehicleId, { status: 'archived' });
-      
+      const result = await updateVehicle(
+        archiveModal.vehicleId,
+        {
+          status: "archived",
+        },
+        user.id
+      );
+
       if (result) {
-        toast.success(`Vehicle ${archiveModal.vehicleReg} archived successfully`);
+        toast.success(
+          `Vehicle ${archiveModal.vehicleReg} archived successfully`
+        );
         // Update in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (v.id === archiveModal.vehicleId) {
-              return { ...v, status: 'archived' };
+              return { ...v, status: "archived" };
             }
             return v;
           })
@@ -182,13 +216,17 @@ const VehicleManagementPage: React.FC = () => {
         // Close modal
         setArchiveModal({ isOpen: false });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       } else {
         toast.error(`Failed to archive vehicle ${archiveModal.vehicleReg}`);
       }
     } catch (error) {
-      console.error('Error archiving vehicle:', error);
-      toast.error(`Error archiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error archiving vehicle:", error);
+      toast.error(
+        `Error archiving vehicle: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -197,18 +235,22 @@ const VehicleManagementPage: React.FC = () => {
   // Handle unarchiving a single vehicle
   const handleUnarchiveVehicle = async () => {
     if (!unarchiveModal.vehicleId) return;
-    
+
     setOperationLoading(true);
     try {
-      const result = await updateVehicle(unarchiveModal.vehicleId, { status: 'active' });
-      
+      const result = await updateVehicle(unarchiveModal.vehicleId, {
+        status: "active",
+      });
+
       if (result) {
-        toast.success(`Vehicle ${unarchiveModal.vehicleReg} unarchived successfully`);
+        toast.success(
+          `Vehicle ${unarchiveModal.vehicleReg} unarchived successfully`
+        );
         // Update in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (v.id === unarchiveModal.vehicleId) {
-              return { ...v, status: 'active' };
+              return { ...v, status: "active" };
             }
             return v;
           })
@@ -216,13 +258,17 @@ const VehicleManagementPage: React.FC = () => {
         // Close modal
         setUnarchiveModal({ isOpen: false });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       } else {
         toast.error(`Failed to unarchive vehicle ${unarchiveModal.vehicleReg}`);
       }
     } catch (error) {
-      console.error('Error unarchiving vehicle:', error);
-      toast.error(`Error unarchiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error unarchiving vehicle:", error);
+      toast.error(
+        `Error unarchiving vehicle: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -231,18 +277,20 @@ const VehicleManagementPage: React.FC = () => {
   // Handle deleting a single vehicle (now redirected to archive)
   const handleDeleteVehicle = async () => {
     if (!deleteModal.vehicleId) return;
-    
+
     setOperationLoading(true);
     try {
       const success = await deleteVehicle(deleteModal.vehicleId);
-      
+
       if (success) {
-        toast.success(`Vehicle ${deleteModal.vehicleReg} archived successfully`);
+        toast.success(
+          `Vehicle ${deleteModal.vehicleReg} archived successfully`
+        );
         // Update in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (v.id === deleteModal.vehicleId) {
-              return { ...v, status: 'archived' };
+              return { ...v, status: "archived" };
             }
             return v;
           })
@@ -250,13 +298,17 @@ const VehicleManagementPage: React.FC = () => {
         // Close modal
         setDeleteModal({ isOpen: false });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       } else {
         toast.error(`Failed to archive vehicle ${deleteModal.vehicleReg}`);
       }
     } catch (error) {
-      console.error('Error archiving vehicle:', error);
-      toast.error(`Error archiving vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error archiving vehicle:", error);
+      toast.error(
+        `Error archiving vehicle: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -265,18 +317,18 @@ const VehicleManagementPage: React.FC = () => {
   // Handle bulk archive vehicles
   const handleBulkArchiveVehicles = async () => {
     if (selectedVehicles.size === 0) return;
-    
+
     setOperationLoading(true);
     try {
       const result = await bulkArchiveVehicles(Array.from(selectedVehicles));
-      
+
       if (result.success > 0) {
         toast.success(`Successfully archived ${result.success} vehicles`);
         // Update archived vehicles in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (selectedVehicles.has(v.id)) {
-              return { ...v, status: 'archived' };
+              return { ...v, status: "archived" };
             }
             return v;
           })
@@ -287,15 +339,19 @@ const VehicleManagementPage: React.FC = () => {
         // Close modal
         setbulkArchiveModal({ isOpen: false, count: 0 });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       }
-      
+
       if (result.failed > 0) {
         toast.warning(`Failed to archive ${result.failed} vehicles`);
       }
     } catch (error) {
-      console.error('Error archiving vehicles:', error);
-      toast.error(`Error archiving vehicles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error archiving vehicles:", error);
+      toast.error(
+        `Error archiving vehicles: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -304,18 +360,18 @@ const VehicleManagementPage: React.FC = () => {
   // Handle bulk unarchive vehicles
   const handleBulkUnarchiveVehicles = async () => {
     if (selectedVehicles.size === 0) return;
-    
+
     setOperationLoading(true);
     try {
       const result = await bulkUnarchiveVehicles(Array.from(selectedVehicles));
-      
+
       if (result.success > 0) {
         toast.success(`Successfully unarchived ${result.success} vehicles`);
         // Update unarchived vehicles in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (selectedVehicles.has(v.id)) {
-              return { ...v, status: 'active' };
+              return { ...v, status: "active" };
             }
             return v;
           })
@@ -326,15 +382,19 @@ const VehicleManagementPage: React.FC = () => {
         // Close modal
         setbulkUnarchiveModal({ isOpen: false, count: 0 });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       }
-      
+
       if (result.failed > 0) {
         toast.warning(`Failed to unarchive ${result.failed} vehicles`);
       }
     } catch (error) {
-      console.error('Error unarchiving vehicles:', error);
-      toast.error(`Error unarchiving vehicles: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error unarchiving vehicles:", error);
+      toast.error(
+        `Error unarchiving vehicles: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -343,38 +403,51 @@ const VehicleManagementPage: React.FC = () => {
   // Handle assigning/unassigning a driver to a vehicle
   const handleAssignDriver = async () => {
     if (!driverAssignModal.vehicleId) return;
-    
+
     setOperationLoading(true);
     try {
       const result = await updateVehicle(driverAssignModal.vehicleId, {
-        primary_driver_id: driverAssignModal.driverId || null
+        primary_driver_id: driverAssignModal.driverId || null,
       });
-      
+
       if (result) {
-        const action = driverAssignModal.driverId ? 'assigned to' : 'unassigned from';
-        toast.success(`Driver successfully ${action} vehicle ${driverAssignModal.vehicleReg}`);
-        
+        const action = driverAssignModal.driverId
+          ? "assigned to"
+          : "unassigned from";
+        toast.success(
+          `Driver successfully ${action} vehicle ${driverAssignModal.vehicleReg}`
+        );
+
         // Update vehicle in state
-        setVehicles(prevVehicles => 
-          prevVehicles.map(v => {
+        setVehicles((prevVehicles) =>
+          prevVehicles.map((v) => {
             if (v.id === driverAssignModal.vehicleId) {
-              return { ...v, primary_driver_id: driverAssignModal.driverId || null };
+              return {
+                ...v,
+                primary_driver_id: driverAssignModal.driverId || null,
+              };
             }
             return v;
           })
         );
-        
+
         // Close modal
         setDriverAssignModal({ isOpen: false });
         // Refresh activity logs
-        setRefreshTrigger(prev => prev + 1);
+        setRefreshTrigger((prev) => prev + 1);
       } else {
-        const action = driverAssignModal.driverId ? 'assign' : 'unassign';
-        toast.error(`Failed to ${action} driver to vehicle ${driverAssignModal.vehicleReg}`);
+        const action = driverAssignModal.driverId ? "assign" : "unassign";
+        toast.error(
+          `Failed to ${action} driver to vehicle ${driverAssignModal.vehicleReg}`
+        );
       }
     } catch (error) {
-      console.error('Error assigning driver:', error);
-      toast.error(`Error assigning driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error assigning driver:", error);
+      toast.error(
+        `Error assigning driver: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setOperationLoading(false);
     }
@@ -385,30 +458,40 @@ const VehicleManagementPage: React.FC = () => {
     setExportLoading(true);
     try {
       // Get vehicles to export (either selected or all filtered)
-      const vehiclesToExport = selectedVehicles.size > 0
-        ? vehicles.filter(v => selectedVehicles.has(v.id))
-        : filteredVehicles;
-      
+      const vehiclesToExport =
+        selectedVehicles.size > 0
+          ? vehicles.filter((v) => selectedVehicles.has(v.id))
+          : filteredVehicles;
+
       // Export the vehicle data
       const csvContent = await exportVehicleData(vehiclesToExport);
-      
+
       // Create and download the CSV file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, `vehicle_data_${new Date().toISOString().split('T')[0]}.csv`);
-      
-      toast.success(`Successfully exported ${vehiclesToExport.length} vehicles`);
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      saveAs(
+        blob,
+        `vehicle_data_${new Date().toISOString().split("T")[0]}.csv`
+      );
+
+      toast.success(
+        `Successfully exported ${vehiclesToExport.length} vehicles`
+      );
       // Refresh activity logs
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
-      console.error('Error exporting vehicle data:', error);
-      toast.error(`Error exporting data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Error exporting vehicle data:", error);
+      toast.error(
+        `Error exporting data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     } finally {
       setExportLoading(false);
     }
   };
 
   // Filter vehicles based on current filters
-  const filteredVehicles = vehicles.filter(vehicle => {
+  const filteredVehicles = vehicles.filter((vehicle) => {
     // Filter by search term
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
@@ -417,45 +500,46 @@ const VehicleManagementPage: React.FC = () => {
         vehicle.make,
         vehicle.model,
         vehicle.chassis_number,
-        vehicle.engine_number
-      ].map(field => field?.toLowerCase());
-      
-      if (!searchFields.some(field => field?.includes(searchTerm))) {
+        vehicle.engine_number,
+      ].map((field) => field?.toLowerCase());
+
+      if (!searchFields.some((field) => field?.includes(searchTerm))) {
         return false;
       }
     }
-    
+
     // Filter by status
-    if (filters.status !== 'all' && vehicle.status !== filters.status) {
+    if (filters.status !== "all" && vehicle.status !== filters.status) {
       return false;
     }
-    
+
     // Filter by type
-    if (filters.type !== 'all' && vehicle.type !== filters.type) {
+    if (filters.type !== "all" && vehicle.type !== filters.type) {
       return false;
     }
-    
+
     return true;
   });
 
   // Get count of selected vehicles from filtered vehicles
   const selectedCount = filteredVehicles.reduce(
-    (count, vehicle) => selectedVehicles.has(vehicle.id) ? count + 1 : count, 
+    (count, vehicle) => (selectedVehicles.has(vehicle.id) ? count + 1 : count),
     0
   );
-  
+
   // Find driver name by id
   const getDriverName = (driverId?: string) => {
-    if (!driverId) return 'None';
-    const driver = drivers.find(d => d.id === driverId);
-    return driver ? driver.name : 'Unknown';
+    if (!driverId) return "None";
+    const driver = drivers.find((d) => d.id === driverId);
+    return driver ? driver.name : "Unknown";
   };
 
   // Calculate stats for archived vs. active vehicles
-  const archivedCount = vehicles.filter(v => v.status === 'archived').length;
-  const activeCount = vehicles.filter(v => v.status === 'active').length;
+  const archivedCount = vehicles.filter((v) => v.status === "archived").length;
+  const activeCount = vehicles.filter((v) => v.status === "active").length;
   const totalCount = vehicles.length;
-  const archivedPercentage = totalCount > 0 ? Math.round((archivedCount / totalCount) * 100) : 0;
+  const archivedPercentage =
+    totalCount > 0 ? Math.round((archivedCount / totalCount) * 100) : 0;
 
   return (
     <Layout
@@ -464,7 +548,7 @@ const VehicleManagementPage: React.FC = () => {
       actions={
         <Button
           variant="outline"
-          onClick={() => navigate('/admin')}
+          onClick={() => navigate("/admin")}
           icon={<ChevronLeft className="h-4 w-4" />}
         >
           Back to Admin
@@ -483,38 +567,44 @@ const VehicleManagementPage: React.FC = () => {
               <Truck className="h-8 w-8 text-primary-500" />
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Active Vehicles</p>
-                <p className="text-xl font-bold text-green-600">{activeCount}</p>
+                <p className="text-xl font-bold text-green-600">
+                  {activeCount}
+                </p>
               </div>
               <Activity className="h-8 w-8 text-green-500" />
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Archived Vehicles</p>
-                <p className="text-xl font-bold text-gray-600">{archivedCount}</p>
+                <p className="text-xl font-bold text-gray-600">
+                  {archivedCount}
+                </p>
               </div>
               <Archive className="h-8 w-8 text-gray-500" />
             </div>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Archive Ratio</p>
-                <p className="text-xl font-bold text-primary-600">{archivedPercentage}%</p>
+                <p className="text-xl font-bold text-primary-600">
+                  {archivedPercentage}%
+                </p>
               </div>
               <BarChart2 className="h-8 w-8 text-primary-500" />
             </div>
           </div>
         </div>
-        
+
         {/* Filters and Actions */}
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="flex flex-wrap gap-4 justify-between">
@@ -524,41 +614,47 @@ const VehicleManagementPage: React.FC = () => {
                   placeholder="Search vehicles..."
                   icon={<Search className="h-4 w-4" />}
                   value={filters.search}
-                  onChange={e => setFilters({ ...filters, search: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, search: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="w-40">
                 <Select
                   options={[
-                    { value: 'all', label: 'All Status' },
-                    { value: 'active', label: 'Active' },
-                    { value: 'maintenance', label: 'Maintenance' },
-                    { value: 'inactive', label: 'Inactive' },
-                    { value: 'stood', label: 'Stood' },
-                    { value: 'archived', label: 'Archived' }
+                    { value: "all", label: "All Status" },
+                    { value: "active", label: "Active" },
+                    { value: "maintenance", label: "Maintenance" },
+                    { value: "inactive", label: "Inactive" },
+                    { value: "stood", label: "Stood" },
+                    { value: "archived", label: "Archived" },
                   ]}
                   value={filters.status}
-                  onChange={e => setFilters({ ...filters, status: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, status: e.target.value })
+                  }
                 />
               </div>
-              
+
               <div className="w-40">
                 <Select
                   options={[
-                    { value: 'all', label: 'All Types' },
-                    { value: 'truck', label: 'Truck' },
-                    { value: 'tempo', label: 'Tempo' },
-                    { value: 'trailer', label: 'Trailer' },
-                    { value: 'pickup', label: 'Pickup' },
-                    { value: 'van', label: 'Van' }
+                    { value: "all", label: "All Types" },
+                    { value: "truck", label: "Truck" },
+                    { value: "tempo", label: "Tempo" },
+                    { value: "trailer", label: "Trailer" },
+                    { value: "pickup", label: "Pickup" },
+                    { value: "van", label: "Van" },
                   ]}
                   value={filters.type}
-                  onChange={e => setFilters({ ...filters, type: e.target.value })}
+                  onChange={(e) =>
+                    setFilters({ ...filters, type: e.target.value })
+                  }
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -568,13 +664,18 @@ const VehicleManagementPage: React.FC = () => {
               >
                 Export
               </Button>
-              
+
               {selectedVehicles.size > 0 && (
                 <>
-                  {filters.status === 'archived' ? (
+                  {filters.status === "archived" ? (
                     <Button
                       variant="primary"
-                      onClick={() => setbulkUnarchiveModal({ isOpen: true, count: selectedVehicles.size })}
+                      onClick={() =>
+                        setbulkUnarchiveModal({
+                          isOpen: true,
+                          count: selectedVehicles.size,
+                        })
+                      }
                       icon={<ArchiveRestore className="h-4 w-4" />}
                     >
                       Unarchive Selected
@@ -582,7 +683,12 @@ const VehicleManagementPage: React.FC = () => {
                   ) : (
                     <Button
                       variant="warning"
-                      onClick={() => setbulkArchiveModal({ isOpen: true, count: selectedVehicles.size })}
+                      onClick={() =>
+                        setbulkArchiveModal({
+                          isOpen: true,
+                          count: selectedVehicles.size,
+                        })
+                      }
                       icon={<Archive className="h-4 w-4" />}
                     >
                       Archive Selected
@@ -592,7 +698,7 @@ const VehicleManagementPage: React.FC = () => {
               )}
             </div>
           </div>
-          
+
           {/* Selected count */}
           {selectedCount > 0 && (
             <div className="mt-2 text-sm text-gray-500">
@@ -611,8 +717,12 @@ const VehicleManagementPage: React.FC = () => {
           ) : filteredVehicles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
               <Truck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-lg font-medium text-gray-900">No vehicles found</p>
-              <p className="text-gray-500 mt-1">Try adjusting your filters or add new vehicles</p>
+              <p className="text-lg font-medium text-gray-900">
+                No vehicles found
+              </p>
+              <p className="text-gray-500 mt-1">
+                Try adjusting your filters or add new vehicles
+              </p>
             </div>
           ) : (
             <table className="min-w-full divide-y divide-gray-200">
@@ -623,7 +733,11 @@ const VehicleManagementPage: React.FC = () => {
                       <button
                         className="flex items-center"
                         onClick={handleSelectAll}
-                        aria-label={selectAll ? "Deselect all vehicles" : "Select all vehicles"}
+                        aria-label={
+                          selectAll
+                            ? "Deselect all vehicles"
+                            : "Select all vehicles"
+                        }
                       >
                         {selectAll ? (
                           <CheckSquare className="h-4 w-4 text-primary-600" />
@@ -660,18 +774,22 @@ const VehicleManagementPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredVehicles.map(vehicle => (
-                  <tr 
+                {filteredVehicles.map((vehicle) => (
+                  <tr
                     key={vehicle.id}
-                    className={`hover:bg-gray-50 ${selectedVehicles.has(vehicle.id) ? 'bg-primary-50' : ''} ${
-                      vehicle.status === 'archived' ? 'text-gray-400' : ''
-                    }`}
+                    className={`hover:bg-gray-50 ${
+                      selectedVehicles.has(vehicle.id) ? "bg-primary-50" : ""
+                    } ${vehicle.status === "archived" ? "text-gray-400" : ""}`}
                   >
                     <td className="px-3 py-4 whitespace-nowrap">
                       <button
                         className="flex items-center"
                         onClick={() => handleSelectVehicle(vehicle.id)}
-                        aria-label={selectedVehicles.has(vehicle.id) ? "Deselect vehicle" : "Select vehicle"}
+                        aria-label={
+                          selectedVehicles.has(vehicle.id)
+                            ? "Deselect vehicle"
+                            : "Select vehicle"
+                        }
                       >
                         {selectedVehicles.has(vehicle.id) ? (
                           <CheckSquare className="h-4 w-4 text-primary-600" />
@@ -682,69 +800,105 @@ const VehicleManagementPage: React.FC = () => {
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <span className={`font-medium hover:underline cursor-pointer ${
-                          vehicle.status === 'archived' ? 'text-gray-500' : 'text-primary-600'
-                        }`} 
-                          onClick={() => navigate(`/vehicles/${vehicle.id}`)}>
+                        <span
+                          className={`font-medium hover:underline cursor-pointer ${
+                            vehicle.status === "archived"
+                              ? "text-gray-500"
+                              : "text-primary-600"
+                          }`}
+                          onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+                        >
                           {vehicle.registration_number}
                         </span>
                       </div>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
                       <div className="text-sm">
-                        <div className={`font-medium ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>
+                        <div
+                          className={`font-medium ${
+                            vehicle.status === "archived"
+                              ? "text-gray-500"
+                              : "text-gray-900"
+                          }`}
+                        >
                           {vehicle.make}
                         </div>
-                        <div className={`${vehicle.status === 'archived' ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <div
+                          className={`${
+                            vehicle.status === "archived"
+                              ? "text-gray-400"
+                              : "text-gray-500"
+                          }`}
+                        >
                           {vehicle.model}
                         </div>
                       </div>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
-                      <span className={`text-sm capitalize ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900'}`}>
+                      <span
+                        className={`text-sm capitalize ${
+                          vehicle.status === "archived"
+                            ? "text-gray-500"
+                            : "text-gray-900"
+                        }`}
+                      >
                         {vehicle.type}
                       </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full capitalize ${
-                        vehicle.status === 'active' 
-                          ? 'bg-success-100 text-success-800' 
-                          : vehicle.status === 'maintenance'
-                          ? 'bg-warning-100 text-warning-800'
-                          : vehicle.status === 'archived'
-                          ? 'bg-gray-100 text-gray-600'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full capitalize ${
+                          vehicle.status === "active"
+                            ? "bg-success-100 text-success-800"
+                            : vehicle.status === "maintenance"
+                            ? "bg-warning-100 text-warning-800"
+                            : vehicle.status === "archived"
+                            ? "bg-gray-100 text-gray-600"
+                            : "bg-gray-100 text-gray-800"
+                        }`}
+                      >
                         {vehicle.status}
                       </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={vehicle.status === 'archived' ? 'text-gray-500' : ''}>
+                      <span
+                        className={
+                          vehicle.status === "archived" ? "text-gray-500" : ""
+                        }
+                      >
                         {vehicle.current_odometer?.toLocaleString()} km
                       </span>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap">
-                      <button 
-                        className={`flex items-center text-sm ${vehicle.status === 'archived' ? 'text-gray-500' : 'text-gray-900 hover:text-primary-600'}`}
-                        onClick={() => setDriverAssignModal({ 
-                          isOpen: true,
-                          vehicleId: vehicle.id,
-                          vehicleReg: vehicle.registration_number,
-                          driverId: vehicle.primary_driver_id
-                        })}
-                        disabled={vehicle.status === 'archived'}
+                      <button
+                        className={`flex items-center text-sm ${
+                          vehicle.status === "archived"
+                            ? "text-gray-500"
+                            : "text-gray-900 hover:text-primary-600"
+                        }`}
+                        onClick={() =>
+                          setDriverAssignModal({
+                            isOpen: true,
+                            vehicleId: vehicle.id,
+                            vehicleReg: vehicle.registration_number,
+                            driverId: vehicle.primary_driver_id,
+                          })
+                        }
+                        disabled={vehicle.status === "archived"}
                       >
                         {vehicle.primary_driver_id ? (
                           <>
-                            <span>{getDriverName(vehicle.primary_driver_id)}</span>
-                            {vehicle.status !== 'archived' && (
+                            <span>
+                              {getDriverName(vehicle.primary_driver_id)}
+                            </span>
+                            {vehicle.status !== "archived" && (
                               <UserX className="h-4 w-4 ml-1 text-gray-400 hover:text-error-500" />
                             )}
                           </>
                         ) : (
                           <>
                             <span>Assign</span>
-                            {vehicle.status !== 'archived' && (
+                            {vehicle.status !== "archived" && (
                               <UserPlus className="h-4 w-4 ml-1 text-gray-400 hover:text-primary-500" />
                             )}
                           </>
@@ -752,7 +906,11 @@ const VehicleManagementPage: React.FC = () => {
                       </button>
                     </td>
                     <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <span className={vehicle.status === 'archived' ? 'text-gray-500' : ''}>
+                      <span
+                        className={
+                          vehicle.status === "archived" ? "text-gray-500" : ""
+                        }
+                      >
                         {vehicle.stats?.totalTrips || 0}
                       </span>
                     </td>
@@ -765,14 +923,16 @@ const VehicleManagementPage: React.FC = () => {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        
-                        {vehicle.status === 'archived' ? (
+
+                        {vehicle.status === "archived" ? (
                           <button
-                            onClick={() => setUnarchiveModal({ 
-                              isOpen: true,
-                              vehicleId: vehicle.id,
-                              vehicleReg: vehicle.registration_number
-                            })}
+                            onClick={() =>
+                              setUnarchiveModal({
+                                isOpen: true,
+                                vehicleId: vehicle.id,
+                                vehicleReg: vehicle.registration_number,
+                              })
+                            }
                             className="text-success-600 hover:text-success-900"
                             aria-label={`Unarchive vehicle ${vehicle.registration_number}`}
                           >
@@ -780,11 +940,13 @@ const VehicleManagementPage: React.FC = () => {
                           </button>
                         ) : (
                           <button
-                            onClick={() => setArchiveModal({ 
-                              isOpen: true,
-                              vehicleId: vehicle.id,
-                              vehicleReg: vehicle.registration_number
-                            })}
+                            onClick={() =>
+                              setArchiveModal({
+                                isOpen: true,
+                                vehicleId: vehicle.id,
+                                vehicleReg: vehicle.registration_number,
+                              })
+                            }
                             className="text-warning-600 hover:text-warning-900"
                             aria-label={`Archive vehicle ${vehicle.registration_number}`}
                           >
@@ -863,12 +1025,19 @@ const VehicleManagementPage: React.FC = () => {
           type="info"
           isLoading={operationLoading}
         />
-        
+
         {/* Driver Assignment Modal */}
-        <div className={`fixed z-50 inset-0 overflow-y-auto ${driverAssignModal.isOpen ? 'block' : 'hidden'}`} aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div
+          className={`fixed z-50 inset-0 overflow-y-auto ${
+            driverAssignModal.isOpen ? "block" : "hidden"
+          }`}
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div 
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
               aria-hidden="true"
               onClick={() => setDriverAssignModal({ isOpen: false })}
             ></div>
@@ -880,8 +1049,11 @@ const VehicleManagementPage: React.FC = () => {
                     <UserPlus className="h-6 w-6 text-primary-600" />
                   </div>
                   <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                      {driverAssignModal.driverId ? 'Change' : 'Assign'} Driver
+                    <h3
+                      className="text-lg leading-6 font-medium text-gray-900"
+                      id="modal-title"
+                    >
+                      {driverAssignModal.driverId ? "Change" : "Assign"} Driver
                     </h3>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
@@ -889,24 +1061,26 @@ const VehicleManagementPage: React.FC = () => {
                           ? `Select a new driver for vehicle ${driverAssignModal.vehicleReg} or unassign the current one.`
                           : `Assign a driver to vehicle ${driverAssignModal.vehicleReg}.`}
                       </p>
-                      
+
                       <div className="mt-4">
                         <Select
                           label="Driver"
                           options={[
-                            { value: '', label: 'Unassign Driver' },
+                            { value: "", label: "Unassign Driver" },
                             ...drivers
-                              .filter(d => d.status === 'active')
-                              .map(d => ({
+                              .filter((d) => d.status === "active")
+                              .map((d) => ({
                                 value: d.id,
-                                label: d.name
-                              }))
+                                label: d.name,
+                              })),
                           ]}
-                          value={driverAssignModal.driverId || ''}
-                          onChange={e => setDriverAssignModal({
-                            ...driverAssignModal,
-                            driverId: e.target.value || undefined
-                          })}
+                          value={driverAssignModal.driverId || ""}
+                          onChange={(e) =>
+                            setDriverAssignModal({
+                              ...driverAssignModal,
+                              driverId: e.target.value || undefined,
+                            })
+                          }
                         />
                       </div>
                     </div>
@@ -919,7 +1093,9 @@ const VehicleManagementPage: React.FC = () => {
                   className="sm:ml-3"
                   isLoading={operationLoading}
                 >
-                  {driverAssignModal.driverId ? 'Update Driver' : 'Assign Driver'}
+                  {driverAssignModal.driverId
+                    ? "Update Driver"
+                    : "Assign Driver"}
                 </Button>
                 <Button
                   variant="outline"
