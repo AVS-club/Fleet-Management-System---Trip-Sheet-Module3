@@ -98,33 +98,35 @@ const VehiclePage: React.FC = () => {
     
     try {
       // Generate signed URL for RC document
-      if (vehicleData.rc_document_path) {
-        urls.rc = await getSignedDocumentUrl(vehicleData.rc_document_path);
+      if (vehicleData.rc_document_url) {
+        urls.rc = await vehicleData.rc_document_url;
       }
       
       // Generate signed URL for insurance document
-      if (vehicleData.insurance_document_path) {
-        urls.insurance = await getSignedDocumentUrl(vehicleData.insurance_document_path);
+      if (vehicleData.insurance_document_url) {
+        urls.insurance = vehicleData.insurance_document_url;
       }
       
       // Generate signed URL for fitness document
-      if (vehicleData.fitness_document_path) {
-        urls.fitness = await getSignedDocumentUrl(vehicleData.fitness_document_path);
+      if (vehicleData.fitness_document_url) {
+        urls.fitness = 
+          vehicleData.fitness_document_url
+        ;
       }
       
       // Generate signed URL for tax document
-      if (vehicleData.tax_document_path) {
-        urls.tax = await getSignedDocumentUrl(vehicleData.tax_document_path);
+      if (vehicleData.tax_document_url) {
+        urls.tax = vehicleData.tax_document_url;
       }
       
       // Generate signed URL for permit document
-      if (vehicleData.permit_document_path) {
-        urls.permit = await getSignedDocumentUrl(vehicleData.permit_document_path);
+      if (vehicleData.permit_document_url) {
+        urls.permit = vehicleData.permit_document_url;
       }
       
       // Generate signed URL for PUC document
-      if (vehicleData.puc_document_path) {
-        urls.puc = await getSignedDocumentUrl(vehicleData.puc_document_path);
+      if (vehicleData.puc_document_url) {
+        urls.puc = vehicleData.puc_document_url;
       }
       
       // Generate signed URLs for other documents
@@ -222,12 +224,12 @@ const VehiclePage: React.FC = () => {
   };
 
   // Calculate document statuses
-  const rcStatus = getDocumentStatus(vehicle.rc_document_path, vehicle.rc_expiry_date);
-  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_path, vehicle.insurance_expiry_date);
-  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_path, vehicle.fitness_expiry_date);
-  const taxStatus = getDocumentStatus(vehicle.tax_document_path, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
-  const permitStatus = getDocumentStatus(vehicle.permit_document_path, vehicle.permit_expiry_date);
-  const pucStatus = getDocumentStatus(vehicle.puc_document_path, vehicle.puc_expiry_date);
+  const rcStatus = getDocumentStatus(vehicle.rc_document_url, vehicle.rc_expiry_date);
+  const insuranceStatus = getDocumentStatus(vehicle.insurance_document_url, vehicle.insurance_expiry_date);
+  const fitnessStatus = getDocumentStatus(vehicle.fitness_document_url, vehicle.fitness_expiry_date);
+  const taxStatus = getDocumentStatus(vehicle.tax_document_url, vehicle.tax_period ? 'future' : undefined); // Tax doesn't always have an expiry
+  const permitStatus = getDocumentStatus(vehicle.permit_document_url, vehicle.permit_expiry_date);
+  const pucStatus = getDocumentStatus(vehicle.puc_document_url, vehicle.puc_expiry_date);
 
   // Handle export as PDF
   const handleExportPDF = async () => {

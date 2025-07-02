@@ -125,12 +125,12 @@ const VehiclesPage: React.FC = () => {
         const docsPendingCount = activeVehicles.filter((vehicle) => {
           // Check for actual document paths instead of boolean flags
           const docsCount = [
-            vehicle.rc_document_path,
-            vehicle.insurance_document_path,
-            vehicle.fitness_document_path,
-            vehicle.tax_document_path,
-            vehicle.permit_document_path,
-            vehicle.puc_document_path,
+            vehicle.rc_document_url,
+            vehicle.insurance_document_url,
+            vehicle.fitness_document_url,
+            vehicle.tax_document_url,
+            vehicle.permit_document_url,
+            vehicle.puc_document_url,
           ].filter(Boolean).length;
 
           return docsCount < 6;
@@ -293,12 +293,12 @@ const VehiclesPage: React.FC = () => {
     const total = 6; // RC, Insurance, Fitness, Tax, Permit, PUC
 
     // Check for actual document paths instead of boolean flags
-    if (vehicle.rc_document_path) uploaded++;
-    if (vehicle.insurance_document_path) uploaded++;
-    if (vehicle.fitness_document_path) uploaded++;
-    if (vehicle.tax_document_path) uploaded++;
-    if (vehicle.permit_document_path) uploaded++;
-    if (vehicle.puc_document_path) uploaded++;
+    if (vehicle.rc_document_url) uploaded++;
+    if (vehicle.insurance_document_url) uploaded++;
+    if (vehicle.fitness_document_url) uploaded++;
+    if (vehicle.tax_document_url) uploaded++;
+    if (vehicle.permit_document_url) uploaded++;
+    if (vehicle.puc_document_url) uploaded++;
 
     return { uploaded, total };
   };

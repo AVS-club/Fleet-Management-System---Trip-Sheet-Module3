@@ -342,7 +342,7 @@ export const createVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadRCData.path}`);
 
-      processedVehicle.rc_document_path = licencePublicUrl.publicUrl;
+      processedVehicle.rc_document_url = licencePublicUrl.publicUrl;
       processedVehicle.rc_copy = true;
     }
 
@@ -372,7 +372,7 @@ export const createVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadInsuranceData.path}`);
 
-      processedVehicle.insurance_document_path = insurancePublicUrl.publicUrl;
+      processedVehicle.insurance_document_url = insurancePublicUrl.publicUrl;
       processedVehicle.insurance_document = true;
     }
 
@@ -402,7 +402,7 @@ export const createVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadFitnessData.path}`);
 
-      processedVehicle.fitness_document_path = fitnessPublicUrl.publicUrl;
+      processedVehicle.fitness_document_url = fitnessPublicUrl.publicUrl;
       processedVehicle.fitness_document = true;
     }
 
@@ -432,7 +432,7 @@ export const createVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadTaxData.path}`);
 
-      processedVehicle.tax_document_path = taxPublicUrl.publicUrl;
+      processedVehicle.tax_document_url = taxPublicUrl.publicUrl;
       processedVehicle.tax_receipt_document = true;
     }
 
@@ -461,7 +461,7 @@ export const createVehicle = async (
       const { data: permitPublicUrl } = supabase.storage
         .from("vehicle-docs")
         .getPublicUrl(`${uploadPermitData.path}`);
-      processedVehicle.permit_document_path = permitPublicUrl.publicUrl;
+      processedVehicle.permit_document_url = permitPublicUrl.publicUrl;
       processedVehicle.permit_document = true;
     }
 
@@ -485,10 +485,10 @@ export const createVehicle = async (
         return null;
       }
       // Get the public URL
-      const { data: permitPublicUrl } = supabase.storage
+      const { data: pucPublicUrl } = supabase.storage
         .from("vehicle-docs")
         .getPublicUrl(`${uploadPUCData.path}`);
-      processedVehicle.puc_document_path = permitPublicUrl.publicUrl;
+      processedVehicle.puc_document_url = pucPublicUrl.publicUrl;
       processedVehicle.puc_document = true;
     }
   } catch (error) {
@@ -528,15 +528,30 @@ export const createVehicle = async (
           !isNaN(new Date(processedVehicle.puc_issue_date).getTime()) &&
           new Date(processedVehicle.puc_issue_date)) ||
         null,
+      puc_expiry_date:
+        (processedVehicle.puc_expiry_date &&
+          !isNaN(new Date(processedVehicle.puc_expiry_date).getTime()) &&
+          new Date(processedVehicle.puc_expiry_date)) ||
+        null,
       permit_issue_date:
         (processedVehicle.permit_issue_date &&
           !isNaN(new Date(processedVehicle.permit_issue_date).getTime()) &&
           new Date(processedVehicle.permit_issue_date)) ||
         null,
+      permit_expiry_date:
+        (processedVehicle.permit_expiry_date &&
+          !isNaN(new Date(processedVehicle.permit_expiry_date).getTime()) &&
+          new Date(processedVehicle.permit_expiry_date)) ||
+        null,
       fitness_issue_date:
         (processedVehicle.fitness_issue_date &&
           !isNaN(new Date(processedVehicle.fitness_issue_date).getTime()) &&
           new Date(processedVehicle.fitness_issue_date)) ||
+        null,
+      fitness_expiry_date:
+        (processedVehicle.fitness_expiry_date &&
+          !isNaN(new Date(processedVehicle.fitness_expiry_date).getTime()) &&
+          new Date(processedVehicle.fitness_expiry_date)) ||
         null,
       insurance_expiry_date:
         (processedVehicle.insurance_expiry_date &&
@@ -627,7 +642,7 @@ export const updateVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadRCData.path}`);
 
-      processedVehicle.rc_document_path = licencePublicUrl.publicUrl;
+      processedVehicle.rc_document_url = licencePublicUrl.publicUrl;
       processedVehicle.rc_copy = true;
     }
 
@@ -657,7 +672,7 @@ export const updateVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadInsuranceData.path}`);
 
-      processedVehicle.insurance_document_path = insurancePublicUrl.publicUrl;
+      processedVehicle.insurance_document_url = insurancePublicUrl.publicUrl;
       processedVehicle.insurance_document = true;
     }
 
@@ -687,7 +702,7 @@ export const updateVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadFitnessData.path}`);
 
-      processedVehicle.fitness_document_path = fitnessPublicUrl.publicUrl;
+      processedVehicle.fitness_document_url = fitnessPublicUrl.publicUrl;
       processedVehicle.fitness_document = true;
     }
 
@@ -717,7 +732,7 @@ export const updateVehicle = async (
         .from("vehicle-docs")
         .getPublicUrl(`${uploadTaxData.path}`);
 
-      processedVehicle.tax_document_path = taxPublicUrl.publicUrl;
+      processedVehicle.tax_document_url = taxPublicUrl.publicUrl;
       processedVehicle.tax_receipt_document = true;
     }
 
@@ -746,7 +761,7 @@ export const updateVehicle = async (
       const { data: permitPublicUrl } = supabase.storage
         .from("vehicle-docs")
         .getPublicUrl(`${uploadPermitData.path}`);
-      processedVehicle.permit_document_path = permitPublicUrl.publicUrl;
+      processedVehicle.permit_document_url = permitPublicUrl.publicUrl;
       processedVehicle.permit_document = true;
     }
 
@@ -769,6 +784,11 @@ export const updateVehicle = async (
         console.error("PUC Upload error:", uploadPUCError);
         return null;
       }
+      const { data: pucPublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadPUCData.path}`);
+      processedVehicle.puc_document_url = pucPublicUrl.publicUrl;
+      processedVehicle.puc_document = true;
     }
   } catch (error) {
     console.error("Error uploading vehicle documents:", error);
@@ -1038,6 +1058,7 @@ export const createDriver = async (
   const { data: licencePublicUrl } = supabase.storage
     .from("driver-docs")
     .getPublicUrl(`${uploadData.path}`);
+
   // console.log(new Date(driverData.license_expiry_date));
   const { data, error } = await supabase
     .from("drivers")

@@ -1,16 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
-import { getDriver, getVehicle, getTrips } from '../utils/storage';
-import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
-import { User, Calendar, Truck, ChevronLeft, MapPin, AlertTriangle, FileText, Shield, FileDown, Share2, Download, Phone, Mail } from 'lucide-react';
-import Button from '../components/ui/Button';
-import DriverMetrics from '../components/drivers/DriverMetrics';
-import { getAIAlerts } from '../utils/aiAnalytics';
-import { generateDriverPDF, createShareableDriverLink } from '../utils/exportUtils';
-import { toast } from 'react-toastify';
-import WhatsAppButton from '../components/drivers/WhatsAppButton';
-import DriverDocumentDownloadModal from '../components/drivers/DriverDocumentDownloadModal';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Layout from "../components/layout/Layout";
+import { getDriver, getVehicle, getTrips } from "../utils/storage";
+import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
+import {
+  User,
+  Calendar,
+  Truck,
+  ChevronLeft,
+  MapPin,
+  AlertTriangle,
+  FileText,
+  Shield,
+  FileDown,
+  Share2,
+  Download,
+  Phone,
+  Mail,
+} from "lucide-react";
+import Button from "../components/ui/Button";
+import DriverMetrics from "../components/drivers/DriverMetrics";
+import { getAIAlerts } from "../utils/aiAnalytics";
+import {
+  generateDriverPDF,
+  createShareableDriverLink,
+} from "../utils/exportUtils";
+import { toast } from "react-toastify";
+import WhatsAppButton from "../components/drivers/WhatsAppButton";
+import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDownloadModal";
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,37 +49,42 @@ const DriverPage: React.FC = () => {
     id_proof?: string;
     other: Record<string, string>;
   }>({
-    other: {}
+    other: {},
   });
-  
+
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      
+
       setLoading(true);
       try {
         // Fetch driver data
         const driverData = await getDriver(id);
         setDriver(driverData);
-        
+
         // Fetch primary vehicle if available
         if (driverData?.primary_vehicle_id) {
           const vehicleData = await getVehicle(driverData.primary_vehicle_id);
           setPrimaryVehicle(vehicleData);
         }
-        
+
         // Fetch trips
         const tripsData = await getTrips();
-        setTrips(Array.isArray(tripsData) ? tripsData.filter(trip => trip.driver_id === id) : []);
-        
+        setTrips(
+          Array.isArray(tripsData)
+            ? tripsData.filter((trip) => trip.driver_id === id)
+            : []
+        );
+
         // Fetch alerts
         const alertsData = await getAIAlerts();
         setAlerts(
-          Array.isArray(alertsData) 
-            ? alertsData.filter(alert => 
-                alert.affected_entity?.type === 'driver' && 
-                alert.affected_entity?.id === id &&
-                alert.status === 'pending'
+          Array.isArray(alertsData)
+            ? alertsData.filter(
+                (alert) =>
+                  alert.affected_entity?.type === "driver" &&
+                  alert.affected_entity?.id === id &&
+                  alert.status === "pending"
               )
             : []
         );
@@ -72,12 +94,12 @@ const DriverPage: React.FC = () => {
           await generateSignedUrls(driverData);
         }
       } catch (error) {
-        console.error('Error fetching driver data:', error);
+        console.error("Error fetching driver data:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [id]);
 
@@ -90,44 +112,49 @@ const DriverPage: React.FC = () => {
       id_proof?: string;
       other: Record<string, string>;
     } = {
-      other: {}
+      other: {},
     };
-    
+
     try {
       // Generate signed URL for license document
-      if (driverData.license_document_path) {
-        urls.license = await getSignedDriverDocumentUrl(driverData.license_document_path);
+      if (driverData.license_doc_url) {
+        urls.license = driverData.license_doc_url;
       }
-      
+
       // Generate signed URLs for other documents
-      if (driverData.other_documents && Array.isArray(driverData.other_documents)) {
+      if (
+        driverData.other_documents &&
+        Array.isArray(driverData.other_documents)
+      ) {
         for (let i = 0; i < driverData.other_documents.length; i++) {
           const doc = driverData.other_documents[i];
           if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(
+              doc.file_path
+            );
           }
         }
       }
-      
+
       setSignedDocUrls(urls);
     } catch (error) {
-      console.error('Error generating signed URLs:', error);
-      toast.error('Failed to generate document access links');
+      console.error("Error generating signed URLs:", error);
+      toast.error("Failed to generate document access links");
     }
   };
 
   // Handle export as PDF
   const handleExportPDF = async () => {
     if (!driver) return;
-    
+
     try {
       setExportLoading(true);
       const doc = await generateDriverPDF(driver, trips, primaryVehicle);
-      doc.save(`${driver.name.replace(/\s+/g, '_')}_profile.pdf`);
-      toast.success('Driver profile exported successfully');
+      doc.save(`${driver.name.replace(/\s+/g, "_")}_profile.pdf`);
+      toast.success("Driver profile exported successfully");
     } catch (error) {
-      console.error('Error exporting driver profile:', error);
-      toast.error('Failed to export driver profile');
+      console.error("Error exporting driver profile:", error);
+      toast.error("Failed to export driver profile");
     } finally {
       setExportLoading(false);
     }
@@ -141,31 +168,33 @@ const DriverPage: React.FC = () => {
   // Handle create shareable link
   const handleCreateShareableLink = async () => {
     if (!driver) return;
-    
+
     try {
       setShareLoading(true);
       const link = await createShareableDriverLink(driver.id);
-      
+
       // Copy link to clipboard
       await navigator.clipboard.writeText(link);
-      toast.success('Shareable link copied to clipboard (valid for 7 days)');
+      toast.success("Shareable link copied to clipboard (valid for 7 days)");
     } catch (error) {
-      console.error('Error creating shareable link:', error);
-      toast.error('Failed to create shareable link');
+      console.error("Error creating shareable link:", error);
+      toast.error("Failed to create shareable link");
     } finally {
       setShareLoading(false);
     }
   };
-  
+
   if (!driver) {
     return (
       <Layout title="Driver Not Found">
         <div className="text-center py-12">
-          <p className="text-gray-500">The requested driver could not be found.</p>
+          <p className="text-gray-500">
+            The requested driver could not be found.
+          </p>
           <Button
             variant="outline"
             className="mt-4"
-            onClick={() => navigate('/drivers')}
+            onClick={() => navigate("/drivers")}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
             Back to Drivers
@@ -175,9 +204,14 @@ const DriverPage: React.FC = () => {
     );
   }
 
-  const hasExpiredLicense = driver.license_expiry_date && new Date(driver.license_expiry_date) < new Date();
-  const licenseExpiringIn30Days = driver.license_expiry_date && 
-    (new Date(driver.license_expiry_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24) <= 30;
+  const hasExpiredLicense =
+    driver.license_expiry_date &&
+    new Date(driver.license_expiry_date) < new Date();
+  const licenseExpiringIn30Days =
+    driver.license_expiry_date &&
+    (new Date(driver.license_expiry_date).getTime() - new Date().getTime()) /
+      (1000 * 60 * 60 * 24) <=
+      30;
 
   return (
     <Layout
@@ -187,12 +221,12 @@ const DriverPage: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
-            onClick={() => navigate('/drivers')}
+            onClick={() => navigate("/drivers")}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
             Back
           </Button>
-          
+
           <Button
             variant="outline"
             onClick={handleExportPDF}
@@ -208,12 +242,12 @@ const DriverPage: React.FC = () => {
             icon={<Download className="h-4 w-4" />}
             title="Download Documents"
           />
-          
-          <WhatsAppButton 
+
+          <WhatsAppButton
             phoneNumber={driver.contact_number}
             message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
           />
-          
+
           <Button
             variant="outline"
             onClick={handleCreateShareableLink}
@@ -240,10 +274,17 @@ const DriverPage: React.FC = () => {
                 <h3 className="text-warning-700 font-medium">Active Alerts</h3>
               </div>
               <div className="space-y-2">
-                {alerts.map(alert => (
-                  <div key={alert.id} className="bg-white p-3 rounded-md border border-warning-200">
-                    <p className="font-medium text-warning-800">{alert.title}</p>
-                    <p className="text-sm text-warning-600 mt-1">{alert.description}</p>
+                {alerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="bg-white p-3 rounded-md border border-warning-200"
+                  >
+                    <p className="font-medium text-warning-800">
+                      {alert.title}
+                    </p>
+                    <p className="text-sm text-warning-600 mt-1">
+                      {alert.description}
+                    </p>
                     {alert.metadata?.recommendations && (
                       <ul className="mt-2 text-sm text-warning-700 list-disc list-inside">
                         {alert.metadata.recommendations.map((rec, index) => (
@@ -259,25 +300,37 @@ const DriverPage: React.FC = () => {
 
           {/* License Status Warning */}
           {(hasExpiredLicense || licenseExpiringIn30Days) && (
-            <div className={`p-4 rounded-lg ${
-              hasExpiredLicense ? 'bg-error-50 border-error-200' : 'bg-warning-50 border-warning-200'
-            } border`}>
+            <div
+              className={`p-4 rounded-lg ${
+                hasExpiredLicense
+                  ? "bg-error-50 border-error-200"
+                  : "bg-warning-50 border-warning-200"
+              } border`}
+            >
               <div className="flex items-center">
-                <AlertTriangle className={`h-5 w-5 mr-2 ${
-                  hasExpiredLicense ? 'text-error-500' : 'text-warning-500'
-                }`} />
+                <AlertTriangle
+                  className={`h-5 w-5 mr-2 ${
+                    hasExpiredLicense ? "text-error-500" : "text-warning-500"
+                  }`}
+                />
                 <div>
-                  <h4 className={`font-medium ${
-                    hasExpiredLicense ? 'text-error-700' : 'text-warning-700'
-                  }`}>
-                    {hasExpiredLicense ? 'License Expired' : 'License Expiring Soon'}
-                  </h4>
-                  <p className={`text-sm mt-1 ${
-                    hasExpiredLicense ? 'text-error-600' : 'text-warning-600'
-                  }`}>
+                  <h4
+                    className={`font-medium ${
+                      hasExpiredLicense ? "text-error-700" : "text-warning-700"
+                    }`}
+                  >
                     {hasExpiredLicense
-                      ? 'Driver\'s license has expired. Please renew immediately.'
-                      : 'Driver\'s license will expire in less than 30 days. Please plan for renewal.'}
+                      ? "License Expired"
+                      : "License Expiring Soon"}
+                  </h4>
+                  <p
+                    className={`text-sm mt-1 ${
+                      hasExpiredLicense ? "text-error-600" : "text-warning-600"
+                    }`}
+                  >
+                    {hasExpiredLicense
+                      ? "Driver's license has expired. Please renew immediately."
+                      : "Driver's license will expire in less than 30 days. Please plan for renewal."}
                   </p>
                 </div>
               </div>
@@ -288,7 +341,9 @@ const DriverPage: React.FC = () => {
             {/* Personal Information Panel */}
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Personal Information
+                </h3>
                 <User className="h-6 w-6 text-primary-500" />
               </div>
 
@@ -296,9 +351,9 @@ const DriverPage: React.FC = () => {
                 {/* Driver Photo */}
                 <div className="flex justify-center mb-6">
                   {driver.driver_photo_url ? (
-                    <img 
-                      src={driver.driver_photo_url} 
-                      alt={driver.name} 
+                    <img
+                      src={driver.driver_photo_url}
+                      alt={driver.name}
                       className="h-32 w-32 rounded-full object-cover shadow-md"
                     />
                   ) : (
@@ -341,33 +396,42 @@ const DriverPage: React.FC = () => {
 
                   <div className="pt-3">
                     <p className="text-sm text-gray-500">Join Date</p>
-                    <p className="font-medium">{new Date(driver.join_date).toLocaleDateString()}</p>
+                    <p className="font-medium">
+                      {new Date(driver.join_date).toLocaleDateString()}
+                    </p>
                   </div>
 
                   <div className="pt-3">
                     <p className="text-sm text-gray-500">Experience</p>
-                    <p className="font-medium">{driver.experience_years} years</p>
+                    <p className="font-medium">
+                      {driver.experience_years} years
+                    </p>
                   </div>
 
                   <div className="pt-3">
                     <p className="text-sm text-gray-500">Status</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                      driver.status === 'active' 
-                        ? 'bg-success-100 text-success-800'
-                        : driver.status === 'onLeave'
-                        ? 'bg-warning-100 text-warning-800'
-                        : driver.status === 'suspended' || driver.status === 'blacklisted'
-                        ? 'bg-error-100 text-error-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {driver.status.replace('_', ' ')}
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                        driver.status === "active"
+                          ? "bg-success-100 text-success-800"
+                          : driver.status === "onLeave"
+                          ? "bg-warning-100 text-warning-800"
+                          : driver.status === "suspended" ||
+                            driver.status === "blacklisted"
+                          ? "bg-error-100 text-error-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {driver.status.replace("_", " ")}
                     </span>
                   </div>
 
                   {driver.driver_status_reason && (
                     <div className="pt-3">
                       <p className="text-sm text-gray-500">Status Reason</p>
-                      <p className="text-sm text-error-600">{driver.driver_status_reason}</p>
+                      <p className="text-sm text-error-600">
+                        {driver.driver_status_reason}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -377,26 +441,32 @@ const DriverPage: React.FC = () => {
             {/* Document Status Panel */}
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Document Status</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Document Status
+                </h3>
                 <Shield className="h-6 w-6 text-primary-500" />
               </div>
 
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-gray-900">License Status</h4>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                      hasExpiredLicense
-                        ? 'bg-error-100 text-error-700'
-                        : licenseExpiringIn30Days
-                        ? 'bg-warning-100 text-warning-700'
-                        : 'bg-success-100 text-success-700'
-                    }`}>
+                    <h4 className="font-medium text-gray-900">
+                      License Status
+                    </h4>
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                        hasExpiredLicense
+                          ? "bg-error-100 text-error-700"
+                          : licenseExpiringIn30Days
+                          ? "bg-warning-100 text-warning-700"
+                          : "bg-success-100 text-success-700"
+                      }`}
+                    >
                       {hasExpiredLicense
-                        ? 'Expired'
+                        ? "Expired"
                         : licenseExpiringIn30Days
-                        ? 'Expiring Soon'
-                        : 'Valid'}
+                        ? "Expiring Soon"
+                        : "Valid"}
                     </span>
                   </div>
 
@@ -414,16 +484,26 @@ const DriverPage: React.FC = () => {
                         <span className="text-gray-600">Issue Date</span>
                         <span className="font-medium">
                           {driver.license_issue_date
-                            ? new Date(driver.license_issue_date).toLocaleDateString()
+                            ? new Date(
+                                driver.license_issue_date
+                              ).toLocaleDateString()
                             : "N/A"}
                         </span>
                       </div>
                       <div className="flex justify-between mt-1">
                         <span className="text-gray-600">Expiry Date</span>
-                        <span className={`font-medium ${
-                          hasExpiredLicense ? 'text-error-600' : licenseExpiringIn30Days ? 'text-warning-600' : ''
-                        }`}>
-                          {new Date(driver.license_expiry_date).toLocaleDateString()}
+                        <span
+                          className={`font-medium ${
+                            hasExpiredLicense
+                              ? "text-error-600"
+                              : licenseExpiringIn30Days
+                              ? "text-warning-600"
+                              : ""
+                          }`}
+                        >
+                          {new Date(
+                            driver.license_expiry_date
+                          ).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -432,50 +512,68 @@ const DriverPage: React.FC = () => {
 
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-medium text-gray-900">Document Verification</h4>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                      driver.documents_verified
-                        ? 'bg-success-100 text-success-700'
-                        : 'bg-warning-100 text-warning-700'
-                    }`}>
-                      {driver.documents_verified ? 'Verified' : 'Pending'}
+                    <h4 className="font-medium text-gray-900">
+                      Document Verification
+                    </h4>
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                        driver.documents_verified
+                          ? "bg-success-100 text-success-700"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      {driver.documents_verified ? "Verified" : "Pending"}
                     </span>
                   </div>
 
                   <div className="flex items-center mt-2 p-3 bg-white rounded border border-gray-200">
                     <FileText className="h-5 w-5 text-gray-400 mr-2" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">License Document</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        License Document
+                      </p>
                       <p className="text-xs text-gray-500">
-                        {driver.license_document ? 'Available' : 'Not uploaded'}
+                        {driver.license_doc_url ? "Available" : "Not uploaded"}
                       </p>
                     </div>
-                    {driver.license_document && (
-                      <Button variant="outline" size="sm">View</Button>
+                    {driver.license_doc_url && (
+                      <Button variant="outline" size="sm">
+                        View
+                      </Button>
                     )}
                   </div>
 
                   {/* Display other documents if any */}
-                  {driver.other_documents && Array.isArray(driver.other_documents) && 
-                   driver.other_documents.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="text-sm font-medium text-gray-700 mb-2">Additional Documents</h5>
-                      {driver.other_documents.map((doc, index) => (
-                        <div key={index} className="flex items-center mt-2 p-3 bg-white rounded border border-gray-200">
-                          <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">{doc.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {doc.file_path ? 'Available' : 'Not uploaded'}
-                            </p>
+                  {driver.other_documents &&
+                    Array.isArray(driver.other_documents) &&
+                    driver.other_documents.length > 0 && (
+                      <div className="mt-3">
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">
+                          Additional Documents
+                        </h5>
+                        {driver.other_documents.map((doc, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center mt-2 p-3 bg-white rounded border border-gray-200"
+                          >
+                            <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {doc.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {doc.file_path ? "Available" : "Not uploaded"}
+                              </p>
+                            </div>
+                            {doc.file_path && (
+                              <Button variant="outline" size="sm">
+                                View
+                              </Button>
+                            )}
                           </div>
-                          {doc.file_path && (
-                            <Button variant="outline" size="sm">View</Button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
@@ -483,40 +581,52 @@ const DriverPage: React.FC = () => {
             {/* Primary Vehicle Panel */}
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Primary Vehicle</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Primary Vehicle
+                </h3>
                 <Truck className="h-6 w-6 text-primary-500" />
               </div>
 
               {primaryVehicle ? (
                 <div className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Vehicle Details</h4>
-                    
+                    <h4 className="font-medium text-gray-900 mb-3">
+                      Vehicle Details
+                    </h4>
+
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Registration</span>
-                        <span className="font-medium">{primaryVehicle.registration_number}</span>
+                        <span className="font-medium">
+                          {primaryVehicle.registration_number}
+                        </span>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-600">Make & Model</span>
-                        <span className="font-medium">{primaryVehicle.make} {primaryVehicle.model}</span>
+                        <span className="font-medium">
+                          {primaryVehicle.make} {primaryVehicle.model}
+                        </span>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-600">Type</span>
-                        <span className="font-medium capitalize">{primaryVehicle.type}</span>
+                        <span className="font-medium capitalize">
+                          {primaryVehicle.type}
+                        </span>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status</span>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          primaryVehicle.status === 'active' 
-                            ? 'bg-success-100 text-success-800'
-                            : primaryVehicle.status === 'maintenance'
-                            ? 'bg-warning-100 text-warning-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                            primaryVehicle.status === "active"
+                              ? "bg-success-100 text-success-800"
+                              : primaryVehicle.status === "maintenance"
+                              ? "bg-warning-100 text-warning-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {primaryVehicle.status}
                         </span>
                       </div>
