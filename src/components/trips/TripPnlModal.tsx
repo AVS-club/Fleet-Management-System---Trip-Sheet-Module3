@@ -29,6 +29,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
   );
   const [freightRate, setFreightRate] = useState<number>(trip.freight_rate || 0);
   const [manualIncome, setManualIncome] = useState<number>(trip.income_amount || 0);
+  const [advanceAmount, setAdvanceAmount] = useState<number>(trip.advance_amount || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEstimated, setIsEstimated] = useState(true);
 
@@ -46,16 +47,22 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
 
   // Calculate income based on billing type
   const calculateIncome = (): number => {
+    let baseIncome = 0;
     switch (billingType) {
       case 'per_km':
-        return distance * freightRate;
+        baseIncome = distance * freightRate;
+        break;
       case 'per_ton':
-        return trip.gross_weight * freightRate;
+        baseIncome = trip.gross_weight * freightRate;
+        break;
       case 'manual':
-        return manualIncome;
+        baseIncome = manualIncome;
+        break;
       default:
-        return 0;
+        baseIncome = 0;
+        break;
     }
+    return baseIncome;
   };
 
   const income = calculateIncome();
@@ -86,7 +93,8 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
         total_expense: totalExpenses,
         net_profit: netProfit,
         cost_per_km: costPerKm,
-        profit_status: profitStatus
+        profit_status: profitStatus,
+        advance_amount: advanceAmount
       });
 
       if (updatedTrip) {
@@ -198,6 +206,16 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
                   icon={<IndianRupee className="h-4 w-4" />}
                 />
               )}
+
+              {/* Add advance amount input */}
+              <Input
+                label="Advance (if received)"
+                type="number"
+                value={advanceAmount}
+                onChange={(e) => setAdvanceAmount(parseFloat(e.target.value) || 0)}
+                icon={<IndianRupee className="h-4 w-4" />}
+                className={billingType === 'manual' ? 'md:col-span-2' : ''}
+              />
             </div>
             
             <div className="bg-green-50 p-4 rounded-lg flex justify-between items-center">
@@ -210,7 +228,14 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
                   </span>
                 )}
               </div>
-              <span className="text-lg font-bold text-green-700">₹{income.toLocaleString()}</span>
+              <div className="text-right">
+                <span className="text-lg font-bold text-green-700">₹{income.toLocaleString()}</span>
+                {advanceAmount > 0 && (
+                  <div className="text-xs text-gray-600 mt-1">
+                    <span>Advance: ₹{advanceAmount.toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -270,6 +295,11 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500">Total Income</p>
                 <p className="font-medium text-green-600">₹{income.toLocaleString()}</p>
+                {advanceAmount > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    (Incl. Advance: ₹{advanceAmount.toLocaleString()})
+                  </p>
+                )}
               </div>
               
               <div className="p-3 bg-gray-50 rounded-lg">

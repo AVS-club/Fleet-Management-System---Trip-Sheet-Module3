@@ -294,6 +294,7 @@ export interface Trip {
   material_type_ids?: string[];
   estimated_toll_cost?: number;
   is_return_trip?: boolean;
+  advance_amount?: number; // New field for advance amount
   created_at: string;
   updated_at: string;
   
