@@ -1102,13 +1102,18 @@ export const updateDriver = async (
   id: string,
   updatedDriver: Partial<Driver>
 ): Promise<Driver | null> => {
-  // Remove photo property if it exists (we handle it separately)
-  const { photo, ...driverData } = updatedDriver as any;
+  // Remove photo property and handle dl_number mapping if it exists
+  const { photo, dl_number, ...driverData } = updatedDriver as any;
 
   const mappedDriverData = {
     ...driverData,
     updated_at: new Date().toISOString(),
   };
+
+  // Map dl_number to license_number if it exists
+  if (dl_number !== undefined) {
+    mappedDriverData.license_number = dl_number;
+  }
 
   const { data, error } = await supabase
     .from("drivers")
