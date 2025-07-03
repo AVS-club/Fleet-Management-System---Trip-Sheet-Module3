@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import TripList from '../components/trips/TripList';
 import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
+import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
@@ -18,6 +19,7 @@ const TripsPage: React.FC = () => {
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
+  const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
   
   // Load data
   useEffect(() => {
@@ -93,6 +95,17 @@ const TripsPage: React.FC = () => {
   const handleTripSelect = (trip: Trip) => {
     navigate(`/trips/${trip.id}`);
   };
+
+  const handlePnlClick = (e: React.MouseEvent, trip: Trip) => {
+    e.stopPropagation();
+    setSelectedTripForPnl(trip);
+  };
+
+  const handleTripUpdate = (updatedTrip: Trip) => {
+    setTrips(prev => 
+      prev.map(trip => trip.id === updatedTrip.id ? updatedTrip : trip)
+    );
+  };
   
   return (
     <Layout
@@ -160,8 +173,21 @@ const TripsPage: React.FC = () => {
             vehicles={vehicles} 
             drivers={drivers}
             onSelectTrip={handleTripSelect}
+            onPnlClick={handlePnlClick}
           />
         </div>
+      )}
+
+      {/* P&L Modal */}
+      {selectedTripForPnl && (
+        <TripPnlModal
+          isOpen={!!selectedTripForPnl}
+          onClose={() => setSelectedTripForPnl(null)}
+          trip={selectedTripForPnl}
+          vehicle={vehicles.find(v => v.id === selectedTripForPnl.vehicle_id)}
+          driver={drivers.find(d => d.id === selectedTripForPnl.driver_id)}
+          onUpdate={handleTripUpdate}
+        />
       )}
     </Layout>
   );

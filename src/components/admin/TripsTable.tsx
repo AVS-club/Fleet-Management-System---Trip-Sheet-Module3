@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trip, Vehicle, Driver } from '../../types';
-import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2, IndianRupee } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -141,6 +141,14 @@ const TripsTable: React.FC<TripsTableProps> = ({
       sortable: true,
       width: '120px',
       description: 'Combined road and fuel expenses'
+    },
+    {
+      id: 'profit_loss',
+      label: 'Profit/Loss',
+      accessor: (trip) => trip.net_profit || 0,
+      sortable: true,
+      width: '120px',
+      description: 'Net profit or loss for the trip'
     }
   ]);
 
@@ -259,6 +267,13 @@ const TripsTable: React.FC<TripsTableProps> = ({
     }
   };
 
+  // Function to get profit/loss cell style
+  const getProfitLossStyle = (value: number) => {
+    if (value > 0) return 'text-success-600 font-medium';
+    if (value < 0) return 'text-error-600 font-medium';
+    return 'text-gray-500';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg shadow-sm">
@@ -370,6 +385,13 @@ const TripsTable: React.FC<TripsTableProps> = ({
                               onBlur={() => setEditingCell(null)}
                             />
                           )
+                        ) : column.id === 'profit_loss' ? (
+                          <div className="flex items-center">
+                            <IndianRupee className="h-4 w-4 mr-1 text-gray-400" />
+                            <span className={getProfitLossStyle(trip.net_profit || 0)}>
+                              {trip.net_profit ? trip.net_profit.toLocaleString() : '0'}
+                            </span>
+                          </div>
                         ) : (
                           <span className={column.editable ? 'cursor-pointer' : ''}>
                             {column.accessor(trip, vehicles, drivers)}

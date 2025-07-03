@@ -296,6 +296,15 @@ export interface Trip {
   is_return_trip?: boolean;
   created_at: string;
   updated_at: string;
+  
+  // P&L fields
+  freight_rate?: number;
+  billing_type?: 'per_km' | 'per_ton' | 'manual';
+  income_amount?: number;
+  total_expense?: number;
+  net_profit?: number;
+  cost_per_km?: number;
+  profit_status?: 'profit' | 'loss' | 'neutral';
 }
 
 export interface TripFormData

@@ -10,9 +10,16 @@ interface TripListProps {
   vehicles: Vehicle[] | null;
   drivers: Driver[] | null;
   onSelectTrip: (trip: Trip) => void;
+  onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
 }
 
-const TripList: React.FC<TripListProps> = ({ trips, vehicles, drivers, onSelectTrip }) => {
+const TripList: React.FC<TripListProps> = ({ 
+  trips, 
+  vehicles, 
+  drivers, 
+  onSelectTrip,
+  onPnlClick
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterVehicle, setFilterVehicle] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
@@ -132,6 +139,7 @@ const TripList: React.FC<TripListProps> = ({ trips, vehicles, drivers, onSelectT
               vehicle={Array.isArray(vehicles) ? vehicles.find(v => v.id === trip.vehicle_id) : undefined}
               driver={Array.isArray(drivers) ? drivers.find(d => d.id === trip.driver_id) : undefined}
               onClick={() => onSelectTrip(trip)}
+              onPnlClick={onPnlClick}
             />
           ))}
         </div>

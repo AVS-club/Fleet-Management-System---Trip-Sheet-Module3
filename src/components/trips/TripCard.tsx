@@ -9,9 +9,10 @@ interface TripCardProps {
   vehicle: Vehicle | undefined;
   driver: Driver | undefined;
   onClick?: () => void;
+  onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) => {
+const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick }) => {
   const [warehouseData, setWarehouseData] = useState<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -80,6 +81,18 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
 
   const totalExpenses = (trip.total_road_expenses || 0) + (trip.total_fuel_cost || 0);
   
+  // Determine profit status color
+  const getProfitStatusColor = () => {
+    if (!trip.profit_status) return '';
+    
+    switch (trip.profit_status) {
+      case 'profit': return 'text-green-600';
+      case 'loss': return 'text-red-600';
+      case 'neutral': return 'text-gray-600';
+      default: return '';
+    }
+  };
+
   return (
     <div 
       className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors animate-fade-in"
@@ -102,11 +115,25 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
           </div>
         </div>
         
-        {trip.short_trip && (
-          <span className="bg-gray-100 text-gray-600 text-xs py-1 px-2 rounded-full">
-            Local Trip
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {trip.short_trip && (
+            <span className="bg-gray-100 text-gray-600 text-xs py-1 px-2 rounded-full">
+              Local Trip
+            </span>
+          )}
+          
+          {/* P&L Button */}
+          <button 
+            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onPnlClick) onPnlClick(e, trip);
+            }}
+            title="Profit & Loss"
+          >
+            <IndianRupee className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       
       <div className="space-y-2">
@@ -188,17 +215,36 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick }) =
           </div>
         </div>
 
-        {trip.route_deviation && (
-          <div className={`mt-2 text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
-            Math.abs(trip.route_deviation) > 15
-              ? 'bg-error-50 text-error-700'
-              : Math.abs(trip.route_deviation) > 5
-              ? 'bg-warning-50 text-warning-700'
-              : 'bg-success-50 text-success-700'
-          }`}>
-            <span>Deviation: {trip.route_deviation > 0 ? '+' : ''}{trip.route_deviation}%</span>
-          </div>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {trip.route_deviation && (
+            <div className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
+              Math.abs(trip.route_deviation) > 15
+                ? 'bg-error-50 text-error-700'
+                : Math.abs(trip.route_deviation) > 5
+                ? 'bg-warning-50 text-warning-700'
+                : 'bg-success-50 text-success-700'
+            }`}>
+              <span>Deviation: {trip.route_deviation > 0 ? '+' : ''}{trip.route_deviation}%</span>
+            </div>
+          )}
+          
+          {/* P&L Status Badge */}
+          {trip.profit_status && (
+            <div className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
+              trip.profit_status === 'profit'
+                ? 'bg-success-50 text-success-700'
+                : trip.profit_status === 'loss'
+                ? 'bg-error-50 text-error-700'
+                : 'bg-gray-50 text-gray-700'
+            }`}>
+              <span>
+                {trip.profit_status === 'profit' ? 'Profit' : 
+                 trip.profit_status === 'loss' ? 'Loss' : 'Break-even'}
+                {trip.net_profit !== undefined && `: ₹${Math.abs(trip.net_profit).toLocaleString()}`}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
