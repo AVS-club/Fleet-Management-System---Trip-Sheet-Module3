@@ -70,6 +70,75 @@ const TripPnlReportsPage: React.FC = () => {
     breakEvenTrips: 0
   });
 
+  // Filter trips based on current filters
+  const filteredTrips = React.useMemo(() => {
+    return trips.filter(trip => {
+      // Skip trips without P&L data
+      if (trip.income_amount === undefined || trip.total_expense === undefined) {
+        return false;
+      }
+      
+      // Search filter
+      if (filters.search) {
+        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+        const driver = drivers.find(d => d.id === trip.driver_id);
+        
+        const searchTerm = filters.search.toLowerCase();
+        const searchFields = [
+          trip.trip_serial_number,
+          vehicle?.registration_number,
+          driver?.name,
+          trip.station,
+          trip.net_profit?.toString()
+        ].map(field => field?.toLowerCase());
+        
+        if (!searchFields.some(field => field?.includes(searchTerm))) {
+          return false;
+        }
+      }
+
+      // Date range filter
+      if (filters.dateRange.start) {
+        const startDate = new Date(filters.dateRange.start);
+        const tripStartDate = new Date(trip.trip_start_date);
+        if (tripStartDate < startDate) {
+          return false;
+        }
+      }
+      
+      if (filters.dateRange.end) {
+        const endDate = new Date(filters.dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        const tripEndDate = new Date(trip.trip_end_date);
+        if (tripEndDate > endDate) {
+          return false;
+        }
+      }
+
+      // Vehicle filter
+      if (filters.vehicleId && trip.vehicle_id !== filters.vehicleId) {
+        return false;
+      }
+
+      // Driver filter
+      if (filters.driverId && trip.driver_id !== filters.driverId) {
+        return false;
+      }
+
+      // Warehouse filter
+      if (filters.warehouseId && trip.warehouse_id !== filters.warehouseId) {
+        return false;
+      }
+
+      // Profit status filter
+      if (filters.profitStatus && trip.profit_status !== filters.profitStatus) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
+  }, [trips, vehicles, drivers, filters]);
+
   // Handle date preset changes
   useEffect(() => {
     if (datePreset === 'custom') {
@@ -224,75 +293,6 @@ const TripPnlReportsPage: React.FC = () => {
     
     setPnlSummary(summary);
   };
-
-  // Filter trips based on current filters
-  const filteredTrips = React.useMemo(() => {
-    return trips.filter(trip => {
-      // Skip trips without P&L data
-      if (trip.income_amount === undefined || trip.total_expense === undefined) {
-        return false;
-      }
-      
-      // Search filter
-      if (filters.search) {
-        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
-        const driver = drivers.find(d => d.id === trip.driver_id);
-        
-        const searchTerm = filters.search.toLowerCase();
-        const searchFields = [
-          trip.trip_serial_number,
-          vehicle?.registration_number,
-          driver?.name,
-          trip.station,
-          trip.net_profit?.toString()
-        ].map(field => field?.toLowerCase());
-        
-        if (!searchFields.some(field => field?.includes(searchTerm))) {
-          return false;
-        }
-      }
-
-      // Date range filter
-      if (filters.dateRange.start) {
-        const startDate = new Date(filters.dateRange.start);
-        const tripStartDate = new Date(trip.trip_start_date);
-        if (tripStartDate < startDate) {
-          return false;
-        }
-      }
-      
-      if (filters.dateRange.end) {
-        const endDate = new Date(filters.dateRange.end);
-        endDate.setHours(23, 59, 59, 999); // End of day
-        const tripEndDate = new Date(trip.trip_end_date);
-        if (tripEndDate > endDate) {
-          return false;
-        }
-      }
-
-      // Vehicle filter
-      if (filters.vehicleId && trip.vehicle_id !== filters.vehicleId) {
-        return false;
-      }
-
-      // Driver filter
-      if (filters.driverId && trip.driver_id !== filters.driverId) {
-        return false;
-      }
-
-      // Warehouse filter
-      if (filters.warehouseId && trip.warehouse_id !== filters.warehouseId) {
-        return false;
-      }
-
-      // Profit status filter
-      if (filters.profitStatus && trip.profit_status !== filters.profitStatus) {
-        return false;
-      }
-
-      return true;
-    }).sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
-  }, [trips, vehicles, drivers, filters]);
 
   // Calculate pagination
   const indexOfLastTrip = currentPage * tripsPerPage;
