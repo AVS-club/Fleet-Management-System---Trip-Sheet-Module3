@@ -73,7 +73,7 @@ The main issues fixed were:
 1. Removed duplicate datePresetOptions array
 2. Closed the fetchData function properly
 3. Added missing closing brackets for the component
-4. Fixed the filteredTrips useMemo callback function syntax
+4. Fixed the filteredTrips useMemo callback function that had incomplete date range filter logic
 5. Properly closed all JSX elements
 
 The code should now be syntactically correct and work as intended.
