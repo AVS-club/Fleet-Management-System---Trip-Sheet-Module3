@@ -164,8 +164,10 @@ const TripPnlReportsPage: React.FC = () => {
 
   // Calculate P&L summary metrics when filtered trips change
   useEffect(() => {
-    calculatePnlSummary(filteredTrips);
-  }, [filteredTrips]);
+    if (!loading) {
+      calculatePnlSummary(filteredTrips);
+    }
+  }, [filteredTrips, loading]);
 
   // Refresh data function
   const refreshData = async () => {
