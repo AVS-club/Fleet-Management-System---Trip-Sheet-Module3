@@ -98,6 +98,75 @@ const TripPnlReportsPage: React.FC = () => {
       }
 
       // Date range filter
+        return false;
+      }
+
+      // Warehouse filter
+      if (filters.warehouseId && trip.warehouse_id !== filters.warehouseId) {
+        return false;
+      }
+
+      // Profit status filter
+      if (filters.profitStatus && trip.profit_status !== filters.profitStatus) {
+        return false;
+      }
+
+      return true;
+    }).sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
+  }, [trips, vehicles, drivers, filters]);
+
+    { value: 'today', label: 'Today' },
+    { value: 'yesterday', label: 'Yesterday' },
+    { value: 'thisWeek', label: 'This Week' },
+    { value: 'lastWeek', label: 'Last Week' },
+    { value: 'thisMonth', label: 'This Month' },
+    { value: 'lastMonth', label: 'Last Month' },
+    { value: 'thisYear', label: 'This Year' },
+    { value: 'lastYear', label: 'Last Year' },
+    { value: 'last7', label: 'Last 7 Days' },
+    { value: 'last30', label: 'Last 30 Days' },
+    { value: 'allTime', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range' }
+  ];
+
+  // P&L Summary Metrics
+  const [pnlSummary, setPnlSummary] = useState({
+    totalRevenue: 0,
+    totalExpense: 0,
+    netProfit: 0,
+    profitableTrips: 0,
+    lossTrips: 0,
+    breakEvenTrips: 0
+  });
+
+  // Filter trips based on current filters
+  const filteredTrips = React.useMemo(() => {
+    return trips.filter(trip => {
+      // Skip trips without P&L data
+      if (trip.income_amount === undefined || trip.total_expense === undefined) {
+        return false;
+      }
+      
+      // Search filter
+      if (filters.search) {
+        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+        const driver = drivers.find(d => d.id === trip.driver_id);
+        
+        const searchTerm = filters.search.toLowerCase();
+        const searchFields = [
+          trip.trip_serial_number,
+          vehicle?.registration_number,
+          driver?.name,
+          trip.station,
+          trip.net_profit?.toString()
+        ].map(field => field?.toLowerCase());
+        
+        if (!searchFields.some(field => field?.includes(searchTerm))) {
+          return false;
+        }
+      }
+
+      // Date range filter
       if (filters.dateRange.start) {
         const startDate = new Date(filters.dateRange.start);
         const tripStartDate = new Date(trip.trip_start_date);
@@ -225,75 +294,6 @@ const TripPnlReportsPage: React.FC = () => {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
         setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
-
-  // Calculate P&L summary metrics when filtered trips change
-  useEffect(() => {
-    if (!loading) {
-      calculatePnlSummary(filteredTrips);
-    }
-  }, [filteredTrips, loading]);
-
-  // Refresh data function
-  const refreshData = async () => {
-    try {
-      setRefreshing(true);
-      const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
-        getTrips(),
-        getVehicles(),
-        getDrivers(),
-        getWarehouses()
-      ]);
-      
-      setTrips(tripsData);
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
-      setWarehouses(warehousesData);
-      
-      toast.success("Data refreshed successfully");
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      toast.error("Failed to refresh data");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Calculate P&L summary
-  const calculatePnlSummary = (trips: Trip[]) => {
-    const summary = trips.reduce((acc, trip) => {
-      // Only include trips with P&L data
-      if (trip.income_amount !== undefined && trip.total_expense !== undefined) {
-        acc.totalRevenue += Number(trip.income_amount) || 0;
-        acc.totalExpense += Number(trip.total_expense) || 0;
-        acc.netProfit += Number(trip.net_profit) || 0;
-        
-        if (trip.profit_status === 'profit') {
-          acc.profitableTrips++;
-        } else if (trip.profit_status === 'loss') {
-          acc.lossTrips++;
-        } else {
-          acc.breakEvenTrips++;
-        }
-      }
-      
-      return acc;
-    }, {
-      totalRevenue: 0,
-      totalExpense: 0,
-      netProfit: 0,
-      profitableTrips: 0,
-      lossTrips: 0,
-      breakEvenTrips: 0
-    });
-    
-    setPnlSummary(summary);
-  };
-
   // Calculate pagination
   const indexOfLastTrip = currentPage * tripsPerPage;
   const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
