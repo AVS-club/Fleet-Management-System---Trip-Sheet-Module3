@@ -461,6 +461,9 @@ const AdminTripsPage: React.FC = () => {
         'Fuel Cost': trip.total_fuel_cost || 0,
         'Road Expenses': trip.total_road_expenses,
         'Total Cost': (trip.total_fuel_cost || 0) + trip.total_road_expenses,
+        'Revenue': trip.income_amount || 0,
+        'Profit/Loss': trip.net_profit ? `₹${trip.net_profit.toLocaleString()}` : '-',
+        'Status': trip.profit_status ? trip.profit_status.charAt(0).toUpperCase() + trip.profit_status.slice(1) : '-',
         'Type': trip.short_trip ? 'Local' : trip.destinations.length > 1 ? 'Two Way' : 'One Way'
       };
     });

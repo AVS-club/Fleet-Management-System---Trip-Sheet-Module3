@@ -14,6 +14,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import DashboardPage from "./pages/DashboardPage";
 import TripsPage from "./pages/TripsPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
+import TripPnlReportsPage from "./pages/TripPnlReportsPage";
 import AIAlertsPage from "./pages/AIAlertsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
@@ -300,6 +301,7 @@ Current URL: ${window.location.origin}`;
             <Route path="/" element={<DashboardPage />} />
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailsPage />} />
+            <Route path="/trip-pnl-reports" element={<TripPnlReportsPage />} />
             <Route path="/alerts" element={<AIAlertsPage />} />
             <Route path="/maintenance" element={<MaintenancePage />} />
             <Route path="/maintenance/:id" element={<MaintenanceTaskPage />} />

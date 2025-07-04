@@ -8,7 +8,7 @@ import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
-import { PlusCircle, FileText } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TripsPage: React.FC = () => {
@@ -114,6 +114,13 @@ const TripsPage: React.FC = () => {
       actions={
         !isAddingTrip ? (
           <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/trip-pnl-reports')}
+              icon={<BarChart2 className="h-4 w-4" />}
+            >
+              P&L Report
+            </Button>
             <Button
               variant="outline"
               onClick={() => setShowDashboard(!showDashboard)}
