@@ -195,10 +195,10 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
     }
   };
   
-  const handleShareLink = async (url: string) => {
+  const handleShareLink = async (url: string, docName: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard');
+      toast.success(`${docName} link copied to clipboard`);
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       toast.error('Failed to copy link');
@@ -307,7 +307,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
                               <Download className="h-4 w-4" />
                             </a>
                             <button
-                              onClick={() => handleShareLink(doc.url!)}
+                              onClick={() => handleShareLink(doc.url!, doc.name)}
                               className="text-primary-600 hover:text-primary-900"
                               title="Copy share link"
                             >

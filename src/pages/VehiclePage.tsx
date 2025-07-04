@@ -18,6 +18,7 @@ import VehicleWhatsAppShareModal from '../components/vehicles/VehicleWhatsAppSha
 import VehicleSummaryChips from '../components/vehicles/VehicleSummaryChips';
 import WhatsAppButton from '../components/vehicles/WhatsAppButton';
 import DocumentDownloadModal from '../components/vehicles/DocumentDownloadModal';
+import DocumentViewerModal from '../components/vehicles/DocumentViewerModal';
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +32,7 @@ const VehiclePage: React.FC = () => {
   const [shareLoading, setShareLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showDocumentViewerModal, setShowDocumentViewerModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] = useState<Vehicle | null>(null);
   const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
   
@@ -144,6 +146,57 @@ const VehiclePage: React.FC = () => {
       console.error('Error generating signed URLs:', error);
       toast.error('Failed to generate document access links');
     }
+  };
+
+  // Prepare documents for document viewer modal
+  const getDocumentsForViewer = () => {
+    return [
+      {
+        type: 'RC Document',
+        name: 'RC Document',
+        url: signedDocUrls.rc || null,
+        status: vehicle.rc_document_url ? 'submitted' : 'missing'
+      },
+      {
+        type: 'Insurance',
+        name: 'Insurance',
+        url: signedDocUrls.insurance || null,
+        status: vehicle.insurance_document_url ? 'submitted' : 'missing'
+      },
+      {
+        type: 'Fitness Certificate',
+        name: 'Fitness Certificate',
+        url: signedDocUrls.fitness || null,
+        status: vehicle.fitness_document_url ? 'submitted' : 'missing'
+      },
+      {
+        type: 'Permit',
+        name: 'Permit',
+        url: signedDocUrls.permit || null,
+        status: vehicle.permit_document_url ? 'submitted' : 'missing'
+      },
+      {
+        type: 'PUC Certificate',
+        name: 'PUC Certificate',
+        url: signedDocUrls.puc || null,
+        status: vehicle.puc_document_url ? 'submitted' : 'missing'
+      },
+      {
+        type: 'Tax Receipt',
+        name: 'Tax Receipt',
+        url: signedDocUrls.tax || null,
+        status: vehicle.tax_document_url ? 'submitted' : 'missing'
+      },
+      // Add other documents if any
+      ...(vehicle.other_documents && Array.isArray(vehicle.other_documents) 
+        ? vehicle.other_documents.map((doc, index) => ({
+            type: doc.name || `Additional Document ${index + 1}`,
+            name: doc.name || `Additional Document ${index + 1}`,
+            url: signedDocUrls.other[`other_${index}`] || null,
+            status: doc.file_path ? 'submitted' : 'missing'
+          }))
+        : [])
+    ];
   };
   
   if (!vehicle) {
@@ -304,6 +357,13 @@ const VehiclePage: React.FC = () => {
             Export PDF
           </Button>
           
+          <Button
+            variant="outline"
+            onClick={() => setShowDocumentViewerModal(true)}
+            icon={<Eye className="h-4 w-4" />}
+            title="View Documents"
+          />
+
           <Button
             variant="outline"
             onClick={handleDownloadDocuments}
@@ -1058,6 +1118,16 @@ const VehiclePage: React.FC = () => {
           onClose={() => setShowDownloadModal(false)}
           vehicle={vehicle}
           signedDocUrls={signedDocUrls}
+        />
+      )}
+
+      {/* Document Viewer Modal */}
+      {showDocumentViewerModal && (
+        <DocumentViewerModal
+          isOpen={showDocumentViewerModal}
+          onClose={() => setShowDocumentViewerModal(false)}
+          vehicleNumber={vehicle.registration_number}
+          documents={getDocumentsForViewer()}
         />
       )}
     </Layout>
