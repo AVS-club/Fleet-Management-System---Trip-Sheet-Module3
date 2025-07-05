@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import { clsx } from 'clsx';
 import { cn } from '../../utils/cn';
 import { ChevronDown } from 'lucide-react';
 
@@ -40,7 +39,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     };
 
     return (
-      <div className={clsx("form-group", fullWidth && "w-full")}>
+      <div className={cn("form-group", fullWidth && "w-full")}>
         {label && (
           <label 
             htmlFor={selectId} 
@@ -79,7 +78,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         </div>
         
         {(helperText || error) && (
-          <p className={clsx(
+          <p className={cn(
             "mt-1 text-sm",
             error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>

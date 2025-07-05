@@ -73,7 +73,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
   return (
     <div
-      className={clsx("form-group", fullWidth && "w-full")}
+      className={cn("form-group", fullWidth && "w-full")}
       ref={containerRef}
     >
       {label && (
@@ -112,7 +112,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
           .map((option) => (
             <span
               key={option!.value}
-              className="flex items-center bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 rounded px-2 py-1 text-xs mr-1 mb-1"
+              className={cn("flex items-center bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 rounded px-2 py-1 text-xs mr-1 mb-1")}
               onClick={(e) => {
                 e.stopPropagation();
                 handleRemove(option!.value);
@@ -134,7 +134,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
             {options.map((option) => (
               <div
                 key={option.value}
-                className={clsx(
+                className={cn(
                   "flex items-center px-3 py-2 cursor-pointer hover:bg-primary-50 dark:hover:bg-primary-900",
                   option.disabled && "opacity-50 cursor-not-allowed"
                 )}
@@ -159,7 +159,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       </div>
       {(helperText || error) && (
         <p
-          className={clsx(
+          className={cn(
             "mt-1 text-sm",
             error
               ? "text-error-500 dark:text-error-400"

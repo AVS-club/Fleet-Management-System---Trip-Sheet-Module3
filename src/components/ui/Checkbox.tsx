@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import { clsx } from 'clsx';
 import { cn } from '../../utils/cn';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -24,7 +23,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
 
     return (
       <div className="form-group">
-        <div className={clsx(
+        <div className={cn(
           "flex items-center",
           labelPlacement === 'start' ? 'flex-row-reverse justify-end' : 'flex-row'
         )}>
@@ -43,7 +42,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           {label && (
             <label 
               htmlFor={checkboxId}
-              className={clsx(
+              className={cn(
                 "text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300",
                 labelPlacement === 'start' ? 'mr-2' : 'ml-2'
               )}
@@ -54,7 +53,7 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         </div>
         
         {(helperText || error) && (
-          <p className={clsx(
+          <p className={cn(
             "mt-1 text-xs sm:text-sm ml-6",
             error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>

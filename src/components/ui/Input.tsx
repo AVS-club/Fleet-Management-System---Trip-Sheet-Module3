@@ -1,5 +1,4 @@
 import React, { forwardRef } from 'react';
-import { clsx } from 'clsx';
 import { cn } from '../../utils/cn';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -48,7 +47,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const needsRightPadding = type === 'number' || type === 'date' || type === 'time' || type === 'datetime-local';
 
     return (
-      <div className={clsx("form-group", fullWidth && "w-full")}>
+      <div className={cn("form-group", fullWidth && "w-full")}>
         {label && (
           <label 
             htmlFor={inputId} 
@@ -59,7 +58,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           </label>
         )}
         
-        <div className={clsx("relative", fullWidth && "w-full")}>
+        <div className={cn("relative", fullWidth && "w-full")}>
           {shouldShowIcon && iconPosition === 'left' && (
             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
               {icon}
@@ -90,7 +89,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
         
         {(helperText || error) && (
-          <p className={clsx(
+          <p className={cn(
             "mt-1 text-sm",
             error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
           )}>

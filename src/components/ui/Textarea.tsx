@@ -1,5 +1,4 @@
 import React, { forwardRef } from "react";
-import { clsx } from "clsx";
 import { cn } from "../../utils/cn";
 
 interface TextareaProps
@@ -36,7 +35,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const textareaId = id || `textarea-${React.useId()}`;
 
     return (
-      <div className={clsx("form-group", fullWidth && "w-full")}>
+      <div className={cn("form-group", fullWidth && "w-full")}>
         {label && (
           <label
             htmlFor={textareaId}
@@ -63,7 +62,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {(helperText || error) && (
-          <p className={clsx(
+          <p className={cn(
               "mt-1 text-xs sm:text-sm",
               error
                 ? "text-error-500 dark:text-error-400"

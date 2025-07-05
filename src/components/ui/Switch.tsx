@@ -70,7 +70,7 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
               )}
             >
               <span 
-                className={clsx(
+                className={cn(
                   'absolute top-0.5 left-0.5 block rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out',
                   thumbSizeClasses[size],
                   checked ? translateClasses[size] : '',
@@ -78,7 +78,7 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
                 )}
               >
                 {icon && (
-                  <span className={clsx(
+                  <span className={cn(
                     'absolute inset-0 flex items-center justify-center',
                     'transition-opacity',
                     checked ? 'opacity-100' : 'opacity-0',
@@ -100,7 +100,7 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         </div>
 
         {(helperText || error) && (
-          <p className={clsx(
+          <p className={cn(
             'mt-1 text-sm ml-12',
             error ? 'text-error-500' : 'text-gray-500'
           )}>
