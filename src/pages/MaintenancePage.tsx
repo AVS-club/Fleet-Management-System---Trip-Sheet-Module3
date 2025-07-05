@@ -11,6 +11,7 @@ import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDa
 import KPIPanel from '../components/maintenance/KPIPanel';
 import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics';
 import ReplacementInsightsPanel from '../components/maintenance/ReplacementInsightsPanel';
+import PartsAnalyticsPanel from '../components/maintenance/PartsAnalyticsPanel';
 import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
@@ -155,6 +156,12 @@ const MaintenancePage = () => {
           
           {/* Replacement Insights Panel */}
           <ReplacementInsightsPanel 
+            tasks={tasks || []}
+            vehicles={vehicles || []}
+          />
+          
+          {/* Parts Analytics Panel */}
+          <PartsAnalyticsPanel 
             tasks={tasks || []}
             vehicles={vehicles || []}
           />
