@@ -6,6 +6,7 @@
  
  interface VehicleSummaryChipsProps {
    vehicle: Vehicle;
+ }
 @@ .. @@
  
  const VehicleSummaryChips: React.FC<VehicleSummaryChipsProps> = ({ 
@@ -13,6 +14,8 @@
    className = ''
  }) => {
    return (
+   )
+ }
 -    <div className={`flex flex-wrap gap-2 ${className}`}>
 +    <div className={cn("flex flex-wrap gap-2", className)}>
        {/* Make & Model */}
