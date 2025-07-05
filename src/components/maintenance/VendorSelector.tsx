@@ -36,7 +36,7 @@ const VendorSelector: React.FC<VendorSelectorProps> = ({
   useEffect(() => {
     if (isOpen && inputContainerRef.current && dropdownMenuRef.current) {
       const inputRect = inputContainerRef.current.getBoundingClientRect();
-      const dropdownHeight = Math.min(dropdownMenuRef.current.scrollHeight, 250); // Reduced height from 300px to 250px
+      const dropdownHeight = Math.min(dropdownMenuRef.current.scrollHeight, 250); // Reduced height from 300px
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - inputRect.bottom;
       const spaceAbove = inputRect.top;
@@ -103,6 +103,16 @@ const VendorSelector: React.FC<VendorSelectorProps> = ({
               position: 'absolute',
               [isMenuAbove ? 'bottom' : 'top']: isMenuAbove ? 'calc(100% + 4px)' : 'calc(100% + 4px)',
               left: 0,
+              right: 0,
+              maxHeight: '250px', // Reduced from 300px
+              overflowY: 'auto',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              zIndex: 50,
+              border: '1px solid #e5e7eb'
+            }}
+            className="z-50 w-full bg-white border rounded-lg shadow-lg"
               right: 0,
               maxHeight: '250px', // Reduced max height from 300px
               overflowY: 'auto',

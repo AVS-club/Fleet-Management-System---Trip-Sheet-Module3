@@ -158,6 +158,16 @@ const MaintenanceSelector: React.FC<MaintenanceSelectorProps> = ({
               border: '1px solid #e5e7eb'
             }}
             className="z-50 w-full bg-white border rounded-lg shadow-lg"
+              right: 0,
+              maxHeight: '250px', // Reduced from 300px to 250px
+              overflowY: 'auto',
+              backgroundColor: 'white',
+              borderRadius: '0.5rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              zIndex: 50,
+              border: '1px solid #e5e7eb'
+            }}
+            className="z-50 w-full bg-white border rounded-lg shadow-lg"
           >
             <input
               ref={searchInputRef}

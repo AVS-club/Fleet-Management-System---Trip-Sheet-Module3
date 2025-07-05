@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
 import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics';
+import ReplacementInsightsPanel from '../components/maintenance/ReplacementInsightsPanel';
 import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
@@ -150,6 +151,12 @@ const MaintenancePage = () => {
             averageCost={metrics.averageCost}
             totalExpenditure={metrics.totalExpenditure}
             previousPeriodComparison={metrics.previousPeriodComparison}
+          />
+          
+          {/* Replacement Insights Panel */}
+          <ReplacementInsightsPanel 
+            tasks={tasks || []}
+            vehicles={vehicles || []}
           />
           
           {/* Expenditure Analytics with Task Distribution Chart */}

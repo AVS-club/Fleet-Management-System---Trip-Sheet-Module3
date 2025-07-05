@@ -33,9 +33,6 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
               <div className="flex-grow">
                 <Select
                   options={[
-                    { value: 'today', label: 'Today' },
-                    { value: 'yesterday', label: 'Yesterday' },
-                    { value: 'last7Days', label: 'Last 7 Days' },
                     { value: 'thisMonth', label: 'This Month' },
                     { value: 'lastMonth', label: 'Last Month' },
                     { value: 'thisYear', label: 'This Year' },
