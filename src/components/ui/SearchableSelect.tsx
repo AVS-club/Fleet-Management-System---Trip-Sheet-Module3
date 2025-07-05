@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 import { Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
 interface SearchableSelectProps {
@@ -93,14 +92,12 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 
       <div className="relative" ref={dropdownRef}>
         <div
-          className={twMerge(
-            clsx(
+          className={cn(
               "flex items-center justify-between px-3 py-2 pr-10 border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
               error ? "border-error-500 dark:border-error-500" : "border-gray-300 dark:border-gray-600",
               disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary-500 dark:hover:border-primary-400",
               sizeClasses[size],
               className
-            )
           )}
           onClick={handleToggleDropdown}
         >

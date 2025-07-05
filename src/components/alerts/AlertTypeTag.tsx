@@ -1,5 +1,6 @@
 import React from 'react';
 import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX, PenTool as Tool } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 interface AlertTypeTagProps {
   type: string;
@@ -49,7 +50,7 @@ const AlertTypeTag: React.FC<AlertTypeTagProps> = ({ type, className }) => {
   const { label, icon, colorClass } = getTypeInfo(type);
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorClass} ${className}`}>
+    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium", colorClass, className)}>
       {icon}
       <span className="ml-1 capitalize text-[10px] sm:text-xs">{label}</span>
     </span>

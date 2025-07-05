@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -32,12 +31,10 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             id={checkboxId}
             type="checkbox"
             ref={ref}
-            className={twMerge(
-              clsx(
+            className={cn(
                 "h-4 w-4 text-primary-600 dark:text-primary-500 focus:ring-primary-500 dark:focus:ring-primary-400 border-gray-300 dark:border-gray-600 rounded transition-colors",
                 error && "border-error-500 dark:border-error-400 focus:ring-error-200 dark:focus:ring-error-800",
                 className
-              )
             )}
             {...props}
           />

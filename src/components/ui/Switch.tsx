@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 
 interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
@@ -61,15 +60,13 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
 
             <label
               htmlFor={switchId}
-              className={twMerge(
-                clsx(
-                  'block cursor-pointer rounded-full transition-colors duration-200 ease-in-out',
-                  sizeClasses[size],
-                  checked ? 'bg-primary-500' : 'bg-gray-300',
-                  disabled && 'opacity-50 cursor-not-allowed',
-                  error && 'ring-2 ring-error-500',
-                  className
-                )
+              className={cn(
+                'block cursor-pointer rounded-full transition-colors duration-200 ease-in-out',
+                sizeClasses[size],
+                checked ? 'bg-primary-500' : 'bg-gray-300',
+                disabled && 'opacity-50 cursor-not-allowed',
+                error && 'ring-2 ring-error-500',
+                className
               )}
             >
               <span 

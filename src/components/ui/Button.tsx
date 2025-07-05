@@ -1,6 +1,5 @@
 import React from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
@@ -48,10 +47,8 @@ const Button: React.FC<ButtonProps> = ({
     )
   );
 
-  return (
-    <button
-      className={buttonClasses}
-      disabled={disabled || isLoading}
+      )}
+      className={cn(
       {...props}
     >
       {isLoading && (

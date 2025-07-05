@@ -1,5 +1,6 @@
 import React, { useState, ReactNode } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { cn } from "../../utils/cn";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -23,12 +24,15 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   return (
     <div className="border border-gray-200 rounded-lg mb-6 overflow-hidden">
       <button
-        type="button"
-        className={`w-full flex items-center justify-between p-4 ${headerBgClass} hover:bg-opacity-90 transition-colors duration-200`}
+        type="button" 
+        className={cn(
+          "w-full flex items-center justify-between p-4 hover:bg-opacity-90 transition-colors duration-200",
+          headerBgClass
+        )}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center">
-          {icon && <div className={`mr-3 ${iconColor}`}>{icon}</div>}
+          {icon && <div className={cn("mr-3", iconColor)}>{icon}</div>}
           <h3 className="text-lg font-medium text-gray-900">{title}</h3>
         </div>
         <div className="text-gray-500">
@@ -41,9 +45,10 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       </button>
 
       <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+        className={cn(
+          "transition-all duration-300 ease-in-out overflow-hidden",
           isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
-        }`}
+        )}
       >
         <div className="p-4 bg-gray-50 border-t border-gray-200">
           {children}

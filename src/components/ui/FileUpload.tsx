@@ -1,6 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '../../utils/cn';
 import { Upload, File, X, Paperclip, FileText, Image } from 'lucide-react';
 
 interface FileUploadProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
@@ -353,8 +352,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       )}
 
       <div
-        className={twMerge(
-          clsx(
+        className={cn(
             buttonMode 
               ? "inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" 
               : "relative border-2 border-dashed rounded-lg p-4 transition-colors",
@@ -362,7 +360,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
             disabled && 'opacity-50 cursor-not-allowed', 
             !buttonMode && error && 'border-error-500',
             className
-          )
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

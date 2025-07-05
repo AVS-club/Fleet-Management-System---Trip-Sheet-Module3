@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "../../utils/cn";
 import { ChevronDown, X } from "lucide-react";
 
 interface MultiSelectOption {
@@ -90,16 +89,14 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       )}
 
       <div
-        tabIndex={0}
-        className={twMerge(
-          clsx(
+        className={cn("form-group", fullWidth && "w-full")}
+        className={cn(
             "relative min-h-[2.5rem] flex flex-wrap items-center gap-1 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer transition-colors duration-200 p-2 pr-10",
             error
               ? "border-error-500 dark:border-error-500"
               : "border-gray-300 dark:border-gray-600 focus-within:border-primary-400 dark:focus-within:border-primary-500",
             sizeClasses[size],
             disabled && "bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-          )
         )}
         onClick={() => !disabled && setOpen((o) => !o)}
         id={id}
