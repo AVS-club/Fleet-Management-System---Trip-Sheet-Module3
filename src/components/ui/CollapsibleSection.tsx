@@ -1,6 +1,7 @@
 import React, { useState, ReactNode } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { cn } from "../../utils/cn";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -29,6 +30,9 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           "w-full flex items-center justify-between p-4 hover:bg-opacity-90 transition-colors duration-200",
           headerBgClass
         )}
+          "w-full flex items-center justify-between p-4 hover:bg-opacity-90 transition-colors duration-200",
+          headerBgClass
+        )}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center">
@@ -48,6 +52,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden",
           isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        )}
         )}
       >
         <div className="p-4 bg-gray-50 border-t border-gray-200">
