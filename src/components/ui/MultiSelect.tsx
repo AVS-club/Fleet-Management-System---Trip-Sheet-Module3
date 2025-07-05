@@ -89,8 +89,9 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
       )}
 
       <div
-        className={cn("form-group", fullWidth && "w-full")}
         className={cn(
+          "form-group", 
+          fullWidth && "w-full",
             "relative min-h-[2.5rem] flex flex-wrap items-center gap-1 rounded-lg border bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 cursor-pointer transition-colors duration-200 p-2 pr-10",
             error
               ? "border-error-500 dark:border-error-500"
