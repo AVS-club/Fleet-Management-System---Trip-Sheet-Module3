@@ -157,7 +157,7 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
       </div>
 
       {(helperText || error) && (
-        <p className={clsx(
+        <p className={cn(
           "mt-1 text-xs sm:text-sm",
           error ? "text-error-500 dark:text-error-400" : "text-gray-500 dark:text-gray-400"
         )}>
