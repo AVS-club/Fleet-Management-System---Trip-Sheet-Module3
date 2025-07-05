@@ -37,14 +37,12 @@ const Button: React.FC<ButtonProps> = ({
     lg: 'px-6 py-3 text-base rounded-lg',
   };
 
-  const buttonClasses = twMerge(
-    clsx(
-      'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900 disabled:opacity-60 disabled:pointer-events-none',
-      variants[variant],
-      sizes[size],
-      fullWidth ? 'w-full' : '',
-      className
-    )
+  const buttonClasses = cn(
+    'inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900 disabled:opacity-60 disabled:pointer-events-none',
+    variants[variant],
+    sizes[size],
+    fullWidth ? 'w-full' : '',
+    className
   );
 
   return (
