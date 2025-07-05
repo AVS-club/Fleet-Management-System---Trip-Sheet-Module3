@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { cn } from '../../utils/cn';
+import { cn } from '../../utils/cn';
 import { Upload, X } from 'lucide-react';
 
 interface FileUploadProps {
