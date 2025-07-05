@@ -1174,7 +1174,7 @@ export const uploadDriverPhoto = async (
 };
 
 // Driver stats
-const getDriverStats = async (driverId: string) => {
+export const getDriverStats = async (driverId: string) => {
   // First get the driver to get their name
   const driver = await getDriver(driverId);
   if (!driver) return { totalTrips: 0, totalDistance: 0 };
