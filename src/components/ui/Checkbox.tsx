@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { clsx } from 'clsx';
 import { cn } from '../../utils/cn';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
