@@ -331,19 +331,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         <Controller
           control={control}
-          name="garage_id"
-          rules={{ required: 'Garage is required' }}
-          render={({ field: { value, onChange }, fieldState: { error } }) => (
-            <GarageSelector
-              selectedGarage={value}
-              onChange={onChange}
-              error={error?.message}
-            />
-          )}
-        />
-
-        <Controller
-          control={control}
           name="priority"
           rules={{ required: 'Priority is required' }}
           render={({ field }) => (
