@@ -48,14 +48,15 @@ const AlertTypeTag: React.FC<AlertTypeTagProps> = ({ type, className }) => {
   };
 
   const { label, icon, colorClass } = getTypeInfo(type);
-    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium", colorClass, className)}>
-  return (
-    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium", colorClass, className)}>
-      {icon}
-      <span className="ml-1 capitalize text-[10px] sm:text-xs">{label}</span>
-    </span>
-  );
-};
-
-export default AlertTypeTag;
-}
+    return (
+  <span
+    className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+      colorClass,
+      className
+    )}
+  >
+    {icon}
+    <span className="ml-1 capitalize text-[10px] sm:text-xs">{label}</span>
+  </span>
+);
