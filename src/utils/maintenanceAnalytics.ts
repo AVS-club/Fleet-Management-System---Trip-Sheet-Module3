@@ -3,12 +3,12 @@ import { supabase } from './supabaseClient';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 import { AIAlert } from '../types';
 
-export type DateRange = {
+type DateRange = {
   start: Date;
   end: Date;
 };
 
-export type MaintenanceMetrics = {
+type MaintenanceMetrics = {
   totalTasks: number;
   pendingTasks: number;
   completedTasksThisMonth: number;
@@ -395,7 +395,7 @@ export const calculateMaintenanceMetrics = (
  * @param dateRange Current date range being analyzed
  * @returns An AIAlert object if an alert was created, null otherwise
  */
-export const checkRisingCosts = async (
+const checkRisingCosts = async (
   currentMonthExpenditure: number,
   previousMonthExpenditure: number,
   dateRange: DateRange
@@ -493,7 +493,7 @@ export const checkRisingCosts = async (
  * @param dateRange Current date range being analyzed
  * @returns An AIAlert object if an alert was created, null otherwise
  */
-export const checkNonOptimalVendorRates = async (
+const checkNonOptimalVendorRates = async (
   tasks: MaintenanceTask[],
   dateRange: DateRange
 ): Promise<AIAlert | null> => {

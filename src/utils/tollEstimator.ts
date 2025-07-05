@@ -132,6 +132,3 @@ export const estimateTollCost = async (
   }
 };
 
-export default {
-  estimateTollCost
-};

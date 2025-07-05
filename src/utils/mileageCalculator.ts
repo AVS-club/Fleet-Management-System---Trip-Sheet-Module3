@@ -1,6 +1,6 @@
 import { Trip, Vehicle } from '../types';
 
-export interface TripEntry {
+interface TripEntry {
   start_km: number;
   end_km: number;
   fuel_liters: number;
@@ -55,7 +55,7 @@ export function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | 
   return undefined;
 }
 
-export function predictMileage(vehicle_id: string, allTrips: Trip[]): number | undefined {
+function predictMileage(vehicle_id: string, allTrips: Trip[]): number | undefined {
   const vehicleTrips = allTrips
     .filter(trip => 
       trip.vehicle_id === vehicle_id && 

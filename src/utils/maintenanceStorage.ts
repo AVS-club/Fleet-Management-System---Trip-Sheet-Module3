@@ -314,7 +314,7 @@ export const getAuditLogs = async (): Promise<MaintenanceAuditLog[]> => {
   return data || [];
 };
 
-export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'timestamp'>): Promise<MaintenanceAuditLog | null> => {
+const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'timestamp'>): Promise<MaintenanceAuditLog | null> => {
   const { data, error } = await supabase
     .from('maintenance_audit_logs')
     .insert({
@@ -335,7 +335,7 @@ export const createAuditLog = async (log: Omit<MaintenanceAuditLog, 'id' | 'time
 };
 
 // Service groups operations
-export const getServiceGroups = async (taskId: string): Promise<MaintenanceServiceGroup[]> => {
+const getServiceGroups = async (taskId: string): Promise<MaintenanceServiceGroup[]> => {
   const { data, error } = await supabase
     .from('maintenance_service_tasks')
     .select('*')
@@ -377,7 +377,7 @@ export const uploadServiceBill = async (file: File, taskId: string, groupId?: st
 };
 
 // Statistics
-export const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
+const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   const { data: tasks } = await supabase
     .from('maintenance_tasks')
     .select('*');

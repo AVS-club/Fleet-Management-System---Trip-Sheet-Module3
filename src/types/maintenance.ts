@@ -1,7 +1,7 @@
 import { Vehicle } from './index';
 
 // Add audit log interfaces
-export interface MaintenanceAuditLogChange {
+interface MaintenanceAuditLogChange {
   previous_value: any;
   updated_value: any;
 }
@@ -49,7 +49,7 @@ export interface MaintenanceServiceGroup {
 }
 
 // Add new interfaces for maintenance form
-export interface MaintenanceBill {
+interface MaintenanceBill {
   id: string;
   description: string;
   amount: number;
@@ -113,14 +113,14 @@ export interface MaintenanceTask {
   updated_at: string;
 }
 
-export interface MaintenanceType {
+interface MaintenanceType {
   id: string;
   name: string;
   description?: string;
   active: boolean;
 }
 
-export interface MaintenanceComponent {
+interface MaintenanceComponent {
   id: string;
   name: string;
   description?: string;
@@ -128,14 +128,14 @@ export interface MaintenanceComponent {
   active: boolean;
 }
 
-export interface MaintenanceBrand {
+interface MaintenanceBrand {
   id: string;
   name: string;
   description?: string;
   active: boolean;
 }
 
-export interface MaintenanceCompany {
+interface MaintenanceCompany {
   id: string;
   name: string;
   contact?: string;
@@ -165,7 +165,7 @@ export interface MaintenanceStats {
   pending_tasks: number;
 }
 
-export interface MaintenancePart {
+interface MaintenancePart {
   id: string;
   name: string;
   part_number: string;
@@ -178,7 +178,7 @@ export interface MaintenancePart {
 }
 
 // Define maintenance categories
-export const MAINTENANCE_CATEGORIES = {
+const MAINTENANCE_CATEGORIES = {
   engine: 'Engine & Oil',
   brakes: 'Brakes & Suspension',
   electrical: 'Electrical',
@@ -665,7 +665,7 @@ export const DEMO_GARAGES = [
 ];
 
 // Define part brands
-export const PART_BRANDS = [
+const PART_BRANDS = [
   'Bosch',
   'Denso',
   'Continental',

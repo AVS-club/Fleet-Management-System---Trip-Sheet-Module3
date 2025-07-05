@@ -58,7 +58,7 @@ export const logVehicleActivity = async (
  * @param vehicleId ID of the vehicle
  * @returns Array of activity logs or empty array if there was an error
  */
-export const getVehicleActivityLogs = async (vehicleId: string): Promise<VehicleActivityLog[]> => {
+const getVehicleActivityLogs = async (vehicleId: string): Promise<VehicleActivityLog[]> => {
   try {
     const { data, error } = await supabase
       .from('vehicle_activity_log')

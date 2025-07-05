@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Search, ChevronDown, ChevronUp, Check } from 'lucide-react';
 
-export interface SearchableSelectProps {
+interface SearchableSelectProps {
   label?: string;
   options: string[];
   value: string;

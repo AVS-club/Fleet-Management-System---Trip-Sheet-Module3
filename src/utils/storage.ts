@@ -245,7 +245,7 @@ export const deleteTrip = async (id: string): Promise<boolean> => {
   return true;
 };
 
-export const recalculateMileageForAffectedTrips = async (
+const recalculateMileageForAffectedTrips = async (
   changedTrip: Trip
 ): Promise<void> => {
   const { data: trips } = await supabase
@@ -893,7 +893,7 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
   }
 };
 
-export const unarchiveVehicle = async (id: string): Promise<boolean> => {
+const unarchiveVehicle = async (id: string): Promise<boolean> => {
   try {
     // Change the vehicle status from 'archived' back to 'active'
     const { data, error } = await supabase
@@ -1001,7 +1001,7 @@ export const bulkUnarchiveVehicles = async (
   return { success: successCount, failed: failedCount };
 };
 
-export const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward compatibility
+const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward compatibility
 
 // Drivers CRUD operations with Supabase
 export const getDrivers = async (): Promise<Driver[]> => {
@@ -1130,7 +1130,7 @@ export const updateDriver = async (
   return data;
 };
 
-export const deleteDriver = async (id: string): Promise<boolean> => {
+const deleteDriver = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("drivers").delete().eq("id", id);
 
   if (error) {
@@ -1174,7 +1174,7 @@ export const uploadDriverPhoto = async (
 };
 
 // Driver stats
-export const getDriverStats = async (driverId: string) => {
+const getDriverStats = async (driverId: string) => {
   // First get the driver to get their name
   const driver = await getDriver(driverId);
   if (!driver) return { totalTrips: 0, totalDistance: 0 };
@@ -1286,7 +1286,7 @@ export const createWarehouse = async (
   return data;
 };
 
-export const updateWarehouse = async (
+const updateWarehouse = async (
   id: string,
   updates: Partial<Warehouse>
 ): Promise<Warehouse | null> => {
@@ -1317,7 +1317,7 @@ export const updateWarehouse = async (
   return data;
 };
 
-export const deleteWarehouse = async (id: string): Promise<boolean> => {
+const deleteWarehouse = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("warehouses").delete().eq("id", id);
 
   if (error) {
@@ -1410,7 +1410,7 @@ export const createDestination = async (
   return data;
 };
 
-export const updateDestination = async (
+const updateDestination = async (
   id: string,
   updates: Partial<Destination>
 ): Promise<Destination | null> => {
@@ -1432,7 +1432,7 @@ export const updateDestination = async (
   return data;
 };
 
-export const deleteDestination = async (id: string): Promise<boolean> => {
+const deleteDestination = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("destinations").delete().eq("id", id);
 
   if (error) {
@@ -1489,7 +1489,7 @@ export const analyzeRoute = async (
 };
 
 // Generate alerts based on route analysis
-export const generateAlerts = async (
+const generateAlerts = async (
   analysis: RouteAnalysis
 ): Promise<Alert[]> => {
   const alerts: Alert[] = [];
@@ -1689,35 +1689,3 @@ export const exportVehicleData = async (
   return csvContent;
 };
 
-export default {
-  getTrips,
-  getTrip,
-  createTrip,
-  updateTrip,
-  deleteTrip,
-  getVehicles,
-  getVehicle,
-  createVehicle,
-  updateVehicle,
-  deleteVehicle,
-  unarchiveVehicle,
-  bulkUpdateVehicles,
-  bulkArchiveVehicles,
-  bulkUnarchiveVehicles,
-  bulkDeleteVehicles,
-  getDrivers,
-  getDriver,
-  createDriver,
-  updateDriver,
-  deleteDriver,
-  uploadDriverPhoto,
-  getDriverStats,
-  getWarehouses,
-  getWarehouse,
-  getDestinations,
-  analyzeRoute,
-  generateAlerts,
-  getVehicleStats,
-  updateAllTripMileage,
-  exportVehicleData,
-};

@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 
-export interface MaintenanceTaskCatalog {
+interface MaintenanceTaskCatalog {
   id: string;
   task_category: string;
   task_name: string;
@@ -8,12 +8,12 @@ export interface MaintenanceTaskCatalog {
   active: boolean;
 }
 
-export interface MaintenanceTaskCategory {
+interface MaintenanceTaskCategory {
   title: string;
   items: MaintenanceTaskItem[];
 }
 
-export interface MaintenanceTaskItem {
+interface MaintenanceTaskItem {
   id: string;
   name: string;
   group: string;
@@ -91,7 +91,3 @@ export const convertCatalogToSelectorFormat = (catalog: MaintenanceTaskCatalog[]
   return { items, groups };
 };
 
-export default {
-  getMaintenanceTasksCatalog,
-  convertCatalogToSelectorFormat
-};

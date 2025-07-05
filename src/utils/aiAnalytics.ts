@@ -7,7 +7,7 @@ import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'da
  * @param trip The trip to analyze
  * @returns An alert object if an anomaly is detected, or null if no anomaly
  */
-export const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
+const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
   // Skip trips without refueling or fuel quantity
   if (!trip.refueling_done || !trip.fuel_quantity || trip.fuel_quantity <= 0) {
     return null;
@@ -133,7 +133,7 @@ export const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> =
  * @param trip The trip to analyze
  * @returns An alert if deviation is above threshold, or null if within acceptable range
  */
-export const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> => {
+const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> => {
   // Skip trips without route_deviation data or short trips
   if (trip.route_deviation === undefined || trip.route_deviation === null || trip.short_trip) {
     return null;
@@ -198,7 +198,7 @@ export const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> =
  * @param allTasks All maintenance tasks for context
  * @returns An alert if frequent maintenance is detected, or null otherwise
  */
-export const checkFrequentMaintenance = async (
+const checkFrequentMaintenance = async (
   task: MaintenanceTask, 
   allTasks: MaintenanceTask[]
 ): Promise<AIAlert | null> => {
@@ -426,12 +426,3 @@ export const processAlertAction = async (
   }
 };
 
-export default {
-  analyzeTripAndGenerateAlerts,
-  processAlertAction,
-  getAIAlerts,
-  checkMileageAnomaly,
-  checkRouteDeviation,
-  checkFrequentMaintenance,
-  runAlertScan
-};

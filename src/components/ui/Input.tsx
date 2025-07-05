@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   helperText?: string;
   error?: string;
@@ -12,7 +12,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Input = forwardRef<HTMLInputElement, InputProps>(
+const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ 
     label, 
     helperText, 

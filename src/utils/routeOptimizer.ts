@@ -78,7 +78,7 @@ const toRad = (value: number): number => {
   return (value * Math.PI) / 180;
 };
 
-export const optimizeRoute = async (
+const optimizeRoute = async (
   warehouse: Warehouse,
   destinations: Destination[]
 ): Promise<OptimizationResult> => {
@@ -175,7 +175,3 @@ export const optimizeRoute = async (
   }
 };
 
-export default {
-  optimizeRoute,
-  checkRouteOptimization
-};

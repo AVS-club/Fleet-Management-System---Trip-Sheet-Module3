@@ -75,9 +75,3 @@ export const deleteMaterialType = async (id: string): Promise<boolean> => {
   return true;
 };
 
-export default {
-  getMaterialTypes,
-  addMaterialType,
-  updateMaterialType,
-  deleteMaterialType,
-};

@@ -206,7 +206,7 @@ const createSupabaseClient = () => {
 };
 
 export const supabase = createSupabaseClient();
-export const isSupabaseConfigured = isConfigured;
+const isSupabaseConfigured = isConfigured;
 
 // Helper function to check if Supabase is accessible with more comprehensive testing
 export const testSupabaseConnection = async (): Promise<boolean> => {

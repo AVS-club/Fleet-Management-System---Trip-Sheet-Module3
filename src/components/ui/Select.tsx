@@ -3,13 +3,13 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ChevronDown } from 'lucide-react';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   label?: string;
   helperText?: string;
   error?: string;
@@ -18,7 +18,7 @@ export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectE
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(
+const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ 
     label, 
     helperText, 

@@ -79,7 +79,7 @@ export const predictNextService = async (
   };
 };
 
-export const isMaintenanceOverdue = async (
+const isMaintenanceOverdue = async (
   task: MaintenanceTask
 ): Promise<{ isOverdue: boolean; daysOverdue?: number; kmOverdue?: number }> => {
   const vehicle = await getVehicle(task.vehicle_id);
@@ -124,7 +124,3 @@ export const isMaintenanceOverdue = async (
   };
 };
 
-export default {
-  predictNextService,
-  isMaintenanceOverdue
-};

@@ -84,7 +84,7 @@ export const getSignedDocumentUrl = async (
  * @param docType The type of document (e.g., 'license', 'photo')
  * @returns The file path of the uploaded file
  */
-export const uploadDriverDocument = async (
+const uploadDriverDocument = async (
   file: File,
   driverId: string,
   docType: string

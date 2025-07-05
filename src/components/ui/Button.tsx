@@ -2,7 +2,7 @@ import React from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
@@ -11,7 +11,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   iconPosition?: 'left' | 'right';
 }
 
-export const Button: React.FC<ButtonProps> = ({
+const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
   size = 'md',

@@ -16,7 +16,7 @@ export const getReminderContacts = async (): Promise<ReminderContact[]> => {
   return data || [];
 };
 
-export const getReminderContact = async (id: string): Promise<ReminderContact | null> => {
+const getReminderContact = async (id: string): Promise<ReminderContact | null> => {
   const { data, error } = await supabase
     .from('reminder_contacts')
     .select('*')
@@ -89,7 +89,7 @@ export const getReminderTemplates = async (): Promise<ReminderTemplate[]> => {
   return data || [];
 };
 
-export const getReminderTemplate = async (id: string): Promise<ReminderTemplate | null> => {
+const getReminderTemplate = async (id: string): Promise<ReminderTemplate | null> => {
   const { data, error } = await supabase
     .from('reminder_templates')
     .select('*')

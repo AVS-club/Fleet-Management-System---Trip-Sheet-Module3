@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
   helperText?: string;
   error?: string;
@@ -10,7 +10,7 @@ export interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputEle
   size?: 'sm' | 'md' | 'lg';
 }
 
-export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
+const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ 
     label, 
     helperText, 

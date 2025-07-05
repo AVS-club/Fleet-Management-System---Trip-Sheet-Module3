@@ -3,13 +3,13 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { ChevronDown, X } from "lucide-react";
 
-export interface MultiSelectOption {
+interface MultiSelectOption {
   value: string;
   label: string;
   disabled?: boolean;
 }
 
-export interface MultiSelectProps {
+interface MultiSelectProps {
   label?: string;
   helperText?: string;
   error?: string;

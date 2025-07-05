@@ -56,7 +56,7 @@ export interface ReminderContactFormData {
   is_global: boolean; // Added is_global field
 }
 
-export interface ReminderTemplateFormData {
+interface ReminderTemplateFormData {
   reminder_type: string;
   default_days_before: number;
   repeat: boolean;

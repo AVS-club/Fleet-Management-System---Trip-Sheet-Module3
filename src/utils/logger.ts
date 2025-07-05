@@ -90,16 +90,15 @@ export const logger = Logger.getInstance();
 // Initialize logs from storage
 logger.loadLogsFromStorage();
 
-export function log(message: string, data?: any) {
+function log(message: string, data?: any) {
   logger.info(message, data);
 }
 
-export function warn(message: string, data?: any) {
+function warn(message: string, data?: any) {
   logger.warn(message, data);
 }
 
-export function error(message: string, data?: any) {
+function error(message: string, data?: any) {
   logger.error(message, data);
 }
 
-export default logger;

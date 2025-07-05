@@ -2,7 +2,7 @@ import React, { forwardRef } from "react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-export interface TextareaProps
+interface TextareaProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   helperText?: string;
@@ -18,7 +18,7 @@ const sizeClasses = {
   lg: "px-4 py-3 text-lg",
 };
 
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
   (
     {
       label,

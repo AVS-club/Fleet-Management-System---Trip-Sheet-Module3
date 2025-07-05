@@ -5,7 +5,7 @@ import { MaintenanceTask } from '../types/maintenance';
 import { Trip } from '../types';
 
 // Define the reminder status types
-export type ReminderStatus = 'critical' | 'warning' | 'normal';
+type ReminderStatus = 'critical' | 'warning' | 'normal';
 
 // Define the reminder item interface
 export interface ReminderItem {
@@ -22,14 +22,14 @@ export interface ReminderItem {
 }
 
 // Define the module types
-export type ReminderModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips';
+type ReminderModule = 'vehicles' | 'drivers' | 'maintenance' | 'trips';
 
 /**
  * Get reminders for a specific module
  * @param module The module to get reminders for
  * @returns A promise that resolves to an array of reminder items
  */
-export const getRemindersFor = async (module: ReminderModule): Promise<ReminderItem[]> => {
+const getRemindersFor = async (module: ReminderModule): Promise<ReminderItem[]> => {
   switch (module) {
     case 'vehicles':
       return getRemindersForVehicles();
@@ -75,7 +75,7 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
  * Get vehicle reminders
  * @returns A promise that resolves to an array of vehicle reminder items
  */
-export const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
+const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch vehicles from Supabase
     const { data: vehicles, error } = await supabase
@@ -316,7 +316,7 @@ export const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
  * Get driver reminders
  * @returns A promise that resolves to an array of driver reminder items
  */
-export const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
+const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch drivers from Supabase
     const { data: drivers, error } = await supabase
@@ -420,7 +420,7 @@ export const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
  * Get maintenance reminders
  * @returns A promise that resolves to an array of maintenance reminder items
  */
-export const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
+const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch maintenance tasks and vehicles from Supabase
     const [{ data: tasks, error: tasksError }, { data: vehicles, error: vehiclesError }] = await Promise.all([
@@ -591,7 +591,7 @@ export const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
  * Get trip reminders
  * @returns A promise that resolves to an array of trip reminder items
  */
-export const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
+const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
   try {
     // Fetch trips from Supabase
     const { data: trips, error } = await supabase
@@ -706,11 +706,3 @@ const getStatusFromDays = (daysLeft: number): ReminderStatus => {
   return 'normal';
 };
 
-export default {
-  getRemindersFor,
-  getRemindersForAll,
-  getRemindersForVehicles,
-  getRemindersForDrivers,
-  getRemindersForMaintenance,
-  getRemindersForTrips
-};
