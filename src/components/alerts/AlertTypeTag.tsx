@@ -58,3 +58,4 @@ const AlertTypeTag: React.FC<AlertTypeTagProps> = ({ type, className }) => {
 };
 
 export default AlertTypeTag;
+}
