@@ -21,6 +21,7 @@ import {
 import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
 import { getAIAlerts } from "../utils/aiAnalytics";
+import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
 import {
   generateDriverPDF,
   createShareableDriverLink,
@@ -42,6 +43,8 @@ const DriverPage: React.FC = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
+  const [showDocumentManagerModal, setShowDocumentManagerModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   // State for signed document URLs
   const [signedDocUrls, setSignedDocUrls] = useState<{
@@ -143,7 +146,7 @@ const DriverPage: React.FC = () => {
       console.error("Error generating signed URLs:", error);
       toast.error("Failed to generate document access links");
     }
-  };
+  }; 
 
   // Handle export as PDF
   const handleExportPDF = async () => {
@@ -162,9 +165,9 @@ const DriverPage: React.FC = () => {
     }
   };
 
-  // Handle download documents
-  const handleDownloadDocuments = () => {
-    setShowDownloadModal(true);
+  // Handle manage documents
+  const handleManageDocuments = () => {
+    setShowDocumentManagerModal(true);
   };
 
   // Handle WhatsApp share
@@ -192,6 +195,28 @@ const DriverPage: React.FC = () => {
     }
   };
 
+  const handleEditDriver = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
+  const handleUpdateDriver = async (data: Omit<Driver, "id">) => {
+    try {
+      // Update logic would go here
+      // For now, just close the edit mode
+      setIsEditing(false);
+      // Reload driver data
+      // This would be replaced with actual update logic
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating driver:', error);
+      toast.error('Failed to update driver');
+    }
+  };
+
   if (!driver) {
     return (
       <Layout title="Driver Not Found">
@@ -207,6 +232,30 @@ const DriverPage: React.FC = () => {
           >
             Back to Drivers
           </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <Layout
+        title="Edit Driver"
+        subtitle={`License: ${driver.license_number}`}
+        actions={
+          <Button
+            variant="outline"
+            onClick={handleCancelEdit}
+          >
+            Cancel
+          </Button>
+        }
+      >
+        <div className="max-w-4xl mx-auto">
+          <DriverForm
+            initialData={driver}
+            onSubmit={handleUpdateDriver}
+          />
         </div>
       </Layout>
     );
@@ -229,6 +278,14 @@ const DriverPage: React.FC = () => {
         <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
+            onClick={handleEditDriver}
+            icon={<PenToolIcon className="h-4 w-4" />}
+          >
+            Edit Driver
+          </Button>
+
+          <Button
+            variant="outline"
             onClick={() => navigate("/drivers")}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
@@ -246,9 +303,9 @@ const DriverPage: React.FC = () => {
 
           <Button
             variant="outline"
-            onClick={handleDownloadDocuments}
+            onClick={handleManageDocuments}
             icon={<Download className="h-4 w-4" />}
-            title="Download Documents"
+            title="Manage Documents"
           />
 
           <WhatsAppButton
@@ -660,6 +717,16 @@ const DriverPage: React.FC = () => {
           {/* Performance Metrics */}
           <DriverMetrics driver={driver} trips={trips} />
 
+          {/* Document Manager Modal */}
+          {showDocumentManagerModal && (
+            <DriverDocumentManagerModal
+              isOpen={showDocumentManagerModal}
+              onClose={() => setShowDocumentManagerModal(false)}
+              driver={driver}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
+
           {/* WhatsApp Share Modal */}
           {showShareModal && selectedDriverForShare && (
             <DriverWhatsAppShareModal
@@ -671,7 +738,7 @@ const DriverPage: React.FC = () => {
           )}
 
           {/* Document Download Modal */}
-          {showDownloadModal && (
+          {showDownloadModal && !showDocumentManagerModal && (
             <DriverDocumentDownloadModal
               isOpen={showDownloadModal}
               onClose={() => setShowDownloadModal(false)}
