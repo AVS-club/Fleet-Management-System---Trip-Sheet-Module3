@@ -23,6 +23,7 @@ import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
 import { getAIAlerts } from "../utils/aiAnalytics";
 import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
+import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
 import DriverForm from "../components/drivers/DriverForm";
 import {
   generateDriverPDF,
@@ -718,6 +719,13 @@ const DriverPage: React.FC = () => {
 
           {/* Performance Metrics */}
           <DriverMetrics driver={driver} trips={trips} />
+
+          {/* Driver Insights Panel */}
+          <DriverInsightsPanel 
+            driver={driver} 
+            trips={trips} 
+            vehicles={primaryVehicle ? [primaryVehicle] : undefined} 
+          />
 
           {/* Document Manager Modal */}
           {showDocumentManagerModal && (
