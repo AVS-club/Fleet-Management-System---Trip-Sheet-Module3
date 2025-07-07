@@ -17,6 +17,7 @@ import {
   Download,
   Phone,
   Mail,
+  Edit,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
@@ -279,7 +280,7 @@ const DriverPage: React.FC = () => {
           <Button
             variant="outline"
             onClick={handleEditDriver}
-            icon={<PenToolIcon className="h-4 w-4" />}
+            icon={<Edit className="h-4 w-4" />}
           >
             Edit Driver
           </Button>
