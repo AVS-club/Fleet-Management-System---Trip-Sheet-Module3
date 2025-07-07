@@ -40,6 +40,8 @@ const DriverPage: React.FC = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
 
   // State for signed document URLs
   const [signedDocUrls, setSignedDocUrls] = useState<{
@@ -165,6 +167,12 @@ const DriverPage: React.FC = () => {
     setShowDownloadModal(true);
   };
 
+  // Handle WhatsApp share
+  const handleWhatsAppShare = () => {
+    setSelectedDriverForShare(driver);
+    setShowShareModal(true);
+  };
+
   // Handle create shareable link
   const handleCreateShareableLink = async () => {
     if (!driver) return;
@@ -244,7 +252,7 @@ const DriverPage: React.FC = () => {
           />
 
           <WhatsAppButton
-            phoneNumber={driver.contact_number}
+            onClick={handleWhatsAppShare}
             message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
           />
 
@@ -651,6 +659,16 @@ const DriverPage: React.FC = () => {
 
           {/* Performance Metrics */}
           <DriverMetrics driver={driver} trips={trips} />
+
+          {/* WhatsApp Share Modal */}
+          {showShareModal && selectedDriverForShare && (
+            <DriverWhatsAppShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              driver={selectedDriverForShare}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
 
           {/* Document Download Modal */}
           {showDownloadModal && (
