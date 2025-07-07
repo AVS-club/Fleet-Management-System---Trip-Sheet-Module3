@@ -3,14 +3,12 @@ import { MessageSquare } from 'lucide-react';
 import Button from '../ui/Button';
 
 interface WhatsAppButtonProps {
-  phoneNumber?: string;
   onClick?: () => void;
   className?: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
 }
 
 const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
-  phoneNumber,
   onClick,
   className = '',
   variant = 'outline'
@@ -19,9 +17,9 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
     <Button
       variant={variant}
       onClick={onClick}
-      disabled={!phoneNumber && !onClick}
+      disabled={!onClick}
       className={`text-green-600 hover:text-green-800 ${className}`}
-      title={phoneNumber ? "Share on WhatsApp" : "No phone number available"}
+      title="Share on WhatsApp"
     >
       <MessageSquare className="h-4 w-4" />
     </Button>

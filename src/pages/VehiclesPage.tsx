@@ -60,7 +60,6 @@ const VehiclesPage: React.FC = () => {
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
   const [user, setUser] = useState<any>();
-  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -308,17 +307,6 @@ const VehiclesPage: React.FC = () => {
     e.stopPropagation(); // Prevent card click navigation
     setSelectedVehicleForShare(vehicle);
     setShowShareModal(true);
-
-    // Set contact number (use a real contact number here if available)
-    // For example, get it from the primary driver if assigned
-    if (vehicle.primary_driver_id) {
-      const assignedDriver = drivers.find(
-        (d) => d.id === vehicle.primary_driver_id
-      );
-      if (assignedDriver && assignedDriver.contact_number) {
-        setContactNumber(assignedDriver.contact_number);
-      }
-    }
   };
 
   // Find the latest trip for a vehicle
@@ -656,9 +644,6 @@ const VehiclesPage: React.FC = () => {
                         </div>
 
                         <WhatsAppButton
-                          phoneNumber={
-                            assignedDriver?.contact_number || contactNumber
-                          }
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenShareModal(vehicle, e);
@@ -688,7 +673,6 @@ const VehiclesPage: React.FC = () => {
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
           vehicle={selectedVehicleForShare}
-          contactNumber={contactNumber}
         />
       )}
 

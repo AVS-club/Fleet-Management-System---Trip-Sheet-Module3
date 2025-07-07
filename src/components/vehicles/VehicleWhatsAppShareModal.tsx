@@ -7,7 +7,6 @@ interface VehicleWhatsAppShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   vehicle: Vehicle;
-  contactNumber?: string;
   signedDocUrls?: {
     rc?: string;
     insurance?: string;
@@ -23,26 +22,12 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
   isOpen,
   onClose,
   vehicle,
-  contactNumber = '',
   signedDocUrls = { other: {} }
 }) => {
   if (!isOpen) return null;
   
   // Add state for showing document files section
   const [showDocumentFiles, setShowDocumentFiles] = useState(false);
-  
-  // Format phone number - remove spaces, dashes, brackets, etc.
-  const formatPhoneNumber = (phone: string) => {
-    // Remove all non-numeric characters
-    let formattedNumber = phone.replace(/\D/g, '');
-    
-    // If the number doesn't start with a country code, add India's code (+91)
-    if (!formattedNumber.startsWith('91') && formattedNumber.length === 10) {
-      formattedNumber = '91' + formattedNumber;
-    }
-    
-    return formattedNumber;
-  };
   
   // Generate Vehicle Details message
   const generateVehicleDetailsMessage = () => {
@@ -88,30 +73,21 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
   
   // Handle share on WhatsApp
   const handleShareVehicleDetails = () => {
-    if (!contactNumber) return;
-    
-    const formattedPhone = formatPhoneNumber(contactNumber);
     const message = generateVehicleDetailsMessage();
-    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/?text=${message}`, '_blank');
     onClose();
   };
   
   const handleShareDocumentDates = () => {
-    if (!contactNumber) return;
-    
-    const formattedPhone = formatPhoneNumber(contactNumber);
     const message = generateDocumentExpiryMessage();
-    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/?text=${message}`, '_blank');
     onClose();
   };
 
   // Handle share document file
   const handleShareDocumentFile = (docType: string, url: string) => {
-    if (!contactNumber) return;
-    
-    const formattedPhone = formatPhoneNumber(contactNumber);
     const message = generateDocumentFileMessage(docType, url);
-    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/?text=${message}`, '_blank');
   };
   
   // Check if any document URLs exist
@@ -139,13 +115,12 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
         
         <div className="p-4 space-y-4">
           <p className="text-sm text-gray-500">
-            Select what information you'd like to share via WhatsApp to {contactNumber || 'contact'}:
+            Select what information you'd like to share via WhatsApp:
           </p>
           
           <Button
             onClick={handleShareVehicleDetails}
             className="w-full justify-between"
-            disabled={!contactNumber}
           >
             <span>Vehicle Details</span>
             <MessageSquare className="h-4 w-4 text-green-100" />
@@ -154,7 +129,6 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
           <Button
             onClick={handleShareDocumentDates}
             className="w-full justify-between"
-            disabled={!contactNumber}
           >
             <span>Document Dates</span>
             <MessageSquare className="h-4 w-4 text-green-100" />
@@ -163,7 +137,6 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
           <Button
             onClick={() => setShowDocumentFiles(!showDocumentFiles)}
             className="w-full justify-between"
-            disabled={!contactNumber}
           >
             <span>Document Files</span>
             <FileText className="h-4 w-4 text-green-100" />
@@ -382,11 +355,6 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
             </div>
           )}
           
-          {!contactNumber && (
-            <div className="bg-yellow-50 p-3 rounded-md border border-yellow-100 text-yellow-700 text-sm">
-              No contact number available. Please add a contact number to the vehicle or driver.
-            </div>
-          )}
         </div>
         
         <div className="p-4 border-t border-gray-200 flex justify-end">
