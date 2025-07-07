@@ -4,16 +4,7 @@ import {
   Trip, 
   Vehicle 
 } from '../../types';
-import { 
-  IndianRupee, 
-  Calendar, 
-  Fuel, 
-  TrendingUp, 
-  Tool, 
-  AlertTriangle, 
-  BarChart2, 
-  Clock 
-} from 'lucide-react';
+import { IndianRupee, Calendar, Fuel, TrendingUp, PenTool as Tool, AlertTriangle, BarChart2, Clock } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
