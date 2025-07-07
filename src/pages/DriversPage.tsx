@@ -28,6 +28,9 @@ import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
 import StatCard from "../components/dashboard/StatCard";
+import WhatsAppButton from '../components/drivers/WhatsAppButton';
+import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
+import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -38,6 +41,17 @@ const DriversPage: React.FC = () => {
   const [isAddingDriver, setIsAddingDriver] = useState(false);
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
+  const [signedDocUrls, setSignedDocUrls] = useState<{
+    license?: string;
+    police_verification?: string;
+    medical_certificate?: string;
+    id_proof?: string;
+    other: Record<string, string>;
+  }>({
+    other: {}
+  });
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -263,6 +277,46 @@ const DriversPage: React.FC = () => {
   const handleEditDriver = (driver: Driver) => {
     setEditingDriver(driver);
     setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
+  };
+  
+  // Function to handle opening the WhatsApp share modal
+  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setSelectedDriverForShare(driver);
+    
+    // Generate signed URLs for documents if available
+    const urls: {
+      license?: string;
+      police_verification?: string;
+      medical_certificate?: string;
+      id_proof?: string;
+      other: Record<string, string>;
+    } = {
+      other: {}
+    };
+    
+    try {
+      // Generate signed URL for license document
+      if (driver.license_doc_url) {
+        urls.license = driver.license_doc_url;
+      }
+      
+      // Generate signed URLs for other documents
+      if (driver.other_documents && Array.isArray(driver.other_documents)) {
+        for (let i = 0; i < driver.other_documents.length; i++) {
+          const doc = driver.other_documents[i];
+          if (doc.file_path) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+          }
+        }
+      }
+      
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+    }
+    
+    setShowShareModal(true);
   };
 
   const handleCancelForm = () => {
@@ -526,6 +580,14 @@ const DriversPage: React.FC = () => {
                       >
                         View Details
                       </button>
+                      <WhatsAppButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenShareModal(driver, e);
+                        }}
+                        className="ml-2 text-green-600 hover:text-green-800"
+                        message={`Driver details for ${driver.name} (License: ${driver.license_number || driver.dl_number}) from Auto Vital Solution.`}
+                      />
                     </div>
                   </div>
                 );
@@ -533,6 +595,16 @@ const DriversPage: React.FC = () => {
             </div>
           )}
         </>
+      )}
+      
+      {/* WhatsApp Share Modal */}
+      {showShareModal && selectedDriverForShare && (
+        <DriverWhatsAppShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          driver={selectedDriverForShare}
+          signedDocUrls={signedDocUrls}
+        />
       )}
     </Layout>
   );

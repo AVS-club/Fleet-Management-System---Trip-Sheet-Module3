@@ -34,7 +34,6 @@ const VehiclePage: React.FC = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showDocumentViewerModal, setShowDocumentViewerModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] = useState<Vehicle | null>(null);
-  const [contactNumber, setContactNumber] = useState<string>("9876543210"); // Default fallback number
   
   const [stats, setStats] = useState<{ totalTrips: number; totalDistance: number; averageKmpl?: number }>({
     totalTrips: 0,
@@ -325,13 +324,6 @@ const VehiclePage: React.FC = () => {
   const handleWhatsAppShare = () => {
     setSelectedVehicleForShare(vehicle);
     setShowShareModal(true);
-    
-    // Set contact number (use a real contact number here if available)
-    // For example, get it from the primary driver if assigned
-    if (vehicle.primary_driver_id) {
-      // Here we would fetch the driver's contact number
-      // For now, use the default
-    }
   };
 
   return (
@@ -373,7 +365,6 @@ const VehiclePage: React.FC = () => {
           />
           
           <WhatsAppButton 
-            phoneNumber={contactNumber}
             onClick={handleWhatsAppShare}
             className="text-green-600 hover:text-green-800"
           />
@@ -1106,7 +1097,6 @@ const VehiclePage: React.FC = () => {
           isOpen={showShareModal}
           onClose={() => setShowShareModal(false)}
           vehicle={selectedVehicleForShare}
-          contactNumber={contactNumber}
           signedDocUrls={signedDocUrls}
         />
       )}
