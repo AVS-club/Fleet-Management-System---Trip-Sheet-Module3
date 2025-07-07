@@ -23,6 +23,7 @@ import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
 import { getAIAlerts } from "../utils/aiAnalytics";
 import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
+import DriverForm from "../components/drivers/DriverForm";
 import {
   generateDriverPDF,
   createShareableDriverLink,
