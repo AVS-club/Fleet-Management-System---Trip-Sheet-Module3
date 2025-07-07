@@ -41,6 +41,7 @@ import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import ActivityLogPage from "./pages/admin/ActivityLogPage";
+import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
 
 interface ProtectedRouteProps {
@@ -349,6 +350,7 @@ Current URL: ${window.location.origin}`;
             <Route path="/vehicles/:id" element={<VehiclePage />} />
             <Route path="/drivers" element={<DriversPage />} />
             <Route path="/drivers/:id" element={<DriverPage />} />
+            <Route path="/drivers/insights" element={<DriverInsightsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
           </Route>
           <Route

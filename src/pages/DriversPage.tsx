@@ -12,8 +12,9 @@ import { supabase } from "../utils/supabaseClient";
 import {
   User,
   Truck,
-  MapPin,
+  BarChart,
   PlusCircle,
+  MapPin,
   Edit2,
   Users,
   Clock,
@@ -364,7 +365,14 @@ const DriversPage: React.FC = () => {
       actions={
         !isAddingDriver &&
         !editingDriver && (
-          <div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/drivers/insights')}
+              icon={<BarChart className="h-4 w-4" />}
+            >
+              Driver Insights
+            </Button>
             <Button
               onClick={() => setIsAddingDriver(true)}
               icon={<PlusCircle className="h-4 w-4" />}
