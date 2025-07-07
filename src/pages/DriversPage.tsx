@@ -44,15 +44,14 @@ const DriversPage: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
   
-  // Stats state
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [totalDrivers, setTotalDrivers] = useState(0);
-  const [activeDrivers, setActiveDrivers] = useState(0);
-  const [inactiveDrivers, setInactiveDrivers] = useState(0);
-  const [avgExperience, setAvgExperience] = useState(0);
-  const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
-    useState(0);
   const [signedDocUrls, setSignedDocUrls] = useState<{
+    license?: string;
+    police_verification?: string;
+    medical_certificate?: string;
+    id_proof?: string;
+    other: Record<string, string>;
+  }>({ other: {} });
+
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
   const [totalDrivers, setTotalDrivers] = useState(0);
