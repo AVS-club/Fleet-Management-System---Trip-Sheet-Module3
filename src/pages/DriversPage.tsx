@@ -53,15 +53,6 @@ const DriversPage: React.FC = () => {
   const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
     useState(0);
   const [signedDocUrls, setSignedDocUrls] = useState<{
-    license?: string;
-    police_verification?: string;
-    medical_certificate?: string;
-    id_proof?: string;
-    other: Record<string, string>;
-  }>({
-    other: {}
-  });
-
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
   const [totalDrivers, setTotalDrivers] = useState(0);
@@ -75,7 +66,6 @@ const DriversPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       setStatsLoading(true);
-      setStatsLoading(true);
       try {
         const userdetails = localStorage.getItem("user");
         if (!userdetails) throw new Error("Cannot get user details");
@@ -86,7 +76,6 @@ const DriversPage: React.FC = () => {
           getTrips(),
         ]);
 
-        const driversArray = Array.isArray(driversData) ? driversData : [];
         const driversArray = Array.isArray(driversData) ? driversData : [];
         setDrivers(driversArray);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
@@ -129,47 +118,9 @@ const DriversPage: React.FC = () => {
 
         setStatsLoading(false);
 
-        // Calculate statistics
-        setTotalDrivers(driversArray.length);
-
-        const active = driversArray.filter((d) => d.status === "active").length;
-        setActiveDrivers(active);
-
-        const inactive = driversArray.filter(
-          (d) => d.status === "inactive"
-        ).length;
-        setInactiveDrivers(inactive);
-
-        // Calculate average experience
-        const totalExperience = driversArray.reduce(
-          (sum, driver) => sum + (driver.experience_years || 0),
-          0
-        );
-        setAvgExperience(
-          driversArray.length > 0
-            ? Math.round((totalExperience / driversArray.length) * 10) / 10
-            : 0
-        );
-
-        // Calculate drivers with expiring license (within 30 days)
-        const today = new Date();
-        const thirtyDaysFromNow = new Date(today);
-        thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-        const expiringLicenses = driversArray.filter((driver) => {
-          if (!driver.license_expiry_date) return false;
-
-          const expiryDate = new Date(driver.license_expiry_date);
-          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
-        }).length;
-
-        setDriversWithExpiringLicense(expiringLicenses);
-
-        setStatsLoading(false);
       } catch (error) {
         console.error("Error fetching drivers data:", error);
         toast.error("Failed to load drivers");
-        setStatsLoading(false);
         setStatsLoading(false);
       } finally {
         setLoading(false);
@@ -446,48 +397,6 @@ const DriversPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Driver Stats Section */}
-          {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
-                >
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Total Drivers"
-                value={totalDrivers}
-                icon={<Users className="h-5 w-5 text-primary-600" />}
-              />
-
-              <StatCard
-                title="Active Drivers"
-                value={activeDrivers}
-                icon={<UserCheck className="h-5 w-5 text-success-600" />}
-              />
-
-              <StatCard
-                title="Inactive Drivers"
-                value={inactiveDrivers}
-                icon={<UserX className="h-5 w-5 text-gray-600" />}
-              />
-
-              <StatCard
-                title="Avg. Experience"
-                value={avgExperience}
-                subtitle="years"
-                icon={<Clock className="h-5 w-5 text-primary-600" />}
-              />
-            </div>
-          )}
-
           {/* Driver Stats Section */}
           {statsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
