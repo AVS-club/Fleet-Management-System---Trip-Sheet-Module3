@@ -9,7 +9,7 @@ import {
 } from "../types";
 import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
-import { uploadVehicleDocument } from "./supabaseStorage";
+import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -1041,26 +1041,60 @@ export const createDriver = async (
   userId: string
 ): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
-  const { photo, dl_number, license_document, ...driverData } = driver as any;
+  const {
+    photo,
+    dl_number,
+    license_document,
+    aadhaar_document,
+    medical_document,
+    police_document,
+    ...driverData
+  } = driver as any;
+  console.log(license_document);
   console.log(driverData);
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from("driver-docs")
-    .upload(
-      `${userId}/drivingLicence/licence${license_document.name.slice(-4)}`,
-      license_document,
-      {
-        upsert: true,
-      }
-    );
 
-  if (uploadError) {
-    console.error("Upload error:", uploadError);
-    return null;
+  // const { data: uploadData, error: uploadError } = await supabase.storage
+  //   .from("driver-docs")
+  //   .upload(
+  //     `${userId}/drivingLicence/licence${license_document.name.slice(-4)}`,
+  //     license_document,
+  //     {
+  //       upsert: true,
+  //     }
+  //   );
+
+  // if (uploadError) {
+  //   console.error("Upload error:", uploadError);
+  //   return null;
+  // }
+  let licencePublicUrls = [];
+  let idProofPublicUrls = [];
+  let policePublicUrls = [];
+  let medicalPublicUrls = [];
+  try {
+    licencePublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${dl_number}/license`,
+      license_document
+    );
+    idProofPublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${dl_number}/idproof`,
+      aadhaar_document
+    );
+    policePublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${dl_number}/policeVerification`,
+      police_document
+    );
+    medicalPublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${dl_number}/medicalCertificate`,
+      medical_document
+    );
+  } catch (err) {
+    console.error(err);
   }
-  // Get the public URL
-  const { data: licencePublicUrl } = supabase.storage
-    .from("driver-docs")
-    .getPublicUrl(`${uploadData.path}`);
 
   // console.log(new Date(driverData.license_expiry_date));
   const { data, error } = await supabase
@@ -1068,7 +1102,10 @@ export const createDriver = async (
     .insert({
       ...convertKeysToSnakeCase(driverData),
       license_number: dl_number,
-      license_doc_url: licencePublicUrl.publicUrl,
+      license_doc_url: licencePublicUrls,
+      aadhar_doc_url: idProofPublicUrls,
+      police_doc_url: policePublicUrls,
+      medical_doc_url: medicalPublicUrls,
       license_issue_date:
         (driverData.license_issue_date &&
           !isNaN(new Date(driverData.license_issue_date).getTime()) &&
@@ -1492,9 +1529,7 @@ export const analyzeRoute = async (
 };
 
 // Generate alerts based on route analysis
-const generateAlerts = async (
-  analysis: RouteAnalysis
-): Promise<Alert[]> => {
+const generateAlerts = async (analysis: RouteAnalysis): Promise<Alert[]> => {
   const alerts: Alert[] = [];
 
   if (Math.abs(analysis.deviation) > 15) {
@@ -1691,4 +1726,3 @@ export const exportVehicleData = async (
 
   return csvContent;
 };
-

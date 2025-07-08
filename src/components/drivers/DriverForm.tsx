@@ -64,8 +64,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
       contact_number: "",
       email: "",
       status: "active",
-      other_documents: [],
       ...initialData,
+      other_documents: initialData.other_documents
+        ? initialData.other_documents
+        : [],
+      medical_document: [],
+      police_document: [],
+      aadhaar_document: [],
+      license_document: [],
     },
   });
 
@@ -73,7 +79,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
   useEffect(() => {
     if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
-
+  console.log(initialData);
   // Field array for other documents
   const { fields, append, remove } = useFieldArray({
     control,
@@ -605,16 +611,62 @@ const DriverForm: React.FC<DriverFormProps> = ({
               <FileUpload
                 label="License Document"
                 accept=".jpg,.jpeg,.png,.pdf"
-                value={value as File | null}
+                multiple={true}
+                value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
                 {...field}
               />
             )}
           />
-
+          <Controller
+            control={control}
+            name="aadhaar_document"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FileUpload
+                label="Aadhar /ID Proof"
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple={true}
+                value={value as File[] | undefined}
+                onChange={onChange}
+                disabled={isSubmitting}
+                {...field}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="police_document"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FileUpload
+                label="Police Verification"
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple={true}
+                value={value as File[] | undefined}
+                onChange={onChange}
+                disabled={isSubmitting}
+                {...field}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="medical_document"
+            render={({ field: { value, onChange, ...field } }) => (
+              <FileUpload
+                label="Medical Certificate"
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple={true}
+                value={value as File[] | undefined}
+                onChange={onChange}
+                disabled={isSubmitting}
+                {...field}
+              />
+            )}
+          />
           {/* Other Documents */}
-          <div className="mt-4 sm:mt-6">
+
+          {/* <div className="mt-4 sm:mt-6">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-sm font-medium text-gray-700">
                 Other Documents
@@ -697,7 +749,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       }}
                     />
 
-                    {/* Show existing document path/link if available */}
+                  
                     {initialData?.other_documents?.[index]?.file_path && (
                       <div className="mt-2 text-xs text-primary-600">
                         <a
@@ -715,7 +767,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 ))}
               </div>
             )}
-          </div>
+          </div> */}
         </div>
       </CollapsibleSection>
 

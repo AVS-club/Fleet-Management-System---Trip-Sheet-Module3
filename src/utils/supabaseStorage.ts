@@ -146,3 +146,47 @@ export const getSignedDriverDocumentUrl = async (
     throw error;
   }
 };
+
+/**
+ * Uploads multiple files to Supabase Storage and returns their public URLs.
+ * @param bucketId - The Supabase Storage bucket name.
+ * @param pathPrefix - The folder path prefix (e.g., "{userId}/drivingLicence").
+ * @param files - Array of File objects to upload.
+ * @returns Array of public URLs for the uploaded files.
+ * @throws Error if any upload fails.
+ */
+export async function uploadFilesAndGetPublicUrls(
+  bucketId: string,
+  pathPrefix: string,
+  files: File[]
+): Promise<string[]> {
+  try {
+    const uploadedPaths: string[] = [];
+
+    await Promise.all(
+      files.map(async (file, i) => {
+        const docName = pathPrefix.split("/").pop() || "document";
+        const ext = file.name.split(".").pop();
+        const filePath = `${pathPrefix}/${docName}_${i}.${ext}`;
+        const { data, error } = await supabase.storage
+          .from(bucketId)
+          .upload(filePath, file, { upsert: true });
+        if (error) throw error;
+        if (data?.path) uploadedPaths.push(data.path);
+      })
+    );
+
+    // Get public URLs for all uploaded files
+    const urls = uploadedPaths.map((path) => {
+      const { data } = supabase.storage.from(bucketId).getPublicUrl(path);
+      return data.publicUrl;
+    });
+
+    return urls;
+  } catch (error) {
+    console.error("Error uploading files to Supabase:", error);
+    throw new Error(
+      "Failed to upload one or more files. Please try again or check your network/storage settings."
+    );
+  }
+}

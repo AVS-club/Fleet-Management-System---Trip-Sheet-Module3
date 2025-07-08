@@ -195,7 +195,11 @@ export interface Driver {
   driver_photo_url?: string;
   driver_photo_path?: string;
 
-  license_document?: string | File;
+  license_document?: File[];
+  police_document?: File[];
+  medical_document?: File[];
+  aadhaar_document?: File[];
+  medical_doc_url?: string[];
   license_document_path?: string;
   license_expiry_date?: string;
   license_issue_date?: string;
@@ -297,15 +301,15 @@ export interface Trip {
   advance_amount?: number; // New field for advance amount
   created_at: string;
   updated_at: string;
-  
+
   // P&L fields
   freight_rate?: number;
-  billing_type?: 'per_km' | 'per_ton' | 'manual';
+  billing_type?: "per_km" | "per_ton" | "manual";
   income_amount?: number;
   total_expense?: number;
   net_profit?: number;
   cost_per_km?: number;
-  profit_status?: 'profit' | 'loss' | 'neutral';
+  profit_status?: "profit" | "loss" | "neutral";
 }
 
 export interface TripFormData
