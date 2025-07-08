@@ -7,21 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "seed:vehicle": "tsx scripts/seedVehicle.ts",
-    "seed:driver": "tsx scripts/seedDriver.ts",
-    "seed:trip": "tsx scripts/seedTrip.ts",
-    "seed:trips-json": "tsx scripts/seedTripsFromJSON.ts",
-    "seed:trips-csv": "tsx scripts/seedTripsFromCSV.ts",
-    "seed:maintenance": "tsx scripts/seedMaintenanceTasks.ts",
-    "seed:maintenance-csv": "tsx scripts/seedMaintenanceFromCSV.ts",
-    "seed:vehicles-json": "tsx scripts/seedVehiclesFromJSON.ts",
-    "seed:destinations": "tsx scripts/seedDestinations.ts",
-    "seed:warehouses": "tsx scripts/seedWarehouse.ts",
-    "seed:material-types": "tsx scripts/seedMaterialTypes.ts",
-    "fetch:drivers": "tsx scripts/fetchDrivers.ts",
-    "clean:db": "tsx scripts/clean-database.ts",
-    "delete:alerts": "tsx scripts/delete-ai-alerts.ts"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.16.2",
