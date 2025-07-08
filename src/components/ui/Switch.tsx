@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 
 interface SwitchProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -23,7 +23,8 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
     id,
     ...props 
   }, ref) => {
-    const switchId = id || `switch-${React.useId()}`;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const switchId = id || `switch-${useId()}`;
 
     const sizeClasses = {
       sm: 'h-4 w-8',

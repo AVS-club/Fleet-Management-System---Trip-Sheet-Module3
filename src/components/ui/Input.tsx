@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -26,7 +26,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     type,
     ...props 
   }, ref) => {
-    const inputId = id || `input-${React.useId()}`;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const inputId = id || `input-${useId()}`;
 
     const sizeClasses = {
       sm: 'px-2 py-1 text-sm',

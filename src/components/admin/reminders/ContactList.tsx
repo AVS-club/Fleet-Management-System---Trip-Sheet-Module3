@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { User, Edit, Trash2, Mail, Phone, Check, X, Globe } from 'lucide-react';
-import Button from '../../ui/Button';
 import { ReminderContact, ReminderContactMode } from '../../../types/reminders';
 import { toast } from 'react-toastify';
 

@@ -34,8 +34,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
       if (data && data.user)
         localStorage.setItem("user", JSON.stringify(data.user));
       navigate("/"); // Navigate to dashboard
-    } catch (error: any) {
-      setError(error.error_description || error.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        // @ts-expect-error -- Supabase error object may not match Error
+        setError((error as any).error_description || (error as Error).message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }

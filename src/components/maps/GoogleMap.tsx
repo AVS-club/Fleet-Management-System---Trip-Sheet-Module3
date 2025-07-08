@@ -36,12 +36,14 @@ const GoogleMap: React.FC<GoogleMapProps> = ({ waypoints, className = 'h-64' }) 
 
       try {
         const bounds = new google.maps.LatLngBounds();
-        Array.isArray(waypoints) && waypoints.forEach(point => {
-          if (!isValidLatLng(point)) {
-            throw new Error(`Invalid coordinates provided: ${JSON.stringify(point)}`);
-          }
-          bounds.extend(point);
-        });
+        if (Array.isArray(waypoints)) {
+          waypoints.forEach(point => {
+            if (!isValidLatLng(point)) {
+              throw new Error(`Invalid coordinates provided: ${JSON.stringify(point)}`);
+            }
+            bounds.extend(point);
+          });
+        }
 
         const mapOptions = {
           center: bounds.getCenter(),
@@ -64,21 +66,23 @@ const GoogleMap: React.FC<GoogleMapProps> = ({ waypoints, className = 'h-64' }) 
         mapInstanceRef.current = map;
 
         // Add markers for each waypoint
-        Array.isArray(waypoints) && waypoints.forEach((point, index) => {
-          new google.maps.Marker({
-            position: point,
-            map,
-            label: index === 0 ? 'S' : index === (waypoints?.length || 0) - 1 ? 'E' : String(index),
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 8,
-              fillColor: index === 0 ? '#4CAF50' : index === (waypoints?.length || 0) - 1 ? '#F44336' : '#2196F3',
-              fillOpacity: 1,
-              strokeWeight: 2,
-              strokeColor: '#FFFFFF'
-            }
+        if (Array.isArray(waypoints)) {
+          waypoints.forEach((point, index) => {
+            new google.maps.Marker({
+              position: point,
+              map,
+              label: index === 0 ? 'S' : index === (waypoints?.length || 0) - 1 ? 'E' : String(index),
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 8,
+                fillColor: index === 0 ? '#4CAF50' : index === (waypoints?.length || 0) - 1 ? '#F44336' : '#2196F3',
+                fillOpacity: 1,
+                strokeWeight: 2,
+                strokeColor: '#FFFFFF'
+              }
+            });
           });
-        });
+        }
 
         // Draw route path if there are at least 2 waypoints
         if (Array.isArray(waypoints) && waypoints.length >= 2) {

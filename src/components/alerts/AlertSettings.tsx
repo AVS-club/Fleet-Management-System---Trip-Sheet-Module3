@@ -29,7 +29,10 @@ const AlertSettings: React.FC = () => {
     loadSettings();
   }, []);
 
-  const handleChange = (key: keyof AlertSettingsType, value: any) => {
+  const handleChange = (
+    key: keyof AlertSettingsType,
+    value: AlertSettingsType[keyof AlertSettingsType]
+  ) => {
     if (settings) {
       setSettings({ ...settings, [key]: value });
     }

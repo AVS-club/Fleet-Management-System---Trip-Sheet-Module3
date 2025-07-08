@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 interface RegisterFormProps {
   showPassword?: boolean;
@@ -44,8 +44,13 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
       setTimeout(() => {
         navigate('/login');
       }, 3000); // Redirect after 3 seconds
-    } catch (error: any) {
-      setError(error.error_description || error.message);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'message' in error) {
+        // @ts-expect-error -- Supabase error object may not match Error
+        setError((error as any).error_description || (error as Error).message);
+      } else {
+        setError('An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }

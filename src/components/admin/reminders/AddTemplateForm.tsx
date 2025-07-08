@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Bell, Clock, RefreshCw, User, Globe } from 'lucide-react';
+import { Bell, Clock, RefreshCw, User } from 'lucide-react';
 import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';

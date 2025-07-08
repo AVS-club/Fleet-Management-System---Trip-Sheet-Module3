@@ -22,10 +22,10 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
   driver,
   signedDocUrls = { other: {} }
 }) => {
-  if (!isOpen) return null;
-  
   // Add state for showing document files section
   const [showDocumentFiles, setShowDocumentFiles] = useState(false);
+
+  if (!isOpen) return null;
   
   // Generate Driver Details message
   const generateDriverDetailsMessage = () => {

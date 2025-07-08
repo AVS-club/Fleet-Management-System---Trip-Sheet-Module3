@@ -4,7 +4,7 @@ import {
   Trip, 
   Vehicle 
 } from '../../types';
-import { IndianRupee, Calendar, Fuel, TrendingUp, PenTool as Tool, AlertTriangle, BarChart2, Clock } from 'lucide-react';
+import { IndianRupee, Calendar, Fuel, TrendingUp, PenTool as Tool, AlertTriangle, BarChart2 } from 'lucide-react';
 import { 
   LineChart, 
   Line, 
@@ -14,20 +14,18 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { format, subMonths, startOfMonth, endOfMonth, parseISO, isValid, isWithinInterval } from 'date-fns';
+import { format, subMonths, startOfMonth, parseISO, isValid, isWithinInterval } from 'date-fns';
 import CollapsibleSection from '../../components/ui/CollapsibleSection';
 import Select from '../../components/ui/Select';
 
 interface DriverInsightsPanelProps {
   driver: Driver;
   trips: Trip[];
-  vehicles?: Vehicle[];
 }
 
-const DriverInsightsPanel: React.FC<DriverInsightsPanelProps> = ({ 
-  driver, 
-  trips, 
-  vehicles 
+const DriverInsightsPanel: React.FC<DriverInsightsPanelProps> = ({
+  driver,
+  trips
 }) => {
   const [timeFilter, setTimeFilter] = useState<'lastThreeMonths' | 'thisMonth' | 'allTime'>('lastThreeMonths');
   
@@ -156,7 +154,11 @@ const DriverInsightsPanel: React.FC<DriverInsightsPanelProps> = ({
                 { value: 'allTime', label: 'All Time' }
               ]}
               value={timeFilter}
-              onChange={(e) => setTimeFilter(e.target.value as any)}
+              onChange={(e) =>
+                setTimeFilter(
+                  e.target.value as 'lastThreeMonths' | 'thisMonth' | 'allTime'
+                )
+              }
             />
           </div>
         </div>
@@ -274,8 +276,8 @@ const DriverInsightsPanel: React.FC<DriverInsightsPanelProps> = ({
                     tickLine={false}
                     axisLine={false}
                   />
-                  <Tooltip 
-                    formatter={(value: any) => [`${value} km`, 'Distance']}
+                  <Tooltip
+                    formatter={(value: number | string) => [`${value} km`, 'Distance']}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
                   <Line
