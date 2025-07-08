@@ -1,37 +1,9 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "../../components/layout/Layout";
-import {
-  BarChart2,
-  ChevronLeft,
-  IndianRupee,
-  TrendingUp,
-  Calendar,
   Filter,
   Search,
   Download,
   RefreshCw,
   User,
   Fuel,
-  Users,
-  Package,
-  Gauge,
-} from "lucide-react";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
-import Select from "../../components/ui/Select";
-import StatCard from "../../components/ui/StatCard";
-import { getDrivers, getTrips, getVehicles } from "../../utils/storage";
-import {
-  format,
-  parseISO,
-  isValid,
-  subMonths,
-  startOfMonth,
-  endOfMonth,
-  differenceInDays,
-} from "date-fns";
-import { Driver, Trip, Vehicle } from "../../types";
 import {
   BarChart,
   Bar,
@@ -80,7 +52,6 @@ const DriverInsightsPage: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState(true);
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -422,11 +393,13 @@ const DriverInsightsPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      title="Driver Insights"
-      subtitle="Analytics and performance metrics for your drivers"
-      actions={
-        <div className="flex flex-wrap gap-3">
+    <>
+      <LoadingScreen isLoading={loading} />
+      <Layout
+        title="Driver Insights"
+        subtitle="Analytics and performance metrics for your drivers"
+        actions={
+          <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             onClick={() => navigate("/drivers")}
@@ -445,15 +418,9 @@ const DriverInsightsPage: React.FC = () => {
             Export Data
           </Button>
         </div>
-      }
-    >
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 text-gray-600">Loading driver insights...</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
+        }
+      >
+        <div className={cn('space-y-6', loading && 'opacity-50 pointer-events-none')}>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             <StatCard
@@ -854,10 +821,7 @@ const DriverInsightsPage: React.FC = () => {
                     <p className="text-gray-500">No data available</p>
                   </div>
                 )}
-              </div>
-            </div>
           </div>
-
           {/* Driver of the Month */}
           {summaryMetrics.topDriver && (
             <div className="fixed bottom-6 right-6 bg-white p-4 rounded-lg shadow-lg border-l-4 border-primary-500 max-w-xs animate-slide-up z-10">
@@ -881,8 +845,8 @@ const DriverInsightsPage: React.FC = () => {
             </div>
           )}
         </div>
-      )}
     </Layout>
+    </>
   );
 };
 
