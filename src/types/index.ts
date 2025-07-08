@@ -368,3 +368,9 @@ export interface Warehouse {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface VehicleStats {
+  totalTrips: number;
+  totalDistance: number;
+  averageKmpl?: number;
+}
