@@ -34,32 +34,6 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
    npm run dev
    ```
 
-### Scripts
-
-The project includes several utility scripts:
-
-#### Seed Maintenance Tasks
-
-To seed the maintenance tasks catalog:
-
-1. Navigate to the scripts directory:
-   ```
-   cd scripts
-   ```
-
-2. Install script dependencies:
-   ```
-   npm install
-   ```
-
-3. Copy `.env.example` to `.env` and fill in your Supabase credentials
-
-4. Run the seed script:
-   ```
-   npm run seed:maintenance
-   ```
-
-This will import all maintenance tasks from `src/data/maintenance_tasks.json` into the Supabase `maintenance_tasks_catalog` table.
 
 ## License
 
