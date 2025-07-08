@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
+import LoadingScreen from '../../components/LoadingScreen';
+import { cn } from '../../utils/cn';
 import { 
   BarChart2, 
   ChevronLeft, 
@@ -336,11 +338,13 @@ const DriverInsightsPage: React.FC = () => {
   };
   
   return (
-    <Layout
-      title="Driver Insights"
-      subtitle="Analytics and performance metrics for your drivers"
-      actions={
-        <div className="flex flex-wrap gap-3">
+    <>
+      <LoadingScreen isLoading={loading} />
+      <Layout
+        title="Driver Insights"
+        subtitle="Analytics and performance metrics for your drivers"
+        actions={
+          <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
             onClick={() => navigate('/drivers')}
@@ -359,15 +363,9 @@ const DriverInsightsPage: React.FC = () => {
             Export Data
           </Button>
         </div>
-      }
-    >
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 text-gray-600">Loading driver insights...</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
+        }
+      >
+        <div className={cn('space-y-6', loading && 'opacity-50 pointer-events-none')}>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
@@ -697,8 +695,8 @@ const DriverInsightsPage: React.FC = () => {
             </div>
           )}
         </div>
-      )}
     </Layout>
+    </>
   );
 };
 
