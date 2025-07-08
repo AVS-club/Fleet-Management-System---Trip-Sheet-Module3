@@ -201,7 +201,6 @@ Current URL: ${window.location.origin}`;
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      console.log("knewk");
       // Only redirect if not loading, no session, AND not already on login/register page
       if (
         !loading &&
