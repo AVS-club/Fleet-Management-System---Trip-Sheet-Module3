@@ -63,8 +63,10 @@ const TripList: React.FC<TripListProps> = ({
         
         return true;
       })
-      .sort((a, b) => new Date(b.trip_start_date || 0).getTime() - new Date(a.trip_start_date || 0).getTime())
-      .sort((a, b) => new Date(b.trip_start_date || 0).getTime() - new Date(a.trip_start_date || 0).getTime())
+      .sort((a, b) =>
+        new Date(b.trip_start_date || 0).getTime() -
+        new Date(a.trip_start_date || 0).getTime()
+      )
     : [];
   }, [trips, searchTerm, filterVehicle, filterDriver, filterRefueling, vehicles, drivers]);
   
