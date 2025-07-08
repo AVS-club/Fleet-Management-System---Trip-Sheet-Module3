@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { MaintenanceTask, Vehicle } from '../../types';
 import { addDays, addHours, format } from 'date-fns';
 import Input from '../ui/Input';
@@ -40,7 +40,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     confidence: 0
   });
 
-  const { register, handleSubmit, watch, control, setValue, formState: { errors } } = useForm<Partial<MaintenanceTask>>({
+  const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
       task_type: 'general_scheduled_service',
       priority: 'medium',
@@ -63,6 +63,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       ...initialData
     }
   });
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    control,
+    setValue,
+    formState: { errors },
+  } = methods;
 
 
   const startDate = watch('start_date');
@@ -269,7 +278,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+    <FormProvider {...methods}>
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
       {/* Vehicle & Basic Info */}
       <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
         <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -485,6 +495,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </Button>
       </div>
     </form>
+    </FormProvider>
   );
 };
 
