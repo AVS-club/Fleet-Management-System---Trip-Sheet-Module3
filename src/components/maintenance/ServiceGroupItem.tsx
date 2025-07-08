@@ -7,12 +7,13 @@ import {
   MaintenanceTask,
 } from "../../types/maintenance";
 import Input from "../ui/Input";
+import CurrencyInput from "../ui/CurrencyInput";
 import FileUpload from "../ui/FileUpload";
 import Switch from "../ui/Switch";
 import VendorSelector from "./VendorSelector";
 import MaintenanceSelector from "./MaintenanceSelector";
 import SearchableSelect from "../ui/SearchableSelect";
-import { Trash2, IndianRupee, Battery, Disc, Paperclip } from "lucide-react";
+import { Trash2, Battery, Disc, Paperclip } from "lucide-react";
 import { addYears, format } from "date-fns";
 
 interface ServiceGroupItemProps {
@@ -77,11 +78,9 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
             )}
           />
 
-          <Input
-            label="Cost (₹)"
-            type="number"
+          <CurrencyInput
+            label="Cost"
             className="ps-8"
-            icon={<IndianRupee className="h-4 w-4" />}
             error={errors.service_groups?.[index]?.cost?.message}
             required
             {...register(`service_groups.${index}.cost` as const, {
