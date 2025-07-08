@@ -1,7 +1,7 @@
 import React from 'react';
 import { Driver, Trip, Vehicle } from '../../types';
 import { MaintenanceTask } from '../../types/maintenance';
-import { X, Truck, TrendingUp, Fuel, Gauge, Calendar, Wrench } from 'lucide-react';
+import { User, Calendar, Truck, TrendingUp, Clock, CheckCircle, AlertTriangle, Bell } from 'lucide-react';
 import Button from '../ui/Button';
 import StatCard from '../ui/StatCard';
 import { format } from 'date-fns';
@@ -53,10 +53,13 @@ const DriverSummaryModal: React.FC<DriverSummaryModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full overflow-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] bg-white rounded-lg shadow-xl">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h3 className="text-lg font-medium text-gray-900">Driver Summary</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -73,7 +76,7 @@ const DriverSummaryModal: React.FC<DriverSummaryModalProps> = ({
 
           <div className="bg-gray-50 p-3 rounded space-y-1">
             <p className="text-sm font-medium text-gray-700">{driver.name}</p>
-            <p className="text-sm text-gray-500">License: {driver.dl_number}</p>
+            <p className="text-sm text-gray-500">License: {driver.license_number}</p>
             {vehicle && (
               <p className="text-sm text-gray-500">Vehicle: {vehicle.registration_number}</p>
             )}

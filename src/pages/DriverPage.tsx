@@ -24,6 +24,8 @@ import DriverMetrics from "../components/drivers/DriverMetrics";
 import { getAIAlerts } from "../utils/aiAnalytics";
 import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
 import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
+import DriverAIInsights from '../components/ai/DriverAIInsights';
+import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
 import DriverForm from "../components/drivers/DriverForm";
 import {
   generateDriverPDF,
@@ -719,6 +721,24 @@ const DriverPage: React.FC = () => {
 
           {/* Performance Metrics */}
           <DriverMetrics driver={driver} trips={trips} />
+
+          {/* Driver Insights Panel */}
+          <DriverInsightsPanel 
+            driver={driver} 
+            trips={trips} 
+            vehicles={primaryVehicle ? [primaryVehicle] : undefined} 
+          />
+
+          {/* Driver AI Insights */}
+          {drivers && drivers.length > 0 && vehicles && vehicles.length > 0 && (
+            <DriverAIInsights
+              driver={driver}
+              allDrivers={drivers}
+              trips={trips}
+              vehicles={vehicles}
+              maintenanceTasks={[]}
+            />
+          )}
 
           {/* Driver Insights Panel */}
           <DriverInsightsPanel 
