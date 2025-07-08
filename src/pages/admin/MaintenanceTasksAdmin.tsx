@@ -4,6 +4,7 @@ import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../ty
 import { PlusCircle, Edit2, Trash2, AlertTriangle, ChevronLeft } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import CurrencyInput from '../../components/ui/CurrencyInput';
 import Select from '../../components/ui/Select';
 import { useNavigate } from 'react-router-dom';
 
@@ -125,12 +126,11 @@ const MaintenanceTasksAdmin: React.FC = () => {
               }}
             />
 
-            <Input
-              label="Average Cost (₹)"
-              type="number"
+            <CurrencyInput
+              label="Average Cost"
               value={editingItem?.averageCost || newItem.averageCost || ''}
               onChange={e => {
-                const value = parseInt(e.target.value);
+                const value = parseFloat(e.target.value);
                 if (editingItem) {
                   setEditingItem({ ...editingItem, averageCost: value });
                 } else {
