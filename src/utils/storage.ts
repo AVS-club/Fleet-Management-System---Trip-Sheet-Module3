@@ -1050,8 +1050,6 @@ export const createDriver = async (
     police_document,
     ...driverData
   } = driver as any;
-  console.log(license_document);
-  console.log(driverData);
 
   // const { data: uploadData, error: uploadError } = await supabase.storage
   //   .from("driver-docs")
@@ -1096,7 +1094,6 @@ export const createDriver = async (
     console.error(err);
   }
 
-  // console.log(new Date(driverData.license_expiry_date));
   const { data, error } = await supabase
     .from("drivers")
     .insert({
