@@ -45,7 +45,7 @@ import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import StatCard from "../../components/ui/StatCard";
 import { cn } from "../../utils/cn";
-import { getDrivers, getTrips, getVehicles } from "../../utils/supabaseClient";
+import { getDrivers, getTrips, getVehicles } from "../../utils/storage";
 import type { Driver, Trip, Vehicle } from "../../types";
 
 // Interface for driver performance metrics
