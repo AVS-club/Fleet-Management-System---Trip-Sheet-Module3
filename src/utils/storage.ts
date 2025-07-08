@@ -935,20 +935,21 @@ export const bulkUpdateVehicles = async (
   vehicleIds: string[],
   updates: Partial<Vehicle>
 ): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => updateVehicle(id, updates));
+
+  const results = await Promise.allSettled(promises);
+
   let successCount = 0;
   let failedCount = 0;
 
-  for (const id of vehicleIds) {
-    try {
-      const result = await updateVehicle(id, updates);
-      if (result) {
-        successCount++;
-      } else {
-        failedCount++;
-      }
-    } catch (error) {
-      console.error(`Error updating vehicle ${id}:`, error);
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
       failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error updating vehicle:", result.reason);
+      }
     }
   }
 
@@ -958,20 +959,21 @@ export const bulkUpdateVehicles = async (
 export const bulkArchiveVehicles = async (
   vehicleIds: string[]
 ): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => deleteVehicle(id));
+
+  const results = await Promise.allSettled(promises);
+
   let successCount = 0;
   let failedCount = 0;
 
-  for (const id of vehicleIds) {
-    try {
-      const result = await deleteVehicle(id); // This now archives instead of deleting
-      if (result) {
-        successCount++;
-      } else {
-        failedCount++;
-      }
-    } catch (error) {
-      console.error(`Error archiving vehicle ${id}:`, error);
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
       failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error archiving vehicle:", result.reason);
+      }
     }
   }
 
@@ -981,20 +983,21 @@ export const bulkArchiveVehicles = async (
 export const bulkUnarchiveVehicles = async (
   vehicleIds: string[]
 ): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => unarchiveVehicle(id));
+
+  const results = await Promise.allSettled(promises);
+
   let successCount = 0;
   let failedCount = 0;
 
-  for (const id of vehicleIds) {
-    try {
-      const result = await unarchiveVehicle(id);
-      if (result) {
-        successCount++;
-      } else {
-        failedCount++;
-      }
-    } catch (error) {
-      console.error(`Error unarchiving vehicle ${id}:`, error);
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
       failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error unarchiving vehicle:", result.reason);
+      }
     }
   }
 
