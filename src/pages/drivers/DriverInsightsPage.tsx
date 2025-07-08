@@ -18,7 +18,7 @@ import {
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import StatCard from '../../components/dashboard/StatCard';
+import StatCard from '../../components/ui/StatCard';
 import { getDrivers, getTrips, getVehicles } from '../../utils/storage';
 import { format, parseISO, isValid, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Driver, Trip, Vehicle } from '../../types';

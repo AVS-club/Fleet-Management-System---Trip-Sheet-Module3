@@ -5,7 +5,7 @@ import { format, subDays, startOfYear, endOfYear, subYears, isWithinInterval, is
 import Select from '../ui/Select';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import StatCard from '../dashboard/StatCard';
+import StatCard from '../ui/StatCard';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import MonthlyFuelConsumptionChart from './charts/MonthlyFuelConsumptionChart';
 import FuelConsumedByVehicleChart from './charts/FuelConsumedByVehicleChart';

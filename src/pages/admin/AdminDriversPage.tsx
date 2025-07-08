@@ -5,7 +5,7 @@ import { ChevronLeft, Upload, Download, Filter, Search, UserPlus, Users, Refresh
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import StatCard from '../../components/dashboard/StatCard';
+import StatCard from '../../components/ui/StatCard';
 import { Driver } from '../../types';
 import { getDrivers } from '../../utils/storage';
 import { toast } from 'react-toastify';

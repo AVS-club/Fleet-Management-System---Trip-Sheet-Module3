@@ -28,7 +28,7 @@ import Button from "../components/ui/Button";
 import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
-import StatCard from "../components/dashboard/StatCard";
+import StatCard from "../components/ui/StatCard";
 import WhatsAppButton from '../components/drivers/WhatsAppButton';
 import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
 import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
