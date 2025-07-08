@@ -38,7 +38,7 @@ import {
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
-import StatCard from "../components/dashboard/StatCard";
+import StatCard from "../components/ui/StatCard";
 import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
 import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
 import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";

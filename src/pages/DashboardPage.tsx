@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
-import StatCard from '../components/dashboard/StatCard';
+import StatCard from '../components/ui/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
