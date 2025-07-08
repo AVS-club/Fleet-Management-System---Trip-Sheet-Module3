@@ -48,9 +48,14 @@ const DriverMetrics: React.FC<DriverMetricsProps> = ({ driver, trips }) => {
     : 0;
 
   // Calculate time since last trip
-  const lastTrip = Array.isArray(trips) && trips.length > 0 ? trips.sort((a, b) => 
-    new Date(b.trip_end_date || 0).getTime() - new Date(a.trip_end_date || 0).getTime()
-  )[0] : undefined;
+  const lastTrip = Array.isArray(trips) && trips.length > 0
+    ? trips.reduce<Trip | undefined>((latest, trip) => {
+        const currentDate = new Date(trip.trip_end_date || 0).getTime();
+        if (!latest) return trip;
+        const latestDate = new Date(latest.trip_end_date || 0).getTime();
+        return currentDate > latestDate ? trip : latest;
+      }, undefined)
+    : undefined;
   
   const daysSinceLastTrip = lastTrip
     ? Math.floor((new Date().getTime() - new Date(lastTrip.trip_end_date || 0).getTime()) / (1000 * 60 * 60 * 24))
