@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { getDriver, getVehicle, getTrips } from "../utils/storage";
+import { getDriver, getVehicle, getTrips, getDrivers, getVehicles } from "../utils/storage";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
   User,
@@ -41,6 +41,8 @@ const DriverPage: React.FC = () => {
   const [primaryVehicle, setPrimaryVehicle] = useState<Vehicle | null>(null);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
+  const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
@@ -97,6 +99,13 @@ const DriverPage: React.FC = () => {
               )
             : []
         );
+
+        // Fetch all drivers and vehicles for AI insights
+        const allDriversData = await getDrivers();
+        setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
+
+        const allVehiclesData = await getVehicles();
+        setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
 
         // Generate signed URLs for documents if driver is available
         if (driverData) {
@@ -729,12 +738,12 @@ const DriverPage: React.FC = () => {
           />
 
           {/* Driver AI Insights */}
-          {drivers && drivers.length > 0 && vehicles && vehicles.length > 0 && (
+          {allDrivers && allDrivers.length > 0 && allVehicles && allVehicles.length > 0 && (
             <DriverAIInsights
               driver={driver}
-              allDrivers={drivers}
+              allDrivers={allDrivers}
               trips={trips}
-              vehicles={vehicles}
+              vehicles={allVehicles}
               maintenanceTasks={[]}
             />
           )}
