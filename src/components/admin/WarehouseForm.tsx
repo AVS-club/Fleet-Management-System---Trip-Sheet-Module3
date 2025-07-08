@@ -4,8 +4,6 @@ import { Building2, MapPin, Search } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import { loadGoogleMaps } from '../../utils/googleMapsLoader';
-import { useState, useEffect, useRef } from 'react';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Import MaterialType
 
 interface WarehouseFormData {
@@ -69,32 +67,37 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
     fetchMaterials();
   }, []);
 
-  // Handle search input changes
+  // Search handler wrapped in a callback for debounce
+  const handleSearch = useCallback(async () => {
+    if (!autocompleteService || searchTerm.length < 2) {
+      setPredictions([]);
+      return;
+    }
+
+    try {
+      const response = await autocompleteService.getPlacePredictions({
+        input: searchTerm,
+        types: ['(cities)'],
+        componentRestrictions: { country: 'in' }
+      });
+
+      if (response && response.predictions) {
+        setPredictions(response.predictions);
+      }
+    } catch (error) {
+      console.error('Error getting place predictions:', error);
+      setPredictions([]);
+    }
+  }, [autocompleteService, searchTerm]);
+
+  // Debounce search calls when the user types
   useEffect(() => {
-    const handleSearch = async () => {
-      if (!autocompleteService || searchTerm.length < 2) {
-        setPredictions([]);
-        return;
-      }
+    const timeoutId = setTimeout(() => {
+      handleSearch();
+    }, 300);
 
-      try {
-        const response = await autocompleteService.getPlacePredictions({
-          input: searchTerm,
-          types: ['(cities)'],
-          componentRestrictions: { country: 'in' }
-        });
-
-        if (response && response.predictions) {
-          setPredictions(response.predictions);
-        }
-      } catch (error) {
-        console.error('Error getting place predictions:', error);
-        setPredictions([]);
-      }
-    };
-
-    handleSearch();
-  }, [searchTerm, autocompleteService]);
+    return () => clearTimeout(timeoutId);
+  }, [handleSearch]);
 
   const handleSelectPlace = async (prediction: google.maps.places.AutocompletePrediction) => {
     if (!placesService) return;
