@@ -1,9 +1,28 @@
+import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  format,
+  parseISO,
+  isValid,
+  startOfMonth,
+  subMonths,
+  differenceInDays,
+} from "date-fns";
+import {
+  ChevronLeft,
+  Users,
+  Calendar,
+  IndianRupee,
+  Package,
+  Gauge,
+  TrendingUp,
+  BarChart2,
   Filter,
   Search,
   Download,
   RefreshCw,
   User,
-  Fuel,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -19,6 +38,15 @@ import {
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import Layout from "../../components/layout/Layout";
+import LoadingScreen from "../../components/LoadingScreen";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Select from "../../components/ui/Select";
+import StatCard from "../../components/ui/StatCard";
+import { cn } from "../../utils/cn";
+import { getDrivers, getTrips, getVehicles } from "../../utils/supabaseClient";
+import type { Driver, Trip, Vehicle } from "../../types";
 
 // Interface for driver performance metrics
 interface DriverPerformance {
@@ -821,7 +849,10 @@ const DriverInsightsPage: React.FC = () => {
                     <p className="text-gray-500">No data available</p>
                   </div>
                 )}
+              </div>
+            </div>
           </div>
+
           {/* Driver of the Month */}
           {summaryMetrics.topDriver && (
             <div className="fixed bottom-6 right-6 bg-white p-4 rounded-lg shadow-lg border-l-4 border-primary-500 max-w-xs animate-slide-up z-10">
@@ -845,7 +876,7 @@ const DriverInsightsPage: React.FC = () => {
             </div>
           )}
         </div>
-    </Layout>
+      </Layout>
     </>
   );
 };
