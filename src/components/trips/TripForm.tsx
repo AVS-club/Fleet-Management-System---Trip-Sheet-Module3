@@ -8,6 +8,7 @@ import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info, Loader } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import CurrencyInput from '../ui/CurrencyInput';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
 import FileUpload from '../ui/FileUpload';
@@ -702,11 +703,8 @@ const TripForm: React.FC<TripFormProps> = ({
                 })}
               />
 
-              <Input
-                label="Fuel Cost (₹/L)"
-                type="number"
-                inputMode="decimal"
-                icon={<IndianRupee className="h-4 w-4" />}
+              <CurrencyInput
+                label="Fuel Cost (/L)"
                 step="0.01"
                 error={errors.fuel_cost?.message}
                 {...register('fuel_cost', {
@@ -740,78 +738,42 @@ const TripForm: React.FC<TripFormProps> = ({
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div className="form-group">
-            <label
-              htmlFor="unloading_expense"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Unloading Expense
-            </label>
-            <div className="flex items-center">
-              <span className="mr-2 text-gray-500">₹</span>
-              <input
-                id="unloading_expense"
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                className="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2"
-                {...register('unloading_expense', {
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Expense must be positive' }
-                })}
-              />
-            </div>
+            <CurrencyInput
+              label="Unloading Expense"
+              {...register('unloading_expense', {
+                valueAsNumber: true,
+                min: { value: 0, message: 'Expense must be positive' }
+              })}
+              error={errors.unloading_expense?.message}
+            />
             {errors.unloading_expense && (
               <p className="form-error">{errors.unloading_expense.message}</p>
             )}
           </div>
 
           <div className="form-group">
-            <label
-              htmlFor="driver_expense"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Driver/Misc Expense
-            </label>
-            <div className="flex items-center">
-              <span className="mr-2 text-gray-500">₹</span>
-              <input
-                id="driver_expense"
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                className="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2"
-                {...register('driver_expense', {
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Expense must be positive' }
-                })}
-              />
-            </div>
+            <CurrencyInput
+              label="Driver/Misc Expense"
+              {...register('driver_expense', {
+                valueAsNumber: true,
+                min: { value: 0, message: 'Expense must be positive' }
+              })}
+              error={errors.driver_expense?.message}
+            />
             {errors.driver_expense && (
               <p className="form-error">{errors.driver_expense.message}</p>
             )}
           </div>
 
           <div className="form-group">
-            <label
-              htmlFor="road_rto_expense"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Road/RTO Expense
-            </label>
-            <div className="flex items-center">
-              <span className="mr-2 text-gray-500">₹</span>
-              <input
-                id="road_rto_expense"
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                className="block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2"
-                {...register('road_rto_expense', {
-                  valueAsNumber: true,
-                  min: { value: 0, message: 'Expense must be positive' }
-                })}
-              />
-            </div>
+            <CurrencyInput
+              label="Road/RTO Expense"
+              {...register('road_rto_expense', {
+                valueAsNumber: true,
+                min: { value: 0, message: 'Expense must be positive' }
+              })}
+              error={errors.road_rto_expense?.message}
+            />
             {errors.road_rto_expense && (
               <p className="form-error">{errors.road_rto_expense.message}</p>
             )}
