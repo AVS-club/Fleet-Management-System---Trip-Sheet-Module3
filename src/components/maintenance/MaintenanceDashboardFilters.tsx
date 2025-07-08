@@ -33,6 +33,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
               <div className="flex-grow">
                 <Select
                   options={[
+                    { value: 'allTime', label: 'All Time' },
                     { value: 'thisMonth', label: 'This Month' },
                     { value: 'lastMonth', label: 'Last Month' },
                     { value: 'thisYear', label: 'This Year' },
@@ -56,13 +57,14 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
               <div className="mt-2 flex items-center">
                 <Calendar className="h-4 w-4 text-gray-500 mr-2" />
                 <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-md font-medium">
-                  {dateRangeFilter === 'today' ? 'Today' : 
+                  {dateRangeFilter === 'today' ? 'Today' :
                    dateRangeFilter === 'yesterday' ? 'Yesterday' :
                    dateRangeFilter === 'last7Days' ? 'Last 7 Days' :
                    dateRangeFilter === 'thisMonth' ? 'This Month' :
                    dateRangeFilter === 'lastMonth' ? 'Last Month' :
                    dateRangeFilter === 'thisYear' ? 'This Year' :
-                   dateRangeFilter === 'lastYear' ? 'Last Year' : 'Custom Range'}
+                   dateRangeFilter === 'lastYear' ? 'Last Year' :
+                   dateRangeFilter === 'allTime' ? 'All Time' : 'Custom Range'}
                 </span>
               </div>
             )}

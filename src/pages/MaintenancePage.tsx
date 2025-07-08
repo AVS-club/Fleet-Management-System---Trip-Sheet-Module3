@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
-  const [dateRangeFilter, setDateRangeFilter] = useState('last30Days');
+  const [dateRangeFilter, setDateRangeFilter] = useState('allTime');
   const [customDateRange, setCustomDateRange] = useState({
     start: '',
     end: ''
@@ -48,11 +48,8 @@ const MaintenancePage = () => {
   // Initialize custom date range values
   useEffect(() => {
     const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
     setCustomDateRange({
-      start: thirtyDaysAgo.toISOString().split('T')[0],
+      start: '2020-01-01',
       end: today.toISOString().split('T')[0]
     });
   }, []);

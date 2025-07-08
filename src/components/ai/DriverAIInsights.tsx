@@ -10,7 +10,6 @@ import {
   getMaintenanceCostInsight,
   DriverInsight
 } from '../../utils/driverAnalytics';
-import { subMonths } from 'date-fns';
 import { TrendingUp, AlertTriangle, IndianRupee, PenTool } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
@@ -34,7 +33,7 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
   const range = useMemo(() => {
     if (dateRange) return dateRange;
     const end = new Date();
-    return { start: subMonths(end, 3), end };
+    return { start: new Date('2020-01-01'), end };
   }, [dateRange]);
 
   const insights = useMemo(() => {

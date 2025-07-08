@@ -59,7 +59,7 @@ const TripPnlReportsPage: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
   const [selectedProfitStatus, setSelectedProfitStatus] = useState('');
-  const [selectedDatePreset, setSelectedDatePreset] = useState('last30');
+  const [selectedDatePreset, setSelectedDatePreset] = useState('alltime');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -119,6 +119,13 @@ const TripPnlReportsPage: React.FC = () => {
       getValue: () => ({
         startDate: startOfYear(subYears(new Date(), 1)),
         endDate: endOfYear(subYears(new Date(), 1))
+      })
+    },
+    {
+      label: 'All Time',
+      getValue: () => ({
+        startDate: new Date('2020-01-01'),
+        endDate: new Date()
       })
     }
   ];
@@ -278,7 +285,7 @@ const TripPnlReportsPage: React.FC = () => {
     setSelectedDriver('');
     setSelectedWarehouse('');
     setSelectedProfitStatus('');
-    setSelectedDatePreset('last30');
+    setSelectedDatePreset('alltime');
     setCustomStartDate('');
     setCustomEndDate('');
   };

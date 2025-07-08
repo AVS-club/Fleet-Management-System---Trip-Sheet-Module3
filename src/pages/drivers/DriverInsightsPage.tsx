@@ -76,7 +76,7 @@ const DriverInsightsPage: React.FC = () => {
   // Filters
   const [dateRange, setDateRange] = useState<
     "thisMonth" | "lastThreeMonths" | "lastSixMonths" | "lastYear" | "allTime"
-  >("lastThreeMonths");
+  >("allTime");
   const [selectedDriver, setSelectedDriver] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState(true);
@@ -579,7 +579,7 @@ const DriverInsightsPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setDateRange("lastThreeMonths");
+                  setDateRange("allTime");
                   setSelectedDriver("all");
                   setSearchTerm("");
                 }}
