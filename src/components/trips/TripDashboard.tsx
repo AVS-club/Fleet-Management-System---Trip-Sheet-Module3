@@ -20,7 +20,7 @@ interface TripDashboardProps {
 type DateFilterType = 'lastMonth' | 'last3Months' | 'last6Months' | 'last12Months' | 'allTime' | 'custom';
 
 const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers }) => {
-  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('last3Months');
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('allTime');
   const [customStartDate, setCustomStartDate] = useState<string>(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   

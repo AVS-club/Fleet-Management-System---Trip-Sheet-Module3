@@ -69,6 +69,11 @@ export const getDateRangeForFilter = (filterType: string, customStart?: string, 
         end: endOfYear(lastYear)
       };
     }
+    case 'allTime':
+      return {
+        start: new Date('2020-01-01'),
+        end: now
+      };
     case 'custom':
       if (customStart && customEnd) {
         return {

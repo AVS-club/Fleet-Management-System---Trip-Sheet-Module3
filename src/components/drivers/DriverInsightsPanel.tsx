@@ -27,7 +27,7 @@ const DriverInsightsPanel: React.FC<DriverInsightsPanelProps> = ({
   driver,
   trips
 }) => {
-  const [timeFilter, setTimeFilter] = useState<'lastThreeMonths' | 'thisMonth' | 'allTime'>('lastThreeMonths');
+  const [timeFilter, setTimeFilter] = useState<'lastThreeMonths' | 'thisMonth' | 'allTime'>('allTime');
   
   // Define date range based on time filter
   const dateRange = useMemo(() => {

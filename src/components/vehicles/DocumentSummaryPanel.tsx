@@ -206,7 +206,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   // State variables
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom'>('thisMonth');
+  const [dateRange, setDateRange] = useState<'allTime' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'lastYear' | 'custom'>('allTime');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
@@ -218,11 +218,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   // Initialize date ranges
   useEffect(() => {
     const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
-    setCustomStartDate(firstDayOfMonth.toISOString().split('T')[0]);
-    setCustomEndDate(lastDayOfMonth.toISOString().split('T')[0]);
+    setCustomStartDate('2020-01-01');
+    setCustomEndDate(today.toISOString().split('T')[0]);
   }, []);
 
   // Fetch vehicle data when the panel opens
@@ -249,6 +246,11 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     const now = new Date();
     
     switch (dateRange) {
+      case 'allTime':
+        return {
+          start: new Date('2020-01-01'),
+          end: now
+        };
       case 'thisMonth':
         return {
           start: startOfMonth(now),
@@ -681,6 +683,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                     <Select
                       label="Date Range"
                       options={[
+                        { value: 'allTime', label: 'All Time' },
                         { value: 'thisMonth', label: 'This Month' },
                         { value: 'lastMonth', label: 'Last Month' },
                         { value: 'thisYear', label: 'This Year' },
