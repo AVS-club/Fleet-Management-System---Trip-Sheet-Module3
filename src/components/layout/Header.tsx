@@ -6,7 +6,6 @@ import {
   User,
   BarChart2,
   FileText,
-  Shield,
   AlertTriangle,
   PenTool as PenToolIcon,
   Settings,

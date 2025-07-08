@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, AlertTriangle, Info, CheckCircle, Calendar, Truck, User, FileText, Shield, Download, PenTool as Tool, IndianRupee, TrendingDown, Fuel, Clipboard } from 'lucide-react';
+import React from 'react';
+import { X, AlertTriangle, Info, CheckCircle, Truck, User, PenTool as Tool, TrendingDown, Fuel, Clipboard } from 'lucide-react';
 import Button from '../ui/Button';
-import { AIAlert } from '../../types';
+import { AIAlert, Vehicle, Driver } from '../../types';
 import { getVehicle, getDriver } from '../../utils/storage';
 import { format, isValid } from 'date-fns';
 import { toast } from 'react-toastify';
@@ -12,8 +12,8 @@ interface AlertDetailsModalProps {
 }
 
 const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose }) => {
-  const [vehicle, setVehicle] = React.useState<any>(null);
-  const [driver, setDriver] = React.useState<any>(null);
+  const [vehicle, setVehicle] = React.useState<Vehicle | null>(null);
+  const [driver, setDriver] = React.useState<Driver | null>(null);
   const [similarAlerts, setSimilarAlerts] = React.useState<AIAlert[]>([]);
   const [loading, setLoading] = React.useState(true);
 

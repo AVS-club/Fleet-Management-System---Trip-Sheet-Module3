@@ -16,20 +16,16 @@ import {
   Upload,
   Trash2,
   Plus,
-  Truck,
   Users,
   FileCheck,
-  Droplet,
   Database,
   CheckCircle,
   AlertTriangle,
-  Loader,
 } from "lucide-react";
 import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
-import { reverse } from "dns";
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -57,7 +53,6 @@ const DriverForm: React.FC<DriverFormProps> = ({
     handleSubmit,
     control,
     formState: { errors },
-    getValues,
     reset,
     watch,
   } = useForm<Driver>({
@@ -299,7 +294,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           <Controller
             control={control}
             name="photo"
-            render={({ field: { onChange, value, ...field } }) => (
+            render={({ field: { onChange, ...field } }) => (
               <div className="absolute bottom-0 right-0">
                 <label
                   htmlFor="photo-upload"

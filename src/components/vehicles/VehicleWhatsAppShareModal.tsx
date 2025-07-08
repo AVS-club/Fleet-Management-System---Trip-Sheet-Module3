@@ -24,10 +24,10 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
   vehicle,
   signedDocUrls = { other: {} }
 }) => {
-  if (!isOpen) return null;
-  
   // Add state for showing document files section
   const [showDocumentFiles, setShowDocumentFiles] = useState(false);
+
+  if (!isOpen) return null;
   
   // Generate Vehicle Details message
   const generateVehicleDetailsMessage = () => {

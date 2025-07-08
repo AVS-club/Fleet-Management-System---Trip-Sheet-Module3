@@ -103,9 +103,11 @@ const MaintenanceTasksAdmin: React.FC = () => {
               value={editingItem?.standardLifeKm || newItem.standardLifeKm || ''}
               onChange={e => {
                 const value = parseInt(e.target.value);
-                editingItem
-                  ? setEditingItem({ ...editingItem, standardLifeKm: value })
-                  : setNewItem({ ...newItem, standardLifeKm: value });
+                if (editingItem) {
+                  setEditingItem({ ...editingItem, standardLifeKm: value });
+                } else {
+                  setNewItem({ ...newItem, standardLifeKm: value });
+                }
               }}
             />
 
@@ -115,9 +117,11 @@ const MaintenanceTasksAdmin: React.FC = () => {
               value={editingItem?.standardLifeDays || newItem.standardLifeDays || ''}
               onChange={e => {
                 const value = parseInt(e.target.value);
-                editingItem
-                  ? setEditingItem({ ...editingItem, standardLifeDays: value })
-                  : setNewItem({ ...newItem, standardLifeDays: value });
+                if (editingItem) {
+                  setEditingItem({ ...editingItem, standardLifeDays: value });
+                } else {
+                  setNewItem({ ...newItem, standardLifeDays: value });
+                }
               }}
             />
 
@@ -127,9 +131,11 @@ const MaintenanceTasksAdmin: React.FC = () => {
               value={editingItem?.averageCost || newItem.averageCost || ''}
               onChange={e => {
                 const value = parseInt(e.target.value);
-                editingItem
-                  ? setEditingItem({ ...editingItem, averageCost: value })
-                  : setNewItem({ ...newItem, averageCost: value });
+                if (editingItem) {
+                  setEditingItem({ ...editingItem, averageCost: value });
+                } else {
+                  setNewItem({ ...newItem, averageCost: value });
+                }
               }}
             />
 
@@ -139,9 +145,11 @@ const MaintenanceTasksAdmin: React.FC = () => {
               value={editingItem?.warrantyPeriod || newItem.warrantyPeriod || ''}
               onChange={e => {
                 const value = parseInt(e.target.value);
-                editingItem
-                  ? setEditingItem({ ...editingItem, warrantyPeriod: value })
-                  : setNewItem({ ...newItem, warrantyPeriod: value });
+                if (editingItem) {
+                  setEditingItem({ ...editingItem, warrantyPeriod: value });
+                } else {
+                  setNewItem({ ...newItem, warrantyPeriod: value });
+                }
               }}
             />
           </div>

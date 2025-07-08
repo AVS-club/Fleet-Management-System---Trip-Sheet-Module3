@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, CheckSquare, Square, Link as LinkIcon, MessageSquare, Eye } from 'lucide-react';
+import { X, Download, CheckSquare, Square, MessageSquare, Eye } from 'lucide-react';
 import Button from '../ui/Button';
 import { Driver } from '../../types';
 import JSZip from 'jszip';

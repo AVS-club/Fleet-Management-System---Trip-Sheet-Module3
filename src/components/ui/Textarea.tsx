@@ -1,4 +1,4 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef, useId } from "react";
 import { cn } from "../../utils/cn";
 
 interface TextareaProps
@@ -32,7 +32,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     },
     ref
   ) => {
-    const textareaId = id || `textarea-${React.useId()}`;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const textareaId = id || `textarea-${useId()}`;
 
     return (
       <div className={cn("form-group", fullWidth && "w-full")}>

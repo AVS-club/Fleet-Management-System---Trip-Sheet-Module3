@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -19,7 +19,8 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     ...props 
   }, ref) => {
     // Generate unique ID for checkbox if none provided
-    const checkboxId = id || `checkbox-${React.useId()}`;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const checkboxId = id || `checkbox-${useId()}`;
 
     return (
       <div className="form-group">

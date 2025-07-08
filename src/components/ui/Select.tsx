@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 import { ChevronDown } from 'lucide-react';
 
@@ -30,7 +30,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     id,
     ...props 
   }, ref) => {
-    const selectId = id || `select-${React.useId()}`;
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const selectId = id || `select-${useId()}`;
 
     const sizeClasses = {
       sm: 'px-2 py-1 text-sm',

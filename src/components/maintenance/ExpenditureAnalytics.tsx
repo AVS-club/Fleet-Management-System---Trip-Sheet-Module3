@@ -39,7 +39,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
     : expenditureByVendor.slice(0, 5);
 
   // Custom tooltip for monthly expenditure
-  const CustomMonthlyTooltip = ({ active, payload, label }: any) => {
+  const CustomMonthlyTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-md shadow-sm">
@@ -145,7 +145,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={60}
                   />
                   <Tooltip
-                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
                     labelFormatter={(label) => `Vehicle: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>
@@ -194,7 +194,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     width={80}
                   />
                   <Tooltip
-                    formatter={(value: any) => [`₹${value.toLocaleString()}`, 'Cost']}
+                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Cost']}
                     labelFormatter={(label) => `Vendor: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart2, AlertTriangle, TrendingDown, Fuel, FileX, PenTool as Tool } from 'lucide-react';
+import { BarChart2, TrendingDown, Fuel, FileX, PenTool as Tool } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface AlertTypeTagProps {

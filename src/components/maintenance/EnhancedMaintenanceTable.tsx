@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MaintenanceTask, Vehicle } from '../../types';
-import { ChevronDown, ChevronUp, Search, Filter, Download, RefreshCw, Eye } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, Filter, Download, Eye } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
