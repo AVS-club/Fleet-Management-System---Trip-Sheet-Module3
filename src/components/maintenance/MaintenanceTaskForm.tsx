@@ -1,26 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { MaintenanceTask, Vehicle, MAINTENANCE_ITEMS, MaintenanceServiceGroup } from '../../types';
-import { BATTERY_BRANDS, TYRE_BRANDS } from '../../types/maintenance';
-import { DEMO_VENDORS, DEMO_GARAGES } from '../../types/maintenance';
-import { addDays, addHours, format, parse, addYears } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { MaintenanceTask, Vehicle } from '../../types';
+import { addDays, addHours, format } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import Checkbox from '../ui/Checkbox';
-import FileUpload from '../ui/FileUpload';
-import Button from '../ui/Button';
-import MaintenanceSelector from './MaintenanceSelector';
-import VendorSelector from './VendorSelector';
 import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
-import SpeechToTextButton from '../ui/SpeechToTextButton';
-import SearchableSelect from '../ui/SearchableSelect';
-import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, IndianRupee, FileText, Bell, Plus, Trash2, Paperclip, Mic, Battery, Disc } from 'lucide-react';
+import ServiceGroupsSection from './ServiceGroupsSection';
+import ComplaintResolutionSection from './ComplaintResolutionSection';
+import NextServiceReminderSection from './NextServiceReminderSection';
+import DocumentsSection from './DocumentsSection';
+import { PenTool as PenToolIcon, Calendar, Truck, Clock, CheckCircle, AlertTriangle, Bell } from 'lucide-react';
 import { predictNextService } from '../../utils/maintenancePredictor';
 import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
-import Switch from '../ui/Switch';
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -69,11 +63,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   });
 
-  // Use fieldArray for service groups
-  const { fields: serviceGroups, append, remove } = useFieldArray({
-    control,
-    name: 'service_groups'
-  });
 
   const startDate = watch('start_date');
   const endDate = watch('end_date');
@@ -352,402 +341,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Maintenance Tasks */}
-      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
-          Service Groups
-        </h3>
-        <p className="text-sm text-gray-500">Add one or more service groups to this maintenance task</p>
-
-        <div className="space-y-4">
-          {serviceGroups.map((field, index) => (
-            <div key={field.id} className="border rounded-lg relative overflow-hidden">
-              <div className="bg-gray-50 p-3 pr-10 border-b flex items-center justify-between">
-                <h4 className="font-medium text-gray-800">Service Group {index + 1}</h4>
-                {serviceGroups.length > 1 && (
-                  <button
-                    type="button"
-                    className="absolute right-3 top-3 text-gray-400 hover:text-error-500 transition-colors"
-                    onClick={() => remove(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              
-              <div className="p-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Vendor selector */}
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.vendor_id` as const}
-                    rules={{ required: 'Vendor is required' }}
-                    render={({ field: { value, onChange }, fieldState: { error } }) => (
-                      <VendorSelector
-                        selectedVendor={value}
-                        onChange={onChange}
-                        error={error?.message}
-                      />
-                    )}
-                  />
-
-                  {/* Maintenance tasks */}
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.tasks` as const}
-                    rules={{ required: 'At least one task must be selected' }}
-                    render={({ field: { value, onChange }, fieldState: { error } }) => (
-                      <MaintenanceSelector
-                        selectedItems={value || []}
-                        onChange={onChange}
-                        showGroupView={true}
-                        error={error?.message}
-                      />
-                    )}
-                  />
-
-                  {/* Cost input */}
-                  <Input
-                    label="Cost (₹)"
-                    type="number"
-                    icon={<IndianRupee className="h-4 w-4" />}
-                    error={errors.service_groups?.[index]?.cost?.message}
-                    required
-                    {...register(`service_groups.${index}.cost` as const, {
-                      required: 'Cost is required',
-                      valueAsNumber: true,
-                      min: { value: 0, message: 'Cost must be positive' }
-                    })}
-                  />
-                </div>
-
-                {/* Battery & Tyre Tracking Section */}
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Battery Tracking Section */}
-                  <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
-                      <div className="flex items-center">
-                        <Battery className="h-5 w-5 text-blue-500 mr-2" />
-                        <h5 className="font-medium text-gray-700">Battery Replacement</h5>
-                      </div>
-                      <Controller
-                        control={control}
-                        name={`service_groups.${index}.battery_tracking` as const}
-                        defaultValue={false}
-                        render={({ field: { value, onChange } }) => (
-                          <Switch
-                            checked={value}
-                            onChange={(e) => onChange(e.target.checked)}
-                            size="sm"
-                          />
-                        )}
-                      />
-                    </div>
-                    
-                    {/* Conditionally show battery fields */}
-                    {watch(`service_groups.${index}.battery_tracking`) && (
-                      <div className="grid grid-cols-1 gap-3 pl-2 sm:pl-3 border-l-2 border-blue-200">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-grow">
-                            <Input
-                              label="Battery Serial Number"
-                              placeholder="Enter serial number"
-                              size="sm"
-                              {...register(`service_groups.${index}.battery_serial` as const)}
-                            />
-                          </div>
-                          <div className="mt-6">
-                            <Controller
-                              control={control}
-                              name={`service_groups.${index}.battery_warranty_file` as const}
-                              render={({ field: { value, onChange } }) => (
-                                <FileUpload
-                                  iconOnly
-                                  value={value as File | null}
-                                  onChange={onChange}
-                                  accept=".jpg,.jpeg,.png,.pdf"
-                                  icon={<Paperclip className="h-4 w-4" />}
-                                />
-                              )}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <Controller
-                            control={control}
-                            name={`service_groups.${index}.battery_brand` as const}
-                            render={({ field }) => (
-                              <SearchableSelect
-                                label="Battery Brand"
-                                options={BATTERY_BRANDS}
-                                value={field.value || ''}
-                                onChange={(value) => field.onChange(value)}
-                                placeholder="Select or search brand"
-                                size="sm"
-                              />
-                            )}
-                          />
-                          
-                          <Controller
-                            control={control}
-                            name={`service_groups.${index}.battery_warranty_expiry_date` as const}
-                            defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
-                            render={({ field }) => (
-                              <Input
-                                type="date"
-                                placeholder="Warranty Expiry"
-                                size="sm"
-                                {...field}
-                              />
-                            )}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Tyre Tracking Section */}
-                  <div className="space-y-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Disc className="h-5 w-5 text-gray-600 mr-2" />
-                        <h5 className="font-medium text-gray-700 break-words">Tyre Replacement</h5>
-                      </div>
-                      <Controller
-                        control={control}
-                        name={`service_groups.${index}.tyre_tracking` as const}
-                        defaultValue={false}
-                        render={({ field: { value, onChange } }) => (
-                          <Switch
-                            checked={value}
-                            onChange={(e) => onChange(e.target.checked)}
-                            size="sm"
-                          />
-                        )}
-                      />
-                    </div>
-                    
-                    {/* Conditionally show tyre fields */}
-                    {watch(`service_groups.${index}.tyre_tracking`) && (
-                      <div className="grid grid-cols-1 gap-3 pl-2 sm:pl-3 border-l-2 border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-grow">
-                            <Controller
-                              control={control}
-                              name={`service_groups.${index}.tyre_positions` as const}
-                              defaultValue={[]}
-                              render={({ field: { value, onChange } }) => (
-                                <div>
-                                  <div className="flex items-center justify-between mb-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Tyre Positions
-                                    </label>
-                                    <Controller
-                                      control={control}
-                                      name={`service_groups.${index}.tyre_warranty_file` as const}
-                                      render={({ field: { value, onChange } }) => (
-                                        <FileUpload
-                                          iconOnly
-                                          value={value as File | null}
-                                          onChange={onChange}
-                                          accept=".jpg,.jpeg,.png,.pdf"
-                                          icon={<Paperclip className="h-4 w-4" />}
-                                        />
-                                      )}
-                                    />
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
-                                    {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
-                                      <label key={position} className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
-                                        <input
-                                          type="checkbox"
-                                          checked={value?.includes(position)}
-                                          onChange={(e) => {
-                                            const newPositions = e.target.checked
-                                              ? [...(value || []), position]
-                                              : (value || []).filter(p => p !== position);
-                                            onChange(newPositions);
-                                          }}
-                                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded min-w-[16px]"
-                                        />
-                                        <span className="text-xs sm:text-sm text-gray-600">{position}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <Controller
-                            control={control}
-                            name={`service_groups.${index}.tyre_brand` as const}
-                            render={({ field }) => (
-                              <SearchableSelect
-                                label="Tyre Brand"
-                                options={TYRE_BRANDS}
-                                value={field.value || ''}
-                                onChange={(value) => field.onChange(value)}
-                                placeholder="Select or search brand"
-                                size="sm"
-                              />
-                            )}
-                          />
-                          
-                          <div className="grid grid-cols-1 gap-2">
-                            <Input
-                              label="Tyre Serial Numbers"
-                              placeholder="Comma separated"
-                              size="sm"
-                              {...register(`service_groups.${index}.tyre_serials` as const)}
-                            />
-                            
-                            <Controller
-                              control={control}
-                              name={`service_groups.${index}.tyre_warranty_expiry_date` as const}
-                              defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
-                              render={({ field }) => (
-                                <Input
-                                  type="date"
-                                  placeholder="Warranty Expiry"
-                                  size="sm"
-                                  {...field}
-                                />
-                              )}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Bill upload */}
-                <div className="mt-3">
-                  <Controller
-                    control={control}
-                    name={`service_groups.${index}.bill_file` as const}
-                    render={({ field: { value, onChange } }) => (
-                      <FileUpload
-                        buttonMode={true}
-                        label="Upload Bill"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        value={value as File | null}
-                        onChange={onChange}
-                        icon={<Paperclip className="h-4 w-4" />}
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => append({
-              vendor_id: '',
-              tasks: [],
-              cost: 0,
-              battery_tracking: false,
-              tyre_tracking: false
-            })}
-            icon={<Plus className="h-4 w-4" />}
-          >
-            + Add Service Group
-          </Button>
-
-          {serviceGroupsWatch && serviceGroupsWatch.length > 0 && (
-            <div className="p-4 bg-success-50 rounded-lg border border-success-200">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium text-success-700">Total Cost</h4>
-                <p className="text-lg font-semibold text-success-700">
-                  ₹{serviceGroupsWatch.reduce((sum, group) => sum + (parseFloat(group.cost as any) || 0), 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <ServiceGroupsSection />
 
       {/* Complaint & Resolution */}
-      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center">
-          <PenToolIcon className="h-5 w-5 mr-2 text-primary-500" />
-          Complaint & Resolution
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Complaint Description
-              </label>
-              <div className="flex">
-                <SpeechToTextButton 
-                  onTranscript={handleComplaintTranscript} 
-                  language="hi-IN" 
-                  title="Dictate in Hindi"
-                />
-                <SpeechToTextButton 
-                  onTranscript={handleComplaintTranscript} 
-                  language="mr-IN" 
-                  title="Dictate in Marathi"
-                  buttonClassName="ml-2"
-                />
-                <SpeechToTextButton 
-                  onTranscript={handleComplaintTranscript} 
-                  language="en-IN" 
-                  title="Dictate in English"
-                  buttonClassName="ml-2"
-                />
-              </div>
-            </div>
-            <textarea
-              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Detailed description of the complaint or issue..."
-              {...register('complaint_description')}
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Resolution Summary
-              </label>
-              <div className="flex">
-                <SpeechToTextButton 
-                  onTranscript={handleResolutionTranscript} 
-                  language="hi-IN" 
-                  title="Dictate in Hindi"
-                />
-                <SpeechToTextButton 
-                  onTranscript={handleResolutionTranscript} 
-                  language="mr-IN" 
-                  title="Dictate in Marathi"
-                  buttonClassName="ml-2"
-                />
-                <SpeechToTextButton 
-                  onTranscript={handleResolutionTranscript} 
-                  language="en-IN" 
-                  title="Dictate in English"
-                  buttonClassName="ml-2"
-                />
-              </div>
-            </div>
-            <textarea
-              className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
-              placeholder="Summary of the resolution or fix applied..."
-              {...register('resolution_summary')}
-            />
-          </div>
-        </div>
-      </div>
+      <ComplaintResolutionSection
+        onComplaintTranscript={handleComplaintTranscript}
+        onResolutionTranscript={handleResolutionTranscript}
+      />
 
       {/* Service Details */}
       <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
@@ -833,61 +433,14 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       </div>
 
       {/* Next Service Reminder */}
-      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Bell className="h-5 w-5 mr-2 text-primary-500" />
-            Next Service Reminder
-          </h3>
-          <Switch
-            checked={setReminder}
-            onChange={(e) => setSetReminder(e.target.checked)}
-            label="Set Reminder"
-            size="sm"
-          />
-        </div>
-
-        {setReminder && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Input
-              label="Next Service Date"
-              type="date"
-              icon={<Calendar className="h-4 w-4" />}
-              {...register('next_service_due.date')}
-            />
-
-            <Input
-              label="Next Service Odometer"
-              type="number"
-              icon={<PenToolIcon className="h-4 w-4" />}
-              {...register('next_service_due.odometer', {
-                valueAsNumber: true,
-                min: { value: odometerReading || 0, message: 'Must be greater than current reading' }
-              })}
-            />
-          </div>
-        )}
-      </div>
+      <NextServiceReminderSection
+        reminder={setReminder}
+        onToggle={setSetReminder}
+        odometerReading={odometerReading}
+      />
 
       {/* Documents */}
-      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900">Documents</h3>
-
-        <Controller
-          control={control}
-          name="attachments"
-          render={({ field: { value, onChange } }) => (
-            <FileUpload
-              label="Upload Documents"
-              value={value as File | null}
-              onChange={onChange}
-              accept=".jpg,.jpeg,.png,.pdf"
-              helperText="Upload warranty card, or other relevant documents"
-              icon={<FileText className="h-4 w-4" />}
-            />
-          )}
-        />
-      </div>
+      <DocumentsSection />
 
       {/* AI Suggestions */}
       {aiSuggestions.averageReplacementKm && (
