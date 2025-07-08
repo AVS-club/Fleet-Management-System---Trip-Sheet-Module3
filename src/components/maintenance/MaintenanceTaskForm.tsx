@@ -21,6 +21,7 @@ import { getAuditLogs } from '../../utils/maintenanceStorage';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
 import Switch from '../ui/Switch';
+import { logger } from '../../utils/logger';
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -193,13 +194,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         if (data && data.length > 0 && data[0].end_km) {
           // Set the odometer reading to the end_km of the last trip
           setValue('odometer_reading', data[0].end_km);
-          console.log(`Auto-filled odometer reading with ${data[0].end_km} from previous trip`);
+          logger.info(`Auto-filled odometer reading with ${data[0].end_km} from previous trip`);
         } else {
           // If no trips found, try to use the current_odometer from the vehicle
           const vehicle = vehicles.find(v => v.id === vehicleId);
           if (vehicle && vehicle.current_odometer) {
             setValue('odometer_reading', vehicle.current_odometer);
-            console.log(`Auto-filled odometer reading with ${vehicle.current_odometer} from vehicle data`);
+            logger.info(`Auto-filled odometer reading with ${vehicle.current_odometer} from vehicle data`);
           }
         }
       } catch (err) {
@@ -241,7 +242,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
   const handleFormSubmit = (data: any) => {
     try {
-      console.log("Form submission data:", data);
+      logger.info("Form submission data:", data);
       
       // Basic validation
       if (!data.vehicle_id) {

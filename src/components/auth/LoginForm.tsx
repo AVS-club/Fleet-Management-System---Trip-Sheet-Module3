@@ -4,6 +4,7 @@ import { supabase } from "../../utils/supabaseClient";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { logger } from "../../utils/logger";
 
 interface LoginFormProps {
   showPassword?: boolean;
@@ -30,7 +31,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         password,
       });
       if (error) throw error;
-      console.log(data);
+      logger.info('User logged in', data);
       if (data && data.user)
         localStorage.setItem("user", JSON.stringify(data.user));
       navigate("/"); // Navigate to dashboard

@@ -35,6 +35,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationModal from "./components/notifications/NotificationModal";
 import { getAlertSettings } from "./utils/alertSettings";
 import { updateAllTripMileage } from "./utils/storage";
+import { logger } from "./utils/logger";
 import { ThemeProvider } from "./utils/themeContext";
 // Import new admin pages
 import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
@@ -201,7 +202,7 @@ Current URL: ${window.location.origin}`;
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      console.log("knewk");
+      logger.info("Auth state changed");
       // Only redirect if not loading, no session, AND not already on login/register page
       if (
         !loading &&

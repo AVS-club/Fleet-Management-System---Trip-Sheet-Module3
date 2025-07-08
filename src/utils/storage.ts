@@ -10,6 +10,7 @@ import {
 import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadVehicleDocument } from "./supabaseStorage";
+import { logger } from "./logger";
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -1039,7 +1040,7 @@ export const createDriver = async (
 ): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
   const { photo, dl_number, license_document, ...driverData } = driver as any;
-  console.log(driverData);
+  logger.info('Create driver payload', driverData);
   const { data: uploadData, error: uploadError } = await supabase.storage
     .from("driver-docs")
     .upload(

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "./logger";
 
 // Handle both Vite (browser) and Node.js environments
 const getEnvVar = (key: string): string | undefined => {
@@ -163,7 +164,7 @@ const createMockClient = () => {
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
   // Add debugging information
-  console.log("Supabase configuration check:", {
+  logger.info("Supabase configuration check:", {
     supabaseUrl,
     hasAnonKey: !!supabaseAnonKey,
     isConfigured,
@@ -197,7 +198,7 @@ const createSupabaseClient = () => {
       },
     });
 
-    console.log("Supabase client created successfully");
+    logger.info("Supabase client created successfully");
     return client;
   } catch (error) {
     console.error("Error initializing Supabase client:", error);

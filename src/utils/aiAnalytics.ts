@@ -1,5 +1,6 @@
 import { Trip, RouteAnalysis, Alert, AIAlert, MaintenanceTask } from '../types';
 import { supabase } from './supabaseClient';
+import { logger } from './logger';
 import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 /**
@@ -47,7 +48,7 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
     
     // We need at least 10 trips for a good baseline, otherwise skip alert
     if (!vehicleTrips || vehicleTrips.length < 10) {
-      console.log(`Not enough trips (${vehicleTrips?.length || 0}) for vehicle ${trip.vehicle_id} to establish mileage baseline`);
+      logger.info(`Not enough trips (${vehicleTrips?.length || 0}) for vehicle ${trip.vehicle_id} to establish mileage baseline`);
       return null;
     }
 
@@ -236,7 +237,7 @@ const checkFrequentMaintenance = async (
     
     // If an alert already exists for this month, don't create another one
     if (existingAlerts && existingAlerts.length > 0) {
-      console.log(`Alert for frequent maintenance already exists for vehicle ${task.vehicle_id} in month ${monthYear}`);
+      logger.info(`Alert for frequent maintenance already exists for vehicle ${task.vehicle_id} in month ${monthYear}`);
       return null;
     }
     

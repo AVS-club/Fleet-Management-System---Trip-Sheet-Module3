@@ -10,6 +10,7 @@ import { supabase } from '../utils/supabaseClient';
 import Button from '../components/ui/Button';
 import { ChevronLeft, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { logger } from '../utils/logger';
 
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
@@ -212,7 +213,7 @@ const MaintenanceTaskPage: React.FC = () => {
         };
 
         // Debug logging - log the payload before submission
-        console.log("Updating task with:", JSON.stringify(updatePayload, null, 2));
+        logger.info("Updating task with:", JSON.stringify(updatePayload, null, 2));
 
         try {
           // Now try our utility function
