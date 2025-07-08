@@ -19,6 +19,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import StatCard from '../../components/ui/StatCard';
+import DriverAIInsights from '../../components/ai/DriverAIInsights';
 import { getDrivers, getTrips, getVehicles } from '../../utils/storage';
 import { format, parseISO, isValid, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Driver, Trip, Vehicle } from '../../types';
@@ -64,6 +65,10 @@ const DriverInsightsPage: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showFilters, setShowFilters] = useState(true);
+  const selectedDriverObj = useMemo(
+    () => drivers.find(d => d.id === selectedDriver) || null,
+    [drivers, selectedDriver]
+  );
   
   useEffect(() => {
     const fetchData = async () => {
@@ -658,10 +663,22 @@ const DriverInsightsPage: React.FC = () => {
                     <p className="text-gray-500">No data available</p>
                   </div>
                 )}
-              </div>
-            </div>
           </div>
-          
+        </div>
+      </div>
+
+          {/* AI Insights */}
+          {selectedDriverObj && (
+            <DriverAIInsights
+              driver={selectedDriverObj}
+              allDrivers={drivers}
+              trips={trips}
+              vehicles={vehicles}
+              maintenanceTasks={[]}
+              dateRange={effectiveDateRange}
+            />
+          )}
+
           {/* Driver of the Month */}
           {summaryMetrics.topDriver && (
             <div className="fixed bottom-6 right-6 bg-white p-4 rounded-lg shadow-lg border-l-4 border-primary-500 max-w-xs animate-slide-up z-10">
