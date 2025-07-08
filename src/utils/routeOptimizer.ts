@@ -1,5 +1,5 @@
 import { Warehouse, Destination } from '../types';
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMaps } from './googleMapsLoader';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -94,13 +94,7 @@ const optimizeRoute = async (
   }
 
   try {
-    const loader = new Loader({
-      apiKey: GOOGLE_MAPS_API_KEY,
-      version: 'weekly',
-      libraries: ['places']
-    });
-
-    await loader.load();
+    await loadGoogleMaps();
 
     const service = new google.maps.DirectionsService();
 
