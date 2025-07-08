@@ -25,7 +25,6 @@ import { getAIAlerts } from "../utils/aiAnalytics";
 import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
 import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
-import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
 import DriverForm from "../components/drivers/DriverForm";
 import {
   generateDriverPDF,
