@@ -4,6 +4,7 @@ import { MaintenanceTask, Vehicle } from '../../types';
 import { addDays, addHours, format } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import Button from '../ui/Button';
 import GarageSelector from './GarageSelector';
 import MaintenanceAuditLog from './MaintenanceAuditLog';
 import ServiceGroupsSection from './ServiceGroupsSection';
