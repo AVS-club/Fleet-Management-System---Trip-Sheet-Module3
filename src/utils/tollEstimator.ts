@@ -41,39 +41,45 @@ export const estimateTollCost = async (
 ): Promise<TollEstimateResult | null> => {
   try {
     // Fetch warehouse details
-    const { data: warehouse, error: warehouseError } = await supabase
+    const { data: warehouseData, error: warehouseError } = await supabase
       .from('warehouses')
       .select('*')
       .eq('id', warehouseId)
       .single();
-    
-    if (warehouseError || !warehouse) {
+
+    if (warehouseError || !warehouseData) {
       console.error('Error fetching warehouse:', warehouseError);
       return null;
     }
+
+    const warehouse = warehouseData as Warehouse;
     
     // Fetch destination details
-    const { data: destinations, error: destinationsError } = await supabase
+    const { data: destinationsData, error: destinationsError } = await supabase
       .from('destinations')
       .select('*')
       .in('id', destinationIds);
-    
-    if (destinationsError || !destinations || destinations.length === 0) {
+
+    if (destinationsError || !destinationsData || destinationsData.length === 0) {
       console.error('Error fetching destinations:', destinationsError);
       return null;
     }
+
+    const destinations = destinationsData as Destination[];
     
     // Fetch vehicle details
-    const { data: vehicle, error: vehicleError } = await supabase
+    const { data: vehicleData, error: vehicleError } = await supabase
       .from('vehicles')
       .select('*')
       .eq('id', vehicleId)
       .single();
-    
-    if (vehicleError || !vehicle) {
+
+    if (vehicleError || !vehicleData) {
       console.error('Error fetching vehicle:', vehicleError);
       return null;
     }
+
+    const vehicle = vehicleData as Vehicle;
     
     // Ensure warehouse and destinations have valid coordinates
     if (!warehouse.latitude || !warehouse.longitude) {

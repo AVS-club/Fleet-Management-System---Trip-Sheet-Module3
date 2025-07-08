@@ -1,10 +1,14 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { Vehicle, Driver } from "../types";
+import { Vehicle, Driver, Trip, VehicleStats } from "../types";
 import { supabase } from "./supabaseClient";
 import { getSignedDocumentUrl } from "./supabaseStorage";
+
+interface AutoTableDoc extends jsPDF {
+  lastAutoTable?: { finalY: number };
+}
 
 // Helper function to add a section title to the PDF
 const addSectionTitle = (doc: jsPDF, title: string, y: number): number => {
@@ -81,7 +85,7 @@ const addStatusBadge = (
 // Function to generate a vehicle PDF
 export const generateVehiclePDF = async (
   vehicle: Vehicle,
-  stats: any
+  stats: VehicleStats
 ): Promise<jsPDF> => {
   const doc = new jsPDF();
 
@@ -212,7 +216,7 @@ export const generateVehiclePDF = async (
     `${stats?.totalDistance?.toLocaleString() || "0"} km`,
     y
   );
-  y = addField(
+  addField(
     doc,
     "Average Mileage",
     stats?.averageKmpl ? `${stats.averageKmpl.toFixed(2)} km/L` : "N/A",
@@ -239,8 +243,8 @@ export const generateVehiclePDF = async (
 // Function to generate a driver PDF
 export const generateDriverPDF = async (
   driver: Driver,
-  trips: any[],
-  primaryVehicle?: any
+  trips: Trip[],
+  primaryVehicle?: Vehicle
 ): Promise<jsPDF> => {
   const doc = new jsPDF();
 
@@ -399,7 +403,7 @@ export const generateDriverPDF = async (
       ]);
 
     // Add table to document
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: y,
@@ -410,7 +414,10 @@ export const generateDriverPDF = async (
     });
 
     // Update y position after table
-    y = (doc as any).lastAutoTable.finalY + 10;
+    const tableDoc = doc as AutoTableDoc;
+    if (tableDoc.lastAutoTable) {
+      y = tableDoc.lastAutoTable.finalY + 10;
+    }
   }
 
   // Add footer
@@ -546,7 +553,7 @@ export const downloadVehicleDocuments = async (
 // Helper function to upload vehicle profile data to storage
 const uploadVehicleProfile = async (
   vehicleId: string,
-  vehicleData: any
+  vehicleData: Vehicle
 ): Promise<void> => {
   const profileData = {
     id: vehicleData.id,
@@ -578,7 +585,7 @@ const uploadVehicleProfile = async (
       puc: vehicleData.puc_document_url,
       other:
         vehicleData.other_documents
-          ?.map((doc: any) => doc.file_path)
+          ?.map((doc: { file_path?: string }) => doc.file_path)
           .filter(Boolean) || [],
     },
   };
@@ -597,7 +604,7 @@ const uploadVehicleProfile = async (
 };
 
 // Helper function to get vehicle data from database
-const getVehicleData = async (vehicleId: string): Promise<any> => {
+const getVehicleData = async (vehicleId: string): Promise<Vehicle> => {
   const { data, error } = await supabase
     .from("vehicles")
     .select("*")
@@ -642,7 +649,7 @@ export const createShareableVehicleLink = async (
 // Helper function to upload driver profile data to storage
 const uploadDriverProfile = async (
   driverId: string,
-  driverData: any
+  driverData: Driver
 ): Promise<void> => {
   const profileData = {
     id: driverData.id,
@@ -681,7 +688,7 @@ const uploadDriverProfile = async (
 };
 
 // Helper function to get driver data from database
-const getDriverData = async (driverId: string): Promise<any> => {
+const getDriverData = async (driverId: string): Promise<Driver> => {
   const { data, error } = await supabase
     .from("drivers")
     .select("*")
