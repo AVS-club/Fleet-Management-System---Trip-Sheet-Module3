@@ -1,9 +1,28 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '../../components/layout/Layout';
+import LoadingScreen from '../../components/LoadingScreen';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+import Select from '../../components/ui/Select';
+import StatCard from '../../components/ui/StatCard';
+import { cn } from '../../utils/cn';
+import {
   Filter,
   Search,
   Download,
   RefreshCw,
   User,
   Fuel,
+  ChevronLeft,
+  Users,
+  Calendar,
+  IndianRupee,
+  Package,
+  Gauge,
+  TrendingUp,
+  BarChart2,
+} from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -19,6 +38,15 @@ import {
 import { toast } from "react-toastify";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { Driver, Trip, Vehicle } from "../../types";
+import { getDrivers, getTrips, getVehicles } from "../../utils/storage";
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  subMonths,
+  isValid,
+} from "date-fns";
 
 // Interface for driver performance metrics
 interface DriverPerformance {
