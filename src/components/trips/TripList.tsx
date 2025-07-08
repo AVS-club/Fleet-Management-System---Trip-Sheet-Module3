@@ -26,12 +26,24 @@ const TripList: React.FC<TripListProps> = ({
   const [filterRefueling, setFilterRefueling] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   
+  const vehiclesMap = useMemo(() => {
+    return Array.isArray(vehicles)
+      ? new Map(vehicles.map(v => [v.id, v]))
+      : new Map<string, Vehicle>();
+  }, [vehicles]);
+
+  const driversMap = useMemo(() => {
+    return Array.isArray(drivers)
+      ? new Map(drivers.map(d => [d.id, d]))
+      : new Map<string, Driver>();
+  }, [drivers]);
+
   const filteredTrips = useMemo(() => {
     return Array.isArray(trips) ? trips.filter(trip => {
         // Search by trip serial, vehicle registration, driver name or station
         if (searchTerm) {
-          const vehicle = Array.isArray(vehicles) ? vehicles.find(v => v.id === trip.vehicle_id) : undefined;
-          const driver = Array.isArray(drivers) ? drivers.find(d => d.id === trip.driver_id) : undefined;
+          const vehicle = vehiclesMap.get(trip.vehicle_id);
+          const driver = driversMap.get(trip.driver_id);
           
           const searchLower = searchTerm.toLowerCase();
           const serialMatch = trip.trip_serial_number?.toLowerCase().includes(searchLower);
@@ -66,7 +78,7 @@ const TripList: React.FC<TripListProps> = ({
       .sort((a, b) => new Date(b.trip_start_date || 0).getTime() - new Date(a.trip_start_date || 0).getTime())
       .sort((a, b) => new Date(b.trip_start_date || 0).getTime() - new Date(a.trip_start_date || 0).getTime())
     : [];
-  }, [trips, searchTerm, filterVehicle, filterDriver, filterRefueling, vehicles, drivers]);
+  }, [trips, searchTerm, filterVehicle, filterDriver, filterRefueling, vehiclesMap, driversMap]);
   
   return (
     <div className="space-y-4">
@@ -136,8 +148,8 @@ const TripList: React.FC<TripListProps> = ({
             <TripCard
               key={trip.id}
               trip={trip}
-              vehicle={Array.isArray(vehicles) ? vehicles.find(v => v.id === trip.vehicle_id) : undefined}
-              driver={Array.isArray(drivers) ? drivers.find(d => d.id === trip.driver_id) : undefined}
+              vehicle={vehiclesMap.get(trip.vehicle_id)}
+              driver={driversMap.get(trip.driver_id)}
               onClick={() => onSelectTrip(trip)}
               onPnlClick={onPnlClick}
             />

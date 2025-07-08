@@ -46,6 +46,9 @@ const AdminTripsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
+  const driversMap = useMemo(() => new Map(drivers.map(d => [d.id, d])), [drivers]);
   
   // Date preset state
   const [datePreset, setDatePreset] = useState('last30');
@@ -222,8 +225,8 @@ const AdminTripsPage: React.FC = () => {
     return trips.filter(trip => {
       // Search filter
       if (filters.search) {
-        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
-        const driver = drivers.find(d => d.id === trip.driver_id);
+        const vehicle = vehiclesMap.get(trip.vehicle_id);
+        const driver = driversMap.get(trip.driver_id);
         
         const searchTerm = filters.search.toLowerCase();
         const searchFields = [
@@ -286,7 +289,7 @@ const AdminTripsPage: React.FC = () => {
 
       return true;
     });
-  }, [trips, vehicles, drivers, filters]);
+  }, [trips, vehiclesMap, driversMap, filters]);
 
   // Calculate pagination
   const indexOfLastTrip = currentPage * tripsPerPage;
@@ -443,8 +446,8 @@ const AdminTripsPage: React.FC = () => {
 
     // Prepare data for export
     const exportData = filteredTrips.map(trip => {
-      const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
-      const driver = drivers.find(d => d.id === trip.driver_id);
+      const vehicle = vehiclesMap.get(trip.vehicle_id);
+      const driver = driversMap.get(trip.driver_id);
       const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
 
       return {
@@ -520,14 +523,14 @@ const AdminTripsPage: React.FC = () => {
     const parts = [];
     
     if (filters.vehicleId) {
-      const vehicle = vehicles.find(v => v.id === filters.vehicleId);
+      const vehicle = vehiclesMap.get(filters.vehicleId);
       parts.push(`Vehicle: ${vehicle?.registration_number || 'Unknown'}`);
     } else {
       parts.push('Vehicle: All');
     }
     
     if (filters.driverId) {
-      const driver = drivers.find(d => d.id === filters.driverId);
+      const driver = driversMap.get(filters.driverId);
       parts.push(`Driver: ${driver?.name || 'Unknown'}`);
     } else {
       parts.push('Driver: All');
