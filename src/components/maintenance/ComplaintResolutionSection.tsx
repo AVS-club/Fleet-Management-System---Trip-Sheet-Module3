@@ -1,7 +1,7 @@
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
-import { MaintenanceTask } from '../../types';
-import SpeechToTextButton from '../ui/SpeechToTextButton';
+import React from "react";
+import { useFormContext } from "react-hook-form";
+import { MaintenanceTask } from "../../types/maintenance";
+import SpeechToTextButton from "../ui/SpeechToTextButton";
 
 interface Props {
   onComplaintTranscript: (text: string) => void;
@@ -48,7 +48,7 @@ const ComplaintResolutionSection: React.FC<Props> = ({
           <textarea
             className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
             placeholder="Detailed description of the complaint or issue..."
-            {...register('complaint_description')}
+            {...register("complaint_description")}
           />
         </div>
         <div>
@@ -79,7 +79,7 @@ const ComplaintResolutionSection: React.FC<Props> = ({
           <textarea
             className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500"
             placeholder="Summary of the resolution or fix applied..."
-            {...register('resolution_summary')}
+            {...register("resolution_summary")}
           />
         </div>
       </div>

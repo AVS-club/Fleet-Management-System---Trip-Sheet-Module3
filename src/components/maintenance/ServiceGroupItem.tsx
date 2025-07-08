@@ -1,26 +1,19 @@
-import React from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import {
-  MaintenanceTask,
-} from '../../types';
+import React from "react";
+import { Controller, useFormContext } from "react-hook-form";
+
 import {
   BATTERY_BRANDS,
   TYRE_BRANDS,
-} from '../../types/maintenance';
-import Input from '../ui/Input';
-import FileUpload from '../ui/FileUpload';
-import Switch from '../ui/Switch';
-import VendorSelector from './VendorSelector';
-import MaintenanceSelector from './MaintenanceSelector';
-import SearchableSelect from '../ui/SearchableSelect';
-import {
-  Trash2,
-  IndianRupee,
-  Battery,
-  Disc,
-  Paperclip,
-} from 'lucide-react';
-import { addYears, format } from 'date-fns';
+  MaintenanceTask,
+} from "../../types/maintenance";
+import Input from "../ui/Input";
+import FileUpload from "../ui/FileUpload";
+import Switch from "../ui/Switch";
+import VendorSelector from "./VendorSelector";
+import MaintenanceSelector from "./MaintenanceSelector";
+import SearchableSelect from "../ui/SearchableSelect";
+import { Trash2, IndianRupee, Battery, Disc, Paperclip } from "lucide-react";
+import { addYears, format } from "date-fns";
 
 interface ServiceGroupItemProps {
   index: number;
@@ -35,7 +28,8 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
   canRemove,
   errors,
 }) => {
-  const { control, register, watch } = useFormContext<Partial<MaintenanceTask>>();
+  const { control, register, watch } =
+    useFormContext<Partial<MaintenanceTask>>();
   const batteryTracking = watch(`service_groups.${index}.battery_tracking`);
   const tyreTracking = watch(`service_groups.${index}.tyre_tracking`);
 
@@ -59,7 +53,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
           <Controller
             control={control}
             name={`service_groups.${index}.vendor_id` as const}
-            rules={{ required: 'Vendor is required' }}
+            rules={{ required: "Vendor is required" }}
             render={({ field: { value, onChange }, fieldState: { error } }) => (
               <VendorSelector
                 selectedVendor={value}
@@ -72,7 +66,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
           <Controller
             control={control}
             name={`service_groups.${index}.tasks` as const}
-            rules={{ required: 'At least one task must be selected' }}
+            rules={{ required: "At least one task must be selected" }}
             render={({ field: { value, onChange }, fieldState: { error } }) => (
               <MaintenanceSelector
                 selectedItems={value || []}
@@ -86,13 +80,14 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
           <Input
             label="Cost (₹)"
             type="number"
+            className="ps-8"
             icon={<IndianRupee className="h-4 w-4" />}
             error={errors.service_groups?.[index]?.cost?.message}
             required
             {...register(`service_groups.${index}.cost` as const, {
-              required: 'Cost is required',
+              required: "Cost is required",
               valueAsNumber: true,
-              min: { value: 0, message: 'Cost must be positive' },
+              min: { value: 0, message: "Cost must be positive" },
             })}
           />
         </div>
@@ -102,7 +97,9 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
             <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
               <div className="flex items-center">
                 <Battery className="h-5 w-5 text-blue-500 mr-2" />
-                <h5 className="font-medium text-gray-700">Battery Replacement</h5>
+                <h5 className="font-medium text-gray-700">
+                  Battery Replacement
+                </h5>
               </div>
               <Controller
                 control={control}
@@ -125,13 +122,17 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       label="Battery Serial Number"
                       placeholder="Enter serial number"
                       size="sm"
-                      {...register(`service_groups.${index}.battery_serial` as const)}
+                      {...register(
+                        `service_groups.${index}.battery_serial` as const
+                      )}
                     />
                   </div>
                   <div className="mt-6">
                     <Controller
                       control={control}
-                      name={`service_groups.${index}.battery_warranty_file` as const}
+                      name={
+                        `service_groups.${index}.battery_warranty_file` as const
+                      }
                       render={({ field: { value, onChange } }) => (
                         <FileUpload
                           iconOnly
@@ -152,7 +153,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       <SearchableSelect
                         label="Battery Brand"
                         options={BATTERY_BRANDS}
-                        value={field.value || ''}
+                        value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
                         placeholder="Select or search brand"
                         size="sm"
@@ -161,10 +162,17 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                   />
                   <Controller
                     control={control}
-                    name={`service_groups.${index}.battery_warranty_expiry_date` as const}
-                    defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
+                    name={
+                      `service_groups.${index}.battery_warranty_expiry_date` as const
+                    }
+                    defaultValue={format(addYears(new Date(), 1), "yyyy-MM-dd")}
                     render={({ field }) => (
-                      <Input type="date" placeholder="Warranty Expiry" size="sm" {...field} />
+                      <Input
+                        type="date"
+                        placeholder="Warranty Expiry"
+                        size="sm"
+                        {...field}
+                      />
                     )}
                   />
                 </div>
@@ -176,7 +184,9 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Disc className="h-5 w-5 text-gray-600 mr-2" />
-                <h5 className="font-medium text-gray-700 break-words">Tyre Replacement</h5>
+                <h5 className="font-medium text-gray-700 break-words">
+                  Tyre Replacement
+                </h5>
               </div>
               <Controller
                 control={control}
@@ -207,7 +217,9 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                             </label>
                             <Controller
                               control={control}
-                              name={`service_groups.${index}.tyre_warranty_file` as const}
+                              name={
+                                `service_groups.${index}.tyre_warranty_file` as const
+                              }
                               render={({ field: { value, onChange } }) => (
                                 <FileUpload
                                   iconOnly
@@ -220,22 +232,31 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                             />
                           </div>
                           <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
-                            {['FL', 'FR', 'RL', 'RR', 'Stepney'].map((position) => (
-                              <label key={position} className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
-                                <input
-                                  type="checkbox"
-                                  checked={value?.includes(position)}
-                                  onChange={(e) => {
-                                    const newPositions = e.target.checked
-                                      ? [...(value || []), position]
-                                      : (value || []).filter((p) => p !== position);
-                                    onChange(newPositions);
-                                  }}
-                                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded min-w-[16px]"
-                                />
-                                <span className="text-xs sm:text-sm text-gray-600">{position}</span>
-                              </label>
-                            ))}
+                            {["FL", "FR", "RL", "RR", "Stepney"].map(
+                              (position) => (
+                                <label
+                                  key={position}
+                                  className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={value?.includes(position)}
+                                    onChange={(e) => {
+                                      const newPositions = e.target.checked
+                                        ? [...(value || []), position]
+                                        : (value || []).filter(
+                                            (p) => p !== position
+                                          );
+                                      onChange(newPositions);
+                                    }}
+                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded min-w-[16px]"
+                                  />
+                                  <span className="text-xs sm:text-sm text-gray-600">
+                                    {position}
+                                  </span>
+                                </label>
+                              )
+                            )}
                           </div>
                         </div>
                       )}
@@ -250,7 +271,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       <SearchableSelect
                         label="Tyre Brand"
                         options={TYRE_BRANDS}
-                        value={field.value || ''}
+                        value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
                         placeholder="Select or search brand"
                         size="sm"
@@ -262,14 +283,26 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       label="Tyre Serial Numbers"
                       placeholder="Comma separated"
                       size="sm"
-                      {...register(`service_groups.${index}.tyre_serials` as const)}
+                      {...register(
+                        `service_groups.${index}.tyre_serials` as const
+                      )}
                     />
                     <Controller
                       control={control}
-                      name={`service_groups.${index}.tyre_warranty_expiry_date` as const}
-                      defaultValue={format(addYears(new Date(), 1), 'yyyy-MM-dd')}
+                      name={
+                        `service_groups.${index}.tyre_warranty_expiry_date` as const
+                      }
+                      defaultValue={format(
+                        addYears(new Date(), 1),
+                        "yyyy-MM-dd"
+                      )}
                       render={({ field }) => (
-                        <Input type="date" placeholder="Warranty Expiry" size="sm" {...field} />
+                        <Input
+                          type="date"
+                          placeholder="Warranty Expiry"
+                          size="sm"
+                          {...field}
+                        />
                       )}
                     />
                   </div>

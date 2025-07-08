@@ -1,8 +1,8 @@
-import React from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import { MaintenanceTask } from '../../types';
-import FileUpload from '../ui/FileUpload';
-import { FileText } from 'lucide-react';
+import React from "react";
+import { Controller, useFormContext } from "react-hook-form";
+import { MaintenanceTask } from "../../types/maintenance";
+import FileUpload from "../ui/FileUpload";
+import { FileText } from "lucide-react";
 
 const DocumentsSection: React.FC = () => {
   const { control } = useFormContext<Partial<MaintenanceTask>>();
