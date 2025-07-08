@@ -19,6 +19,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import Input from "../ui/Input";
+import CurrencyInput from "../ui/CurrencyInput";
 import Select from "../ui/Select";
 import MultiSelect from "../ui/MultiSelect";
 import FileUpload from "../ui/FileUpload";
@@ -489,17 +490,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register("insurance_expiry_date")}
           />
 
-          <Input
-            label="Premium Amount (₹)"
-            type="number"
+          <CurrencyInput
+            label="Premium Amount"
             placeholder="e.g., 25000"
             disabled={isSubmitting}
             {...register("insurance_premium_amount", { valueAsNumber: true })}
           />
 
-          <Input
-            label="IDV Amount (₹)"
-            type="number"
+          <CurrencyInput
+            label="IDV Amount"
             placeholder="e.g., 500000"
             disabled={isSubmitting}
             {...register("insurance_idv", { valueAsNumber: true })}
@@ -594,9 +593,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register("fitness_expiry_date")}
           />
 
-          <Input
-            label="Fitness Cost (₹)"
-            type="number"
+          <CurrencyInput
+            label="Fitness Cost"
             placeholder="e.g., 2000"
             disabled={isSubmitting}
             {...register("fitness_cost", { valueAsNumber: true })}
@@ -677,9 +675,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register("tax_receipt_number")}
           />
 
-          <Input
-            label="Tax Amount (₹)"
-            type="number"
+          <CurrencyInput
+            label="Tax Amount"
             placeholder="e.g., 5000"
             disabled={isSubmitting}
             {...register("tax_amount", { valueAsNumber: true })}
@@ -803,9 +800,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register("permit_expiry_date")}
           />
 
-          <Input
-            label="Permit Cost (₹)"
-            type="number"
+          <CurrencyInput
+            label="Permit Cost"
             placeholder="e.g., 10000"
             disabled={isSubmitting}
             {...register("permit_cost", { valueAsNumber: true })}
@@ -900,9 +896,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             {...register("puc_expiry_date")}
           />
 
-          <Input
-            label="PUC Cost (₹)"
-            type="number"
+          <CurrencyInput
+            label="PUC Cost"
             placeholder="e.g., 500"
             disabled={isSubmitting}
             {...register("puc_cost", { valueAsNumber: true })}
@@ -1172,9 +1167,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   {...register(`other_documents.${index}.expiry_date` as const)}
                 />
 
-                <Input
-                  label="Document Cost (₹)"
-                  type="number"
+                <CurrencyInput
+                  label="Document Cost"
                   placeholder="e.g., 1000"
                   disabled={isSubmitting}
                   {...register(`other_documents.${index}.cost` as const, {
