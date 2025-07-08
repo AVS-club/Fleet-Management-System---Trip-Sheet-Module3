@@ -4,7 +4,7 @@ import { Building2, MapPin, Search } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import { Loader } from '@googlemaps/js-api-loader';
+import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { useState, useEffect, useRef } from 'react';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Import MaterialType
 
@@ -43,24 +43,18 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
 
   // Initialize Google Maps services
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    
-    const loader = new Loader({
-      apiKey,
-      version: 'weekly',
-      libraries: ['places']
-    });
+    loadGoogleMaps()
+      .then(() => {
+        setAutocompleteService(new google.maps.places.AutocompleteService());
 
-    loader.load().then(() => {
-      setAutocompleteService(new google.maps.places.AutocompleteService());
-      
-      // Create a dummy div for PlacesService (required)
-      if (placesRef.current) {
-        setPlacesService(new google.maps.places.PlacesService(placesRef.current));
-      }
-    }).catch(err => {
-      console.error('Error loading Google Maps:', err);
-    });
+        // Create a dummy div for PlacesService (required)
+        if (placesRef.current) {
+          setPlacesService(new google.maps.places.PlacesService(placesRef.current));
+        }
+      })
+      .catch(err => {
+        console.error('Error loading Google Maps:', err);
+      });
 
     // Fetch material types
     const fetchMaterials = async () => {
