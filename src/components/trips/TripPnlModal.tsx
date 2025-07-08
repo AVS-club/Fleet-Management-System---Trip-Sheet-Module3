@@ -3,6 +3,7 @@ import { X, IndianRupee, TrendingUp, Truck, Weight, Calculator, Info } from 'luc
 import { Trip, Vehicle, Driver } from '../../types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
+import CurrencyInput from '../ui/CurrencyInput';
 import Select from '../ui/Select';
 import { updateTrip } from '../../utils/storage';
 import { toast } from 'react-toastify';
@@ -178,32 +179,26 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
               />
               
               {billingType === 'per_km' && (
-                <Input
-                  label="Rate per KM (₹)"
-                  type="number"
+                <CurrencyInput
+                  label="Rate per KM"
                   value={freightRate}
                   onChange={(e) => setFreightRate(parseFloat(e.target.value) || 0)}
-                  icon={<IndianRupee className="h-4 w-4" />}
                 />
               )}
               
               {billingType === 'per_ton' && (
-                <Input
-                  label="Rate per Ton (₹)"
-                  type="number"
+                <CurrencyInput
+                  label="Rate per Ton"
                   value={freightRate}
                   onChange={(e) => setFreightRate(parseFloat(e.target.value) || 0)}
-                  icon={<IndianRupee className="h-4 w-4" />}
                 />
               )}
               
               {billingType === 'manual' && (
-                <Input
-                  label="Total Income (₹)"
-                  type="number"
+                <CurrencyInput
+                  label="Total Income"
                   value={manualIncome}
                   onChange={(e) => setManualIncome(parseFloat(e.target.value) || 0)}
-                  icon={<IndianRupee className="h-4 w-4" />}
                 />
               )}
 
