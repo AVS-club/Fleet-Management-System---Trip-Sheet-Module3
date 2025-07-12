@@ -79,7 +79,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
   useEffect(() => {
     if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
-  console.log(initialData);
+  // console.log(initialData);
   // Field array for other documents
   const { fields, append, remove } = useFieldArray({
     control,

@@ -308,187 +308,99 @@ export const getVehicle = async (id: string): Promise<Vehicle | null> => {
 };
 
 export const createVehicle = async (
-  vehicle: Omit<Vehicle, "id">,
-  userId: string
+  vehicle: Omit<Vehicle, "id">
 ): Promise<Vehicle | null> => {
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...vehicle,
   };
-
+  let rcPublicUrls = [];
+  let insurancePublicUrls = [];
+  let fitnessPublicUrls = [];
+  let pucPublicUrls = [];
+  let taxPublicUrls = [];
+  let permitPublicUrls = [];
   // Handle document file uploads
   try {
     // Upload RC document if provided
-    if (processedVehicle.rc_copy_file) {
-      const { data: uploadRCData, error: uploadRCError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/rc/rc_copy${processedVehicle.rc_copy_file.name.slice(-4)}`,
-            processedVehicle.rc_copy_file,
-            {
-              upsert: true,
-            }
-          );
 
-      if (uploadRCError) {
-        console.error("RC Upload error:", uploadRCError);
-        return null;
-      }
-      // Get the public URL
-      const { data: licencePublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadRCData.path}`);
-
-      processedVehicle.rc_document_url = licencePublicUrl.publicUrl;
+    if (processedVehicle.rc_copy_file && processedVehicle.rc_copy_file.length) {
+      rcPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/rc`,
+        processedVehicle.rc_copy_file
+      );
+      processedVehicle.rc_document_url = rcPublicUrls;
       processedVehicle.rc_copy = true;
     }
 
     // Upload insurance document if provided
-    if (processedVehicle.insurance_document_file) {
-      const { data: uploadInsuranceData, error: uploadInsuranceError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/insurance/insurance${processedVehicle.insurance_document_file.name.slice(
-              -4
-            )}`,
-            processedVehicle.insurance_document_file,
-            {
-              upsert: true,
-            }
-          );
-
-      if (uploadInsuranceError) {
-        console.error("Insurance Upload error:", uploadInsuranceError);
-        return null;
-      }
-      // Get the public URL
-      const { data: insurancePublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadInsuranceData.path}`);
-
-      processedVehicle.insurance_document_url = insurancePublicUrl.publicUrl;
+    if (
+      processedVehicle.insurance_document_file &&
+      processedVehicle.insurance_document_file.length
+    ) {
+      insurancePublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/insurance`,
+        processedVehicle.insurance_document_file
+      );
+      processedVehicle.insurance_document_url = insurancePublicUrls;
       processedVehicle.insurance_document = true;
     }
 
     // Upload fitness document if provided
-    if (processedVehicle.fitness_document_file) {
-      const { data: uploadFitnessData, error: uploadFitnessError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/fitness/fitness${processedVehicle.fitness_document_file.name.slice(
-              -4
-            )}`,
-            processedVehicle.fitness_document_file,
-            {
-              upsert: true,
-            }
-          );
-
-      if (uploadFitnessError) {
-        console.error("Fitness Upload error:", uploadFitnessError);
-        return null;
-      }
-      // Get the public URL
-      const { data: fitnessPublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadFitnessData.path}`);
-
-      processedVehicle.fitness_document_url = fitnessPublicUrl.publicUrl;
+    if (
+      processedVehicle.fitness_document_file &&
+      processedVehicle.fitness_document_file.length
+    ) {
+      fitnessPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/fitness`,
+        processedVehicle.fitness_document_file
+      );
+      processedVehicle.fitness_document_url = fitnessPublicUrls;
       processedVehicle.fitness_document = true;
     }
 
     // Upload tax document if provided
-    if (processedVehicle.tax_receipt_document_file) {
-      const { data: uploadTaxData, error: uploadTaxError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/tax/taxReciept${processedVehicle.tax_receipt_document_file.name.slice(
-              -4
-            )}`,
-            processedVehicle.tax_receipt_document_file,
-            {
-              upsert: true,
-            }
-          );
-
-      if (uploadTaxError) {
-        console.error("Tax Reciept Upload error:", uploadTaxError);
-        return null;
-      }
-      // Get the public URL
-      const { data: taxPublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadTaxData.path}`);
-
-      processedVehicle.tax_document_url = taxPublicUrl.publicUrl;
+    if (
+      processedVehicle.tax_receipt_document_file &&
+      processedVehicle.tax_receipt_document_file.length
+    ) {
+      taxPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/tax`,
+        processedVehicle.tax_receipt_document_file
+      );
+      processedVehicle.tax_document_url = taxPublicUrls;
       processedVehicle.tax_receipt_document = true;
     }
 
     // Upload permit document if provided
-    if (processedVehicle.permit_document_file) {
-      const { data: uploadPermitData, error: uploadPermitError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/permit/permit${processedVehicle.permit_document_file.name.slice(
-              -4
-            )}`,
-            processedVehicle.permit_document_file,
-            {
-              upsert: true,
-            }
-          );
-
-      if (uploadPermitError) {
-        console.error("Permit Upload error:", uploadPermitError);
-        return null;
-      }
-      // Get the public URL
-      const { data: permitPublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadPermitData.path}`);
-      processedVehicle.permit_document_url = permitPublicUrl.publicUrl;
+    if (
+      processedVehicle.permit_document_file &&
+      processedVehicle.permit_document_file.length
+    ) {
+      permitPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/permit`,
+        processedVehicle.permit_document_file
+      );
+      processedVehicle.permit_document_url = permitPublicUrls;
       processedVehicle.permit_document = true;
     }
 
     // Upload PUC document if provided
-    if (processedVehicle.puc_document_file) {
-      const { data: uploadPUCData, error: uploadPUCError } =
-        await supabase.storage
-          .from("vehicle-docs")
-          .upload(
-            `${userId}/${
-              processedVehicle.registration_number
-            }/puc/puc${processedVehicle.puc_document_file.name.slice(-4)}`,
-            processedVehicle.puc_document_file,
-            {
-              upsert: true,
-            }
-          );
-
-      if (uploadPUCError) {
-        console.error("PUC Upload error:", uploadPUCError);
-        return null;
-      }
-      // Get the public URL
-      const { data: pucPublicUrl } = supabase.storage
-        .from("vehicle-docs")
-        .getPublicUrl(`${uploadPUCData.path}`);
-      processedVehicle.puc_document_url = pucPublicUrl.publicUrl;
+    if (
+      processedVehicle.puc_document_file &&
+      processedVehicle.puc_document_file.length
+    ) {
+      pucPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/puc`,
+        processedVehicle.puc_document_file
+      );
+      processedVehicle.puc_document_url = pucPublicUrls;
       processedVehicle.puc_document = true;
     }
   } catch (error) {
@@ -508,6 +420,14 @@ export const createVehicle = async (
     .from("vehicles")
     .insert({
       ...convertKeysToSnakeCase(processedVehicle),
+
+      rc_document_url: processedVehicle.rc_document_url,
+      insurance_document_url: processedVehicle.insurance_document_url,
+      fitness_document_url: processedVehicle.fitness_document_url,
+      tax_document_url: processedVehicle.tax_document_url,
+      permit_document_url: processedVehicle.permit_document_url,
+      puc_document_url: processedVehicle.puc_document_url,
+
       tax_paid_upto:
         (processedVehicle.tax_paid_upto &&
           !isNaN(new Date(processedVehicle.tax_paid_upto).getTime()) &&

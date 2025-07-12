@@ -51,20 +51,20 @@ export interface Vehicle {
   rc_expiry_date?: string;
 
   // Document files for upload
-  rc_copy_file?: File;
-  insurance_document_file?: File;
-  fitness_document_file?: File;
-  tax_receipt_document_file?: File;
-  permit_document_file?: File;
-  puc_document_file?: File;
+  rc_copy_file?: File[];
+  insurance_document_file?: File[];
+  fitness_document_file?: File[];
+  tax_receipt_document_file?: File[];
+  permit_document_file?: File[];
+  puc_document_file?: File[];
 
   // Document paths for storage
-  rc_document_url?: string;
-  insurance_document_url?: string;
-  fitness_document_url?: string;
-  tax_document_url?: string;
-  permit_document_url?: string;
-  puc_document_url?: string;
+  rc_document_url?: string[];
+  insurance_document_url?: string[];
+  fitness_document_url?: string[];
+  tax_document_url?: string[];
+  permit_document_url?: string[];
+  puc_document_url?: string[];
 
   // Legacy boolean flags (for backward compatibility)
   rc_copy?: boolean;

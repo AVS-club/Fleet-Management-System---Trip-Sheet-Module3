@@ -59,7 +59,7 @@ const VehiclesPage: React.FC = () => {
   const [showTopDriversModal, setShowTopDriversModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
-  const [user, setUser] = useState<any>();
+  // const [user, setUser] = useState<any>();
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -72,10 +72,10 @@ const VehiclesPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
-        const userdetails = localStorage.getItem("user");
-        if (!userdetails) throw new Error("Cannot get user details");
-        const user = JSON.parse(userdetails);
-        if (user) setUser(user);
+        // const userdetails = localStorage.getItem("user");
+        // if (!userdetails) throw new Error("Cannot get user details");
+        // const user = JSON.parse(userdetails);
+        // if (user) setUser(user);
         const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
           getDrivers(),
@@ -243,7 +243,7 @@ const VehiclesPage: React.FC = () => {
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
     try {
-      const newVehicle = await createVehicle(data, user.id);
+      const newVehicle = await createVehicle(data);
       if (newVehicle) {
         const rawStats = await getVehicleStats(newVehicle.id);
         const conformingStats = {

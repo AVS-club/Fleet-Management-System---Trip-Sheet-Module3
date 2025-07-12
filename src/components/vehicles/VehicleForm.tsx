@@ -67,6 +67,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       current_odometer: 0,
       status: "active",
       ...initialData,
+      rc_copy_file: [],
+      insurance_document_file: [],
+      puc_document_file: [],
+      permit_document_file: [],
+      tax_receipt_document_file: [],
+      fitness_document_file: [],
     },
   });
 
@@ -110,11 +116,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       toast.error("Please enter a vehicle number first.");
       return;
     }
-    
+
     setIsFetching(true);
     setFetchStatus("fetching");
     setFieldsDisabled(true);
-    
+
     // Clear form before fetching new data
     reset({
       registration_number: regNum,
@@ -126,7 +132,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       current_odometer: 0,
       status: "active",
     });
-    
+
     try {
       // Use supabase.functions.invoke for Edge Functions
       const { data: result, error } = await supabase.functions.invoke(
@@ -440,12 +446,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="rc_copy_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload RC"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
+                // icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -512,12 +518,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="insurance_document_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload Insurance"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -609,12 +614,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="fitness_document_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload Fitness Certificate"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -707,12 +711,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="tax_receipt_document_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload Tax Receipt"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -818,12 +821,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="permit_document_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload Permit"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -915,12 +917,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             name="puc_document_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
+                multiple={true}
                 label="Upload PUC Certificate"
-                buttonMode
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
                 accept=".jpg,.jpeg,.png,.pdf"
-                icon={<Upload className="h-4 w-4" />}
                 disabled={isSubmitting}
                 {...field}
               />
@@ -1096,7 +1097,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
 
         {/* Upload Related Documents */}
-        <div className="mb-4 sm:mb-6">
+        {/* <div className="mb-4 sm:mb-6">
           <h4 className="text-sm font-medium text-gray-700 mb-2">
             Upload Related Documents
           </h4>
@@ -1118,10 +1119,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               />
             )}
           />
-        </div>
+        </div> */}
 
         {/* Other Documents */}
-        <div className="space-y-3 sm:space-y-4">
+        {/* <div className="space-y-3 sm:space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-gray-700">Document List</h4>
             <Button
@@ -1208,7 +1209,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               </p>
             </div>
           )}
-        </div>
+        </div> */}
       </CollapsibleSection>
 
       {/* Form Actions */}
