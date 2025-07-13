@@ -16,7 +16,7 @@ const DocumentsSection: React.FC = () => {
         render={({ field: { value, onChange } }) => (
           <FileUpload
             label="Upload Documents"
-            value={value as File | null}
+            value={value as File[] | null}
             onChange={onChange}
             accept=".jpg,.jpeg,.png,.pdf"
             helperText="Upload warranty card, or other relevant documents"

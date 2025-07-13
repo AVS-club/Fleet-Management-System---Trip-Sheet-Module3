@@ -134,11 +134,10 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       }
                       render={({ field: { value, onChange } }) => (
                         <FileUpload
-                          iconOnly
-                          value={value as File | null}
+                          multiple={true}
+                          value={value as File[]}
                           onChange={onChange}
                           accept=".jpg,.jpeg,.png,.pdf"
-                          icon={<Paperclip className="h-4 w-4" />}
                         />
                       )}
                     />
@@ -221,11 +220,10 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                               }
                               render={({ field: { value, onChange } }) => (
                                 <FileUpload
-                                  iconOnly
-                                  value={value as File | null}
+                                  multiple={true}
+                                  value={value as File[]}
                                   onChange={onChange}
                                   accept=".jpg,.jpeg,.png,.pdf"
-                                  icon={<Paperclip className="h-4 w-4" />}
                                 />
                               )}
                             />
@@ -317,12 +315,11 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
             name={`service_groups.${index}.bill_file` as const}
             render={({ field: { value, onChange } }) => (
               <FileUpload
-                buttonMode={true}
                 label="Upload Bill"
+                multiple
                 accept=".jpg,.jpeg,.png,.pdf"
-                value={value as File | null}
+                value={value as File[]}
                 onChange={onChange}
-                icon={<Paperclip className="h-4 w-4" />}
               />
             )}
           />
