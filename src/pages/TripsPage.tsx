@@ -8,6 +8,7 @@ import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
+import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { PlusCircle, FileText, BarChart2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -57,11 +58,22 @@ const TripsPage: React.FC = () => {
     const destinationIds = data.destinations;
     
     try {
-      // Handle file upload (in a real app, this would upload to a server)
+      // Handle file upload to Supabase Storage
       let fuelBillUrl: string | undefined = undefined;
-      if (data.fuel_bill_file) {
-        // Create a fake URL for demo purposes
-        fuelBillUrl = URL.createObjectURL(data.fuel_bill_file);
+      if (data.fuel_bill_file && Array.isArray(data.fuel_bill_file) && data.fuel_bill_file.length > 0) {
+        try {
+          const uploadedUrls = await uploadFilesAndGetPublicUrls(
+            'trip-docs',
+            `trip_${Date.now()}/fuel_bill`,
+            data.fuel_bill_file
+          );
+          fuelBillUrl = uploadedUrls[0]; // Take the first uploaded file URL
+        } catch (uploadError) {
+          console.error('Error uploading fuel bill:', uploadError);
+          toast.error('Failed to upload fuel bill');
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       // Create trip without the file object (replaced with URL)

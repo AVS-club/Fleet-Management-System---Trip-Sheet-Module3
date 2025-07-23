@@ -185,6 +185,9 @@ export const createTrip = async (
   const tripData = {
     ...trip,
     trip_serial_number: tripId,
+    // Ensure breakdown_expense and miscellaneous_expense are included
+    breakdown_expense: trip.breakdown_expense || 0,
+    miscellaneous_expense: trip.miscellaneous_expense || 0,
   };
 
   const { data, error } = await supabase

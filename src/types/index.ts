@@ -317,10 +317,12 @@ export interface TripFormData
     Trip,
     "id" | "created_at" | "updated_at" | "trip_serial_number"
   > {
-  fuel_bill_file?: File;
+  fuel_bill_file?: File[];
   is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;
+  breakdown_expense?: number;
+  miscellaneous_expense?: number;
 }
 
 // Add RouteAnalysis interface

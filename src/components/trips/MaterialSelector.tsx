@@ -25,11 +25,13 @@ const MATERIAL_ICONS: Record<string, React.ReactNode> = {
 interface MaterialSelectorProps {
   selectedMaterials: string[];
   onChange: (materialIds: string[]) => void;
+  error?: string;
 }
 
 const MaterialSelector: React.FC<MaterialSelectorProps> = ({
   selectedMaterials,
-  onChange
+  onChange,
+  error
 }) => {
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,6 +158,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         <h4 className="text-sm font-medium text-gray-700 flex items-center">
           <Package className="h-4 w-4 mr-2 text-gray-600" />
           Material Carried
+          <span className="text-error-500 ml-1">*</span>
         </h4>
         {selectedMaterials.length > 0 && (
           <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-700">
@@ -284,6 +287,10 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
             );
           })}
         </div>
+      )}
+
+      {error && (
+        <p className="text-error-500 text-sm mt-1">{error}</p>
       )}
     </div>
   );
