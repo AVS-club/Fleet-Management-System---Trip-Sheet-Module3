@@ -39,11 +39,10 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
   // Calculate total expenses
   const fuelCost = trip.total_fuel_cost || 0;
   const driverExpense = trip.driver_expense || 0;
-  const tollCost = trip.estimated_toll_cost || 0;
   const unloadingExpense = trip.unloading_expense || 0;
   const roadRtoExpense = trip.road_rto_expense || 0;
   const miscExpense = trip.miscellaneous_expense || 0;
-  const totalExpenses = fuelCost + driverExpense + tollCost + unloadingExpense + roadRtoExpense + miscExpense;
+  const totalExpenses = fuelCost + driverExpense + unloadingExpense + roadRtoExpense + miscExpense;
 
   // Calculate income based on billing type
   const calculateIncome = (): number => {
@@ -257,10 +256,6 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
                 <p className="font-medium">₹{driverExpense.toLocaleString()}</p>
               </div>
               
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Toll Charges</p>
-                <p className="font-medium">₹{tollCost.toLocaleString()}</p>
-              </div>
               
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-xs text-gray-500">Loading/Unloading</p>

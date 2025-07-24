@@ -198,19 +198,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 </div>
               )}
               
-              {trip.estimated_toll_cost && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-md border border-blue-200 flex items-center gap-3">
-                  <div className="bg-blue-100 rounded-full p-2">
-                    <IndianRupee className="h-5 w-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <p className="text-blue-700 font-medium">FASTag Toll Cost</p>
-                    <p className="text-blue-600 text-sm">
-                      Estimated toll cost: <span className="font-bold">₹{trip.estimated_toll_cost.toFixed(2)}</span>
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
             
             {trip.fuel_bill_url && (
