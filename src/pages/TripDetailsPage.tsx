@@ -215,8 +215,7 @@ const TripDetailsPage: React.FC = () => {
               road_rto_expense: trip.road_rto_expense,
               is_return_trip: trip.is_return_trip,
               remarks: trip.remarks,
-              trip_serial_number: trip.trip_serial_number, // Pass the original serial number
-              estimated_toll_cost: trip.estimated_toll_cost
+              trip_serial_number: trip.trip_serial_number // Pass the original serial number
             }}
             onSubmit={handleUpdate}
             isSubmitting={isSubmitting}

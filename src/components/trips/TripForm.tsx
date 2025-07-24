@@ -18,7 +18,6 @@ import TripMap from '../maps/TripMap';
 import RouteAnalysisComponent from './RouteAnalysis';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import { estimateTollCost } from '../../utils/tollEstimator';
 import MaterialSelector from './MaterialSelector';
 import { toast } from 'react-toastify';
 
@@ -47,8 +46,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
   const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
-  const [estimatedTollCost, setEstimatedTollCost] = useState<number | null>(null);
-  const [tollLoading, setTollLoading] = useState(false);
   const [manualOverride, setManualOverride] = useState(false);
 
   const {
@@ -248,43 +245,6 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [fuelQuantity, fuelCost, setValue]);
 
-  // Fetch toll estimates when route is selected
-  useEffect(() => {
-    const fetchTollEstimate = async () => {
-      // Only fetch toll estimates if we have all required data
-      if (!warehouseId || !vehicleId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0) {
-        return;
-      }
-      
-      setTollLoading(true);
-      try {
-        const tollData = await estimateTollCost(warehouseId, selectedDestinations, vehicleId);
-        
-        if (tollData) {
-          let cost = tollData.estimatedTollCost;
-          
-          // Double the toll cost for return trips
-          if (isReturnTrip) {
-            cost *= 2;
-          }
-          
-          setEstimatedTollCost(cost);
-          
-          // Store the estimated toll cost in the form data
-          setValue('estimated_toll_cost', cost);
-        } else {
-          setEstimatedTollCost(null);
-        }
-      } catch (error) {
-        console.error('Error fetching toll estimate:', error);
-        setEstimatedTollCost(null);
-      } finally {
-        setTollLoading(false);
-      }
-    };
-    
-    fetchTollEstimate();
-  }, [warehouseId, vehicleId, selectedDestinations, isReturnTrip, setValue]);
 
   useEffect(() => {
     const fetchRouteAnalysis = async () => {
@@ -585,33 +545,6 @@ const TripForm: React.FC<TripFormProps> = ({
           )}
         />
 
-        {/* Estimated Toll Cost Section */}
-        {(tollLoading || estimatedTollCost !== null) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start">
-              <IndianRupee className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
-              <div className="flex-1">
-                <h4 className="text-blue-700 font-medium">Estimated FASTag Toll Cost</h4>
-                {tollLoading ? (
-                  <div className="flex items-center mt-2">
-                    <Loader className="h-4 w-4 text-blue-500 animate-spin mr-2" />
-                    <p className="text-blue-600 text-sm">Calculating toll estimates...</p>
-                  </div>
-                ) : (
-                  <>
-                    <p className="text-blue-600 text-lg font-semibold mt-1">
-                      ₹{estimatedTollCost?.toFixed(2)}
-                    </p>
-                    <p className="text-blue-500 text-xs mt-1">
-                      Approximate tolls based on standard FASTag rates; may vary.
-                      {isReturnTrip && " Return trip costs included."}
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Material Types Section */}
         <div className="space-y-4">
@@ -874,7 +807,6 @@ const TripForm: React.FC<TripFormProps> = ({
         <div className="mt-3 sm:mt-4 bg-primary-50 p-2 sm:p-3 rounded-md">
           <p className="text-primary-700 font-medium text-sm">
             Total Trip Expenses: ₹{totalExpenses.toLocaleString()}
-            {estimatedTollCost ? ` + ₹${estimatedTollCost.toFixed(2)} (FASTag)` : ''}
           </p>
         </div>
       </CollapsibleSection>

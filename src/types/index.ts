@@ -296,7 +296,6 @@ export interface Trip {
   route_deviation?: number;
   fuel_bill_url?: string;
   material_type_ids?: string[];
-  estimated_toll_cost?: number;
   is_return_trip?: boolean;
   advance_amount?: number; // New field for advance amount
   created_at: string;
