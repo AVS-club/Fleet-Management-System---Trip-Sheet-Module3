@@ -110,10 +110,19 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
 
 // Trips CRUD operations with Supabase
 export const getTrips = async (): Promise<Trip[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
   try {
     const { data, error } = await supabase
       .from("trips")
       .select("*")
+      .eq("added_by", user.id)
       .order("trip_start_date", { ascending: false });
 
     if (error) {
@@ -282,9 +291,19 @@ const recalculateMileageForAffectedTrips = async (
 
 // Vehicles CRUD operations with Supabase
 export const getVehicles = async (): Promise<Vehicle[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("vehicles")
     .select("*")
+    .eq("added_by", user.id)
     .order("registration_number");
 
   if (error) {
@@ -931,9 +950,19 @@ const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward compatibil
 
 // Drivers CRUD operations with Supabase
 export const getDrivers = async (): Promise<Driver[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
+
   const { data, error } = await supabase
     .from("drivers")
     .select("*")
+    .eq("added_by", user.id)
     .order("name");
 
   if (error) {
@@ -1510,9 +1539,19 @@ export const updateAllTripMileage = async (): Promise<void> => {
       )
     );
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error("Error fetching user data");
+      return;
+    }
+
     const queryPromise = supabase
       .from("trips")
       .select("*")
+      .eq("added_by", user.id)
       .order("trip_end_date", { ascending: true });
 
     const { data: trips } = (await Promise.race([

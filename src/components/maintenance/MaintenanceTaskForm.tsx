@@ -195,11 +195,21 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     const fetchLastOdometer = async () => {
       if (!vehicleId || !startDate) return;
 
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.error("Error fetching user data");
+        return;
+      }
+
       try {
         // Query the trips table to find the latest trip for this vehicle before the start date
         const { data, error } = await supabase
           .from("trips")
           .select("end_km")
+          .eq("added_by", user.id)
           .eq("vehicle_id", vehicleId)
           .lt("trip_end_date", startDate)
           .order("trip_end_date", { ascending: false })
