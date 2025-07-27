@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Filter, Download, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
+import { Calendar, Download } from 'lucide-react';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
@@ -21,58 +21,31 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
   onExportPDF,
   onExportCSV
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-          <div className="w-full sm:w-auto">
-            <label className="block text-sm font-medium text-gray-700 mb-1 mr-4">Date Range</label>
-            <div className="flex items-center">
-              <div className="flex-grow">
-                <Select
-                  options={[
-                    { value: 'allTime', label: 'All Time' },
-                    { value: 'thisMonth', label: 'This Month' },
-                    { value: 'lastMonth', label: 'Last Month' },
-                    { value: 'thisYear', label: 'This Year' },
-                    { value: 'lastYear', label: 'Last Year' },
-                    { value: 'custom', label: 'Custom Range' },
-                  ]}
-                  value={dateRangeFilter}
-                  onChange={(e) => onDateRangeFilterChange(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <button 
-                className="ml-2 text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 p-2 rounded-md transition-colors"
-                onClick={() => setIsExpanded(!isExpanded)}
-              >
-                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
-            </div>
-            
-            {dateRangeFilter !== 'custom' && !isExpanded && (
-              <div className="mt-2 flex items-center">
-                <Calendar className="h-4 w-4 text-gray-500 mr-2" />
-                <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-md font-medium">
-                  {dateRangeFilter === 'today' ? 'Today' :
-                   dateRangeFilter === 'yesterday' ? 'Yesterday' :
-                   dateRangeFilter === 'last7Days' ? 'Last 7 Days' :
-                   dateRangeFilter === 'thisMonth' ? 'This Month' :
-                   dateRangeFilter === 'lastMonth' ? 'Last Month' :
-                   dateRangeFilter === 'thisYear' ? 'This Year' :
-                   dateRangeFilter === 'lastYear' ? 'Last Year' :
-                   dateRangeFilter === 'allTime' ? 'All Time' : 'Custom Range'}
-                </span>
-              </div>
-            )}
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-3 sm:p-4">
+        <div className="flex items-center gap-3 overflow-x-auto min-w-0">
+          {/* Date Range Selector */}
+          <div className="flex-shrink-0 w-40">
+            <Select
+              options={[
+                { value: 'allTime', label: 'All Time' },
+                { value: 'thisMonth', label: 'This Month' },
+                { value: 'lastMonth', label: 'Last Month' },
+                { value: 'thisYear', label: 'This Year' },
+                { value: 'lastYear', label: 'Last Year' },
+                { value: 'custom', label: 'Custom Range' },
+              ]}
+              value={dateRangeFilter}
+              onChange={(e) => onDateRangeFilterChange(e.target.value)}
+              size="sm"
+            />
           </div>
-          
-          {(dateRangeFilter === 'custom' || isExpanded) && (
-            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-              <div className="w-full sm:w-auto">
+
+          {/* Custom Date Inputs - Only show when Custom is selected */}
+          {dateRangeFilter === 'custom' && (
+            <>
+              <div className="flex-shrink-0 w-36">
                 <Input
                   type="date"
                   value={customDateRange.start}
@@ -80,12 +53,14 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                     ...customDateRange, 
                     start: e.target.value 
                   })}
-                  label="Start Date"
-                  icon={<Calendar className="h-4 w-4" />}
+                  size="sm"
+                  placeholder="Start Date"
                 />
               </div>
-              <span className="hidden sm:flex items-center mx-2 mb-2 text-gray-500">to</span>
-              <div className="w-full sm:w-auto">
+              
+              <span className="text-gray-400 text-sm flex-shrink-0">to</span>
+              
+              <div className="flex-shrink-0 w-36">
                 <Input
                   type="date"
                   value={customDateRange.end}
@@ -93,31 +68,39 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                     ...customDateRange, 
                     end: e.target.value 
                   })}
-                  label="End Date"
-                  icon={<Calendar className="h-4 w-4" />}
+                  size="sm"
+                  placeholder="End Date"
                 />
               </div>
-            </div>
+            </>
           )}
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExportCSV}
-            icon={<Download className="h-4 w-4" />}
-          >
-            Export CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onExportPDF}
-            icon={<Download className="h-4 w-4" />}
-          >
-            Export PDF
-          </Button>
+
+          {/* Spacer to push export buttons to the right */}
+          <div className="flex-grow"></div>
+          
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportCSV}
+              icon={<Download className="h-4 w-4" />}
+              title="Export CSV"
+              className="px-2"
+            >
+              CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExportPDF}
+              icon={<Download className="h-4 w-4" />}
+              title="Export PDF"
+              className="px-2"
+            >
+              PDF
+            </Button>
+          </div>
         </div>
       </div>
     </div>
