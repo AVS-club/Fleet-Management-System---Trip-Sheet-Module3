@@ -5,6 +5,8 @@ import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
 import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse } from '../utils/storage';
+import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
+import { getAIAlerts, AIAlert } from '../utils/aiAnalytics';
 import TripMap from '../components/maps/TripMap';
 import { MapPin, X } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -21,6 +23,8 @@ const TripDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [warehouse, setWarehouse] = useState<Warehouse | null>(null);
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
+  const [aiAlerts, setAiAlerts] = useState<AIAlert[]>([]);
   const [showMapModal, setShowMapModal] = useState(false);
   
   // Load trip data
@@ -33,14 +37,26 @@ const TripDetailsPage: React.FC = () => {
           if (tripData) {
             setTrip(tripData);
             
-            // Load related vehicle and driver
-            const [vehicleData, driverData] = await Promise.all([
+            // Load related vehicle, driver, material types, and AI alerts
+            const [vehicleData, driverData, materialTypesData, aiAlertsData] = await Promise.all([
               getVehicle(tripData.vehicle_id),
-              getDriver(tripData.driver_id)
+              getDriver(tripData.driver_id),
+              getMaterialTypes(),
+              getAIAlerts()
             ]);
             
             setVehicle(vehicleData || undefined);
             setDriver(driverData || undefined);
+            setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+            
+            // Filter AI alerts for this specific trip
+            const tripAlerts = Array.isArray(aiAlertsData) 
+              ? aiAlertsData.filter(alert => 
+                  alert.metadata?.trip_id === tripData.id ||
+                  (alert.affected_entity?.type === 'vehicle' && alert.affected_entity?.id === tripData.vehicle_id)
+                )
+              : [];
+            setAiAlerts(tripAlerts);
             
             // Load warehouse and destinations for map
             if (tripData.warehouse_id) {
@@ -227,6 +243,10 @@ const TripDetailsPage: React.FC = () => {
             trip={trip}
             vehicle={vehicle}
             driver={driver}
+            warehouse={warehouse}
+            destinations={destinations}
+            materialTypes={materialTypes}
+            aiAlerts={aiAlerts}
             onBack={handleBack}
             onEdit={handleEdit}
             onDelete={handleDelete}
