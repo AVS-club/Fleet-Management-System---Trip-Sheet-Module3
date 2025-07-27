@@ -43,6 +43,7 @@ import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
+import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
 
 interface ProtectedRouteProps {
   session: Session | null;
@@ -351,6 +352,7 @@ Current URL: ${window.location.origin}`;
             <Route path="/drivers/:id" element={<DriverPage />} />
             <Route path="/drivers/insights" element={<DriverInsightsPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/parts-health" element={<PartsHealthAnalyticsPage />} />
           </Route>
           <Route
             path="*"

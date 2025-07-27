@@ -5,7 +5,7 @@ import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
-import { PlusCircle, PenTool as PenToolIcon, Download } from 'lucide-react';
+import { PlusCircle, PenTool as PenToolIcon, Download, Settings } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
@@ -113,6 +113,15 @@ const MaintenancePage = () => {
       subtitle="Track and analyze vehicle maintenance performance"
       actions={
         <div>
+          <Button
+            onClick={() => navigate('/parts-health')}
+            icon={<Settings className="h-4 w-4" />}
+            variant="outline"
+            size="sm"
+            className="mr-3"
+          >
+            Parts Health
+          </Button>
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
