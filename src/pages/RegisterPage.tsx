@@ -47,7 +47,7 @@ const RegisterPage: React.FC = () => {
       </div>
       
       <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">
-        © {new Date().getFullYear()} Auto Vital Solution. All rights reserved.
+        © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with ❤️
       </p>
     </div>
   );

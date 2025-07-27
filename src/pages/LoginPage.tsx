@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
       </div>
       
       <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">
-        © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with <a href="https://bolt.new" className="text-primary-600 dark:text-primary-400 hover:underline">Bolt.new</a>
+        © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with ❤️
       </p>
     </div>
   );
