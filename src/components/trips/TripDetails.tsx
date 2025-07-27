@@ -312,7 +312,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           <div>
             <p className="text-sm text-gray-500">Calculated Mileage</p>
             <p className={`text-xl font-semibold ${getMileageColor()}`}>
-              {typeof trip.calculated_kmpl === 'number' && !isNaN(trip.calculated_kmpl) ? `${trip.calculated_kmpl.toFixed(2)} km/L` : 'N/A'}
+              {trip.calculated_kmpl && typeof trip.calculated_kmpl === 'number' && !isNaN(trip.calculated_kmpl) ? `${trip.calculated_kmpl.toFixed(2)} km/L` : 'N/A'}
             </p>
             {hasFuelAnomalyAlert && (
               <p className="text-xs text-warning-600 mt-1">⚠️ AI Flagged</p>
@@ -323,7 +323,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             <div>
               <p className="text-sm text-gray-500">Route Deviation</p>
               <p className={`text-xl font-semibold ${getRouteDeviationColor()}`}>
-                {trip.route_deviation > 0 ? '+' : ''}{trip.route_deviation.toFixed(1)}%
+                {trip.route_deviation && typeof trip.route_deviation === 'number' && !isNaN(trip.route_deviation) ? `${trip.route_deviation > 0 ? '+' : ''}${trip.route_deviation.toFixed(1)}%` : 'N/A'}
               </p>
               {Math.abs(trip.route_deviation) > 15 && (
                 <p className="text-xs text-warning-600 mt-1">⚠️ High Deviation</p>
