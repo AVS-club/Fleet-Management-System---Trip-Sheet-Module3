@@ -5,16 +5,10 @@ import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
-import { PlusCircle, PenTool as PenToolIcon, Download, Settings } from 'lucide-react';
+import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
-import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics';
-import ReplacementInsightsPanel from '../components/maintenance/ReplacementInsightsPanel';
-import PartsAnalyticsPanel from '../components/maintenance/PartsAnalyticsPanel';
-import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
-import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
-import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
 import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
 import { useQuery } from '@tanstack/react-query';
 
@@ -114,20 +108,20 @@ const MaintenancePage = () => {
       actions={
         <div>
           <Button
-            onClick={() => navigate('/parts-health')}
-            icon={<Settings className="h-4 w-4" />}
-            variant="outline"
-            size="sm"
-            className="mr-3"
-          >
-            Parts Health
-          </Button>
-          <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
             size="sm"
           >
             New Task
+          </Button>
+          <Button
+            onClick={() => navigate('/parts-health')}
+            icon={<BarChart3 className="h-4 w-4" />}
+            variant="outline"
+            size="sm"
+            className="ml-3"
+          >
+            Parts Health & Analytics
           </Button>
         </div>
       }
@@ -158,37 +152,6 @@ const MaintenancePage = () => {
             averageCost={metrics.averageCost}
             totalExpenditure={metrics.totalExpenditure}
             previousPeriodComparison={metrics.previousPeriodComparison}
-          />
-          
-          {/* Replacement Insights Panel */}
-          <ReplacementInsightsPanel 
-            tasks={tasks || []}
-            vehicles={vehicles || []}
-          />
-          
-          {/* Parts Analytics Panel */}
-          <PartsAnalyticsPanel 
-            tasks={tasks || []}
-            vehicles={vehicles || []}
-          />
-          
-          {/* Expenditure Analytics with Task Distribution Chart */}
-          <ExpenditureAnalytics
-            monthlyExpenditure={metrics.monthlyExpenditure}
-            expenditureByVehicle={metrics.expenditureByVehicle}
-            expenditureByVendor={metrics.expenditureByVendor}
-            previousPeriodComparison={metrics.previousPeriodComparison}
-            taskTypeDistribution={metrics.taskTypeDistribution}
-          />
-          
-          {/* Vehicle Maintenance Intensity */}
-          <VehicleMaintenanceIntensity
-            kmBetweenMaintenance={metrics.kmBetweenMaintenance}
-          />
-          
-          {/* Vehicle Downtime Chart */}
-          <VehicleDowntimeChart
-            vehicleDowntime={metrics.vehicleDowntime}
           />
           
           {/* Enhanced Maintenance Table */}

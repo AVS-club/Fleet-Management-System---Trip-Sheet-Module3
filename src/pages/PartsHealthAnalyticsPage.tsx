@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import PartHealthCard from '../components/parts/PartHealthCard';
+import PartDetailsModal from '../components/parts/PartDetailsModal';
+import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics';
+import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
+import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
+import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
 import { MaintenanceTask } from '../types/maintenance';
 import { Vehicle } from '../types';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
+import { getDateRangeForFilter, calculateMaintenanceMetrics } from '../utils/maintenanceAnalytics';
 import { 
   getPartsHealthMetrics, 
   getPartsByCategory, 
@@ -39,6 +45,20 @@ const PartsHealthAnalyticsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedPart, setSelectedPart] = useState<PartHealthMetrics | null>(null);
+  const [showPartDetails, setShowPartDetails] = useState(false);
+  const [analyticsMetrics, setAnalyticsMetrics] = useState<any>({
+    monthlyExpenditure: [],
+    expenditureByVehicle: [],
+    expenditureByVendor: [],
+    taskTypeDistribution: [],
+    vehicleDowntime: [],
+    kmBetweenMaintenance: [],
+    previousPeriodComparison: {
+      totalExpenditure: 0,
+      percentChange: 0
+    }
+  });
 
   // Fetch data
   useEffect(() => {
@@ -59,6 +79,15 @@ const PartsHealthAnalyticsPage: React.FC = () => {
           Array.isArray(vehiclesData) ? vehiclesData : []
         );
         setPartsMetrics(metrics);
+        
+        // Calculate analytics metrics for the Analytics tab
+        const dateRange = getDateRangeForFilter('allTime');
+        const analyticsData = calculateMaintenanceMetrics(
+          Array.isArray(tasksData) ? tasksData : [],
+          Array.isArray(vehiclesData) ? vehiclesData : [],
+          dateRange
+        );
+        setAnalyticsMetrics(analyticsData);
         
       } catch (error) {
         console.error('Error fetching parts health data:', error);
@@ -88,6 +117,15 @@ const PartsHealthAnalyticsPage: React.FC = () => {
         Array.isArray(vehiclesData) ? vehiclesData : []
       );
       setPartsMetrics(metrics);
+      
+      // Recalculate analytics metrics
+      const dateRange = getDateRangeForFilter('allTime');
+      const analyticsData = calculateMaintenanceMetrics(
+        Array.isArray(tasksData) ? tasksData : [],
+        Array.isArray(vehiclesData) ? vehiclesData : [],
+        dateRange
+      );
+      setAnalyticsMetrics(analyticsData);
       
       toast.success('Data refreshed successfully');
     } catch (error) {
@@ -120,7 +158,8 @@ const PartsHealthAnalyticsPage: React.FC = () => {
 
   // Handle part card click (placeholder for future drilldown)
   const handlePartClick = (part: PartHealthMetrics) => {
-    toast.info(`Detailed analytics for ${part.partName} coming soon!`);
+    setSelectedPart(part);
+    setShowPartDetails(true);
   };
 
   if (loading) {
@@ -300,30 +339,53 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                     <p className="text-gray-500">
                       {selectedCategory !== 'all' || selectedStatus !== 'all' 
                         ? 'Try adjusting your filters to see more results.'
-                        : 'Start recording maintenance tasks to see parts health insights.'}
+                        : 'No data yet. Record maintenance tasks to enable part health tracking.'}
                     </p>
                   </div>
                 )}
               </div>
             ) : (
-              /* Analytics Tab - Placeholder */
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">Advanced Analytics</h3>
-                <p className="text-gray-500 mb-4">
-                  Detailed brand comparisons, cost trends, and failure analysis coming soon!
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={() => setActiveTab('health')}
-                  icon={<TrendingUp className="h-4 w-4" />}
-                >
-                  View Parts Health Status
-                </Button>
+              /* Analytics Tab - Advanced Charts and Analytics */
+              <div className="space-y-6">
+                {/* Expenditure Analytics */}
+                <ExpenditureAnalytics
+                  monthlyExpenditure={analyticsMetrics.monthlyExpenditure}
+                  expenditureByVehicle={analyticsMetrics.expenditureByVehicle}
+                  expenditureByVendor={analyticsMetrics.expenditureByVendor}
+                  taskTypeDistribution={analyticsMetrics.taskTypeDistribution}
+                  previousPeriodComparison={analyticsMetrics.previousPeriodComparison}
+                />
+                
+                {/* Vehicle Maintenance Intensity */}
+                <VehicleMaintenanceIntensity
+                  kmBetweenMaintenance={analyticsMetrics.kmBetweenMaintenance}
+                />
+                
+                {/* Vehicle Downtime Chart */}
+                <VehicleDowntimeChart
+                  vehicleDowntime={analyticsMetrics.vehicleDowntime}
+                />
+                
+                {/* Task Distribution Chart */}
+                <TaskDistributionChart
+                  taskTypeDistribution={analyticsMetrics.taskTypeDistribution}
+                />
               </div>
             )}
           </div>
         </div>
+        
+        {/* Part Details Modal */}
+        <PartDetailsModal
+          isOpen={showPartDetails}
+          onClose={() => {
+            setShowPartDetails(false);
+            setSelectedPart(null);
+          }}
+          part={selectedPart}
+          tasks={tasks}
+          vehicles={vehicles}
+        />
       </div>
     </Layout>
   );
