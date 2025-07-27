@@ -312,14 +312,14 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           <div>
             <p className="text-sm text-gray-500">Calculated Mileage</p>
             <p className={`text-xl font-semibold ${getMileageColor()}`}>
-              {trip.calculated_kmpl ? `${trip.calculated_kmpl.toFixed(2)} km/L` : 'N/A'}
+              {typeof trip.calculated_kmpl === 'number' && !isNaN(trip.calculated_kmpl) ? `${trip.calculated_kmpl.toFixed(2)} km/L` : 'N/A'}
             </p>
             {hasFuelAnomalyAlert && (
               <p className="text-xs text-warning-600 mt-1">⚠️ AI Flagged</p>
             )}
           </div>
 
-          {trip.route_deviation !== undefined && (
+          {typeof trip.route_deviation === 'number' && !isNaN(trip.route_deviation) && (
             <div>
               <p className="text-sm text-gray-500">Route Deviation</p>
               <p className={`text-xl font-semibold ${getRouteDeviationColor()}`}>
