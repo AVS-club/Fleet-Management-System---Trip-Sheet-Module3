@@ -8,7 +8,6 @@ import DataTable from '../../components/shared/DataTable';
 import Button from '../../components/ui/Button';
 import VehicleProfileModal from '../../components/admin/VehicleProfileModal';
 import DriverProfileModal from '../../components/admin/DriverProfileModal';
-import RunDiagnosis from '../../components/admin/RunDiagnosis';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -299,7 +298,6 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <RunDiagnosis />
           </div>
         )}
 
