@@ -1072,6 +1072,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       { value: "contact1", label: "John Doe (Fleet Manager)" },
                       { value: "contact2", label: "Jane Smith (Admin)" },
                     ]}
+                    isPrefilledByTemplate={prefilledByTemplate['service_reminder_contact_id']}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -1083,6 +1084,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Days Before Service"
                   type="number"
                   placeholder="e.g., 7"
+                  isPrefilledByTemplate={prefilledByTemplate['service_reminder_days_before']}
                   disabled={isSubmitting}
                   {...register("service_reminder_days_before", {
                     valueAsNumber: true,
@@ -1093,6 +1095,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="KM Before Service"
                   type="number"
                   placeholder="e.g., 500"
+                  isPrefilledByTemplate={prefilledByTemplate['service_reminder_km']}
                   disabled={isSubmitting}
                   {...register("service_reminder_km", { valueAsNumber: true })}
                 />
