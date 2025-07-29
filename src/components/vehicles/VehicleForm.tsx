@@ -50,7 +50,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     "idle" | "fetching" | "success" | "error"
   >("idle");
   const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
-  const [prefilledByTemplate, setPrefilledByTemplate] = useState<Record<string, boolean>>({});</parameter>
+  const [prefilledByTemplate, setPrefilledByTemplate] = useState<Record<string, boolean>>({});
 
   const {
     register,
