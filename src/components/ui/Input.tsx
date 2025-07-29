@@ -9,6 +9,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   size?: 'sm' | 'md' | 'lg';
+  isPrefilledByTemplate?: boolean;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
@@ -24,6 +25,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     required,
     id,
     type,
+    isPrefilledByTemplate = false,
     ...props 
   }, ref) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -56,6 +58,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           >
             {label}
             {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
+            {isPrefilledByTemplate && (
+              <span className="text-xs text-blue-600 dark:text-blue-400 ml-2 font-normal">
+                (from template)
+              </span>
+            )}
           </label>
         )}
         

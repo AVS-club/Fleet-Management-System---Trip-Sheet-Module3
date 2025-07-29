@@ -15,6 +15,7 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
   fullWidth?: boolean;
   options: SelectOption[];
   size?: 'sm' | 'md' | 'lg';
+  isPrefilledByTemplate?: boolean;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
@@ -28,6 +29,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     size = 'md',
     required,
     id,
+    isPrefilledByTemplate = false,
     ...props 
   }, ref) => {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -48,6 +50,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           >
             {label}
             {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
+            {isPrefilledByTemplate && (
+              <span className="text-xs text-blue-600 dark:text-blue-400 ml-2 font-normal">
+                (from template)
+              </span>
+            )}
           </label>
         )}
         
