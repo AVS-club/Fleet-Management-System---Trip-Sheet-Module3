@@ -27,6 +27,8 @@ import Button from "../ui/Button";
 import { toast } from "react-toastify";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { supabase } from "../../utils/supabaseClient";
+import { getReminderTemplates } from "../../utils/reminderService";
+import { ReminderTemplate } from "../../types/reminders";
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -47,6 +49,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [fetchStatus, setFetchStatus] = useState<
     "idle" | "fetching" | "success" | "error"
   >("idle");
+  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
 
   const {
     register,
@@ -80,6 +83,57 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   useEffect(() => {
     if (initialData) setFieldsDisabled(false);
   }, [initialData]);
+
+  // Fetch reminder templates on component mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const templates = await getReminderTemplates();
+        setReminderTemplates(templates);
+      } catch (error) {
+        console.error("Failed to fetch reminder templates:", error);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  // Auto-fill reminder fields with template defaults if fields are empty
+  useEffect(() => {
+    if (reminderTemplates.length === 0) return;
+
+    // Map of reminder types to their corresponding form field prefixes
+    const reminderTypeMap = {
+      'Insurance': 'insurance_reminder',
+      'Fitness': 'fitness_reminder', 
+      'Pollution': 'puc_reminder',
+      'Tax': 'tax_reminder',
+      'Permit': 'permit_reminder',
+      'Service Due': 'service_reminder'
+    };
+
+    reminderTemplates.forEach(template => {
+      const fieldPrefix = reminderTypeMap[template.reminder_type as keyof typeof reminderTypeMap];
+      if (!fieldPrefix) return;
+
+      const contactFieldName = `${fieldPrefix}_contact_id` as keyof Vehicle;
+      const daysFieldName = `${fieldPrefix}_days_before` as keyof Vehicle;
+
+      // Get current values from the form
+      const currentContactValue = watch(contactFieldName);
+      const currentDaysValue = watch(daysFieldName);
+
+      // Auto-fill contact field if empty and template has a default
+      if ((!currentContactValue || currentContactValue === '') && template.default_contact_id) {
+        setValue(contactFieldName, template.default_contact_id);
+      }
+
+      // Auto-fill days field if empty and template has a default
+      if ((!currentDaysValue || currentDaysValue === 0) && template.default_days_before) {
+        setValue(daysFieldName, template.default_days_before);
+      }
+    });
+  }, [reminderTemplates, setValue, watch]);
 
   // Field array for other documents
   const { fields, append, remove } = useFieldArray({
@@ -566,6 +620,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
@@ -662,6 +720,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
@@ -759,6 +821,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
@@ -869,6 +935,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
@@ -965,6 +1035,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
@@ -1022,6 +1096,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   {...register("service_reminder_km", { valueAsNumber: true })}
                 />
               </div>
+              
+              <p className="text-xs text-gray-500 mt-2">
+                Leave blank to use global default set in Reminder Templates
+              </p>
             </div>
           )}
         </div>
