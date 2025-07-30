@@ -163,26 +163,25 @@ export const deleteReminderTemplate = async (id: string): Promise<void> => {
 };
 
 // File upload for contact photos
-export const uploadContactPhoto = async (file: File, contactId: string): Promise<string> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${contactId}.${fileExt}`;
-  const filePath = `contact-photos/${fileName}`;
-
-  const { error } = await supabase.storage
-    .from('reminders')
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type
-    });
-
-  if (error) {
-    console.error('Error uploading contact photo:', error);
-    throw error;
+export const uploadContactPhoto = async (
+  file: File | undefined,
+  contactId: string
+): Promise<string | undefined> => {
+  if (!file || !file.name) {
+    console.warn("No photo uploaded — skipping uploadContactPhoto.");
+    return undefined;
   }
 
-  const { data } = supabase.storage
-    .from('reminders')
-    .getPublicUrl(filePath);
+  const fileExt = file.name.split('.').pop(); // safe now because of check above
+  const filePath = `reminder-contacts/${contactId}.${fileExt}`;
 
-  return data.publicUrl;
+  const { error } = await supabase.storage
+    .from('contact-photos')
+    .upload(filePath, file, { upsert: true });
+  if (error) {
+    console.error("Error uploading contact photo:", error.message);
+    return undefined;
+  }
+
+  return filePath;
 };
