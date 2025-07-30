@@ -32,8 +32,6 @@ const getReminderContact = async (id: string): Promise<ReminderContact | null> =
 };
 
 export const createReminderContact = async (contact: Omit<ReminderContact, 'id' | 'created_at' | 'updated_at'>): Promise<ReminderContact> => {
-  const { data, error } = await supabase
-  
   // Ensure all fields have proper defaults to prevent undefined errors
   const safeContact = {
     ...contact,
