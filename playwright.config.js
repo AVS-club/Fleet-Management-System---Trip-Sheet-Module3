@@ -1,6 +1,7 @@
-import { defineConfig } from '@playwright/test';
+// playwright.config.js
+const { defineConfig } = require('@playwright/test');
 
-export default defineConfig({
+module.exports = defineConfig({
   use: {
     baseURL: 'http://localhost:5174',
     headless: false,
