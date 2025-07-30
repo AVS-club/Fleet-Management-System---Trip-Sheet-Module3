@@ -175,13 +175,18 @@ export const uploadContactPhoto = async (
   const fileExt = file.name.split('.').pop(); // safe now because of check above
   const filePath = `reminder-contacts/${contactId}.${fileExt}`;
 
-  const { error } = await supabase.storage
-    .from('contact-photos')
-    .upload(filePath, file, { upsert: true });
-  if (error) {
-    console.error("Error uploading contact photo:", error.message);
-    return undefined;
-  }
+  try {
+    const { error } = await supabase.storage
+      .from('contact-photos')
+      .upload(filePath, file, { upsert: true });
+    if (error) {
+      console.error("Error uploading contact photo:", error.message);
+      return undefined;
+    }
 
-  return filePath;
+    return filePath;
+  } catch (uploadError) {
+    console.error("Failed to upload contact photo:", uploadError);
+    throw uploadError;
+  }
 };

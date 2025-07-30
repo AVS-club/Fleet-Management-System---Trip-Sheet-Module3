@@ -54,9 +54,14 @@ const ReminderManager: React.FC = () => {
     try {
       let photoUrl;
       if (data.photo) {
-        // Generate a temporary ID for the photo
-        const tempId = `temp-${Date.now()}`;
-        photoUrl = await uploadContactPhoto(data.photo, tempId);
+        try {
+          // Generate a temporary ID for the photo
+          const tempId = `temp-${Date.now()}`;
+          photoUrl = await uploadContactPhoto(data.photo, tempId);
+        } catch (photoError) {
+          console.warn('Photo upload failed, proceeding without photo:', photoError);
+          toast.warning('Contact created successfully, but photo upload failed. Please ensure the storage bucket exists.');
+        }
       }
 
       const newContact = await createReminderContact({
@@ -74,9 +79,15 @@ const ReminderManager: React.FC = () => {
 
       // If we uploaded with a temp ID, update the photo with the real ID
       if (data.photo && photoUrl) {
-        const updatedPhotoUrl = await uploadContactPhoto(data.photo, newContact.id);
-        await updateReminderContact(newContact.id, { photo_url: updatedPhotoUrl });
-        newContact.photo_url = updatedPhotoUrl;
+        try {
+          const updatedPhotoUrl = await uploadContactPhoto(data.photo, newContact.id);
+          if (updatedPhotoUrl) {
+            await updateReminderContact(newContact.id, { photo_url: updatedPhotoUrl });
+            newContact.photo_url = updatedPhotoUrl;
+          }
+        } catch (photoError) {
+          console.warn('Photo update failed, but contact was created:', photoError);
+        }
       }
 
       setContacts([...contacts, newContact]);
@@ -97,7 +108,15 @@ const ReminderManager: React.FC = () => {
     try {
       let photoUrl = editingContact.photo_url;
       if (data.photo) {
-        photoUrl = await uploadContactPhoto(data.photo, editingContact.id);
+        try {
+          const uploadedPhotoUrl = await uploadContactPhoto(data.photo, editingContact.id);
+          if (uploadedPhotoUrl) {
+            photoUrl = uploadedPhotoUrl;
+          }
+        } catch (photoError) {
+          console.warn('Photo upload failed during update:', photoError);
+          toast.warning('Contact updated successfully, but photo upload failed. Please ensure the storage bucket exists.');
+        }
       }
 
       const updatedContact = await updateReminderContact(editingContact.id, {
