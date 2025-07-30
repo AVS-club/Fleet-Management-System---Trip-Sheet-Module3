@@ -157,7 +157,7 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
                   .filter(contact => contact.is_active)
                   .map(contact => ({
                     value: contact.id,
-                    label: getContactDisplayName(contact.id)
+                    label: `${contact.full_name} (${contact.preferred_contact_mode === 'Both' ? 'SMS+Email' : contact.preferred_contact_mode})`
                   }))
               ]}
               {...field}
