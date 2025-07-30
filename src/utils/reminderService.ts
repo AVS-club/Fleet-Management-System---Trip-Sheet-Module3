@@ -47,7 +47,6 @@ export const createReminderContact = async (contact: Omit<ReminderContact, 'id' 
   };
   
   console.log('Safe contact data being inserted:', safeContact);
-  
   const { data, error } = await supabase
     .from('reminder_contacts')
     .insert(safeContact)
