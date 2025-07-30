@@ -93,13 +93,22 @@ const ContactForm: React.FC<ContactFormProps> = ({
                 className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center cursor-pointer"
               >
                 <Upload className="h-4 w-4 text-white" />
-                <input
-                  id="photo-upload"
-                  type="file"
-                  className="sr-only"
-                  accept="image/*"
-                  {...register('photo')}
-                  onChange={handlePhotoChange}
+                <Controller
+                  control={control}
+                  name="photo"
+                  render={({ field: { onChange } }) => (
+                    <input
+                      id="photo-upload"
+                      type="file"
+                      className="sr-only"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        onChange(file);
+                        handlePhotoChange(e);
+                      }}
+                    />
+                  )}
                 />
               </label>
             </div>
