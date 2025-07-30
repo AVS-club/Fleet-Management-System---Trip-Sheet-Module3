@@ -215,22 +215,6 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
 
-              <Link
-                to="/admin/document-rules"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <FileCheck className="h-5 w-5 text-primary-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Document Rules</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
-                      Configure document requirements and validation rules
-                    </p>
-                  </div>
-                </div>
-              </Link>
 
               <Link
                 to="/admin/driver-ranking-settings"
@@ -249,22 +233,6 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
 
-              <Link
-                to="/admin/message-templates"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <MessageSquare className="h-5 w-5 text-primary-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Message Templates</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
-                      Manage message templates for notifications
-                    </p>
-                  </div>
-                </div>
-              </Link>
 
               <Link
                 to="/admin/activity-logs"
