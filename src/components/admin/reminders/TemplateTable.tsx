@@ -1,11 +1,30 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Clock, Bell, User, Globe } from 'lucide-react';
+import { Edit2, Trash2, Clock, Bell, User, Globe, FileText, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
 import { ReminderTemplate, ReminderContact } from '../../../types/reminders';
 import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
 import { toast } from 'react-toastify';
+
+// Map internal values to display labels
+const REMINDER_TYPE_LABELS: Record<string, string> = {
+  'insurance': 'Insurance Expiry',
+  'fitness': 'Fitness Certificate',
+  'puc': 'Pollution Certificate (PUC)',
+  'tax': 'Tax Renewal',
+  'permit': 'Permit Renewal',
+  'service': 'Service Due',
+  'tire': 'Tire Change Reminder',
+  'battery': 'Battery Replacement',
+  'amc': 'Annual Maintenance Contract',
+  'speedgovernor': 'Speed Governor Calibration',
+  'fireextinguisher': 'Fire Extinguisher Recharge',
+  'firstaid': 'First Aid Kit Refill',
+  'ais140': 'AIS 140 Device Reverification',
+  'warranty': 'Spare Parts Warranty Expiry',
+  'documents': 'Document Upload Check'
+};
 
 interface TemplateTableProps {
   templates: ReminderTemplate[];
@@ -25,6 +44,21 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Get display label for reminder type
+  const getReminderTypeLabel = (type: string) => {
+    return REMINDER_TYPE_LABELS[type] || type;
+  };
+
+  // Get contact display name with preferred contact mode
+  const getContactDisplayName = (contactId?: string) => {
+    if (!contactId) return 'No default contact';
+    
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return 'Unknown Contact';
+    
+    const modeText = contact.preferred_contact_mode === 'Both' ? 'SMS+Email' : contact.preferred_contact_mode;
+    return `${contact.full_name} (${modeText})`;
+  };
   const handleEdit = (template: ReminderTemplate) => {
     setEditingId(template.id);
     setEditForm({ ...template });
@@ -106,163 +140,134 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Reminder Type
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Days Before
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Repeat
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Default Contact
-            </th>
-            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {templates.map((template) => (
-            <tr key={template.id}>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === template.id ? (
-                  <Input
-                    name="reminder_type"
-                    value={editForm.reminder_type || ''}
-                    onChange={handleInputChange}
-                    required
-                  />
-                ) : (
-                  <div className="flex items-center">
-                    <Bell className="h-4 w-4 text-primary-500 mr-2" />
-                    <span className="font-medium text-gray-900">{template.reminder_type}</span>
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === template.id ? (
-                  <div className="flex items-center">
-                    <Input
-                      type="number"
-                      name="default_days_before"
-                      value={editForm.default_days_before || 0}
-                      onChange={handleInputChange}
-                      min={1}
-                      max={365}
-                      required
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                    <span>{template.default_days_before} days</span>
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === template.id ? (
-                  <Checkbox
-                    name="repeat"
-                    checked={editForm.repeat || false}
-                    onChange={handleCheckboxChange}
-                  />
-                ) : (
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${
-                    template.repeat
-                      ? 'bg-success-100 text-success-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {template.repeat ? 'Yes' : 'No'}
-                  </span>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                {editingId === template.id ? (
-                  <Select
-                    name="default_contact_id"
-                    value={editForm.default_contact_id || ''}
-                    onChange={handleInputChange}
-                    options={[
-                      { value: '', label: 'None' },
-                      ...contacts
-                        .filter(contact => contact.is_active)
-                        .map(contact => ({
-                          value: contact.id,
-                          label: `${contact.full_name}${contact.is_global ? ' (Global Receiver)' : ''}`
-                        }))
-                    ]}
-                  />
-                ) : (
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 text-gray-400 mr-2" />
-                    {template.default_contact_id ? (
-                      (() => {
-                        const contact = contacts.find(c => c.id === template.default_contact_id);
-                        return (
-                          <div className="flex items-center">
-                            <span>{contact?.full_name || 'Unknown'}</span>
-                            {contact?.is_global && (
-                              <Globe className="h-3 w-3 text-blue-500 ml-1" title="Global Receiver" />
-                            )}
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <span>None</span>
-                    )}
-                  </div>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                {editingId === template.id ? (
-                  <div className="flex justify-end space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleSave}
-                      isLoading={isSubmitting}
-                    >
-                      Save
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleEdit(template)}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(template.id)}
-                      disabled={deletingId === template.id}
-                      className="text-error-600 hover:text-error-900 disabled:opacity-50"
-                    >
-                      {deletingId === template.id ? (
-                        <div className="h-4 w-4 border-2 border-t-transparent border-error-600 rounded-full animate-spin" />
-                      ) : (
-                        <Trash2 className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-3">
+      {templates.map((template) => (
+        <div key={template.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+          {editingId === template.id ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Reminder Type"
+                  name="reminder_type"
+                  value={editForm.reminder_type || ''}
+                  onChange={handleInputChange}
+                  required
+                />
+                <Input
+                  label="Days Before"
+                  type="number"
+                  name="default_days_before"
+                  value={editForm.default_days_before || 0}
+                  onChange={handleInputChange}
+                  min={1}
+                  max={365}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Checkbox
+                  label="Repeat Reminder"
+                  name="repeat"
+                  checked={editForm.repeat || false}
+                  onChange={handleCheckboxChange}
+                />
+                <Select
+                  label="Default Contact"
+                  name="default_contact_id"
+                  value={editForm.default_contact_id || ''}
+                  onChange={handleInputChange}
+                  options={[
+                    { value: '', label: 'None' },
+                    ...contacts
+                      .filter(contact => contact.is_active)
+                      .map(contact => ({
+                        value: contact.id,
+                        label: getContactDisplayName(contact.id)
+                      }))
+                  ]}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  isLoading={isSubmitting}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm">
+                <div className="flex items-center space-x-1">
+                  <FileText className="h-4 w-4 text-primary-500" />
+                  <span className="font-medium text-gray-900">{getReminderTypeLabel(template.reminder_type)}</span>
+                </div>
+                
+                <ArrowRight className="h-3 w-3 text-gray-400" />
+                
+                <div className="flex items-center space-x-1">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">{template.default_days_before} days</span>
+                </div>
+                
+                <ArrowRight className="h-3 w-3 text-gray-400" />
+                
+                <div className="flex items-center space-x-1">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600">{getContactDisplayName(template.default_contact_id)}</span>
+                </div>
+                
+                <ArrowRight className="h-3 w-3 text-gray-400" />
+                
+                <div className="flex items-center space-x-1">
+                  {template.repeat ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-success-500" />
+                      <span className="text-success-600 font-medium">Repeat ON</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-500">Repeat OFF</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleEdit(template)}
+                  className="text-primary-600 hover:text-primary-900"
+                  title="Edit template"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDelete(template.id)}
+                  disabled={deletingId === template.id}
+                  className="text-error-600 hover:text-error-900 disabled:opacity-50"
+                  title="Delete template"
+                >
+                  {deletingId === template.id ? (
+                    <div className="h-4 w-4 border-2 border-t-transparent border-error-600 rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 };

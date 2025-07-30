@@ -8,6 +8,26 @@ import Checkbox from '../../ui/Checkbox';
 import { ReminderTemplate, ReminderContact } from '../../../types/reminders';
 import { toast } from 'react-toastify';
 
+// Predefined reminder types with labels and internal values
+const REMINDER_TYPE_OPTIONS = [
+  { value: 'insurance', label: 'Insurance Expiry' },
+  { value: 'fitness', label: 'Fitness Certificate' },
+  { value: 'puc', label: 'Pollution Certificate (PUC)' },
+  { value: 'tax', label: 'Tax Renewal' },
+  { value: 'permit', label: 'Permit Renewal' },
+  { value: 'service', label: 'Service Due' },
+  { value: 'tire', label: 'Tire Change Reminder' },
+  { value: 'battery', label: 'Battery Replacement' },
+  { value: 'amc', label: 'Annual Maintenance Contract' },
+  { value: 'speedgovernor', label: 'Speed Governor Calibration' },
+  { value: 'fireextinguisher', label: 'Fire Extinguisher Recharge' },
+  { value: 'firstaid', label: 'First Aid Kit Refill' },
+  { value: 'ais140', label: 'AIS 140 Device Reverification' },
+  { value: 'warranty', label: 'Spare Parts Warranty Expiry' },
+  { value: 'documents', label: 'Document Upload Check' },
+  { value: 'custom', label: 'Custom' }
+];
+
 interface AddTemplateFormProps {
   contacts: ReminderContact[];
   onSubmit: (template: Omit<ReminderTemplate, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -15,6 +35,8 @@ interface AddTemplateFormProps {
 
 const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedReminderType, setSelectedReminderType] = useState('');
+  const [customReminderType, setCustomReminderType] = useState('');
   
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<Omit<ReminderTemplate, 'id' | 'created_at' | 'updated_at'>>({
     defaultValues: {
@@ -28,8 +50,24 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
   const handleFormSubmit = async (data: Omit<ReminderTemplate, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       setIsSubmitting(true);
-      await onSubmit(data);
+      
+      // Use custom type if 'custom' is selected, otherwise use the predefined type
+      const finalReminderType = selectedReminderType === 'custom' ? customReminderType : selectedReminderType;
+      
+      if (!finalReminderType) {
+        toast.error('Please select or enter a reminder type');
+        return;
+      }
+      
+      const submitData = {
+        ...data,
+        reminder_type: finalReminderType
+      };
+      
+      await onSubmit(submitData);
       reset();
+      setSelectedReminderType('');
+      setCustomReminderType('');
       toast.success('Reminder template added successfully');
     } catch (error) {
       toast.error('Failed to add reminder template');
@@ -39,25 +77,48 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
     }
   };
 
+  // Get contact display name with preferred contact mode
+  const getContactDisplayName = (contactId: string) => {
+    const contact = contacts.find(c => c.id === contactId);
+    if (!contact) return 'Unknown Contact';
+    
+    const modeText = contact.preferred_contact_mode === 'Both' ? 'SMS+Email' : contact.preferred_contact_mode;
+    return `${contact.full_name} (${modeText})`;
+  };
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
       <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Reminder Template</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Reminder Type"
-          icon={<Bell className="h-4 w-4" />}
-          error={errors.reminder_type?.message}
-          required
-          placeholder="e.g., Insurance Expiry"
-          {...register('reminder_type', { required: 'Reminder type is required' })}
-        />
+        <div>
+          <Select
+            label="Reminder Type"
+            options={REMINDER_TYPE_OPTIONS.map(option => ({
+              value: option.value,
+              label: option.label
+            }))}
+            value={selectedReminderType}
+            onChange={(e) => setSelectedReminderType(e.target.value)}
+            required
+          />
+          
+          {selectedReminderType === 'custom' && (
+            <div className="mt-2">
+              <Input
+                placeholder="Enter custom reminder type"
+                value={customReminderType}
+                onChange={(e) => setCustomReminderType(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </div>
         
         <Input
           label="Days Before"
           type="number"
           icon={<Clock className="h-4 w-4" />}
-          error={errors.default_days_before?.message}
+          helperText="Number of days before expiry to send the first alert"
           required
           min={1}
           max={365}
@@ -77,7 +138,7 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
               label="Repeat Reminder"
               checked={value}
               onChange={(e) => onChange(e.target.checked)}
-              helperText="Send again if not acknowledged"
+              helperText="Sends the same reminder again if not marked acknowledged in 24h"
               icon={<RefreshCw className="h-4 w-4" />}
             />
           )}
@@ -96,7 +157,7 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
                   .filter(contact => contact.is_active)
                   .map(contact => ({
                     value: contact.id,
-                    label: `${contact.full_name}${contact.is_global ? ' (Global Receiver)' : ''}`
+                    label: getContactDisplayName(contact.id)
                   }))
               ]}
               {...field}
