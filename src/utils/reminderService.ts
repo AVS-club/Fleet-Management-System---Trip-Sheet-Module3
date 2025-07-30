@@ -33,8 +33,25 @@ const getReminderContact = async (id: string): Promise<ReminderContact | null> =
 
 export const createReminderContact = async (contact: Omit<ReminderContact, 'id' | 'created_at' | 'updated_at'>): Promise<ReminderContact> => {
   const { data, error } = await supabase
+  
+  // Ensure all fields have proper defaults to prevent undefined errors
+  const safeContact = {
+    ...contact,
+    full_name: contact.full_name || '',
+    position: contact.position || '',
+    phone_number: contact.phone_number || '',
+    email: contact.email || null,
+    duty: contact.duty || null,
+    photo_url: contact.photo_url || null,
+    assigned_types: Array.isArray(contact.assigned_types) ? contact.assigned_types : [],
+    is_active: contact.is_active ?? true,
+    is_global: contact.is_global ?? false
+  };
+  
+  console.log('Safe contact data being inserted:', safeContact);
+  
     .from('reminder_contacts')
-    .insert(contact)
+    .insert(safeContact)
     .select()
     .single();
 
