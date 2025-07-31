@@ -27,8 +27,15 @@ import Button from "../ui/Button";
 import { toast } from "react-toastify";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { supabase } from "../../utils/supabaseClient";
-import { getReminderTemplates } from "../../utils/reminderService";
-import { ReminderTemplate } from "../../types/reminders";
+import {
+  getReminderTemplates,
+  getReminderContacts,
+} from "../../utils/reminderService";
+import {
+  ReminderTemplate,
+  ReminderContact,
+  ReminderAssignedType,
+} from "../../types/reminders";
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -49,8 +56,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [fetchStatus, setFetchStatus] = useState<
     "idle" | "fetching" | "success" | "error"
   >("idle");
-  const [reminderTemplates, setReminderTemplates] = useState<ReminderTemplate[]>([]);
-  const [prefilledByTemplate, setPrefilledByTemplate] = useState<Record<string, boolean>>({});
+  const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>(
+    []
+  );
+  const [reminderTemplates, setReminderTemplates] = useState<
+    ReminderTemplate[]
+  >([]);
+  const [prefilledByTemplate, setPrefilledByTemplate] = useState<
+    Record<string, boolean>
+  >({});
 
   const {
     register,
@@ -87,16 +101,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   // Fetch reminder templates on component mount
   useEffect(() => {
-    const fetchTemplates = async () => {
+    const fetchReminderTemplatesAndContacts = async () => {
       try {
+        const contacts = await getReminderContacts();
+        setReminderContacts(contacts);
         const templates = await getReminderTemplates();
+
         setReminderTemplates(templates);
       } catch (error) {
-        console.error("Failed to fetch reminder templates:", error);
+        console.error("Failed to fetch reminder templates or contacts:", error);
       }
     };
 
-    fetchTemplates();
+    fetchReminderTemplatesAndContacts();
   }, []);
 
   // Auto-fill reminder fields with template defaults if fields are empty
@@ -105,16 +122,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
     // Map of reminder types to their corresponding form field prefixes
     const reminderTypeMap = {
-      'Insurance': 'insurance_reminder',
-      'Fitness': 'fitness_reminder', 
-      'Pollution': 'puc_reminder',
-      'Tax': 'tax_reminder',
-      'Permit': 'permit_reminder',
-      'Service Due': 'service_reminder'
+      Insurance: "insurance_reminder",
+      Fitness: "fitness_reminder",
+      Pollution: "puc_reminder",
+      Tax: "tax_reminder",
+      Permit: "permit_reminder",
+      "Service Due": "service_reminder",
     };
 
-    reminderTemplates.forEach(template => {
-      const fieldPrefix = reminderTypeMap[template.reminder_type as keyof typeof reminderTypeMap];
+    reminderTemplates.forEach((template) => {
+      const fieldPrefix =
+        reminderTypeMap[template.reminder_type as keyof typeof reminderTypeMap];
       if (!fieldPrefix) return;
 
       const contactFieldName = `${fieldPrefix}_contact_id` as keyof Vehicle;
@@ -125,12 +143,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       const currentDaysValue = watch(daysFieldName);
 
       // Auto-fill contact field if empty and template has a default
-      if ((!currentContactValue || currentContactValue === '') && template.default_contact_id) {
+      if (
+        (!currentContactValue || currentContactValue === "") &&
+        template.default_contact_id
+      ) {
         setValue(contactFieldName, template.default_contact_id);
       }
 
       // Auto-fill days field if empty and template has a default
-      if ((!currentDaysValue || currentDaysValue === 0) && template.default_days_before) {
+      if (
+        (!currentDaysValue || currentDaysValue === 0) &&
+        template.default_days_before
+      ) {
         setValue(daysFieldName, template.default_days_before);
       }
     });
@@ -601,11 +625,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.Insurance
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -621,7 +653,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
@@ -701,11 +733,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.Fitness
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -721,7 +761,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
@@ -802,11 +842,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.Tax
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -822,7 +870,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
@@ -916,11 +964,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.Permit
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -936,7 +992,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
@@ -1016,11 +1072,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.Pollution
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -1036,7 +1100,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   valueAsNumber: true,
                 })}
               />
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
@@ -1067,12 +1131,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <Select
                     label="Notify Contact"
-                    options={[
-                      { value: "", label: "Default Contact" },
-                      { value: "contact1", label: "John Doe (Fleet Manager)" },
-                      { value: "contact2", label: "Jane Smith (Admin)" },
-                    ]}
-                    isPrefilledByTemplate={prefilledByTemplate['service_reminder_contact_id']}
+                    options={reminderContacts
+                      .filter(
+                        (contact) =>
+                          contact.is_active &&
+                          (contact.is_global ||
+                            contact.assigned_types.includes(
+                              ReminderAssignedType.ServiceDue
+                            ))
+                      )
+                      .map((con) => ({
+                        value: con.id,
+                        label: con.full_name,
+                      }))}
+                    isPrefilledByTemplate={
+                      prefilledByTemplate["service_reminder_contact_id"]
+                    }
                     disabled={isSubmitting}
                     {...field}
                   />
@@ -1084,7 +1158,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Days Before Service"
                   type="number"
                   placeholder="e.g., 7"
-                  isPrefilledByTemplate={prefilledByTemplate['service_reminder_days_before']}
+                  isPrefilledByTemplate={
+                    prefilledByTemplate["service_reminder_days_before"]
+                  }
                   disabled={isSubmitting}
                   {...register("service_reminder_days_before", {
                     valueAsNumber: true,
@@ -1095,12 +1171,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="KM Before Service"
                   type="number"
                   placeholder="e.g., 500"
-                  isPrefilledByTemplate={prefilledByTemplate['service_reminder_km']}
+                  isPrefilledByTemplate={
+                    prefilledByTemplate["service_reminder_km"]
+                  }
                   disabled={isSubmitting}
                   {...register("service_reminder_km", { valueAsNumber: true })}
                 />
               </div>
-              
+
               <p className="text-xs text-gray-500 mt-2">
                 Leave blank to use global default set in Reminder Templates
               </p>
