@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient";
 
-export type Role = "OWNER" | "ADD_ONLY" | "MANAGER" | "STAFF" | "VIEWER";
+export type Role = "OWNER" | "ADD_ONLY";
 
 export async function getRole(): Promise<Role> {
   const { data, error } = await supabase.from("profiles").select("role").single();
