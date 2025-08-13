@@ -1,41 +1,155 @@
-import React from "react";
-import { useForm, Controller } from "react-hook-form";
+import React, { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { FileText, Upload, Calendar, IndianRupee } from 'lucide-react';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import FileUpload from '../ui/FileUpload';
+import Button from '../ui/Button';
+import { toast } from 'react-toastify';
 
-type FormData = {
+interface DocumentFormData {
   document_type: string;
   document_name: string;
   issue_date?: string;
   expiry_date?: string;
   cost?: number;
+  document_file?: File[];
   notes?: string;
-  file?: FileList;
-};
+}
 
-export default function DocumentForm({ onSubmitted }: { onSubmitted?: () => void }) {
-  const { register, handleSubmit, control, reset } = useForm<FormData>();
+interface DocumentFormProps {
+  onSubmit?: (data: DocumentFormData) => void;
+  isSubmitting?: boolean;
+}
 
-  const onSubmit = async (data: FormData) => {
-    console.log("DocumentForm submit:", data); // TODO: insert into public.documents
-    onSubmitted?.();
-    reset();
+const DocumentForm: React.FC<DocumentFormProps> = ({
+  onSubmit,
+  isSubmitting = false
+}) => {
+  const { register, handleSubmit, control, formState: { errors }, reset } = useForm<DocumentFormData>({
+    defaultValues: {
+      document_type: '',
+      document_name: '',
+      cost: 0
+    }
+  });
+
+  const handleFormSubmit = async (data: DocumentFormData) => {
+    try {
+      if (onSubmit) {
+        await onSubmit(data);
+        reset();
+        toast.success('Document added successfully');
+      } else {
+        // Default behavior - just show success message
+        console.log('Document form data:', data);
+        reset();
+        toast.success('Document form submitted successfully');
+      }
+    } catch (error) {
+      console.error('Error submitting document:', error);
+      toast.error('Failed to submit document');
+    }
   };
 
   return (
-    <form className="space-y-3" onSubmit={handleSubmit(onSubmit)}>
-      <div className="grid grid-cols-1 gap-3">
-        <input className="input input-bordered" placeholder="Document Type" {...register("document_type", { required: true })} />
-        <input className="input input-bordered" placeholder="Document Name" {...register("document_name", { required: true })} />
-        <div className="grid grid-cols-2 gap-3">
-          <input className="input input-bordered" type="date" {...register("issue_date")} />
-          <input className="input input-bordered" type="date" {...register("expiry_date")} />
-        </div>
-        <input className="input input-bordered" type="number" step="0.01" placeholder="Cost (optional)" {...register("cost")} />
-        <textarea className="textarea textarea-bordered" placeholder="Notes" rows={3} {...register("notes")} />
-        <Controller name="file" control={control} render={({ field }) => (
-          <input type="file" className="file-input file-input-bordered" onChange={(e) => field.onChange(e.target.files)} />
-        )} />
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Controller
+          control={control}
+          name="document_type"
+          rules={{ required: 'Document type is required' }}
+          render={({ field }) => (
+            <Select
+              label="Document Type"
+              options={[
+                { value: '', label: 'Select Document Type' },
+                { value: 'rc', label: 'RC Document' },
+                { value: 'insurance', label: 'Insurance' },
+                { value: 'fitness', label: 'Fitness Certificate' },
+                { value: 'permit', label: 'Permit' },
+                { value: 'puc', label: 'PUC Certificate' },
+                { value: 'tax', label: 'Tax Receipt' },
+                { value: 'license', label: 'Driver License' },
+                { value: 'other', label: 'Other Document' }
+              ]}
+              error={errors.document_type?.message}
+              required
+              {...field}
+            />
+          )}
+        />
+
+        <Input
+          label="Document Name"
+          icon={<FileText className="h-4 w-4" />}
+          error={errors.document_name?.message}
+          required
+          placeholder="Enter document name"
+          {...register('document_name', { required: 'Document name is required' })}
+        />
       </div>
-      <button type="submit" className="btn btn-primary">Save Document</button>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Input
+          label="Issue Date"
+          type="date"
+          icon={<Calendar className="h-4 w-4" />}
+          {...register('issue_date')}
+        />
+
+        <Input
+          label="Expiry Date"
+          type="date"
+          icon={<Calendar className="h-4 w-4" />}
+          {...register('expiry_date')}
+        />
+      </div>
+
+      <Input
+        label="Cost (₹)"
+        type="number"
+        icon={<IndianRupee className="h-4 w-4" />}
+        placeholder="Enter document cost"
+        {...register('cost', { 
+          valueAsNumber: true,
+          min: { value: 0, message: 'Cost must be positive' }
+        })}
+      />
+
+      <Controller
+        control={control}
+        name="document_file"
+        render={({ field: { value, onChange, ...field } }) => (
+          <FileUpload
+            label="Upload Document"
+            value={value as File[] | undefined}
+            onChange={onChange}
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            helperText="Upload document files (JPG, PNG, PDF)"
+            {...field}
+          />
+        )}
+      />
+
+      <Input
+        label="Notes"
+        placeholder="Additional notes about this document"
+        {...register('notes')}
+      />
+
+      <div className="flex justify-end pt-4">
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          icon={<Upload className="h-4 w-4" />}
+        >
+          Add Document
+        </Button>
+      </div>
     </form>
   );
-}
+};
+
+export default DocumentForm;
