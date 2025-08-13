@@ -53,4 +53,3 @@ export async function __debugGetRole(): Promise<Role | "UNAUTHENTICATED" | "ERRO
     return "ERROR";
   }
 }
-```
