@@ -7,7 +7,7 @@ export default function DebugRoleBanner() {
   useEffect(() => {
     (async () => {
       const r = await __debugGetRole();
-      setText(\`role: ${r}`);
+      setText(`role: ${r}`);
     })();
   }, []);
   return (
