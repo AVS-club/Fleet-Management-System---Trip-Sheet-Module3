@@ -40,7 +40,6 @@ import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
 
 // Driver insights page
-import { ToastContainer } from 'react-toastify';
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 
 import ThemeToggle from "./components/ui/ThemeToggle";
@@ -62,7 +61,6 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
-    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>
       <Routes>
         {/* Authentication routes */}
@@ -101,7 +99,7 @@ function AppRoutes() {
         <Route path="/trip-pnl-reports" element={<RoleGate allow="OWNER"><TripPnlReportsPage /></RoleGate>} />
         <Route path="/parts-health" element={<RoleGate allow="OWNER"><PartsHealthAnalyticsPage /></RoleGate>} />
         <Route path="/notifications" element={<RoleGate allow="OWNER"><NotificationsPage /></RoleGate>} />
-        
+
         {/* Admin routes */}
         <Route path="/admin" element={<RoleGate allow="OWNER"><AdminDashboard /></RoleGate>} />
         <Route path="/admin/trips" element={<RoleGate allow="OWNER"><AdminTripsPage /></RoleGate>} />
@@ -116,20 +114,9 @@ function AppRoutes() {
         <Route path="/admin/activity-logs" element={<RoleGate allow="OWNER"><ActivityLogPage /></RoleGate>} />
         <Route path="/admin/driver-management" element={<RoleGate allow="OWNER"><AdminDriversPage /></RoleGate>} />
       </Routes>
-      
-      <ToastContainer 
-        position="top-right" 
-        autoClose={3000} 
-        hideProgressBar={false} 
-        newestOnTop 
-        closeOnClick 
-        rtl={false} 
-        pauseOnFocusLoss 
-        draggable 
-        pauseOnHover 
-      />
-    </>
 
+      <ToastContainer position="top-right" autoClose={3000} newestOnTop pauseOnFocusLoss pauseOnHover />
+    </>
   );
 }
 
