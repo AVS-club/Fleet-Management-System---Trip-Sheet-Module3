@@ -14,14 +14,48 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabaseClient";
 import { getRole, Role } from "../../utils/session";
+import { getRole, Role } from "../../utils/session";
+import { getRole, Role } from "../../utils/session";
 import ThemeToggle from "../ui/ThemeToggle";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userRole, setUserRole] = useState<Role | null>(null);
+  const [userRole, setUserRole] = useState<Role | null>(null);
+  const [userRole, setUserRole] = useState<Role | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Fetch user role on component mount
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const role = await getRole();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole(null);
+      }
+    };
+    
+    fetchUserRole();
+  }, []);
+
+  // Fetch user role on component mount
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const role = await getRole();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole(null);
+      }
+    };
+    
+    fetchUserRole();
+  }, []);
 
   // Fetch user role on component mount
   useEffect(() => {
@@ -203,7 +237,7 @@ const Header: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-3 py-3">
             <ThemeToggle />
             <div className="w-full">
-              <button
+              <Route path="/add" element={<RoleGate allow={["OWNER", "ADD_ONLY"]}><AddHub /></RoleGate>} />
                 onClick={handleLogout}
                 className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
               >
@@ -212,7 +246,7 @@ const Header: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        {/* </Router> */}
       </div>
     </header>
   );
