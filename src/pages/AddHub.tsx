@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "../components/layout/Layout";
 import VehicleForm from "../components/vehicles/VehicleForm";
 import TripForm from "../components/trips/TripForm";
@@ -19,7 +19,7 @@ export default function AddHub() {
   const [isSubmittingDocument, setIsSubmittingDocument] = useState(false);
 
   // Load vehicles for trip and maintenance forms
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchVehicles = async () => {
       try {
         const vehiclesData = await getVehicles();
