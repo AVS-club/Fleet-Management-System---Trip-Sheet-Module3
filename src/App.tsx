@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import RoleGate from "./components/RoleGate";
 import AddHub from "./pages/AddHub";
+import DebugRoleBanner from "./components/DebugRoleBanner";
 import { getRole, Role } from "./utils/session";
 
 // Existing pages (adjust imports if your file names differ)
@@ -39,6 +40,7 @@ import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
 
 // Driver insights page
+import { ToastContainer } from 'react-toastify';
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 
 import ThemeToggle from "./components/ui/ThemeToggle";
@@ -60,6 +62,7 @@ function AppRoutes() {
   }, [navigate]);
 
   return (
+    // eslint-disable-next-line react/jsx-no-useless-fragment
     <>
       <Routes>
         {/* Authentication routes */}
@@ -126,6 +129,7 @@ function AppRoutes() {
         pauseOnHover 
       />
     </>
+
   );
 }
 
@@ -133,6 +137,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppRoutes />
+      <DebugRoleBanner />
     </BrowserRouter>
   );
 }

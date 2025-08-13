@@ -37,3 +37,20 @@ export async function getRole(): Promise<Role> {
   if (insErr) throw insErr;
   return inserted.role as Role;
 }
+
+// --- debug helper (dev only) ---
+export async function __debugGetRole(): Promise<Role | "UNAUTHENTICATED" | "ERROR"> {
+  try {
+    const r = await getRole();
+    console.log("[RBAC] role =", r);
+    return r;
+  } catch (e: any) {
+    if (e?.message === "UNAUTHENTICATED") {
+      console.log("[RBAC] unauthenticated");
+      return "UNAUTHENTICATED";
+    }
+    console.log("[RBAC] error:", e);
+    return "ERROR";
+  }
+}
+```
