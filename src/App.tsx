@@ -9,8 +9,11 @@ import {
 } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
+import { getRole, Role } from "./utils/session";
+import RoleGate from "./components/RoleGate";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingScreen from "./components/LoadingScreen";
+import AddHub from "./pages/AddHub";
 import DashboardPage from "./pages/DashboardPage";
 import TripsPage from "./pages/TripsPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
@@ -58,6 +61,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ session }) => {
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
+  const [userRole, setUserRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -148,6 +152,15 @@ Current URL: ${window.location.origin}`;
         // Get alert settings
         if (session) {
           try {
+            // Fetch user role
+            const role = await getRole();
+            setUserRole(role);
+            
+            // Redirect ADD_ONLY users to the Add Hub
+            if (role === "ADD_ONLY") {
+              navigate("/add", { replace: true });
+            }
+            
             const settings = await getAlertSettings();
             setAlertSettings(settings);
             
@@ -299,64 +312,165 @@ Current URL: ${window.location.origin}`;
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route element={<ProtectedRoute session={session} />}>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/trips" element={<TripsPage />} />
-            <Route path="/trips/:id" element={<TripDetailsPage />} />
-            <Route path="/trip-pnl-reports" element={<TripPnlReportsPage />} />
-            <Route path="/alerts" element={<AIAlertsPage />} />
-            <Route path="/maintenance" element={<MaintenancePage />} />
-            <Route path="/maintenance/:id" element={<MaintenanceTaskPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/trips" element={<AdminTripsPage />} />
+            {/* ADD_ONLY Route */}
+            <Route path="/add" element={
+              <RoleGate allow="ADD_ONLY" fallback={<Navigate to="/" replace />}>
+                <AddHub />
+              </RoleGate>
+            } />
+            
+            {/* OWNER Routes */}
+            <Route path="/" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <DashboardPage />
+              </RoleGate>
+            } />
+            <Route path="/trips" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <TripsPage />
+              </RoleGate>
+            } />
+            <Route path="/trips/:id" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <TripDetailsPage />
+              </RoleGate>
+            } />
+            <Route path="/trip-pnl-reports" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <TripPnlReportsPage />
+              </RoleGate>
+            } />
+            <Route path="/alerts" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <AIAlertsPage />
+              </RoleGate>
+            } />
+            <Route path="/maintenance" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <MaintenancePage />
+              </RoleGate>
+            } />
+            <Route path="/maintenance/:id" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <MaintenanceTaskPage />
+              </RoleGate>
+            } />
+            <Route path="/admin" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <AdminDashboard />
+              </RoleGate>
+            } />
+            <Route path="/admin/trips" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <AdminTripsPage />
+              </RoleGate>
+            } />
             <Route
               path="/admin/alert-settings"
-              element={<AlertSettingsPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <AlertSettingsPage />
+                </RoleGate>
+              }
             />
             <Route
               path="/admin/maintenance-tasks"
-              element={<MaintenanceTasksAdmin />}
-            />
-            <Route
-              path="/admin/trip-locations"
-              element={<TripLocationsPage />}
-            />
-            <Route path="/admin/reminders" element={<RemindersPage />} />
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <MaintenanceTasksAdmin />
+                </RoleGate>
+              }
+                <RemindersPage />
+              </RoleGate>
+            } />
             <Route
               path="/admin/vehicle-management"
-              element={<VehicleManagementPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <VehicleManagementPage />
+                </RoleGate>
+              }
             />
             {/* New Admin Routes */}
             <Route
               path="/admin/document-rules"
-              element={<AdminDocumentRulesPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <AdminDocumentRulesPage />
+                </RoleGate>
+              }
             />
             <Route
               path="/admin/driver-ranking-settings"
-              element={<DriverRankingSettingsPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <DriverRankingSettingsPage />
+                </RoleGate>
+              }
             />
             <Route
               path="/admin/message-templates"
-              element={<MessageTemplatesPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <MessageTemplatesPage />
+                </RoleGate>
+              }
             />
             <Route
               path="/admin/activity-logs"
-              element={<ActivityLogPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <ActivityLogPage />
+                </RoleGate>
+              }
             />
             <Route
               path="/admin/driver-management"
-              element={<AdminDriversPage />}
+              element={
+                <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                  <AdminDriversPage />
+                </RoleGate>
+              }
             />
-            <Route path="/vehicles" element={<VehiclesPage />} />
-            <Route path="/vehicles/:id" element={<VehiclePage />} />
-            <Route path="/drivers" element={<DriversPage />} />
-            <Route path="/drivers/:id" element={<DriverPage />} />
-            <Route path="/drivers/insights" element={<DriverInsightsPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/parts-health" element={<PartsHealthAnalyticsPage />} />
+            <Route path="/vehicles" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <VehiclesPage />
+              </RoleGate>
+            } />
+            <Route path="/vehicles/:id" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <VehiclePage />
+              </RoleGate>
+            } />
+            <Route path="/drivers" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <DriversPage />
+              </RoleGate>
+            } />
+            <Route path="/drivers/:id" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <DriverPage />
+              </RoleGate>
+            } />
+            <Route path="/drivers/insights" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <DriverInsightsPage />
+              </RoleGate>
+            } />
+            <Route path="/notifications" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <NotificationsPage />
+              </RoleGate>
+            } />
+            <Route path="/parts-health" element={
+              <RoleGate allow="OWNER" fallback={<Navigate to="/add" replace />}>
+                <PartsHealthAnalyticsPage />
+              </RoleGate>
+            } />
           </Route>
           <Route
             path="*"
-            element={<Navigate to={session ? "/" : "/login"} replace />}
+            element={<Navigate to={session ? (userRole === "ADD_ONLY" ? "/add" : "/") : "/login"} replace />}
           />
         </Routes>
       </Suspense>
