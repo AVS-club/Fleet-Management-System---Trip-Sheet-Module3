@@ -1,5 +1,4 @@
 import React from 'react';
-import { Trip, Vehicle, Driver } from '../../types';
 import { IndianRupee, TrendingUp, Fuel, User, Truck } from 'lucide-react';
 
 interface TripSummaryMetrics {
@@ -21,17 +20,14 @@ interface TripSummaryMetrics {
 }
 
 interface TripsSummaryProps {
-  trips: Trip[];
-  vehicles: Vehicle[];
-  drivers: Driver[];
+  trips: any[];
+  vehicles: any[];
+  drivers: any[];
   loading?: boolean;
   metrics: TripSummaryMetrics;
 }
 
 const TripsSummary: React.FC<TripsSummaryProps> = ({ 
-  trips, 
-  vehicles, 
-  drivers, 
   loading = false,
   metrics
 }) => {
@@ -54,7 +50,7 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">Total Expenses</p>
-            <p className="text-xl font-bold text-gray-900">₹{metrics.totalExpenses.toLocaleString()}</p>
+            <p className="text-xl font-bold text-gray-900">₹{(metrics.totalExpenses || 0).toLocaleString()}</p>
           </div>
           <IndianRupee className="h-8 w-8 text-primary-500" />
         </div>
@@ -64,7 +60,7 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">Average Distance</p>
-            <p className="text-xl font-bold text-gray-900">{metrics.avgDistance.toFixed(1)} km</p>
+            <p className="text-xl font-bold text-gray-900">{(metrics.avgDistance || 0).toFixed(1)} km</p>
           </div>
           <TrendingUp className="h-8 w-8 text-primary-500" />
         </div>
@@ -74,7 +70,7 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-gray-500">Mean Mileage</p>
-            <p className="text-xl font-bold text-gray-900">{metrics.meanMileage.toFixed(2)} km/L</p>
+            <p className="text-xl font-bold text-gray-900">{(metrics.meanMileage || 0).toFixed(2)} km/L</p>
           </div>
           <Fuel className="h-8 w-8 text-primary-500" />
         </div>
@@ -85,9 +81,9 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
           <div>
             <p className="text-sm text-gray-500">Top Driver</p>
             <p className="text-xl font-bold text-gray-900">
-              {metrics.topDriver ? metrics.topDriver.name : 'No drivers'}
+              {metrics.topDriver?.name || 'No drivers'}
             </p>
-            {metrics.topDriver && (
+            {metrics.topDriver?.tripCount && (
               <p className="text-xs text-gray-500">{metrics.topDriver.tripCount} trips</p>
             )}
           </div>
@@ -100,9 +96,9 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
           <div>
             <p className="text-sm text-gray-500">Top Vehicle</p>
             <p className="text-xl font-bold text-gray-900 truncate max-w-[120px]">
-              {metrics.topVehicle ? metrics.topVehicle.registrationNumber : 'No vehicles'}
+              {metrics.topVehicle?.registrationNumber || 'No vehicles'}
             </p>
-            {metrics.topVehicle && (
+            {metrics.topVehicle?.tripCount && (
               <p className="text-xs text-gray-500">{metrics.topVehicle.tripCount} trips</p>
             )}
           </div>

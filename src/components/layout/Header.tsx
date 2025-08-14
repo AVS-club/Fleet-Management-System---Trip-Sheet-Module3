@@ -1,24 +1,29 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Truck, Home, Users, FileText, PenTool as Tool, Bell, Menu, X, LogOut, User, BarChart3 } from 'lucide-react';
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from '../../utils/supabaseClient';
-import ThemeToggle from '../ui/ThemeToggle';
+import ThemeToggle from "../ui/ThemeToggle";
 import { toast } from 'react-toastify';
 
-const Header: React.FC = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
-  const navigate = useNavigate();
+const linkBase =
+  "px-3 py-2 rounded-md text-sm md:text-base font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition whitespace-nowrap";
+const linkActive =
+  "bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100";
 
-  const navigationItems = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Vehicles', href: '/vehicles', icon: Truck },
-    { name: 'Drivers', href: '/drivers', icon: Users },
-    { name: 'Trips', href: '/trips', icon: FileText },
-    { name: 'Trip P&L', href: '/trip-pnl-reports', icon: BarChart3 },
-    { name: 'Maintenance', href: '/maintenance', icon: Tool },
-    { name: 'Notifications', href: '/notifications', icon: Bell },
-  ];
+function NavA({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `${linkBase} ${isActive ? linkActive : "text-gray-600 dark:text-gray-300"}`
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
+
+const Header: React.FC = () => {
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -32,121 +37,50 @@ const Header: React.FC = () => {
     }
   };
 
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(href);
-  };
-
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <Truck className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-              <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">Auto Vital Solution</h1>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Intelligent Fleet Management</p>
+    <header className="sticky top-0 z-40 w-full border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60 border-gray-200 dark:border-gray-700">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 md:px-6">
+        <div className="h-16 flex items-center justify-between gap-3">
+          {/* Brand */}
+          <button
+            onClick={() => navigate("/")}
+            className="shrink-0 flex items-center gap-2"
+            aria-label="Go to dashboard"
+          >
+            <span className="inline-block size-8 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+              <svg className="h-5 w-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+              </svg>
+            </span>
+            <div className="leading-tight text-left">
+              <div className="text-sm md:text-base font-semibold text-gray-900 dark:text-gray-100">Auto Vital</div>
+              <div className="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 -mt-0.5">
+                Intelligent Fleet Management
               </div>
-            </Link>
-          </div>
+            </div>
+          </button>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {item.name}
-                </Link>
-              );
-            })}
+          {/* Nav (kept simple, no "Trip P&L" tab here) */}
+          <nav className="hidden md:flex items-center gap-1">
+            <NavA to="/">Dashboard</NavA>
+            <NavA to="/vehicles">Vehicles</NavA>
+            <NavA to="/drivers">Drivers</NavA>
+            <NavA to="/trips">Trips</NavA>
+            <NavA to="/maintenance">Maintenance</NavA>
+            <NavA to="/notifications">Notifications</NavA>
           </nav>
 
-          {/* User Actions */}
-          <div className="flex items-center space-x-4">
+          {/* Right side controls */}
+          <div className="flex items-center gap-2">
             <ThemeToggle />
-            
-            {/* User Menu */}
-            <div className="relative">
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:block">Logout</span>
-              </button>
-            </div>
-
-            {/* Mobile menu button */}
             <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={handleLogout}
+              className="px-3 py-2 text-sm rounded-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
             >
-              <span className="sr-only">Open main menu</span>
-              {isMobileMenuOpen ? (
-                <X className="block h-6 w-6" />
-              ) : (
-                <Menu className="block h-6 w-6" />
-              )}
+              Logout
             </button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t border-gray-200 dark:border-gray-700">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
-                      isActive(item.href)
-                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <Icon className="h-5 w-5 mr-3" />
-                      {item.name}
-                    </div>
-                  </Link>
-                );
-              })}
-              
-              {/* Mobile Logout */}
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700 transition-colors"
-              >
-                <div className="flex items-center">
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Logout
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </header>
   );

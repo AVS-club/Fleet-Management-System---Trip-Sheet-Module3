@@ -4,6 +4,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base text smoothing */
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optional: system font stack for mobile-friendliness (skip if you already set a font) */
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
+}
+
+/* Reduce default focus ring noise on buttons/links if needed */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
 @layer base {
   html {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
