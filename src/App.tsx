@@ -26,6 +26,9 @@ import TripPnlReportsPage from "./pages/TripPnlReportsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import AIAlertsPage from "./pages/AIAlertsPage";
+import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
+import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -68,10 +71,13 @@ const App: React.FC = () => {
           <Route path="/drivers/:id" element={session ? <DriverPage /> : <Navigate to="/login" replace />} />
           <Route path="/trips" element={session ? <TripsPage /> : <Navigate to="/login" replace />} />
           <Route path="/trips/:id" element={session ? <TripDetailsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/trip-reports" element={session ? <TripPnlReportsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/trip-pnl-reports" element={session ? <TripPnlReportsPage /> : <Navigate to="/login" replace />} />
           <Route path="/maintenance" element={session ? <MaintenancePage /> : <Navigate to="/login" replace />} />
           <Route path="/maintenance/:id" element={session ? <MaintenanceTaskPage /> : <Navigate to="/login" replace />} />
           <Route path="/notifications" element={session ? <NotificationsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/alerts" element={session ? <AIAlertsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/drivers/insights" element={session ? <DriverInsightsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/parts-health" element={session ? <PartsHealthAnalyticsPage /> : <Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
       <ToastContainer 

@@ -64,6 +64,9 @@ const TripPnlReportsPage: React.FC = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Remove the problematic fetchSummaryMetrics function and summaryMetrics state
+  // Calculate metrics directly from filtered trips in useMemo
+  
   const datePresetOptions: DatePreset[] = [
     {
       label: 'Last 7 days',
@@ -141,15 +144,19 @@ const TripPnlReportsPage: React.FC = () => {
         getWarehouses()
       ]);
       
+      console.log('Fetched Trips:', tripsData);
+      console.log('Fetched Vehicles:', vehiclesData);
+      console.log('Fetched Drivers:', driversData);
+      console.log('Fetched Warehouses:', warehousesData);
+      
       setTrips(tripsData);
       setVehicles(vehiclesData);
       setDrivers(driversData);
       setWarehouses(warehousesData);
-      
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
+    } finally {
       setLoading(false);
     }
   };
@@ -157,6 +164,79 @@ const TripPnlReportsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Calculate summary metrics directly from trips data
+  const summaryMetrics = useMemo(() => {
+    const tripsArray = Array.isArray(trips) ? trips : [];
+    
+    // Calculate metrics from trips
+    const totalTrips = tripsArray.length;
+    const totalDistance = tripsArray.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+    const totalExpenses = tripsArray.reduce((sum, trip) => sum + (trip.total_expense || 0), 0);
+    const avgDistance = totalTrips > 0 ? totalDistance / totalTrips : 0;
+    
+    // Calculate mean mileage from trips with valid kmpl
+    const tripsWithMileage = tripsArray.filter(trip => trip.calculated_kmpl && !trip.short_trip);
+    const meanMileage = tripsWithMileage.length > 0 
+      ? tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length 
+      : 0;
+    
+    // Find top driver by trip count
+    const driverStats: Record<string, { tripCount: number; totalDistance: number; name: string }> = {};
+    tripsArray.forEach(trip => {
+      if (trip.driver_id) {
+        if (!driverStats[trip.driver_id]) {
+          const driver = drivers.find(d => d.id === trip.driver_id);
+          driverStats[trip.driver_id] = {
+            tripCount: 0,
+            totalDistance: 0,
+            name: driver?.name || 'Unknown'
+          };
+        }
+        driverStats[trip.driver_id].tripCount++;
+        driverStats[trip.driver_id].totalDistance += (trip.end_km - trip.start_km);
+      }
+    });
+    
+    const topDriver = Object.entries(driverStats)
+      .sort((a, b) => b[1].tripCount - a[1].tripCount)[0];
+    
+    // Find top vehicle by trip count
+    const vehicleStats: Record<string, { tripCount: number; registrationNumber: string }> = {};
+    tripsArray.forEach(trip => {
+      if (trip.vehicle_id) {
+        if (!vehicleStats[trip.vehicle_id]) {
+          const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+          vehicleStats[trip.vehicle_id] = {
+            tripCount: 0,
+            registrationNumber: vehicle?.registration_number || 'Unknown'
+          };
+        }
+        vehicleStats[trip.vehicle_id].tripCount++;
+      }
+    });
+    
+    const topVehicle = Object.entries(vehicleStats)
+      .sort((a, b) => b[1].tripCount - a[1].tripCount)[0];
+    
+    return {
+      totalExpenses,
+      avgDistance,
+      tripCount: totalTrips,
+      meanMileage,
+      topDriver: topDriver ? {
+        id: topDriver[0],
+        name: topDriver[1].name,
+        totalDistance: topDriver[1].totalDistance,
+        tripCount: topDriver[1].tripCount
+      } : null,
+      topVehicle: topVehicle ? {
+        id: topVehicle[0],
+        registrationNumber: topVehicle[1].registrationNumber,
+        tripCount: topVehicle[1].tripCount
+      } : null
+    };
+  }, [trips, vehicles, drivers]);
 
   const dateRange = useMemo(() => {
     if (selectedDatePreset === 'custom') {
@@ -207,6 +287,8 @@ const TripPnlReportsPage: React.FC = () => {
     });
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
+  console.log('Filtered Trips:', filteredTrips);
+
   const pnlSummary = useMemo((): PnLSummary => {
     const summary = filteredTrips.reduce((acc, trip) => {
       const income = Number(trip.income_amount) || 0;
@@ -240,6 +322,7 @@ const TripPnlReportsPage: React.FC = () => {
     summary.avgCostPerKm = filteredTrips.length > 0 ? summary.avgCostPerKm / filteredTrips.length : 0;
     summary.profitMargin = summary.totalIncome > 0 ? (summary.netProfit / summary.totalIncome) * 100 : 0;
 
+    console.log('P&L Summary:', summary);
     return summary;
   }, [filteredTrips]);
 

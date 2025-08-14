@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Truck, Home, Users, FileText, PenTool as Tool, Bell, Menu, X, LogOut, User } from 'lucide-react';
+import { Truck, Home, Users, FileText, PenTool as Tool, Bell, Menu, X, LogOut, User, BarChart3 } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from '../ui/ThemeToggle';
 import { toast } from 'react-toastify';
@@ -15,6 +15,7 @@ const Header: React.FC = () => {
     { name: 'Vehicles', href: '/vehicles', icon: Truck },
     { name: 'Drivers', href: '/drivers', icon: Users },
     { name: 'Trips', href: '/trips', icon: FileText },
+    { name: 'Trip P&L', href: '/trip-pnl-reports', icon: BarChart3 },
     { name: 'Maintenance', href: '/maintenance', icon: Tool },
     { name: 'Notifications', href: '/notifications', icon: Bell },
   ];
