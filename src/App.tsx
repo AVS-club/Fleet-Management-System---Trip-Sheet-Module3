@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import RoleGate from "./components/RoleGate";
-import AddHub from "./pages/AddHub";
 import { getRole, Role } from "./utils/session";
 
 // Existing pages (adjust imports if your file names differ)
@@ -44,7 +43,6 @@ import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import ThemeToggle from "./components/ui/ThemeToggle";
 
 function AppRoutes() {
-  const navigate = useNavigate();
   const [role, setRole] = useState<Role | null>(null);
 
   useEffect(() => {
@@ -52,12 +50,11 @@ function AppRoutes() {
       try {
         const r = await getRole();
         setRole(r);
-        if (r === "ADD_ONLY") navigate("/add", { replace: true });
       } catch {
         // not logged in or no profile; allow app to render its default auth flow
       }
     })();
-  }, [navigate]);
+  }, []);
 
   return (
     <>
@@ -65,16 +62,6 @@ function AppRoutes() {
         {/* Authentication routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
-        {/* ADD_ONLY hub */}
-        <Route
-          path="/add"
-          element={
-            <RoleGate allow="ADD_ONLY" fallback={<div>Not allowed</div>}>
-              <AddHub />
-            </RoleGate>
-          }
-        />
 
         {/* OWNER-only routes */}
         <Route
