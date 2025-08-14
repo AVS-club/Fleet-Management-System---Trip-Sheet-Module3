@@ -1,239 +1,397 @@
-import React, { useState, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import {
-  Menu,
-  X,
-  Truck,
-  User,
-  BarChart2,
-  FileText,
-  AlertTriangle,
-  PenTool as PenToolIcon,
-  Settings,
-  LogOut,
-} from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../../utils/supabaseClient";
-import { getRole, Role } from "../../utils/session";
-import { getRole, Role } from "../../utils/session";
-import ThemeToggle from "../ui/ThemeToggle";
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
+import { Session } from "@supabase/supabase-js";
+import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
+import ErrorBoundary from "./components/ErrorBoundary";
+import LoadingScreen from "./components/LoadingScreen";
+import DashboardPage from "./pages/DashboardPage";
+import TripsPage from "./pages/TripsPage";
+import TripDetailsPage from "./pages/TripDetailsPage";
+import TripPnlReportsPage from "./pages/TripPnlReportsPage";
+import AIAlertsPage from "./pages/AIAlertsPage";
+import MaintenancePage from "./pages/MaintenancePage";
+import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminTripsPage from "./pages/admin/AdminTripsPage";
+import AlertSettingsPage from "./pages/admin/AlertSettingsPage";
+import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
+import TripLocationsPage from "./pages/admin/TripLocationsPage";
+import RemindersPage from "./pages/admin/RemindersPage";
+import VehiclesPage from "./pages/VehiclesPage";
+import VehiclePage from "./pages/VehiclePage";
+import DriversPage from "./pages/DriversPage";
+import DriverPage from "./pages/DriverPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import VehicleManagementPage from "./pages/admin/VehicleManagementPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import NotificationModal from "./components/notifications/NotificationModal";
+import { getAlertSettings } from "./utils/alertSettings";
+import { updateAllTripMileage } from "./utils/storage";
+import { ThemeProvider } from "./utils/themeContext";
+// Import new admin pages
+import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
+import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
+import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
+import ActivityLogPage from "./pages/admin/ActivityLogPage";
+import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
+import AdminDriversPage from "./pages/admin/AdminDriversPage";
+import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
 
-const Header: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const [userRole, setUserRole] = useState<Role | null>(null);
-  const [userRole, setUserRole] = useState<Role | null>(null);
-  const location = useLocation();
-  const navigate = useNavigate();
+interface ProtectedRouteProps {
+  session: Session | null;
+}
 
-  // Fetch user role on component mount
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const role = await getRole();
-        setUserRole(role);
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole(null);
-      }
-    };
-    
-    fetchUserRole();
-  }, []);
-
-  // Fetch user role on component mount
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const role = await getRole();
-        setUserRole(role);
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole(null);
-      }
-    };
-    
-    fetchUserRole();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled);
-      }
-    };
-
-    document.addEventListener("scroll", handleScroll);
-    return () => {
-      document.removeEventListener("scroll", handleScroll);
-    };
-  }, [scrolled]);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
-  const navLinks = [
-    { name: "Dashboard", path: "/", icon: <BarChart2 className="h-5 w-5" /> },
-    { name: "Trips", path: "/trips", icon: <FileText className="h-5 w-5" /> },
-    {
-      name: "Maintenance",
-      path: "/maintenance",
-      icon: <PenToolIcon className="h-5 w-5" />,
-    },
-    {
-      name: "Vehicles",
-      path: "/vehicles",
-      icon: <Truck className="h-5 w-5" />,
-    },
-    { name: "Drivers", path: "/drivers", icon: <User className="h-5 w-5" /> },
-    {
-      name: "AI Alerts",
-      path: "/ai-alerts",
-      icon: <AlertTriangle className="h-5 w-5" />,
-    },
-    { name: "Admin", path: "/admin", icon: <Settings className="h-5 w-5" /> },
-  ];
-
-  // Admin sub-links - not displayed in top nav but used for highlighting "Admin" when on these paths
-  const adminSubPaths = [
-    "/admin/trips",
-    "/admin/alert-settings",
-    "/admin/maintenance-tasks",
-    "/admin/trip-locations",
-    "/admin/reminders",
-    "/admin/vehicle-management",
-    "/admin/document-rules",
-    "/admin/driver-ranking-settings",
-    "/admin/message-templates",
-    "/admin/activity-logs",
-  ];
-
-  return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
-        scrolled ? "bg-white dark:bg-gray-900 shadow-md" : "bg-transparent"
-      }`}
-    >
-      <div className="container mx-auto px-3 sm:px-4">
-        <div className="flex items-center justify-between h-14 sm:h-16">
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center -ml-2 sm:ml-0">
-              <div className="flex items-center">
-                <img
-                  src="/assets/logo.png"
-                  alt="Auto Vital Solution Logo"
-                  className="h-9 sm:h-12 w-auto object-contain"
-                />
-              </div>
-            </Link>
-          </div>
-
-          <div className="hidden md:flex space-x-3 lg:space-x-6">
-            {navLinks.map((link) => {
-              const isActive =
-                location.pathname === link.path ||
-                (link.path === "/admin" &&
-                  adminSubPaths.some((path) =>
-                    location.pathname.startsWith(path)
-                  ));
-
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`flex items-center space-x-1 px-2 lg:px-3 py-1.5 lg:py-2 rounded-md text-xs lg:text-sm font-medium transition-colors ${
-                    isActive
-                      ? "text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30"
-                      : "text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.icon}
-                  <span className="whitespace-nowrap">{link.name}</span>
-                </Link>
-              );
-            })}
-            <div className="flex items-center ml-4">
-              <ThemeToggle />
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
-            >
-              <LogOut className="h-5 w-5" />
-              <span>Logout</span>
-            </button>
-          </div>
-
-          <button
-            className="md:hidden p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none"
-            onClick={toggleMenu}
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div
-        className={`md:hidden bg-white dark:bg-gray-900 shadow-lg overflow-hidden transition-all duration-300 ease-in-out z-20 ${
-          isMenuOpen ? "max-h-screen opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="container mx-auto px-4 py-2 space-y-1">
-          {navLinks.map((link) => {
-            const isActive =
-              location.pathname === link.path ||
-              (link.path === "/admin" &&
-                adminSubPaths.some((path) =>
-                  location.pathname.startsWith(path)
-                ));
-
-            return (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center space-x-2 sm:space-x-3 px-3 py-2 sm:py-3 rounded-md text-sm sm:text-base font-medium transition-colors ${
-                  isActive
-                    ? "text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30"
-                    : "text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                }`}
-              >
-                {link.icon}
-                <span>{link.name}</span>
-              </Link>
-            );
-          })}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 px-3 py-3">
-            <ThemeToggle />
-            <div className="w-full">
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-3 px-3 py-3 rounded-md text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-full"
-              >
-                <LogOut className="h-5 w-5" />
-                <span>Logout</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        {/* </Router> */}
-      </div>
-    </header>
-  );
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ session }) => {
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
 };
 
-export default Header;
+function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [alertSettings, setAlertSettings] = useState<any>(null);
+  const navigate = useNavigate(); // For programmatic navigation
+
+  const isCorsError = (error: any): boolean => {
+    return (
+      (error instanceof TypeError && error.message.includes("Failed to fetch")) ||
+      (error && typeof error === 'object' && 'message' in error &&
+       typeof error.message === 'string' &&
+       (error.message.includes("Failed to fetch") ||
+        error.message.includes("Network connection failed") ||
+        error.message.includes("Network request failed") ||
+        error.message.includes("CORS")))
+    );
+  };
+
+  const getCorsErrorMessage = (): string => {
+    return `CORS Configuration Required
+
+This error indicates that your Supabase project needs to be configured to allow requests from this domain.
+
+To fix this:
+1. Go to your Supabase Dashboard: https://supabase.com/dashboard
+2. Select your project
+3. Navigate to Settings → API → CORS
+4. Add these URLs to allowed origins:
+   • ${window.location.origin}
+   • http://localhost:5173
+   • https://localhost:5173
+5. Save the changes and wait 1-2 minutes
+6. Reload this page
+
+Current URL: ${window.location.origin}`;
+  };
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Test Supabase connection before trying to use it
+      try {
+        const isConnected = await testSupabaseConnection();
+
+        if (!isConnected) {
+          setConnectionError("Could not connect to Supabase. Please check your configuration.");
+          setLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error("Connection test failed:", error);
+        
+        // Handle CORS-specific errors with detailed instructions
+        if (error instanceof Error && error.message.includes('CORS configuration required')) {
+          setConnectionError(error.message);
+        } else if (isCorsError(error)) {
+          setConnectionError(getCorsErrorMessage());
+        } else {
+          setConnectionError(
+            error instanceof Error ? error.message : "Could not connect to Supabase. Please check your API keys and network connection."
+          );
+        }
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Update all trip mileage calculations when the app starts
+        // This is wrapped in an additional try-catch to ensure any network errors don't crash the app
+        await updateAllTripMileage();
+      } catch (error) {
+        console.warn("Failed to update trip mileage:", error);
+
+        // If the error is a CORS/network error during data initialization, show CORS-specific error
+        if (isCorsError(error)) {
+          setConnectionError(getCorsErrorMessage());
+          setLoading(false);
+          return;
+        }
+
+        // Continue app initialization for other types of errors
+      }
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        
+        // Get alert settings
+        if (session) {
+          try {
+            const settings = await getAlertSettings();
+            setAlertSettings(settings);
+            
+            // Check if we should show the notification modal based on frequency setting
+            const frequency = settings.popup_display_frequency || 'always';
+            
+            if (frequency === 'always') {
+              // Always show the modal
+              setShowNotificationModal(true);
+            } else if (frequency === 'once_per_session') {
+              // Show once per browser session
+              const modalDismissed = sessionStorage.getItem('notificationModalDismissed');
+              if (!modalDismissed) {
+                setShowNotificationModal(true);
+              }
+            } else if (frequency === 'daily') {
+              // Show once per day
+              const lastShownDate = localStorage.getItem('notificationModalLastShown');
+              const today = new Date().toDateString();
+              
+              if (lastShownDate !== today) {
+                setShowNotificationModal(true);
+              }
+            }
+            // If frequency is 'never', modal will not be shown
+          } catch (error) {
+            console.error('Failed to get alert settings:', error);
+            // Don't show CORS error for alert settings failure if we already have a session
+            // This is a non-critical operation
+          }
+        }
+        
+        setSession(session);
+      } catch (error) {
+        console.error("Failed to get session:", error);
+        if (isCorsError(error)) {
+          setConnectionError(getCorsErrorMessage());
+          setLoading(false);
+          return;
+        }
+      }
+
+      setLoading(false);
+    };
+
+    initializeApp();
+  }, []);
+
+  // Set up auth state change listener
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      // Only redirect if not loading, no session, AND not already on login/register page
+      if (
+        !loading &&
+        !session &&
+        window.location.pathname !== "/login" &&
+        window.location.pathname !== "/register"
+      ) {
+        navigate("/login");
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (loading) {
+    return <LoadingScreen isLoading={true} />;
+  }
+
+  // Show connection error message if applicable
+  if (connectionError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl w-full text-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-12 w-12 mx-auto text-red-500 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <h2 className="text-2xl font-semibold text-red-800 mb-2">
+            Connection Error
+          </h2>
+          <p className="text-red-600 mb-6 whitespace-pre-line">{connectionError}</p>
+          <div className="bg-white p-4 rounded-lg border border-red-100 text-left mb-4">
+            <p className="font-medium text-gray-900 mb-2">
+              Troubleshooting steps:
+            </p>
+            <ol className="list-decimal pl-5 text-sm space-y-3 text-gray-600">
+              <li className="font-medium text-red-700">
+                <strong>CORS Configuration (Most Common Issue):</strong>
+                <ul className="list-disc pl-5 mt-2 space-y-1 font-normal">
+                  <li>Go to Settings → API → CORS in your Supabase dashboard</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">{window.location.origin}</code> to allowed origins</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">http://localhost:5173</code> to allowed origins</li>
+                  <li>Add <code className="bg-gray-100 px-1 rounded text-xs">https://localhost:5173</code> to allowed origins</li>
+                  <li>Save and wait 1-2 minutes for changes to propagate</li>
+                </ul>
+              </li>
+              <li>
+                Check that your Supabase URL and anon key are correctly set in
+                the .env file
+              </li>
+              <li>Ensure your Supabase project is up and running</li>
+              <li>Verify that your network can access the Supabase API</li>
+              <li>
+                Try reloading the page after making configuration changes
+              </li>
+            </ol>
+          </div>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Reload Page
+            </button>
+            <button
+              onClick={() =>
+                window.open("https://supabase.com/dashboard", "_blank")
+              }
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            >
+              Open Supabase Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen isLoading={true} />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route element={<ProtectedRoute session={session} />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/trips" element={<TripsPage />} />
+            <Route path="/trips/:id" element={<TripDetailsPage />} />
+            <Route path="/trip-pnl-reports" element={<TripPnlReportsPage />} />
+            <Route path="/alerts" element={<AIAlertsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="/maintenance/:id" element={<MaintenanceTaskPage />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/trips" element={<AdminTripsPage />} />
+            <Route
+              path="/admin/alert-settings"
+              element={<AlertSettingsPage />}
+            />
+            <Route
+              path="/admin/maintenance-tasks"
+              element={<MaintenanceTasksAdmin />}
+            />
+            <Route
+              path="/admin/trip-locations"
+              element={<TripLocationsPage />}
+            />
+            <Route path="/admin/reminders" element={<RemindersPage />} />
+            <Route
+              path="/admin/vehicle-management"
+              element={<VehicleManagementPage />}
+            />
+            {/* New Admin Routes */}
+            <Route
+              path="/admin/document-rules"
+              element={<AdminDocumentRulesPage />}
+            />
+            <Route
+              path="/admin/driver-ranking-settings"
+              element={<DriverRankingSettingsPage />}
+            />
+            <Route
+              path="/admin/message-templates"
+              element={<MessageTemplatesPage />}
+            />
+            <Route
+              path="/admin/activity-logs"
+              element={<ActivityLogPage />}
+            />
+            <Route
+              path="/admin/driver-management"
+              element={<AdminDriversPage />}
+            />
+            <Route path="/vehicles" element={<VehiclesPage />} />
+            <Route path="/vehicles/:id" element={<VehiclePage />} />
+            <Route path="/drivers" element={<DriversPage />} />
+            <Route path="/drivers/:id" element={<DriverPage />} />
+            <Route path="/drivers/insights" element={<DriverInsightsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/parts-health" element={<PartsHealthAnalyticsPage />} />
+          </Route>
+          <Route
+            path="*"
+            element={<Navigate to={session ? "/" : "/login"} replace />}
+          />
+        </Routes>
+      </Suspense>
+      
+      {/* Notification Modal */}
+      {session && (
+        <NotificationModal 
+          isOpen={showNotificationModal} 
+          onClose={() => {
+            setShowNotificationModal(false);
+            
+            // Handle dismissal based on frequency setting
+            const frequency = alertSettings?.popup_display_frequency || 'always';
+            
+            if (frequency === 'once_per_session') {
+              // Mark as dismissed for this session
+              sessionStorage.setItem('notificationModalDismissed', 'true');
+            } else if (frequency === 'daily') {
+              // Mark as dismissed for today
+              localStorage.setItem('notificationModalLastShown', new Date().toDateString());
+            }
+          }}
+        />
+      )}
+    </ErrorBoundary>
+  );
+}
+
+// Wrap App with Router to use useNavigate within App
+const AppWrapper: React.FC = () => (
+  <Router>
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  </Router>
+);
+
+export default AppWrapper;
