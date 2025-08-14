@@ -21,8 +21,6 @@ const Header: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Role fetching removed
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem("user");
