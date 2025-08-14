@@ -1,3 +1,18 @@
+import React, { Suspense, useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useNavigate,
+} from "react-router-dom";
+import { Session } from "@supabase/supabase-js";
+import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
+import ErrorBoundary from "./components/ErrorBoundary";
+import LoadingScreen from "./components/LoadingScreen";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -11,12 +26,66 @@ import TripPnlReportsPage from "./pages/TripPnlReportsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
 import NotificationsPage from "./pages/NotificationsPage";
+
+const App: React.FC = () => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Test Supabase connection on app start
+    testSupabaseConnection();
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return <LoadingScreen isLoading={true} />;
+  }
+
   return (
-    <Suspense fallback={<LoadingScreen isLoading={true} />}>
-      <Routes>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingScreen isLoading={true} />}>
+        <Routes>
+          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" replace />} />
+          <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/" replace />} />
+          <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
+          <Route path="/vehicles" element={session ? <VehiclesPage /> : <Navigate to="/login" replace />} />
+          <Route path="/vehicles/:id" element={session ? <VehiclePage /> : <Navigate to="/login" replace />} />
+          <Route path="/drivers" element={session ? <DriversPage /> : <Navigate to="/login" replace />} />
+          <Route path="/drivers/:id" element={session ? <DriverPage /> : <Navigate to="/login" replace />} />
+          <Route path="/trips" element={session ? <TripsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/trips/:id" element={session ? <TripDetailsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/trip-reports" element={session ? <TripPnlReportsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/maintenance" element={session ? <MaintenancePage /> : <Navigate to="/login" replace />} />
+          <Route path="/maintenance/:id" element={session ? <MaintenanceTaskPage /> : <Navigate to="/login" replace />} />
+          <Route path="/notifications" element={session ? <NotificationsPage /> : <Navigate to="/login" replace />} />
+        </Routes>
+      </Suspense>
+      <ToastContainer 
+        position="top-right" 
+        autoClose={3000} 
+        hideProgressBar={false} 
+        newestOnTop 
+        closeOnClick 
+        rtl={false} 
+        pauseOnFocusLoss 
+        draggable 
+        pauseOnHover 
+      />
+    </ErrorBoundary>
   );
 };
 
