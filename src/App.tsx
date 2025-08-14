@@ -1,79 +1,29 @@
-// Existing pages (adjust imports if your file names differ)
 import DashboardPage from "./pages/DashboardPage";
-import VehiclesPage from "./pages/VehiclesPage";
-import VehiclePage from "./pages/VehiclePage";
-import TripsPage from "./pages/TripsPage";
-import TripDetailsPage from "./pages/TripDetailsPage";
-import MaintenancePage from "./pages/MaintenancePage";
-import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
-import DriversPage from "./pages/DriversPage";
-import DriverPage from "./pages/DriverPage";
-import AIAlertsPage from "./pages/AIAlertsPage";
-import TripPnlReportsPage from "./pages/TripPnlReportsPage";
-import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
-import NotificationsPage from "./pages/NotificationsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-
-// Admin pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminTripsPage from "./pages/admin/AdminTripsPage";
-import AlertSettingsPage from "./pages/admin/AlertSettingsPage";
-import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
-import TripLocationsPage from "./pages/admin/TripLocationsPage";
-import RemindersPage from "./pages/admin/RemindersPage";
-import VehicleManagementPage from "./pages/admin/VehicleManagementPage";
-import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
-import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
-import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
-import ActivityLogPage from "./pages/admin/ActivityLogPage";
-import AdminDriversPage from "./pages/admin/AdminDriversPage";
-
-// Driver insights page
-import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
-
-function AppRoutes() {
+import VehiclesPage from "./pages/VehiclesPage";
+import VehiclePage from "./pages/VehiclePage";
+import DriversPage from "./pages/DriversPage";
+import DriverPage from "./pages/DriverPage";
+import TripsPage from "./pages/TripsPage";
+import TripDetailsPage from "./pages/TripDetailsPage";
+import TripPnlReportsPage from "./pages/TripPnlReportsPage";
+import MaintenancePage from "./pages/MaintenancePage";
+import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
+import NotificationsPage from "./pages/NotificationsPage";
   return (
-    <>
+    <Suspense fallback={<LoadingScreen isLoading={true} />}>
       <Routes>
-        {/* Authentication routes */}
+        <Route path="/" element={<DashboardPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/trips" element={<AdminTripsPage />} />
-        <Route path="/admin/alert-settings" element={<AlertSettingsPage />} />
-        <Route path="/admin/maintenance-tasks" element={<MaintenanceTasksAdmin />} />
-        <Route path="/admin/trip-locations" element={<TripLocationsPage />} />
-        <Route path="/admin/reminders" element={<RemindersPage />} />
-        <Route path="/admin/vehicle-management" element={<VehicleManagementPage />} />
-        <Route path="/admin/document-rules" element={<AdminDocumentRulesPage />} />
-        <Route path="/admin/driver-ranking-settings" element={<DriverRankingSettingsPage />} />
-        <Route path="/admin/message-templates" element={<MessageTemplatesPage />} />
-        <Route path="/admin/activity-logs" element={<ActivityLogPage />} />
-        <Route path="/admin/driver-management" element={<AdminDriversPage />} />
-      </Routes>
-      
-      <ToastContainer 
-        position="top-right" 
-        autoClose={3000} 
-        hideProgressBar={false} 
-        newestOnTop 
-        closeOnClick 
-        rtl={false} 
-        pauseOnFocusLoss 
-        draggable 
-        pauseOnHover 
-      />
-    </>
   );
-}
+};
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
-  );
-}
+const AppWrapper: React.FC = () => (
+  <Router>
+    <App />
+  </Router>
+);
+
+export default AppWrapper;
