@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import RoleGate from "./components/RoleGate";
 import AddHub from "./pages/AddHub";
-import { getRole, Role } from "./utils/session";
+
+type Role = "OWNER" | "ADD_ONLY";
 
 // Existing pages (adjust imports if your file names differ)
 import DashboardPage from "./pages/DashboardPage";
@@ -45,18 +46,11 @@ import ThemeToggle from "./components/ui/ThemeToggle";
 
 function AppRoutes() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role | null>(null);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await getRole();
-        setRole(r);
-        if (r === "ADD_ONLY") navigate("/add", { replace: true });
-      } catch {
-        // not logged in or no profile; allow app to render its default auth flow
-      }
-    })();
+    const stored = localStorage.getItem("user");
+    const role = stored ? (JSON.parse(stored).role as Role | undefined) : undefined;
+    if (role === "ADD_ONLY") navigate("/add", { replace: true });
   }, [navigate]);
 
   return (

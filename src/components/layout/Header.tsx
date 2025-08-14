@@ -1,22 +1,11 @@
-import { useEffect, useState } from "react";
-import { getRole, Role } from "../../utils/session";
 import ThemeToggle from "../ui/ThemeToggle"; // correct path from layout/ → ui/
 
+type Role = "OWNER" | "ADD_ONLY";
+
 const Header: React.FC = () => {
-  const [role, setRole] = useState<Role | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await getRole();
-        setRole(r);
-      } catch {
-        // ignore if not logged in yet
-      }
-    })();
-  }, []);
-
-  const isOwner = role === "OWNER";
+  const stored = localStorage.getItem("user");
+  const role = stored ? (JSON.parse(stored).role as Role | undefined) : undefined;
+  const isOwner = role !== "ADD_ONLY";
 
   return (
     <header className="border-b p-3 flex items-center gap-3">
