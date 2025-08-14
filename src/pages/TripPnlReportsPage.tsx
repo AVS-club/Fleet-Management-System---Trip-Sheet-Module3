@@ -18,6 +18,7 @@ import {
   TrendingDown,
   DollarSign,
   BarChart3,
+  BarChart2,
   Target
 } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -38,6 +39,24 @@ interface PnLSummary {
   avgCostPerKm: number;
   profitableTrips: number;
   lossTrips: number;
+}
+
+interface TripSummaryMetrics {
+  totalExpenses: number;
+  avgDistance: number;
+  tripCount: number;
+  meanMileage: number;
+  topDriver: {
+    id: string;
+    name: string;
+    totalDistance: number;
+    tripCount: number;
+  } | null;
+  topVehicle: {
+    id: string;
+    registrationNumber: string;
+    tripCount: number;
+  } | null;
 }
 
 interface DatePreset {
@@ -163,11 +182,8 @@ const TripPnlReportsPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Calculate summary metrics directly from trips data
-  const summaryMetrics = useMemo(() => {
+  const tripSummaryMetrics = useMemo((): TripSummaryMetrics => {
     const tripsArray = Array.isArray(trips) ? trips : [];
-    
-    // Calculate metrics from trips
     const totalTrips = tripsArray.length;
     const totalDistance = tripsArray.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
     const totalExpenses = tripsArray.reduce((sum, trip) => sum + (trip.total_expense || 0), 0);
@@ -248,8 +264,9 @@ const TripPnlReportsPage: React.FC = () => {
     }
   }, [selectedDatePreset, customStartDate, customEndDate]);
 
+  // Filter trips based on current filters
   const filteredTrips = useMemo(() => {
-    return trips.filter(trip => {
+    const filtered = trips.filter(trip => {
       // Date range filter
       const tripDate = parseISO(trip.trip_start_date);
       if (tripDate < dateRange.startDate || tripDate > dateRange.endDate) {
@@ -283,10 +300,12 @@ const TripPnlReportsPage: React.FC = () => {
 
       return true;
     });
+    
+    console.log('Filtered Trips:', filtered);
+    return filtered;
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
-  console.log('Filtered Trips:', filteredTrips);
-
+  // Calculate P&L summary directly from filtered trips
   const pnlSummary = useMemo((): PnLSummary => {
     const summary = filteredTrips.reduce((acc, trip) => {
       const income = Number(trip.income_amount) || 0;
@@ -324,6 +343,17 @@ const TripPnlReportsPage: React.FC = () => {
     return summary;
   }, [filteredTrips]);
 
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedVehicle('');
+    setSelectedDriver('');
+    setSelectedWarehouse('');
+    setSelectedProfitStatus('');
+    setSelectedDatePreset('alltime');
+    setCustomStartDate('');
+    setCustomEndDate('');
+  };
+
   const exportToExcel = () => {
     const exportData = filteredTrips.map(trip => {
       const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
@@ -358,17 +388,6 @@ const TripPnlReportsPage: React.FC = () => {
     saveAs(data, fileName);
     
     toast.success('Report exported successfully');
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setSelectedVehicle('');
-    setSelectedDriver('');
-    setSelectedWarehouse('');
-    setSelectedProfitStatus('');
-    setSelectedDatePreset('alltime');
-    setCustomStartDate('');
-    setCustomEndDate('');
   };
 
   const getVehicleName = (vehicleId: string) => {
