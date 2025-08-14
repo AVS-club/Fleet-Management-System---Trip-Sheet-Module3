@@ -1,11 +1,7 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-import RoleGate from "./components/RoleGate";
 import AddHub from "./pages/AddHub";
-import { getRole, Role } from "./utils/session";
 
 // Existing pages (adjust imports if your file names differ)
 import DashboardPage from "./pages/DashboardPage";
@@ -41,24 +37,7 @@ import AdminDriversPage from "./pages/admin/AdminDriversPage";
 // Driver insights page
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 
-import ThemeToggle from "./components/ui/ThemeToggle";
-
 function AppRoutes() {
-  const navigate = useNavigate();
-  const [role, setRole] = useState<Role | null>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await getRole();
-        setRole(r);
-        if (r === "ADD_ONLY") navigate("/add", { replace: true });
-      } catch {
-        // not logged in or no profile; allow app to render its default auth flow
-      }
-    })();
-  }, [navigate]);
-
   return (
     <>
       <Routes>
@@ -67,51 +46,37 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
 
         {/* ADD_ONLY hub */}
-        <Route
-          path="/add"
-          element={
-            <RoleGate allow="ADD_ONLY" fallback={<div>Not allowed</div>}>
-              <AddHub />
-            </RoleGate>
-          }
-        />
+        <Route path="/add" element={<AddHub />} />
 
-        {/* OWNER-only routes */}
-        <Route
-          path="/"
-          element={
-            <RoleGate allow="OWNER" fallback={<div>Not allowed</div>}>
-              <DashboardPage />
-            </RoleGate>
-          }
-        />
-        <Route path="/vehicles" element={<RoleGate allow="OWNER"><VehiclesPage /></RoleGate>} />
-        <Route path="/vehicles/:id" element={<RoleGate allow="OWNER"><VehiclePage /></RoleGate>} />
-        <Route path="/trips" element={<RoleGate allow="OWNER"><TripsPage /></RoleGate>} />
-        <Route path="/trips/:id" element={<RoleGate allow="OWNER"><TripDetailsPage /></RoleGate>} />
-        <Route path="/maintenance" element={<RoleGate allow="OWNER"><MaintenancePage /></RoleGate>} />
-        <Route path="/maintenance/:id" element={<RoleGate allow="OWNER"><MaintenanceTaskPage /></RoleGate>} />
-        <Route path="/drivers" element={<RoleGate allow="OWNER"><DriversPage /></RoleGate>} />
-        <Route path="/drivers/:id" element={<RoleGate allow="OWNER"><DriverPage /></RoleGate>} />
-        <Route path="/drivers/insights" element={<RoleGate allow="OWNER"><DriverInsightsPage /></RoleGate>} />
-        <Route path="/alerts" element={<RoleGate allow="OWNER"><AIAlertsPage /></RoleGate>} />
-        <Route path="/trip-pnl-reports" element={<RoleGate allow="OWNER"><TripPnlReportsPage /></RoleGate>} />
-        <Route path="/parts-health" element={<RoleGate allow="OWNER"><PartsHealthAnalyticsPage /></RoleGate>} />
-        <Route path="/notifications" element={<RoleGate allow="OWNER"><NotificationsPage /></RoleGate>} />
-        
+        {/* Main routes */}
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/vehicles" element={<VehiclesPage />} />
+        <Route path="/vehicles/:id" element={<VehiclePage />} />
+        <Route path="/trips" element={<TripsPage />} />
+        <Route path="/trips/:id" element={<TripDetailsPage />} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
+        <Route path="/maintenance/:id" element={<MaintenanceTaskPage />} />
+        <Route path="/drivers" element={<DriversPage />} />
+        <Route path="/drivers/:id" element={<DriverPage />} />
+        <Route path="/drivers/insights" element={<DriverInsightsPage />} />
+        <Route path="/alerts" element={<AIAlertsPage />} />
+        <Route path="/trip-pnl-reports" element={<TripPnlReportsPage />} />
+        <Route path="/parts-health" element={<PartsHealthAnalyticsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+
         {/* Admin routes */}
-        <Route path="/admin" element={<RoleGate allow="OWNER"><AdminDashboard /></RoleGate>} />
-        <Route path="/admin/trips" element={<RoleGate allow="OWNER"><AdminTripsPage /></RoleGate>} />
-        <Route path="/admin/alert-settings" element={<RoleGate allow="OWNER"><AlertSettingsPage /></RoleGate>} />
-        <Route path="/admin/maintenance-tasks" element={<RoleGate allow="OWNER"><MaintenanceTasksAdmin /></RoleGate>} />
-        <Route path="/admin/trip-locations" element={<RoleGate allow="OWNER"><TripLocationsPage /></RoleGate>} />
-        <Route path="/admin/reminders" element={<RoleGate allow="OWNER"><RemindersPage /></RoleGate>} />
-        <Route path="/admin/vehicle-management" element={<RoleGate allow="OWNER"><VehicleManagementPage /></RoleGate>} />
-        <Route path="/admin/document-rules" element={<RoleGate allow="OWNER"><AdminDocumentRulesPage /></RoleGate>} />
-        <Route path="/admin/driver-ranking-settings" element={<RoleGate allow="OWNER"><DriverRankingSettingsPage /></RoleGate>} />
-        <Route path="/admin/message-templates" element={<RoleGate allow="OWNER"><MessageTemplatesPage /></RoleGate>} />
-        <Route path="/admin/activity-logs" element={<RoleGate allow="OWNER"><ActivityLogPage /></RoleGate>} />
-        <Route path="/admin/driver-management" element={<RoleGate allow="OWNER"><AdminDriversPage /></RoleGate>} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/trips" element={<AdminTripsPage />} />
+        <Route path="/admin/alert-settings" element={<AlertSettingsPage />} />
+        <Route path="/admin/maintenance-tasks" element={<MaintenanceTasksAdmin />} />
+        <Route path="/admin/trip-locations" element={<TripLocationsPage />} />
+        <Route path="/admin/reminders" element={<RemindersPage />} />
+        <Route path="/admin/vehicle-management" element={<VehicleManagementPage />} />
+        <Route path="/admin/document-rules" element={<AdminDocumentRulesPage />} />
+        <Route path="/admin/driver-ranking-settings" element={<DriverRankingSettingsPage />} />
+        <Route path="/admin/message-templates" element={<MessageTemplatesPage />} />
+        <Route path="/admin/activity-logs" element={<ActivityLogPage />} />
+        <Route path="/admin/driver-management" element={<AdminDriversPage />} />
       </Routes>
       
       <ToastContainer 
