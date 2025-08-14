@@ -20,7 +20,6 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userRole, setUserRole] = useState<Role | null>(null);
-  const [userRole, setUserRole] = useState<Role | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
