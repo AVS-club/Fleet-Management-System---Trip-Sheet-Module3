@@ -1,12 +1,5 @@
 import React, { Suspense, useEffect, useState } from "react";
 import {
-      setLoading(false);
-    };
-
-    initializeApp();
-  }, []);
-
-  // Set up auth state change listener
   useEffect(() => {
     const {
       data: { subscription },
