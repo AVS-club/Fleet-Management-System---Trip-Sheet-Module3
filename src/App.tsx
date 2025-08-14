@@ -45,9 +45,6 @@ function AppRoutes() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Unrestricted routes */}
-        <Route path="/add" element={<AddHub />} />
-
         <Route path="/" element={<DashboardPage />} />
         <Route path="/vehicles" element={<VehiclesPage />} />
         <Route path="/vehicles/:id" element={<VehiclePage />} />

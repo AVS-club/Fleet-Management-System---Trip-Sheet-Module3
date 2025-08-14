@@ -1,6 +1,5 @@
 import ThemeToggle from "../ui/ThemeToggle"; // correct path from layout/ → ui/
 
-const Header: React.FC = () => {
   return (
     <header className="border-b p-3 flex items-center gap-3">
       <div className="font-semibold">AVS</div>
