@@ -14,11 +14,13 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabaseClient";
 import { getRole, Role } from "../../utils/session";
+import { getRole, Role } from "../../utils/session";
 import ThemeToggle from "../ui/ThemeToggle";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userRole, setUserRole] = useState<Role | null>(null);
   const [userRole, setUserRole] = useState<Role | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
