@@ -13,47 +13,15 @@ import {
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabaseClient";
-import { getRole, Role } from "../../utils/session";
-import { getRole, Role } from "../../utils/session";
 import ThemeToggle from "../ui/ThemeToggle";
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [userRole, setUserRole] = useState<Role | null>(null);
-  const [userRole, setUserRole] = useState<Role | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Fetch user role on component mount
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const role = await getRole();
-        setUserRole(role);
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole(null);
-      }
-    };
-    
-    fetchUserRole();
-  }, []);
-
-  // Fetch user role on component mount
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const role = await getRole();
-        setUserRole(role);
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole(null);
-      }
-    };
-    
-    fetchUserRole();
-  }, []);
+  // Role fetching removed
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
