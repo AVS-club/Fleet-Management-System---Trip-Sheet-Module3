@@ -14,7 +14,6 @@ import {
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../../utils/supabaseClient";
 import { getRole, Role } from "../../utils/session";
-import { getRole, Role } from "../../utils/session";
 import ThemeToggle from "../ui/ThemeToggle";
 
 const Header: React.FC = () => {
