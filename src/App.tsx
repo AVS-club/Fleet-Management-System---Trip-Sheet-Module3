@@ -1,21 +1,5 @@
 import React, { Suspense, useEffect, useState } from "react";
 import {
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      // Only redirect if not loading, no session, AND not already on login/register page
-      if (
-        !loading &&
-        !session &&
-        window.location.pathname !== "/login" &&
-        window.location.pathname !== "/register"
-      ) {
-        navigate("/login");
-      }
-    });
-
     return () => {
       subscription?.unsubscribe();
     };
