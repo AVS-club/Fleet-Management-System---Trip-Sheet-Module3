@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
-import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader } from 'lucide-react';
+import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import WarehouseForm from '../../components/admin/WarehouseForm';
 import DestinationForm from '../../components/admin/DestinationForm';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
-import { getWarehouses, getDestinations, createWarehouse, createDestination } from '../../utils/storage';
+import { getDestinations, createDestination } from '../../utils/storage';
+import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
 
@@ -16,6 +18,9 @@ const TripLocationsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'warehouses' | 'destinations'>('warehouses');
   const [isAddingWarehouse, setIsAddingWarehouse] = useState(false);
   const [isAddingDestination, setIsAddingDestination] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+  const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManagingMaterialTypes, setIsManagingMaterialTypes] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -27,7 +32,7 @@ const TripLocationsPage: React.FC = () => {
       setLoading(true);
       try {
         const [warehousesData, destinationsData, materialTypesData] = await Promise.all([
-          getWarehouses(),
+          listWarehouses(),
           getDestinations(),
           getMaterialTypes()
         ]);
@@ -37,6 +42,7 @@ const TripLocationsPage: React.FC = () => {
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching location data:', error);
+        toast.error('Failed to load location data');
       } finally {
         setLoading(false);
       }
@@ -46,21 +52,56 @@ const TripLocationsPage: React.FC = () => {
   }, []);
 
   const handleAddWarehouse = async (data: any) => {
+    setIsSubmitting(true);
     try {
-      // The createWarehouse function in storage.ts will handle converting keys to snake_case
       const newWarehouse = await createWarehouse(data);
-      if (newWarehouse === null) {
-        throw new Error('Failed to create warehouse');
-      }
       
-      // Fetch updated warehouse list to ensure UI is in sync with DB
-      const updatedWarehouses = await getWarehouses();
-      setWarehouses(Array.isArray(updatedWarehouses) ? updatedWarehouses : []);
+      setWarehouses(prev => [...prev, newWarehouse]);
       setIsAddingWarehouse(false);
       toast.success('Warehouse added successfully');
     } catch (error) {
       console.error('Error adding warehouse:', error);
-      toast.error('Failed to add warehouse. Please try again.');
+      toast.error('Failed to add warehouse');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateWarehouse = async (data: any) => {
+    if (!editingWarehouse) return;
+    
+    setIsSubmitting(true);
+    try {
+      const updatedWarehouse = await updateWarehouse(editingWarehouse.id, data);
+      
+      setWarehouses(prev => 
+        prev.map(w => w.id === editingWarehouse.id ? updatedWarehouse : w)
+      );
+      setEditingWarehouse(null);
+      toast.success('Warehouse updated successfully');
+    } catch (error) {
+      console.error('Error updating warehouse:', error);
+      toast.error('Failed to update warehouse');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteWarehouse = async () => {
+    if (!deletingWarehouse) return;
+    
+    setIsSubmitting(true);
+    try {
+      await deleteWarehouse(deletingWarehouse.id);
+      
+      setWarehouses(prev => prev.filter(w => w.id !== deletingWarehouse.id));
+      setDeletingWarehouse(null);
+      toast.success('Warehouse deleted successfully');
+    } catch (error) {
+      console.error('Error deleting warehouse:', error);
+      toast.error('Failed to delete warehouse');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -156,18 +197,25 @@ const TripLocationsPage: React.FC = () => {
                         <h2 className="text-lg font-medium text-gray-900">Origin Warehouses</h2>
                         <p className="text-sm text-gray-500">Manage warehouse locations</p>
                       </div>
-                      <Button
-                        onClick={() => setIsAddingWarehouse(true)}
-                        icon={<Plus className="h-4 w-4" />}
-                      >
-                        Add Warehouse
-                      </Button>
+                      {!editingWarehouse && (
+                        <Button
+                          onClick={() => setIsAddingWarehouse(true)}
+                          icon={<Plus className="h-4 w-4" />}
+                        >
+                          Add Warehouse
+                        </Button>
+                      )}
                     </div>
 
-                    {isAddingWarehouse ? (
+                    {(isAddingWarehouse || editingWarehouse) ? (
                       <WarehouseForm
-                        onSubmit={handleAddWarehouse}
-                        onCancel={() => setIsAddingWarehouse(false)}
+                        initialData={editingWarehouse || undefined}
+                        onSubmit={editingWarehouse ? handleUpdateWarehouse : handleAddWarehouse}
+                        onCancel={() => {
+                          setIsAddingWarehouse(false);
+                          setEditingWarehouse(null);
+                        }}
+                        isSubmitting={isSubmitting}
                       />
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -179,11 +227,29 @@ const TripLocationsPage: React.FC = () => {
                           warehouses.map(warehouse => (
                             <div
                               key={warehouse.id}
-                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow"
+                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
                             >
+                              {/* Action buttons */}
+                              <div className="absolute top-2 right-2 flex space-x-1">
+                                <button
+                                  onClick={() => setEditingWarehouse(warehouse)}
+                                  className="p-1 text-gray-400 hover:text-primary-600 rounded"
+                                  title="Edit warehouse"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => setDeletingWarehouse(warehouse)}
+                                  className="p-1 text-gray-400 hover:text-error-600 rounded"
+                                  title="Delete warehouse"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                              
                               <div className="flex items-center space-x-3">
                                 <Building2 className="h-5 w-5 text-gray-400" />
-                                <div>
+                                <div className="pr-16">
                                   <h3 className="font-medium text-gray-900">{warehouse.name}</h3>
                                   <div className="flex items-center space-x-2">
                                     <p className="text-sm text-gray-500">{warehouse.pincode}</p>
@@ -286,6 +352,19 @@ const TripLocationsPage: React.FC = () => {
             )}
           </div>
         </div>
+        
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={!!deletingWarehouse}
+          title="Delete Warehouse"
+          message={`Are you sure you want to delete warehouse "${deletingWarehouse?.name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={handleDeleteWarehouse}
+          onCancel={() => setDeletingWarehouse(null)}
+          type="delete"
+          isLoading={isSubmitting}
+        />
         
         {isManagingMaterialTypes && (
           <MaterialTypeManager onClose={() => setIsManagingMaterialTypes(false)} />
