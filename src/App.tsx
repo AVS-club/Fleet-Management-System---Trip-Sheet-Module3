@@ -30,6 +30,17 @@ import AIAlertsPage from "./pages/AIAlertsPage";
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import RemindersPage from "./pages/admin/RemindersPage";
+import AlertSettingsPage from "./pages/admin/AlertSettingsPage";
+import TripLocationsPage from "./pages/admin/TripLocationsPage";
+import AdminTripsPage from "./pages/admin/AdminTripsPage";
+import VehicleManagementPage from "./pages/admin/VehicleManagementPage";
+import AdminDriversPage from "./pages/admin/AdminDriversPage";
+import ActivityLogPage from "./pages/admin/ActivityLogPage";
+import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
+import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
+import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
+import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -80,6 +91,17 @@ const App: React.FC = () => {
           <Route path="/drivers/insights" element={session ? <DriverInsightsPage /> : <Navigate to="/login" replace />} />
           <Route path="/parts-health" element={session ? <PartsHealthAnalyticsPage /> : <Navigate to="/login" replace />} />
           <Route path="/admin" element={session ? <AdminDashboard /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/reminders" element={session ? <RemindersPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/alert-settings" element={session ? <AlertSettingsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/trip-locations" element={session ? <TripLocationsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/trips" element={session ? <AdminTripsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/vehicle-management" element={session ? <VehicleManagementPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/driver-management" element={session ? <AdminDriversPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/activity-logs" element={session ? <ActivityLogPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/driver-ranking-settings" element={session ? <DriverRankingSettingsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/maintenance-tasks" element={session ? <MaintenanceTasksAdmin /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/message-templates" element={session ? <MessageTemplatesPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin/document-rules" element={session ? <AdminDocumentRulesPage /> : <Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
       <ToastContainer 

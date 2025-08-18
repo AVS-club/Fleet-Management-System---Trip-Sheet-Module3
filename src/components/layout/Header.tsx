@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from "../ui/ThemeToggle";
 import { toast } from 'react-toastify';
@@ -33,10 +33,10 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-gray-200 dark:border-gray-700 dark:bg-gray-900/80">
       <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
         {/* Brand */}
-        <NavLink to="/" className="flex items-center gap-2 font-semibold leading-none">
+        <Link to="/" className="flex items-center gap-2 font-semibold leading-none">
           <span className="inline-block rounded bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-2 py-0.5 text-xs">AVS</span>
           <span className="text-base text-gray-900 dark:text-gray-100">Auto Vital</span>
-        </NavLink>
+        </Link>
 
         {/* Nav */}
         <nav className="ml-6 flex flex-1 items-center gap-4 text-sm">
