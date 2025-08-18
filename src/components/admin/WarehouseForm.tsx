@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Building2, MapPin, Search } from 'lucide-react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
+import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Import MaterialType
 
 interface WarehouseFormData {
@@ -18,23 +19,30 @@ interface WarehouseFormProps {
   initialData?: Partial<WarehouseFormData>;
   onSubmit: (data: WarehouseFormData) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 const WarehouseForm: React.FC<WarehouseFormProps> = ({
   initialData,
   onSubmit,
-  onCancel
+  onCancel,
+  isSubmitting = false
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
-  const [isManualEntry, setIsManualEntry] = useState(!!initialData?.name);
+  const [isManualEntry, setIsManualEntry] = useState(!!initialData);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]); // Initialize as empty array
   const placesRef = useRef<HTMLDivElement>(null);
 
   const { register, handleSubmit, control, setValue, watch, formState: { errors } } = useForm<WarehouseFormData>({
     defaultValues: {
+      name: '',
+      pincode: '',
+      latitude: undefined,
+      longitude: undefined,
+      materialTypeIds: [],
       ...initialData
     }
   });
@@ -333,10 +341,11 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             variant="outline"
             onClick={onCancel}
           >
+          disabled={isSubmitting}
             Cancel
           </Button>
           <Button type="submit">
-            {initialData ? 'Update Warehouse' : 'Add Warehouse'}
+        <Button type="submit" isLoading={isSubmitting}>
           </Button>
         </div>
       </div>
