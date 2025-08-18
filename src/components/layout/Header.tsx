@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { label: "Vehicles",      to: "/vehicles" },
   { label: "Drivers",       to: "/drivers" },
   { label: "Trips",         to: "/trips" },
+  { label: "Trip P&L",      to: "/trip-pnl-reports" },
   { label: "Maintenance",   to: "/maintenance" },
   { label: "Notifications", to: "/notifications" },
   { label: "Admin",         to: "/admin" },

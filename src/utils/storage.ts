@@ -1119,7 +1119,7 @@ export const updateDriver = async (
   return data;
 };
 
-const deleteDriver = async (id: string): Promise<boolean> => {
+export const deleteDriver = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("drivers").delete().eq("id", id);
 
   if (error) {
@@ -1275,7 +1275,7 @@ export const createWarehouse = async (
   return data;
 };
 
-const updateWarehouse = async (
+export const updateWarehouse = async (
   id: string,
   updates: Partial<Warehouse>
 ): Promise<Warehouse | null> => {
@@ -1306,7 +1306,7 @@ const updateWarehouse = async (
   return data;
 };
 
-const deleteWarehouse = async (id: string): Promise<boolean> => {
+export const deleteWarehouse = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("warehouses").delete().eq("id", id);
 
   if (error) {
@@ -1399,7 +1399,7 @@ export const createDestination = async (
   return data;
 };
 
-const updateDestination = async (
+export const updateDestination = async (
   id: string,
   updates: Partial<Destination>
 ): Promise<Destination | null> => {
@@ -1421,7 +1421,7 @@ const updateDestination = async (
   return data;
 };
 
-const deleteDestination = async (id: string): Promise<boolean> => {
+export const deleteDestination = async (id: string): Promise<boolean> => {
   const { error } = await supabase.from("destinations").delete().eq("id", id);
 
   if (error) {

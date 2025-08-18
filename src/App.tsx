@@ -40,7 +40,6 @@ import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
-import AdminDocumentRulesPage from "./pages/admin/AdminDocumentRulesPage";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -101,7 +100,6 @@ const App: React.FC = () => {
           <Route path="/admin/driver-ranking-settings" element={session ? <DriverRankingSettingsPage /> : <Navigate to="/login" replace />} />
           <Route path="/admin/maintenance-tasks" element={session ? <MaintenanceTasksAdmin /> : <Navigate to="/login" replace />} />
           <Route path="/admin/message-templates" element={session ? <MessageTemplatesPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/document-rules" element={session ? <AdminDocumentRulesPage /> : <Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
       <ToastContainer 
