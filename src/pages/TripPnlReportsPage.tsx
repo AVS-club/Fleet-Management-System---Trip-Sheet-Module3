@@ -309,18 +309,33 @@ const TripPnlReportsPage: React.FC = () => {
   const pnlSummary = useMemo((): PnLSummary => {
     const summary = filteredTrips.reduce((acc, trip) => {
       const income = Number(trip.income_amount) || 0;
-      const expense = Number(trip.total_expense) || 0;
-      const profit = Number(trip.net_profit) || 0;
-      const costPerKm = Number(trip.cost_per_km) || 0;
+      
+      // Calculate total expense from individual components
+      const calculatedTotalExpense = (
+        Number(trip.total_fuel_cost || 0) +
+        Number(trip.unloading_expense || 0) +
+        Number(trip.driver_expense || 0) +
+        Number(trip.road_rto_expense || 0) +
+        Number(trip.miscellaneous_expense || 0) +
+        Number(trip.breakdown_expense || 0)
+      );
+      
+      // Calculate profit from income minus calculated expenses
+      const calculatedProfit = income - calculatedTotalExpense;
+      
+      // Calculate cost per km from calculated expenses
+      const distance = (Number(trip.end_km) || 0) - (Number(trip.start_km) || 0);
+      const calculatedCostPerKm = distance > 0 ? calculatedTotalExpense / distance : 0;
 
       acc.totalIncome += income;
-      acc.totalExpense += expense;
-      acc.netProfit += profit;
-      acc.avgCostPerKm += costPerKm;
+      acc.totalExpense += calculatedTotalExpense;
+      acc.netProfit += calculatedProfit;
+      acc.avgCostPerKm += calculatedCostPerKm;
 
-      if (trip.profit_status === 'profit') {
+      // Determine profit status based on calculated profit
+      if (calculatedProfit > 0) {
         acc.profitableTrips++;
-      } else if (trip.profit_status === 'loss') {
+      } else if (calculatedProfit < 0) {
         acc.lossTrips++;
       }
 
