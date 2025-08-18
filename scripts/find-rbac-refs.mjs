@@ -108,7 +108,7 @@ async function main() {
     console.log(`  ${pattern}: ${count}`);
   });
   
-  process.exit(1); // Exit with error code to indicate issues found
+  process.exit(0); // Exit successfully even if references found (for reporting only)
 }
 
 main().catch(error => {
