@@ -29,6 +29,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import AIAlertsPage from "./pages/AIAlertsPage";
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -78,6 +79,7 @@ const App: React.FC = () => {
           <Route path="/alerts" element={session ? <AIAlertsPage /> : <Navigate to="/login" replace />} />
           <Route path="/drivers/insights" element={session ? <DriverInsightsPage /> : <Navigate to="/login" replace />} />
           <Route path="/parts-health" element={session ? <PartsHealthAnalyticsPage /> : <Navigate to="/login" replace />} />
+          <Route path="/admin" element={session ? <AdminDashboard /> : <Navigate to="/login" replace />} />
         </Routes>
       </Suspense>
       <ToastContainer 

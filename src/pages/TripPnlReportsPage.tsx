@@ -310,7 +310,7 @@ const TripPnlReportsPage: React.FC = () => {
     const summary = filteredTrips.reduce((acc, trip) => {
       const income = Number(trip.income_amount) || 0;
       
-      // Calculate total expense from individual components
+      // Calculate total expense from individual components using total_fuel_cost
       const calculatedTotalExpense = (
         Number(trip.total_fuel_cost || 0) +
         Number(trip.unloading_expense || 0) +
