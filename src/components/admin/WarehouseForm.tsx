@@ -340,12 +340,12 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
           <Button
             variant="outline"
             onClick={onCancel}
+            disabled={isSubmitting}
           >
-          disabled={isSubmitting}
             Cancel
           </Button>
-          <Button type="submit">
-        <Button type="submit" isLoading={isSubmitting}>
+          <Button type="submit" isLoading={isSubmitting}>
+            Save Warehouse
           </Button>
         </div>
       </div>
