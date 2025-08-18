@@ -99,7 +99,13 @@ const TripLocationsPage: React.FC = () => {
       toast.success('Warehouse deleted successfully');
     } catch (error) {
       console.error('Error deleting warehouse:', error);
-      toast.error('Failed to delete warehouse');
+      
+      // Check if it's a foreign key constraint violation (warehouse referenced by trips)
+      if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {
+        toast.error('Cannot delete warehouse: It is linked to existing trips. Consider marking it as inactive instead.');
+      } else {
+        toast.error('Failed to delete warehouse');
+      }
     } finally {
       setIsSubmitting(false);
     }
