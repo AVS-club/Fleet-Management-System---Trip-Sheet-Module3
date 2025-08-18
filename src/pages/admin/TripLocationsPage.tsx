@@ -101,7 +101,14 @@ const TripLocationsPage: React.FC = () => {
       console.error('Error deleting warehouse:', error);
       
       // Check if it's a foreign key constraint violation (warehouse referenced by trips)
-      if (error && typeof error === 'object' && 'code' in error && error.code === '23503') {
+      const isForeignKeyError = (
+        (error && typeof error === 'object' && 'code' in error && error.code === '23503') ||
+        (error && typeof error === 'object' && 'message' in error && 
+         typeof error.message === 'string' && error.message.includes('23503')) ||
+        (error && typeof error === 'string' && error.includes('foreign key constraint'))
+      );
+      
+      if (isForeignKeyError) {
         toast.error('Cannot delete warehouse: It is linked to existing trips. Consider marking it as inactive instead.');
       } else {
         toast.error('Failed to delete warehouse');
