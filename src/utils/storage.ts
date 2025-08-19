@@ -10,6 +10,7 @@ import {
 import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
+import { normalizeVehicleType } from './vehicleNormalize';
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
