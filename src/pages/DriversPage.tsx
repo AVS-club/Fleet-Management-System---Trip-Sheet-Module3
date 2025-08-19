@@ -206,7 +206,11 @@ const DriversPage: React.FC = () => {
         }
       } else {
         // Create new driver
-        const newDriver = await createDriver(driverData, user.id);
+        // Remove empty id field if present to let Supabase auto-generate
+        const { id, ...cleanDriverData } = driverData as any;
+        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
+        
+        const newDriver = await createDriver(finalDriverData);
         if (newDriver) {
           // Update other documents with the correct driver ID
           if (

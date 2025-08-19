@@ -1017,8 +1017,7 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
 };
 
 export const createDriver = async (
-  driver: Omit<Driver, "id">,
-  userId: string
+  driver: Omit<Driver, "id">
 ): Promise<Driver | null> => {
   // Remove photo property if it exists (we handle it separately)
   const {
@@ -1030,6 +1029,9 @@ export const createDriver = async (
     police_document,
     ...driverData
   } = driver as any;
+
+  // Ensure dl_number is not empty for file path construction
+  const driverLicenseNumber = dl_number && dl_number.trim() !== '' ? dl_number : 'unknown_driver';
 
   // const { data: uploadData, error: uploadError } = await supabase.storage
   //   .from("driver-docs")
@@ -1052,32 +1054,34 @@ export const createDriver = async (
   try {
     licencePublicUrls = await uploadFilesAndGetPublicUrls(
       "driver-docs",
-      `${dl_number}/license`,
+      `${driverLicenseNumber}/license`,
       license_document
     );
     idProofPublicUrls = await uploadFilesAndGetPublicUrls(
       "driver-docs",
-      `${dl_number}/idproof`,
+      `${driverLicenseNumber}/idproof`,
       aadhaar_document
     );
     policePublicUrls = await uploadFilesAndGetPublicUrls(
       "driver-docs",
-      `${dl_number}/policeVerification`,
+      `${driverLicenseNumber}/policeVerification`,
       police_document
     );
     medicalPublicUrls = await uploadFilesAndGetPublicUrls(
       "driver-docs",
-      `${dl_number}/medicalCertificate`,
+      `${driverLicenseNumber}/medicalCertificate`,
       medical_document
     );
   } catch (err) {
-    console.error(err);
+    console.error("Error uploading driver documents:", err);
+    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
   }
 
+  const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("drivers")
     .insert({
-      ...convertKeysToSnakeCase(driverData),
+      ...convertKeysToSnakeCase(withOwner(driverData, userId)),
       license_number: dl_number,
       license_doc_url: licencePublicUrls,
       aadhar_doc_url: idProofPublicUrls,
