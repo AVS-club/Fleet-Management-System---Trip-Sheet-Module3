@@ -459,19 +459,24 @@ export const createVehicle = async (
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData?.user?.id ?? null;
 
+  // Prepare the vehicle data for insertion
+  const vehicleDataToInsert = convertKeysToSnakeCase(processedVehicle);
+  
+  // Only add created_by if we have a user ID
+  if (userId) {
+    vehicleDataToInsert.created_by = userId;
+  }
+
   const { data, error } = await supabase
     .from("vehicles")
     .insert({
-      ...convertKeysToSnakeCase(processedVehicle),
-      created_by: userId,
-
+      ...vehicleDataToInsert,
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
       fitness_document_url: processedVehicle.fitness_document_url,
       tax_document_url: processedVehicle.tax_document_url,
       permit_document_url: processedVehicle.permit_document_url,
       puc_document_url: processedVehicle.puc_document_url,
-
       tax_paid_upto:
         (processedVehicle.tax_paid_upto &&
           !isNaN(new Date(processedVehicle.tax_paid_upto).getTime()) &&
