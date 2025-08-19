@@ -30,7 +30,6 @@ const LoginForm: React.FC<LoginFormProps> = ({
         password,
       });
       if (error) throw error;
-      console.log(data);
       if (data && data.user)
         localStorage.setItem("user", JSON.stringify(data.user));
       navigate("/"); // Navigate to dashboard

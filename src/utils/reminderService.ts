@@ -61,7 +61,6 @@ export const createReminderContact = async (
     is_global: contact.is_global ?? false,
   };
 
-  console.log("Safe contact data being inserted:", safeContact);
   const { data, error } = await supabase
     .from("reminder_contacts")
     .insert(safeContact)

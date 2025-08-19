@@ -246,11 +246,6 @@ const MaintenanceTaskPage: React.FC = () => {
           service_groups: updatedServiceGroups,
         };
 
-        // Debug logging - log the payload before submission
-        console.log(
-          "Updating task with:",
-          JSON.stringify(updatePayload, null, 2)
-        );
 
         try {
           // Now try our utility function

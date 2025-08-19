@@ -107,7 +107,6 @@ export const createTask = async (
     throw new Error("Garage ID is required");
   }
 
-  console.log("Creating task with data:", JSON.stringify(taskData, null, 2));
 
   // Insert the main task
   const { data, error } = await supabase
@@ -181,14 +180,6 @@ export const updateTask = async (
   id: string,
   updates: Partial<MaintenanceTask>
 ): Promise<MaintenanceTask | null> => {
-  // Debug log
-  console.log(
-    "updateTask called with id:",
-    id,
-    "and updates:",
-    JSON.stringify(updates, null, 2)
-  );
-
   // Extract service groups to handle separately
   const { service_groups, ...updateData } = updates as any;
 
@@ -226,7 +217,6 @@ export const updateTask = async (
   }
 
   // Update the task
-  console.log("Sending update:", JSON.stringify(updateData, null, 2));
   const { data: updatedTask, error } = await supabase
     .from("maintenance_tasks")
     .update({
