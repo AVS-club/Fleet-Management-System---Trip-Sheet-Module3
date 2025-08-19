@@ -163,11 +163,12 @@ const createMockClient = () => {
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
   if (!isConfigured) {
-    console.warn("Supabase is not properly configured. Using mock client.");
-    console.warn("Environment variables:", {
+    console.error("Supabase is not properly configured. Using mock client.");
+    console.error("Environment variables:", {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? "Present" : "Missing",
     });
+    console.error("Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials");
     return createMockClient() as any;
   }
 
@@ -177,10 +178,16 @@ const createSupabaseClient = () => {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
+        detectSessionInUrl: true,
       },
       global: {
         headers: {
           "X-Client-Info": "vehicle-management-system",
+        },
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
         },
       },
     });
@@ -242,6 +249,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       return false;
     }
 
+    console.log("Supabase connection test passed (database query)");
     return true;
   } catch (error) {
     console.error("Supabase connection test error:", error);
@@ -262,6 +270,8 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 
 Current origin: ${window.location.origin}`);
     }
+    
+    console.log("Supabase connection test passed (auth check)");
     
     // Handle timeout errors
     if (error instanceof Error && error.message === 'REQUEST_TIMEOUT') {

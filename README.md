@@ -28,7 +28,19 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
    ```
    npm install
    ```
-3. Copy `.env.example` to `.env` and fill in your Supabase credentials
+3. Copy `.env.example` to `.env` and fill in your Supabase credentials:
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit `.env` with your actual Supabase project URL and anon key
+4. Configure CORS in your Supabase project:
+   - Go to your Supabase Dashboard: https://supabase.com/dashboard
+   - Select your project
+   - Navigate to Settings → API → CORS
+   - Add these URLs to allowed origins:
+     - http://localhost:5173
+     - https://localhost:5173
+   - Save the changes and wait 1-2 minutes for them to take effect
 4. Start the development server:
    ```
    npm run dev
