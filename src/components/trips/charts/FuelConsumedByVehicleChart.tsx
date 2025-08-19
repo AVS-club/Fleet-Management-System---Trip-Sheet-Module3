@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
-import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
+import { format } from 'date-fns';
+import { filterTripsByDateRange } from '../../../utils/tripDateRange';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -21,28 +22,9 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
 }) => {
   // Calculate fuel consumption by vehicle for the date range
   const chartData = useMemo(() => {
-    if (!Array.isArray(trips) || !Array.isArray(vehicles)) return [];
+    if (!Array.isArray(vehicles)) return [];
 
-    // Safety check for date range validity
-    if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      console.warn('Invalid date range:', dateRange);
-      return [];
-    }
-
-    // Filter trips based on date range
-    const filteredTrips = trips.filter(trip => {
-      try {
-        const tripDate = trip.trip_end_date ? parseISO(trip.trip_end_date) : null;
-        
-        // Validate trip date before using in interval check
-        if (!tripDate || !isValid(tripDate)) return false;
-        
-        return isWithinInterval(tripDate, dateRange);
-      } catch (error) {
-        console.warn('Error filtering trip by date:', error);
-        return false;
-      }
-    });
+    const filteredTrips = filterTripsByDateRange(trips, dateRange);
 
     // Calculate fuel consumption for each vehicle
     const vehicleFuelMap: Record<string, { vehicleId: string; fuelLiters: number; totalDistance: number }> = {};
