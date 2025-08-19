@@ -80,13 +80,21 @@ export const getSignedDocumentUrl = async (
  * @param docType The type of document (e.g., 'license', 'photo')
  * @returns The file path of the uploaded file
  */
-const uploadDriverDocument = async (
+export const uploadDriverDocument = async (
   file: File,
   driverId: string,
   docType: string
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
+  }
+
+  // Check if the bucket exists by trying to list files (this will fail if bucket doesn't exist)
+  try {
+    await supabase.storage.from("drivers").list("", { limit: 1 });
+  } catch (error) {
+    console.error("Storage bucket 'drivers' may not exist:", error);
+    throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
   }
 
   // Get file extension
@@ -105,6 +113,9 @@ const uploadDriverDocument = async (
 
   if (uploadError) {
     console.error("Error uploading driver document:", uploadError);
+    if (uploadError.message.includes("bucket") || uploadError.message.includes("not found")) {
+      throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
+    }
     throw new Error(`Error uploading document: ${uploadError.message}`);
   }
 
@@ -133,6 +144,9 @@ export const getSignedDriverDocumentUrl = async (
 
     if (error) {
       console.error("Error generating signed URL for driver document:", error);
+      if (error.message.includes("bucket") || error.message.includes("not found")) {
+        throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
+      }
       throw error;
     }
 
@@ -157,6 +171,14 @@ export async function uploadFilesAndGetPublicUrls(
   files: File[]
 ): Promise<string[]> {
   try {
+    // Check if the bucket exists by trying to list files
+    try {
+      await supabase.storage.from(bucketId).list("", { limit: 1 });
+    } catch (error) {
+      console.error(`Storage bucket '${bucketId}' may not exist:`, error);
+      throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
+    }
+
     const uploadedPaths: string[] = [];
 
     await Promise.all(
@@ -167,7 +189,12 @@ export async function uploadFilesAndGetPublicUrls(
         const { data, error } = await supabase.storage
           .from(bucketId)
           .upload(filePath, file, { upsert: true });
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes("bucket") || error.message.includes("not found")) {
+            throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
+          }
+          throw error;
+        }
         if (data?.path) uploadedPaths.push(data.path);
       })
     );
@@ -181,8 +208,9 @@ export async function uploadFilesAndGetPublicUrls(
     return urls;
   } catch (error) {
     console.error("Error uploading files to Supabase:", error);
-    throw new Error(
-      "Failed to upload one or more files. Please try again or check your network/storage settings."
-    );
+    if (error instanceof Error && error.message.includes("bucket")) {
+      throw error; // Re-throw bucket-specific errors as-is
+    }
+    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
   }
 }

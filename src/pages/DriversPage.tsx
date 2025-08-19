@@ -143,9 +143,9 @@ const DriversPage: React.FC = () => {
           photoUrl = await uploadDriverPhoto(data.photo, tempId);
         } catch (error) {
           console.error("Error uploading photo:", error);
-          toast.error(
-            "Failed to upload photo, but continuing with driver save"
-          );
+          // Don't continue if photo upload fails - this indicates storage issues
+          toast.error("Failed to upload driver photo. Please check your storage settings and try again.");
+          return;
         }
       }
 
@@ -244,6 +244,9 @@ const DriversPage: React.FC = () => {
                     error
                   );
                 }
+                toast.error(`Failed to upload document "${doc.name}". Please check your storage settings and try again.`);
+                  toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
+                return;
               }
 
               updatedDocs.push(updatedDoc);
@@ -273,7 +276,11 @@ const DriversPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error saving driver:", error);
-      toast.error(`Failed to ${editingDriver ? "update" : "add"} driver`);
+      if (error instanceof Error && error.message.includes("Failed to upload")) {
+        toast.error("File upload failed. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
+      } else {
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
