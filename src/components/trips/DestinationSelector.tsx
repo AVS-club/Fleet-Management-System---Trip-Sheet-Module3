@@ -315,6 +315,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               {lastSelectedDestination && (
                 <button
                   type="button"
+                  type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -331,7 +332,9 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           ) : (
             <div 
               className="text-gray-500 flex items-center"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setIsOpen(true);
                 requestAnimationFrame(() => {
                   searchInputRef.current?.focus({ preventScroll: true } as any);
@@ -349,6 +352,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                     searchInputRef.current?.focus({ preventScroll: true } as any);
                   });
                 }}
+                type="button"
               >
                 <Plus className="h-4 w-4" />
               </button>
@@ -358,6 +362,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           {/* Add destination button (when there are already 2+ destinations) */}
           {Array.isArray(selectedDestinations) && selectedDestinations.length >= 2 && !isOpen && (
             <button
+              type="button"
               type="button"
               className="mt-2 flex items-center text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50"
               onClick={(e) => {
@@ -410,7 +415,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               className={`px-3 py-2.5 cursor-pointer hover:bg-gray-50 ${
                 Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) ? 'bg-primary-50' : ''
               }`}
-              onClick={() => toggleDestination(dest.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleDestination(dest.id);
+              }}
             >
               <div className="flex justify-between items-start">
                 <div className="flex items-start">
@@ -444,7 +453,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
             <div
               key={prediction.place_id}
               className="p-3 cursor-pointer hover:bg-gray-50 border-t border-gray-100 first:border-t-0"
-              onClick={() => handleSelectGooglePlace(prediction)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSelectGooglePlace(prediction);
+              }}
             >
               <div className="flex items-start">
                 <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
