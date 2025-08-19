@@ -3,7 +3,6 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from "../ui/ThemeToggle";
 import { toast } from 'react-toastify';
-import { cn } from '../../utils/cn';
 
 const NAV_ITEMS = [
   { label: "Dashboard",     to: "/" },
@@ -41,17 +40,15 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Nav */}
-        <nav className="flex flex-1 items-center justify-center gap-1">
+        <nav className="ml-6 flex flex-1 items-center gap-4 text-sm">
           {NAV_ITEMS.map(item => (
             <NavLink
               key={item.to}
-              to={item.to}
-              className={({ isActive }) => cn(
-                "inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition",
-                isActive 
-                  ? "text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-400" 
-                  : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
-              )}
+              to={item.to} // Use item.to directly for NavLink
+              className={({ isActive }) =>
+                `inline-flex items-center h-9 px-2 rounded-md transition text-gray-600 dark:text-gray-300
+                 ${isActive ? "text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-700"}`
+              }
               end={item.to === "/"}
             >
               {item.label}
@@ -60,11 +57,11 @@ const Header: React.FC = () => {
         </nav>
 
         {/* Right controls */}
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <button
             onClick={handleLogout}
-            className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition"
+            className="inline-flex h-9 items-center rounded-md border border-gray-200 dark:border-gray-600 px-3 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
           >
             Logout
           </button>
