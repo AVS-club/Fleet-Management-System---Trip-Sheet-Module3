@@ -26,6 +26,7 @@ import Checkbox from "../ui/Checkbox";
 import Button from "../ui/Button";
 import { toast } from "react-toastify";
 import CollapsibleSection from "../ui/CollapsibleSection";
+import { normalizeVehicleType } from "../../utils/vehicleNormalize";
 import { supabase } from "../../utils/supabaseClient";
 import {
   getReminderTemplates,
@@ -43,6 +44,13 @@ interface VehicleFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
 }
+
+const VEHICLE_TYPES = [
+  { value: 'truck', label: 'Truck' },
+  { value: 'bus',   label: 'Bus' },
+  { value: 'car',   label: 'Car' },
+  { value: 'van',   label: 'Van' },
+];
 
 const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
@@ -230,6 +238,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       const rc = result.data?.response || {};
       const mapApiToForm = (rc: any, regNum: string) => ({
         registration_number:
+          // Use setValue with shouldValidate: true for all fields
           rc.license_plate || rc.registrationNumber || regNum,
         chassis_number: rc.chassis_number || rc.chassisNumber || "",
         engine_number: rc.engine_number || rc.engineNumber || "",
@@ -284,8 +293,49 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         current_odometer: 0,
       });
 
-      const mapped = mapApiToForm(rc, regNum);
-      reset(mapped);
+      // Use setValue with shouldValidate: true for all fields
+      setValue('registration_number', rc.license_plate || rc.registrationNumber || regNum, { shouldDirty: true, shouldValidate: true });
+      setValue('chassis_number', rc.chassis_number || rc.chassisNumber || '', { shouldDirty: true, shouldValidate: true });
+      setValue('engine_number', rc.engine_number || rc.engineNumber || '', { shouldDirty: true, shouldValidate: true });
+      setValue('make', rc.brand_name || rc.make || '', { shouldDirty: true, shouldValidate: true });
+      setValue('model', rc.brand_model || rc.model || '', { shouldDirty: true, shouldValidate: true });
+      setValue('year', rc.manufacturing_date_formatted ? parseInt(rc.manufacturing_date_formatted.split("-")[0]) : rc.yearOfManufacture ? parseInt(rc.yearOfManufacture) : rc.registration_date ? parseInt(rc.registration_date.split("-")[0]) : undefined, { shouldDirty: true, shouldValidate: true });
+      setValue('color', rc.color || '', { shouldDirty: true, shouldValidate: true });
+      setValue('fuel_type', (rc.fuel_type || rc.fuelType || '').toLowerCase() || 'diesel', { shouldDirty: true, shouldValidate: true });
+      setValue('owner_name', rc.owner_name || rc.ownerName || '', { shouldDirty: true, shouldValidate: true });
+      setValue('seating_capacity', rc.seating_capacity ? parseInt(rc.seating_capacity) : rc.seatingCapacity ? parseInt(rc.seatingCapacity) : undefined, { shouldDirty: true, shouldValidate: true });
+      setValue('registration_date', rc.registration_date || '', { shouldDirty: true, shouldValidate: true });
+      setValue('rc_expiry_date', rc.rc_expiry_date || '', { shouldDirty: true, shouldValidate: true });
+      setValue('permit_number', rc.permit_number || '', { shouldDirty: true, shouldValidate: true });
+      setValue('permit_issuing_state', rc.rto_name ? rc.rto_name?.split(",")[1]?.trim() : '', { shouldDirty: true, shouldValidate: true });
+      setValue('permit_issue_date', rc.permit_issue_date || '', { shouldDirty: true, shouldValidate: true });
+      setValue('permit_expiry_date', rc.permit_valid_upto || rc.permit_valid_from || '', { shouldDirty: true, shouldValidate: true });
+      setValue('permit_type', rc.permit_type || '', { shouldDirty: true, shouldValidate: true });
+      setValue('insurance_expiry_date', rc.insurance_expiry || '', { shouldDirty: true, shouldValidate: true });
+      setValue('insurer_name', rc.insurance_company || '', { shouldDirty: true, shouldValidate: true });
+      setValue('policy_number', rc.insurance_policy || '', { shouldDirty: true, shouldValidate: true });
+      setValue('fitness_expiry_date', rc.fit_up_to || '', { shouldDirty: true, shouldValidate: true });
+      setValue('fitness_issue_date', rc.fitness_issue_date || '', { shouldDirty: true, shouldValidate: true });
+      setValue('puc_expiry_date', rc.pucc_upto || '', { shouldDirty: true, shouldValidate: true });
+      setValue('puc_certificate_number', rc.pucc_number || '', { shouldDirty: true, shouldValidate: true });
+      setValue('tax_paid_upto', rc.tax_paid_upto || '', { shouldDirty: true, shouldValidate: true });
+      setValue('vehicle_class', rc.class || '', { shouldDirty: true, shouldValidate: true });
+      setValue('emission_norms', rc.norms || '', { shouldDirty: true, shouldValidate: true });
+      setValue('unladen_weight', rc.unladen_weight ? parseInt(rc.unladen_weight) : undefined, { shouldDirty: true, shouldValidate: true });
+      setValue('cubic_capacity', rc.cubic_capacity ? parseFloat(rc.cubic_capacity) : undefined, { shouldDirty: true, shouldValidate: true });
+      setValue('cylinders', rc.cylinders ? parseInt(rc.cylinders) : undefined, { shouldDirty: true, shouldValidate: true });
+      setValue('noc_details', rc.noc_details || '', { shouldDirty: true, shouldValidate: true });
+      setValue('status', (rc.rc_status || '').toLowerCase() || 'active', { shouldDirty: true, shouldValidate: true });
+      setValue('rc_status', rc.rc_status || '', { shouldDirty: true, shouldValidate: true });
+      setValue('financer', rc.financer || '', { shouldDirty: true, shouldValidate: true });
+      
+      // Normalize and set vehicle type
+      const normalizedType = normalizeVehicleType(rc.type || rc.vehicleType);
+      setValue('type', normalizedType, { shouldDirty: true, shouldValidate: true });
+
+      // Set current odometer to 0 if not provided by API
+      setValue('current_odometer', 0, { shouldDirty: true, shouldValidate: true });
+
       setFieldsDisabled(false);
       setFetchStatus("success");
       toast.success(
@@ -295,6 +345,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       toast.error(err.message || "Failed to fetch vehicle details.");
       setFieldsDisabled(false);
       setFetchStatus("error");
+      // Reset form to initial state if fetch fails, keeping only reg_number
+      reset({ registration_number: watch('registration_number') });
     } finally {
       setIsFetching(false);
     }
@@ -415,21 +467,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Controller
-            control={control}
-            name="type"
+            control={control} // Use 'control' from useForm
+            name="type" // The name of the field in your form data
             rules={{ required: "Vehicle type is required" }}
-            render={({ field }) => (
+            render={({ field }) => ( // 'field' contains value, onChange, etc.
               <Select
                 label="Vehicle Type"
-                options={[
-                  { value: "truck", label: "Truck" },
-                  { value: "tempo", label: "Tempo" },
-                  { value: "trailer", label: "Trailer" },
-                ]}
+                options={VEHICLE_TYPES} // Use the defined VEHICLE_TYPES constant
                 error={errors.type?.message}
                 required
                 disabled={fieldsDisabled || isSubmitting}
                 {...field}
+                // Ensure the value passed to Select is the actual string value
+                value={field.value}
+                // Select's onChange should pass the string value directly to RHF's onChange
+                onChange={(e) => field.onChange(e.target.value)}
               />
             )}
           />

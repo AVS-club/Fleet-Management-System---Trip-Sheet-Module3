@@ -454,8 +454,7 @@ export const createVehicle = async (
 
   const { data, error } = await supabase
     .from("vehicles")
-    .insert({
-      ...convertKeysToSnakeCase(processedVehicle),
+    .insert(convertKeysToSnakeCase(processedVehicle))
 
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
@@ -499,7 +498,7 @@ export const createVehicle = async (
           !isNaN(new Date(processedVehicle.permit_expiry_date).getTime()) &&
           new Date(processedProcessedVehicle.permit_expiry_date)) ||
         null,
-      fitness_issue_date:
+      fitness_issue_date: 
         (processedVehicle.fitness_issue_date &&
           !isNaN(new Date(processedVehicle.fitness_issue_date).getTime()) &&
           new Date(processedVehicle.fitness_issue_date)) ||
