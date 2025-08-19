@@ -1,4 +1,128 @@
 import { supabase } from "./supabaseClient";
+import { Driver } from "../types"; // Assuming Driver type is available
+
+/** Upload a driver file. Object path starts with auth.uid() to satisfy RLS. */
+export async function uploadDriverFile(
+  file: File | Blob,
+  opts: {
+    userId: string;        // auth.uid()
+    driverKey: string;     // e.g., driver id or sanitized DL number
+    filename: string;      // e.g., "dl-front.png"
+  }
+): Promise<{ path: string }> {
+  const { userId, driverKey, filename } = opts;
+  const objectName = `${userId}/drivers/${driverKey}/${filename}`;
+
+  const { data, error } = await supabase
+    .storage
+    .from("drivers")
+    .upload(objectName, file, { upsert: true, cacheControl: "3600" });
+
+  if (error) throw new Error(`Driver file upload failed: ${error.message}`);
+  return { path: data.path };
+}
+
+/** Signed URL for private driver files (for <img src> / download). */
+export async function getSignedDriverUrl(path: string, expiresInSec = 60 * 15) {
+  const { data, error } = await supabase
+    .storage
+    .from("drivers")
+    .createSignedUrl(path, expiresInSec);
+
+  if (error) throw new Error(`Signed URL error: ${error.message}`);
+  return data.signedUrl;
+}
+
+/** Delete a file (RLS will only allow within caller's own folder). */
+export async function deleteDriverFile(path: string) {
+  const { error } = await supabase.storage.from("drivers").remove([path]);
+  if (error) throw new Error(`Delete failed: ${error.message}`);
+}
+
+/** Helper to upload all driver documents and return their storage paths. */
+export async function uploadAllDriverDocs(
+  driverData: Partial<Driver>,
+  driverKey: string // Use a stable key for the folder, e.g., DL number or generated ID
+): Promise<Partial<Driver>> {
+  const user = (await supabase.auth.getUser()).data.user;
+  if (!user) throw new Error("Not authenticated");
+  const userId = user.id;
+
+  const uploadedPaths: Partial<Driver> = {};
+
+  const safeName = (base: string) =>
+    `${base}-${Date.now()}`.replace(/[^a-z0-9\-_.]/gi, "-");
+
+  // Main driver photo
+  if (driverData.photo instanceof File) {
+    const { path } = await uploadDriverFile(driverData.photo, {
+      userId, driverKey, filename: `${safeName("photo")}.${driverData.photo.name.split('.').pop()}`,
+    });
+    uploadedPaths.driver_photo_url = path;
+  }
+
+  // License document
+  if (Array.isArray(driverData.license_document) && driverData.license_document.length > 0) {
+    const file = driverData.license_document; // Assuming single file for simplicity
+    const { path } = await uploadDriverFile(file, {
+      userId, driverKey, filename: `${safeName("license")}.${file.name.split('.').pop()}`,
+    });
+    uploadedPaths.license_doc_url = path; // Store as single string path
+  }
+
+  // Aadhaar document
+  if (Array.isArray(driverData.aadhaar_document) && driverData.aadhaar_document.length > 0) {
+    const file = driverData.aadhaar_document;
+    const { path } = await uploadDriverFile(file, {
+      userId, driverKey, filename: `${safeName("aadhaar")}.${file.name.split('.').pop()}`,
+    });
+    uploadedPaths.aadhar_doc_url = path;
+  }
+
+  // Police document
+  if (Array.isArray(driverData.police_document) && driverData.police_document.length > 0) {
+    const file = driverData.police_document;
+    const { path } = await uploadDriverFile(file, {
+      userId, driverKey, filename: `${safeName("police")}.${file.name.split('.').pop()}`,
+    });
+    uploadedPaths.police_doc_url = path;
+  }
+
+  // Medical document
+  if (Array.isArray(driverData.medical_document) && driverData.medical_document.length > 0) {
+    const file = driverData.medical_document;
+    const { path } = await uploadDriverFile(file, {
+      userId, driverKey, filename: `${safeName("medical")}.${file.name.split('.').pop()}`,
+    });
+    uploadedPaths.medical_doc_url = path;
+  }
+
+  // Other documents (handle as an array of objects with file_obj)
+  if (Array.isArray(driverData.other_documents)) {
+    const otherDocPaths: { name: string; file_path?: string; issue_date?: string; expiry_date?: string; cost?: number }[] = [];
+    for (const doc of driverData.other_documents) {
+      if (doc.file_obj instanceof File) {
+        const file = doc.file_obj;
+        const { path } = await uploadDriverFile(file, {
+          userId, driverKey, filename: `${safeName(doc.name || "other-doc")}.${file.name.split('.').pop()}`,
+        });
+        otherDocPaths.push({
+          name: doc.name,
+          file_path: path,
+          issue_date: doc.issue_date,
+          expiry_date: doc.expiry_date,
+          cost: doc.cost
+        });
+      } else if (doc.file_path) {
+        // Keep existing paths if no new file is uploaded
+        otherDocPaths.push(doc);
+      }
+    }
+    uploadedPaths.other_documents = otherDocPaths;
+  }
+
+  return uploadedPaths;
+}
 
 /**
  * Uploads a vehicle document to Supabase Storage
