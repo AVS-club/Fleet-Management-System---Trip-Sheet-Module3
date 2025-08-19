@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { NAV_LINKS } from './navLinks';
-import { Ellipsis } from 'lucide-react';
+import { CircleEllipsis as Ellipsis } from 'lucide-react';
 import clsx from 'clsx';
 
 const Tip: React.FC<{ text: string }> = ({ text }) => (
