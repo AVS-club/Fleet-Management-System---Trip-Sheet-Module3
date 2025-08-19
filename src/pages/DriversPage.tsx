@@ -144,7 +144,7 @@ const DriversPage: React.FC = () => {
         } catch (error) {
           console.error("Error uploading photo:", error);
           // Don't continue if photo upload fails - this indicates storage issues
-          toast.error("Failed to upload driver photo. Please check your storage settings and try again.");
+          toast.error("Failed to upload driver photo. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
           return;
         }
       }
@@ -235,7 +235,7 @@ const DriversPage: React.FC = () => {
                       `${newDriver.id}-${doc.name
                         .replace(/\s+/g, "-")
                         .toLowerCase()}`
-                    );
+                    toast.error(`Failed to finalize document "${doc.name}". Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.`);
                     updatedDoc.file_path = finalFilePath;
                   }
                 } catch (error) {
@@ -246,16 +246,24 @@ const DriversPage: React.FC = () => {
                   toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
                   return;
                 }
+                toast.error(`Failed to upload document "${doc.name}". Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.`);
+                return;
               }
 
               updatedDocs.push(updatedDoc);
             }
 
             if (updatedDocs.length > 0) {
-              await updateDriver(newDriver.id, {
-                other_documents: updatedDocs,
-              });
-              newDriver.other_documents = updatedDocs;
+              try {
+                await updateDriver(newDriver.id, {
+                  other_documents: updatedDocs,
+                });
+                newDriver.other_documents = updatedDocs;
+              } catch (error) {
+                console.error("Error updating driver with finalized documents:", error);
+                toast.error("Failed to save document references. Please try again or check your network connection.");
+                return;
+              }
             }
           }
 
@@ -275,10 +283,10 @@ const DriversPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error saving driver:", error);
-      if (error instanceof Error && error.message.includes("Failed to upload")) {
+      if (error instanceof Error && (error.message.includes("upload") || error.message.includes("storage"))) {
         toast.error("File upload failed. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
       } else {
-        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver. Please check your network connection and try again.`);
       }
     } finally {
       setIsSubmitting(false);
