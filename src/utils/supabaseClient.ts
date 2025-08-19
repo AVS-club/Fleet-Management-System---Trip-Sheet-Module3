@@ -162,18 +162,6 @@ const createMockClient = () => {
 
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
-  // Add debugging information
-  console.log("Supabase configuration check:", {
-    supabaseUrl,
-    hasAnonKey: !!supabaseAnonKey,
-    isConfigured,
-    urlValid: isValidUrl(supabaseUrl),
-    environment:
-      typeof import.meta !== "undefined" && import.meta.env
-        ? "Vite"
-        : "Node.js",
-  });
-
   if (!isConfigured) {
     console.warn("Supabase is not properly configured. Using mock client.");
     console.warn("Environment variables:", {
@@ -197,7 +185,6 @@ const createSupabaseClient = () => {
       },
     });
 
-    console.log("Supabase client created successfully");
     return client;
   } catch (error) {
     console.error("Error initializing Supabase client:", error);

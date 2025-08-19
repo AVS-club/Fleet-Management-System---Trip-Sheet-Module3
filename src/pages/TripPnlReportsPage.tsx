@@ -161,10 +161,6 @@ const TripPnlReportsPage: React.FC = () => {
         getWarehouses()
       ]);
       
-      console.log('Fetched Trips:', tripsData);
-      console.log('Fetched Vehicles:', vehiclesData);
-      console.log('Fetched Drivers:', driversData);
-      console.log('Fetched Warehouses:', warehousesData);
       
       setTrips(tripsData);
       setVehicles(vehiclesData);
@@ -301,7 +297,6 @@ const TripPnlReportsPage: React.FC = () => {
       return true;
     });
     
-    console.log('Filtered Trips:', filtered);
     return filtered;
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
@@ -354,7 +349,6 @@ const TripPnlReportsPage: React.FC = () => {
     summary.avgCostPerKm = filteredTrips.length > 0 ? summary.avgCostPerKm / filteredTrips.length : 0;
     summary.profitMargin = summary.totalIncome > 0 ? (summary.netProfit / summary.totalIncome) * 100 : 0;
 
-    console.log('P&L Summary:', summary);
     return summary;
   }, [filteredTrips]);
 
