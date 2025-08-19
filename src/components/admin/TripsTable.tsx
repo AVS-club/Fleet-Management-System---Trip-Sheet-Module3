@@ -9,7 +9,11 @@ import { format } from 'date-fns';
 interface Column {
   id: string;
   label: string;
-  accessor: (trip: Trip, vehicles: Vehicle[], drivers: Driver[]) => string | number;
+  accessor: (
+    trip: Trip,
+    vehiclesById: Record<string, Vehicle>,
+    driversById: Record<string, Driver>
+  ) => string | number;
   sortable?: boolean;
   editable?: boolean;
   width?: string;
@@ -39,118 +43,149 @@ const TripsTable: React.FC<TripsTableProps> = ({
   onImport,
   onDownloadFormat
 }) => {
-  const [columns, setColumns] = useState<Column[]>([
-    {
-      id: 'trip_serial_number',
-      label: 'Trip ID',
-      accessor: (trip) => trip.trip_serial_number,
-      sortable: true,
-      width: '120px',
-      description: 'Unique identifier for the trip (e.g., T0001)'
-    },
-    {
-      id: 'vehicle',
-      label: 'Vehicle',
-      accessor: (trip, vehicles) => 
-        vehicles.find(v => v.id === trip.vehicle_id)?.registration_number || 'Unknown',
-      sortable: true,
-      editable: true,
-      type: 'select',
-      options: (vehicles || []).map(v => ({
+  const vehiclesById = useMemo(() => {
+    const map: Record<string, Vehicle> = {};
+    (vehicles || []).forEach(v => {
+      map[v.id] = v;
+    });
+    return map;
+  }, [vehicles]);
+
+  const driversById = useMemo(() => {
+    const map: Record<string, Driver> = {};
+    (drivers || []).forEach(d => {
+      map[d.id] = d;
+    });
+    return map;
+  }, [drivers]);
+
+  const vehicleOptions = useMemo(
+    () =>
+      Object.values(vehiclesById).map(v => ({
         value: v.id,
         label: v.registration_number
       })),
-      width: '150px',
-      description: 'Vehicle registration number'
-    },
-    {
-      id: 'driver',
-      label: 'Driver',
-      accessor: (trip, vehicles, drivers) => 
-        drivers.find(d => d.id === trip.driver_id)?.name || 'Unknown',
-      sortable: true,
-      editable: true,
-      type: 'select',
-      options: drivers.map(d => ({
+    [vehiclesById]
+  );
+
+  const driverOptions = useMemo(
+    () =>
+      Object.values(driversById).map(d => ({
         value: d.id,
         label: d.name
       })),
-      width: '150px',
-      description: 'Driver name'
-    },
-    {
-      id: 'start_date',
-      label: 'Start Date',
-      accessor: (trip) => format(new Date(trip.trip_start_date), 'dd/MM/yyyy'),
-      sortable: true,
-      editable: true,
-      type: 'date',
-      width: '120px',
-      description: 'Trip start date (DD/MM/YYYY)'
-    },
-    {
-      id: 'end_date',
-      label: 'End Date',
-      accessor: (trip) => format(new Date(trip.trip_end_date), 'dd/MM/yyyy'),
-      sortable: true,
-      editable: true,
-      type: 'date',
-      width: '120px',
-      description: 'Trip end date (DD/MM/YYYY)'
-    },
-    {
-      id: 'start_km',
-      label: 'Start KM',
-      accessor: (trip) => trip.start_km,
-      sortable: true,
-      editable: true,
-      type: 'number',
-      width: '120px',
-      description: 'Starting odometer reading'
-    },
-    {
-      id: 'end_km',
-      label: 'End KM',
-      accessor: (trip) => trip.end_km,
-      sortable: true,
-      editable: true,
-      type: 'number',
-      width: '120px',
-      description: 'Ending odometer reading'
-    },
-    {
-      id: 'distance',
-      label: 'Distance (km)',
-      accessor: (trip) => trip.end_km - trip.start_km,
-      sortable: true,
-      width: '120px',
-      description: 'Total distance covered (calculated)'
-    },
-    {
-      id: 'mileage',
-      label: 'Mileage',
-      accessor: (trip) => trip.calculated_kmpl?.toFixed(2) || '-',
-      sortable: true,
-      width: '100px',
-      description: 'Fuel efficiency in km/L (calculated)'
-    },
-    {
-      id: 'expenses',
-      label: 'Total Expenses',
-      accessor: (trip) => trip.total_road_expenses + (trip.total_fuel_cost || 0),
-      sortable: true,
-      width: '120px',
-      description: 'Combined road and fuel expenses'
-    },
-    {
-      id: 'profit_loss',
-      label: 'Profit/Loss',
-      accessor: (trip) => trip.net_profit || 0,
-      sortable: true,
-      width: '120px',
-      description: 'Net profit or loss for the trip'
-    }
-  ]);
+    [driversById]
+  );
+
+  const columns: Column[] = useMemo(
+    () => [
+      {
+        id: 'trip_serial_number',
+        label: 'Trip ID',
+        accessor: trip => trip.trip_serial_number,
+        sortable: true,
+        width: '120px',
+        description: 'Unique identifier for the trip (e.g., T0001)'
+      },
+      {
+        id: 'vehicle',
+        label: 'Vehicle',
+        accessor: (trip, vehiclesById) =>
+          vehiclesById[trip.vehicle_id]?.registration_number || 'Unknown',
+        sortable: true,
+        editable: true,
+        type: 'select',
+        options: vehicleOptions,
+        width: '150px',
+        description: 'Vehicle registration number'
+      },
+      {
+        id: 'driver',
+        label: 'Driver',
+        accessor: (trip, _vehiclesById, driversById) =>
+          driversById[trip.driver_id]?.name || 'Unknown',
+        sortable: true,
+        editable: true,
+        type: 'select',
+        options: driverOptions,
+        width: '150px',
+        description: 'Driver name'
+      },
+      {
+        id: 'start_date',
+        label: 'Start Date',
+        accessor: trip => format(new Date(trip.trip_start_date), 'dd/MM/yyyy'),
+        sortable: true,
+        editable: true,
+        type: 'date',
+        width: '120px',
+        description: 'Trip start date (DD/MM/YYYY)'
+      },
+      {
+        id: 'end_date',
+        label: 'End Date',
+        accessor: trip => format(new Date(trip.trip_end_date), 'dd/MM/yyyy'),
+        sortable: true,
+        editable: true,
+        type: 'date',
+        width: '120px',
+        description: 'Trip end date (DD/MM/YYYY)'
+      },
+      {
+        id: 'start_km',
+        label: 'Start KM',
+        accessor: trip => trip.start_km,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '120px',
+        description: 'Starting odometer reading'
+      },
+      {
+        id: 'end_km',
+        label: 'End KM',
+        accessor: trip => trip.end_km,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '120px',
+        description: 'Ending odometer reading'
+      },
+      {
+        id: 'distance',
+        label: 'Distance (km)',
+        accessor: trip => trip.end_km - trip.start_km,
+        sortable: true,
+        width: '120px',
+        description: 'Total distance covered (calculated)'
+      },
+      {
+        id: 'mileage',
+        label: 'Mileage',
+        accessor: trip => trip.calculated_kmpl?.toFixed(2) || '-',
+        sortable: true,
+        width: '100px',
+        description: 'Fuel efficiency in km/L (calculated)'
+      },
+      {
+        id: 'expenses',
+        label: 'Total Expenses',
+        accessor: trip => trip.total_road_expenses + (trip.total_fuel_cost || 0),
+        sortable: true,
+        width: '120px',
+        description: 'Combined road and fuel expenses'
+      },
+      {
+        id: 'profit_loss',
+        label: 'Profit/Loss',
+        accessor: trip => trip.net_profit || 0,
+        sortable: true,
+        width: '120px',
+        description: 'Net profit or loss for the trip'
+      }
+    ],
+    [vehicleOptions, driverOptions, vehiclesById, driversById]
+  );
 
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -161,6 +196,10 @@ const TripsTable: React.FC<TripsTableProps> = ({
     tripId: string;
     columnId: string;
   } | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   
   // Add ref for scrollable container
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -199,8 +238,8 @@ const TripsTable: React.FC<TripsTableProps> = ({
       const column = columns.find(col => col.id === sortConfig.key);
       if (!column) return 0;
 
-      const aValue = column.accessor(a, vehicles, drivers);
-      const bValue = column.accessor(b, vehicles, drivers);
+      const aValue = column.accessor(a, vehiclesById, driversById);
+      const bValue = column.accessor(b, vehiclesById, driversById);
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortConfig.direction === 'asc'
@@ -212,7 +251,14 @@ const TripsTable: React.FC<TripsTableProps> = ({
         ? Number(aValue) - Number(bValue)
         : Number(bValue) - Number(aValue);
     });
-  }, [trips, sortConfig, columns, vehicles, drivers]);
+  }, [trips, sortConfig, columns, vehiclesById, driversById]);
+
+  const paginatedTrips = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return sortedTrips.slice(start, start + rowsPerPage);
+  }, [sortedTrips, currentPage]);
+
+  const totalPages = Math.ceil(sortedTrips.length / rowsPerPage) || 1;
 
   const handleSort = (columnId: string) => {
     setSortConfig(current => {
@@ -321,6 +367,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
             </Button>
           </div>
         </div>
+
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -356,7 +403,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedTrips.length > 0 ? (
-                sortedTrips.map(trip => (
+                paginatedTrips.map(trip => (
                   <tr key={trip.id} className="hover:bg-gray-50">
                     {columns.map(column => (
                       <td
@@ -379,7 +426,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
                           ) : (
                             <Input
                               type={column.type || 'text'}
-                              value={column.accessor(trip, vehicles, drivers).toString()}
+                              value={column.accessor(trip, vehiclesById, driversById).toString()}
                               onChange={e => handleCellEdit(trip.id, column.id, e.target.value)}
                               autoFocus
                               onBlur={() => setEditingCell(null)}
@@ -394,7 +441,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
                           </div>
                         ) : (
                           <span className={column.editable ? 'cursor-pointer' : ''}>
-                            {column.accessor(trip, vehicles, drivers)}
+                            {column.accessor(trip, vehiclesById, driversById)}
                           </span>
                         )}
                       </td>
@@ -419,6 +466,29 @@ const TripsTable: React.FC<TripsTableProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center justify-between p-4 border-t">
+          <span className="text-sm text-gray-700">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>
