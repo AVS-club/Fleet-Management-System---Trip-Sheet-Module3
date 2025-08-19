@@ -98,7 +98,7 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
     .order("trip_serial_number", { ascending: false })
     .limit(1);
 
-  const lastNum = latestTrip?.?.trip_serial_number
+  const lastNum = latestTrip?.[0]?.trip_serial_number
     ? parseInt(latestTrip.trip_serial_number.slice(-4))
     : 0;
 
