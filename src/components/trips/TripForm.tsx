@@ -222,7 +222,7 @@ const TripForm: React.FC<TripFormProps> = ({
         } catch (error) {
           console.error('Error fetching vehicle data:', error);
         }
-      }
+      };
       
       fetchVehicleData();
     }
@@ -245,8 +245,8 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [fuelQuantity, fuelCost, setValue]);
 
-
-
+  useEffect(() => {
+    if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKm) {
       setRouteAnalysis(undefined);
       setAlerts([]);
       return;
@@ -320,7 +320,7 @@ const TripForm: React.FC<TripFormProps> = ({
     if (analysisTimeoutRef.current) {
       clearTimeout(analysisTimeoutRef.current);
     }
-
+  }, []);
 
   const validateEndKm = (value: number) => {
     return !startKm || value > startKm || 'End KM must be greater than Start KM';
