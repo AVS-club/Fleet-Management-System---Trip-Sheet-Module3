@@ -510,7 +510,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
     });
 
     // Process each maintenance task for reminders
-    tasks.forEach((task: MaintenanceTask) => {
+    for (const task of tasks) {
       const vehicle = vehicleMap.get(task.vehicle_id);
       if (!vehicle) return; // Skip if vehicle not found
 
@@ -689,7 +689,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
           });
         }
       }
-    });
+    }
 
     // Sort reminders by dueDate first, then by daysLeft
     return reminders.sort((a, b) => {
