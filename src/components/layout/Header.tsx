@@ -31,12 +31,12 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-gray-200 dark:border-gray-700 dark:bg-gray-900/80">
-      <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 dark:border-gray-700 dark:bg-gray-900/80">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
-        <Link to="/" className="flex items-center gap-2 font-semibold leading-none">
-          <span className="inline-block rounded bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-2 py-0.5 text-xs">AVS</span>
-          <span className="text-base text-gray-900 dark:text-gray-100">Auto Vital</span>
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/assets/logo.png" alt="AVS" className="h-7 w-auto" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}} />
+          <span className="font-semibold text-gray-900 dark:text-gray-100">Auto Vital</span>
         </Link>
 
         {/* Nav */}
@@ -44,10 +44,10 @@ const Header: React.FC = () => {
           {NAV_ITEMS.map(item => (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={item.to} // Use item.to directly for NavLink
               className={({ isActive }) =>
                 `inline-flex items-center h-9 px-2 rounded-md transition text-gray-600 dark:text-gray-300
-                 ${isActive ? "bg-gray-100 dark:bg-gray-700 font-medium text-gray-900 dark:text-gray-100" : "hover:bg-gray-50 dark:hover:bg-gray-700"}`
+                 ${isActive ? "text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-700"}`
               }
               end={item.to === "/"}
             >

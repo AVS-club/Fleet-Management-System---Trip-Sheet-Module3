@@ -18,31 +18,14 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Header />
-      
-      <main className="pt-16 pb-10">
-        {(title || actions) && (
-          <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-0.5">
-            <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div>
-                  {title && (
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
-                  )}
-                  {subtitle && (
-                    <p className="mt-0.5 sm:mt-1 text-sm sm:text-base text-gray-500 dark:text-gray-400">{subtitle}</p>
-                  )}
-                </div>
-                {actions && (
-                  <div className="mt-3 sm:mt-0 flex flex-wrap gap-2 sm:gap-3 justify-start sm:justify-end">
-                    {actions}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        {/* Page header block (title/subtitle/actions) should be implemented within individual page components */}
+        {/* The content of the page */}
+        <div className="space-y-6"> {/* Added a div with space-y-6 for consistent spacing */}
+          {title && <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>}
+          {subtitle && <p className="text-gray-500 dark:text-gray-400">{subtitle}</p>}
+          {actions && <div className="mt-4 flex flex-wrap gap-2">{actions}</div>}
           {children}
         </div>
       </main>
