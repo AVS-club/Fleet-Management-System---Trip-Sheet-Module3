@@ -1446,6 +1446,11 @@ export const deleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
+export const hardDeleteDestination = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('destinations').delete().eq('id', id);
+  if (error) throw error;
+};
+
 // Route Analysis
 export const analyzeRoute = async (
   warehouseId: string,

@@ -298,6 +298,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                     type="button"
                     className="ml-1.5 text-primary-400 hover:text-primary-700 rounded-full hover:bg-primary-200 p-1"
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       removeDestinationAtIndex(index);
                     }}
@@ -314,7 +315,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               {lastSelectedDestination && (
                 <button
                   type="button"
-                  onClick={handleAddSameAgain}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddSameAgain();
+                  }}
                   className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-primary-50 text-primary-600 hover:bg-primary-100 border border-primary-100"
                   title="Add same destination again"
                 >
@@ -326,14 +331,23 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           ) : (
             <div 
               className="text-gray-500 flex items-center"
-              onClick={() => setIsOpen(true)}
+              onClick={() => {
+                setIsOpen(true);
+                requestAnimationFrame(() => {
+                  searchInputRef.current?.focus({ preventScroll: true } as any);
+                });
+              }}
             >
               Select destinations
               <button 
                 className="ml-1.5 text-primary-400 hover:text-primary-700 rounded-full hover:bg-primary-50 p-1"
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(true);
+                  requestAnimationFrame(() => {
+                    searchInputRef.current?.focus({ preventScroll: true } as any);
+                  });
                 }}
               >
                 <Plus className="h-4 w-4" />
@@ -346,7 +360,14 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
             <button
               type="button"
               className="mt-2 flex items-center text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50"
-              onClick={() => setIsOpen(true)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsOpen(true);
+                requestAnimationFrame(() => {
+                  searchInputRef.current?.focus({ preventScroll: true } as any);
+                });
+              }}
             >
               <Plus className="h-3 w-3 mr-1" />
               Add another destination
@@ -365,7 +386,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         matchWidth
         className="border-0 shadow-xl"
       >
-        <div className="p-2 border-b sticky top-0 bg-white z-10">
+        <div className="p-2 border-b sticky top-0 bg-white z-10" onMouseDown={(e) => e.preventDefault()}>
           <input
             type="text"
             ref={searchInputRef}
@@ -378,10 +399,10 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           <MapPin className="absolute left-4 top-5 h-4 w-4 text-gray-400" />
         </div>
 
-        <div className="overflow-y-auto">
+        <div className="overflow-y-auto" onMouseDown={(e) => e.preventDefault()}>
           {/* Admin-saved destinations */}
           {filteredAdminDestinations.length > 0 && (
-            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Saved Destinations</div>
+            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-1 border-b border-gray-100">Saved Destinations</div>
           )}
           {filteredAdminDestinations.map(dest => (
             <div 
@@ -417,7 +438,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
           {/* Google Maps suggestions */}
           {filteredGooglePredictions.length > 0 && (
-            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Google Maps Suggestions</div>
+            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-1 border-b border-gray-100">Google Maps Suggestions</div>
           )}
           {filteredGooglePredictions.map(prediction => (
             <div

@@ -9,7 +9,7 @@ import DestinationForm from '../../components/admin/DestinationForm';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
-import { getDestinations, createDestination } from '../../utils/storage';
+import { getDestinations, createDestination, hardDeleteDestination } from '../../utils/storage';
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
@@ -23,6 +23,7 @@ const TripLocationsPage: React.FC = () => {
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
   const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null); // Used for archive confirmation
   const [hardDeletingWarehouse, setHardDeletingWarehouse] = useState<Warehouse | null>(null); // New state for hard delete confirmation
+  const [deletingDestination, setDeletingDestination] = useState<Destination | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManagingMaterialTypes, setIsManagingMaterialTypes] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
@@ -321,11 +322,21 @@ const TripLocationsPage: React.FC = () => {
                               
                               <div className="flex items-center space-x-3">
                                 <Building2 className="h-5 w-5 text-gray-400" />
-                                <div className="pr-16">
+                                    className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
                                   <h3 className="font-medium text-gray-900">{warehouse.name}</h3>
+                                    {/* Delete button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeletingDestination(destination)}
+                                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-error-600 rounded"
+                                      title="Delete destination"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                    
                                   <div className="flex items-center space-x-2">
                                     <p className="text-sm text-gray-500">{warehouse.pincode}</p>
-                                    {warehouse.material_type_ids && warehouse.material_type_ids.length > 0 && (
+                                      <div className="pr-8">
                                       <div className="flex flex-wrap gap-1 mt-1">
                                         {warehouse.material_type_ids.map(typeId => (
                                           <span key={typeId} className="px-2 py-0.5 bg-primary-100 text-primary-700 text-xs rounded-full">
@@ -424,6 +435,37 @@ const TripLocationsPage: React.FC = () => {
             )}
           </div>
         </div>
+        
+        {/* Destination Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={!!deletingDestination}
+          title="Delete Destination"
+          message={`Are you sure you want to delete "${deletingDestination?.name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          type="delete"
+          isLoading={isSubmitting}
+          onCancel={() => setDeletingDestination(null)}
+          onConfirm={async () => {
+            if (!deletingDestination) return;
+            setIsSubmitting(true);
+            try {
+              await hardDeleteDestination(deletingDestination.id);
+              setDestinations(prev => prev.filter(d => d.id !== deletingDestination.id));
+              toast.success('Destination deleted successfully');
+              setDeletingDestination(null);
+            } catch (err: any) {
+              const msg = String(err?.message || '');
+              if (msg.includes('23503') || msg.toLowerCase().includes('foreign key')) {
+                toast.error('Cannot delete destination: it is linked to existing trips.');
+              } else {
+                toast.error('Failed to delete destination.');
+              }
+            } finally {
+              setIsSubmitting(false);
+            }
+          }}
+        />
         
         {/* Archive Confirmation Modal */}
         <ConfirmationModal
