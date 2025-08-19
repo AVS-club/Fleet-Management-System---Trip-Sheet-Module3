@@ -390,8 +390,19 @@ const TripLocationsPage: React.FC = () => {
                           destinations.map(destination => (
                             <div
                               key={destination.id}
-                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow"
+                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
                             >
+                              {/* Action buttons */}
+                              <div className="absolute top-2 right-2 flex space-x-1">
+                                <button
+                                  onClick={() => setDeletingDestination(destination)}
+                                  className="p-1 text-gray-400 hover:text-error-600 rounded"
+                                  title="Delete destination"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                              
                               <div className="flex items-center space-x-3">
                                 <MapPin className="h-5 w-5 text-gray-400" />
                                 <div>
