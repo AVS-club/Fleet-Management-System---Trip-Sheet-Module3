@@ -88,7 +88,7 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
     );
   }
 
-  const prefix = regMatch;
+  const prefix = regMatch[0];
 
   // Get latest trip number for this vehicle
   const { data: latestTrip } = await supabase
@@ -99,7 +99,7 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
     .limit(1);
 
   const lastNum = latestTrip?.[0]?.trip_serial_number
-    ? parseInt(latestTrip.trip_serial_number.slice(-4))
+    ? parseInt(latestTrip[0].trip_serial_number.slice(-4))
     : 0;
 
   const nextNum = lastNum + 1;
@@ -454,7 +454,8 @@ export const createVehicle = async (
 
   const { data, error } = await supabase
     .from("vehicles")
-    .insert(convertKeysToSnakeCase(processedVehicle as any))
+    .insert({
+      ...convertKeysToSnakeCase(processedVehicle),
 
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
@@ -496,7 +497,7 @@ export const createVehicle = async (
       permit_expiry_date:
         (processedVehicle.permit_expiry_date &&
           !isNaN(new Date(processedVehicle.permit_expiry_date).getTime()) &&
-          new Date(processedProcessedVehicle.permit_expiry_date)) ||
+          new Date(processedVehicle.permit_expiry_date)) ||
         null,
       fitness_issue_date: 
         (processedVehicle.fitness_issue_date &&
@@ -888,9 +889,10 @@ const unarchiveVehicle = async (id: string): Promise<boolean> => {
 
 export const bulkUpdateVehicles = async (
   vehicleIds: string[],
-  updates: Partial<Vehicle>
+  updates: Partial<Vehicle>,
+  userId: string
 ): Promise<{ success: number; failed: number }> => {
-  const promises = vehicleIds.map((id) => updateVehicle(id, updates));
+  const promises = vehicleIds.map((id) => updateVehicle(id, updates, userId));
 
   const results = await Promise.allSettled(promises);
 
@@ -1477,8 +1479,8 @@ export const analyzeRoute = async (
     totalDistance += dest.standardDistance;
     const timeMatch = dest.estimated_time.match(/(\d+)h\s*(?:(\d+)m)?/);
     if (timeMatch) {
-      const hours = parseInt(timeMatch || "0");
-      const minutes = parseInt(timeMatch || "0");
+      const hours = parseInt(timeMatch[1] || "0");
+      const minutes = parseInt(timeMatch[2] || "0");
       totalMinutes += hours * 60 + minutes;
     }
   });
