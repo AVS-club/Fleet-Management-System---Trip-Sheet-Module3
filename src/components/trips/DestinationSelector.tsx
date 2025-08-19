@@ -366,7 +366,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
         {/* Destination search dropdown */}
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-[60] w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[70vh] overflow-y-auto">
             <div className="p-2 border-b sticky top-0 bg-white z-10">
               <input
                 type="text"
@@ -380,10 +380,10 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               <MapPin className="absolute left-4 top-5 h-4 w-4 text-gray-400" />
             </div>
 
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto">
               {/* Admin-saved destinations */}
               {filteredAdminDestinations.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-10 border-b border-gray-100">Saved Destinations</div>
+                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Saved Destinations</div>
               )}
               {filteredAdminDestinations.map(dest => (
                 <div 
@@ -419,7 +419,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
               {/* Google Maps suggestions */}
               {filteredGooglePredictions.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-10 border-b border-gray-100">Google Maps Suggestions</div>
+                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Google Maps Suggestions</div>
               )}
               {filteredGooglePredictions.map(prediction => (
                 <div
