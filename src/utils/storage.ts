@@ -22,8 +22,8 @@ const convertKeysToSnakeCase = (
   const newObj: Record<string, any> = {};
 
   Object.keys(obj).forEach((key) => {
-    const newKey = toSnakeCase(key);
     const value = obj[key];
+    const newKey = toSnakeCase(key);
 
     newObj[newKey] =
       value && typeof value === "object" && !Array.isArray(value)
@@ -88,7 +88,7 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
     );
   }
 
-  const prefix = regMatch[0];
+  const prefix = regMatch;
 
   // Get latest trip number for this vehicle
   const { data: latestTrip } = await supabase
@@ -98,8 +98,8 @@ const generateTripId = async (vehicleId: string): Promise<string> => {
     .order("trip_serial_number", { ascending: false })
     .limit(1);
 
-  const lastNum = latestTrip?.[0]?.trip_serial_number
-    ? parseInt(latestTrip[0].trip_serial_number.slice(-4))
+  const lastNum = latestTrip?.?.trip_serial_number
+    ? parseInt(latestTrip.trip_serial_number.slice(-4))
     : 0;
 
   const nextNum = lastNum + 1;
@@ -497,7 +497,7 @@ export const createVehicle = async (
       permit_expiry_date:
         (processedVehicle.permit_expiry_date &&
           !isNaN(new Date(processedVehicle.permit_expiry_date).getTime()) &&
-          new Date(processedVehicle.permit_expiry_date)) ||
+          new Date(processedProcessedVehicle.permit_expiry_date)) ||
         null,
       fitness_issue_date:
         (processedVehicle.fitness_issue_date &&
@@ -1478,8 +1478,8 @@ export const analyzeRoute = async (
     totalDistance += dest.standardDistance;
     const timeMatch = dest.estimated_time.match(/(\d+)h\s*(?:(\d+)m)?/);
     if (timeMatch) {
-      const hours = parseInt(timeMatch[1] || "0");
-      const minutes = parseInt(timeMatch[2] || "0");
+      const hours = parseInt(timeMatch || "0");
+      const minutes = parseInt(timeMatch || "0");
       totalMinutes += hours * 60 + minutes;
     }
   });
@@ -1703,4 +1703,37 @@ export const exportVehicleData = async (
   }
 
   return csvContent;
+};
+
+export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number | null; source: 'vehicle' | 'trip' | 'unknown' }> => {
+  try {
+    // Try to get current_odometer from the vehicle record first
+    const vehicle = await getVehicle(vehicleId); // Assuming getVehicle is already imported and available
+    if (vehicle && typeof vehicle.current_odometer === 'number' && !isNaN(vehicle.current_odometer)) {
+      return { value: vehicle.current_odometer, source: 'vehicle' };
+    }
+
+    // If not available, query the latest trip's end_km
+    const { data: latestTrip, error: tripError } = await supabase
+      .from('trips')
+      .select('end_km, trip_end_date')
+      .eq('vehicle_id', vehicleId)
+      .order('trip_end_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (tripError) {
+      console.error('Error fetching latest trip for odometer:', tripError);
+      return { value: null, source: 'unknown' };
+    }
+
+    if (latestTrip && typeof latestTrip.end_km === 'number' && !isNaN(latestTrip.end_km)) {
+      return { value: latestTrip.end_km, source: 'trip' };
+    }
+
+    return { value: null, source: 'unknown' };
+  } catch (error) {
+    console.error('Exception in getLatestOdometer:', error);
+    return { value: null, source: 'unknown' };
+  }
 };
