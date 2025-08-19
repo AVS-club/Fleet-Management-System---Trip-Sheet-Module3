@@ -34,6 +34,7 @@ const convertKeysToSnakeCase = (
   return newObj;
 };
 import { calculateMileage } from "./mileageCalculator";
+import { normalizeVehicleType } from "./vehicleNormalize";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
@@ -349,6 +350,7 @@ export const createVehicle = async (
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...vehicle,
+    type: normalizeVehicleType(vehicle.type),
   };
   let rcPublicUrls = [];
   let insurancePublicUrls = [];
@@ -452,10 +454,15 @@ export const createVehicle = async (
   delete (processedVehicle as any).permit_document_file;
   delete (processedVehicle as any).puc_document_file;
 
+  // Get current user for created_by field
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id ?? null;
+
   const { data, error } = await supabase
     .from("vehicles")
     .insert({
       ...convertKeysToSnakeCase(processedVehicle),
+      created_by: processedVehicle.created_by ?? userId,
 
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
