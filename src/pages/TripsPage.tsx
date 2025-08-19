@@ -172,9 +172,10 @@ const TripsPage: React.FC = () => {
             </Button>
           </div>
           
-          <TripForm 
-            onSubmit={handleAddTrip} 
+          <TripForm
+            onSubmit={handleAddTrip}
             isSubmitting={isSubmitting}
+            trips={trips}
           />
         </div>
       ) : (

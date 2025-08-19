@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
-import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse } from '../utils/storage';
+import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse, getTrips } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { getAIAlerts, AIAlert } from '../utils/aiAnalytics';
 import TripMap from '../components/maps/TripMap';
@@ -26,6 +26,7 @@ const TripDetailsPage: React.FC = () => {
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [aiAlerts, setAiAlerts] = useState<AIAlert[]>([]);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [trips, setTrips] = useState<Trip[]>([]);
   
   // Load trip data
   useEffect(() => {
@@ -37,12 +38,13 @@ const TripDetailsPage: React.FC = () => {
           if (tripData) {
             setTrip(tripData);
             
-            // Load related vehicle, driver, material types, and AI alerts
-            const [vehicleData, driverData, materialTypesData, aiAlertsData] = await Promise.all([
+            // Load related vehicle, driver, material types, AI alerts, and all trips
+            const [vehicleData, driverData, materialTypesData, aiAlertsData, tripsData] = await Promise.all([
               getVehicle(tripData.vehicle_id),
               getDriver(tripData.driver_id),
               getMaterialTypes(),
-              getAIAlerts()
+              getAIAlerts(),
+              getTrips()
             ]);
             
             setVehicle(vehicleData || undefined);
@@ -57,6 +59,7 @@ const TripDetailsPage: React.FC = () => {
                 )
               : [];
             setAiAlerts(tripAlerts);
+            setTrips(Array.isArray(tripsData) ? tripsData : []);
             
             // Load warehouse and destinations for map
             if (tripData.warehouse_id) {
@@ -235,6 +238,7 @@ const TripDetailsPage: React.FC = () => {
             }}
             onSubmit={handleUpdate}
             isSubmitting={isSubmitting}
+            trips={trips}
           />
         </div>
       ) : (
