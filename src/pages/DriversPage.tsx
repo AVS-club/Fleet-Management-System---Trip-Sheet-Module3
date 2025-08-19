@@ -235,7 +235,7 @@ const DriversPage: React.FC = () => {
                       `${newDriver.id}-${doc.name
                         .replace(/\s+/g, "-")
                         .toLowerCase()}`
-                    toast.error(`Failed to finalize document "${doc.name}". Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.`);
+                    );
                     updatedDoc.file_path = finalFilePath;
                   }
                 } catch (error) {
@@ -246,8 +246,6 @@ const DriversPage: React.FC = () => {
                   toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
                   return;
                 }
-                toast.error(`Failed to upload document "${doc.name}". Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.`);
-                return;
               }
 
               updatedDocs.push(updatedDoc);
