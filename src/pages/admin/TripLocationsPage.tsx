@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2 } from 'lucide-react';
+import { Archive, ArchiveRestore } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import WarehouseForm from '../../components/admin/WarehouseForm';
 import DestinationForm from '../../components/admin/DestinationForm';
@@ -12,6 +13,7 @@ import { getDestinations, createDestination } from '../../utils/storage';
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
+import Checkbox from '../../components/ui/Checkbox'; // Import Checkbox
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,20 +21,22 @@ const TripLocationsPage: React.FC = () => {
   const [isAddingWarehouse, setIsAddingWarehouse] = useState(false);
   const [isAddingDestination, setIsAddingDestination] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null);
+  const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null); // Used for archive confirmation
+  const [hardDeletingWarehouse, setHardDeletingWarehouse] = useState<Warehouse | null>(null); // New state for hard delete confirmation
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManagingMaterialTypes, setIsManagingMaterialTypes] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showInactive, setShowInactive] = useState(false); // New state for showing inactive warehouses
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const [warehousesData, destinationsData, materialTypesData] = await Promise.all([
-          listWarehouses(),
+          listWarehouses({ includeInactive: showInactive }), // Use showInactive filter
           getDestinations(),
           getMaterialTypes()
         ]);
@@ -49,7 +53,7 @@ const TripLocationsPage: React.FC = () => {
     };
     
     fetchData();
-  }, []);
+  }, [showInactive]); // Add showInactive to dependencies
 
   const handleAddWarehouse = async (data: any) => {
     setIsSubmitting(true);
@@ -87,31 +91,54 @@ const TripLocationsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteWarehouse = async () => {
+  // New function for soft-delete (archive)
+  const handleArchiveWarehouse = async () => {
     if (!deletingWarehouse) return;
-    
     setIsSubmitting(true);
     try {
-      await deleteWarehouse(deletingWarehouse.id);
-      
-      setWarehouses(prev => prev.filter(w => w.id !== deletingWarehouse.id));
+      await archiveWarehouse(deletingWarehouse.id);
+      setWarehouses(prev => prev.map(w => w.id === deletingWarehouse.id ? { ...w, is_active: false } : w));
       setDeletingWarehouse(null);
-      toast.success('Warehouse deleted successfully');
+      toast.success('Warehouse archived successfully');
     } catch (error) {
-      console.error('Error deleting warehouse:', error);
-      
-      // Check if it's a foreign key constraint violation (warehouse referenced by trips)
-      const isForeignKeyError = (
-        (error && typeof error === 'object' && 'code' in error && error.code === '23503') ||
-        (error && typeof error === 'object' && 'message' in error && 
-         typeof error.message === 'string' && error.message.includes('23503')) ||
-        (error && typeof error === 'string' && error.includes('foreign key constraint'))
-      );
-      
-      if (isForeignKeyError) {
-        toast.error('Cannot delete warehouse: It is linked to existing trips. Consider marking it as inactive instead.');
+      console.error('Error archiving warehouse:', error);
+      toast.error('Failed to archive warehouse');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // New function for restoring soft-deleted
+  const handleRestoreWarehouse = async (warehouseId: string) => {
+    setIsSubmitting(true);
+    try {
+      await restoreWarehouse(warehouseId);
+      setWarehouses(prev => prev.map(w => w.id === warehouseId ? { ...w, is_active: true } : w));
+      toast.success('Warehouse restored successfully');
+    } catch (error) {
+      console.error('Error restoring warehouse:', error);
+      toast.error('Failed to restore warehouse');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // New function for hard delete (admin maintenance only)
+  const handleHardDeleteWarehouse = async () => {
+    if (!hardDeletingWarehouse) return;
+    setIsSubmitting(true);
+    try {
+      await hardDeleteWarehouse(hardDeletingWarehouse.id);
+      setWarehouses(prev => prev.filter(w => w.id !== hardDeletingWarehouse.id));
+      setHardDeletingWarehouse(null);
+      toast.success('Warehouse permanently deleted');
+    } catch (error) {
+      console.error('Error hard deleting warehouse:', error);
+      const errorMessage = (error as any)?.message || '';
+      if (errorMessage.includes('23503') || errorMessage.includes('foreign key constraint')) {
+        toast.error('Cannot delete warehouse: It is linked to existing trips. Consider archiving instead.');
       } else {
-        toast.error('Failed to delete warehouse');
+        toast.error('Failed to permanently delete warehouse');
       }
     } finally {
       setIsSubmitting(false);
@@ -210,14 +237,21 @@ const TripLocationsPage: React.FC = () => {
                         <h2 className="text-lg font-medium text-gray-900">Origin Warehouses</h2>
                         <p className="text-sm text-gray-500">Manage warehouse locations</p>
                       </div>
-                      {!editingWarehouse && (
-                        <Button
-                          onClick={() => setIsAddingWarehouse(true)}
-                          icon={<Plus className="h-4 w-4" />}
-                        >
-                          Add Warehouse
-                        </Button>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          label="Show Inactive"
+                          checked={showInactive}
+                          onChange={(e) => setShowInactive(e.target.checked)}
+                        />
+                        {!editingWarehouse && (
+                          <Button
+                            onClick={() => setIsAddingWarehouse(true)}
+                            icon={<Plus className="h-4 w-4" />}
+                          >
+                            Add Warehouse
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {(isAddingWarehouse || editingWarehouse) ? (
@@ -240,7 +274,7 @@ const TripLocationsPage: React.FC = () => {
                           warehouses.map(warehouse => (
                             <div
                               key={warehouse.id}
-                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
+                              className={`bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative ${warehouse.is_active ? '' : 'opacity-50'}`}
                             >
                               {/* Action buttons */}
                               <div className="absolute top-2 right-2 flex space-x-1">
@@ -251,14 +285,39 @@ const TripLocationsPage: React.FC = () => {
                                 >
                                   <Edit className="h-4 w-4" />
                                 </button>
+                                {warehouse.is_active ? (
+                                  <button
+                                    onClick={() => setDeletingWarehouse(warehouse)} // Use setDeletingWarehouse for archive
+                                    className="p-1 text-gray-400 hover:text-warning-600 rounded"
+                                    title="Archive warehouse"
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleRestoreWarehouse(warehouse.id)} // Direct call for restore
+                                    className="p-1 text-gray-400 hover:text-success-600 rounded"
+                                    title="Restore warehouse"
+                                  >
+                                    <ArchiveRestore className="h-4 w-4" />
+                                  </button>
+                                )}
+                                {/* Hard delete option */}
                                 <button
-                                  onClick={() => setDeletingWarehouse(warehouse)}
+                                  onClick={() => setHardDeletingWarehouse(warehouse)} // New state for hard delete
                                   className="p-1 text-gray-400 hover:text-error-600 rounded"
-                                  title="Delete warehouse"
+                                  title="Permanently delete warehouse (admin only)"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
+
+                              {/* Inactive badge */}
+                              {!warehouse.is_active && (
+                                <span className="absolute top-2 left-2 px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                                  Inactive
+                                </span>
+                              )}
                               
                               <div className="flex items-center space-x-3">
                                 <Building2 className="h-5 w-5 text-gray-400" />
@@ -366,15 +425,31 @@ const TripLocationsPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Delete Confirmation Modal */}
+        {/* Archive Confirmation Modal */}
         <ConfirmationModal
           isOpen={!!deletingWarehouse}
-          title="Delete Warehouse"
-          message={`Are you sure you want to delete warehouse "${deletingWarehouse?.name}"? This action cannot be undone.`}
-          confirmText="Delete"
+          title={deletingWarehouse?.is_active ? "Archive Warehouse" : "Restore Warehouse"}
+          message={deletingWarehouse?.is_active ?
+            `Are you sure you want to archive warehouse "${deletingWarehouse?.name}"? It will be hidden from most views but can be restored later.` :
+            `Are you sure you want to restore warehouse "${deletingWarehouse?.name}"? It will become active again.`
+          }
+          confirmText={deletingWarehouse?.is_active ? "Archive" : "Restore"}
           cancelText="Cancel"
-          onConfirm={handleDeleteWarehouse}
+          onConfirm={deletingWarehouse?.is_active ? handleArchiveWarehouse : () => handleRestoreWarehouse(deletingWarehouse!.id)}
           onCancel={() => setDeletingWarehouse(null)}
+          type={deletingWarehouse?.is_active ? "archive" : "info"}
+          isLoading={isSubmitting}
+        />
+        
+        {/* Hard Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={!!hardDeletingWarehouse}
+          title="Permanently Delete Warehouse"
+          message={`WARNING: Are you sure you want to permanently delete warehouse "${hardDeletingWarehouse?.name}"? This action cannot be undone and may break existing trip records if this warehouse is referenced.`}
+          confirmText="Delete Permanently"
+          cancelText="Cancel"
+          onConfirm={handleHardDeleteWarehouse}
+          onCancel={() => setHardDeletingWarehouse(null)}
           type="delete"
           isLoading={isSubmitting}
         />

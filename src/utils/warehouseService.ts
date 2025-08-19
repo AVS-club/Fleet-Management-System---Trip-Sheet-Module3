@@ -1,66 +1,53 @@
 import { supabase } from './supabaseClient';
-import { Warehouse } from '../types';
 
-export const listWarehouses = async (): Promise<Warehouse[]> => {
-  const { data, error } = await supabase
-    .from('warehouses')
-    .select('*')
-    .order('name');
-
-  if (error) {
-    console.error('Error fetching warehouses:', error);
-    throw error;
-  }
-
-  return data || [];
+export type Warehouse = {
+  id: string;
+  name: string;
+  pincode: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  active?: boolean; // Existing field, keep for compatibility if needed
+  material_type_ids?: string[];
+  created_at?: string;
+  updated_at?: string;
+  is_active: boolean; // New field
+  created_by: string; // New field
 };
 
-export const createWarehouse = async (warehouse: Omit<Warehouse, 'id' | 'created_at' | 'updated_at'>): Promise<Warehouse> => {
-  const { data, error } = await supabase
-    .from('warehouses')
-    .insert({
-      ...warehouse,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating warehouse:', error);
-    throw error;
+export async function listWarehouses(opts: { includeInactive?: boolean } = {}) {
+  const q = supabase.from("warehouses").select("*").order("created_at", { ascending: false });
+  if (!opts.includeInactive) {
+    q.eq("is_active", true);
   }
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Warehouse[];
+}
 
+export async function createWarehouse(payload: Partial<Warehouse>) {
+  const { data, error } = await supabase.from("warehouses").insert([{ ...payload }]).select().single();
+  if (error) throw error;
   return data;
-};
+}
 
-export const updateWarehouse = async (id: string, updates: Partial<Warehouse>): Promise<Warehouse> => {
-  const { data, error } = await supabase
-    .from('warehouses')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error updating warehouse:', error);
-    throw error;
-  }
-
+export async function updateWarehouse(id: string, payload: Partial<Warehouse>) {
+  const { data, error } = await supabase.from("warehouses").update(payload).eq("id", id).select().single();
+  if (error) throw error;
   return data;
-};
+}
 
-export const deleteWarehouse = async (id: string): Promise<void> => {
-  const { error } = await supabase
-    .from('warehouses')
-    .delete()
-    .eq('id', id);
+export async function archiveWarehouse(id: string) {
+  const { error } = await supabase.from("warehouses").update({ is_active: false }).eq("id", id);
+  if (error) throw error;
+}
 
-  if (error) {
-    console.error('Error deleting warehouse:', error);
-    throw error;
-  }
-};
+export async function restoreWarehouse(id: string) {
+  const { error } = await supabase.from("warehouses").update({ is_active: true }).eq("id", id);
+  if (error) throw error;
+}
+
+/** Use only for admin maintenance; FK constraints may block this. */
+export async function hardDeleteWarehouse(id: string) {
+  const { error } = await supabase.from("warehouses").delete().eq("id", id);
+  if (error) throw error;
+}
