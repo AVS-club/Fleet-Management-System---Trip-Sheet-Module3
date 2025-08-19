@@ -50,14 +50,9 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
   const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
-  const [cachedTrips, setCachedTrips] = useState<Trip[]>([]);
 
   useEffect(() => {
-    if (Array.isArray(trips)) {
-      setCachedTrips(trips);
-    } else {
-      setCachedTrips([]);
-    }
+    setCachedTrips(Array.isArray(trips) ? trips : []);
   }, [trips]);
 
   const {
@@ -251,66 +246,90 @@ const TripForm: React.FC<TripFormProps> = ({
   }, [fuelQuantity, fuelCost, setValue]);
 
   useEffect(() => {
-    if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKm) {
-      setRouteAnalysis(undefined);
-      setAlerts([]);
-      return;
-    }
-
-    const analysis = await analyzeRoute(warehouseId, selectedDestinations);
-    if (analysis) {
-      const actualDistance = endKm - startKm;
-      const updatedAnalysis: RouteAnalysis = {
-        ...analysis,
-        deviation:
-          ((actualDistance - analysis.standard_distance) / analysis.standard_distance) * 100,
-      };
-      setRouteAnalysis(updatedAnalysis);
-
-      // Generate alerts based on current trip data
-      const tripData: Trip = {
-        id: nanoid(),
-        vehicle_id: vehicleId,
-        driver_id: watch('driver_id'),
-        warehouse_id: warehouseId,
-        destinations: selectedDestinations,
-        trip_start_date: watch('trip_start_date'),
-        trip_end_date: watch('trip_end_date'),
-        trip_duration: watch('trip_duration') || 0,
-        trip_serial_number: '', // This will be generated on submit
-        manual_trip_id: watch('manual_trip_id') || false,
-        start_km: startKm,
-        end_km: endKm,
-        gross_weight: watch('gross_weight') || 0,
-        refueling_done: watch('refueling_done'),
-        fuel_quantity: watch('fuel_quantity'),
-        fuel_cost: watch('fuel_cost'),
-        total_fuel_cost: watch('total_fuel_cost'),
-        unloading_expense: watch('unloading_expense') || 0,
-        driver_expense: watch('driver_expense') || 0,
-        road_rto_expense: watch('road_rto_expense') || 0,
-        breakdown_expense: watch('breakdown_expense') || 0,
-        miscellaneous_expense: watch('miscellaneous_expense') || 0,
-        total_road_expenses: watch('total_road_expenses') || 0,
-        remarks: watch('remarks'),
-        calculated_kmpl: watch('calculated_kmpl'),
-        material_type_ids: watch('material_type_ids'),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+    let cancelled = false;
+    
+    const runAnalysis = async () => {
+      if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKm) {
+        if (!cancelled) {
+          setRouteAnalysis(undefined);
+          setAlerts([]);
+        }
+        return;
+      }
 
       try {
-        const generatedAlerts = await analyzeTripAndGenerateAlerts(
-          tripData,
-          updatedAnalysis,
-          cachedTrips
-        );
-        setAlerts(Array.isArray(generatedAlerts) ? generatedAlerts : []);
+        const analysis = await analyzeRoute(warehouseId, selectedDestinations);
+        if (analysis && !cancelled) {
+          const actualDistance = endKm - startKm;
+          const updatedAnalysis: RouteAnalysis = {
+            ...analysis,
+            deviation:
+              ((actualDistance - analysis.standard_distance) / analysis.standard_distance) * 100,
+          };
+          setRouteAnalysis(updatedAnalysis);
+
+          // Generate alerts based on current trip data
+          const tripData: Trip = {
+            id: nanoid(),
+            vehicle_id: vehicleId,
+            driver_id: watch('driver_id'),
+            warehouse_id: warehouseId,
+            destinations: selectedDestinations,
+            trip_start_date: watch('trip_start_date'),
+            trip_end_date: watch('trip_end_date'),
+            trip_duration: watch('trip_duration') || 0,
+            trip_serial_number: '', // This will be generated on submit
+            manual_trip_id: watch('manual_trip_id') || false,
+            start_km: startKm,
+            end_km: endKm,
+            gross_weight: watch('gross_weight') || 0,
+            refueling_done: watch('refueling_done'),
+            fuel_quantity: watch('fuel_quantity'),
+            fuel_cost: watch('fuel_cost'),
+            total_fuel_cost: watch('total_fuel_cost'),
+            unloading_expense: watch('unloading_expense') || 0,
+            driver_expense: watch('driver_expense') || 0,
+            road_rto_expense: watch('road_rto_expense') || 0,
+            breakdown_expense: watch('breakdown_expense') || 0,
+            miscellaneous_expense: watch('miscellaneous_expense') || 0,
+            total_road_expenses: watch('total_road_expenses') || 0,
+            remarks: watch('remarks'),
+            calculated_kmpl: watch('calculated_kmpl'),
+            material_type_ids: watch('material_type_ids'),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+
+          try {
+            const generatedAlerts = await analyzeTripAndGenerateAlerts(
+              tripData,
+              updatedAnalysis,
+              cachedTrips
+            );
+            if (!cancelled) {
+              setAlerts(Array.isArray(generatedAlerts) ? generatedAlerts : []);
+            }
+          } catch (error) {
+            console.error('Error generating alerts:', error);
+            if (!cancelled) {
+              setAlerts([]);
+            }
+          }
+        }
       } catch (error) {
-        console.error('Error generating alerts:', error);
-        setAlerts([]);
+        console.error('Error in route analysis:', error);
+        if (!cancelled) {
+          setRouteAnalysis(undefined);
+          setAlerts([]);
+        }
       }
-    }
+    };
+    
+    runAnalysis();
+    
+    return () => {
+      cancelled = true;
+    };
   }, [
     warehouseId,
     selectedDestinations,
