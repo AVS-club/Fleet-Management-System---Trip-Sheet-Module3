@@ -454,7 +454,7 @@ export const createVehicle = async (
 
   const { data, error } = await supabase
     .from("vehicles")
-    .insert(convertKeysToSnakeCase(processedVehicle))
+    .insert(convertKeysToSnakeCase(processedVehicle as any))
 
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
