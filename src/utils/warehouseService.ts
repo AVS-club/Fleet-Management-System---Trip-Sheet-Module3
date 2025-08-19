@@ -1,5 +1,28 @@
 import { supabase } from './supabaseClient';
 
+// Helper function to convert camelCase to snake_case
+const toSnakeCase = (str: string) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+
+// Convert object keys from camelCase to snake_case
+const convertKeysToSnakeCase = (
+  obj: Record<string, any>
+): Record<string, any> => {
+  const newObj: Record<string, any> = {};
+
+  Object.keys(obj).forEach((key) => {
+    const newKey = toSnakeCase(key);
+    const value = obj[key];
+
+    newObj[newKey] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? convertKeysToSnakeCase(value)
+        : value;
+  });
+
+  return newObj;
+};
+
 export type Warehouse = {
   id: string;
   name: string;
@@ -25,13 +48,19 @@ export async function listWarehouses(opts: { includeInactive?: boolean } = {}) {
 }
 
 export async function createWarehouse(payload: Partial<Warehouse>) {
-  const { data, error } = await supabase.from("warehouses").insert([{ ...payload }]).select().single();
+  // Convert camelCase keys to snake_case for database
+  const dbPayload = convertKeysToSnakeCase(payload);
+  
+  const { data, error } = await supabase.from("warehouses").insert([dbPayload]).select().single();
   if (error) throw error;
   return data;
 }
 
 export async function updateWarehouse(id: string, payload: Partial<Warehouse>) {
-  const { data, error } = await supabase.from("warehouses").update(payload).eq("id", id).select().single();
+  // Convert camelCase keys to snake_case for database
+  const dbPayload = convertKeysToSnakeCase(payload);
+  
+  const { data, error } = await supabase.from("warehouses").update(dbPayload).eq("id", id).select().single();
   if (error) throw error;
   return data;
 }
