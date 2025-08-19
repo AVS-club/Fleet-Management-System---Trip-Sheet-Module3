@@ -153,6 +153,10 @@ export interface Vehicle {
   service_reminder_days_before?: number;
   service_reminder_km?: number;
 
+  // Service interval configuration
+  service_interval_km?: number;
+  service_interval_days?: number;
+
   // Vehicle photo
   photo_url?: string;
 

@@ -3,6 +3,8 @@ import { differenceInDays, isAfter, isBefore, addDays } from "date-fns";
 import { Vehicle, Driver } from "../types";
 import { MaintenanceTask } from "../types/maintenance";
 import { Trip } from "../types";
+import { computeDueStatus } from "./serviceDue";
+import { getLatestOdometer } from "./storage";
 
 // Define the reminder status types
 type ReminderStatus = "critical" | "warning" | "normal";
@@ -583,6 +585,64 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
               module: "maintenance",
             });
           }
+        }
+      }
+
+      // NEW: Check for service due based on new interval system
+      if (vehicle.remind_service && (task.next_due_odometer || task.next_due_date)) {
+        try {
+          // Get latest odometer reading
+          const { value: latestOdo } = await getLatestOdometer(vehicle.id);
+          
+          // Get warning thresholds from vehicle settings
+          const warnKm = vehicle.service_reminder_km || 1000;
+          const warnDays = vehicle.service_reminder_days_before || 7;
+          
+          // Compute due status
+          const dueStatus = computeDueStatus({
+            nextDueOdo: task.next_due_odometer,
+            nextDueDate: task.next_due_date,
+            latestOdo,
+            today,
+            warnKm,
+            warnDays
+          });
+          
+          if (dueStatus.status === 'overdue') {
+            reminders.push({
+              id: `service-interval-overdue-${task.id}`,
+              title: `Service Overdue ${dueStatus.reason ? `(${dueStatus.reason})` : ''}`,
+              entityId: task.id,
+              entityName: vehicle.registration_number,
+              status: "critical",
+              link: `/maintenance/${task.id}`,
+              type: "service_interval_overdue",
+              module: "maintenance",
+            });
+          } else if (dueStatus.status === 'due_soon') {
+            let dueMessage = "Service Due Soon";
+            if (dueStatus.kmToDue !== undefined && dueStatus.daysToDue !== undefined) {
+              dueMessage = `Service Due in ${Math.min(dueStatus.kmToDue, dueStatus.daysToDue)} ${dueStatus.kmToDue < dueStatus.daysToDue ? 'km' : 'days'}`;
+            } else if (dueStatus.kmToDue !== undefined) {
+              dueMessage = `Service Due in ${dueStatus.kmToDue} km`;
+            } else if (dueStatus.daysToDue !== undefined) {
+              dueMessage = `Service Due in ${dueStatus.daysToDue} days`;
+            }
+            
+            reminders.push({
+              id: `service-interval-soon-${task.id}`,
+              title: dueMessage,
+              entityId: task.id,
+              entityName: vehicle.registration_number,
+              daysLeft: dueStatus.daysToDue,
+              status: dueStatus.kmToDue && dueStatus.kmToDue <= 300 ? "critical" : "warning",
+              link: `/maintenance/${task.id}`,
+              type: "service_interval_due_soon",
+              module: "maintenance",
+            });
+          }
+        } catch (error) {
+          console.error('Error checking service interval due status:', error);
         }
       }
 

@@ -5,6 +5,8 @@ import {
   MaintenanceServiceGroup,
 } from "../types/maintenance";
 import { supabase } from "./supabaseClient";
+import { computeNextDueFromLast } from "./serviceDue";
+import { getLatestOdometer, getVehicle } from "./storage";
 
 // Tasks CRUD operations
 export const getTasks = async (): Promise<MaintenanceTask[]> => {
@@ -141,6 +143,14 @@ export const createTask = async (
       // Continue even if audit log creation fails
     }
 
+    // Compute and update next due dates/odometer
+    try {
+      await updateNextDueForTask(data.id, data.vehicle_id, data.odometer_reading, data.start_date);
+    } catch (error) {
+      console.error("Error computing next due for task:", error);
+      // Continue even if next due computation fails
+    }
+
     // Insert service groups if any
     if (service_groups && service_groups.length > 0) {
       try {
@@ -256,6 +266,20 @@ export const updateTask = async (
     }
   }
 
+  // Compute and update next due dates/odometer if relevant fields changed
+  if (updateData.odometer_reading || updateData.start_date || updateData.vehicle_id) {
+    try {
+      const finalOdometer = updateData.odometer_reading || oldTask.odometer_reading;
+      const finalStartDate = updateData.start_date || oldTask.start_date;
+      const finalVehicleId = updateData.vehicle_id || oldTask.vehicle_id;
+      
+      await updateNextDueForTask(id, finalVehicleId, finalOdometer, finalStartDate);
+    } catch (error) {
+      console.error("Error computing next due for updated task:", error);
+      // Continue even if next due computation fails
+    }
+  }
+
   // Handle service groups update
   if (service_groups && updatedTask) {
     try {
@@ -318,6 +342,56 @@ export const deleteTask = async (id: string): Promise<boolean> => {
   }
 
   return true;
+};
+
+// Helper function to compute and update next due for a maintenance task
+const updateNextDueForTask = async (
+  taskId: string,
+  vehicleId: string,
+  odometerReading: number,
+  startDate: string
+): Promise<void> => {
+  try {
+    // Get vehicle service intervals
+    const vehicle = await getVehicle(vehicleId);
+    if (!vehicle) return;
+
+    const intervalKm = vehicle.service_interval_km;
+    const intervalDays = vehicle.service_interval_days;
+
+    // Skip if no intervals are configured
+    if (!intervalKm && !intervalDays) return;
+
+    // Use current task as the "last service"
+    const lastServiceOdo = odometerReading;
+    const lastServiceDate = startDate;
+
+    // Compute next due
+    const nextDue = computeNextDueFromLast({
+      lastServiceOdo,
+      lastServiceDate,
+      intervalKm,
+      intervalDays
+    });
+
+    // Update the task with computed next due values
+    if (nextDue.nextDueOdo || nextDue.nextDueDate) {
+      const { error } = await supabase
+        .from('maintenance_tasks')
+        .update({
+          next_due_odometer: nextDue.nextDueOdo || null,
+          next_due_date: nextDue.nextDueDate || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', taskId);
+
+      if (error) {
+        console.error('Error updating next due for task:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error in updateNextDueForTask:', error);
+  }
 };
 
 // Audit log operations

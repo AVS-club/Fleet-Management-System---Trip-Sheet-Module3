@@ -1114,6 +1114,44 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         icon={<Bell className="h-5 w-5" />}
         iconColor="text-indigo-600"
       >
+        <div className="space-y-4">
+          {/* Service Interval Configuration */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-blue-800 mb-2">Service Intervals</h4>
+            <p className="text-xs text-blue-600 mb-3">
+              We'll compute next due from your last maintenance record; if none exists, we'll use your current odometer/date as a starting point.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Service Interval (KM)"
+                type="number"
+                placeholder="e.g., 10000 or 15000"
+                helperText="Distance between services"
+                disabled={isSubmitting}
+                {...register("service_interval_km", { 
+                  valueAsNumber: true,
+                  min: { value: 1000, message: "Minimum 1000 km" },
+                  max: { value: 50000, message: "Maximum 50000 km" }
+                })}
+              />
+              
+              <Input
+                label="Service Interval (Days)"
+                type="number"
+                placeholder="365"
+                helperText="Fallback annual service (days)"
+                disabled={isSubmitting}
+                {...register("service_interval_days", { 
+                  valueAsNumber: true,
+                  min: { value: 30, message: "Minimum 30 days" },
+                  max: { value: 730, message: "Maximum 730 days" }
+                })}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-3 sm:space-y-4">
           <Checkbox
             label="Enable Service Reminders"
@@ -1157,6 +1195,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="Days Before Service"
                   type="number"
                   placeholder="e.g., 7"
+                  helperText="Warning threshold (days before due)"
                   isPrefilledByTemplate={
                     prefilledByTemplate["service_reminder_days_before"]
                   }
@@ -1170,6 +1209,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   label="KM Before Service"
                   type="number"
                   placeholder="e.g., 500"
+                  helperText="Warning threshold (km before due)"
                   isPrefilledByTemplate={
                     prefilledByTemplate["service_reminder_km"]
                   }
