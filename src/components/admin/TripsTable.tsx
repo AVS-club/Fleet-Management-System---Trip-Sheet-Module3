@@ -196,6 +196,10 @@ const TripsTable: React.FC<TripsTableProps> = ({
     tripId: string;
     columnId: string;
   } | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   
   // Add ref for scrollable container
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -248,6 +252,13 @@ const TripsTable: React.FC<TripsTableProps> = ({
         : Number(bValue) - Number(aValue);
     });
   }, [trips, sortConfig, columns, vehiclesById, driversById]);
+
+  const paginatedTrips = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return sortedTrips.slice(start, start + rowsPerPage);
+  }, [sortedTrips, currentPage]);
+
+  const totalPages = Math.ceil(sortedTrips.length / rowsPerPage) || 1;
 
   const handleSort = (columnId: string) => {
     setSortConfig(current => {
@@ -356,6 +367,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
             </Button>
           </div>
         </div>
+
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -391,7 +403,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedTrips.length > 0 ? (
-                sortedTrips.map(trip => (
+                paginatedTrips.map(trip => (
                   <tr key={trip.id} className="hover:bg-gray-50">
                     {columns.map(column => (
                       <td
@@ -454,6 +466,29 @@ const TripsTable: React.FC<TripsTableProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex items-center justify-between p-4 border-t">
+          <span className="text-sm text-gray-700">
+            Page {currentPage} of {totalPages}
+          </span>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>
