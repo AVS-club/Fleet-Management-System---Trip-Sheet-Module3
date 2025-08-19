@@ -438,7 +438,6 @@ const checkRisingCosts = async (
   
   // If an alert already exists for this period, don't create another one
   if (existingAlerts && existingAlerts.length > 0) {
-    console.log(`Alert for rising maintenance costs already exists for period ${monthKey}`);
     return null;
   }
   
@@ -484,7 +483,6 @@ const checkRisingCosts = async (
       return null;
     }
 
-    console.log('Created rising maintenance costs alert:', data);
     return data;
   } catch (error) {
     console.error('Exception creating rising maintenance costs alert:', error);
@@ -626,7 +624,6 @@ const checkNonOptimalVendorRates = async (
   
   // If an alert already exists for this period, don't create another one
   if (existingAlerts && existingAlerts.length > 0) {
-    console.log(`Alert for non-optimal vendor rates already exists for period ${periodKey}`);
     return null;
   }
   
@@ -670,7 +667,6 @@ const checkNonOptimalVendorRates = async (
       return null;
     }
 
-    console.log('Created non-optimal vendor rates alert:', data);
     return data;
   } catch (error) {
     console.error('Exception creating non-optimal vendor rates alert:', error);
@@ -805,7 +801,6 @@ export const exportMaintenanceReport = (
       })
     : tasks;
     
-  console.log(`Exporting ${filteredTasks.length} maintenance tasks in ${format} format`);
   // Implementation details would depend on the specific libraries used
 };
 

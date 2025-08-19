@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Download, Trash2, Search } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -16,6 +16,7 @@ interface DataTableProps {
   onDownloadTemplate?: () => void;
   searchPlaceholder?: string;
   itemsPerPage?: number;
+  searchKeys?: string[];
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -24,10 +25,12 @@ const DataTable: React.FC<DataTableProps> = ({
   onDelete,
   onDownloadTemplate,
   searchPlaceholder = 'Search...',
-  itemsPerPage = 10
+  itemsPerPage = 10,
+  searchKeys,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   // Add ref for scrollable container
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -58,12 +61,20 @@ const DataTable: React.FC<DataTableProps> = ({
       }
     };
   }, []);
-  
-  const filteredData = data.filter(item =>
-    Object.values(item).some(value =>
-      String(value).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const filteredData = useMemo(() => {
+    if (!debouncedSearchTerm) return data;
+    const term = debouncedSearchTerm.toLowerCase();
+    const keys = searchKeys ?? columns.map(c => c.key);
+    return data.filter(item =>
+      keys.some(key => String(item[key] ?? '').toLowerCase().includes(term))
+    );
+  }, [data, debouncedSearchTerm, searchKeys, columns]);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;

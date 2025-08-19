@@ -227,7 +227,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         );
       }
 
-      // console.log(result);
       const rc = result.data?.response || {};
       const mapApiToForm = (rc: any, regNum: string) => ({
         registration_number:

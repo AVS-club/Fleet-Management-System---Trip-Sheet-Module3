@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
-import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, getTrips, createDestination, getVehicle } from '../../utils/storage';
+import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle } from '../../utils/storage';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info, Loader, Settings } from 'lucide-react';
 import Button from '../ui/Button';
@@ -25,12 +25,14 @@ interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
   initialData?: Partial<TripFormData>;
   isSubmitting?: boolean;
+  trips?: Trip[];
 }
 
 const TripForm: React.FC<TripFormProps> = ({
   onSubmit,
   initialData = {},
-  isSubmitting = false
+  isSubmitting = false,
+  trips = []
 }) => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | undefined>();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -48,6 +50,11 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
   const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
+  const [cachedTrips, setCachedTrips] = useState<Trip[]>(trips);
+
+  useEffect(() => {
+    setCachedTrips(Array.isArray(trips) ? trips : []);
+  }, [trips]);
 
   const {
     register,
@@ -113,17 +120,13 @@ const TripForm: React.FC<TripFormProps> = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData, tripsData] = await Promise.all([
+        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
           getVehicles(),
           getDrivers(),
           getWarehouses(),
           getDestinations(),
-          getMaterialTypes(),
-          getTrips()
+          getMaterialTypes()
         ]);
-
-        setCachedTrips(Array.isArray(tripsData) ? tripsData : []);
-        
         // Filter out archived vehicles
         const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
         setVehicles(activeVehicles);
@@ -131,25 +134,6 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
-        
-        // Calculate frequent warehouses
-        if (Array.isArray(tripsData) && Array.isArray(warehousesData)) {
-          const warehouseCounts = tripsData.reduce((acc, trip) => {
-            if (trip.warehouse_id) {
-              acc[trip.warehouse_id] = (acc[trip.warehouse_id] || 0) + 1;
-            }
-            return acc;
-          }, {} as Record<string, number>);
-          
-          // Sort warehouses by frequency and take top 3
-          const topWarehouses = Object.entries(warehouseCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([id]) => warehousesData.find(w => w.id === id))
-            .filter((w): w is Warehouse => w !== undefined);
-          
-          setFrequentWarehouses(topWarehouses);
-        }
       } catch (error) {
         console.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
@@ -157,9 +141,26 @@ const TripForm: React.FC<TripFormProps> = ({
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (Array.isArray(cachedTrips) && Array.isArray(warehouses)) {
+      const warehouseCounts = cachedTrips.reduce((acc, trip) => {
+        if (trip.warehouse_id) {
+          acc[trip.warehouse_id] = (acc[trip.warehouse_id] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const topWarehouses = [...warehouses]
+        .sort((a, b) => (warehouseCounts[b.id] || 0) - (warehouseCounts[a.id] || 0))
+        .slice(0, 3);
+
+      setFrequentWarehouses(topWarehouses);
+    }
+  }, [cachedTrips, warehouses]);
 
   // Update vehicle and last trip mileage when vehicle changes
   useEffect(() => {
@@ -183,7 +184,6 @@ const TripForm: React.FC<TripFormProps> = ({
           // Auto-fill start KM based on trip type and manual override
           if (!manualOverride) {
             if (refuelingDone) {
-              // Get the last refueling trip's end_km
               const vehicleTrips = Array.isArray(cachedTrips)
                 ? cachedTrips
                     .filter(trip => trip.vehicle_id === vehicleId && trip.refueling_done)
@@ -199,7 +199,6 @@ const TripForm: React.FC<TripFormProps> = ({
                 setValue('start_km', vehicle.current_odometer);
               }
             } else {
-              // Get the last trip's end_km
               const vehicleTrips = Array.isArray(cachedTrips)
                 ? cachedTrips
                     .filter(trip => trip.vehicle_id === vehicleId)
@@ -248,15 +247,7 @@ const TripForm: React.FC<TripFormProps> = ({
   }, [fuelQuantity, fuelCost, setValue]);
 
 
-  const runRouteAnalysis = useCallback(async () => {
-    if (
-      !warehouseId ||
-      !Array.isArray(selectedDestinations) ||
-      selectedDestinations.length === 0 ||
-      !startKm ||
-      !endKm ||
-      endKm <= startKm
-    ) {
+
       setRouteAnalysis(undefined);
       setAlerts([]);
       return;
@@ -330,19 +321,7 @@ const TripForm: React.FC<TripFormProps> = ({
     if (analysisTimeoutRef.current) {
       clearTimeout(analysisTimeoutRef.current);
     }
-    analysisTimeoutRef.current = setTimeout(() => {
-      runRouteAnalysis();
-    }, 400);
-  }, [runRouteAnalysis]);
 
-  useEffect(() => {
-    triggerRouteAnalysis();
-    return () => {
-      if (analysisTimeoutRef.current) {
-        clearTimeout(analysisTimeoutRef.current);
-      }
-    };
-  }, [triggerRouteAnalysis]);
 
   const validateEndKm = (value: number) => {
     return !startKm || value > startKm || 'End KM must be greater than Start KM';
