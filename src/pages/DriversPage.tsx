@@ -243,10 +243,9 @@ const DriversPage: React.FC = () => {
                     `Error updating document "${doc.name}" with final ID:`,
                     error
                   );
-                }
-                toast.error(`Failed to upload document "${doc.name}". Please check your storage settings and try again.`);
                   toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
-                return;
+                  return;
+                }
               }
 
               updatedDocs.push(updatedDoc);
