@@ -1,19 +1,20 @@
 import React from "react";
-import { NavLink, Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from "../ui/ThemeToggle";
+import AppNav from "./AppNav";
 import { toast } from 'react-toastify';
 
-const NAV_ITEMS = [
-  { label: "Dashboard",     to: "/" },
-  { label: "Vehicles",      to: "/vehicles" },
-  { label: "Drivers",       to: "/drivers" },
-  { label: "Trips",         to: "/trips" },
-  { label: "Trip P&L",      to: "/trip-pnl-reports" },
-  { label: "Maintenance",   to: "/maintenance" },
-  { label: "Notifications", to: "/notifications" },
-  { label: "Admin",         to: "/admin" },
-];
+// Optional: replace with your actual logo import if you have a file asset
+const LogoMark: React.FC<{ className?: string }> = ({ className }) => (
+  <div
+    className={`rounded-full bg-primary-600 text-white grid place-items-center ${className}`}
+    aria-hidden="true"
+  >
+    {/* simple mark; swap with <img src=... alt="" /> if you have a logo file */}
+    <span className="font-bold">A</span>
+  </div>
+);
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -33,28 +34,29 @@ const Header: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 dark:border-gray-700 dark:bg-gray-900/80">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <Link to="/" className="flex items-center gap-2">
+        {/* Brand (responsive collapse: Full → AVS → icon) */}
+        <button
+          className="flex items-center gap-2 hover:opacity-90 focus:outline-none"
+          onClick={() => navigate("/")}
+          aria-label="Go to Dashboard"
+          title="Auto Vital Solution"
+        >
           <img src="/assets/logo.png" alt="AVS" className="h-7 w-auto" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}} />
-          <span className="font-semibold text-gray-900 dark:text-gray-100">Auto Vital</span>
-        </Link>
+          {/* Full name on xl+ */}
+          <span className="hidden xl:inline text-gray-900 dark:text-gray-100 font-semibold whitespace-nowrap">
+            Auto Vital Solution
+          </span>
+          {/* AVS between md and xl */}
+          <span className="hidden md:inline xl:hidden text-gray-900 dark:text-gray-100 font-semibold">
+            AVS
+          </span>
+          {/* On very small screens, only the logo shows */}
+        </button>
 
-        {/* Nav */}
-        <nav className="ml-6 flex flex-1 items-center gap-4 text-sm">
-          {NAV_ITEMS.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to} // Use item.to directly for NavLink
-              className={({ isActive }) =>
-                `inline-flex items-center h-9 px-2 rounded-md transition text-gray-600 dark:text-gray-300
-                 ${isActive ? "text-primary-700 bg-primary-50 dark:bg-primary-900/30 dark:text-primary-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-700"}`
-              }
-              end={item.to === "/"}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        {/* Primary Nav (icons always; labels hide on small screens) */}
+        <div className="min-w-0 flex-1 flex justify-center">
+          <AppNav />
+        </div>
 
         {/* Right controls */}
         <div className="ml-auto flex items-center gap-2">
