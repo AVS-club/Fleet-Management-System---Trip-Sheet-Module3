@@ -280,12 +280,26 @@ const recalculateMileageForAffectedTrips = async (
 
   if (affectedTrips.length === 0) return;
 
-  for (const trip of affectedTrips) {
-    const calculatedKmpl = calculateMileage(trip, trips);
-    await supabase
-      .from("trips")
-      .update({ calculated_kmpl: calculatedKmpl })
-      .eq("id", trip.id);
+  // Gather all affected trip IDs with their new mileage
+  const updates = affectedTrips.map((trip) => ({
+    id: trip.id,
+    calculated_kmpl: calculateMileage(trip, trips),
+  }));
+
+  const startTime = performance.now();
+
+  const { error } = await supabase.from("trips").upsert(updates);
+
+  const duration = performance.now() - startTime;
+  console.log(
+    `Batch updated calculated_kmpl for ${updates.length} trips in ${duration.toFixed(
+      2
+    )}ms`
+  );
+
+  if (error) {
+    console.error("Error updating mileage for affected trips:", error);
+    throw error;
   }
 };
 

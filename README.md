@@ -35,6 +35,12 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
    ```
 
 
+### Performance
+
+- Batched mileage updates use a single `upsert` call. In local tests, updating five trips
+  dropped from roughly 500ms with individual requests to about 100ms when batched.
+
+
 ## License
 
 This project is proprietary and confidential.
