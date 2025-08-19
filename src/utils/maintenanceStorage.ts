@@ -7,6 +7,7 @@ import {
 import { supabase } from "./supabaseClient";
 import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";
+import { withOwner, getCurrentUserId } from "./supaHelpers";
 
 // Tasks CRUD operations
 export const getTasks = async (): Promise<MaintenanceTask[]> => {
@@ -21,7 +22,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
   const { data, error } = await supabase
     .from("maintenance_tasks")
     .select("*")
-    .eq("added_by", user.id)
+    .eq("created_by", user.id)
     .order("start_date", { ascending: false });
 
   if (error) {
@@ -110,14 +111,17 @@ export const createTask = async (
   }
 
 
+  const userId = await getCurrentUserId();
+  const taskDataToInsert = withOwner({
+    ...taskData,
+    bills: taskData.bills || [],
+    parts_required: taskData.parts_required || [],
+  }, userId);
+
   // Insert the main task
   const { data, error } = await supabase
     .from("maintenance_tasks")
-    .insert({
-      ...taskData,
-      bills: taskData.bills || [],
-      parts_required: taskData.parts_required || [],
-    })
+    .insert(taskDataToInsert)
     .select()
     .single();
 

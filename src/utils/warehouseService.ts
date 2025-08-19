@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { withOwner, getCurrentUserId } from './supaHelpers';
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -48,8 +49,9 @@ export async function listWarehouses(opts: { includeInactive?: boolean } = {}) {
 }
 
 export async function createWarehouse(payload: Partial<Warehouse>) {
+  const userId = await getCurrentUserId();
   // Convert camelCase keys to snake_case for database
-  const dbPayload = convertKeysToSnakeCase(payload);
+  const dbPayload = convertKeysToSnakeCase(withOwner(payload, userId));
   
   const { data, error } = await supabase.from("warehouses").insert([dbPayload]).select().single();
   if (error) throw error;

@@ -11,6 +11,7 @@ import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
 import { normalizeVehicleType } from "./vehicleNormalize";
+import { withOwner, getCurrentUserId } from "./supaHelpers";
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -192,14 +193,15 @@ export const createTrip = async (
 
   const tripId = await generateTripId(trip.vehicle_id);
 
+  const userId = await getCurrentUserId();
   // Ensure material_type_ids is properly handled
-  const tripData = {
+  const tripData = withOwner({
     ...trip,
     trip_serial_number: tripId,
     // Ensure breakdown_expense and miscellaneous_expense are included
     breakdown_expense: trip.breakdown_expense || 0,
     miscellaneous_expense: trip.miscellaneous_expense || 0,
-  };
+  }, userId);
 
   const { data, error } = await supabase
     .from("trips")
@@ -1074,36 +1076,38 @@ export const createDriver = async (
     console.error(err);
   }
 
+  const driverDataToInsert = withOwner({
+    ...convertKeysToSnakeCase(driverData),
+    license_number: dl_number,
+    license_doc_url: licencePublicUrls,
+    aadhar_doc_url: idProofPublicUrls,
+    police_doc_url: policePublicUrls,
+    medical_doc_url: medicalPublicUrls,
+    license_issue_date:
+      (driverData.license_issue_date &&
+        !isNaN(new Date(driverData.license_issue_date).getTime()) &&
+        new Date(driverData.license_issue_date)) ||
+      null,
+    dob:
+      (driverData.dob &&
+        !isNaN(new Date(driverData.dob).getTime()) &&
+        new Date(driverData.dob)) ||
+      null,
+    valid_from:
+      (driverData.valid_from &&
+        !isNaN(new Date(driverData.valid_from).getTime()) &&
+        new Date(driverData.valid_from)) ||
+      null,
+    license_expiry_date:
+      (driverData.license_expiry_date &&
+        !isNaN(new Date(driverData.license_expiry_date).getTime()) &&
+        new Date(driverData.license_expiry_date)) ||
+      null,
+  }, userId);
+
   const { data, error } = await supabase
     .from("drivers")
-    .insert({
-      ...convertKeysToSnakeCase(driverData),
-      license_number: dl_number,
-      license_doc_url: licencePublicUrls,
-      aadhar_doc_url: idProofPublicUrls,
-      police_doc_url: policePublicUrls,
-      medical_doc_url: medicalPublicUrls,
-      license_issue_date:
-        (driverData.license_issue_date &&
-          !isNaN(new Date(driverData.license_issue_date).getTime()) &&
-          new Date(driverData.license_issue_date)) ||
-        null,
-      dob:
-        (driverData.dob &&
-          !isNaN(new Date(driverData.dob).getTime()) &&
-          new Date(driverData.dob)) ||
-        null,
-      valid_from:
-        (driverData.valid_from &&
-          !isNaN(new Date(driverData.valid_from).getTime()) &&
-          new Date(driverData.valid_from)) ||
-        null,
-      license_expiry_date:
-        (driverData.license_expiry_date &&
-          !isNaN(new Date(driverData.license_expiry_date).getTime()) &&
-          new Date(driverData.license_expiry_date)) ||
-        null,
-    })
+    .insert(driverDataToInsert)
     .select()
     .single();
 
@@ -1402,8 +1406,9 @@ export const getDestination = async (
 export const createDestination = async (
   destination: Omit<Destination, "id">
 ): Promise<Destination | null> => {
+  const userId = await getCurrentUserId();
   // Prepare the data for insertion, removing empty id field if present
-  const destinationData = convertKeysToSnakeCase(destination);
+  const destinationData = convertKeysToSnakeCase(withOwner(destination, userId));
 
   // Remove id field if it's empty or undefined to let Supabase auto-generate it
   if (

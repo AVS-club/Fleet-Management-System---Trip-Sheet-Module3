@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ReminderContact, ReminderTemplate } from "../types/reminders";
+import { withOwner, getCurrentUserId } from "./supaHelpers";
 
 // Reminder Contacts CRUD operations
 export const getReminderContacts = async (): Promise<ReminderContact[]> => {
@@ -14,7 +15,7 @@ export const getReminderContacts = async (): Promise<ReminderContact[]> => {
   const { data, error } = await supabase
     .from("reminder_contacts")
     .select("*")
-    .eq("added_by", user.id)
+    .eq("created_by", user.id)
     .order("full_name");
 
   if (error) {
@@ -45,8 +46,9 @@ const getReminderContact = async (
 export const createReminderContact = async (
   contact: Omit<ReminderContact, "id" | "created_at" | "updated_at">
 ): Promise<ReminderContact> => {
+  const userId = await getCurrentUserId();
   // Ensure all fields have proper defaults to prevent undefined errors
-  const safeContact = {
+  const safeContact = withOwner({
     ...contact,
     full_name: contact.full_name || "",
     position: contact.position || "",
@@ -59,7 +61,7 @@ export const createReminderContact = async (
       : [],
     is_active: contact.is_active ?? true,
     is_global: contact.is_global ?? false,
-  };
+  }, userId);
 
   const { data, error } = await supabase
     .from("reminder_contacts")
@@ -120,7 +122,7 @@ export const getReminderTemplates = async (): Promise<ReminderTemplate[]> => {
   const { data, error } = await supabase
     .from("reminder_templates")
     .select("*")
-    .eq("added_by", user.id)
+    .eq("created_by", user.id)
     .order("reminder_type");
 
   if (error) {
@@ -151,9 +153,12 @@ const getReminderTemplate = async (
 export const createReminderTemplate = async (
   template: Omit<ReminderTemplate, "id" | "created_at" | "updated_at">
 ): Promise<ReminderTemplate> => {
+  const userId = await getCurrentUserId();
+  const templateData = withOwner(template, userId);
+
   const { data, error } = await supabase
     .from("reminder_templates")
-    .insert(template)
+    .insert(templateData)
     .select()
     .single();
 
