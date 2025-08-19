@@ -10,6 +10,7 @@ import {
 import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
+import { normalizeVehicleType } from "./vehicleNormalize";
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -350,7 +351,7 @@ export const createVehicle = async (
   // Process the vehicle data to handle file uploads and document flags
   const processedVehicle = {
     ...vehicle,
-    type: normalizeVehicleType(vehicle.type),
+    type: normalizeVehicleType(vehicle.type) || 'truck',
   };
   let rcPublicUrls = [];
   let insurancePublicUrls = [];
@@ -462,7 +463,7 @@ export const createVehicle = async (
     .from("vehicles")
     .insert({
       ...convertKeysToSnakeCase(processedVehicle),
-      created_by: processedVehicle.created_by ?? userId,
+      created_by: userId,
 
       rc_document_url: processedVehicle.rc_document_url,
       insurance_document_url: processedVehicle.insurance_document_url,
