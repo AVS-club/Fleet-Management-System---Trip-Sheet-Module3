@@ -4,6 +4,7 @@ import { MapPin, Clock, TrendingUp, AlertTriangle, CheckCircle, Plus } from 'luc
 import { createDestination, getDestination } from '../../utils/storage';
 import { Loader } from '@googlemaps/js-api-loader';
 import { checkRouteOptimization } from '../../utils/routeOptimizer';
+import PortalDropdown from '../ui/PortalDropdown';
 
 interface GooglePrediction {
   place_id: string;
@@ -30,7 +31,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [googlePredictions, setGooglePredictions] = useState<GooglePrediction[]>([]);
@@ -107,17 +108,6 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
     handleSearch();
   }, [searchTerm, autocompleteService]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (warehouse && Array.isArray(selectedDestinations) && selectedDestinations.length > 1) {
@@ -290,7 +280,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       </div>
       <p className="text-xs text-gray-500 -mt-1">Select in the order of actual delivery route</p>
 
-      <div className="relative" ref={dropdownRef}>
+      <div ref={anchorRef} className="relative">
         {/* Selected destinations display */}
         <div className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text">
           {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 ? (
@@ -364,95 +354,101 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           )}
         </div>
 
-        {/* Destination search dropdown */}
-        {isOpen && (
-          <div className="absolute z-[100] w-full mt-1 bg-white border rounded-lg shadow-lg max-h-[80vh] overflow-y-auto">
-            <div className="p-2 border-b sticky top-0 bg-white z-10">
-              <input
-                type="text"
-                ref={searchInputRef}
-                className="w-full p-2 pl-8 border rounded-md"
-                placeholder="Search destinations..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-              />
-              <MapPin className="absolute left-4 top-5 h-4 w-4 text-gray-400" />
-            </div>
-
-            <div className="max-h-[70vh] overflow-y-auto">
-              {/* Admin-saved destinations */}
-              {filteredAdminDestinations.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-30 border-b border-gray-100">Saved Destinations</div>
-              )}
-              {filteredAdminDestinations.map(dest => (
-                <div 
-                  key={dest.id}
-                  className={`px-3 py-2.5 cursor-pointer hover:bg-gray-50 ${
-                    Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) ? 'bg-primary-50' : ''
-                  }`}
-                  onClick={() => toggleDestination(dest.id)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-start">
-                      <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
-                      <div>
-                        <div className="font-medium text-gray-900">{dest.name}</div>
-                        <div className="flex items-center mt-1 space-x-3">
-                          <span className="flex items-center text-xs text-gray-500">
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            <span>{dest.standard_distance} km</span>
-                          </span>
-                          <span className="flex items-center text-xs text-gray-500">
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>{dest.estimated_time}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) && (
-                      <CheckCircle className="h-4 w-4 text-primary-600 ml-2" />
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* Google Maps suggestions */}
-              {filteredGooglePredictions.length > 0 && (
-                <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-30 border-b border-gray-100">Google Maps Suggestions</div>
-              )}
-              {filteredGooglePredictions.map(prediction => (
-                <div
-                  key={prediction.place_id}
-                  className="p-3 cursor-pointer hover:bg-gray-50 border-t border-gray-100 first:border-t-0"
-                  onClick={() => handleSelectGooglePlace(prediction)}
-                >
-                  <div className="flex items-start">
-                    <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
-                    <div>
-                      <span className="font-medium text-gray-900">
-                        {prediction.description.split(',')[0]}
-                      </span>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {prediction.description.split(',').slice(1).join(',')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* No results message */}
-              {filteredAdminDestinations.length === 0 && filteredGooglePredictions.length === 0 && (
-                <div className="p-4 text-center text-gray-500">
-                  {searchTerm.length > 0 
-                    ? `No destinations found matching "${searchTerm}"`
-                    : 'Type to search for destinations'}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Portalized Destination search dropdown */}
+      <PortalDropdown
+        anchorRef={anchorRef}
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        maxHeight={Math.round(window.innerHeight * 0.7)}
+        matchWidth
+        className="border-0 shadow-xl"
+      >
+        <div className="p-2 border-b sticky top-0 bg-white z-10">
+          <input
+            type="text"
+            ref={searchInputRef}
+            className="w-full p-2 pl-8 border rounded-md"
+            placeholder="Search destinations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <MapPin className="absolute left-4 top-5 h-4 w-4 text-gray-400" />
+        </div>
+
+        <div className="overflow-y-auto">
+          {/* Admin-saved destinations */}
+          {filteredAdminDestinations.length > 0 && (
+            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Saved Destinations</div>
+          )}
+          {filteredAdminDestinations.map(dest => (
+            <div 
+              key={dest.id}
+              className={`px-3 py-2.5 cursor-pointer hover:bg-gray-50 ${
+                Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) ? 'bg-primary-50' : ''
+              }`}
+              onClick={() => toggleDestination(dest.id)}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex items-start">
+                  <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+                  <div>
+                    <div className="font-medium text-gray-900">{dest.name}</div>
+                    <div className="flex items-center mt-1 space-x-3">
+                      <span className="flex items-center text-xs text-gray-500">
+                        <TrendingUp className="h-3 w-3 mr-1" />
+                        <span>{dest.standard_distance} km</span>
+                      </span>
+                      <span className="flex items-center text-xs text-gray-500">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>{dest.estimated_time}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {Array.isArray(selectedDestinations) && selectedDestinations.includes(dest.id) && (
+                  <CheckCircle className="h-4 w-4 text-primary-600 ml-2" />
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Google Maps suggestions */}
+          {filteredGooglePredictions.length > 0 && (
+            <div className="p-2 bg-gray-50 text-xs font-medium text-gray-700 sticky top-0 z-20 border-b border-gray-100">Google Maps Suggestions</div>
+          )}
+          {filteredGooglePredictions.map(prediction => (
+            <div
+              key={prediction.place_id}
+              className="p-3 cursor-pointer hover:bg-gray-50 border-t border-gray-100 first:border-t-0"
+              onClick={() => handleSelectGooglePlace(prediction)}
+            >
+              <div className="flex items-start">
+                <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
+                <div>
+                  <span className="font-medium text-gray-900">
+                    {prediction.description.split(',')[0]}
+                  </span>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {prediction.description.split(',').slice(1).join(',')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* No results message */}
+          {filteredAdminDestinations.length === 0 && filteredGooglePredictions.length === 0 && (
+            <div className="p-4 text-center text-gray-500">
+              {searchTerm.length > 0 
+                ? `No destinations found matching "${searchTerm}"`
+                : 'Type to search for destinations'}
+            </div>
+          )}
+        </div>
+      </PortalDropdown>
 
       {error && (
         <p className="text-error-500 text-sm">{error}</p>
