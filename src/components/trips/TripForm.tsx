@@ -50,7 +50,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
   const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
-  const [cachedTrips, setCachedTrips] = useState<Trip[]>(trips);
 
   useEffect(() => {
     setCachedTrips(Array.isArray(trips) ? trips : []);
