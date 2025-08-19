@@ -26,7 +26,7 @@ import Checkbox from "../ui/Checkbox";
 import Button from "../ui/Button";
 import { toast } from "react-toastify";
 import CollapsibleSection from "../ui/CollapsibleSection";
-import { normalizeVehicleType } from "../../utils/vehicleNormalize";
+import { normalizeVehicleType, VEHICLE_TYPES } from "../../utils/vehicleNormalize";
 import { supabase } from "../../utils/supabaseClient";
 import {
   getReminderTemplates,
@@ -44,13 +44,6 @@ interface VehicleFormProps {
   onCancel?: () => void;
   isSubmitting?: boolean;
 }
-
-const VEHICLE_TYPES = [
-  { value: 'truck', label: 'Truck' },
-  { value: 'bus',   label: 'Bus' },
-  { value: 'car',   label: 'Car' },
-  { value: 'van',   label: 'Van' },
-];
 
 const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
@@ -73,6 +66,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [prefilledByTemplate, setPrefilledByTemplate] = useState<
     Record<string, boolean>
   >({});
+
+  // Vehicle type options for the select component
+  const vehicleTypeOptions = VEHICLE_TYPES.map(type => ({
+    value: type,
+    label: type.charAt(0).toUpperCase() + type.slice(1)
+  }));
 
   const {
     register,
@@ -473,7 +472,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             render={({ field }) => ( // 'field' contains value, onChange, etc.
               <Select
                 label="Vehicle Type"
-                options={VEHICLE_TYPES} // Use the defined VEHICLE_TYPES constant
+                options={vehicleTypeOptions} // Use the defined vehicleTypeOptions
                 error={errors.type?.message}
                 required
                 disabled={fieldsDisabled || isSubmitting}
