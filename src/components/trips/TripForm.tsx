@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
@@ -42,6 +42,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [tripIdPreview, setTripIdPreview] = useState<string>('');
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | undefined>();
   const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [cachedTrips, setCachedTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
@@ -91,6 +92,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const warehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
   const materialTypeIds = watch('material_type_ids') || [];
+  const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Calculate total expenses in real-time
   const totalExpenses = useMemo(() => {
@@ -119,6 +121,8 @@ const TripForm: React.FC<TripFormProps> = ({
           getMaterialTypes(),
           getTrips()
         ]);
+
+        setCachedTrips(Array.isArray(tripsData) ? tripsData : []);
         
         // Filter out archived vehicles
         const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
@@ -180,9 +184,8 @@ const TripForm: React.FC<TripFormProps> = ({
           if (!manualOverride) {
             if (refuelingDone) {
               // Get the last refueling trip's end_km
-              const tripsData = await getTrips();
-              const vehicleTrips = Array.isArray(tripsData) 
-                ? tripsData
+              const vehicleTrips = Array.isArray(cachedTrips)
+                ? cachedTrips
                     .filter(trip => trip.vehicle_id === vehicleId && trip.refueling_done)
                     .sort((a, b) => new Date(b.trip_end_date || 0).getTime() - new Date(a.trip_end_date || 0).getTime())
                 : [];
@@ -197,9 +200,8 @@ const TripForm: React.FC<TripFormProps> = ({
               }
             } else {
               // Get the last trip's end_km
-              const tripsData = await getTrips();
-              const vehicleTrips = Array.isArray(tripsData) 
-                ? tripsData
+              const vehicleTrips = Array.isArray(cachedTrips)
+                ? cachedTrips
                     .filter(trip => trip.vehicle_id === vehicleId)
                     .sort((a, b) => new Date(b.trip_end_date || 0).getTime() - new Date(a.trip_end_date || 0).getTime())
                 : [];
@@ -226,7 +228,7 @@ const TripForm: React.FC<TripFormProps> = ({
       
       fetchVehicleData();
     }
-  }, [vehicleId, vehicles, refuelingDone, setValue, manualOverride]);
+  }, [vehicleId, vehicles, refuelingDone, setValue, manualOverride, cachedTrips]);
 
   useEffect(() => {
     if (tripStartDate && tripEndDate) {
@@ -246,79 +248,101 @@ const TripForm: React.FC<TripFormProps> = ({
   }, [fuelQuantity, fuelCost, setValue]);
 
 
-  useEffect(() => {
-    const fetchRouteAnalysis = async () => {
-      if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || 
-          !startKm || !endKm || endKm <= startKm) {
-        return;
-      }
-      
-      const analysis = await analyzeRoute(warehouseId, selectedDestinations);
-      if (analysis) {
-        const actualDistance = endKm - startKm;
-        const updatedAnalysis: RouteAnalysis = {
-          ...analysis,
-          deviation: ((actualDistance - analysis.standard_distance) / analysis.standard_distance) * 100
-        };
-        setRouteAnalysis(updatedAnalysis);
-
-        // Generate alerts based on current trip data
-        const tripData: Trip = {
-          id: nanoid(),
-          vehicle_id: vehicleId,
-          driver_id: watch('driver_id'),
-          warehouse_id: warehouseId,
-          destinations: selectedDestinations,
-          trip_start_date: watch('trip_start_date'),
-          trip_end_date: watch('trip_end_date'),
-          trip_duration: watch('trip_duration') || 0,
-          trip_serial_number: '', // This will be generated on submit
-          manual_trip_id: watch('manual_trip_id') || false,
-          start_km: startKm,
-          end_km: endKm,
-          gross_weight: watch('gross_weight') || 0,
-          refueling_done: watch('refueling_done'),
-          fuel_quantity: watch('fuel_quantity'),
-          fuel_cost: watch('fuel_cost'),
-          total_fuel_cost: watch('total_fuel_cost'),
-          unloading_expense: watch('unloading_expense') || 0,
-          driver_expense: watch('driver_expense') || 0,
-          road_rto_expense: watch('road_rto_expense') || 0,
-          breakdown_expense: watch('breakdown_expense') || 0,
-          miscellaneous_expense: watch('miscellaneous_expense') || 0,
-          total_road_expenses: watch('total_road_expenses') || 0,
-          remarks: watch('remarks'),
-          calculated_kmpl: watch('calculated_kmpl'),
-          material_type_ids: watch('material_type_ids'),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-
-        // Fetch trips for alert generation
-        try {
-          const tripsData = await getTrips();
-          const generatedAlerts = await analyzeTripAndGenerateAlerts(
-            tripData,
-            updatedAnalysis,
-            tripsData
-          );
-          setAlerts(Array.isArray(generatedAlerts) ? generatedAlerts : []);
-        } catch (error) {
-          console.error('Error generating alerts:', error);
-          setAlerts([]);
-        }
-      }
-    };
-    
-    fetchRouteAnalysis();
-    
-    // Reset if conditions aren't met
-    if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || 
-        !startKm || !endKm || endKm <= startKm) {
+  const runRouteAnalysis = useCallback(async () => {
+    if (
+      !warehouseId ||
+      !Array.isArray(selectedDestinations) ||
+      selectedDestinations.length === 0 ||
+      !startKm ||
+      !endKm ||
+      endKm <= startKm
+    ) {
       setRouteAnalysis(undefined);
       setAlerts([]);
+      return;
     }
-  }, [warehouseId, selectedDestinations, startKm, endKm, vehicleId, watch]);
+
+    const analysis = await analyzeRoute(warehouseId, selectedDestinations);
+    if (analysis) {
+      const actualDistance = endKm - startKm;
+      const updatedAnalysis: RouteAnalysis = {
+        ...analysis,
+        deviation:
+          ((actualDistance - analysis.standard_distance) / analysis.standard_distance) * 100,
+      };
+      setRouteAnalysis(updatedAnalysis);
+
+      // Generate alerts based on current trip data
+      const tripData: Trip = {
+        id: nanoid(),
+        vehicle_id: vehicleId,
+        driver_id: watch('driver_id'),
+        warehouse_id: warehouseId,
+        destinations: selectedDestinations,
+        trip_start_date: watch('trip_start_date'),
+        trip_end_date: watch('trip_end_date'),
+        trip_duration: watch('trip_duration') || 0,
+        trip_serial_number: '', // This will be generated on submit
+        manual_trip_id: watch('manual_trip_id') || false,
+        start_km: startKm,
+        end_km: endKm,
+        gross_weight: watch('gross_weight') || 0,
+        refueling_done: watch('refueling_done'),
+        fuel_quantity: watch('fuel_quantity'),
+        fuel_cost: watch('fuel_cost'),
+        total_fuel_cost: watch('total_fuel_cost'),
+        unloading_expense: watch('unloading_expense') || 0,
+        driver_expense: watch('driver_expense') || 0,
+        road_rto_expense: watch('road_rto_expense') || 0,
+        breakdown_expense: watch('breakdown_expense') || 0,
+        miscellaneous_expense: watch('miscellaneous_expense') || 0,
+        total_road_expenses: watch('total_road_expenses') || 0,
+        remarks: watch('remarks'),
+        calculated_kmpl: watch('calculated_kmpl'),
+        material_type_ids: watch('material_type_ids'),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      try {
+        const generatedAlerts = await analyzeTripAndGenerateAlerts(
+          tripData,
+          updatedAnalysis,
+          cachedTrips
+        );
+        setAlerts(Array.isArray(generatedAlerts) ? generatedAlerts : []);
+      } catch (error) {
+        console.error('Error generating alerts:', error);
+        setAlerts([]);
+      }
+    }
+  }, [
+    warehouseId,
+    selectedDestinations,
+    startKm,
+    endKm,
+    vehicleId,
+    cachedTrips,
+    watch,
+  ]);
+
+  const triggerRouteAnalysis = useCallback(() => {
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+    }
+    analysisTimeoutRef.current = setTimeout(() => {
+      runRouteAnalysis();
+    }, 400);
+  }, [runRouteAnalysis]);
+
+  useEffect(() => {
+    triggerRouteAnalysis();
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [triggerRouteAnalysis]);
 
   const validateEndKm = (value: number) => {
     return !startKm || value > startKm || 'End KM must be greater than Start KM';
