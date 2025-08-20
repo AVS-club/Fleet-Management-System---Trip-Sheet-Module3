@@ -10,7 +10,6 @@ import {
 import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
-import { normalizeVehicleType } from "./vehicleNormalize";
 import { BUCKETS } from "./storageBuckets";
 
 // Helper function to convert camelCase to snake_case
@@ -37,7 +36,10 @@ const convertKeysToSnakeCase = (
 };
 import { calculateMileage } from "./mileageCalculator";
 import { BUCKETS } from "./storageBuckets";
-import { withOwner, getCurrentUserId } from "./supaHelpers";
+import { withOwner, getCurrentUserId, normalizeVehicleType } from "./supaHelpers";
+
+// Remove duplicate BUCKETS import
+import { normalizeVehicleType } from "./vehicleNormalize";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
