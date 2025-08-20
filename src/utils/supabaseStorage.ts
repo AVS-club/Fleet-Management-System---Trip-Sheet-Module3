@@ -1,128 +1,4 @@
 import { supabase } from "./supabaseClient";
-import { Driver } from "../types"; // Assuming Driver type is available
-
-/** Upload a driver file. Object path starts with auth.uid() to satisfy RLS. */
-export async function uploadDriverFile(
-  file: File | Blob,
-  opts: {
-    userId: string;        // auth.uid()
-    driverKey: string;     // e.g., driver id or sanitized DL number
-    filename: string;      // e.g., "dl-front.png"
-  }
-): Promise<{ path: string }> {
-  const { userId, driverKey, filename } = opts;
-  const objectName = `${userId}/drivers/${driverKey}/${filename}`;
-
-  const { data, error } = await supabase
-    .storage
-    .from("drivers")
-    .upload(objectName, file, { upsert: true, cacheControl: "3600" });
-
-  if (error) throw new Error(`Driver file upload failed: ${error.message}`);
-  return { path: data.path };
-}
-
-/** Signed URL for private driver files (for <img src> / download). */
-export async function getSignedDriverUrl(path: string, expiresInSec = 60 * 15) {
-  const { data, error } = await supabase
-    .storage
-    .from("drivers")
-    .createSignedUrl(path, expiresInSec);
-
-  if (error) throw new Error(`Signed URL error: ${error.message}`);
-  return data.signedUrl;
-}
-
-/** Delete a file (RLS will only allow within caller's own folder). */
-export async function deleteDriverFile(path: string) {
-  const { error } = await supabase.storage.from("drivers").remove([path]);
-  if (error) throw new Error(`Delete failed: ${error.message}`);
-}
-
-/** Helper to upload all driver documents and return their storage paths. */
-export async function uploadAllDriverDocs(
-  driverData: Partial<Driver>,
-  driverKey: string // Use a stable key for the folder, e.g., DL number or generated ID
-): Promise<Partial<Driver>> {
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!user) throw new Error("Not authenticated");
-  const userId = user.id;
-
-  const uploadedPaths: Partial<Driver> = {};
-
-  const safeName = (base: string) =>
-    `${base}-${Date.now()}`.replace(/[^a-z0-9\-_.]/gi, "-");
-
-  // Main driver photo
-  if (driverData.photo instanceof File) {
-    const { path } = await uploadDriverFile(driverData.photo, {
-      userId, driverKey, filename: `${safeName("photo")}.${driverData.photo.name.split('.').pop()}`,
-    });
-    uploadedPaths.driver_photo_url = path;
-  }
-
-  // License document
-  if (Array.isArray(driverData.license_document) && driverData.license_document.length > 0) {
-    const file = driverData.license_document; // Assuming single file for simplicity
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("license")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.license_doc_url = path; // Store as single string path
-  }
-
-  // Aadhaar document
-  if (Array.isArray(driverData.aadhaar_document) && driverData.aadhaar_document.length > 0) {
-    const file = driverData.aadhaar_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("aadhaar")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.aadhar_doc_url = path;
-  }
-
-  // Police document
-  if (Array.isArray(driverData.police_document) && driverData.police_document.length > 0) {
-    const file = driverData.police_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("police")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.police_doc_url = path;
-  }
-
-  // Medical document
-  if (Array.isArray(driverData.medical_document) && driverData.medical_document.length > 0) {
-    const file = driverData.medical_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("medical")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.medical_doc_url = path;
-  }
-
-  // Other documents (handle as an array of objects with file_obj)
-  if (Array.isArray(driverData.other_documents)) {
-    const otherDocPaths: { name: string; file_path?: string; issue_date?: string; expiry_date?: string; cost?: number }[] = [];
-    for (const doc of driverData.other_documents) {
-      if (doc.file_obj instanceof File) {
-        const file = doc.file_obj;
-        const { path } = await uploadDriverFile(file, {
-          userId, driverKey, filename: `${safeName(doc.name || "other-doc")}.${file.name.split('.').pop()}`,
-        });
-        otherDocPaths.push({
-          name: doc.name,
-          file_path: path,
-          issue_date: doc.issue_date,
-          expiry_date: doc.expiry_date,
-          cost: doc.cost
-        });
-      } else if (doc.file_path) {
-        // Keep existing paths if no new file is uploaded
-        otherDocPaths.push(doc);
-      }
-    }
-    uploadedPaths.other_documents = otherDocPaths;
-  }
-
-  return uploadedPaths;
-}
 
 /**
  * Uploads a vehicle document to Supabase Storage
@@ -204,21 +80,13 @@ export const getSignedDocumentUrl = async (
  * @param docType The type of document (e.g., 'license', 'photo')
  * @returns The file path of the uploaded file
  */
-export const uploadDriverDocument = async (
+const uploadDriverDocument = async (
   file: File,
   driverId: string,
   docType: string
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
-  }
-
-  // Check if the bucket exists by trying to list files (this will fail if bucket doesn't exist)
-  try {
-    await supabase.storage.from("drivers").list("", { limit: 1 });
-  } catch (error) {
-    console.error("Storage bucket 'drivers' may not exist:", error);
-    throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
   }
 
   // Get file extension
@@ -237,9 +105,6 @@ export const uploadDriverDocument = async (
 
   if (uploadError) {
     console.error("Error uploading driver document:", uploadError);
-    if (uploadError.message.includes("bucket") || uploadError.message.includes("not found")) {
-      throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
-    }
     throw new Error(`Error uploading document: ${uploadError.message}`);
   }
 
@@ -268,9 +133,6 @@ export const getSignedDriverDocumentUrl = async (
 
     if (error) {
       console.error("Error generating signed URL for driver document:", error);
-      if (error.message.includes("bucket") || error.message.includes("not found")) {
-        throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
-      }
       throw error;
     }
 
@@ -295,14 +157,6 @@ export async function uploadFilesAndGetPublicUrls(
   files: File[]
 ): Promise<string[]> {
   try {
-    // Check if the bucket exists by trying to list files
-    try {
-      await supabase.storage.from(bucketId).list("", { limit: 1 });
-    } catch (error) {
-      console.error(`Storage bucket '${bucketId}' may not exist:`, error);
-      throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
-    }
-
     const uploadedPaths: string[] = [];
 
     await Promise.all(
@@ -313,12 +167,7 @@ export async function uploadFilesAndGetPublicUrls(
         const { data, error } = await supabase.storage
           .from(bucketId)
           .upload(filePath, file, { upsert: true });
-        if (error) {
-          if (error.message.includes("bucket") || error.message.includes("not found")) {
-            throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
-          }
-          throw error;
-        }
+        if (error) throw error;
         if (data?.path) uploadedPaths.push(data.path);
       })
     );
@@ -332,9 +181,8 @@ export async function uploadFilesAndGetPublicUrls(
     return urls;
   } catch (error) {
     console.error("Error uploading files to Supabase:", error);
-    if (error instanceof Error && error.message.includes("bucket")) {
-      throw error; // Re-throw bucket-specific errors as-is
-    }
-    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
+    throw new Error(
+      "Failed to upload one or more files. Please try again or check your network/storage settings."
+    );
   }
 }
