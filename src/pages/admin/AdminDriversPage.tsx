@@ -28,6 +28,7 @@ const AdminDriversPage: React.FC = () => {
   const [activeDrivers, setActiveDrivers] = useState(0);
   const [inactiveDrivers, setInactiveDrivers] = useState(0);
   const [expiringLicenses, setExpiringLicenses] = useState(0);
+  const [operationLoading, setOperationLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,6 +67,47 @@ const AdminDriversPage: React.FC = () => {
     fetchData();
   }, []);
 
+  // Helper function to delete drivers from Supabase
+  const deleteDriversFromSupabase = async (driverIds: string[]): Promise<{ success: number; failed: number }> => {
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .delete()
+        .in('id', driverIds);
+      
+      if (error) {
+        console.error('Supabase deletion error:', error);
+        return { success: 0, failed: driverIds.length };
+      }
+      
+      return { success: driverIds.length, failed: 0 };
+    } catch (error) {
+      console.error('Error deleting drivers:', error);
+      return { success: 0, failed: driverIds.length };
+    }
+  };
+
+  // Helper function to recalculate stats after deletion
+  const recalculateStats = (remainingDrivers: Driver[]) => {
+    setTotalDrivers(remainingDrivers.length);
+    setActiveDrivers(remainingDrivers.filter(d => d.status === 'active').length);
+    setInactiveDrivers(remainingDrivers.filter(d => d.status === 'inactive').length);
+    
+    // Recalculate expiring licenses
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    const expiringCount = remainingDrivers.filter(driver => {
+      if (!driver.license_expiry_date) return false;
+      
+      const expiryDate = new Date(driver.license_expiry_date);
+      return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+    }).length;
+    
+    setExpiringLicenses(expiringCount);
+  };
+
   const handleImportDrivers = () => {
     // This would open a file upload dialog and process the CSV
     toast.info("Import functionality will be implemented in the future");
@@ -76,7 +118,7 @@ const AdminDriversPage: React.FC = () => {
     toast.info("Export functionality will be implemented in the future");
   };
 
-  const handleBulkAction = (action: string) => {
+  const handleBulkAction = async (action: string) => {
     if (selectedDrivers.size === 0) {
       toast.warning("Please select drivers first");
       return;
@@ -88,7 +130,47 @@ const AdminDriversPage: React.FC = () => {
         toast.info(`Archive action for ${selectedDrivers.size} drivers will be implemented`);
         break;
       case 'delete':
-        toast.info(`Delete action for ${selectedDrivers.size} drivers will be implemented`);
+        // Show confirmation dialog
+        const confirmDelete = window.confirm(
+          `Are you sure you want to permanently delete ${selectedDrivers.size} selected driver(s)? This action cannot be undone and will remove all driver records from the database.`
+        );
+        
+        if (!confirmDelete) {
+          return;
+        }
+        
+        setOperationLoading(true);
+        try {
+          // Convert Set to Array for deletion
+          const driverIdsToDelete = Array.from(selectedDrivers);
+          
+          // Perform bulk deletion
+          const result = await deleteDriversFromSupabase(driverIdsToDelete);
+          
+          if (result.success > 0) {
+            // Update local state by filtering out deleted drivers
+            const remainingDrivers = drivers.filter(driver => !selectedDrivers.has(driver.id || ''));
+            setDrivers(remainingDrivers);
+            
+            // Recalculate statistics
+            recalculateStats(remainingDrivers);
+            
+            // Clear selection
+            setSelectedDrivers(new Set());
+            
+            // Show success message
+            toast.success(`Successfully deleted ${result.success} driver(s)`);
+          }
+          
+          if (result.failed > 0) {
+            toast.error(`Failed to delete ${result.failed} driver(s). Please try again.`);
+          }
+        } catch (error) {
+          console.error('Error in bulk delete operation:', error);
+          toast.error(`Error deleting drivers: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+          setOperationLoading(false);
+        }
         break;
       case 'whatsapp':
         toast.info(`WhatsApp broadcast for ${selectedDrivers.size} drivers will be implemented`);
@@ -304,6 +386,8 @@ const AdminDriversPage: React.FC = () => {
                 <Button
                   variant="danger"
                   onClick={() => handleBulkAction('delete')}
+                  disabled={operationLoading}
+                  isLoading={operationLoading && selectedDrivers.size > 0}
                   icon={<Trash2 className="h-4 w-4" />}
                 >
                   Delete Selected
@@ -312,6 +396,7 @@ const AdminDriversPage: React.FC = () => {
                 <Button
                   variant="outline"
                   onClick={() => handleBulkAction('whatsapp')}
+                  disabled={operationLoading}
                   icon={<MessageSquare className="h-4 w-4 text-green-600" />}
                   className="text-green-600 border-green-200 hover:bg-green-50"
                 >
