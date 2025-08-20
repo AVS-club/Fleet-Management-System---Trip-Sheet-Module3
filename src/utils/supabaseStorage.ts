@@ -1,1051 +1,1884 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "../components/layout/Layout";
-import { 
-  getDrivers, 
-  getTrips,
-  createDriver, 
-  updateDriver, 
-  uploadDriverFileToBucket
-} from "../utils/storage";
-import { supabase } from "../utils/supabaseClient";
 import {
-  User,
-  Truck,
-  BarChart,
-  PlusCircle,
-  MapPin,
-  Edit2,
-  Users,
-  Clock,
-  UserCheck,
-  UserX,
-  Phone,
-  Calendar,
-  FileText,
-} from "lucide-react";
-import Button from "../components/ui/Button";
-import DriverForm from "../components/drivers/DriverForm";
-import { Driver, Trip } from "../types";
-import { toast } from "react-toastify";
-import StatCard from "../components/ui/StatCard";
-import WhatsAppButton from '../components/drivers/WhatsAppButton';
-import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
-import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
+  Trip,
+  Vehicle,
+  Driver,
+  Warehouse,
+  Destination,
+  RouteAnalysis,
+  Alert,
+} from "../types";
+import { supabase } from "./supabaseClient";
+import { logVehicleActivity } from "./vehicleActivity";
+import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
+import { normalizeVehicleType } from "./vehicleNormalize";
 
-const DriversPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>();
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAddingDriver, setIsAddingDriver] = useState(false);
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
+// Helper function to convert camelCase to snake_case
+const toSnakeCase = (str: string) =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+
+// Convert object keys from camelCase to snake_case
+const convertKeysToSnakeCase = (
+  obj: Record<string, any>
+): Record<string, any> => {
+  const newObj: Record<string, any> = {};
+
+  Object.keys(obj).forEach((key) => {
+    const value = obj[key];
+    const newKey = toSnakeCase(key);
+
+    newObj[newKey] =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? convertKeysToSnakeCase(value)
+        : value;
+  });
+
+  return newObj;
+};
+import { calculateMileage } from "./mileageCalculator";
+import { BUCKETS } from "./storageBuckets";
+import { normalizeVehicleType, withOwner, getCurrentUserId } from "./supaHelpers";
+
+/**
+ * Upload a driver file to the drivers storage bucket
+ * @param driverId Driver ID
+ * @param kind Type of document
+ * @param file File to upload
+ * @param customName Optional custom name for 'other' documents
+ * @returns Object with path or null if no file provided
+ */
+export async function uploadDriverFile(
+  driverId: string, 
+  kind: 'photo' | 'license' | 'aadhaar' | 'police' | 'medical' | 'other', 
+  file: File | File[], 
+  customName?: string
+): Promise<{ path: string | null }> {
+  // Handle array of files (take first file)
+  const fileToUpload = Array.isArray(file) ? file[0] : file;
   
-  const [signedDocUrls, setSignedDocUrls] = useState<{
-    license?: string;
-    police_verification?: string;
-    medical_certificate?: string;
-    id_proof?: string;
-    other: Record<string, string>;
-  }>({ other: {} });
+  if (!fileToUpload) {
+    return { path: null };
+  }
 
-  // Stats state
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [totalDrivers, setTotalDrivers] = useState(0);
-  const [activeDrivers, setActiveDrivers] = useState(0);
-  const [inactiveDrivers, setInactiveDrivers] = useState(0);
-  const [avgExperience, setAvgExperience] = useState(0);
-  const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
-    useState(0);
+  const folder = 
+    kind === 'photo'   ? 'driver_photos'
+  : kind === 'license' ? 'license_documents'
+  : kind === 'aadhaar' ? 'aadhaar_documents'
+  : kind === 'police'  ? 'police_verification'
+  : kind === 'medical' ? 'medical_certificate'
+  :                      'other_documents';
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setStatsLoading(true);
-      try {
-        const userdetails = localStorage.getItem("user");
-        if (!userdetails) throw new Error("Cannot get user details");
-        const user = JSON.parse(userdetails);
-        if (user) setUser(user);
-        const [driversData, tripsData] = await Promise.all([
-          getDrivers(),
-          getTrips(),
-        ]);
-
-        const driversArray = Array.isArray(driversData) ? driversData : [];
-        setDrivers(driversArray);
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-
-        // Calculate statistics
-        setTotalDrivers(driversArray.length);
-
-        const active = driversArray.filter((d) => d.status === "active").length;
-        setActiveDrivers(active);
-
-        const inactive = driversArray.filter(
-          (d) => d.status === "inactive"
-        ).length;
-        setInactiveDrivers(inactive);
-
-        // Calculate average experience
-        const totalExperience = driversArray.reduce(
-          (sum, driver) => sum + (driver.experience_years || 0),
-          0
-        );
-        setAvgExperience(
-          driversArray.length > 0
-            ? Math.round((totalExperience / driversArray.length) * 10) / 10
-            : 0
-        );
-
-        // Calculate drivers with expiring license (within 30 days)
-        const today = new Date();
-        const thirtyDaysFromNow = new Date(today);
-        thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-        const expiringLicenses = driversArray.filter((driver) => {
-          if (!driver.license_expiry_date) return false;
-
-          const expiryDate = new Date(driver.license_expiry_date);
-          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
-        }).length;
-
-        setDriversWithExpiringLicense(expiringLicenses);
-
-        setStatsLoading(false);
-
-      } catch (error) {
-        console.error("Error fetching drivers data:", error);
-        toast.error("Failed to load drivers");
-        setStatsLoading(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleSaveDriver = async (data: Omit<Driver, "id">) => {
-    setIsSubmitting(true);
-    try {
-      let photoUrl = editingDriver?.driver_photo_url;
-
-      // Handle photo upload if a new photo is provided
-      if (data.photo && data.photo instanceof File) {
-        try {
-          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'photo', data.photo);
-          photoUrl = path || undefined;
-        } catch (error) {
-          console.error("Error uploading photo:", error);
-          // Don't continue if photo upload fails - this indicates storage issues
-          toast.error("Failed to upload driver photo. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
-          return;
-        }
-      }
-
-      // Prepare driver data with photo URL
-      const driverData = {
-        ...data,
-        driver_photo_url: photoUrl,
-      };
-
-      // Handle license document upload
-      if (Array.isArray(data.license_document) && data.license_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'license', data.license_document);
-          driverData.license_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading license document:", error);
-          toast.error(`Failed to upload license document: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Handle aadhaar document upload
-      if (Array.isArray(data.aadhaar_document) && data.aadhaar_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'aadhaar', data.aadhaar_document);
-          driverData.aadhar_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading aadhaar document:", error);
-          toast.error(`Failed to upload aadhaar document: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Handle police document upload
-      if (Array.isArray(data.police_document) && data.police_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'police', data.police_document);
-          driverData.police_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading police document:", error);
-          toast.error(`Failed to upload police document: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Handle medical document upload
-      if (Array.isArray(data.medical_document) && data.medical_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'medical', data.medical_document);
-          driverData.medical_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading medical document:", error);
-          toast.error(`Failed to upload medical document: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      };
-
-      // Remove the File object as it can't be stored in the database
-      delete (driverData as any).photo;
-
-      // Process other documents
-      if (Array.isArray(driverData.other_documents)) {
-        const processedDocs = [];
-
-        for (const doc of driverData.other_documents) {
-          const processedDoc: any = {
-            name: doc.name,
-            issue_date: doc.issue_date,
-          };
-
-          // Handle file upload for each document
-          if (doc.file_obj instanceof File) {
-            try {
-              const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'other', doc.file_obj, doc.name);
-              processedDoc.file_path = path || undefined;
-            } catch (error) {
-              console.error(`Error uploading other document "${doc.name}":`, error);
-              toast.error(`Failed to upload other document "${doc.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
-              setIsSubmitting(false);
-              return; // Stop submission if an other document fails
-            }
-          } else if (doc.file_path) {
-            processedDoc.file_path = doc.file_path;
-          }
-
-          processedDocs.push(processedDoc);
-        }
-
-        driverData.other_documents = processedDocs;
-      }
-
-      if (editingDriver) {
-        // Update existing driver
-        const updatedDriver = await updateDriver(editingDriver.id, driverData);
-        if (updatedDriver) {
-          // Update the drivers list
-          setDrivers((prevDrivers) =>
-            prevDrivers.map((d) =>
-              d.id === updatedDriver.id ? updatedDriver : d
-            )
-          );
-          setEditingDriver(null);
-          toast.success("Driver updated successfully");
-        } else {
-          toast.error("Failed to update driver");
-        }
-      } else {
-        // Create new driver
-        // Remove empty id field if present to let Supabase auto-generate
-        const { id, ...cleanDriverData } = driverData as any;
-        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
-        
-        const newDriver = await createDriver(finalDriverData);
-        if (newDriver) {
-          // If any temporary IDs were used for uploads, update them with the real driver ID
-          // This part is crucial if we uploaded files before getting the final driver.id
-          const filesToReupload: { file: File; kind: 'photo' | 'license' | 'aadhaar' | 'police' | 'medical' | 'other'; oldPath: string; otherDocName?: string }[] = [];
-
-          // Check main photo
-          if (driverData.driver_photo_url && driverData.driver_photo_url.includes('temp-driver')) {
-            const originalFile = data.photo as File; // Assuming original file is still available in data.photo
-            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'photo', oldPath: driverData.driver_photo_url });
-          }
-
-          // Check license document
-          if (driverData.license_doc_url && driverData.license_doc_url && driverData.license_doc_url.includes('temp-driver')) {
-            const originalFile = data.license_document?. as File;
-            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'license', oldPath: driverData.license_doc_url });
-          }
-
-          // Check aadhaar document
-          if (driverData.aadhar_doc_url && driverData.aadhar_doc_url && driverData.aadhar_doc_url.includes('temp-driver')) {
-            const originalFile = data.aadhaar_document?. as File;
-            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'aadhaar', oldPath: driverData.aadhar_doc_url });
-          }
-
-          // Check police document
-          if (driverData.police_doc_url && driverData.police_doc_url && driverData.police_doc_url.includes('temp-driver')) {
-            const originalFile = data.police_document?. as File;
-            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'police', oldPath: driverData.police_doc_url });
-          }
-
-          // Check medical document
-          if (driverData.medical_doc_url && driverData.medical_doc_url && driverData.medical_doc_url.includes('temp-driver')) {
-            const originalFile = data.medical_document?. as File;
-            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'medical', oldPath: driverData.medical_doc_url });
-          }
-
-          // Check other documents
-          const updatedOtherDocs = [];
-          if (Array.isArray(driverData.other_documents)) {
-            for (const doc of driverData.other_documents) {
-              if (doc.file_path && doc.file_path.includes('temp-driver')) {
-                const originalFile = data.other_documents?.find(d => d.name === doc.name)?.file_obj as File;
-                if (originalFile) filesToReupload.push({ file: originalFile, kind: 'other', oldPath: doc.file_path, otherDocName: doc.name });
-              }
-              updatedOtherDocs.push(doc); // Keep existing path for now, will update after reupload
-            }
-          }
-
-          if (filesToReupload.length > 0) {
-            const reuploadPromises = filesToReupload.map(async ({ file, kind, oldPath, otherDocName }) => {
-              try {
-                const { path: newPath } = await uploadDriverFileToBucket(newDriver.id, kind, file, otherDocName);
-                // Optionally delete old temp file
-                // await supabase.storage.from(BUCKETS.DRIVERS).remove([oldPath]);
-                return { kind, newPath, oldPath };
-              } catch (reuploadError) {
-                console.error(`Error re-uploading ${kind} for new driver ${newDriver.id}:`, reuploadError);
-                toast.error(`Failed to finalize ${kind} document for new driver. Please check storage settings.`);
-                return null;
-              }
-            });
-
-            const reuploadResults = (await Promise.all(reuploadPromises)).filter(Boolean);
-
-            // Update newDriver object with finalized paths
-            reuploadResults.forEach(result => {
-              if (result) {
-                if (result.kind === 'photo') newDriver.driver_photo_url = result.newPath || undefined;
-                else if (result.kind === 'license') newDriver.license_doc_url = result.newPath ? [result.newPath] : undefined;
-                else if (result.kind === 'aadhaar') newDriver.aadhar_doc_url = result.newPath ? [result.newPath] : undefined;
-                else if (result.kind === 'police') newDriver.police_doc_url = result.newPath ? [result.newPath] : undefined;
-                else if (result.kind === 'medical') newDriver.medical_doc_url = result.newPath ? [result.newPath] : undefined;
-                else if (result.kind === 'other') {
-                  const docIndex = updatedOtherDocs.findIndex(doc => doc.file_path === result.oldPath);
-                  if (docIndex !== -1) {
-                    updatedOtherDocs[docIndex].file_path = result.newPath || undefined;
-                  }
-                }
-              }
-            });
-            newDriver.other_documents = updatedOtherDocs;
-
-            // Persist the updated driver object with final paths
-            await updateDriver(newDriver.id, newDriver);
-          }
-
-          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
-          setTotalDrivers((prev) => prev + 1);
-          if (newDriver.status === "active") {
-            setActiveDrivers((prev) => prev + 1);
-          } else if (newDriver.status === "inactive") {
-            setInactiveDrivers((prev) => prev + 1);
-          }
-
-          setIsAddingDriver(false);
-          toast.success("Driver added successfully");
-        } else {
-          toast.error("Failed to add driver");
-        }
-      }
-    } catch (error) {
-      console.error("Error saving driver:", error);
-      if (error instanceof Error && error.message.includes("Upload failed")) {
-        toast.error(`File upload failed: ${error.message}`);
-      } else {
-        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditDriver = (driver: Driver) => {
-    setEditingDriver(driver);
-    setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
-  };
+  const fileName = customName 
+    ? `${Date.now()}-${customName.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    : `${Date.now()}-${fileToUpload.name}`;
+    
+  const path = `${folder}/${driverId}/${fileName}`;
   
-  // Function to handle opening the WhatsApp share modal
-  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
-    setSelectedDriverForShare(driver);
+  try {
+    const { data, error } = await supabase.storage
+      .from(BUCKETS.DRIVERS)
+      .upload(path, fileToUpload, { 
+        upsert: true, 
+        contentType: fileToUpload.type 
+      });
+
+    if (error) {
+      // Surface status code & path for debugging
+      throw new Error(`Upload failed (${error.status || 'n/a'}): bucket=${BUCKETS.DRIVERS}, path=${path}, msg=${error.message}`);
+    }
+
+    const finalPath = data?.path || path;
+    console.log(`Successfully uploaded to bucket=${BUCKETS.DRIVERS}, path=${finalPath}`);
     
-    // Generate signed URLs for documents if available
-    const urls: {
-      license?: string;
-      police_verification?: string;
-      medical_certificate?: string;
-      id_proof?: string;
-      other: Record<string, string>;
-    } = {
-      other: {}
-    };
-    
-    try {
-      // Generate signed URL for license document
-      if (driver.license_doc_url && driver.license_doc_url.length > 0) {
-        urls.license = await getSignedDriverDocumentUrl(driver.license_doc_url);
-      }
-      
-      // Generate signed URLs for other documents
-      if (driver.other_documents && Array.isArray(driver.other_documents)) {
-        for (let i = 0; i < driver.other_documents.length; i++) {
-          const doc = driver.other_documents[i];
-          if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
-          }
-        }
-      }
-      
-      setSignedDocUrls(urls);
-    } catch (error) {
-      console.error('Error generating signed URLs:', error);
+    return { path: finalPath };
+  } catch (error) {
+    console.error('Error in uploadDriverFile:', error);
+    throw error;
+  }
+}
+
+// Helper function to upload vehicle profile JSON to Supabase Storage
+const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
+  try {
+    const fileName = `${vehicle.id}.json`;
+    const filePath = fileName;
+
+    // Create JSON blob
+    const jsonBlob = new Blob([JSON.stringify(vehicle, null, 2)], {
+      type: "application/json",
+    });
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("vehicle-profiles")
+      .upload(filePath, jsonBlob, {
+        upsert: true,
+        contentType: "application/json",
+      });
+
+    if (uploadError) {
+      console.error("Error uploading vehicle profile:", uploadError);
+      // Don't throw error to avoid breaking the main operation
     }
-    
-    setShowShareModal(true);
-  };
-
-  const handleCancelForm = () => {
-    setIsAddingDriver(false);
-    setEditingDriver(null);
-  };
-
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return "-";
-    }
-  };
-
-  // Check if license is expired or expiring soon
-  const getLicenseStatus = (expiryDate?: string) => {
-    if (!expiryDate) return { status: "unknown", label: "Unknown" };
-
-    try {
-      const expiry = new Date(expiryDate);
-      const now = new Date();
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-      if (expiry < now) {
-        return { status: "expired", label: "Expired" };
-      } else if (expiry < thirtyDaysFromNow) {
-        return { status: "expiring", label: "Expiring Soon" };
-      } else {
-        return { status: "valid", label: "Valid" };
-      }
-    } catch (error) {
-      return { status: "unknown", label: "Unknown" };
-    }
-  };
-
-  return (
-    <Layout
-      title="Drivers"
-      subtitle="Manage your fleet drivers"
-      actions={
-        !isAddingDriver &&
-        !editingDriver && (
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/drivers/insights')}
-              icon={<BarChart className="h-4 w-4" />}
-            >
-              Driver Insights
-            </Button>
-            <Button
-              onClick={() => setIsAddingDriver(true)}
-              icon={<PlusCircle className="h-4 w-4" />}
-            >
-              Add Driver
-            </Button>
-          </div>
-        )
-      }
-    >
-      {isAddingDriver || editingDriver ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <User className="h-5 w-5 mr-2 text-primary-500" />
-              {editingDriver ? "Edit Driver" : "New Driver"}
-            </h2>
-
-            <Button variant="outline" onClick={handleCancelForm}>
-              Cancel
-            </Button>
-          </div>
-
-          <DriverForm
-            initialData={editingDriver || {}}
-            onSubmit={handleSaveDriver}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Driver Stats Section */}
-          {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
-                >
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Total Drivers"
-                value={totalDrivers}
-                icon={<Users className="h-5 w-5 text-primary-600" />}
-              />
-
-              <StatCard
-                title="Active Drivers"
-                value={activeDrivers}
-                icon={<UserCheck className="h-5 w-5 text-success-600" />}
-              />
-
-              <StatCard
-                title="Inactive Drivers"
-                value={inactiveDrivers}
-                icon={<UserX className="h-5 w-5 text-gray-600" />}
-              />
-
-              <StatCard
-                title="Expiring Licenses (30d)"
-                value={expiringLicenses}
-                icon={<Clock className="h-5 w-5 text-primary-600" />}
-                warning={expiringLicenses > 0}
-              />
-            </div>
-          )}
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading drivers...</p>
-            </div>
-          ) : drivers.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
-                No drivers found. Add your first driver to get started.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {drivers.map((driver: Driver) => {
-                const driverTrips = Array.isArray(trips)
-                  ? trips.filter((trip) => trip.driver_id === driver.id)
-                  : [];
-                const totalDistance = driverTrips.reduce(
-                  (sum, trip) => sum + (trip.end_km - trip.start_km),
-                  0
-                );
-                const licenseStatus = getLicenseStatus(
-                  driver.license_expiry_date
-                );
-
-                return (
-                  <div
-                    key={driver.id}
-                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
-                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
-                    }`}
-                    onClick={() => navigate(`/drivers/${driver.id}`)}
-                  >
-                    {/* Edit Button */}
-                    <button
-                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditDriver(driver);
-                      }}
-                      title="Edit Driver"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-
-              processedDoc.file_path = filePath;
-            } catch (error) {
-              console.error(`Error uploading document "${doc.name}":`, error);
-            }
-          } else if (doc.file_path) {
-            processedDoc.file_path = doc.file_path;
-          }
-
-          processedDocs.push(processedDoc);
-        }
-
-        driverData.other_documents = processedDocs;
-      }
-
-      if (editingDriver) {
-        // Update existing driver
-        const updatedDriver = await updateDriver(editingDriver.id, driverData);
-        if (updatedDriver) {
-          // Update the drivers list
-          setDrivers((prevDrivers) =>
-            prevDrivers.map((d) =>
-              d.id === updatedDriver.id ? updatedDriver : d
-            )
-          );
-          setEditingDriver(null);
-          toast.success("Driver updated successfully");
-        } else {
-          toast.error("Failed to update driver");
-        }
-      } else {
-        // Create new driver
-        // Remove empty id field if present to let Supabase auto-generate
-        const { id, ...cleanDriverData } = driverData as any;
-        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
-        
-        const newDriver = await createDriver(finalDriverData);
-        if (newDriver) {
-          // Update other documents with the correct driver ID
-          if (
-            Array.isArray(newDriver.other_documents) &&
-            newDriver.other_documents.length > 0
-          ) {
-            const updatedDocs = [];
-
-            for (const doc of newDriver.other_documents) {
-              const updatedDoc = { ...doc };
-
-              if (doc.file_path && doc.file_path.includes("temp-")) {
-                try {
-                  // Find the original file object
-                  const originalDoc = data.other_documents?.find(
-                    (d) => d.name === doc.name
-                  );
-                  if (originalDoc && originalDoc.file_obj) {
-                    // Re-upload with the correct ID
-                    const finalFilePath = await uploadDriverPhoto(
-                      originalDoc.file_obj as File,
-                      `${newDriver.id}-${doc.name
-                        .replace(/\s+/g, "-")
-                        .toLowerCase()}`
-                    );
-                    updatedDoc.file_path = finalFilePath;
-                  }
-                } catch (error) {
-                  console.error(
-                    `Error updating document "${doc.name}" with final ID:`,
-                    error
-                  );
-                  toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
-                  return;
-                }
-              }
-
-              updatedDocs.push(updatedDoc);
-            }
-
-            if (updatedDocs.length > 0) {
-              try {
-                await updateDriver(newDriver.id, {
-                  other_documents: updatedDocs,
-                });
-                newDriver.other_documents = updatedDocs;
-              } catch (error) {
-                console.error("Error updating driver with finalized documents:", error);
-                toast.error("Failed to save document references. Please try again or check your network connection.");
-                return;
-              }
-            }
-          }
-
-          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
-          setTotalDrivers((prev) => prev + 1);
-          if (newDriver.status === "active") {
-            setActiveDrivers((prev) => prev + 1);
-          } else if (newDriver.status === "inactive") {
-            setInactiveDrivers((prev) => prev + 1);
-          }
-
-          setIsAddingDriver(false);
-          toast.success("Driver added successfully");
-        } else {
-          toast.error("Failed to add driver");
-        }
-      }
-    } catch (error) {
-      console.error("Error saving driver:", error);
-      if (error instanceof Error && (error.message.includes("upload") || error.message.includes("storage"))) {
-        toast.error("File upload failed. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
-      } else {
-        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver. Please check your network connection and try again.`);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditDriver = (driver: Driver) => {
-    setEditingDriver(driver);
-    setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
-  };
-  
-  // Function to handle opening the WhatsApp share modal
-  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
-    setSelectedDriverForShare(driver);
-    
-    // Generate signed URLs for documents if available
-    const urls: {
-      license?: string;
-      police_verification?: string;
-      medical_certificate?: string;
-      id_proof?: string;
-      other: Record<string, string>;
-    } = {
-      other: {}
-    };
-    
-    try {
-      // Generate signed URL for license document
-      if (driver.license_doc_url) {
-        urls.license = driver.license_doc_url;
-      }
-      
-      // Generate signed URLs for other documents
-      if (driver.other_documents && Array.isArray(driver.other_documents)) {
-        for (let i = 0; i < driver.other_documents.length; i++) {
-          const doc = driver.other_documents[i];
-          if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
-          }
-        }
-      }
-      
-      setSignedDocUrls(urls);
-    } catch (error) {
-      console.error('Error generating signed URLs:', error);
-    }
-    
-    setShowShareModal(true);
-  };
-
-  const handleCancelForm = () => {
-    setIsAddingDriver(false);
-    setEditingDriver(null);
-  };
-
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return "-";
-    }
-  };
-
-  // Check if license is expired or expiring soon
-  const getLicenseStatus = (expiryDate?: string) => {
-    if (!expiryDate) return { status: "unknown", label: "Unknown" };
-
-    try {
-      const expiry = new Date(expiryDate);
-      const now = new Date();
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-      if (expiry < now) {
-        return { status: "expired", label: "Expired" };
-      } else if (expiry < thirtyDaysFromNow) {
-        return { status: "expiring", label: "Expiring Soon" };
-      } else {
-        return { status: "valid", label: "Valid" };
-      }
-    } catch (error) {
-      return { status: "unknown", label: "Unknown" };
-    }
-  };
-
-  return (
-    <Layout
-      title="Drivers"
-      subtitle="Manage your fleet drivers"
-      actions={
-        !isAddingDriver &&
-        !editingDriver && (
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/drivers/insights')}
-              icon={<BarChart className="h-4 w-4" />}
-            >
-              Driver Insights
-            </Button>
-            <Button
-              onClick={() => setIsAddingDriver(true)}
-              icon={<PlusCircle className="h-4 w-4" />}
-            >
-              Add Driver
-            </Button>
-          </div>
-        )
-      }
-    >
-      {isAddingDriver || editingDriver ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <User className="h-5 w-5 mr-2 text-primary-500" />
-              {editingDriver ? "Edit Driver" : "New Driver"}
-            </h2>
-
-            <Button variant="outline" onClick={handleCancelForm}>
-              Cancel
-            </Button>
-          </div>
-
-          <DriverForm
-            initialData={editingDriver || {}}
-            onSubmit={handleSaveDriver}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Driver Stats Section */}
-          {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
-                >
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Total Drivers"
-                value={totalDrivers}
-                icon={<Users className="h-5 w-5 text-primary-600" />}
-              />
-
-              <StatCard
-                title="Active Drivers"
-                value={activeDrivers}
-                icon={<UserCheck className="h-5 w-5 text-success-600" />}
-              />
-
-              <StatCard
-                title="Inactive Drivers"
-                value={inactiveDrivers}
-                icon={<UserX className="h-5 w-5 text-gray-600" />}
-              />
-
-              <StatCard
-                title="Avg. Experience"
-                value={avgExperience}
-                subtitle="years"
-                icon={<Clock className="h-5 w-5 text-primary-600" />}
-              />
-            </div>
-          )}
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading drivers...</p>
-            </div>
-          ) : drivers.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
-                No drivers found. Add your first driver to get started.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {drivers.map((driver: Driver) => {
-                const driverTrips = Array.isArray(trips)
-                  ? trips.filter((trip) => trip.driver_id === driver.id)
-                  : [];
-                const totalDistance = driverTrips.reduce(
-                  (sum, trip) => sum + (trip.end_km - trip.start_km),
-                  0
-                );
-                const licenseStatus = getLicenseStatus(
-                  driver.license_expiry_date
-                );
-
-                return (
-                  <div
-                    key={driver.id}
-                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
-                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
-                    }`}
-                    onClick={() => navigate(`/drivers/${driver.id}`)}
-                  >
-                    {/* Edit Button */}
-                    <button
-                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditDriver(driver);
-                      }}
-                      title="Edit Driver"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-
-                    <div className="flex items-start gap-3">
-                      {/* Driver Photo */}
-                      <div>
-                        {driver.driver_photo_url ? (
-                          <img
-                            src={driver.driver_photo_url}
-                            alt={driver.name}
-                            className="h-16 w-16 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
-                            <User className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex-1">
-                        {/* Driver Name & License */}
-                        <h3 className="text-lg font-medium text-gray-900 pr-8">
-                          {driver.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {driver.dl_number || "No license"}
-                        </p>
-
-                        {/* License Status & Experience */}
-                        <div className="mt-2 flex gap-2 flex-wrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              licenseStatus.status === "expired"
-                                ? "bg-error-100 text-error-800"
-                                : licenseStatus.status === "expiring"
-                                ? "bg-warning-100 text-warning-800"
-                                : "bg-success-100 text-success-800"
-                            }`}
-                          >
-                            {licenseStatus.label}
-                          </span>
-                          
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {driver.experience_years} years
-                          </span>
-                        </div>
-                        
-                        {/* Contact Number */}
-                        {driver.contact_number && (
-                          <div className="mt-2 flex items-center text-sm">
-                            <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-gray-600">{driver.contact_number}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Trip Stats Section */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Trips
-                          </span>
-                          <p className="font-medium">{driverTrips.length}</p>
-                        </div>
-                        <div className="text-center">
-                          <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Distance
-                          </span>
-                          <p className="font-medium">
-                            {totalDistance.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Vehicle
-                          </span>
-                          <p className="font-medium">
-                            {driver.primary_vehicle_id ? "Assigned" : "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* View Details Link */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/drivers/${driver.id}`);
-                        }}
-                        className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                      >
-                        View Details
-                      </button>
-                      <WhatsAppButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenShareModal(driver, e);
-                        }}
-                        className="ml-2 text-green-600 hover:text-green-800"
-                        message={`Driver details for ${driver.name} (License: ${driver.license_number || driver.dl_number}) from Auto Vital Solution.`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-      
-      {/* WhatsApp Share Modal */}
-      {showShareModal && selectedDriverForShare && (
-        <DriverWhatsAppShareModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          driver={selectedDriverForShare}
-          signedDocUrls={signedDocUrls}
-        />
-      )}
-    </Layout>
-  );
+  } catch (error) {
+    console.error("Error creating vehicle profile JSON:", error);
+    // Don't throw error to avoid breaking the main operation
+  }
 };
 
-export default DriversPage;
+// Generate Trip ID based on vehicle registration
+const generateTripId = async (vehicleId: string): Promise<string> => {
+  // Validate vehicleId
+  if (!vehicleId) {
+    throw new Error("Vehicle ID is required to generate a trip ID");
+  }
+
+  const vehicle = await getVehicle(vehicleId);
+  if (!vehicle) {
+    console.error(`Vehicle with ID ${vehicleId} not found`);
+    throw new Error(`Vehicle with ID ${vehicleId} not found`);
+  }
+
+  // Extract last 4 digits from registration number
+  const regMatch = vehicle.registration_number.match(/\d{4}$/);
+  if (!regMatch) {
+    console.error(
+      `Invalid registration format for vehicle: ${vehicle.registration_number}`
+    );
+    throw new Error(
+      `Invalid registration format for vehicle: ${vehicle.registration_number}`
+    );
+  }
+
+  const prefix = regMatch[0];
+
+  // Get latest trip number for this vehicle
+  const { data: latestTrip } = await supabase
+    .from("trips")
+    .select("trip_serial_number")
+    .eq("vehicle_id", vehicleId)
+    .order("trip_serial_number", { ascending: false })
+    .limit(1);
+
+  const lastNum = latestTrip?.[0]?.trip_serial_number
+    ? parseInt(latestTrip[0].trip_serial_number.slice(-4))
+    : 0;
+
+  const nextNum = lastNum + 1;
+
+  // Format: XXXX0001 where XXXX is last 4 digits of registration
+  return `${prefix}${String(nextNum).padStart(4, "0")}`;
+};
+
+// Trips CRUD operations with Supabase
+export const getTrips = async (): Promise<Trip[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
+  try {
+    const { data, error } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("added_by", user.id)
+      .order("trip_start_date", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching trips:", error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching trips");
+      }
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in getTrips:", error);
+    // Re-throw network errors so they can be handled appropriately
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw error;
+    }
+    return [];
+  }
+};
+
+export const getTrip = async (id: string): Promise<Trip | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("trips")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching trip:", error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching trip");
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error in getTrip:", error);
+    // Re-throw network errors so they can be handled appropriately
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw error;
+    }
+    return null;
+  }
+};
+
+export const createTrip = async (
+  trip: Omit<Trip, "id" | "trip_serial_number">
+): Promise<Trip | null> => {
+  // Validate required fields
+  if (!trip.vehicle_id) {
+    console.error("Vehicle ID is missing for trip creation");
+    throw new Error("Vehicle ID is required to create a trip");
+  }
+
+  const tripId = await generateTripId(trip.vehicle_id);
+
+  // Ensure material_type_ids is properly handled
+  const tripData = {
+    ...trip,
+    trip_serial_number: tripId,
+    // Ensure breakdown_expense and miscellaneous_expense are included
+    breakdown_expense: trip.breakdown_expense || 0,
+    miscellaneous_expense: trip.miscellaneous_expense || 0,
+  };
+
+  const { data, error } = await supabase
+    .from("trips")
+    .insert(tripData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating trip:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateTrip = async (
+  id: string,
+  updatedTrip: Partial<Trip>
+): Promise<Trip | null> => {
+  const { data: oldTrip } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!oldTrip) {
+    console.error("Trip not found:", id);
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("trips")
+    .update({
+      ...updatedTrip,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating trip:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const deleteTrip = async (id: string): Promise<boolean> => {
+  const { error } = await supabase.from("trips").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting trip:", error);
+    return false;
+  }
+
+  return true;
+};
+
+const recalculateMileageForAffectedTrips = async (
+  changedTrip: Trip
+): Promise<void> => {
+  const { data: trips } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("vehicle_id", changedTrip.vehicle_id)
+    .gte("trip_end_date", changedTrip.trip_end_date)
+    .order("trip_end_date", { ascending: true });
+
+  if (!trips || !Array.isArray(trips) || trips.length === 0) return;
+
+  // Find all refueling trips for the same vehicle that occurred after the changed trip
+  const affectedTrips = trips.filter(
+    (trip) =>
+      trip.refueling_done &&
+      trip.fuel_quantity &&
+      trip.fuel_quantity > 0 &&
+      trip.id !== changedTrip.id
+  );
+
+  if (affectedTrips.length === 0) return;
+
+  // Gather all affected trip IDs with their new mileage
+  const updates = affectedTrips.map((trip) => ({
+    id: trip.id,
+    calculated_kmpl: calculateMileage(trip, trips),
+  }));
+
+  const startTime = performance.now();
+
+  const { error } = await supabase.from("trips").upsert(updates);
+
+  const duration = performance.now() - startTime;
+  console.log(
+    `Batch updated calculated_kmpl for ${updates.length} trips in ${duration.toFixed(
+      2
+    )}ms`
+  );
+
+  if (error) {
+    console.error("Error updating mileage for affected trips:", error);
+    throw error;
+  }
+};
+
+// Vehicles CRUD operations with Supabase
+export const getVehicles = async (): Promise<Vehicle[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("*")
+    .eq("added_by", user.id)
+    .order("registration_number");
+
+  if (error) {
+    console.error("Error fetching vehicles:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getVehicle = async (id: string): Promise<Vehicle | null> => {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching vehicle:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const createVehicle = async (
+  vehicle: Omit<Vehicle, "id">
+): Promise<Vehicle | null> => {
+  // Process the vehicle data to handle file uploads and document flags
+  const processedVehicle = {
+    ...vehicle,
+    type: normalizeVehicleType(vehicle.type) || 'truck',
+  };
+  let rcPublicUrls = [];
+  let insurancePublicUrls = [];
+  let fitnessPublicUrls = [];
+  let pucPublicUrls = [];
+  let taxPublicUrls = [];
+  let permitPublicUrls = [];
+  // Handle document file uploads
+  try {
+    // Upload RC document if provided
+
+    if (processedVehicle.rc_copy_file && processedVehicle.rc_copy_file.length) {
+      rcPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/rc`,
+        processedVehicle.rc_copy_file
+      );
+      processedVehicle.rc_document_url = rcPublicUrls;
+      processedVehicle.rc_copy = true;
+    }
+
+    // Upload insurance document if provided
+    if (
+      processedVehicle.insurance_document_file &&
+      processedVehicle.insurance_document_file.length
+    ) {
+      insurancePublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/insurance`,
+        processedVehicle.insurance_document_file
+      );
+      processedVehicle.insurance_document_url = insurancePublicUrls;
+      processedVehicle.insurance_document = true;
+    }
+
+    // Upload fitness document if provided
+    if (
+      processedVehicle.fitness_document_file &&
+      processedVehicle.fitness_document_file.length
+    ) {
+      fitnessPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/fitness`,
+        processedVehicle.fitness_document_file
+      );
+      processedVehicle.fitness_document_url = fitnessPublicUrls;
+      processedVehicle.fitness_document = true;
+    }
+
+    // Upload tax document if provided
+    if (
+      processedVehicle.tax_receipt_document_file &&
+      processedVehicle.tax_receipt_document_file.length
+    ) {
+      taxPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/tax`,
+        processedVehicle.tax_receipt_document_file
+      );
+      processedVehicle.tax_document_url = taxPublicUrls;
+      processedVehicle.tax_receipt_document = true;
+    }
+
+    // Upload permit document if provided
+    if (
+      processedVehicle.permit_document_file &&
+      processedVehicle.permit_document_file.length
+    ) {
+      permitPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/permit`,
+        processedVehicle.permit_document_file
+      );
+      processedVehicle.permit_document_url = permitPublicUrls;
+      processedVehicle.permit_document = true;
+    }
+
+    // Upload PUC document if provided
+    if (
+      processedVehicle.puc_document_file &&
+      processedVehicle.puc_document_file.length
+    ) {
+      pucPublicUrls = await uploadFilesAndGetPublicUrls(
+        "vehicle-docs",
+        `${processedVehicle.registration_number}/puc`,
+        processedVehicle.puc_document_file
+      );
+      processedVehicle.puc_document_url = pucPublicUrls;
+      processedVehicle.puc_document = true;
+    }
+  } catch (error) {
+    console.error("Error uploading vehicle documents:", error);
+    // Continue with vehicle creation even if document uploads fail
+  }
+
+  // Remove file objects as they can't be stored in the database
+  delete (processedVehicle as any).rc_copy_file;
+  delete (processedVehicle as any).insurance_document_file;
+  delete (processedVehicle as any).fitness_document_file;
+  delete (processedVehicle as any).tax_receipt_document_file;
+  delete (processedVehicle as any).permit_document_file;
+  delete (processedVehicle as any).puc_document_file;
+
+  // Get current user for created_by field
+  const { data: authData } = await supabase.auth.getUser();
+  const userId = authData?.user?.id ?? null;
+
+  // Prepare the vehicle data for insertion
+  const vehicleDataToInsert = convertKeysToSnakeCase(processedVehicle);
+  
+  // Only add created_by if we have a user ID
+  if (userId) {
+    vehicleDataToInsert.created_by = userId;
+  }
+
+  const { data, error } = await supabase
+    .from("vehicles")
+    .insert({
+      ...vehicleDataToInsert,
+      rc_document_url: processedVehicle.rc_document_url,
+      insurance_document_url: processedVehicle.insurance_document_url,
+      fitness_document_url: processedVehicle.fitness_document_url,
+      tax_document_url: processedVehicle.tax_document_url,
+      permit_document_url: processedVehicle.permit_document_url,
+      puc_document_url: processedVehicle.puc_document_url,
+      tax_paid_upto:
+        (processedVehicle.tax_paid_upto &&
+          !isNaN(new Date(processedVehicle.tax_paid_upto).getTime()) &&
+          new Date(processedVehicle.tax_paid_upto)) ||
+        null,
+      national_permit_upto:
+        (processedVehicle.national_permit_upto &&
+          !isNaN(new Date(processedVehicle.national_permit_upto).getTime()) &&
+          new Date(processedVehicle.national_permit_upto)) ||
+        null,
+      registration_date:
+        (processedVehicle.registration_date &&
+          !isNaN(new Date(processedVehicle.registration_date).getTime()) &&
+          new Date(processedVehicle.registration_date)) ||
+        null,
+      puc_issue_date:
+        (processedVehicle.puc_issue_date &&
+          !isNaN(new Date(processedVehicle.puc_issue_date).getTime()) &&
+          new Date(processedVehicle.puc_issue_date)) ||
+        null,
+      puc_expiry_date:
+        (processedVehicle.puc_expiry_date &&
+          !isNaN(new Date(processedVehicle.puc_expiry_date).getTime()) &&
+          new Date(processedVehicle.puc_expiry_date)) ||
+        null,
+      permit_issue_date:
+        (processedVehicle.permit_issue_date &&
+          !isNaN(new Date(processedVehicle.permit_issue_date).getTime()) &&
+          new Date(processedVehicle.permit_issue_date)) ||
+        null,
+      permit_expiry_date:
+        (processedVehicle.permit_expiry_date &&
+          !isNaN(new Date(processedVehicle.permit_expiry_date).getTime()) &&
+          new Date(processedVehicle.permit_expiry_date)) ||
+        null,
+      fitness_issue_date: 
+        (processedVehicle.fitness_issue_date &&
+          !isNaN(new Date(processedVehicle.fitness_issue_date).getTime()) &&
+          new Date(processedVehicle.fitness_issue_date)) ||
+        null,
+      fitness_expiry_date:
+        (processedVehicle.fitness_expiry_date &&
+          !isNaN(new Date(processedVehicle.fitness_expiry_date).getTime()) &&
+          new Date(processedVehicle.fitness_expiry_date)) ||
+        null,
+      insurance_expiry_date:
+        (processedVehicle.insurance_expiry_date &&
+          !isNaN(new Date(processedVehicle.insurance_expiry_date).getTime()) &&
+          new Date(processedVehicle.insurance_expiry_date)) ||
+        null,
+      insurance_start_date:
+        (processedVehicle.insurance_start_date &&
+          !isNaN(new Date(processedVehicle.insurance_start_date).getTime()) &&
+          new Date(processedVehicle.insurance_start_date)) ||
+        null,
+      rc_expiry_date:
+        (processedVehicle.rc_expiry_date &&
+          !isNaN(new Date(processedVehicle.rc_expiry_date).getTime()) &&
+          new Date(processedVehicle.rc_expiry_date)) ||
+        null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating vehicle:", error);
+    return null;
+  }
+
+  // Log the vehicle creation activity
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (data && user) {
+    await logVehicleActivity(
+      data.id,
+      "updated",
+      user.email || user.id,
+      "Vehicle created"
+    );
+  }
+
+  return data;
+};
+
+export const updateVehicle = async (
+  id: string,
+  updatedVehicle: Partial<Vehicle>,
+  userId: string
+): Promise<Vehicle | null> => {
+  // Get the current vehicle data
+  const { data: currentVehicle } = await supabase
+    .from("vehicles")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (!currentVehicle) {
+    console.error("Vehicle not found:", id);
+    return null;
+  }
+
+  // Process the vehicle data to handle file uploads and document flags
+  const processedVehicle = {
+    ...updatedVehicle,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Handle document file uploads
+  try {
+    // Upload RC document if provided
+    if (processedVehicle.rc_copy_file) {
+      const { data: uploadRCData, error: uploadRCError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/rc/rc_copy${processedVehicle.rc_copy_file.name.slice(-4)}`,
+            processedVehicle.rc_copy_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadRCError) {
+        console.error("RC Upload error:", uploadRCError);
+        return null;
+      }
+      // Get the public URL
+      const { data: licencePublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadRCData.path}`);
+
+      processedVehicle.rc_document_url = licencePublicUrl.publicUrl;
+      processedVehicle.rc_copy = true;
+    }
+
+    // Upload insurance document if provided
+    if (processedVehicle.insurance_document_file) {
+      const { data: uploadInsuranceData, error: uploadInsuranceError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/insurance/insurance${processedVehicle.insurance_document_file.name.slice(
+              -4
+            )}`,
+            processedVehicle.insurance_document_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadInsuranceError) {
+        console.error("Insurance Upload error:", uploadInsuranceError);
+        return null;
+      }
+      // Get the public URL
+      const { data: insurancePublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadInsuranceData.path}`);
+
+      processedVehicle.insurance_document_url = insurancePublicUrl.publicUrl;
+      processedVehicle.insurance_document = true;
+    }
+
+    // Upload fitness document if provided
+    if (processedVehicle.fitness_document_file) {
+      const { data: uploadFitnessData, error: uploadFitnessError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/fitness/fitness${processedVehicle.fitness_document_file.name.slice(
+              -4
+            )}`,
+            processedVehicle.fitness_document_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadFitnessError) {
+        console.error("Fitness Upload error:", uploadFitnessError);
+        return null;
+      }
+      // Get the public URL
+      const { data: fitnessPublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadFitnessData.path}`);
+
+      processedVehicle.fitness_document_url = fitnessPublicUrl.publicUrl;
+      processedVehicle.fitness_document = true;
+    }
+
+    // Upload tax document if provided
+    if (processedVehicle.tax_receipt_document_file) {
+      const { data: uploadTaxData, error: uploadTaxError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/tax/taxReciept${processedVehicle.tax_receipt_document_file.name.slice(
+              -4
+            )}`,
+            processedVehicle.tax_receipt_document_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadTaxError) {
+        console.error("Tax Reciept Upload error:", uploadTaxError);
+        return null;
+      }
+      // Get the public URL
+      const { data: taxPublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadTaxData.path}`);
+
+      processedVehicle.tax_document_url = taxPublicUrl.publicUrl;
+      processedVehicle.tax_receipt_document = true;
+    }
+
+    // Upload permit document if provided
+    if (processedVehicle.permit_document_file) {
+      const { data: uploadPermitData, error: uploadPermitError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/permit/permit${processedVehicle.permit_document_file.name.slice(
+              -4
+            )}`,
+            processedVehicle.permit_document_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadPermitError) {
+        console.error("Permit Upload error:", uploadPermitError);
+        return null;
+      }
+      // Get the public URL
+      const { data: permitPublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadPermitData.path}`);
+      processedVehicle.permit_document_url = permitPublicUrl.publicUrl;
+      processedVehicle.permit_document = true;
+    }
+
+    // Upload PUC document if provided
+    if (processedVehicle.puc_document_file) {
+      const { data: uploadPUCData, error: uploadPUCError } =
+        await supabase.storage
+          .from("vehicle-docs")
+          .upload(
+            `${userId}/${
+              processedVehicle.registration_number
+            }/puc/puc${processedVehicle.puc_document_file.name.slice(-4)}`,
+            processedVehicle.puc_document_file,
+            {
+              upsert: true,
+            }
+          );
+
+      if (uploadPUCError) {
+        console.error("PUC Upload error:", uploadPUCError);
+        return null;
+      }
+      const { data: pucPublicUrl } = supabase.storage
+        .from("vehicle-docs")
+        .getPublicUrl(`${uploadPUCData.path}`);
+      processedVehicle.puc_document_url = pucPublicUrl.publicUrl;
+      processedVehicle.puc_document = true;
+    }
+  } catch (error) {
+    console.error("Error uploading vehicle documents:", error);
+    // Continue with vehicle update even if document uploads fail
+  }
+
+  // Remove file objects as they can't be stored in the database
+  delete (processedVehicle as any).rc_copy_file;
+  delete (processedVehicle as any).insurance_document_file;
+  delete (processedVehicle as any).fitness_document_file;
+  delete (processedVehicle as any).tax_receipt_document_file;
+  delete (processedVehicle as any).permit_document_file;
+  delete (processedVehicle as any).puc_document_file;
+
+  const { data, error } = await supabase
+    .from("vehicles")
+    .update(convertKeysToSnakeCase(processedVehicle))
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating vehicle:", error);
+    return null;
+  }
+
+  // Upload updated vehicle profile JSON to storage
+  if (data) {
+    await uploadVehicleProfile(data);
+  }
+
+  // Log the vehicle update activity
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (data && user) {
+    let actionType:
+      | "updated"
+      | "archived"
+      | "assigned_driver"
+      | "unassigned_driver" = "updated";
+    let notes = "Vehicle information updated";
+
+    // Determine the action type based on the updated fields
+    if (updatedVehicle.status === "archived") {
+      actionType = "archived";
+      notes = "Vehicle archived";
+    } else if (updatedVehicle.status === "active" && data.status === "active") {
+      actionType = "updated";
+      notes = "Vehicle unarchived";
+    } else if (updatedVehicle.primary_driver_id !== undefined) {
+      if (updatedVehicle.primary_driver_id === null) {
+        actionType = "unassigned_driver";
+        notes = "Driver unassigned from vehicle";
+      } else {
+        actionType = "assigned_driver";
+        notes = "Driver assigned to vehicle";
+      }
+    }
+
+    await logVehicleActivity(id, actionType, user.email || user.id, notes);
+  }
+
+  return data;
+};
+
+export const deleteVehicle = async (id: string): Promise<boolean> => {
+  try {
+    // Instead of deleting, change the vehicle status to 'archived'
+    const { data, error } = await supabase
+      .from("vehicles")
+      .update({
+        status: "archived",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error archiving vehicle:", error);
+      throw new Error(`Failed to archive vehicle: ${error.message}`);
+    }
+
+    // Log the archive activity
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await logVehicleActivity(
+        id,
+        "archived",
+        user.email || user.id,
+        "Vehicle archived"
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in vehicle archiving process:", error);
+    throw error;
+  }
+};
+
+const unarchiveVehicle = async (id: string): Promise<boolean> => {
+  try {
+    // Change the vehicle status from 'archived' back to 'active'
+    const { data, error } = await supabase
+      .from("vehicles")
+      .update({
+        status: "active",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error unarchiving vehicle:", error);
+      throw new Error(`Failed to unarchive vehicle: ${error.message}`);
+    }
+
+    // Log the unarchive activity
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await logVehicleActivity(
+        id,
+        "updated",
+        user.email || user.id,
+        "Vehicle unarchived"
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error in vehicle unarchiving process:", error);
+    throw error;
+  }
+};
+
+export const bulkUpdateVehicles = async (
+  vehicleIds: string[],
+  updates: Partial<Vehicle>,
+  userId: string
+): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => updateVehicle(id, updates, userId));
+
+  const results = await Promise.allSettled(promises);
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
+      failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error updating vehicle:", result.reason);
+      }
+    }
+  }
+
+  return { success: successCount, failed: failedCount };
+};
+
+export const bulkArchiveVehicles = async (
+  vehicleIds: string[]
+): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => deleteVehicle(id));
+
+  const results = await Promise.allSettled(promises);
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
+      failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error archiving vehicle:", result.reason);
+      }
+    }
+  }
+
+  return { success: successCount, failed: failedCount };
+};
+
+export const bulkUnarchiveVehicles = async (
+  vehicleIds: string[]
+): Promise<{ success: number; failed: number }> => {
+  const promises = vehicleIds.map((id) => unarchiveVehicle(id));
+
+  const results = await Promise.allSettled(promises);
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const result of results) {
+    if (result.status === "fulfilled" && result.value) {
+      successCount++;
+    } else {
+      failedCount++;
+      if (result.status === "rejected") {
+        console.error("Error unarchiving vehicle:", result.reason);
+      }
+    }
+  }
+
+  return { success: successCount, failed: failedCount };
+};
+
+const bulkDeleteVehicles = bulkArchiveVehicles; // Alias for backward compatibility
+
+// Drivers CRUD operations with Supabase
+export const getDrivers = async (): Promise<Driver[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    console.error("Error fetching user data");
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .eq("added_by", user.id)
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching drivers:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getDriver = async (id: string): Promise<Driver | null> => {
+  const { data, error } = await supabase
+    .from("drivers")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching driver:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const createDriver = async (
+  driver: Omit<Driver, "id">
+): Promise<Driver | null> => {
+  // Remove photo property if it exists (we handle it separately)
+  const {
+    photo,
+    dl_number,
+    license_document,
+    aadhaar_document,
+    medical_document,
+    police_document,
+    ...driverData
+  } = driver as any;
+
+  // Ensure dl_number is not empty for file path construction
+  const driverLicenseNumber = dl_number && dl_number.trim() !== '' ? dl_number : 'unknown_driver';
+
+  // const { data: uploadData, error: uploadError } = await supabase.storage
+  //   .from("driver-docs")
+  //   .upload(
+  //     `${userId}/drivingLicence/licence${license_document.name.slice(-4)}`,
+  //     license_document,
+  //     {
+  //       upsert: true,
+  //     }
+  //   );
+
+  // if (uploadError) {
+  //   console.error("Upload error:", uploadError);
+  //   return null;
+  // }
+  let licencePublicUrls = [];
+  let idProofPublicUrls = [];
+  let policePublicUrls = [];
+  let medicalPublicUrls = [];
+  try {
+    licencePublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${driverLicenseNumber}/license`,
+      license_document
+    );
+    idProofPublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${driverLicenseNumber}/idproof`,
+      aadhaar_document
+    );
+    policePublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${driverLicenseNumber}/policeVerification`,
+      police_document
+    );
+    medicalPublicUrls = await uploadFilesAndGetPublicUrls(
+      "driver-docs",
+      `${driverLicenseNumber}/medicalCertificate`,
+      medical_document
+    );
+  } catch (err) {
+    console.error("Error uploading driver documents:", err);
+    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
+  }
+
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("drivers")
+    .insert({
+      ...convertKeysToSnakeCase(withOwner(driverData, userId)),
+      license_number: dl_number,
+      license_doc_url: licencePublicUrls,
+      aadhar_doc_url: idProofPublicUrls,
+      police_doc_url: policePublicUrls,
+      medical_doc_url: medicalPublicUrls,
+      license_issue_date:
+        (driverData.license_issue_date &&
+          !isNaN(new Date(driverData.license_issue_date).getTime()) &&
+          new Date(driverData.license_issue_date)) ||
+        null,
+      dob:
+        (driverData.dob &&
+          !isNaN(new Date(driverData.dob).getTime()) &&
+          new Date(driverData.dob)) ||
+        null,
+      valid_from:
+        (driverData.valid_from &&
+          !isNaN(new Date(driverData.valid_from).getTime()) &&
+          new Date(driverData.valid_from)) ||
+        null,
+      license_expiry_date:
+        (driverData.license_expiry_date &&
+          !isNaN(new Date(driverData.license_expiry_date).getTime()) &&
+          new Date(driverData.license_expiry_date)) ||
+        null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating driver:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateDriver = async (
+  id: string,
+  updatedDriver: Partial<Driver>
+): Promise<Driver | null> => {
+  // Remove photo property and handle dl_number mapping if it exists
+  const { photo, dl_number, ...driverData } = updatedDriver as any;
+
+  const mappedDriverData = {
+    ...driverData,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Map dl_number to license_number if it exists
+  if (dl_number !== undefined) {
+    mappedDriverData.license_number = dl_number;
+  }
+
+  const { data, error } = await supabase
+    .from("drivers")
+    .update(mappedDriverData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating driver:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const deleteDriver = async (id: string): Promise<boolean> => {
+  const { error } = await supabase.from("drivers").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting driver:", error);
+    return false;
+  }
+
+  return true;
+};
+
+// Upload driver photo to Supabase Storage
+export const uploadDriverPhoto = async (
+  driverId: string,
+  file: File
+): Promise<string> => {
+  const fileName = `${driverId}_photo.${file.name.split(".").pop()}`;
+  const { data, error } = await supabase.storage
+    .from("driver-photos")
+    .upload(fileName, file, {
+      upsert: true,
+    });
+
+  if (error) {
+    console.error("Error uploading driver photo:", error);
+    throw error;
+  }
+
+  const { data: publicUrlData } = supabase.storage
+    .from("driver-photos")
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+};
+
+// Driver stats
+export const getDriverStats = async (driverId: string) => {
+  // First get the driver to get their name
+  const driver = await getDriver(driverId);
+  if (!driver) return { totalTrips: 0, totalDistance: 0 };
+
+  const { data: trips } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("driver_name", driver.name);
+
+  if (!trips || !Array.isArray(trips))
+    return { totalTrips: 0, totalDistance: 0 };
+
+  const totalTrips = trips.length;
+  const totalDistance = trips.reduce((sum, trip) => {
+    const startKm = parseFloat(trip.start_kilometer) || 0;
+    const endKm = parseFloat(trip.end_kilometer) || 0;
+    return sum + (endKm - startKm);
+  }, 0);
+
+  const tripsWithKmpl = trips.filter(
+    (trip) => trip.calculated_kmpl !== undefined && !trip.short_trip
+  );
+  const averageKmpl =
+    tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce(
+          (sum, trip) => sum + (trip.calculated_kmpl || 0),
+          0
+        ) / tripsWithKmpl.length
+      : undefined;
+
+  return {
+    totalTrips,
+    totalDistance,
+    averageKmpl,
+  };
+};
+
+// Warehouses CRUD operations with Supabase
+export const getWarehouses = async (): Promise<Warehouse[]> => {
+  const { data, error } = await supabase
+    .from("warehouses")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching warehouses:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("warehouses")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching warehouse:", error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching warehouse");
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error in getWarehouse:", error);
+    // Re-throw network errors so they can be handled appropriately
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw error;
+    }
+    return null;
+  }
+};
+
+export const createWarehouse = async (
+  warehouse: Omit<Warehouse, "id">
+): Promise<Warehouse | null> => {
+  // Ensure material_type_ids is an array
+  const warehouseData = {
+    ...warehouse,
+    material_type_ids: warehouse.materialTypeIds || [],
+  };
+
+  // Delete the camelCase property as we're using the snake_case version
+  if ("materialTypeIds" in warehouseData) {
+    delete (warehouseData as any).materialTypeIds;
+  }
+
+  const { data, error } = await supabase
+    .from("warehouses")
+    .insert(convertKeysToSnakeCase(warehouseData))
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating warehouse:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateWarehouse = async (
+  id: string,
+  updates: Partial<Warehouse>
+): Promise<Warehouse | null> => {
+  // Ensure material_type_ids is an array
+  const warehouseUpdates = {
+    ...updates,
+    material_type_ids: updates.materialTypeIds || updates.material_type_ids,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Delete the camelCase property as we're using the snake_case version
+  if ("materialTypeIds" in warehouseUpdates) {
+    delete (warehouseUpdates as any).materialTypeIds;
+  }
+
+  const { data, error } = await supabase
+    .from("warehouses")
+    .update(warehouseUpdates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating warehouse:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const deleteWarehouse = async (id: string): Promise<boolean> => {
+  const { error } = await supabase.from("warehouses").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting warehouse:", error);
+    return false;
+  }
+
+  return true;
+};
+
+// Destinations CRUD operations with Supabase
+export const getDestinations = async (): Promise<Destination[]> => {
+  const { data, error } = await supabase
+    .from("destinations")
+    .select("*")
+    .order("name");
+
+  if (error) {
+    console.error("Error fetching destinations:", error);
+    return [];
+  }
+
+  return data || [];
+};
+
+export const getDestination = async (
+  id: string
+): Promise<Destination | null> => {
+  // Validate the ID parameter before making the request
+  if (!id || typeof id !== "string" || id.trim() === "") {
+    console.error("Invalid destination ID provided:", id);
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("destinations")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching destination:", error);
+      // If it's a network error, throw it to be handled by the calling component
+      if (error.message && error.message.includes("Failed to fetch")) {
+        throw new Error("Network connection failed while fetching destination");
+      }
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error in getDestination:", error);
+    // Re-throw network errors so they can be handled appropriately
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw error;
+    }
+    return null;
+  }
+};
+
+export const createDestination = async (
+  destination: Omit<Destination, "id">
+): Promise<Destination | null> => {
+  // Prepare the data for insertion, removing empty id field if present
+  const destinationData = convertKeysToSnakeCase(destination);
+
+  // Remove id field if it's empty or undefined to let Supabase auto-generate it
+  if (
+    "id" in destinationData &&
+    (!destinationData.id || destinationData.id === "")
+  ) {
+    delete destinationData.id;
+  }
+
+  const { data, error } = await supabase
+    .from("destinations")
+    .insert(destinationData)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating destination:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const updateDestination = async (
+  id: string,
+  updates: Partial<Destination>
+): Promise<Destination | null> => {
+  const { data, error } = await supabase
+    .from("destinations")
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating destination:", error);
+    return null;
+  }
+
+  return data;
+};
+
+export const deleteDestination = async (id: string): Promise<boolean> => {
+  const { error } = await supabase.from("destinations").delete().eq("id", id);
+
+  if (error) {
+    console.error("Error deleting destination:", error);
+    return false;
+  }
+
+  return true;
+};
+
+export const hardDeleteDestination = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('destinations').delete().eq('id', id);
+  if (error) throw error;
+};
+
+// Route Analysis
+export const analyzeRoute = async (
+  warehouseId: string,
+  destinationIds: string[]
+): Promise<RouteAnalysis | undefined> => {
+  const warehouse = await getWarehouse(warehouseId);
+  const { data: destinations } = await supabase
+    .from("destinations")
+    .select("*")
+    .in("id", destinationIds);
+
+  if (
+    !warehouse ||
+    !destinations ||
+    !Array.isArray(destinations) ||
+    destinations.length === 0
+  )
+    return undefined;
+
+  // Calculate total standard distance and estimated time
+  let totalDistance = 0;
+  let totalMinutes = 0;
+
+  destinations.forEach((dest) => {
+    totalDistance += dest.standardDistance;
+    const timeMatch = dest.estimated_time.match(/(\d+)h\s*(?:(\d+)m)?/);
+    if (timeMatch) {
+      const hours = parseInt(timeMatch[1] || "0");
+      const minutes = parseInt(timeMatch[2] || "0");
+      totalMinutes += hours * 60 + minutes;
+    }
+  });
+
+  return {
+    total_distance: totalDistance,
+    standard_distance: totalDistance,
+    deviation: 0, // This will be calculated when actual distance is known
+    estimated_time: `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`,
+    waypoints: [
+      { lat: warehouse.latitude, lng: warehouse.longitude },
+      ...destinations.map((d) => ({ lat: d.latitude, lng: d.longitude })),
+    ],
+  };
+};
+
+// Generate alerts based on route analysis
+const generateAlerts = async (analysis: RouteAnalysis): Promise<Alert[]> => {
+  const alerts: Alert[] = [];
+
+  if (Math.abs(analysis.deviation) > 15) {
+    alerts.push({
+      type: "deviation",
+      message: "Significant route deviation detected",
+      severity: Math.abs(analysis.deviation) > 25 ? "high" : "medium",
+      details: `Route shows ${Math.abs(analysis.deviation).toFixed(
+        1
+      )}% deviation from standard distance`,
+    });
+  }
+
+  return alerts;
+};
+
+// Vehicle stats
+export const getVehicleStats = async (vehicleId: string) => {
+  const { data: trips } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("vehicle_id", vehicleId);
+
+  if (!trips || !Array.isArray(trips))
+    return { totalTrips: 0, totalDistance: 0 };
+
+  const totalTrips = trips.length;
+  const totalDistance = trips.reduce(
+    (sum, trip) => sum + (trip.end_km - trip.start_km),
+    0
+  );
+  const tripsWithKmpl = trips.filter(
+    (trip) => trip.calculated_kmpl !== undefined && !trip.short_trip
+  );
+  const averageKmpl =
+    tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce(
+          (sum, trip) => sum + (trip.calculated_kmpl || 0),
+          0
+        ) / tripsWithKmpl.length
+      : undefined;
+
+  return {
+    totalTrips,
+    totalDistance,
+    averageKmpl,
+  };
+};
+
+// Update all trip mileage
+export const updateAllTripMileage = async (): Promise<void> => {
+  try {
+    // Add timeout to prevent hanging on CORS issues
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Request timeout - possible CORS issue")),
+        15000
+      )
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error("Error fetching user data");
+      return;
+    }
+
+    const queryPromise = supabase
+      .from("trips")
+      .select("*")
+      .eq("added_by", user.id)
+      .order("trip_end_date", { ascending: true });
+
+    const { data: trips } = (await Promise.race([
+      queryPromise,
+      timeoutPromise,
+    ])) as any;
+
+    if (!trips || !Array.isArray(trips)) return;
+
+    for (const trip of trips) {
+      if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
+        const calculatedKmpl = calculateMileage(trip, trips);
+
+        // Add timeout for updates as well
+        const updatePromise = supabase
+          .from("trips")
+          .update({ calculated_kmpl: calculatedKmpl })
+          .eq("id", trip.id);
+
+        const updateTimeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Update timeout - possible CORS issue")),
+            10000
+          )
+        );
+
+        await Promise.race([updatePromise, updateTimeoutPromise]);
+      }
+    }
+  } catch (error) {
+    console.error("Error updating trip mileage:", error);
+
+    // Provide more specific error messages for common issues
+    if (error instanceof Error) {
+      if (error.message.includes("timeout") || error.message.includes("CORS")) {
+        throw new Error(`Connection timeout while updating trip data. This is likely a CORS configuration issue.
+        
+Please ensure your Supabase project allows requests from ${window.location.origin}:
+1. Go to your Supabase Dashboard
+2. Navigate to Settings → API → CORS  
+3. Add ${window.location.origin} to allowed origins
+4. Save and reload the page`);
+      }
+    }
+
+    // Re-throw network errors so they can be handled appropriately
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Failed to fetch")
+    ) {
+      throw new Error(`Network connection failed while updating trip mileage. This is likely a CORS issue.
+      
+Please configure CORS in your Supabase project to allow requests from ${window.location.origin}`);
+    }
+
+    // Also handle Supabase-specific network errors
+    if (
+      error &&
+      typeof error === "object" &&
+      "message" in error &&
+      typeof error.message === "string" &&
+      (error.message.includes("Failed to fetch") ||
+        error.message.includes("Network request failed") ||
+        error.message.includes("fetch is not defined"))
+    ) {
+      throw new TypeError(`Network connection failed while updating trip mileage. 
+      
+This is likely a CORS configuration issue. Please add ${window.location.origin} to your Supabase CORS settings.`);
+    }
+
+    // Handle cases where the error might be wrapped
+    if (
+      error &&
+      typeof error === "object" &&
+      "error" in error &&
+      error.error &&
+      typeof error.error === "object" &&
+      "message" in error.error &&
+      typeof error.error.message === "string" &&
+      error.error.message.includes("Failed to fetch")
+    ) {
+      throw new TypeError(`Network connection failed while updating trip mileage.
+      
+This is likely a CORS configuration issue. Please add ${window.location.origin} to your Supabase CORS settings.`);
+    }
+  }
+};
+
+// Export vehicle data to CSV
+export const exportVehicleData = async (
+  vehicleData: any[]
+): Promise<string> => {
+  // Get the current user for logging
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Create CSV header and content
+  let csvContent =
+    "Registration Number,Make,Model,Year,Type,Fuel Type,Status,Current Odometer,Total Trips,Total Distance,Average Mileage\n";
+
+  for (const vehicle of vehicleData) {
+    const row = [
+      vehicle.registration_number,
+      vehicle.make,
+      vehicle.model,
+      vehicle.year,
+      vehicle.type,
+      vehicle.fuel_type,
+      vehicle.status,
+      vehicle.current_odometer,
+      vehicle.stats?.totalTrips || 0,
+      vehicle.stats?.totalDistance || 0,
+      vehicle.stats?.averageKmpl ? vehicle.stats.averageKmpl.toFixed(2) : "N/A",
+    ]
+      .map((value) => `"${value}"`)
+      .join(",");
+
+    csvContent += row + "\n";
+
+    // Log export activity for each vehicle
+    if (user) {
+      await logVehicleActivity(
+        vehicle.id,
+        "exported",
+        user.email || user.id,
+        "Vehicle data exported to CSV"
+      );
+    }
+  }
+
+  return csvContent;
+};
+
+export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number | null; source: 'vehicle' | 'trip' | 'unknown' }> => {
+  try {
+    // Try to get current_odometer from the vehicle record first
+    const vehicle = await getVehicle(vehicleId); // Assuming getVehicle is already imported and available
+    if (vehicle && typeof vehicle.current_odometer === 'number' && !isNaN(vehicle.current_odometer)) {
+      return { value: vehicle.current_odometer, source: 'vehicle' };
+    }
+
+    // If not available, query the latest trip's end_km
+    const { data: latestTrip, error: tripError } = await supabase
+      .from('trips')
+      .select('end_km, trip_end_date')
+      .eq('vehicle_id', vehicleId)
+      .order('trip_end_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (tripError) {
+      console.error('Error fetching latest trip for odometer:', tripError);
+      return { value: null, source: 'unknown' };
+    }
+
+    if (latestTrip && typeof latestTrip.end_km === 'number' && !isNaN(latestTrip.end_km)) {
+      return { value: latestTrip.end_km, source: 'trip' };
+    }
+
+    return { value: null, source: 'unknown' };
+  } catch (error) {
+    console.error('Exception in getLatestOdometer:', error);
+    return { value: null, source: 'unknown' };
+  }
+};
+
+// Upload files to Supabase Storage and get public URLs
+export const uploadFilesAndGetPublicUrls = async (
+  bucketName: string,
+  folderPath: string,
+  files: File[]
+): Promise<string[]> => {
+  if (!files || files.length === 0) {
+    return [];
+  }
+
+  const uploadPromises = files.map(async (file, index) => {
+    const fileName = `${Date.now()}_${index}_${file.name}`;
+    const filePath = `${folderPath}/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .upload(filePath, file, {
+        upsert: true,
+      });
+
+    if (error) {
+      console.error(`Error uploading file ${file.name}:`, error);
+      throw error;
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(data.path);
+
+    return publicUrlData.publicUrl;
+  });
+
+  try {
+    const publicUrls = await Promise.all(uploadPromises);
+    return publicUrls;
+  } catch (error) {
+    console.error("Error uploading files:", error);
+    throw error;
+  }
+};
+
+// Get signed URL for driver documents
+export const getSignedDriverDocumentUrl = async (filePath: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase.storage.from(BUCKETS.DRIVERS).createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
+    
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      throw error;
+    }
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error getting signed driver document URL:', error);
+    throw error;
+  }
+};
+
+// Get signed URL for regular documents
+export const getSignedDocumentUrl = async (filePath: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase.storage.from('vehicle-docs').createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
+    
+    if (error) {
+      console.error('Error creating signed URL:', error);
+      throw error;
+    }
+    
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error getting signed document URL:', error);
+    throw error;
+  }
+};

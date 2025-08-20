@@ -11,6 +11,7 @@ import { supabase } from "./supabaseClient";
 import { logVehicleActivity } from "./vehicleActivity";
 import { uploadFilesAndGetPublicUrls } from "./supabaseStorage";
 import { normalizeVehicleType } from "./vehicleNormalize";
+import { BUCKETS } from "./storageBuckets";
 
 // Helper function to convert camelCase to snake_case
 const toSnakeCase = (str: string) =>
@@ -36,7 +37,7 @@ const convertKeysToSnakeCase = (
 };
 import { calculateMileage } from "./mileageCalculator";
 import { BUCKETS } from "./storageBuckets";
-import { normalizeVehicleType, withOwner, getCurrentUserId } from "./supaHelpers";
+import { withOwner, getCurrentUserId } from "./supaHelpers";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
@@ -1053,29 +1054,11 @@ export const createDriver = async (
   let policePublicUrls = [];
   let medicalPublicUrls = [];
   try {
-    licencePublicUrls = await uploadFilesAndGetPublicUrls(
-      "driver-docs",
-      `${driverLicenseNumber}/license`,
-      license_document
-    );
-    idProofPublicUrls = await uploadFilesAndGetPublicUrls(
-      "driver-docs",
-      `${driverLicenseNumber}/idproof`,
-      aadhaar_document
-    );
-    policePublicUrls = await uploadFilesAndGetPublicUrls(
-      "driver-docs",
-      `${driverLicenseNumber}/policeVerification`,
-      police_document
-    );
-    medicalPublicUrls = await uploadFilesAndGetPublicUrls(
-      "driver-docs",
-      `${driverLicenseNumber}/medicalCertificate`,
-      medical_document
-    );
+  // Note: File uploads should now be handled in the DriversPage.tsx before calling createDriver
+  // This function now expects the driver data to contain the document URLs, not File objects
   } catch (err) {
     console.error("Error uploading driver documents:", err);
-    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
+  // This error handling is now moved to DriversPage.tsx
   }
 
   const userId = await getCurrentUserId();
@@ -1084,10 +1067,10 @@ export const createDriver = async (
     .insert({
       ...convertKeysToSnakeCase(withOwner(driverData, userId)),
       license_number: dl_number,
-      license_doc_url: licencePublicUrls,
-      aadhar_doc_url: idProofPublicUrls,
-      police_doc_url: policePublicUrls,
-      medical_doc_url: medicalPublicUrls,
+      license_doc_url: driverData.license_doc_url,
+      aadhar_doc_url: driverData.aadhar_doc_url,
+      police_doc_url: driverData.police_doc_url,
+      medical_doc_url: driverData.medical_doc_url,
       license_issue_date:
         (driverData.license_issue_date &&
           !isNaN(new Date(driverData.license_issue_date).getTime()) &&
@@ -1164,10 +1147,7 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
 };
 
 // Upload driver photo to Supabase Storage
-export const uploadDriverPhoto = async (
-
-  return data.publicUrl;
-};
+// Note: uploadDriverPhoto has been replaced with uploadDriverFile in supabaseStorage.ts
 
 // Driver stats
 export const getDriverStats = async (driverId: string) => {
