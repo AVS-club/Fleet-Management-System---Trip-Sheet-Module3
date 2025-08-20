@@ -38,64 +38,6 @@ import { calculateMileage } from "./mileageCalculator";
 import { BUCKETS } from "./storageBuckets";
 import { normalizeVehicleType, withOwner, getCurrentUserId } from "./supaHelpers";
 
-/**
- * Upload a driver file to the drivers storage bucket
- * @param driverId Driver ID
- * @param kind Type of document
- * @param file File to upload
- * @param customName Optional custom name for 'other' documents
- * @returns Object with path or null if no file provided
- */
-export async function uploadDriverFile(
-  driverId: string, 
-  kind: 'photo' | 'license' | 'aadhaar' | 'police' | 'medical' | 'other', 
-  file: File | File[], 
-  customName?: string
-): Promise<{ path: string | null }> {
-  // Handle array of files (take first file)
-  const fileToUpload = Array.isArray(file) ? file[0] : file;
-  
-  if (!fileToUpload) {
-    return { path: null };
-  }
-
-  const folder = 
-    kind === 'photo'   ? 'driver_photos'
-  : kind === 'license' ? 'license_documents'
-  : kind === 'aadhaar' ? 'aadhaar_documents'
-  : kind === 'police'  ? 'police_verification'
-  : kind === 'medical' ? 'medical_certificate'
-  :                      'other_documents';
-
-  const fileName = customName 
-    ? `${Date.now()}-${customName.replace(/[^a-zA-Z0-9.-]/g, '_')}`
-    : `${Date.now()}-${fileToUpload.name}`;
-    
-  const path = `${folder}/${driverId}/${fileName}`;
-  
-  try {
-    const { data, error } = await supabase.storage
-      .from(BUCKETS.DRIVERS)
-      .upload(path, fileToUpload, { 
-        upsert: true, 
-        contentType: fileToUpload.type 
-      });
-
-    if (error) {
-      // Surface status code & path for debugging
-      throw new Error(`Upload failed (${error.status || 'n/a'}): bucket=${BUCKETS.DRIVERS}, path=${path}, msg=${error.message}`);
-    }
-
-    const finalPath = data?.path || path;
-    console.log(`Successfully uploaded to bucket=${BUCKETS.DRIVERS}, path=${finalPath}`);
-    
-    return { path: finalPath };
-  } catch (error) {
-    console.error('Error in uploadDriverFile:', error);
-    throw error;
-  }
-}
-
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {
   try {
@@ -1226,10 +1168,9 @@ export const uploadDriverPhoto = async (
   driverId: string,
   file: File
 ): Promise<string> => {
-  const fileName = `${driverId}_photo.${file.name.split(".").pop()}`;
   const { data, error } = await supabase.storage
     .from("driver-photos")
-    .upload(fileName, file, {
+    .upload(`${driverId}/${file.name}`, file, {
       upsert: true,
     });
 
@@ -1240,7 +1181,7 @@ export const uploadDriverPhoto = async (
 
   const { data: publicUrlData } = supabase.storage
     .from("driver-photos")
-    .getPublicUrl(fileName);
+    .getPublicUrl(data.path);
 
   return publicUrlData.publicUrl;
 };
@@ -1804,81 +1745,5 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
   } catch (error) {
     console.error('Exception in getLatestOdometer:', error);
     return { value: null, source: 'unknown' };
-  }
-};
-
-// Upload files to Supabase Storage and get public URLs
-export const uploadFilesAndGetPublicUrls = async (
-  bucketName: string,
-  folderPath: string,
-  files: File[]
-): Promise<string[]> => {
-  if (!files || files.length === 0) {
-    return [];
-  }
-
-  const uploadPromises = files.map(async (file, index) => {
-    const fileName = `${Date.now()}_${index}_${file.name}`;
-    const filePath = `${folderPath}/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, file, {
-        upsert: true,
-      });
-
-    if (error) {
-      console.error(`Error uploading file ${file.name}:`, error);
-      throw error;
-    }
-
-    // Get the public URL
-    const { data: publicUrlData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(data.path);
-
-    return publicUrlData.publicUrl;
-  });
-
-  try {
-    const publicUrls = await Promise.all(uploadPromises);
-    return publicUrls;
-  } catch (error) {
-    console.error("Error uploading files:", error);
-    throw error;
-  }
-};
-
-// Get signed URL for driver documents
-export const getSignedDriverDocumentUrl = async (filePath: string): Promise<string> => {
-  try {
-    const { data, error } = await supabase.storage.from(BUCKETS.DRIVERS).createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
-    
-    if (error) {
-      console.error('Error creating signed URL:', error);
-      throw error;
-    }
-    
-    return data.signedUrl;
-  } catch (error) {
-    console.error('Error getting signed driver document URL:', error);
-    throw error;
-  }
-};
-
-// Get signed URL for regular documents
-export const getSignedDocumentUrl = async (filePath: string): Promise<string> => {
-  try {
-    const { data, error } = await supabase.storage.from('vehicle-docs').createSignedUrl(filePath, 60 * 60 * 24); // 24 hours
-    
-    if (error) {
-      console.error('Error creating signed URL:', error);
-      throw error;
-    }
-    
-    return data.signedUrl;
-  } catch (error) {
-    console.error('Error getting signed document URL:', error);
-    throw error;
   }
 };
