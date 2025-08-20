@@ -6,7 +6,6 @@ import {
   getTrips, 
   createDriver, 
   updateDriver, 
-  uploadDriverFile
 } from "../utils/storage";
 import { uploadDriverFile } from "../utils/supabaseStorage";
 import { supabase } from "../utils/supabaseClient";
