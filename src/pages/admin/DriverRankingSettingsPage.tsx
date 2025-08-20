@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout'; 
-import { ChevronLeft, Award, TrendingUp, AlertTriangle, Fuel, Clock } from 'lucide-react';
+import Layout from '../../components/layout/Layout';
+import { ChevronLeft, Award, TrendingUp, AlertTriangle, Fuel, Clock, BarChart2 } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
