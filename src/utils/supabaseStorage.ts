@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { BUCKETS } from "./storageBuckets";
 import { Driver } from "../types"; // Assuming Driver type is available
 
 /** Upload a driver file. Object path starts with auth.uid() to satisfy RLS. */
@@ -14,8 +15,8 @@ export async function uploadDriverFile(
   const objectName = `${userId}/drivers/${driverKey}/${filename}`;
 
   const { data, error } = await supabase
-    .storage
-    .from("drivers")
+    .storage // Use the DRIVERS bucket constant
+    .from(BUCKETS.DRIVERS)
     .upload(objectName, file, { upsert: true, cacheControl: "3600" });
 
   if (error) throw new Error(`Driver file upload failed: ${error.message}`);
@@ -26,7 +27,7 @@ export async function uploadDriverFile(
 export async function getSignedDriverUrl(path: string, expiresInSec = 60 * 15) {
   const { data, error } = await supabase
     .storage
-    .from("drivers")
+    .from(BUCKETS.DRIVERS) // Use the DRIVERS bucket constant
     .createSignedUrl(path, expiresInSec);
 
   if (error) throw new Error(`Signed URL error: ${error.message}`);
@@ -34,7 +35,7 @@ export async function getSignedDriverUrl(path: string, expiresInSec = 60 * 15) {
 }
 
 /** Delete a file (RLS will only allow within caller's own folder). */
-export async function deleteDriverFile(path: string) {
+export async function deleteDriverFile(path: string) { // This function is not used in the current code
   const { error } = await supabase.storage.from("drivers").remove([path]);
   if (error) throw new Error(`Delete failed: ${error.message}`);
 }
@@ -198,56 +199,6 @@ export const getSignedDocumentUrl = async (
 };
 
 /**
- * Uploads a driver document to Supabase Storage
- * @param file The file to upload
- * @param driverId The ID of the driver
- * @param docType The type of document (e.g., 'license', 'photo')
- * @returns The file path of the uploaded file
- */
-export const uploadDriverDocument = async (
-  file: File,
-  driverId: string,
-  docType: string
-): Promise<string> => {
-  if (!file) {
-    throw new Error("No file provided");
-  }
-
-  // Check if the bucket exists by trying to list files (this will fail if bucket doesn't exist)
-  try {
-    await supabase.storage.from("drivers").list("", { limit: 1 });
-  } catch (error) {
-    console.error("Storage bucket 'drivers' may not exist:", error);
-    throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
-  }
-
-  // Get file extension
-  const fileExt = file.name.split(".").pop();
-  // Create a unique filename
-  const fileName = `${driverId}/${docType}_${Date.now()}.${fileExt}`;
-  const filePath = fileName;
-
-  // Upload the file
-  const { error: uploadError } = await supabase.storage
-    .from("drivers")
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-
-  if (uploadError) {
-    console.error("Error uploading driver document:", uploadError);
-    if (uploadError.message.includes("bucket") || uploadError.message.includes("not found")) {
-      throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
-    }
-    throw new Error(`Error uploading document: ${uploadError.message}`);
-  }
-
-  // Return the file path instead of the public URL
-  return filePath;
-};
-
-/**
  * Generates a signed URL for a driver document
  * @param filePath The path of the file in storage
  * @param expiresIn Expiration time in seconds (default: 7 days)
@@ -262,8 +213,8 @@ export const getSignedDriverDocumentUrl = async (
   }
 
   try {
-    const { data, error } = await supabase.storage
-      .from("drivers")
+    const { data, error } = await supabase.storage // Use the DRIVERS bucket constant
+      .from(BUCKETS.DRIVERS)
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {

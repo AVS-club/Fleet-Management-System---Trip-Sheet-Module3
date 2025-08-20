@@ -35,6 +35,7 @@ const convertKeysToSnakeCase = (
   return newObj;
 };
 import { calculateMileage } from "./mileageCalculator";
+import { BUCKETS } from "./storageBuckets";
 import { normalizeVehicleType } from "./vehicleNormalize";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
@@ -1164,32 +1165,6 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
 
 // Upload driver photo to Supabase Storage
 export const uploadDriverPhoto = async (
-  file: File,
-  driverId: string
-): Promise<string> => {
-  if (!file) throw new Error("No file provided");
-
-  // Get file extension
-  const fileExt = file.name.split(".").pop();
-  // Create a unique filename
-  const fileName = `${driverId}.${fileExt}`;
-  const filePath = `driver_photos/${fileName}`;
-
-  // Upload the file
-  const { error: uploadError } = await supabase.storage
-    .from("drivers")
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-
-  if (uploadError) {
-    console.error("Error uploading driver photo:", uploadError);
-    throw uploadError;
-  }
-
-  // Get the public URL
-  const { data } = supabase.storage.from("drivers").getPublicUrl(filePath);
 
   return data.publicUrl;
 };
