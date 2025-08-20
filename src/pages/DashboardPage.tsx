@@ -162,7 +162,7 @@ const DashboardPage: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       ) : (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Date Range Summary */}
         {hasEnoughData && (
           <DashboardSummary 
@@ -172,8 +172,16 @@ const DashboardPage: React.FC = () => {
           />
         )}
 
+        {/* Key Metrics */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+            <BarChart className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400" />
+            Key Metrics
+          </h2>
+        </div>
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             title="Total Trips"
             value={stats.totalTrips}
@@ -225,7 +233,12 @@ const DashboardPage: React.FC = () => {
 
         {/* Mileage Insights */}
         {hasRefuelingData && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 text-success-600 dark:text-success-400" />
+              Performance Highlights
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
@@ -269,9 +282,10 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+          </div>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2">
             <MileageChart trips={trips} />
           </div>
