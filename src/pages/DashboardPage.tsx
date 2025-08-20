@@ -11,7 +11,7 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell } from 'lucide-react';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 
 const DashboardPage: React.FC = () => {
@@ -162,7 +162,7 @@ const DashboardPage: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       ) : (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Date Range Summary */}
         {hasEnoughData && (
           <DashboardSummary 
@@ -171,6 +171,12 @@ const DashboardPage: React.FC = () => {
             vehicleCount={vehicles.filter(v => v.status !== 'archived').length}
           />
         )}
+
+        {/* Key Metrics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+          <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
+          Key Metrics
+        </h2>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -223,9 +229,17 @@ const DashboardPage: React.FC = () => {
           )}
         </div>
 
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
         {/* Mileage Insights */}
         {hasRefuelingData && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
+              Performance Highlights
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
@@ -268,32 +282,54 @@ const DashboardPage: React.FC = () => {
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
               </div>
             </div>
-          </div>
+            </div>
+          </>
         )}
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2">
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Detailed Analytics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+          <BarChart className="h-5 w-5 mr-2 text-blue-600" />
+          Detailed Analytics
+        </h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <MileageChart trips={trips} />
           </div>
           
-          <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+          </div>
         </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
         {/* Tip Section */}
         {hasEnoughData && (
-          <DashboardTip 
-            title="Did you know?"
-            content="You can track insurance, permit, and PUC expiry reminders for every vehicle."
-            link={{
-              text: "Go to Vehicles → Edit → Enable Reminders",
-              url: "/vehicles"
-            }}
-          />
+          <div className="max-w-4xl">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+              <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
+              Quick Tip
+            </h2>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+              <DashboardTip 
+                title="Did you know?"
+                content="You can track insurance, permit, and PUC expiry reminders for every vehicle."
+                link={{
+                  text: "Go to Vehicles → Edit → Enable Reminders",
+                  url: "/vehicles"
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {/* Empty Dashboard State */}
         {!hasEnoughData && (
-          <div className="mt-8">
+          <div className="mt-6">
             <EmptyState 
               type="generic"
               message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
