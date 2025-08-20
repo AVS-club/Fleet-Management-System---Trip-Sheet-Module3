@@ -45,7 +45,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
                 try {
                   return await getDestination(id);
                 } catch (error) {
-                  console.error(`Error fetching destination ${id}:`, error);
+                  console.warn(`Destination ${id} not found or error fetching:`, error);
                   // Return null for failed destinations instead of throwing
                   return null;
                 }
@@ -56,14 +56,14 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             console.error('Error fetching destinations:', error);
             // Set a user-friendly error message for destination failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-              setLoadingError('Unable to load trip locations due to connection issues');
+              setLoadingError('Unable to load some trip locations');
             }
           }
         }
       } catch (error) {
         console.error('Error in fetchData:', error);
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-          setLoadingError('Unable to load trip details due to connection issues');
+          setLoadingError('Unable to load trip details');
         }
       }
     };
