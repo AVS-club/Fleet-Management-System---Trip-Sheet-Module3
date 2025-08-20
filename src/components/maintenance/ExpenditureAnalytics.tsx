@@ -55,7 +55,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
 
   return (
     <div className="space-y-6">
-      <CollapsibleSection 
+      <CollapsibleSection
         title="Expenditure Analytics" 
         defaultExpanded={true}
         iconColor="text-green-600"

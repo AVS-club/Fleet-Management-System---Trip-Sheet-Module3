@@ -49,7 +49,7 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
   if (displayData.length === 0) {
     return (
       <CollapsibleSection 
-        title="Vehicle Downtime" 
+        title="Vehicle Downtime"
         iconColor="text-red-600"
       >
         <div className="bg-white rounded-lg shadow-sm p-4">

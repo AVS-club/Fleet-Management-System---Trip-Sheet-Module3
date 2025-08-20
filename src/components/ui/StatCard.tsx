@@ -39,7 +39,7 @@ const StatCard: React.FC<StatCardProps> = ({
         onClick && "cursor-pointer hover:shadow-md"
       )}
       onClick={onClick}
-    >
+    > 
       <div className="flex justify-between items-start gap-2">
         <div>
           <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</h3>

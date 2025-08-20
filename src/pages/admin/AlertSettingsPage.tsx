@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
-import AlertSettings from '../../components/alerts/AlertSettings';
+import AlertSettings from '../../components/alerts/AlertSettings'; 
 import { ChevronLeft, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';

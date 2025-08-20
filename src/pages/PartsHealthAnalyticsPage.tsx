@@ -234,7 +234,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm">
           <div className="border-b border-gray-200">
-            <div className="flex space-x-8 px-6">
+            <div className="flex space-x-8 px-6 border-l-2 border-blue-500 pl-2">
               <button
                 className={`py-4 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === 'health'
@@ -316,7 +316,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                 {/* Parts Grid by Category */}
                 {Object.keys(partsByCategory).length > 0 ? (
                   <div className="space-y-8">
-                    {Object.entries(partsByCategory).map(([category, categoryParts]) => (
+                    {Object.entries(partsByCategory).map(([category, categoryParts]) => ( 
                       <div key={category}>
                         <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                           <span className="mr-2">{categoryParts[0]?.icon}</span>

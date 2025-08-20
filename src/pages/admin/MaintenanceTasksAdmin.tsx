@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance';
+import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance'; 
 import { PlusCircle, Edit2, Trash2, AlertTriangle, ChevronLeft, PenTool as Tool } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -75,7 +75,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
         {/* Add/Edit Task Form */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {editingItem ? 'Edit Task' : 'Add New Task'}
+          {editingItem ? 'Edit Task' : 'Add New Task'}
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -183,7 +183,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
         {/* Task List */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Maintenance Tasks</h3>
+            <h3 className="text-lg font-medium text-gray-900 border-l-2 border-blue-500 pl-2">Maintenance Tasks</h3>
           </div>
 
           <div className="divide-y divide-gray-200">

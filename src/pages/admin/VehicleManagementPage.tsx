@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "../../components/layout/Layout";
+import Layout from "../../components/layout/Layout"; 
 import {
   getVehicles,
   getVehicleStats,
@@ -613,7 +613,7 @@ const VehicleManagementPage: React.FC = () => {
 
         {/* Filters and Actions */}
         <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="flex flex-wrap gap-4 justify-between">
+          <div className="flex flex-wrap gap-4 justify-between border-l-2 border-blue-500 pl-2">
             <div className="flex flex-wrap flex-1 gap-4">
               <div className="w-full sm:w-auto flex-1 min-w-[200px]">
                 <Input
@@ -971,7 +971,7 @@ const VehicleManagementPage: React.FC = () => {
         {/* Vehicle Activity Log */}
         <VehicleActivityLogTable limit={10} refreshTrigger={refreshTrigger} />
 
-        {/* Confirmation Modals */}
+        {/* Confirmation Modals */} 
         <ConfirmationModal
           isOpen={deleteModal.isOpen}
           title="Archive Vehicle"

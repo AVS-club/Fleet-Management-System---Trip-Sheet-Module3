@@ -795,7 +795,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               {/* Matrix Table - Document Status */}
               <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                  <h3 className="font-medium text-gray-700">Document Status Matrix</h3>
+                  <h3 className="font-medium text-gray-700 border-l-2 border-blue-500 pl-2">Document Status Matrix</h3>
                   <div className="flex items-center gap-3 no-print">
                     <Input
                       placeholder="Search vehicles..."
@@ -926,7 +926,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               </div>
               
               {/* Expenditure Over Time Chart */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 border-l-2 border-blue-500 pl-2">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium text-gray-700">Documentation Expenditure Over Time</h3>
                   <div className="flex items-center space-x-2 no-print">
@@ -1062,7 +1062,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               </div>
 
               {/* Expenditure by Vehicle Chart */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 border-l-2 border-blue-500 pl-2">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="font-medium text-gray-700">Expenditure by Vehicle</h3>
                 </div>
@@ -1102,7 +1102,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               </div>
 
               {/* Legend for document status */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 border-l-2 border-blue-500 pl-2">
                 <h3 className="font-medium text-gray-700 mb-3">Document Status Legend</h3>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center">

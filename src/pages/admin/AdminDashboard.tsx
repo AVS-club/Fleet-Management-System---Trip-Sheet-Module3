@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar, FileCheck, BarChart2, Database, MessageSquare, Activity, ShieldCheck } from 'lucide-react';
+import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar, FileCheck, BarChart2, Database, MessageSquare, Activity, ShieldCheck } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '../../types';
@@ -109,7 +109,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <FileText className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Management</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -126,7 +126,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <MapPin className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Locations</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -143,7 +143,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Truck className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Vehicle Management</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -160,7 +160,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Users className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Management</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -177,7 +177,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Tool className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Maintenance Tasks</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -194,7 +194,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Bell className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Alert Settings</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -211,7 +211,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Calendar className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Reminders</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -229,7 +229,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <BarChart2 className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Ranking</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
@@ -247,7 +247,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
                     <Activity className="h-5 w-5 text-primary-600" />
-                  </div>
+                  </div> 
                   <div>
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Activity Logs</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">

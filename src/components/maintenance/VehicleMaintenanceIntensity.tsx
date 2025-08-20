@@ -54,7 +54,7 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
   if (processedData.chartData.length === 0) {
     return (
       <CollapsibleSection 
-        title="KM Run Between Maintenance Visits" 
+        title="KM Run Between Maintenance Visits"
         iconColor="text-blue-600"
       >
         <div className="bg-white rounded-lg shadow-sm p-4">

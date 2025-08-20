@@ -284,7 +284,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
       {/* Odometer & Load */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
           <Gauge className="h-5 w-5 mr-2 text-primary-500" />
           Odometer & Load
         </h3>
@@ -338,7 +338,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
       {/* Trip Metrics */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
           <TrendingUp className="h-5 w-5 mr-2 text-primary-500" />
           Trip Metrics
         </h3>
@@ -412,7 +412,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
       {/* Expenses */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
           <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
           Expenses
         </h3>
@@ -509,7 +509,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
       {/* Attachments */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Attachments
         </h3>
@@ -559,7 +559,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
       {/* Remarks */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Remarks
         </h3>

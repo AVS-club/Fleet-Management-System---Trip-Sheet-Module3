@@ -451,7 +451,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Basic Information */}
       <CollapsibleSection 
-        title="Basic Information" 
+        title="Basic Information"
         icon={<Truck className="h-5 w-5" />}
         iconColor="text-blue-600"
         defaultExpanded={true}
@@ -532,7 +532,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Route Information */}
       <CollapsibleSection 
-        title="Route Information" 
+        title="Route Information"
         icon={<MapPin className="h-5 w-5" />}
         iconColor="text-red-600"
         defaultExpanded={true}
@@ -615,7 +615,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Odometer & Load Section */}
       <CollapsibleSection 
-        title="Odometer & Load" 
+        title="Odometer & Load"
         icon={<Truck className="h-4 w-4 sm:h-5 sm:w-5" />}
         iconColor="text-gray-600"
         defaultExpanded={true}
@@ -778,7 +778,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Trip Expenses Section */}
       <CollapsibleSection 
-        title="Trip Expenses" 
+        title="Trip Expenses"
         icon={<IndianRupee className="h-4 w-4 sm:h-5 sm:w-5" />}
         iconColor="text-green-600"
         defaultExpanded={true}
@@ -839,7 +839,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Attachments & Notes Section */}
       <CollapsibleSection 
-        title="Attachments & Notes" 
+        title="Attachments & Notes"
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-blue-600"
         defaultExpanded={false}

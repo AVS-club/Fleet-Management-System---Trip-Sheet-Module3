@@ -24,7 +24,7 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+        <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4 border-l-2 border-blue-500 pl-2">
           <Map className="h-5 w-5 mr-2 text-primary-500" />
           Route Analysis
         </h3>
@@ -85,7 +85,7 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
       </div>
 
       {Array.isArray(alerts) && alerts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 border-l-2 border-blue-500 pl-2">
           <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
             <AlertTriangle className="h-5 w-5 mr-2 text-warning-500" />
             Route Alerts

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout'; 
 import { ChevronLeft, Award, TrendingUp, AlertTriangle, Fuel, Clock } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -31,7 +31,7 @@ const DriverRankingSettingsPage: React.FC = () => {
       <div className="space-y-6">
         <div className="bg-white p-6 rounded-lg shadow-sm">
           <div className="flex items-center mb-4">
-            <Award className="h-5 w-5 text-primary-600 mr-2" />
+            <Award className="h-5 w-5 text-primary-600 mr-2" /> 
             <h2 className="text-lg font-medium text-gray-900">Performance Metrics Weights</h2>
           </div>
           <p className="text-gray-500 mb-4">

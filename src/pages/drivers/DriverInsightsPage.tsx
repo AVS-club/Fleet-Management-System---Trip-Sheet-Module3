@@ -510,7 +510,7 @@ const DriverInsightsPage: React.FC = () => {
           {/* Filters */}
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <div className="flex flex-wrap gap-4 justify-between">
-              <div className="flex items-center">
+              <div className="flex items-center border-l-2 border-blue-500 pl-2">
                 <h2 className="text-lg font-medium text-gray-900 flex items-center">
                   <Filter className="h-5 w-5 mr-2 text-primary-500" />
                   Filters
@@ -738,7 +738,7 @@ const DriverInsightsPage: React.FC = () => {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 border-l-2 border-blue-500 pl-2">
                 Distance Trend
               </h3>
               <div className="h-80">
@@ -783,7 +783,7 @@ const DriverInsightsPage: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 border-l-2 border-blue-500 pl-2">
                 Driver Performance Comparison
               </h3>
               <div className="h-80">

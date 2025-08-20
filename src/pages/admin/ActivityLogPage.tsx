@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout'; 
 import { ChevronLeft, ActivitySquare, Calendar, User, Search, Filter } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -41,7 +41,7 @@ const ActivityLogPage: React.FC = () => {
       <div className="space-y-6">
         {/* Filters */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
-          <div className="flex flex-wrap gap-4 justify-between">
+          <div className="flex flex-wrap gap-4 justify-between border-l-2 border-blue-500 pl-2">
             <div className="flex flex-wrap gap-4 flex-1">
               <div className="w-full sm:w-auto flex-1 min-w-[200px]">
                 <Input

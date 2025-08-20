@@ -54,7 +54,7 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
   if (chartData.length === 0) {
     return (
       <CollapsibleSection 
-        title="Task Type Distribution" 
+        title="Task Type Distribution"
         iconColor="text-purple-600"
       >
         <div className="bg-white rounded-lg shadow-sm p-4">

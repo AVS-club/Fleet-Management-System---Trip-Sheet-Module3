@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout'; 
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
 import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
@@ -557,7 +557,7 @@ const AdminTripsPage: React.FC = () => {
       {/* Filters */}
       {!loading && (
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+          <div className="flex flex-wrap justify-between items-center gap-4 mb-4 border-l-2 border-blue-500 pl-2">
             <h3 className="text-lg font-medium">Trip Filters</h3>
             <div className="flex gap-2">
               <Button 

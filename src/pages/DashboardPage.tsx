@@ -180,7 +180,7 @@ const DashboardPage: React.FC = () => {
         {/* Date Range Summary */}
 
         {/* Key Metrics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
           <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
           Key Metrics
         </h2>
@@ -197,19 +197,37 @@ const DashboardPage: React.FC = () => {
               isPositive: true
             } : undefined}
           />
-          
+
           <StatCard
             title="Total Distance"
             value={stats.totalDistance.toLocaleString()}
+            className={
+              stats.avgMileage > 4.0
+                ? "bg-emerald-50"
+                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                ? "bg-orange-50"
+                : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                ? "bg-red-50"
+                : ""
+            }
             subtitle="km"
             icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
           />
-          
+
           {hasRefuelingData ? (
             <>
               <StatCard
                 title="Average Mileage"
                 value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+            className={
+              stats.avgMileage > 4.0
+                ? "bg-emerald-50"
+                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                ? "bg-orange-50"
+                : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                ? "bg-red-50"
+                : ""
+            }
                 subtitle="km/L"
                 icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
               />
@@ -241,7 +259,7 @@ const DashboardPage: React.FC = () => {
         {/* Mileage Insights */}
         {hasRefuelingData && (
           <>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
               <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
               Performance Highlights
             </h2>
@@ -280,7 +298,7 @@ const DashboardPage: React.FC = () => {
             )}
 
             <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center justify-between gap-2 ">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Potential Savings</h3>
                 <IndianRupee className="h-6 w-6 text-success-500 dark:text-success-400" />
               </div>
@@ -288,6 +306,8 @@ const DashboardPage: React.FC = () => {
                 <p className="text-xl sm:text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
               </div>
+
+
             </div>
             </div>
           </>
@@ -296,7 +316,7 @@ const DashboardPage: React.FC = () => {
         <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
         {/* Detailed Analytics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
           <BarChart className="h-5 w-5 mr-2 text-blue-600" />
           Detailed Analytics
         </h2>
@@ -316,7 +336,7 @@ const DashboardPage: React.FC = () => {
         {/* Tip Section */}
         {hasEnoughData && (
           <div className="max-w-4xl">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
               <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
               Quick Tip
             </h2>

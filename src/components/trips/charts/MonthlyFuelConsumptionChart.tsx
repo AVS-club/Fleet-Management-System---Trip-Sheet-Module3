@@ -132,7 +132,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
                   fill: '#4B5563',
                   dy: -4
                 }}
-                barSize={30}
+                barSize={30} 
                 fill="url(#fuelGradient)"
                 radius={[4, 4, 0, 0]}
               >

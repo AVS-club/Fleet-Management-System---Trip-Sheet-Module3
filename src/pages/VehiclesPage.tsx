@@ -448,7 +448,7 @@ const VehiclesPage: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        "-"
+                        <span className="text-yellow-600 italic">No data yet</span>
                       )
                     }
                     icon={<Medal className="h-5 w-5 text-yellow-500" />}
@@ -629,7 +629,7 @@ const VehiclesPage: React.FC = () => {
                                 ? "bg-success-100 text-success-800"
                                 : uploaded === 0
                                 ? "bg-error-100 text-error-800"
-                                : "bg-warning-100 text-warning-800"
+                                : "bg-warning-100 text-warning-800" // Partial upload
                             }`}
                           >
                             {uploaded}/{total}

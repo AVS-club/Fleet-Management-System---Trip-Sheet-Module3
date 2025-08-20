@@ -189,7 +189,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
       {/* Fuel Consumption AI Analytics Section */}
       <div className="space-y-3 mt-4">
         {/* Section title and date range filter */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 border-l-2 border-blue-500 pl-2">
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Fuel className="mr-2 h-5 w-5 text-primary-600 dark:text-primary-400" />
             Fuel Consumption AI Analytics

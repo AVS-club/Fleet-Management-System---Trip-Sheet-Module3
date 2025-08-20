@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../utils/supabaseClient';
+import { supabase } from '../../utils/supabaseClient'; 
 import Layout from '../../components/layout/Layout';
 import { ChevronLeft, Upload, Download, Filter, Search, UserPlus, Users, RefreshCw, Archive, Trash2, MessageSquare } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -349,7 +349,7 @@ const AdminDriversPage: React.FC = () => {
         {/* Filters and Actions */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
-            <h3 className="text-lg font-medium">Driver Filters</h3>
+            <h3 className="text-lg font-medium border-l-2 border-blue-500 pl-2">Driver Filters</h3>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
@@ -487,7 +487,7 @@ const AdminDriversPage: React.FC = () => {
         ) : (
           <div className="bg-white rounded-lg shadow-sm">
             {filteredDrivers.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 border-l-2 border-blue-500 pl-2">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-lg font-medium text-gray-900 mb-1">No drivers found</p>
                 <p className="text-gray-500">Try adjusting your filters or add new drivers</p>

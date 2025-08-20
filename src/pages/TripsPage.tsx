@@ -165,7 +165,7 @@ const TripsPage: React.FC = () => {
       {isAddingTrip ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
               New Trip Sheet
             </h2>

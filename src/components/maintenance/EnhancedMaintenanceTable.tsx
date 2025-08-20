@@ -319,7 +319,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
   };
 
   return (
-    <CollapsibleSection title="Maintenance Tasks" iconColor="text-indigo-600">
+    <CollapsibleSection title="Maintenance Tasks" iconColor="text-indigo-600" headerBgClass="bg-white">
       <div className="space-y-4">
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-4">

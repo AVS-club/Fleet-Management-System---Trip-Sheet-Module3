@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/layout/Layout';
-import { AIAlert } from '../types';
+import { AIAlert } from '../types'; 
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, PenTool as Tool } from 'lucide-react';
@@ -414,7 +414,7 @@ const AIAlertsPage: React.FC = () => {
           {/* Alerts Display */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {groupByVehicle ? (
-              // Grouped by vehicle view
+              // Grouped by vehicle view 
               <div>
                 {groupedAlerts && Object.keys(groupedAlerts).length > 0 ? (
                   <div className="divide-y divide-gray-200">

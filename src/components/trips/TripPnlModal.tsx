@@ -240,7 +240,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
 
           {/* Expenses Section */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-gray-900 flex items-center">
+            <h3 className="text-base font-medium text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <IndianRupee className="h-5 w-5 mr-2 text-red-600" />
               Expenses
             </h3>
@@ -281,7 +281,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
 
           {/* Summary Section */}
           <div className="space-y-4">
-            <h3 className="text-base font-medium text-gray-900 flex items-center">
+            <h3 className="text-base font-medium text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <Calculator className="h-5 w-5 mr-2 text-primary-600" />
               Summary
             </h3>

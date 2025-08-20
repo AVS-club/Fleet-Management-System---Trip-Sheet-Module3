@@ -24,7 +24,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   return (
     <div className="border border-gray-200 rounded-lg mb-6 overflow-hidden">
       <button
-        type="button" 
+        type="button"
         className={cn(
           "w-full flex items-center justify-between p-4 hover:bg-opacity-90 transition-colors duration-200",
           headerBgClass

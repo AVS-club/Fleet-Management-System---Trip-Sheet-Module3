@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../components/layout/Layout';
+import Layout from '../components/layout/Layout'; 
 import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
@@ -158,7 +158,7 @@ const MaintenancePage = () => {
           />
           
           {/* Enhanced Maintenance Table */}
-          <EnhancedMaintenanceTable
+          <EnhancedMaintenanceTable 
             tasks={tasks || []}
             vehicles={vehicles || []}
           />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout';
+import Layout from '../../components/layout/Layout'; 
 import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2 } from 'lucide-react';
 import { Archive, ArchiveRestore } from 'lucide-react';
 import Button from '../../components/ui/Button';
@@ -240,7 +240,7 @@ const TripLocationsPage: React.FC = () => {
                 ) : (
                   <>
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div className="border-l-2 border-blue-500 pl-2">
                         <h2 className="text-lg font-medium text-gray-900">Origin Warehouses</h2>
                         <p className="text-sm text-gray-500">Manage warehouse locations</p>
                       </div>
@@ -369,7 +369,7 @@ const TripLocationsPage: React.FC = () => {
                 ) : (
                   <>
                     <div className="flex justify-between items-center">
-                      <div>
+                      <div className="border-l-2 border-blue-500 pl-2">
                         <h2 className="text-lg font-medium text-gray-900">Delivery Destinations</h2>
                         <p className="text-sm text-gray-500">Manage delivery points</p>
                       </div>

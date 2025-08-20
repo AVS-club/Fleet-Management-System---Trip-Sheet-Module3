@@ -178,7 +178,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
                   fontSize: 10,
                   fontWeight: 500,
                   fill: '#4B5563',
-                  dy: -4
+                  dy: -4 
                 }}
                 barSize={32}
                 fill={(entry: any) => entry.lowMileage ? '#F59E0B' : '#0277BD'}
