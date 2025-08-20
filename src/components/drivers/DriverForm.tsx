@@ -600,9 +600,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
         title="Documents"
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-red-600"
-        defaultExpanded={true}
+        defaultExpanded={false}
       >
-        <div className="space-y-3 sm:space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             control={control}
             name="license_document"
@@ -614,6 +614,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
+                variant="compact"
                 {...field}
               />
             )}
@@ -629,6 +630,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
+                variant="compact"
                 {...field}
               />
             )}
@@ -644,6 +646,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
+                variant="compact"
                 {...field}
               />
             )}
@@ -659,114 +662,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
+                variant="compact"
                 {...field}
               />
             )}
           />
-          {/* Other Documents */}
-
-          {/* <div className="mt-4 sm:mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-medium text-gray-700">
-                Other Documents
-              </h3>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => append({ name: "", file_obj: undefined })}
-                icon={<Plus className="h-4 w-4" />}
-                disabled={isSubmitting}
-              >
-                Add Document
-              </Button>
-            </div>
-
-            {fields.length === 0 ? (
-              <div className="text-center py-4 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-500">
-                  No additional documents added
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="p-3 sm:p-4 border rounded-lg bg-gray-50 relative"
-                  >
-                    <button
-                      type="button"
-                      className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
-                      onClick={() => remove(index)}
-                      disabled={isSubmitting}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
-                      <Input
-                        label="Document Name"
-                        placeholder="e.g., Medical Certificate"
-                        disabled={isSubmitting}
-                        {...register(`other_documents.${index}.name` as const)}
-                      />
-
-                      <Input
-                        label="Issue/Expiry Date"
-                        type="date"
-                        disabled={isSubmitting}
-                        {...register(
-                          `other_documents.${index}.issue_date` as const
-                        )}
-                      />
-                    </div>
-
-                    <Controller
-                      control={control}
-                      name={`other_documents.${index}.file_obj` as const}
-                      render={({ field: { value, onChange, ...field } }) => {
-                        // For editing existing documents, check if there's a file_path to display
-                        const existingFilePath =
-                          initialData?.other_documents?.[index]?.file_path;
-
-                        return (
-                          <FileUpload
-                            label="Upload Document"
-                            value={value as File | null}
-                            onChange={onChange}
-                            accept=".jpg,.jpeg,.png,.pdf"
-                            helperText={
-                              existingFilePath
-                                ? "A document is already uploaded"
-                                : undefined
-                            }
-                            disabled={isSubmitting}
-                            {...field}
-                          />
-                        );
-                      }}
-                    />
-
-                  
-                    {initialData?.other_documents?.[index]?.file_path && (
-                      <div className="mt-2 text-xs text-primary-600">
-                        <a
-                          href={initialData.other_documents[index].file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center hover:underline"
-                        >
-                          <FileText className="h-3 w-3 mr-1" />
-                          View existing document
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div> */}
         </div>
       </CollapsibleSection>
 

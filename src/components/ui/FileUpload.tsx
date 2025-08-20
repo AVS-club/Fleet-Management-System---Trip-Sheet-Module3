@@ -14,6 +14,7 @@ interface FileUploadProps {
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  variant?: 'default' | 'compact';
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -28,6 +29,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   disabled = false,
   size = 'md',
   className,
+  variant = 'default',
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -35,6 +37,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
     sm: 'p-4 text-sm',
     md: 'p-6',
     lg: 'p-8 text-lg',
+  };
+
+  const variantClasses = {
+    default: 'min-h-[180px] p-5',
+    compact: 'min-h-[100px] p-3'
+  };
+
+  const iconSizeClasses = {
+    default: 'h-8 w-8',
+    compact: 'h-5 w-5'
+  };
+
+  const textSizeClasses = {
+    default: 'text-sm',
+    compact: 'text-xs'
   };
 
   const handleFileSelect = useCallback((files: FileList | null) => {
@@ -89,22 +106,25 @@ const FileUpload: React.FC<FileUploadProps> = ({
             ? "border-error-500 dark:border-error-500"
             : "border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500",
           disabled && "opacity-50 cursor-not-allowed",
-          sizeClasses[size],
+          variant === 'compact' ? variantClasses.compact : sizeClasses[size],
           className
         )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onClick={openFileDialog}
       >
-        <div className="flex flex-col items-center justify-center space-y-2 text-gray-500 dark:text-gray-400">
-          <Upload className="h-8 w-8" />
+        <div className={cn(
+          "flex flex-col items-center justify-center space-y-2 text-gray-500 dark:text-gray-400",
+          textSizeClasses[variant]
+        )}>
+          <Upload className={iconSizeClasses[variant]} />
           <div className="text-center">
             <p className="font-medium">
-              {multiple ? 'Drop files here or click to browse' : 'Drop file here or click to browse'}
+              {variant === 'compact' ? 'Upload' : (multiple ? 'Drop files here or click to browse' : 'Drop file here or click to browse')}
             </p>
             {accept && (
-              <p className="text-sm mt-1">
-                Accepted formats: {accept}
+              <p className={cn("mt-1", variant === 'compact' ? 'text-xs opacity-70' : 'text-sm')}>
+                {variant === 'compact' ? '(.jpg, .png, .pdf)' : `Accepted formats: ${accept}`}
               </p>
             )}
           </div>
