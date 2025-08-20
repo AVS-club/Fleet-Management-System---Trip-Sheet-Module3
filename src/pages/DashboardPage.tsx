@@ -163,7 +163,7 @@ const DashboardPage: React.FC = () => {
         {/* Page Header */}
         <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
           <div className="flex items-center group">
-            <LayoutDashboard className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400 group-hover:text-primary-700 transition" />
+            <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
