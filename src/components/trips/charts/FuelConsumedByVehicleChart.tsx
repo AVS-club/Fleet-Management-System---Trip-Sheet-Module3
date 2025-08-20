@@ -143,6 +143,8 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
                   formatter: (value: number) => `${value.toLocaleString()} L`,
                   fill: '#6B7280',
                   fontSize: 11,
+                  fontWeight: 500
+                }}
                 barSize={32}
               >
                 {chartData.map((entry, index) => (
