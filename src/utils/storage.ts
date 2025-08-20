@@ -1080,11 +1080,6 @@ export const createDriver = async (
   // Get current user for created_by field
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData?.user?.id ?? null;
-  
-  // Only add created_by if we have a user ID
-  if (userId) {
-    vehicleDataToInsert.created_by = userId;
-  }
   const { data, error } = await supabase
     .from("drivers")
     .insert({
