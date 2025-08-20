@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../utils/supabaseClient';
 import Layout from '../../components/layout/Layout';
 import { ChevronLeft, Upload, Download, Filter, Search, UserPlus, Users, RefreshCw, Archive, Trash2, MessageSquare } from 'lucide-react';
 import Button from '../../components/ui/Button';
