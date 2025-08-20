@@ -423,31 +423,35 @@ const DriverInsightsPage: React.FC = () => {
   return (
     <>
       <LoadingScreen isLoading={loading} />
-      <Layout
-        title="Driver Insights"
-        subtitle="Analytics and performance metrics for your drivers"
-        actions={
-          <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/drivers")}
-            icon={<ChevronLeft className="h-4 w-4" />}
-          >
-            Back to Drivers
-          </Button>
+      <Layout>
+        {/* Page Header */}
+        <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <BarChart3 className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Driver Insights</h1>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Analytics and performance metrics for your drivers</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/drivers")}
+              icon={<ChevronLeft className="h-4 w-4" />}
+            >
+              Back to Drivers
+            </Button>
 
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            icon={<Download className="h-4 w-4" />}
-            isLoading={exportLoading}
-            disabled={driverPerformance.length === 0}
-          >
-            Export Data
-          </Button>
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              icon={<Download className="h-4 w-4" />}
+              isLoading={exportLoading}
+              disabled={driverPerformance.length === 0}
+            >
+              Export Data
+            </Button>
+          </div>
         </div>
-        }
-      >
+
         <div className={cn('space-y-6', loading && 'opacity-50 pointer-events-none')}>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">

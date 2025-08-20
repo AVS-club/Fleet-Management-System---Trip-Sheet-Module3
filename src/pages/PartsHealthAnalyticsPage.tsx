@@ -174,11 +174,15 @@ const PartsHealthAnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Layout
-      title="Parts Health & Analytics"
-      subtitle="Monitor and analyze the health of all vehicle parts across your fleet"
-      actions={
-        <div className="flex gap-3">
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Settings className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Parts Health & Analytics</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Monitor and analyze the health of all vehicle parts across your fleet</p>
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -195,8 +199,8 @@ const PartsHealthAnalyticsPage: React.FC = () => {
             Back to Maintenance
           </Button>
         </div>
-      }
-    >
+      </div>
+
       <div className="space-y-6">
         {/* Fleet Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

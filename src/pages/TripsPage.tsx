@@ -9,7 +9,7 @@ import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
-import { PlusCircle, FileText, BarChart2 } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TripsPage: React.FC = () => {
@@ -120,12 +120,16 @@ const TripsPage: React.FC = () => {
   };
   
   return (
-    <Layout
-      title="Trip Management"
-      subtitle="Log and track all vehicle trips"
-      actions={
-        !isAddingTrip ? (
-          <div className="flex flex-wrap gap-3">
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Route className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
+        {!isAddingTrip ? (
+          <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => navigate('/trip-pnl-reports')}
@@ -147,15 +151,17 @@ const TripsPage: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <Button
-            variant="outline"
-            onClick={() => setIsAddingTrip(false)}
-          >
-            Cancel
-          </Button>
-        )
-      }
-    >
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddingTrip(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
+      </div>
+
       {isAddingTrip ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">

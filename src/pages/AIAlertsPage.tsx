@@ -305,10 +305,16 @@ const AIAlertsPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      title="AI AVS Alerts"
-      subtitle="Review and manage AI-generated alerts"
-    >
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">AI AVS Alerts</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Review and manage AI-generated alerts</p>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>

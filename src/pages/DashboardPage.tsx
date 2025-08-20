@@ -11,7 +11,7 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb } from 'lucide-react';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 
 const DashboardPage: React.FC = () => {
@@ -153,24 +153,31 @@ const DashboardPage: React.FC = () => {
   const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.refueling_done && trip.fuel_quantity);
   
   return (
-    <Layout 
-      title="Dashboard" 
-      subtitle={`Last updated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`}
-    >
+    <Layout>
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       ) : (
       <div className="space-y-4">
+        {/* Page Header */}
+        <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            <span>Last updated: {format(new Date(), 'MMMM dd, yyyy HH:mm')}</span>
+            {hasEnoughData && stats.earliestTripDate && stats.latestTripDate && (
+              <span className="block sm:inline sm:ml-4 mt-1 sm:mt-0">
+                Tracking from: {format(stats.earliestTripDate, 'dd MMM yyyy')} to {format(stats.latestTripDate, 'dd MMM yyyy')} 
+                across {vehicles.filter(v => v.status !== 'archived').length} {vehicles.filter(v => v.status !== 'archived').length === 1 ? 'vehicle' : 'vehicles'}
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Date Range Summary */}
-        {hasEnoughData && (
-          <DashboardSummary 
-            earliestTripDate={stats.earliestTripDate}
-            latestTripDate={stats.latestTripDate}
-            vehicleCount={vehicles.filter(v => v.status !== 'archived').length}
-          />
-        )}
 
         {/* Key Metrics Section */}
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">

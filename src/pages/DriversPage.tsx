@@ -10,7 +10,7 @@ import {
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import {
-  User,
+  User, Users,
   Truck,
   BarChart,
   PlusCircle,
@@ -363,13 +363,16 @@ const DriversPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      title="Drivers"
-      subtitle="Manage your fleet drivers"
-      actions={
-        !isAddingDriver &&
-        !editingDriver && (
-          <div className="flex flex-wrap gap-3">
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Drivers</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
+        {!isAddingDriver && !editingDriver && (
+          <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => navigate('/drivers/insights')}
@@ -384,9 +387,9 @@ const DriversPage: React.FC = () => {
               Add Driver
             </Button>
           </div>
-        )
-      }
-    >
+        )}
+      </div>
+
       {isAddingDriver || editingDriver ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">

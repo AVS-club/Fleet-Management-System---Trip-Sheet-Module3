@@ -21,7 +21,7 @@ import {
 import { supabase } from "../utils/supabaseClient";
 import { format, parseISO, isValid } from "date-fns";
 import {
-  Truck,
+  Truck, Users,
   Calendar,
   PenTool as PenToolIcon,
   PlusCircle,
@@ -342,19 +342,25 @@ const VehiclesPage: React.FC = () => {
   );
 
   return (
-    <Layout
-      title="Vehicles"
-      subtitle="Manage your fleet vehicles"
-      actions={
-        !isAddingVehicle && (
-          <div className="flex flex-wrap gap-3">
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicles</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
+        {!isAddingVehicle && (
+          <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
               onClick={() => setShowDocumentPanel(true)}
               icon={<FileText className="h-4 w-4" />}
               size="sm"
               title="Vehicle Document Summary"
-            />
+            >
+              Document Summary
+            </Button>
 
             <Button
               variant="outline"
@@ -364,7 +370,9 @@ const VehiclesPage: React.FC = () => {
               title={
                 showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"
               }
-            />
+            >
+              {showArchived ? "Show Active" : "Show Archived"}
+            </Button>
 
             <Button
               onClick={() => setIsAddingVehicle(true)}
@@ -373,9 +381,9 @@ const VehiclesPage: React.FC = () => {
               Add New Vehicle
             </Button>
           </div>
-        )
-      }
-    >
+        )}
+      </div>
+
       {isAddingVehicle ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">

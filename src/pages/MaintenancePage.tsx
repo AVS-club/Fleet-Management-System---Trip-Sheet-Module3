@@ -5,7 +5,7 @@ import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
-import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3 } from 'lucide-react';
+import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3, Wrench } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
@@ -102,11 +102,15 @@ const MaintenancePage = () => {
   const loading = tasksLoading || vehiclesLoading;
 
   return (
-    <Layout
-      title="Maintenance Dashboard"
-      subtitle="Track and analyze vehicle maintenance performance"
-      actions={
-        <div>
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center group">
+          <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Maintenance Dashboard</h1>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Track and analyze vehicle maintenance performance</p>
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
@@ -119,13 +123,12 @@ const MaintenancePage = () => {
             icon={<BarChart3 className="h-4 w-4" />}
             variant="outline"
             size="sm"
-            className="ml-3"
           >
             Parts Health & Analytics
           </Button>
         </div>
-      }
-    >
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
