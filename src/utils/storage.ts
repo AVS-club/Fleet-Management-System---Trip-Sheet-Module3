@@ -1080,10 +1080,14 @@ export const createDriver = async (
   // Get current user for created_by field
   const { data: authData } = await supabase.auth.getUser();
   const userId = authData?.user?.id ?? null;
+   if (!userId) {
+    console.error("Error fetching user data");
+    return null;
+  }
   const { data, error } = await supabase
     .from("drivers")
     .insert({
-      ...convertKeysToSnakeCase(withOwner(driverData, userId)),
+      ...convertKeysToSnakeCase(driverData),
       license_number: dl_number,
       license_doc_url: licencePublicUrls,
       aadhar_doc_url: idProofPublicUrls,
