@@ -1113,7 +1113,6 @@ export const createDriver = async (
           !isNaN(new Date(driverData.license_expiry_date).getTime()) &&
           new Date(driverData.license_expiry_date)) ||
         null,
-      added_by:userId,
     })
     .select()
     .single();
