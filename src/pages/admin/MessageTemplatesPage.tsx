@@ -10,7 +10,7 @@ const MessageTemplatesPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <MessageSquare className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Message Templates</h1>
@@ -28,7 +28,7 @@ const MessageTemplatesPage: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
           <div className="flex items-center mb-4">
             <MessageSquare className="h-5 w-5 text-primary-600 mr-2" /> 
             <h2 className="text-lg font-medium text-gray-900">Notification Templates</h2>

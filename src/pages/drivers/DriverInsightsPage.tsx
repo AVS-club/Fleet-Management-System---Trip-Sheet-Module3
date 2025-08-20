@@ -423,7 +423,7 @@ const DriverInsightsPage: React.FC = () => {
   return (
     <>
       <LoadingScreen isLoading={loading} />
-      <Layout>
+      <Layout> {/* Main Layout component */}
         {/* Page Header */}
         <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
           <div className="flex items-center group">
@@ -454,7 +454,7 @@ const DriverInsightsPage: React.FC = () => {
 
         <div className={cn('space-y-6', loading && 'opacity-50 pointer-events-none')}>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4"> {/* Summary cards container */}
             <StatCard
               title="Total Drivers"
               value={summaryMetrics.totalDrivers}
@@ -507,7 +507,7 @@ const DriverInsightsPage: React.FC = () => {
             />
           </div>
 
-          {/* Filters */}
+          {/* Filters section */}
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <div className="flex flex-wrap gap-4 justify-between">
               <div className="flex items-center border-l-2 border-blue-500 pl-2">
@@ -565,7 +565,7 @@ const DriverInsightsPage: React.FC = () => {
             )}
           </div>
 
-          {/* Driver Performance Table */}
+          {/* Driver Performance Table section */}
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="px-4 py-5 border-b border-gray-200 sm:px-6 flex items-center justify-between">
               <div>
@@ -735,7 +735,7 @@ const DriverInsightsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Charts */}
+          {/* Charts section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="text-lg font-medium text-gray-900 mb-4 border-l-2 border-blue-500 pl-2">

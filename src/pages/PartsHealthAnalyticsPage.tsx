@@ -176,7 +176,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Settings className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Parts Health & Analytics</h1>
@@ -202,7 +202,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {/* Fleet Summary Cards */}
+        {/* Fleet Summary Cards section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Parts Overdue"
@@ -232,7 +232,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
           <div className="border-b border-gray-200">
             <div className="flex space-x-8 px-6 border-l-2 border-blue-500 pl-2">
               <button
@@ -270,7 +270,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
             {activeTab === 'health' ? (
               <div className="space-y-6">
                 {/* Filters */}
-                <div className="flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex flex-wrap gap-4 items-center justify-between"> {/* Filters container */}
                   <div className="flex flex-wrap gap-4">
                     <div className="w-48">
                       <Select
@@ -325,7 +325,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                         </h3>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {categoryParts.map(part => (
+                          {categoryParts.map(part => ( // Part health cards
                             <PartHealthCard
                               key={part.partId}
                               part={part}

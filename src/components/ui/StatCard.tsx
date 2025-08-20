@@ -32,7 +32,7 @@ const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={cn(
+      className={cn( // Main card container
         "card p-3 sm:p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg transition-all",
         warning && "border-l-4 border-warning-500 dark:border-warning-600",
         className,

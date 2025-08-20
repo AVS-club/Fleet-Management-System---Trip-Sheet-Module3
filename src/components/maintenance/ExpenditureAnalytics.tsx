@@ -63,7 +63,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Monthly Expenditure Chart */}
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4"> {/* Header for monthly expenditure chart */}
               <h3 className="text-base font-medium text-gray-900">Expenditure Over Time</h3>
               {previousPeriodComparison && (
                 <div className={`text-xs font-medium px-2 py-1 rounded-full 
@@ -110,7 +110,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           </div>
 
           {/* Expenditure By Vehicle Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vehicle</h3>
               <button 
@@ -159,7 +159,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           </div>
 
           {/* Expenditure by Vendor Chart */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-medium text-gray-900">Expenditure by Vendor</h3>
               <button 
@@ -208,7 +208,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
           </div>
           
           {/* Task Type Distribution Chart */}
-          {taskTypeDistribution && taskTypeDistribution.length > 0 && (
+          {taskTypeDistribution && taskTypeDistribution.length > 0 && ( // Task type distribution chart
             <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-medium text-gray-900">Task Type Distribution</h3>

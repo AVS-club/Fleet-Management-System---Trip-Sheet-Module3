@@ -546,7 +546,7 @@ const AdminTripsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <FileText className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
@@ -555,7 +555,7 @@ const AdminTripsPage: React.FC = () => {
       </div>
 
       {/* Filters */}
-      {!loading && (
+      {!loading && ( // Filters section
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-4 border-l-2 border-blue-500 pl-2">
             <h3 className="text-lg font-medium">Trip Filters</h3>

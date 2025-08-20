@@ -56,7 +56,7 @@ const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
       <CollapsibleSection 
         title="Task Type Distribution"
         iconColor="text-purple-600"
-      >
+      > {/* Task distribution chart container */}
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="h-64 flex items-center justify-center">
             <p className="text-gray-500">No task type data available for the selected period</p>

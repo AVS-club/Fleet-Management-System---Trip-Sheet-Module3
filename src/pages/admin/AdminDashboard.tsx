@@ -90,7 +90,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <ShieldCheck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
@@ -102,7 +102,7 @@ const AdminDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <Link
+              <Link // Trip Management Card
                 to="/admin/trips"
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
@@ -120,7 +120,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/trip-locations"
+                to="/admin/trip-locations" // Trip Locations Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -137,7 +137,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/vehicle-management"
+                to="/admin/vehicle-management" // Vehicle Management Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -154,7 +154,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/driver-management"
+                to="/admin/driver-management" // Driver Management Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -171,7 +171,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/maintenance-tasks"
+                to="/admin/maintenance-tasks" // Maintenance Tasks Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -188,7 +188,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/alert-settings"
+                to="/admin/alert-settings" // Alert Settings Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -205,7 +205,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
               <Link
-                to="/admin/reminders"
+                to="/admin/reminders" // Reminders Card
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
@@ -222,7 +222,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
 
-              <Link
+              <Link // Driver Ranking Card
                 to="/admin/driver-ranking-settings"
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
@@ -240,7 +240,7 @@ const AdminDashboard: React.FC = () => {
               </Link>
 
 
-              <Link
+              <Link // Activity Logs Card
                 to="/admin/activity-logs"
                 className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
               >
@@ -257,7 +257,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
 
-              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70"> {/* Database Backup Card */}
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
                     <Database className="h-5 w-5 text-gray-400" />
@@ -275,7 +275,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
-        {activeTab !== 'overview' && (
+        {activeTab !== 'overview' && ( // Tab content for other sections
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             <div className="border-b border-gray-200">
               <div className="flex flex-wrap gap-2 p-3 sm:p-4">
@@ -370,7 +370,7 @@ const AdminDashboard: React.FC = () => {
                       <Button>Manage Tasks</Button>
                     </Link>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Maintenance settings cards */}
                     <div className="bg-white rounded-lg border p-4">
                       <h3 className="font-medium text-gray-900">Service Types</h3>
                       <p className="text-sm text-gray-500 mt-1">Configure maintenance service types</p>
@@ -393,7 +393,7 @@ const AdminDashboard: React.FC = () => {
                     <Link to="/admin/alert-settings">
                       <Button>Configure Alerts</Button>
                     </Link>
-                  </div>
+                  </div> {/* Alert settings cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-lg border p-4">
                       <h3 className="font-medium text-gray-900">Notification Rules</h3>

@@ -190,7 +190,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
       </div>
       
       {chartData.length === 0 && (
-        <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+        <div className="text-center py-6 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
           No mileage data available for the selected period
         </div>
       )}

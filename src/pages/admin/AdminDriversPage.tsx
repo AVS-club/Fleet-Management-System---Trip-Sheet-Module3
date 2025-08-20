@@ -300,7 +300,7 @@ const AdminDriversPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Driver Management</h1>
@@ -319,7 +319,7 @@ const AdminDriversPage: React.FC = () => {
 
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> {/* Stats cards container */}
           <StatCard
             title="Total Drivers"
             value={totalDrivers}
@@ -346,7 +346,7 @@ const AdminDriversPage: React.FC = () => {
           />
         </div>
         
-        {/* Filters and Actions */}
+        {/* Filters and Actions section */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
             <h3 className="text-lg font-medium border-l-2 border-blue-500 pl-2">Driver Filters</h3>
@@ -477,7 +477,7 @@ const AdminDriversPage: React.FC = () => {
             )}
           </div>
         </div>
-        
+        {/* Driver Table section */}
         {/* Driver Table */}
         {loading ? (
           <div className="flex justify-center items-center h-64">

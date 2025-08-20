@@ -54,7 +54,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Tool className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Maintenance Tasks Management</h1>
@@ -72,7 +72,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {/* Add/Edit Task Form */}
+        {/* Add/Edit Task Form section */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
           {editingItem ? 'Edit Task' : 'Add New Task'}
@@ -180,7 +180,7 @@ const MaintenanceTasksAdmin: React.FC = () => {
           </div>
         </div>
 
-        {/* Task List */}
+        {/* Task List section */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900 border-l-2 border-blue-500 pl-2">Maintenance Tasks</h3>
