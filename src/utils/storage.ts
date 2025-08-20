@@ -36,7 +36,7 @@ const convertKeysToSnakeCase = (
 };
 import { calculateMileage } from "./mileageCalculator";
 import { BUCKETS } from "./storageBuckets";
-import { normalizeVehicleType } from "./vehicleNormalize";
+import { normalizeVehicleType, withOwner, getCurrentUserId } from "./supaHelpers";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
 const uploadVehicleProfile = async (vehicle: Vehicle): Promise<void> => {

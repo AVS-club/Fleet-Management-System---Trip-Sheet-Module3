@@ -1,291 +1,1051 @@
-import { supabase } from "./supabaseClient";
-import { BUCKETS } from "./storageBuckets";
-import { Driver } from "../types"; // Assuming Driver type is available
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "../components/layout/Layout";
+import { 
+  getDrivers, 
+  getTrips,
+  createDriver, 
+  updateDriver, 
+  uploadDriverFileToBucket
+} from "../utils/storage";
+import { supabase } from "../utils/supabaseClient";
+import {
+  User,
+  Truck,
+  BarChart,
+  PlusCircle,
+  MapPin,
+  Edit2,
+  Users,
+  Clock,
+  UserCheck,
+  UserX,
+  Phone,
+  Calendar,
+  FileText,
+} from "lucide-react";
+import Button from "../components/ui/Button";
+import DriverForm from "../components/drivers/DriverForm";
+import { Driver, Trip } from "../types";
+import { toast } from "react-toastify";
+import StatCard from "../components/ui/StatCard";
+import WhatsAppButton from '../components/drivers/WhatsAppButton';
+import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
+import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 
-/** Upload a driver file. Object path starts with auth.uid() to satisfy RLS. */
-export async function uploadDriverFile(
-  file: File | Blob,
-  opts: {
-    userId: string;        // auth.uid()
-    driverKey: string;     // e.g., driver id or sanitized DL number
-    filename: string;      // e.g., "dl-front.png"
-  }
-): Promise<{ path: string }> {
-  const { userId, driverKey, filename } = opts;
-  const objectName = `${userId}/drivers/${driverKey}/${filename}`;
+const DriversPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>();
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddingDriver, setIsAddingDriver] = useState(false);
+  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
+  
+  const [signedDocUrls, setSignedDocUrls] = useState<{
+    license?: string;
+    police_verification?: string;
+    medical_certificate?: string;
+    id_proof?: string;
+    other: Record<string, string>;
+  }>({ other: {} });
 
-  const { data, error } = await supabase
-    .storage // Use the DRIVERS bucket constant
-    .from(BUCKETS.DRIVERS)
-    .upload(objectName, file, { upsert: true, cacheControl: "3600" });
+  // Stats state
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [totalDrivers, setTotalDrivers] = useState(0);
+  const [activeDrivers, setActiveDrivers] = useState(0);
+  const [inactiveDrivers, setInactiveDrivers] = useState(0);
+  const [avgExperience, setAvgExperience] = useState(0);
+  const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
+    useState(0);
 
-  if (error) throw new Error(`Driver file upload failed: ${error.message}`);
-  return { path: data.path };
-}
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setStatsLoading(true);
+      try {
+        const userdetails = localStorage.getItem("user");
+        if (!userdetails) throw new Error("Cannot get user details");
+        const user = JSON.parse(userdetails);
+        if (user) setUser(user);
+        const [driversData, tripsData] = await Promise.all([
+          getDrivers(),
+          getTrips(),
+        ]);
 
-/** Signed URL for private driver files (for <img src> / download). */
-export async function getSignedDriverUrl(path: string, expiresInSec = 60 * 15) {
-  const { data, error } = await supabase
-    .storage
-    .from(BUCKETS.DRIVERS) // Use the DRIVERS bucket constant
-    .createSignedUrl(path, expiresInSec);
+        const driversArray = Array.isArray(driversData) ? driversData : [];
+        setDrivers(driversArray);
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
 
-  if (error) throw new Error(`Signed URL error: ${error.message}`);
-  return data.signedUrl;
-}
+        // Calculate statistics
+        setTotalDrivers(driversArray.length);
 
-/** Delete a file (RLS will only allow within caller's own folder). */
-export async function deleteDriverFile(path: string) { // This function is not used in the current code
-  const { error } = await supabase.storage.from("drivers").remove([path]);
-  if (error) throw new Error(`Delete failed: ${error.message}`);
-}
+        const active = driversArray.filter((d) => d.status === "active").length;
+        setActiveDrivers(active);
 
-/** Helper to upload all driver documents and return their storage paths. */
-export async function uploadAllDriverDocs(
-  driverData: Partial<Driver>,
-  driverKey: string // Use a stable key for the folder, e.g., DL number or generated ID
-): Promise<Partial<Driver>> {
-  const user = (await supabase.auth.getUser()).data.user;
-  if (!user) throw new Error("Not authenticated");
-  const userId = user.id;
+        const inactive = driversArray.filter(
+          (d) => d.status === "inactive"
+        ).length;
+        setInactiveDrivers(inactive);
 
-  const uploadedPaths: Partial<Driver> = {};
+        // Calculate average experience
+        const totalExperience = driversArray.reduce(
+          (sum, driver) => sum + (driver.experience_years || 0),
+          0
+        );
+        setAvgExperience(
+          driversArray.length > 0
+            ? Math.round((totalExperience / driversArray.length) * 10) / 10
+            : 0
+        );
 
-  const safeName = (base: string) =>
-    `${base}-${Date.now()}`.replace(/[^a-z0-9\-_.]/gi, "-");
+        // Calculate drivers with expiring license (within 30 days)
+        const today = new Date();
+        const thirtyDaysFromNow = new Date(today);
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
 
-  // Main driver photo
-  if (driverData.photo instanceof File) {
-    const { path } = await uploadDriverFile(driverData.photo, {
-      userId, driverKey, filename: `${safeName("photo")}.${driverData.photo.name.split('.').pop()}`,
-    });
-    uploadedPaths.driver_photo_url = path;
-  }
+        const expiringLicenses = driversArray.filter((driver) => {
+          if (!driver.license_expiry_date) return false;
 
-  // License document
-  if (Array.isArray(driverData.license_document) && driverData.license_document.length > 0) {
-    const file = driverData.license_document; // Assuming single file for simplicity
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("license")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.license_doc_url = path; // Store as single string path
-  }
+          const expiryDate = new Date(driver.license_expiry_date);
+          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+        }).length;
 
-  // Aadhaar document
-  if (Array.isArray(driverData.aadhaar_document) && driverData.aadhaar_document.length > 0) {
-    const file = driverData.aadhaar_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("aadhaar")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.aadhar_doc_url = path;
-  }
+        setDriversWithExpiringLicense(expiringLicenses);
 
-  // Police document
-  if (Array.isArray(driverData.police_document) && driverData.police_document.length > 0) {
-    const file = driverData.police_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("police")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.police_doc_url = path;
-  }
+        setStatsLoading(false);
 
-  // Medical document
-  if (Array.isArray(driverData.medical_document) && driverData.medical_document.length > 0) {
-    const file = driverData.medical_document;
-    const { path } = await uploadDriverFile(file, {
-      userId, driverKey, filename: `${safeName("medical")}.${file.name.split('.').pop()}`,
-    });
-    uploadedPaths.medical_doc_url = path;
-  }
-
-  // Other documents (handle as an array of objects with file_obj)
-  if (Array.isArray(driverData.other_documents)) {
-    const otherDocPaths: { name: string; file_path?: string; issue_date?: string; expiry_date?: string; cost?: number }[] = [];
-    for (const doc of driverData.other_documents) {
-      if (doc.file_obj instanceof File) {
-        const file = doc.file_obj;
-        const { path } = await uploadDriverFile(file, {
-          userId, driverKey, filename: `${safeName(doc.name || "other-doc")}.${file.name.split('.').pop()}`,
-        });
-        otherDocPaths.push({
-          name: doc.name,
-          file_path: path,
-          issue_date: doc.issue_date,
-          expiry_date: doc.expiry_date,
-          cost: doc.cost
-        });
-      } else if (doc.file_path) {
-        // Keep existing paths if no new file is uploaded
-        otherDocPaths.push(doc);
+      } catch (error) {
+        console.error("Error fetching drivers data:", error);
+        toast.error("Failed to load drivers");
+        setStatsLoading(false);
+      } finally {
+        setLoading(false);
       }
-    }
-    uploadedPaths.other_documents = otherDocPaths;
-  }
+    };
 
-  return uploadedPaths;
-}
+    fetchData();
+  }, []);
 
-/**
- * Uploads a vehicle document to Supabase Storage
- * @param file The file to upload
- * @param vehicleId The ID of the vehicle
- * @param docType The type of document (e.g., 'rc', 'insurance', 'fitness')
- * @returns The file path of the uploaded file (not the public URL)
- */
-export const uploadVehicleDocument = async (
-  file: File,
-  vehicleId: string,
-  docType: string
-): Promise<string> => {
-  if (!file) {
-    throw new Error("No file provided");
-  }
-
-  // Get file extension
-  const fileExt = file.name.split(".").pop();
-  // Create a unique filename
-  const fileName = `${vehicleId}/${docType}_${Date.now()}.${fileExt}`;
-  const filePath = fileName;
-
-
-  // Upload the file
-  const { error: uploadError } = await supabase.storage
-    .from("vehicle-docs")
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-
-  if (uploadError) {
-    console.error("Error uploading vehicle document:", uploadError);
-    throw uploadError;
-  }
-
-
-  // Return the file path instead of the public URL
-  return filePath;
-};
-
-/**
- * Generates a signed URL for a vehicle document
- * @param filePath The path of the file in storage
- * @param expiresIn Expiration time in seconds (default: 7 days)
- * @returns The signed URL for the file
- */
-export const getSignedDocumentUrl = async (
-  filePath: string,
-  expiresIn: number = 604800 // 7 days in seconds
-): Promise<string> => {
-  if (!filePath) {
-    throw new Error("No file path provided");
-  }
-
-  try {
-
-    const { data, error } = await supabase.storage
-      .from("vehicle-docs")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      console.error("Error generating signed URL:", error);
-      throw error;
-    }
-
-    return data.signedUrl;
-  } catch (error) {
-    console.error("Error in getSignedDocumentUrl:", error);
-    throw error;
-  }
-};
-
-/**
- * Generates a signed URL for a driver document
- * @param filePath The path of the file in storage
- * @param expiresIn Expiration time in seconds (default: 7 days)
- * @returns The signed URL for the file
- */
-export const getSignedDriverDocumentUrl = async (
-  filePath: string,
-  expiresIn: number = 604800 // 7 days in seconds
-): Promise<string> => {
-  if (!filePath) {
-    throw new Error("No file path provided");
-  }
-
-  try {
-    const { data, error } = await supabase.storage // Use the DRIVERS bucket constant
-      .from(BUCKETS.DRIVERS)
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      console.error("Error generating signed URL for driver document:", error);
-      if (error.message.includes("bucket") || error.message.includes("not found")) {
-        throw new Error("Storage bucket 'drivers' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.");
-      }
-      throw error;
-    }
-
-    return data.signedUrl;
-  } catch (error) {
-    console.error("Error in getSignedDriverDocumentUrl:", error);
-    throw error;
-  }
-};
-
-/**
- * Uploads multiple files to Supabase Storage and returns their public URLs.
- * @param bucketId - The Supabase Storage bucket name.
- * @param pathPrefix - The folder path prefix (e.g., "{userId}/drivingLicence").
- * @param files - Array of File objects to upload.
- * @returns Array of public URLs for the uploaded files.
- * @throws Error if any upload fails.
- */
-export async function uploadFilesAndGetPublicUrls(
-  bucketId: string,
-  pathPrefix: string,
-  files: File[]
-): Promise<string[]> {
-  try {
-    // Check if the bucket exists by trying to list files
+  const handleSaveDriver = async (data: Omit<Driver, "id">) => {
+    setIsSubmitting(true);
     try {
-      await supabase.storage.from(bucketId).list("", { limit: 1 });
-    } catch (error) {
-      console.error(`Storage bucket '${bucketId}' may not exist:`, error);
-      throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
-    }
+      let photoUrl = editingDriver?.driver_photo_url;
 
-    const uploadedPaths: string[] = [];
-
-    await Promise.all(
-      files.map(async (file, i) => {
-        const docName = pathPrefix.split("/").pop() || "document";
-        const ext = file.name.split(".").pop();
-        const filePath = `${pathPrefix}/${docName}_${i}.${ext}`;
-        const { data, error } = await supabase.storage
-          .from(bucketId)
-          .upload(filePath, file, { upsert: true });
-        if (error) {
-          if (error.message.includes("bucket") || error.message.includes("not found")) {
-            throw new Error(`Storage bucket '${bucketId}' does not exist or is not accessible. Please create the bucket in Supabase Storage and configure proper RLS policies.`);
-          }
-          throw error;
+      // Handle photo upload if a new photo is provided
+      if (data.photo && data.photo instanceof File) {
+        try {
+          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'photo', data.photo);
+          photoUrl = path || undefined;
+        } catch (error) {
+          console.error("Error uploading photo:", error);
+          // Don't continue if photo upload fails - this indicates storage issues
+          toast.error("Failed to upload driver photo. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
+          return;
         }
-        if (data?.path) uploadedPaths.push(data.path);
-      })
-    );
+      }
 
-    // Get public URLs for all uploaded files
-    const urls = uploadedPaths.map((path) => {
-      const { data } = supabase.storage.from(bucketId).getPublicUrl(path);
-      return data.publicUrl;
-    });
+      // Prepare driver data with photo URL
+      const driverData = {
+        ...data,
+        driver_photo_url: photoUrl,
+      };
 
-    return urls;
-  } catch (error) {
-    console.error("Error uploading files to Supabase:", error);
-    if (error instanceof Error && error.message.includes("bucket")) {
-      throw error; // Re-throw bucket-specific errors as-is
+      // Handle license document upload
+      if (Array.isArray(data.license_document) && data.license_document.length > 0) {
+        try {
+          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'license', data.license_document);
+          driverData.license_doc_url = path ? [path] : undefined;
+        } catch (error) {
+          console.error("Error uploading license document:", error);
+          toast.error(`Failed to upload license document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Handle aadhaar document upload
+      if (Array.isArray(data.aadhaar_document) && data.aadhaar_document.length > 0) {
+        try {
+          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'aadhaar', data.aadhaar_document);
+          driverData.aadhar_doc_url = path ? [path] : undefined;
+        } catch (error) {
+          console.error("Error uploading aadhaar document:", error);
+          toast.error(`Failed to upload aadhaar document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Handle police document upload
+      if (Array.isArray(data.police_document) && data.police_document.length > 0) {
+        try {
+          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'police', data.police_document);
+          driverData.police_doc_url = path ? [path] : undefined;
+        } catch (error) {
+          console.error("Error uploading police document:", error);
+          toast.error(`Failed to upload police document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Handle medical document upload
+      if (Array.isArray(data.medical_document) && data.medical_document.length > 0) {
+        try {
+          const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'medical', data.medical_document);
+          driverData.medical_doc_url = path ? [path] : undefined;
+        } catch (error) {
+          console.error("Error uploading medical document:", error);
+          toast.error(`Failed to upload medical document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsSubmitting(false);
+          return;
+        }
+      };
+
+      // Remove the File object as it can't be stored in the database
+      delete (driverData as any).photo;
+
+      // Process other documents
+      if (Array.isArray(driverData.other_documents)) {
+        const processedDocs = [];
+
+        for (const doc of driverData.other_documents) {
+          const processedDoc: any = {
+            name: doc.name,
+            issue_date: doc.issue_date,
+          };
+
+          // Handle file upload for each document
+          if (doc.file_obj instanceof File) {
+            try {
+              const { path } = await uploadDriverFileToBucket(editingDriver?.id || 'temp-driver', 'other', doc.file_obj, doc.name);
+              processedDoc.file_path = path || undefined;
+            } catch (error) {
+              console.error(`Error uploading other document "${doc.name}":`, error);
+              toast.error(`Failed to upload other document "${doc.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+              setIsSubmitting(false);
+              return; // Stop submission if an other document fails
+            }
+          } else if (doc.file_path) {
+            processedDoc.file_path = doc.file_path;
+          }
+
+          processedDocs.push(processedDoc);
+        }
+
+        driverData.other_documents = processedDocs;
+      }
+
+      if (editingDriver) {
+        // Update existing driver
+        const updatedDriver = await updateDriver(editingDriver.id, driverData);
+        if (updatedDriver) {
+          // Update the drivers list
+          setDrivers((prevDrivers) =>
+            prevDrivers.map((d) =>
+              d.id === updatedDriver.id ? updatedDriver : d
+            )
+          );
+          setEditingDriver(null);
+          toast.success("Driver updated successfully");
+        } else {
+          toast.error("Failed to update driver");
+        }
+      } else {
+        // Create new driver
+        // Remove empty id field if present to let Supabase auto-generate
+        const { id, ...cleanDriverData } = driverData as any;
+        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
+        
+        const newDriver = await createDriver(finalDriverData);
+        if (newDriver) {
+          // If any temporary IDs were used for uploads, update them with the real driver ID
+          // This part is crucial if we uploaded files before getting the final driver.id
+          const filesToReupload: { file: File; kind: 'photo' | 'license' | 'aadhaar' | 'police' | 'medical' | 'other'; oldPath: string; otherDocName?: string }[] = [];
+
+          // Check main photo
+          if (driverData.driver_photo_url && driverData.driver_photo_url.includes('temp-driver')) {
+            const originalFile = data.photo as File; // Assuming original file is still available in data.photo
+            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'photo', oldPath: driverData.driver_photo_url });
+          }
+
+          // Check license document
+          if (driverData.license_doc_url && driverData.license_doc_url && driverData.license_doc_url.includes('temp-driver')) {
+            const originalFile = data.license_document?. as File;
+            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'license', oldPath: driverData.license_doc_url });
+          }
+
+          // Check aadhaar document
+          if (driverData.aadhar_doc_url && driverData.aadhar_doc_url && driverData.aadhar_doc_url.includes('temp-driver')) {
+            const originalFile = data.aadhaar_document?. as File;
+            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'aadhaar', oldPath: driverData.aadhar_doc_url });
+          }
+
+          // Check police document
+          if (driverData.police_doc_url && driverData.police_doc_url && driverData.police_doc_url.includes('temp-driver')) {
+            const originalFile = data.police_document?. as File;
+            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'police', oldPath: driverData.police_doc_url });
+          }
+
+          // Check medical document
+          if (driverData.medical_doc_url && driverData.medical_doc_url && driverData.medical_doc_url.includes('temp-driver')) {
+            const originalFile = data.medical_document?. as File;
+            if (originalFile) filesToReupload.push({ file: originalFile, kind: 'medical', oldPath: driverData.medical_doc_url });
+          }
+
+          // Check other documents
+          const updatedOtherDocs = [];
+          if (Array.isArray(driverData.other_documents)) {
+            for (const doc of driverData.other_documents) {
+              if (doc.file_path && doc.file_path.includes('temp-driver')) {
+                const originalFile = data.other_documents?.find(d => d.name === doc.name)?.file_obj as File;
+                if (originalFile) filesToReupload.push({ file: originalFile, kind: 'other', oldPath: doc.file_path, otherDocName: doc.name });
+              }
+              updatedOtherDocs.push(doc); // Keep existing path for now, will update after reupload
+            }
+          }
+
+          if (filesToReupload.length > 0) {
+            const reuploadPromises = filesToReupload.map(async ({ file, kind, oldPath, otherDocName }) => {
+              try {
+                const { path: newPath } = await uploadDriverFileToBucket(newDriver.id, kind, file, otherDocName);
+                // Optionally delete old temp file
+                // await supabase.storage.from(BUCKETS.DRIVERS).remove([oldPath]);
+                return { kind, newPath, oldPath };
+              } catch (reuploadError) {
+                console.error(`Error re-uploading ${kind} for new driver ${newDriver.id}:`, reuploadError);
+                toast.error(`Failed to finalize ${kind} document for new driver. Please check storage settings.`);
+                return null;
+              }
+            });
+
+            const reuploadResults = (await Promise.all(reuploadPromises)).filter(Boolean);
+
+            // Update newDriver object with finalized paths
+            reuploadResults.forEach(result => {
+              if (result) {
+                if (result.kind === 'photo') newDriver.driver_photo_url = result.newPath || undefined;
+                else if (result.kind === 'license') newDriver.license_doc_url = result.newPath ? [result.newPath] : undefined;
+                else if (result.kind === 'aadhaar') newDriver.aadhar_doc_url = result.newPath ? [result.newPath] : undefined;
+                else if (result.kind === 'police') newDriver.police_doc_url = result.newPath ? [result.newPath] : undefined;
+                else if (result.kind === 'medical') newDriver.medical_doc_url = result.newPath ? [result.newPath] : undefined;
+                else if (result.kind === 'other') {
+                  const docIndex = updatedOtherDocs.findIndex(doc => doc.file_path === result.oldPath);
+                  if (docIndex !== -1) {
+                    updatedOtherDocs[docIndex].file_path = result.newPath || undefined;
+                  }
+                }
+              }
+            });
+            newDriver.other_documents = updatedOtherDocs;
+
+            // Persist the updated driver object with final paths
+            await updateDriver(newDriver.id, newDriver);
+          }
+
+          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
+          setTotalDrivers((prev) => prev + 1);
+          if (newDriver.status === "active") {
+            setActiveDrivers((prev) => prev + 1);
+          } else if (newDriver.status === "inactive") {
+            setInactiveDrivers((prev) => prev + 1);
+          }
+
+          setIsAddingDriver(false);
+          toast.success("Driver added successfully");
+        } else {
+          toast.error("Failed to add driver");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving driver:", error);
+      if (error instanceof Error && error.message.includes("Upload failed")) {
+        toast.error(`File upload failed: ${error.message}`);
+      } else {
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    throw new Error("Failed to upload one or more files. Please try again or check your network/storage settings.");
-  }
-}
+  };
+
+  const handleEditDriver = (driver: Driver) => {
+    setEditingDriver(driver);
+    setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
+  };
+  
+  // Function to handle opening the WhatsApp share modal
+  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setSelectedDriverForShare(driver);
+    
+    // Generate signed URLs for documents if available
+    const urls: {
+      license?: string;
+      police_verification?: string;
+      medical_certificate?: string;
+      id_proof?: string;
+      other: Record<string, string>;
+    } = {
+      other: {}
+    };
+    
+    try {
+      // Generate signed URL for license document
+      if (driver.license_doc_url && driver.license_doc_url.length > 0) {
+        urls.license = await getSignedDriverDocumentUrl(driver.license_doc_url);
+      }
+      
+      // Generate signed URLs for other documents
+      if (driver.other_documents && Array.isArray(driver.other_documents)) {
+        for (let i = 0; i < driver.other_documents.length; i++) {
+          const doc = driver.other_documents[i];
+          if (doc.file_path) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+          }
+        }
+      }
+      
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+    }
+    
+    setShowShareModal(true);
+  };
+
+  const handleCancelForm = () => {
+    setIsAddingDriver(false);
+    setEditingDriver(null);
+  };
+
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (error) {
+      return "-";
+    }
+  };
+
+  // Check if license is expired or expiring soon
+  const getLicenseStatus = (expiryDate?: string) => {
+    if (!expiryDate) return { status: "unknown", label: "Unknown" };
+
+    try {
+      const expiry = new Date(expiryDate);
+      const now = new Date();
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+      if (expiry < now) {
+        return { status: "expired", label: "Expired" };
+      } else if (expiry < thirtyDaysFromNow) {
+        return { status: "expiring", label: "Expiring Soon" };
+      } else {
+        return { status: "valid", label: "Valid" };
+      }
+    } catch (error) {
+      return { status: "unknown", label: "Unknown" };
+    }
+  };
+
+  return (
+    <Layout
+      title="Drivers"
+      subtitle="Manage your fleet drivers"
+      actions={
+        !isAddingDriver &&
+        !editingDriver && (
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/drivers/insights')}
+              icon={<BarChart className="h-4 w-4" />}
+            >
+              Driver Insights
+            </Button>
+            <Button
+              onClick={() => setIsAddingDriver(true)}
+              icon={<PlusCircle className="h-4 w-4" />}
+            >
+              Add Driver
+            </Button>
+          </div>
+        )
+      }
+    >
+      {isAddingDriver || editingDriver ? (
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <User className="h-5 w-5 mr-2 text-primary-500" />
+              {editingDriver ? "Edit Driver" : "New Driver"}
+            </h2>
+
+            <Button variant="outline" onClick={handleCancelForm}>
+              Cancel
+            </Button>
+          </div>
+
+          <DriverForm
+            initialData={editingDriver || {}}
+            onSubmit={handleSaveDriver}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Driver Stats Section */}
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
+                >
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <StatCard
+                title="Total Drivers"
+                value={totalDrivers}
+                icon={<Users className="h-5 w-5 text-primary-600" />}
+              />
+
+              <StatCard
+                title="Active Drivers"
+                value={activeDrivers}
+                icon={<UserCheck className="h-5 w-5 text-success-600" />}
+              />
+
+              <StatCard
+                title="Inactive Drivers"
+                value={inactiveDrivers}
+                icon={<UserX className="h-5 w-5 text-gray-600" />}
+              />
+
+              <StatCard
+                title="Expiring Licenses (30d)"
+                value={expiringLicenses}
+                icon={<Clock className="h-5 w-5 text-primary-600" />}
+                warning={expiringLicenses > 0}
+              />
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <p className="ml-3 text-gray-600">Loading drivers...</p>
+            </div>
+          ) : drivers.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-500">
+                No drivers found. Add your first driver to get started.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {drivers.map((driver: Driver) => {
+                const driverTrips = Array.isArray(trips)
+                  ? trips.filter((trip) => trip.driver_id === driver.id)
+                  : [];
+                const totalDistance = driverTrips.reduce(
+                  (sum, trip) => sum + (trip.end_km - trip.start_km),
+                  0
+                );
+                const licenseStatus = getLicenseStatus(
+                  driver.license_expiry_date
+                );
+
+                return (
+                  <div
+                    key={driver.id}
+                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
+                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
+                    }`}
+                    onClick={() => navigate(`/drivers/${driver.id}`)}
+                  >
+                    {/* Edit Button */}
+                    <button
+                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditDriver(driver);
+                      }}
+                      title="Edit Driver"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+
+              processedDoc.file_path = filePath;
+            } catch (error) {
+              console.error(`Error uploading document "${doc.name}":`, error);
+            }
+          } else if (doc.file_path) {
+            processedDoc.file_path = doc.file_path;
+          }
+
+          processedDocs.push(processedDoc);
+        }
+
+        driverData.other_documents = processedDocs;
+      }
+
+      if (editingDriver) {
+        // Update existing driver
+        const updatedDriver = await updateDriver(editingDriver.id, driverData);
+        if (updatedDriver) {
+          // Update the drivers list
+          setDrivers((prevDrivers) =>
+            prevDrivers.map((d) =>
+              d.id === updatedDriver.id ? updatedDriver : d
+            )
+          );
+          setEditingDriver(null);
+          toast.success("Driver updated successfully");
+        } else {
+          toast.error("Failed to update driver");
+        }
+      } else {
+        // Create new driver
+        // Remove empty id field if present to let Supabase auto-generate
+        const { id, ...cleanDriverData } = driverData as any;
+        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
+        
+        const newDriver = await createDriver(finalDriverData);
+        if (newDriver) {
+          // Update other documents with the correct driver ID
+          if (
+            Array.isArray(newDriver.other_documents) &&
+            newDriver.other_documents.length > 0
+          ) {
+            const updatedDocs = [];
+
+            for (const doc of newDriver.other_documents) {
+              const updatedDoc = { ...doc };
+
+              if (doc.file_path && doc.file_path.includes("temp-")) {
+                try {
+                  // Find the original file object
+                  const originalDoc = data.other_documents?.find(
+                    (d) => d.name === doc.name
+                  );
+                  if (originalDoc && originalDoc.file_obj) {
+                    // Re-upload with the correct ID
+                    const finalFilePath = await uploadDriverPhoto(
+                      originalDoc.file_obj as File,
+                      `${newDriver.id}-${doc.name
+                        .replace(/\s+/g, "-")
+                        .toLowerCase()}`
+                    );
+                    updatedDoc.file_path = finalFilePath;
+                  }
+                } catch (error) {
+                  console.error(
+                    `Error updating document "${doc.name}" with final ID:`,
+                    error
+                  );
+                  toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
+                  return;
+                }
+              }
+
+              updatedDocs.push(updatedDoc);
+            }
+
+            if (updatedDocs.length > 0) {
+              try {
+                await updateDriver(newDriver.id, {
+                  other_documents: updatedDocs,
+                });
+                newDriver.other_documents = updatedDocs;
+              } catch (error) {
+                console.error("Error updating driver with finalized documents:", error);
+                toast.error("Failed to save document references. Please try again or check your network connection.");
+                return;
+              }
+            }
+          }
+
+          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
+          setTotalDrivers((prev) => prev + 1);
+          if (newDriver.status === "active") {
+            setActiveDrivers((prev) => prev + 1);
+          } else if (newDriver.status === "inactive") {
+            setInactiveDrivers((prev) => prev + 1);
+          }
+
+          setIsAddingDriver(false);
+          toast.success("Driver added successfully");
+        } else {
+          toast.error("Failed to add driver");
+        }
+      }
+    } catch (error) {
+      console.error("Error saving driver:", error);
+      if (error instanceof Error && (error.message.includes("upload") || error.message.includes("storage"))) {
+        toast.error("File upload failed. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
+      } else {
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver. Please check your network connection and try again.`);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditDriver = (driver: Driver) => {
+    setEditingDriver(driver);
+    setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
+  };
+  
+  // Function to handle opening the WhatsApp share modal
+  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    setSelectedDriverForShare(driver);
+    
+    // Generate signed URLs for documents if available
+    const urls: {
+      license?: string;
+      police_verification?: string;
+      medical_certificate?: string;
+      id_proof?: string;
+      other: Record<string, string>;
+    } = {
+      other: {}
+    };
+    
+    try {
+      // Generate signed URL for license document
+      if (driver.license_doc_url) {
+        urls.license = driver.license_doc_url;
+      }
+      
+      // Generate signed URLs for other documents
+      if (driver.other_documents && Array.isArray(driver.other_documents)) {
+        for (let i = 0; i < driver.other_documents.length; i++) {
+          const doc = driver.other_documents[i];
+          if (doc.file_path) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+          }
+        }
+      }
+      
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+    }
+    
+    setShowShareModal(true);
+  };
+
+  const handleCancelForm = () => {
+    setIsAddingDriver(false);
+    setEditingDriver(null);
+  };
+
+  // Format date for display
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString();
+    } catch (error) {
+      return "-";
+    }
+  };
+
+  // Check if license is expired or expiring soon
+  const getLicenseStatus = (expiryDate?: string) => {
+    if (!expiryDate) return { status: "unknown", label: "Unknown" };
+
+    try {
+      const expiry = new Date(expiryDate);
+      const now = new Date();
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+      if (expiry < now) {
+        return { status: "expired", label: "Expired" };
+      } else if (expiry < thirtyDaysFromNow) {
+        return { status: "expiring", label: "Expiring Soon" };
+      } else {
+        return { status: "valid", label: "Valid" };
+      }
+    } catch (error) {
+      return { status: "unknown", label: "Unknown" };
+    }
+  };
+
+  return (
+    <Layout
+      title="Drivers"
+      subtitle="Manage your fleet drivers"
+      actions={
+        !isAddingDriver &&
+        !editingDriver && (
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/drivers/insights')}
+              icon={<BarChart className="h-4 w-4" />}
+            >
+              Driver Insights
+            </Button>
+            <Button
+              onClick={() => setIsAddingDriver(true)}
+              icon={<PlusCircle className="h-4 w-4" />}
+            >
+              Add Driver
+            </Button>
+          </div>
+        )
+      }
+    >
+      {isAddingDriver || editingDriver ? (
+        <div className="bg-white shadow-sm rounded-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <User className="h-5 w-5 mr-2 text-primary-500" />
+              {editingDriver ? "Edit Driver" : "New Driver"}
+            </h2>
+
+            <Button variant="outline" onClick={handleCancelForm}>
+              Cancel
+            </Button>
+          </div>
+
+          <DriverForm
+            initialData={editingDriver || {}}
+            onSubmit={handleSaveDriver}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      ) : (
+        <>
+          {/* Driver Stats Section */}
+          {statsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
+                >
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <StatCard
+                title="Total Drivers"
+                value={totalDrivers}
+                icon={<Users className="h-5 w-5 text-primary-600" />}
+              />
+
+              <StatCard
+                title="Active Drivers"
+                value={activeDrivers}
+                icon={<UserCheck className="h-5 w-5 text-success-600" />}
+              />
+
+              <StatCard
+                title="Inactive Drivers"
+                value={inactiveDrivers}
+                icon={<UserX className="h-5 w-5 text-gray-600" />}
+              />
+
+              <StatCard
+                title="Avg. Experience"
+                value={avgExperience}
+                subtitle="years"
+                icon={<Clock className="h-5 w-5 text-primary-600" />}
+              />
+            </div>
+          )}
+
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <p className="ml-3 text-gray-600">Loading drivers...</p>
+            </div>
+          ) : drivers.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-gray-500">
+                No drivers found. Add your first driver to get started.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {drivers.map((driver: Driver) => {
+                const driverTrips = Array.isArray(trips)
+                  ? trips.filter((trip) => trip.driver_id === driver.id)
+                  : [];
+                const totalDistance = driverTrips.reduce(
+                  (sum, trip) => sum + (trip.end_km - trip.start_km),
+                  0
+                );
+                const licenseStatus = getLicenseStatus(
+                  driver.license_expiry_date
+                );
+
+                return (
+                  <div
+                    key={driver.id}
+                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
+                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
+                    }`}
+                    onClick={() => navigate(`/drivers/${driver.id}`)}
+                  >
+                    {/* Edit Button */}
+                    <button
+                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditDriver(driver);
+                      }}
+                      title="Edit Driver"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+
+                    <div className="flex items-start gap-3">
+                      {/* Driver Photo */}
+                      <div>
+                        {driver.driver_photo_url ? (
+                          <img
+                            src={driver.driver_photo_url}
+                            alt={driver.name}
+                            className="h-16 w-16 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                            <User className="h-8 w-8 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        {/* Driver Name & License */}
+                        <h3 className="text-lg font-medium text-gray-900 pr-8">
+                          {driver.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {driver.dl_number || "No license"}
+                        </p>
+
+                        {/* License Status & Experience */}
+                        <div className="mt-2 flex gap-2 flex-wrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              licenseStatus.status === "expired"
+                                ? "bg-error-100 text-error-800"
+                                : licenseStatus.status === "expiring"
+                                ? "bg-warning-100 text-warning-800"
+                                : "bg-success-100 text-success-800"
+                            }`}
+                          >
+                            {licenseStatus.label}
+                          </span>
+                          
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {driver.experience_years} years
+                          </span>
+                        </div>
+                        
+                        {/* Contact Number */}
+                        {driver.contact_number && (
+                          <div className="mt-2 flex items-center text-sm">
+                            <Phone className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-gray-600">{driver.contact_number}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Trip Stats Section */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="text-center">
+                          <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">
+                            Trips
+                          </span>
+                          <p className="font-medium">{driverTrips.length}</p>
+                        </div>
+                        <div className="text-center">
+                          <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">
+                            Distance
+                          </span>
+                          <p className="font-medium">
+                            {totalDistance.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
+                          <span className="text-sm text-gray-500 block">
+                            Vehicle
+                          </span>
+                          <p className="font-medium">
+                            {driver.primary_vehicle_id ? "Assigned" : "-"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* View Details Link */}
+                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/drivers/${driver.id}`);
+                        }}
+                        className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                      >
+                        View Details
+                      </button>
+                      <WhatsAppButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenShareModal(driver, e);
+                        }}
+                        className="ml-2 text-green-600 hover:text-green-800"
+                        message={`Driver details for ${driver.name} (License: ${driver.license_number || driver.dl_number}) from Auto Vital Solution.`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* WhatsApp Share Modal */}
+      {showShareModal && selectedDriverForShare && (
+        <DriverWhatsAppShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          driver={selectedDriverForShare}
+          signedDocUrls={signedDocUrls}
+        />
+      )}
+    </Layout>
+  );
+};
+
+export default DriversPage;
