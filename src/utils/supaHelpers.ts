@@ -1,7 +1,6 @@
 // src/utils/supaHelpers.ts
 
 import { supabase } from './supabaseClient';
-export { normalizeVehicleType } from './vehicleNormalize';
 
 // Minimal helper to force created_by when inserting
 export function withOwner<T extends Record<string, any>>(payload: T, userId?: string | null): T {

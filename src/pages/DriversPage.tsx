@@ -6,8 +6,8 @@ import {
   getTrips, 
   createDriver, 
   updateDriver, 
+  uploadDriverPhoto 
 } from "../utils/storage";
-import { uploadDriverFile } from "../utils/supabaseStorage";
 import { supabase } from "../utils/supabaseClient";
 import {
   User,
@@ -133,84 +133,30 @@ const DriversPage: React.FC = () => {
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
-      // Prepare driver data with URLs instead of File objects
-      const driverData = { ...data };
-      const driverId = editingDriver?.id || `temp-${Date.now()}`;
+      let photoUrl = editingDriver?.driver_photo_url;
 
       // Handle photo upload if a new photo is provided
       if (data.photo && data.photo instanceof File) {
         try {
-          const { path } = await uploadDriverFile(driverId, 'photo', data.photo);
-          driverData.driver_photo_url = path;
+          // For new drivers, we'll use a temporary ID until we get the real one
+          const tempId = editingDriver?.id || `temp-${Date.now()}`;
+          photoUrl = await uploadDriverPhoto(data.photo, tempId);
         } catch (error) {
           console.error("Error uploading photo:", error);
-          toast.error(`Photo upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      } else {
-        // Keep existing photo URL if no new photo uploaded
-        driverData.driver_photo_url = editingDriver?.driver_photo_url;
-      }
-
-      // Handle license document upload
-      if (Array.isArray(data.license_document) && data.license_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFile(driverId, 'license', data.license_document);
-          driverData.license_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading license document:", error);
-          toast.error(`License document upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
+          // Don't continue if photo upload fails - this indicates storage issues
+          toast.error("Failed to upload driver photo. Please check your storage settings and try again.");
           return;
         }
       }
 
-      // Handle aadhaar document upload
-      if (Array.isArray(data.aadhaar_document) && data.aadhaar_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFile(driverId, 'aadhaar', data.aadhaar_document);
-          driverData.aadhar_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading aadhaar document:", error);
-          toast.error(`Aadhaar document upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
+      // Prepare driver data with photo URL
+      const driverData = {
+        ...data,
+        driver_photo_url: photoUrl,
+      };
 
-      // Handle police document upload
-      if (Array.isArray(data.police_document) && data.police_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFile(driverId, 'police', data.police_document);
-          driverData.police_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading police document:", error);
-          toast.error(`Police document upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Handle medical document upload
-      if (Array.isArray(data.medical_document) && data.medical_document.length > 0) {
-        try {
-          const { path } = await uploadDriverFile(driverId, 'medical', data.medical_document);
-          driverData.medical_doc_url = path ? [path] : undefined;
-        } catch (error) {
-          console.error("Error uploading medical document:", error);
-          toast.error(`Medical document upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Remove File objects as they can't be stored in the database
+      // Remove the File object as it can't be stored in the database
       delete (driverData as any).photo;
-      delete (driverData as any).license_document;
-      delete (driverData as any).aadhaar_document;
-      delete (driverData as any).police_document;
-      delete (driverData as any).medical_document;
 
       // Process other documents
       if (Array.isArray(driverData.other_documents)) {
@@ -225,13 +171,13 @@ const DriversPage: React.FC = () => {
           // Handle file upload for each document
           if (doc.file_obj instanceof File) {
             try {
-              const { path } = await uploadDriverFile(driverId, 'other', doc.file_obj, doc.name);
-              processedDoc.file_path = path;
+              const fileId =
+                editingDriver?.id ||
+                `temp-${Date.now()}-${processedDocs.length}`;
+              const filePath = await uploadDriverPhoto(doc.file_obj, fileId);
+              processedDoc.file_path = filePath;
             } catch (error) {
-              console.error(`Error uploading other document "${doc.name}":`, error);
-              toast.error(`Other document "${doc.name}" upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-              setIsSubmitting(false);
-              return;
+              console.error(`Error uploading document "${doc.name}":`, error);
             }
           } else if (doc.file_path) {
             processedDoc.file_path = doc.file_path;
@@ -266,82 +212,50 @@ const DriversPage: React.FC = () => {
         
         const newDriver = await createDriver(finalDriverData);
         if (newDriver) {
-          // If we used a temporary ID for uploads, we need to re-upload with the actual driver ID
-          if (driverId.includes('temp-')) {
-            try {
-              const reuploadPromises = [];
-              
-              // Re-upload photo with correct ID
-              if (data.photo && data.photo instanceof File) {
-                reuploadPromises.push(
-                  uploadDriverFile(newDriver.id, 'photo', data.photo).then(({ path }) => {
-                    if (path) newDriver.driver_photo_url = path;
-                  })
-                );
-              }
-              
-              // Re-upload other documents with correct ID
-              if (Array.isArray(data.license_document) && data.license_document.length > 0) {
-                reuploadPromises.push(
-                  uploadDriverFile(newDriver.id, 'license', data.license_document).then(({ path }) => {
-                    if (path) newDriver.license_doc_url = [path];
-                  })
-                );
-              }
-              
-              if (Array.isArray(data.aadhaar_document) && data.aadhaar_document.length > 0) {
-                reuploadPromises.push(
-                  uploadDriverFile(newDriver.id, 'aadhaar', data.aadhaar_document).then(({ path }) => {
-                    if (path) newDriver.aadhar_doc_url = [path];
-                  })
-                );
-              }
-              
-              if (Array.isArray(data.police_document) && data.police_document.length > 0) {
-                reuploadPromises.push(
-                  uploadDriverFile(newDriver.id, 'police', data.police_document).then(({ path }) => {
-                    if (path) newDriver.police_doc_url = [path];
-                  })
-                );
-              }
-              
-              if (Array.isArray(data.medical_document) && data.medical_document.length > 0) {
-                reuploadPromises.push(
-                  uploadDriverFile(newDriver.id, 'medical', data.medical_document).then(({ path }) => {
-                    if (path) newDriver.medical_doc_url = [path];
-                  })
-                );
-              }
-              
-              // Re-upload other documents
-              if (Array.isArray(data.other_documents)) {
-                data.other_documents.forEach((doc, index) => {
-                  if (doc.file_obj instanceof File) {
-                    reuploadPromises.push(
-                      uploadDriverFile(newDriver.id, 'other', doc.file_obj, doc.name).then(({ path }) => {
-                        if (path && newDriver.other_documents) {
-                          newDriver.other_documents[index].file_path = path;
-                        }
-                      })
+          // Update other documents with the correct driver ID
+          if (
+            Array.isArray(newDriver.other_documents) &&
+            newDriver.other_documents.length > 0
+          ) {
+            const updatedDocs = [];
+
+            for (const doc of newDriver.other_documents) {
+              const updatedDoc = { ...doc };
+
+              if (doc.file_path && doc.file_path.includes("temp-")) {
+                try {
+                  // Find the original file object
+                  const originalDoc = data.other_documents?.find(
+                    (d) => d.name === doc.name
+                  );
+                  if (originalDoc && originalDoc.file_obj) {
+                    // Re-upload with the correct ID
+                    const finalFilePath = await uploadDriverPhoto(
+                      originalDoc.file_obj as File,
+                      `${newDriver.id}-${doc.name
+                        .replace(/\s+/g, "-")
+                        .toLowerCase()}`
                     );
+                    updatedDoc.file_path = finalFilePath;
                   }
-                });
+                } catch (error) {
+                  console.error(
+                    `Error updating document "${doc.name}" with final ID:`,
+                    error
+                  );
+                  toast.error(`Failed to finalize document "${doc.name}". Please check your storage settings.`);
+                  return;
+                }
               }
-              
-              await Promise.all(reuploadPromises);
-              
-              // Update driver with final URLs
+
+              updatedDocs.push(updatedDoc);
+            }
+
+            if (updatedDocs.length > 0) {
               await updateDriver(newDriver.id, {
-                driver_photo_url: newDriver.driver_photo_url,
-                license_doc_url: newDriver.license_doc_url,
-                aadhar_doc_url: newDriver.aadhar_doc_url,
-                police_doc_url: newDriver.police_doc_url,
-                medical_doc_url: newDriver.medical_doc_url,
-                other_documents: newDriver.other_documents
+                other_documents: updatedDocs,
               });
-            } catch (error) {
-              console.error("Error re-uploading files with final driver ID:", error);
-              toast.warning("Driver created but some files may not have been uploaded correctly. Please edit the driver to re-upload if needed.");
+              newDriver.other_documents = updatedDocs;
             }
           }
 
@@ -361,7 +275,11 @@ const DriversPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error saving driver:", error);
-      toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof Error && error.message.includes("Failed to upload")) {
+        toast.error("File upload failed. Please ensure the 'drivers' storage bucket exists in Supabase and has proper permissions.");
+      } else {
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
