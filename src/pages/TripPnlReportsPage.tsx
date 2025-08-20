@@ -297,7 +297,54 @@ const TripPnlReportsPage: React.FC = () => {
       return true;
     });
     
-    return filtered;
+    });
+
+    // Recalculate financial values for each filtered trip
+    return filtered.map(trip => {
+      // Calculate total expense from individual components
+      const calculatedTotalExpense = (
+        Number(trip.total_fuel_cost || 0) +
+        Number(trip.unloading_expense || 0) +
+        Number(trip.driver_expense || 0) +
+        Number(trip.road_rto_expense || 0) +
+        Number(trip.miscellaneous_expense || 0) +
+        Number(trip.breakdown_expense || 0)
+      );
+      
+      // Calculate income (skip if no income data)
+      const income = Number(trip.income_amount) || 0;
+      
+      // Calculate net profit (only if income exists)
+      const calculatedNetProfit = income > 0 ? income - calculatedTotalExpense : -calculatedTotalExpense;
+      
+      // Calculate cost per km
+      const distance = (Number(trip.end_km) || 0) - (Number(trip.start_km) || 0);
+      const calculatedCostPerKm = distance > 0 ? calculatedTotalExpense / distance : 0;
+      
+      // Determine profit status
+      let calculatedProfitStatus: 'profit' | 'loss' | 'neutral';
+      if (income > 0) {
+        if (calculatedNetProfit > 0) {
+          calculatedProfitStatus = 'profit';
+        } else if (calculatedNetProfit < 0) {
+          calculatedProfitStatus = 'loss';
+        } else {
+          calculatedProfitStatus = 'neutral';
+        }
+      } else {
+        // If no income, default to loss since we have expenses
+        calculatedProfitStatus = calculatedTotalExpense > 0 ? 'loss' : 'neutral';
+      }
+      
+      // Return trip with recalculated financial values
+      return {
+        ...trip,
+        total_expense: calculatedTotalExpense,
+        net_profit: calculatedNetProfit,
+        cost_per_km: calculatedCostPerKm,
+        profit_status: calculatedProfitStatus
+      };
+    });
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
   // Calculate P&L summary directly from filtered trips
