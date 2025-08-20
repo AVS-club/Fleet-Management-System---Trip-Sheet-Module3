@@ -422,7 +422,7 @@ const DriversPage: React.FC = () => {
                   <div className="h-8 w-16 bg-gray-300 rounded"></div>
                 </div>
               ))}
-            </div> {/* End Stats cards container */}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <StatCard
