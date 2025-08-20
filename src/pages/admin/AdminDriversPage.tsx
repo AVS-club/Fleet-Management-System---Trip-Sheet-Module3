@@ -109,6 +109,26 @@ const AdminDriversPage: React.FC = () => {
     setExpiringLicenses(expiringCount);
   };
 
+  // Helper function to archive drivers in Supabase
+  const archiveDriversInSupabase = async (driverIds: string[]): Promise<{ success: number; failed: number }> => {
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .update({ status: 'archived' })
+        .in('id', driverIds);
+      
+      if (error) {
+        console.error('Supabase archive error:', error);
+        return { success: 0, failed: driverIds.length };
+      }
+      
+      return { success: driverIds.length, failed: 0 };
+    } catch (error) {
+      console.error('Error archiving drivers:', error);
+      return { success: 0, failed: driverIds.length };
+    }
+  };
+
   const handleImportDrivers = () => {
     // This would open a file upload dialog and process the CSV
     toast.info("Import functionality will be implemented in the future");
@@ -128,7 +148,51 @@ const AdminDriversPage: React.FC = () => {
     // Handle different bulk actions
     switch (action) {
       case 'archive':
-        toast.info(`Archive action for ${selectedDrivers.size} drivers will be implemented`);
+        // Show confirmation dialog
+        const confirmArchive = window.confirm(
+          `Are you sure you want to archive ${selectedDrivers.size} selected driver(s)? Archived drivers will be hidden from regular views but can be restored later.`
+        );
+        
+        if (!confirmArchive) {
+          return;
+        }
+        
+        setOperationLoading(true);
+        try {
+          // Convert Set to Array for archiving
+          const driverIdsToArchive = Array.from(selectedDrivers);
+          
+          // Perform bulk archiving
+          const result = await archiveDriversInSupabase(driverIdsToArchive);
+          
+          if (result.success > 0) {
+            // Update local state by changing status to archived
+            const updatedDrivers = drivers.map(driver => 
+              selectedDrivers.has(driver.id || '') 
+                ? { ...driver, status: 'archived' as const }
+                : driver
+            );
+            setDrivers(updatedDrivers);
+            
+            // Recalculate statistics
+            recalculateStats(updatedDrivers);
+            
+            // Clear selection
+            setSelectedDrivers(new Set());
+            
+            // Show success message
+            toast.success(`Successfully archived ${result.success} driver(s)`);
+          }
+          
+          if (result.failed > 0) {
+            toast.error(`Failed to archive ${result.failed} driver(s). Please try again.`);
+          }
+        } catch (error) {
+          console.error('Error in bulk archive operation:', error);
+          toast.error(`Error archiving drivers: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+          setOperationLoading(false);
+        }
         break;
       case 'delete':
         // Show confirmation dialog
