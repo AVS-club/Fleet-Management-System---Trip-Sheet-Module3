@@ -307,7 +307,7 @@ const AIAlertsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">AI AVS Alerts</h1>
@@ -324,7 +324,7 @@ const AIAlertsPage: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Filter Bar */}
+          {/* Enhanced Filter Bar */}
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
               <div className="w-full md:flex-1">
@@ -412,7 +412,7 @@ const AIAlertsPage: React.FC = () => {
           </div>
 
           {/* Alerts Display */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {groupByVehicle ? (
               // Grouped by vehicle view 
               <div>

@@ -544,7 +544,7 @@ const VehicleManagementPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicle Management</h1>
@@ -562,7 +562,7 @@ const VehicleManagementPage: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {/* Stats Cards section */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center justify-between">
@@ -611,7 +611,7 @@ const VehicleManagementPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Filters and Actions section */}
+        {/* Filters and Actions */}
         <div className="bg-white rounded-lg shadow-sm p-4">
           <div className="flex flex-wrap gap-4 justify-between border-l-2 border-blue-500 pl-2">
             <div className="flex flex-wrap flex-1 gap-4">

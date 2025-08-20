@@ -122,7 +122,7 @@ const TripsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Route className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
@@ -165,7 +165,7 @@ const TripsPage: React.FC = () => {
       {isAddingTrip ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center border-l-2 border-emerald-600 pl-3">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
               New Trip Sheet
             </h2>

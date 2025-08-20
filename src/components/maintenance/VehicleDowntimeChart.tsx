@@ -53,7 +53,7 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
         iconColor="text-red-600"
       >
         <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="h-64 flex items-center justify-center">
             <p className="text-gray-500">No downtime data available for the selected period</p>
           </div>
         </div>

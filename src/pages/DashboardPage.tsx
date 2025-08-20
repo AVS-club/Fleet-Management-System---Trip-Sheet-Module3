@@ -155,13 +155,13 @@ const DashboardPage: React.FC = () => {
   return (
     <Layout>
       {loading ? (
-        <div className="flex justify-center items-center h-64 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+        <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
       ) : (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Page Header */}
-        <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+        <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
           <div className="flex items-center group">
             <LayoutDashboard className="h-5 w-5 mr-2 text-primary-600 dark:text-primary-400 group-hover:text-primary-700 transition" />
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
@@ -180,7 +180,7 @@ const DashboardPage: React.FC = () => {
         {/* Date Range Summary */}
 
         {/* Key Metrics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-emerald-600 pl-3">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
           <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
           Key Metrics
         </h2>
@@ -191,11 +191,11 @@ const DashboardPage: React.FC = () => {
             title="Total Trips"
             value={stats.totalTrips}
             icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-            // trend={stats.tripsThisMonth > 0 ? {
-            //   value: 12,
-            //   label: "vs last month",
-            //   isPositive: true
-            // } : undefined}
+            trend={stats.tripsThisMonth > 0 ? {
+              value: 12,
+              label: "vs last month",
+              isPositive: true
+            } : undefined}
           />
 
           <StatCard
@@ -241,7 +241,7 @@ const DashboardPage: React.FC = () => {
             </>
           ) : (
             <>
-              <div className="col-span-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center">
+              <div className="col-span-2 bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center">
                 <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
@@ -259,7 +259,7 @@ const DashboardPage: React.FC = () => {
         {/* Mileage Insights */}
         {hasRefuelingData && (
           <>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-emerald-600 pl-3">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
               <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
               Performance Highlights
             </h2>
@@ -316,7 +316,7 @@ const DashboardPage: React.FC = () => {
         <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
         {/* Detailed Analytics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-emerald-600 pl-3">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
           <BarChart className="h-5 w-5 mr-2 text-blue-600" />
           Detailed Analytics
         </h2>
@@ -337,7 +337,7 @@ const DashboardPage: React.FC = () => {
         {hasEnoughData && (
           <div className="max-w-4xl">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
-              <Lightbulb className="h-5 w-5 mr-2 text-primary-600" />
+              <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
               Quick Tip
             </h2>
             
@@ -357,7 +357,7 @@ const DashboardPage: React.FC = () => {
         {/* Empty Dashboard State */}
         {!hasEnoughData && (
           <div className="mt-6">
-            <EmptyState
+            <EmptyState 
               type="generic"
               message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
               showAction={true}

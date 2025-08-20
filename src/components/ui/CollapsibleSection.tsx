@@ -43,14 +43,14 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           )}
         </div>
       </button>
-      {/* Collapsible content area */}
+
       <div
         className={cn(
           "transition-all duration-300 ease-in-out overflow-hidden",
           isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         )}
       >
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 bg-gray-50 border-t border-gray-200">
           {children}
         </div>
       </div>

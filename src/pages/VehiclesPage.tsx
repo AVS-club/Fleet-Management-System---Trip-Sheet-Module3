@@ -344,7 +344,7 @@ const VehiclesPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicles</h1>
@@ -387,7 +387,7 @@ const VehiclesPage: React.FC = () => {
       {isAddingVehicle ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center border-l-2 border-emerald-600 pl-3">
+            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <Truck className="h-5 w-5 mr-2 text-primary-500" />
               New Vehicle
             </h2>
@@ -408,7 +408,7 @@ const VehiclesPage: React.FC = () => {
           {/* Vehicle Stats Section */}
           {!showArchived && (
             <>
-              {statsLoading ? ( // Stats loading state
+              {statsLoading ? (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   {[...Array(4)].map((_, i) => (
                     <div
@@ -421,7 +421,7 @@ const VehiclesPage: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"> {/* Stats cards container */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                   <StatCard
                     title="Total Vehicles"
                     value={totalVehicles}
@@ -475,7 +475,7 @@ const VehiclesPage: React.FC = () => {
           )}
 
           {showArchived && (
-            <div className="bg-gray-50 dark:bg-gray-800/50 border-l-4 border-warning-500 p-4 mb-6 rounded-lg shadow-sm">
+            <div className="bg-gray-100 border-l-4 border-warning-500 p-4 mb-6">
               <div className="flex">
                 <AlertTriangle className="h-6 w-6 text-warning-500 mr-2" />
                 <div>
@@ -491,7 +491,7 @@ const VehiclesPage: React.FC = () => {
             </div>
           )}
 
-          {loading ? ( // Main content loading state
+          {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               <p className="ml-3 text-gray-600">Loading vehicles...</p>
@@ -499,7 +499,7 @@ const VehiclesPage: React.FC = () => {
           ) : filteredVehicles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-gray-500">
-                {showArchived // Empty state for vehicles
+                {showArchived
                   ? "No archived vehicles found."
                   : "No vehicles found. Add your first vehicle to get started."}
               </p>
@@ -507,7 +507,7 @@ const VehiclesPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredVehicles.map((vehicle) => {
-                // Count documents using actual document paths (for each vehicle card)
+                // Count documents using actual document paths
                 const { uploaded, total } = countDocuments(vehicle);
 
                 // Get the assigned driver
@@ -524,7 +524,7 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition ${
+                    className={`bg-white rounded-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}

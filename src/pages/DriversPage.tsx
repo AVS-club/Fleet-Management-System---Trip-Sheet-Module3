@@ -364,7 +364,7 @@ const DriversPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-gray-50 dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border bg-gray-50 dark:bg-gray-800/50 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Drivers</h1>
@@ -391,7 +391,7 @@ const DriversPage: React.FC = () => {
 
       {isAddingDriver || editingDriver ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6 border-l-2 border-emerald-600 pl-3">
+          <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900 flex items-center">
               <User className="h-5 w-5 mr-2 text-primary-500" />
               {editingDriver ? "Edit Driver" : "New Driver"}
@@ -412,7 +412,7 @@ const DriversPage: React.FC = () => {
         <>
           {/* Driver Stats Section */}
           {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6"> {/* Stats cards container */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
@@ -422,7 +422,7 @@ const DriversPage: React.FC = () => {
                   <div className="h-8 w-16 bg-gray-300 rounded"></div>
                 </div>
               ))}
-            </div> {/* End Stats cards container */}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <StatCard
@@ -452,7 +452,7 @@ const DriversPage: React.FC = () => {
             </div>
           )}
 
-          {loading ? ( {/* Main content loading state */}
+          {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               <p className="ml-3 text-gray-600">Loading drivers...</p>
@@ -464,7 +464,7 @@ const DriversPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"> {/* Driver cards container */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {drivers.map((driver: Driver) => {
                 const driverTrips = Array.isArray(trips)
                   ? trips.filter((trip) => trip.driver_id === driver.id)
@@ -480,7 +480,7 @@ const DriversPage: React.FC = () => {
                 return (
                   <div
                     key={driver.id}
-                    className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 hover:shadow-md transition relative cursor-pointer ${
+                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
                       driver.status === 'active' ? 'border-l-4 border-green-500' : ''
                     }`}
                     onClick={() => navigate(`/drivers/${driver.id}`)}
