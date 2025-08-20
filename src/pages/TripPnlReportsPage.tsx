@@ -297,8 +297,6 @@ const TripPnlReportsPage: React.FC = () => {
       return true;
     });
     
-    });
-
     // Recalculate financial values for each filtered trip
     return filtered.map(trip => {
       // Calculate total expense from individual components
