@@ -36,9 +36,7 @@ const convertKeysToSnakeCase = (
 };
 import { calculateMileage } from "./mileageCalculator";
 import { BUCKETS } from "./storageBuckets";
-import { withOwner, getCurrentUserId, normalizeVehicleType } from "./supaHelpers";
-
-// Remove duplicate BUCKETS import
+import { withOwner, getCurrentUserId } from "./supaHelpers";
 import { normalizeVehicleType } from "./vehicleNormalize";
 
 // Helper function to upload vehicle profile JSON to Supabase Storage
