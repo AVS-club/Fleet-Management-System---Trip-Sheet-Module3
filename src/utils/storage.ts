@@ -1384,7 +1384,7 @@ export const getDestination = async (
       .from("destinations")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching destination:", error);
