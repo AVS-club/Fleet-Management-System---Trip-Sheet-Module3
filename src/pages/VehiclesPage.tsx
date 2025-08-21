@@ -59,7 +59,19 @@ const VehiclesPage: React.FC = () => {
   const [showTopDriversModal, setShowTopDriversModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
-  // const [user, setUser] = useState<any>();
+
+  // Create a drivers lookup map for efficient driver assignment display
+  const driversById = useMemo(() => {
+    const map: Record<string, Driver> = {};
+    if (Array.isArray(drivers)) {
+      drivers.forEach(driver => {
+        if (driver.id) {
+          map[driver.id] = driver;
+        }
+      });
+    }
+    return map;
+  }, [drivers]);
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
@@ -510,9 +522,9 @@ const VehiclesPage: React.FC = () => {
                 // Count documents using actual document paths
                 const { uploaded, total } = countDocuments(vehicle);
 
-                // Get the assigned driver
-                const assignedDriver = vehicle.primary_driver_id
-                  ? drivers.find((d) => d.id === vehicle.primary_driver_id)
+                // Get the assigned driver using the driversById lookup
+                const assignedDriver = vehicle.primary_driver_id 
+                  ? driversById[vehicle.primary_driver_id] 
                   : undefined;
 
                 // Get the latest trip for this vehicle
