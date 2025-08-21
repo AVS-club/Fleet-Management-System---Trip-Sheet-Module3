@@ -592,18 +592,6 @@ const VehiclesPage: React.FC = () => {
                       {/* VehicleSummaryChips Component */}
                       <VehicleSummaryChips vehicle={vehicle} className="mt-2" />
 
-                      {/* Odometer reading with Last Trip Date */}
-                      <div className="mt-2 flex flex-wrap items-center text-sm text-gray-600">
-                        <MapPin className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                        <span>
-                          {vehicle.current_odometer?.toLocaleString() || 0} km
-                        </span>
-                        {lastTripDate && (
-                          <span className="ml-1 text-xs text-gray-500">
-                            • {lastTripDate}
-                          </span>
-                        )}
-                      </div>
                     </div>
 
                     {/* Trip Stats Section */}
