@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { handleSupabaseError } from './errors';
 
 /**
  * Type definition for vehicle activity log entries
@@ -42,13 +43,13 @@ export const logVehicleActivity = async (
       .single();
 
     if (error) {
-      console.error('Error logging vehicle activity:', error);
+      handleSupabaseError('log vehicle activity', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Exception logging vehicle activity:', error);
+    handleSupabaseError('log vehicle activity', error);
     return null;
   }
 };
@@ -67,13 +68,13 @@ const getVehicleActivityLogs = async (vehicleId: string): Promise<VehicleActivit
       .order('timestamp', { ascending: false });
 
     if (error) {
-      console.error('Error fetching vehicle activity logs:', error);
+      handleSupabaseError('fetch vehicle activity logs', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Exception fetching vehicle activity logs:', error);
+    handleSupabaseError('fetch vehicle activity logs', error);
     return [];
   }
 };
@@ -97,13 +98,13 @@ export const getAllVehicleActivityLogs = async (limit?: number): Promise<Vehicle
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching all vehicle activity logs:', error);
+      handleSupabaseError('fetch all vehicle activity logs', error);
       return [];
     }
 
     return data || [];
   } catch (error) {
-    console.error('Exception fetching all vehicle activity logs:', error);
+    handleSupabaseError('fetch all vehicle activity logs', error);
     return [];
   }
 };

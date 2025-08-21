@@ -7,6 +7,7 @@ import {
   endOfMonth,
   isWithinInterval,
 } from "date-fns";
+import { handleSupabaseError } from "./errors";
 
 /**
  * Check for mileage anomalies in a trip based on historical vehicle data
@@ -56,10 +57,7 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
       .order("trip_end_date", { ascending: false });
 
     if (error) {
-      console.error(
-        "Error fetching vehicle trips for mileage analysis:",
-        error
-      );
+      handleSupabaseError('fetch vehicle trips for mileage analysis', error);
       return null;
     }
 
@@ -140,18 +138,18 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
           .single();
 
         if (error) {
-          console.error("Error creating mileage anomaly alert:", error);
+          handleSupabaseError('create mileage anomaly alert', error);
           return null;
         }
 
         return data;
       } catch (error) {
-        console.error("Exception creating mileage anomaly alert:", error);
+        handleSupabaseError('create mileage anomaly alert', error);
         return null;
       }
     }
   } catch (error) {
-    console.error("Error in mileage analysis:", error);
+    handleSupabaseError('analyze mileage', error);
   }
 
   return null;
@@ -215,13 +213,13 @@ const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> => {
         .single();
 
       if (error) {
-        console.error("Error creating route deviation alert:", error);
+        handleSupabaseError('create route deviation alert', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error("Exception creating route deviation alert:", error);
+      handleSupabaseError('create route deviation alert', error);
       return null;
     }
   }
@@ -280,7 +278,7 @@ const checkFrequentMaintenance = async (
       .limit(1);
 
     if (error) {
-      console.error("Error checking for existing maintenance alerts:", error);
+      handleSupabaseError('check existing maintenance alerts', error);
     }
 
     // If an alert already exists for this month, don't create another one
@@ -330,13 +328,13 @@ const checkFrequentMaintenance = async (
         .single();
 
       if (error) {
-        console.error("Error creating frequent maintenance alert:", error);
+        handleSupabaseError('create frequent maintenance alert', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error("Exception creating frequent maintenance alert:", error);
+      handleSupabaseError('create frequent maintenance alert', error);
       return null;
     }
   }
@@ -361,7 +359,7 @@ export const getAIAlerts = async () => {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Error fetching AI alerts:", error);
+    handleSupabaseError('fetch AI alerts', error);
     return [];
   }
 
@@ -419,7 +417,7 @@ export const runAlertScan = async (): Promise<number> => {
       .limit(100); // Get the 100 most recent trips
 
     if (tripsError) {
-      console.error("Error fetching trips for alert scan:", tripsError);
+      handleSupabaseError('fetch trips for alert scan', tripsError);
       return 0;
     }
 
@@ -432,10 +430,7 @@ export const runAlertScan = async (): Promise<number> => {
       .limit(50); // Get the 50 most recent maintenance tasks
 
     if (tasksError) {
-      console.error(
-        "Error fetching maintenance tasks for alert scan:",
-        tasksError
-      );
+      handleSupabaseError('fetch maintenance tasks for alert scan', tasksError);
     }
 
     const trips = tripsData || [];
@@ -461,7 +456,7 @@ export const runAlertScan = async (): Promise<number> => {
 
     return alertCount;
   } catch (error) {
-    console.error("Error running alert scan:", error);
+    handleSupabaseError('run alert scan', error);
     return 0;
   }
 };
@@ -502,7 +497,7 @@ export const processAlertAction = async (
     .eq("id", alertId);
 
   if (error) {
-    console.error("Error processing alert action:", error);
+    handleSupabaseError('process alert action', error);
     throw new Error(`Failed to process alert action: ${error.message}`);
   }
 };
