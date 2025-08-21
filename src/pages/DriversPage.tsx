@@ -76,24 +76,7 @@ const DriversPage: React.FC = () => {
         ]);
 
         const driversArray = Array.isArray(driversData) ? driversData : [];
-        
-        // Generate signed URLs for driver photos
-        const driversWithSignedUrls = await Promise.all(
-          driversArray.map(async (driver) => {
-            if (driver.driver_photo_url) {
-              try {
-                const signedUrl = await getSignedDriverDocumentUrl(driver.driver_photo_url);
-                return { ...driver, driver_photo_url: signedUrl };
-              } catch (error) {
-                console.error(`Error generating signed URL for driver ${driver.name}:`, error);
-                return driver; // Return original driver if URL generation fails
-              }
-            }
-            return driver;
-          })
-        );
-        
-        setDrivers(driversWithSignedUrls);
+        setDrivers(driversArray);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
 
         // Calculate statistics
