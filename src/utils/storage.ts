@@ -447,6 +447,26 @@ export const bulkArchiveVehicles = async (vehicleIds: string[]): Promise<{ succe
   }
 };
 
+// Bulk unarchive vehicles
+export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<{ success: number; failed: number }> => {
+  try {
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ status: 'active' })
+      .in('id', vehicleIds);
+    
+    if (error) {
+      console.error('Supabase bulk unarchive error:', error);
+      return { success: 0, failed: vehicleIds.length };
+    }
+    
+    return { success: vehicleIds.length, failed: 0 };
+  } catch (error) {
+    console.error('Error bulk unarchiving vehicles:', error);
+    return { success: 0, failed: vehicleIds.length };
+  }
+};
+
 // Route analysis
 export const analyzeRoute = async (warehouseId: string, destinationIds: string[]): Promise<any> => {
   // This would implement route analysis logic
