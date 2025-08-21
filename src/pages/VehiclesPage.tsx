@@ -36,6 +36,7 @@ import {
   NotebookTabs,
   Route,
   X,
+  User,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -634,10 +635,8 @@ const VehiclesPage: React.FC = () => {
                           <span className="text-xs text-gray-500 block">
                             Trips
                           </span>
-                          <p className="font-medium">
-                            {vehicle.stats.totalTrips}
-                          </p>
                           <p className="font-mono text-sm font-medium">{vehicle.stats.totalTrips}</p>
+                        </div>
 
                         <div className="text-center">
                           <span className="text-xs text-gray-500 block">
