@@ -5,6 +5,7 @@ import {
   getVehicles,
   getVehicleStats,
   getDrivers,
+  updateVehicle,
   bulkUpdateVehicles,
   bulkArchiveVehicles,
   bulkUnarchiveVehicles,
@@ -29,6 +30,8 @@ import {
   Eye,
   Activity,
   BarChart2,
+  Edit,
+  X,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -36,8 +39,10 @@ import Select from "../../components/ui/Select";
 import { Vehicle, Driver } from "../../types";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import VehicleActivityLogTable from "../../components/admin/VehicleActivityLogTable";
+import VehicleForm from "../../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import { saveAs } from "file-saver";
+import { X } from "lucide-react";
 
 interface VehicleWithStats extends Vehicle {
   stats?: {
@@ -68,6 +73,10 @@ const VehicleManagementPage: React.FC = () => {
     new Set()
   );
   const [selectAll, setSelectAll] = useState(false);
+
+  // State for editing vehicle
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
   // State for confirmation modals
   const [deleteModal, setDeleteModal] = useState<{
@@ -570,6 +579,45 @@ const VehicleManagementPage: React.FC = () => {
     }
   };
 
+  // Handle editing a vehicle
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+  };
+
+  // Handle updating a vehicle
+  const handleUpdateVehicle = async (data: Omit<Vehicle, "id">) => {
+    if (!editingVehicle) return;
+
+    setIsEditSubmitting(true);
+    try {
+      const updatedVehicle = await updateVehicle(editingVehicle.id, data, user?.id || 'unknown');
+      
+      if (updatedVehicle) {
+        // Update the vehicle in the local state
+        setVehicles(prevVehicles =>
+          prevVehicles.map(v => 
+            v.id === editingVehicle.id 
+              ? { ...updatedVehicle, stats: v.stats } // Preserve stats
+              : v
+          )
+        );
+        
+        setEditingVehicle(null);
+        toast.success(`Vehicle ${updatedVehicle.registration_number} updated successfully`);
+        
+        // Refresh activity logs
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error('Failed to update vehicle');
+      }
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+      toast.error(`Error updating vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
   // Filter vehicles based on current filters
   const filteredVehicles = vehicles.filter((vehicle) => {
     // Filter by search term
@@ -612,6 +660,11 @@ const VehicleManagementPage: React.FC = () => {
     if (!driverId) return "None";
     const driver = drivers.find((d) => d.id === driverId);
     return driver ? driver.name : "Unknown";
+  };
+
+  // Check if a driver is actually assigned to this vehicle
+  const isDriverAssigned = (vehicle: Vehicle) => {
+    return vehicle.primary_driver_id && vehicle.primary_driver_id.trim() !== '';
   };
 
   // Calculate stats for archived vs. active vehicles
@@ -972,7 +1025,7 @@ const VehicleManagementPage: React.FC = () => {
                         }
                         disabled={vehicle.status === "archived"}
                       >
-                        {vehicle.primary_driver_id ? (
+                        {isDriverAssigned(vehicle) ? (
                           <>
                             <span>
                               {getDriverName(vehicle.primary_driver_id)}
@@ -983,7 +1036,7 @@ const VehicleManagementPage: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <span>Assign</span>
+                            <span className="text-gray-400">Unassigned</span>
                             {vehicle.status !== "archived" && (
                               <UserPlus className="h-4 w-4 ml-1 text-gray-400 hover:text-primary-500" />
                             )}
@@ -1008,6 +1061,14 @@ const VehicleManagementPage: React.FC = () => {
                           aria-label={`View vehicle ${vehicle.registration_number}`}
                         >
                           <Eye className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleEditVehicle(vehicle)}
+                          className="text-blue-600 hover:text-blue-900"
+                          aria-label={`Edit vehicle ${vehicle.registration_number}`}
+                        >
+                          <Edit className="h-4 w-4" />
                         </button>
 
                         {vehicle.status === "archived" ? (
@@ -1059,6 +1120,35 @@ const VehicleManagementPage: React.FC = () => {
 
         {/* Vehicle Activity Log */}
         <VehicleActivityLogTable limit={10} refreshTrigger={refreshTrigger} />
+
+        {/* Vehicle Edit Modal */}
+        {editingVehicle && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Edit Vehicle: {editingVehicle.registration_number}
+                </h2>
+                <button
+                  onClick={() => setEditingVehicle(null)}
+                  className="text-gray-400 hover:text-gray-500"
+                  disabled={isEditSubmitting}
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <VehicleForm
+                  initialData={editingVehicle}
+                  onSubmit={handleUpdateVehicle}
+                  onCancel={() => setEditingVehicle(null)}
+                  isSubmitting={isEditSubmitting}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Confirmation Modals */} 
         <ConfirmationModal
