@@ -12,6 +12,7 @@ import {
   updateVehicle,
   exportVehicleData,
 } from "../../utils/storage";
+import { hardDeleteVehicle } from "../../utils/storage";
 import {
   Truck,
   ChevronLeft,
@@ -73,6 +74,19 @@ const VehicleManagementPage: React.FC = () => {
     isOpen: boolean;
     vehicleId?: string;
     vehicleReg?: string;
+  }>({
+    isOpen: false,
+  });
+  const [permanentDeleteModal, setPermanentDeleteModal] = useState<{
+    isOpen: boolean;
+    vehicleId?: string;
+    vehicleReg?: string;
+    relatedData?: {
+      tripsCount: number;
+      maintenanceCount: number;
+      driversAssigned: number;
+      activityLogs: number;
+    };
   }>({
     isOpen: false,
   });
@@ -280,7 +294,7 @@ const VehicleManagementPage: React.FC = () => {
 
     setOperationLoading(true);
     try {
-      const success = await deleteVehicle(deleteModal.vehicleId);
+      const success = await archiveVehicle(deleteModal.vehicleId, user?.id);
 
       if (success) {
         toast.success(
@@ -311,6 +325,72 @@ const VehicleManagementPage: React.FC = () => {
       );
     } finally {
       setOperationLoading(false);
+    }
+  };
+
+  // Handle permanent deletion of a vehicle
+  const handlePermanentDeleteVehicle = async () => {
+    if (!permanentDeleteModal.vehicleId) return;
+
+    setOperationLoading(true);
+    try {
+      const result = await hardDeleteVehicle(permanentDeleteModal.vehicleId, user?.id || 'unknown');
+
+      if (result.success) {
+        toast.success(`Vehicle ${permanentDeleteModal.vehicleReg} permanently deleted`);
+        
+        // Remove the vehicle from state completely
+        setVehicles(prevVehicles => 
+          prevVehicles.filter(v => v.id !== permanentDeleteModal.vehicleId)
+        );
+        
+        // Update counts
+        setTotalVehicles(prev => prev - 1);
+        
+        // Close modal
+        setPermanentDeleteModal({ isOpen: false });
+        
+        // Refresh activity logs
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        toast.error(`Failed to permanently delete vehicle: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error permanently deleting vehicle:', error);
+      toast.error(`Error permanently deleting vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handle opening permanent delete confirmation
+  const handleOpenPermanentDelete = async (vehicleId: string, vehicleReg: string) => {
+    try {
+      // Get related data count before showing the modal
+      const { data: dependencies } = await supabase
+        .rpc('count_vehicle_dependencies', { vehicle_uuid: vehicleId });
+      
+      const relatedData = dependencies?.[0] ? {
+        tripsCount: Number(dependencies[0].trips_count),
+        maintenanceCount: Number(dependencies[0].maintenance_count),
+        driversAssigned: Number(dependencies[0].drivers_assigned),
+        activityLogs: Number(dependencies[0].activity_logs)
+      } : {
+        tripsCount: 0,
+        maintenanceCount: 0,
+        driversAssigned: 0,
+        activityLogs: 0
+      };
+
+      setPermanentDeleteModal({
+        isOpen: true,
+        vehicleId,
+        vehicleReg,
+        relatedData
+      });
+    } catch (error) {
+      console.error('Error fetching vehicle dependencies:', error);
+      toast.error('Failed to check vehicle dependencies');
     }
   };
 
@@ -959,6 +1039,15 @@ const VehicleManagementPage: React.FC = () => {
                             <Archive className="h-4 w-4" />
                           </button>
                         )}
+
+                        <button
+                          onClick={() => handleOpenPermanentDelete(vehicle.id, vehicle.registration_number)}
+                          className="text-error-600 hover:text-error-900"
+                          aria-label={`Permanently delete vehicle ${vehicle.registration_number}`}
+                          title="Permanently delete (irreversible)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -984,6 +1073,69 @@ const VehicleManagementPage: React.FC = () => {
           isLoading={operationLoading}
         />
 
+        {/* Permanent Delete Confirmation Modal */}
+        <div className={`fixed z-50 inset-0 overflow-y-auto ${permanentDeleteModal.isOpen ? 'block' : 'hidden'}`}>
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setPermanentDeleteModal({ isOpen: false })}></div>
+            
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-error-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <Trash2 className="h-6 w-6 text-error-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      Permanently Delete Vehicle
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500 mb-3">
+                        <strong className="text-error-600">WARNING:</strong> This action cannot be undone. 
+                        Vehicle <strong>{permanentDeleteModal.vehicleReg}</strong> and all related data will be permanently removed.
+                      </p>
+                      
+                      {permanentDeleteModal.relatedData && (
+                        <div className="bg-error-50 border border-error-200 rounded-md p-3 mb-3">
+                          <h4 className="text-sm font-medium text-error-800 mb-2">Data that will be permanently deleted:</h4>
+                          <ul className="text-xs text-error-700 space-y-1">
+                            <li>• <strong>{permanentDeleteModal.relatedData.tripsCount}</strong> trip records</li>
+                            <li>• <strong>{permanentDeleteModal.relatedData.maintenanceCount}</strong> maintenance tasks</li>
+                            <li>• <strong>{permanentDeleteModal.relatedData.activityLogs}</strong> activity log entries</li>
+                            {permanentDeleteModal.relatedData.driversAssigned > 0 && (
+                              <li>• <strong>{permanentDeleteModal.relatedData.driversAssigned}</strong> drivers will be unassigned</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      <p className="text-sm text-gray-500">
+                        Consider archiving instead if you might need this data later.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <Button
+                  onClick={handlePermanentDeleteVehicle}
+                  className="w-full sm:w-auto sm:ml-3"
+                  variant="danger"
+                  isLoading={operationLoading}
+                >
+                  Permanently Delete
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPermanentDeleteModal({ isOpen: false })}
+                  className="mt-3 sm:mt-0 w-full sm:w-auto"
+                  disabled={operationLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
         <ConfirmationModal
           isOpen={archiveModal.isOpen}
           title="Archive Vehicle"

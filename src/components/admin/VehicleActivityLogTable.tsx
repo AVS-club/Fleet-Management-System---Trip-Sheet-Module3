@@ -129,6 +129,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
   const getActionTypeColor = (actionType: string) => {
     switch (actionType) {
       case 'deleted':
+      case 'permanently_deleted':
         return 'bg-error-100 text-error-800';
       case 'archived':
         return 'bg-warning-100 text-warning-800';
@@ -188,7 +189,8 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
                 { value: 'assigned_driver', label: 'Driver Assigned' },
                 { value: 'unassigned_driver', label: 'Driver Unassigned' },
                 { value: 'updated', label: 'Updated' },
-                { value: 'exported', label: 'Exported' }
+                { value: 'exported', label: 'Exported' },
+                { value: 'permanently_deleted', label: 'Permanently Deleted' }
               ]}
               value={filters.actionType}
               onChange={e => setFilters({ ...filters, actionType: e.target.value })}

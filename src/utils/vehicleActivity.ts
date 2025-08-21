@@ -6,7 +6,7 @@ import { supabase } from './supabaseClient';
 export interface VehicleActivityLog {
   id?: string;
   vehicle_id: string;
-  action_type: 'deleted' | 'archived' | 'assigned_driver' | 'unassigned_driver' | 'updated' | 'exported';
+  action_type: 'deleted' | 'archived' | 'assigned_driver' | 'unassigned_driver' | 'updated' | 'exported' | 'permanently_deleted';
   action_by: string;
   timestamp?: string;
   notes?: string;
