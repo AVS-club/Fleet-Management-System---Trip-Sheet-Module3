@@ -31,9 +31,11 @@ import {
   TrendingUp,
   Archive,
   MessageSquare,
-  User,
   Medal,
   MapPin,
+  NotebookTabs,
+  Route,
+  X,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -44,6 +46,7 @@ import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppSha
 import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
 import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 import TopDriversModal from "../components/vehicles/TopDriversModal";
+import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -59,6 +62,8 @@ const VehiclesPage: React.FC = () => {
   const [showTopDriversModal, setShowTopDriversModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
+  const [showActivityLogModal, setShowActivityLogModal] = useState(false);
+  const [selectedVehicleForLog, setSelectedVehicleForLog] = useState<Vehicle | null>(null);
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
@@ -333,6 +338,19 @@ const VehiclesPage: React.FC = () => {
     setShowShareModal(true);
   };
 
+  // Open activity log modal
+  const handleOpenLog = (vehicle: Vehicle, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedVehicleForLog(vehicle);
+    setShowActivityLogModal(true);
+  };
+
+  // Handle add trip with vehicle preselected
+  const handleAddTrip = (vehicle: Vehicle, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/trips', { state: { preselectedVehicle: vehicle.id } });
+  };
+
   // Find the latest trip for a vehicle
   const getLatestTrip = (vehicleId: string): Trip | undefined => {
     return Array.isArray(trips)
@@ -548,34 +566,25 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white rounded-lg shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow ${
+                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
-                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                   >
-                    {/* Vehicle Photo (top-right) */}
-                    <div className="absolute top-10 right-3">
-                      {vehicle.photo_url ? (
-                        <img
-                          src={vehicle.photo_url}
-                          alt={vehicle.registration_number}
-                          className="h-16 w-16 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      ) : (
-                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                          <Truck className="h-8 w-8 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pr-20">
-                      {/* Vehicle Title & Status Section */}
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-medium text-gray-900">
+                    {/* Header: Registration, Status, Action Buttons */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-bold text-gray-900 truncate" 
+                            title={`${vehicle.registration_number} - Current Odometer: ${vehicle.current_odometer?.toLocaleString()} km`}>
                           {vehicle.registration_number}
                         </h3>
+                        <p className="text-sm text-gray-500 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
+                          {vehicle.make} {vehicle.model}
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
+                          className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${
                             vehicle.status === "active"
                               ? "bg-success-100 text-success-800"
                               : vehicle.status === "maintenance"
@@ -588,89 +597,115 @@ const VehiclesPage: React.FC = () => {
                           {vehicle.status}
                         </span>
                       </div>
-
-                      {/* VehicleSummaryChips Component */}
-                      <VehicleSummaryChips vehicle={vehicle} className="mt-2" />
-
                     </div>
 
-                    {/* Trip Stats Section */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-3 gap-4">
+                    {/* Pills Row: Year + Fuel */}
+                    <div className="flex gap-2 mb-3">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                        <Calendar className="h-3 w-3 mr-1" />
+                        {vehicle.year}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 capitalize">
+                        <Fuel className="h-3 w-3 mr-1" />
+                        {vehicle.fuel_type}
+                      </span>
+                    </div>
+
+                    {/* Driver Assignment */}
+                    <div className="mb-3">
+                      <div className="flex items-center text-sm">
+                        {assignedDriver ? (
+                          <>
+                            <span className="mr-1">👤</span>
+                            <span className="text-gray-700 truncate">{assignedDriver.name}</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-4 w-4 text-gray-400 mr-1" />
+                            <span className="text-gray-400">Unassigned</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Metrics Row */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
                         <div className="text-center">
-                          <Truck className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-xs text-gray-500 block">
                             Trips
                           </span>
                           <p className="font-medium">
                             {vehicle.stats.totalTrips}
                           </p>
-                        </div>
+                          <p className="font-mono text-sm font-medium">{vehicle.stats.totalTrips}</p>
 
                         <div className="text-center">
-                          <Calendar className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-xs text-gray-500 block">
                             Distance
                           </span>
-                          <p className="font-medium">
+                          <p className="font-mono text-sm font-medium">
                             {typeof vehicle.stats.totalDistance === "number"
                               ? vehicle.stats.totalDistance.toLocaleString()
-                              : "N/A"}
+                              : "—"}
                           </p>
                         </div>
 
                         <div className="text-center">
-                          <PenToolIcon className="h-5 w-5 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-xs text-gray-500 block">
                             Avg KMPL
                           </span>
-                          <p className="font-medium">
-                            {vehicle.stats.averageKmpl?.toFixed(1) || "-"}
+                          <p className="font-mono text-sm font-medium">
+                            {vehicle.stats.averageKmpl?.toFixed(1) || "—"}
                           </p>
                         </div>
+                    </div>
+
+                    {/* Documents Status */}
+                    <div className="flex items-center justify-between mb-3 pt-2 border-t border-gray-100">
+                      <div className="flex items-center">
+                        <FileText className="h-3 w-3 text-gray-400 mr-1" />
+                        <span className="text-xs text-gray-500">Docs:</span>
+                        <span
+                          className={`ml-1 text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                            uploaded === total
+                              ? "bg-success-100 text-success-800"
+                              : uploaded === 0
+                              ? "bg-error-100 text-error-800"
+                              : "bg-warning-100 text-warning-800"
+                          }`}
+                        >
+                          {uploaded}/{total}
+                        </span>
                       </div>
-
-                      {/* Documents, Driver, and WhatsApp Section */}
-                      <div className="mt-3 pt-3 border-t border-gray-200 flex flex-wrap items-center justify-between gap-y-2">
-                        <div className="flex items-center">
-                          <FileText className="h-4 w-4 text-gray-400 mr-1" />
-                          <span className="text-sm text-gray-500">Docs:</span>
-                          <span
-                            className={`ml-1 text-xs font-medium px-2 py-1 rounded-full ${
-                              uploaded === total
-                                ? "bg-success-100 text-success-800"
-                                : uploaded === 0
-                                ? "bg-error-100 text-error-800"
-                                : "bg-warning-100 text-warning-800" // Partial upload
-                            }`}
-                          >
-                            {uploaded}/{total}
-                          </span>
-                        </div>
-
-                        {/* Assigned Driver Display */}
-                        <div className="flex items-center mx-1">
-                          <User className="h-4 w-4 text-gray-400 mr-1" />
-                          <span
-                            className="text-xs text-gray-600 truncate max-w-[100px]"
-                            title={assignedDriver?.name}
-                          >
-                            {assignedDriver ? (
-                              assignedDriver.name
-                            ) : (
-                              <span className="text-gray-400">Unassigned</span>
-                            )}
-                          </span>
-                        </div>
-
-                        <WhatsAppButton
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenShareModal(vehicle, e);
-                          }}
-                          className="text-green-600 hover:text-green-800"
-                          variant="ghost"
-                        />
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          onClick={(e) => handleOpenLog(vehicle, e)}
+                          aria-label="View activity log"
+                          title="View activity log"
+                        >
+                          <NotebookTabs className="h-4 w-4" />
+                        </button>
+                        
+                        <button
+                          className="p-1.5 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          onClick={(e) => handleAddTrip(vehicle, e)}
+                          aria-label="Add trip with this vehicle"
+                          title="Add trip with this vehicle"
+                        >
+                          <Route className="h-4 w-4" />
+                        </button>
+                        
+                        <button
+                          className="p-1.5 rounded-full text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                          onClick={(e) => handleOpenShareModal(vehicle, e)}
+                          aria-label="Share vehicle via WhatsApp"
+                          title="Share vehicle via WhatsApp"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -702,6 +737,31 @@ const VehiclesPage: React.FC = () => {
         onClose={() => setShowTopDriversModal(false)}
         topDrivers={topDriversThisMonth}
       />
+
+      {/* Activity Log Modal */}
+      {showActivityLogModal && selectedVehicleForLog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                Activity Log - {selectedVehicleForLog.registration_number}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowActivityLogModal(false);
+                  setSelectedVehicleForLog(null);
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+              <VehicleActivityLogTable vehicleId={selectedVehicleForLog.id} />
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
