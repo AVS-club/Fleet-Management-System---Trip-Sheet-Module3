@@ -301,3 +301,30 @@ If the issue persists, check:
     return false;
   }
 };
+
+// Helper function to check if an error is a network/connectivity issue
+export const isNetworkError = (error: any): boolean => {
+  if (!error) return false;
+  
+  const errorMessage = error.message || '';
+  const errorCode = error.code || '';
+  
+  return (
+    errorMessage.includes('Failed to fetch') ||
+    errorMessage.includes('Network request failed') ||
+    errorMessage.includes('CORS') ||
+    errorMessage.includes('ERR_NETWORK') ||
+    errorMessage.includes('ERR_INTERNET_DISCONNECTED') ||
+    errorCode === 'NETWORK_ERROR' ||
+    error.name === 'TypeError' && errorMessage.includes('fetch')
+  );
+};
+
+// Helper function to handle network errors gracefully
+export const handleNetworkError = (error: any, fallbackData: any = null) => {
+  if (isNetworkError(error)) {
+    console.warn('Network connectivity issue detected. Using fallback data or retrying...');
+    return { data: fallbackData, error: null };
+  }
+  return { data: null, error };
+};
