@@ -740,3 +740,6 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     return { value: 0, fromTrip: false };
   }
 };
+
+// Export alias for compatibility
+export const hardDeleteVehicle = deleteVehicle;
