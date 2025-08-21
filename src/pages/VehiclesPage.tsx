@@ -17,7 +17,6 @@ import {
   createVehicle,
   deleteVehicle,
   getTrips,
-  getDrivers,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import { format, parseISO, isValid } from "date-fns";
