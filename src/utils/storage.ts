@@ -1761,3 +1761,90 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     return { value: null, source: 'unknown' };
   }
 };
+
+// Permanent delete vehicle (with proper handling of related data)
+export const hardDeleteVehicle = async (
+  vehicleId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // Get vehicle details for logging
+    const vehicle = await getVehicle(vehicleId);
+    const vehicleReg = vehicle?.registration_number || 'Unknown';
+
+    // Perform the permanent deletion
+    const { error } = await supabase
+      .from("vehicles")
+      .delete()
+      .eq("id", vehicleId);
+
+    if (error) {
+      console.error("Error permanently deleting vehicle:", error);
+      
+      // Handle foreign key constraint errors specifically
+      if (error.code === '23503') {
+        return {
+          success: false,
+          error: 'Cannot delete vehicle: It has related data (trips, maintenance records, etc.). Consider archiving instead.'
+        };
+      }
+      
+      return {
+        success: false,
+        error: `Failed to permanently delete vehicle: ${error.message}`
+      };
+    }
+
+    // Log the permanent deletion activity
+    await logVehicleActivity(
+      vehicleId,
+      "permanently_deleted",
+      userId,
+      `Vehicle ${vehicleReg} permanently deleted`
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error("Exception in hardDeleteVehicle:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
+};
+
+// Archive vehicle (soft delete)
+export const archiveVehicle = async (
+  vehicleId: string,
+  userId: string
+): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("vehicles")
+      .update({
+        status: "archived",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", vehicleId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error archiving vehicle:", error);
+      throw new Error(`Failed to archive vehicle: ${error.message}`);
+    }
+
+    // Log the archive activity
+    await logVehicleActivity(
+      vehicleId,
+      "archived",
+      userId,
+      "Vehicle archived"
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Error in vehicle archiving process:", error);
+    throw error;
+  }
+};
