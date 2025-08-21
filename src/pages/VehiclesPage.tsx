@@ -38,7 +38,6 @@ import {
   X,
   User,
   Fuel,
-  Fuel,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
