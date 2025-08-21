@@ -41,7 +41,6 @@ import VehicleActivityLogTable from "../../components/admin/VehicleActivityLogTa
 import VehicleForm from "../../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import { saveAs } from "file-saver";
-import { X } from "lucide-react";
 
 interface VehicleWithStats extends Vehicle {
   stats?: {
