@@ -559,7 +559,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
     .from('destinations')
     .select('*')
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     handleSupabaseError('fetch destination', error);
