@@ -427,6 +427,26 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
+// Bulk operations
+export const bulkArchiveVehicles = async (vehicleIds: string[]): Promise<{ success: number; failed: number }> => {
+  try {
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ status: 'archived' })
+      .in('id', vehicleIds);
+    
+    if (error) {
+      console.error('Supabase bulk archive error:', error);
+      return { success: 0, failed: vehicleIds.length };
+    }
+    
+    return { success: vehicleIds.length, failed: 0 };
+  } catch (error) {
+    console.error('Error bulk archiving vehicles:', error);
+    return { success: 0, failed: vehicleIds.length };
+  }
+};
+
 // Route analysis
 export const analyzeRoute = async (warehouseId: string, destinationIds: string[]): Promise<any> => {
   // This would implement route analysis logic
