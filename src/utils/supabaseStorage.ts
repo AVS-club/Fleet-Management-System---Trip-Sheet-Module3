@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient";
+import { handleSupabaseError } from "./errors";
 
 /**
  * Uploads a vehicle document to Supabase Storage
@@ -32,7 +33,7 @@ export const uploadVehicleDocument = async (
     });
 
   if (uploadError) {
-    console.error("Error uploading vehicle document:", uploadError);
+    handleSupabaseError('upload vehicle document', uploadError);
     throw uploadError;
   }
 
@@ -62,13 +63,13 @@ export const getSignedDocumentUrl = async (
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {
-      console.error("Error generating signed URL:", error);
+      handleSupabaseError('generate signed URL', error);
       throw error;
     }
 
     return data.signedUrl;
   } catch (error) {
-    console.error("Error in getSignedDocumentUrl:", error);
+    handleSupabaseError('get signed document URL', error);
     throw error;
   }
 };
@@ -104,7 +105,7 @@ const uploadDriverDocument = async (
     });
 
   if (uploadError) {
-    console.error("Error uploading driver document:", uploadError);
+    handleSupabaseError('upload driver document', uploadError);
     throw new Error(`Error uploading document: ${uploadError.message}`);
   }
 
@@ -132,13 +133,13 @@ export const getSignedDriverDocumentUrl = async (
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {
-      console.error("Error generating signed URL for driver document:", error);
+      handleSupabaseError('generate signed URL for driver document', error);
       throw error;
     }
 
     return data.signedUrl;
   } catch (error) {
-    console.error("Error in getSignedDriverDocumentUrl:", error);
+    handleSupabaseError('get signed driver document URL', error);
     throw error;
   }
 };
@@ -185,7 +186,7 @@ export async function uploadFilesAndGetPublicUrls(
 
     return urls;
   } catch (error) {
-    console.error("Error uploading files to Supabase:", error);
+    handleSupabaseError('upload files to Supabase', error);
     throw new Error(
       "Failed to upload one or more files. Please try again or check your network/storage settings."
     );

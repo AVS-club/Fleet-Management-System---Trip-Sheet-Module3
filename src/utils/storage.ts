@@ -13,6 +13,7 @@ import { uploadVehicleDocument } from './supabaseStorage';
 import { getCurrentUserId, withOwner } from './supaHelpers';
 import { toast } from 'react-toastify';
 import { generateCSV, downloadCSV } from './csvParser';
+import { handleSupabaseError } from './errors';
 
 // Define allowed columns for vehicles table
 export const VEHICLE_COLS = 'id,registration_number,make,model,year,type,fuel_type,current_odometer,status,chassis_number,engine_number,owner_name,tyre_size,number_of_tyres,rc_expiry_date,rc_document_url,insurance_policy_number,insurer_name,insurance_start_date,insurance_expiry_date,insurance_premium_amount,insurance_document_url,fitness_certificate_number,fitness_issue_date,fitness_expiry_date,fitness_cost,fitness_document_url,tax_receipt_number,tax_amount,tax_period,tax_document_url,permit_number,permit_issuing_state,permit_type,permit_issue_date,permit_expiry_date,permit_cost,permit_document_url,puc_certificate_number,puc_issue_date,puc_expiry_date,puc_cost,puc_document_url,issuing_state,other_documents,registration_date,policy_number,tax_receipt_document,insurance_idv,tax_scope,remind_insurance,insurance_reminder_contact_id,insurance_reminder_days_before,remind_fitness,fitness_reminder_contact_id,fitness_reminder_days_before,remind_puc,puc_reminder_contact_id,puc_reminder_days_before,remind_tax,tax_reminder_contact_id,tax_reminder_days_before,remind_permit,permit_reminder_contact_id,permit_reminder_days_before,remind_service,service_reminder_contact_id,service_reminder_days_before,service_reminder_km,photo_url,financer,vehicle_class,color,cubic_capacity,cylinders,unladen_weight,seating_capacity,emission_norms,noc_details,national_permit_number,national_permit_upto,rc_status,vahan_last_fetched_at,other_info_documents,tax_paid_upto,tags,last_updated_at,added_by,service_interval_km,service_interval_days,created_by,primary_driver_id,created_at,updated_at';
@@ -36,7 +37,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching vehicles:', error);
+    handleSupabaseError('fetch vehicles', error);
     return [];
   }
 
@@ -51,7 +52,7 @@ export const getVehicle = async (id: string): Promise<Vehicle | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching vehicle:', error);
+    handleSupabaseError('fetch vehicle', error);
     return null;
   }
 
@@ -80,13 +81,13 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
       .single();
 
     if (error) {
-      console.error('Error creating vehicle:', error);
+      handleSupabaseError('create vehicle', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createVehicle:', error);
+    handleSupabaseError('create vehicle', error);
     throw error;
   }
 };
@@ -136,7 +137,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
       .single();
 
     if (error) {
-      console.error('Error updating vehicle:', error);
+      handleSupabaseError('update vehicle', error);
       throw error;
     }
 
@@ -157,7 +158,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
             await uploadVehicleDocument(file, id, 'general');
           }
         } catch (uploadError) {
-          console.error('Error uploading document:', uploadError);
+          handleSupabaseError('upload vehicle document', uploadError);
           // Continue with other documents even if one fails
         }
       }
@@ -165,7 +166,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
 
     return data;
   } catch (error) {
-    console.error('Error in updateVehicle:', error);
+    handleSupabaseError('update vehicle', error);
     throw error;
   }
 };
@@ -177,7 +178,7 @@ export const deleteVehicle = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting vehicle:', error);
+    handleSupabaseError('delete vehicle', error);
     return false;
   }
 
@@ -193,13 +194,13 @@ export const bulkArchiveVehicles = async (vehicleIds: string[]): Promise<boolean
       .in('id', vehicleIds);
 
     if (error) {
-      console.error('Error bulk archiving vehicles:', error);
+      handleSupabaseError('archive vehicles', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in bulkArchiveVehicles:', error);
+    handleSupabaseError('archive vehicles', error);
     return false;
   }
 };
@@ -233,7 +234,7 @@ export const exportVehicleData = async (): Promise<void> => {
     const fileName = `vehicles_export_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCSV(fileName, csvData);
   } catch (error) {
-    console.error('Error exporting vehicle data:', error);
+    handleSupabaseError('export vehicle data', error);
     throw error;
   }
 };
@@ -247,13 +248,13 @@ export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<boole
       .in('id', vehicleIds);
 
     if (error) {
-      console.error('Error bulk unarchiving vehicles:', error);
+      handleSupabaseError('unarchive vehicles', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in bulkUnarchiveVehicles:', error);
+    handleSupabaseError('unarchive vehicles', error);
     return false;
   }
 };
@@ -274,7 +275,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching drivers:', error);
+    handleSupabaseError('fetch drivers', error);
     return [];
   }
 
@@ -289,7 +290,7 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching driver:', error);
+    handleSupabaseError('fetch driver', error);
     return null;
   }
 
@@ -312,13 +313,13 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       .single();
 
     if (error) {
-      console.error('Error creating driver:', error);
+      handleSupabaseError('create driver', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createDriver:', error);
+    handleSupabaseError('create driver', error);
     throw error;
   }
 };
@@ -338,13 +339,13 @@ export const updateDriver = async (id: string, updates: Partial<Driver>): Promis
       .single();
 
     if (error) {
-      console.error('Error updating driver:', error);
+      handleSupabaseError('update driver', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in updateDriver:', error);
+    handleSupabaseError('update driver', error);
     throw error;
   }
 };
@@ -356,7 +357,7 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting driver:', error);
+    handleSupabaseError('delete driver', error);
     return false;
   }
 
@@ -379,13 +380,13 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
       .upload(filePath, file, { upsert: true });
       
     if (error) {
-      console.error('Error uploading driver photo:', error.message);
+      handleSupabaseError('upload driver photo', error);
       return undefined;
     }
 
     return filePath;
   } catch (uploadError) {
-    console.error('Failed to upload driver photo:', uploadError);
+    handleSupabaseError('upload driver photo', uploadError);
     throw uploadError;
   }
 };
@@ -406,7 +407,7 @@ export const getTrips = async (): Promise<Trip[]> => {
     .order('trip_start_date', { ascending: false });
 
   if (error) {
-    console.error('Error fetching trips:', error);
+    handleSupabaseError('fetch trips', error);
     return [];
   }
 
@@ -421,7 +422,7 @@ export const getTrip = async (id: string): Promise<Trip | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching trip:', error);
+    handleSupabaseError('fetch trip', error);
     return null;
   }
 
@@ -444,13 +445,13 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       .single();
 
     if (error) {
-      console.error('Error creating trip:', error);
+      handleSupabaseError('create trip', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createTrip:', error);
+    handleSupabaseError('create trip', error);
     throw error;
   }
 };
@@ -465,13 +466,13 @@ export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Tr
       .single();
 
     if (error) {
-      console.error('Error updating trip:', error);
+      handleSupabaseError('update trip', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in updateTrip:', error);
+    handleSupabaseError('update trip', error);
     throw error;
   }
 };
@@ -483,7 +484,7 @@ export const deleteTrip = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting trip:', error);
+    handleSupabaseError('delete trip', error);
     return false;
   }
 
@@ -507,7 +508,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching warehouses:', error);
+    handleSupabaseError('fetch warehouses', error);
     return [];
   }
 
@@ -522,7 +523,7 @@ export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
     .single();
 
   if (error) {
-    console.error('Error fetching warehouse:', error);
+    handleSupabaseError('fetch warehouse', error);
     return null;
   }
 
@@ -546,7 +547,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     .order('name');
 
   if (error) {
-    console.error('Error fetching destinations:', error);
+    handleSupabaseError('fetch destinations', error);
     return [];
   }
 
@@ -561,7 +562,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
     .single();
 
   if (error) {
-    console.error('Error fetching destination:', error);
+    handleSupabaseError('fetch destination', error);
     return null;
   }
 
@@ -584,13 +585,13 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
       .single();
 
     if (error) {
-      console.error('Error creating destination:', error);
+      handleSupabaseError('create destination', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in createDestination:', error);
+    handleSupabaseError('create destination', error);
     throw error;
   }
 };
@@ -602,7 +603,7 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting destination:', error);
+    handleSupabaseError('delete destination', error);
     return false;
   }
 
@@ -627,7 +628,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       .eq('vehicle_id', vehicleId);
 
     if (error) {
-      console.error('Error fetching vehicle trips:', error);
+      handleSupabaseError('fetch vehicle trips', error);
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
@@ -651,7 +652,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       averageKmpl
     };
   } catch (error) {
-    console.error('Error calculating vehicle stats:', error);
+    handleSupabaseError('calculate vehicle stats', error);
     return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
   }
 };
@@ -708,7 +709,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       waypoints
     };
   } catch (error) {
-    console.error('Error analyzing route:', error);
+    handleSupabaseError('analyze route', error);
     return null;
   }
 };
@@ -743,7 +744,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       fromTrip: false 
     };
   } catch (error) {
-    console.error('Error getting latest odometer:', error);
+    handleSupabaseError('get latest odometer', error);
     return { value: 0, fromTrip: false };
   }
 };
