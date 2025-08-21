@@ -208,6 +208,14 @@ const DriverPage: React.FC = () => {
     }
   };
 
+  // Handle document viewing
+  const handleViewDocument = (url?: string) => {
+    if (!url) {
+      toast.error("Document not available");
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
   const handleEditDriver = () => {
     setIsEditing(true);
   };
@@ -615,7 +623,11 @@ const DriverPage: React.FC = () => {
                       </p>
                     </div>
                     {driver.license_doc_url && (
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDocument(signedDocUrls.license)}
+                      >
                         View
                       </Button>
                     )}
@@ -644,7 +656,11 @@ const DriverPage: React.FC = () => {
                               </p>
                             </div>
                             {doc.file_path && (
-                              <Button variant="outline" size="sm">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleViewDocument(signedDocUrls.other[`other_${index}`])}
+                              >
                                 View
                               </Button>
                             )}
