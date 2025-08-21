@@ -98,6 +98,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
     const {
       documents, 
       selected, // UI fields
+      stats, // Frontend-only field
       odometer, 
       odometer_km,
       ...rest
