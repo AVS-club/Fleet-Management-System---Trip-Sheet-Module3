@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { ReminderContact, ReminderTemplate } from "../types/reminders";
+import { handleSupabaseError } from "./errors";
 
 // Reminder Contacts CRUD operations
 export const getReminderContacts = async (): Promise<ReminderContact[]> => {
@@ -18,7 +19,7 @@ export const getReminderContacts = async (): Promise<ReminderContact[]> => {
     .order("full_name");
 
   if (error) {
-    console.error("Error fetching reminder contacts:", error);
+    handleSupabaseError('fetch reminder contacts', error);
     throw error;
   }
 
@@ -35,7 +36,7 @@ const getReminderContact = async (
     .single();
 
   if (error) {
-    console.error("Error fetching reminder contact:", error);
+    handleSupabaseError('fetch reminder contact', error);
     throw error;
   }
 
@@ -68,7 +69,7 @@ export const createReminderContact = async (
     .single();
 
   if (error) {
-    console.error("Error creating reminder contact:", error);
+    handleSupabaseError('create reminder contact', error);
     throw error;
   }
 
@@ -87,7 +88,7 @@ export const updateReminderContact = async (
     .single();
 
   if (error) {
-    console.error("Error updating reminder contact:", error);
+    handleSupabaseError('update reminder contact', error);
     throw error;
   }
 
@@ -101,7 +102,7 @@ export const deleteReminderContact = async (id: string): Promise<void> => {
     .eq("id", id);
 
   if (error) {
-    console.error("Error deleting reminder contact:", error);
+    handleSupabaseError('delete reminder contact', error);
     throw error;
   }
 };
@@ -124,7 +125,7 @@ export const getReminderTemplates = async (): Promise<ReminderTemplate[]> => {
     .order("reminder_type");
 
   if (error) {
-    console.error("Error fetching reminder templates:", error);
+    handleSupabaseError('fetch reminder templates', error);
     throw error;
   }
 
@@ -141,7 +142,7 @@ const getReminderTemplate = async (
     .single();
 
   if (error) {
-    console.error("Error fetching reminder template:", error);
+    handleSupabaseError('fetch reminder template', error);
     throw error;
   }
 
@@ -158,7 +159,7 @@ export const createReminderTemplate = async (
     .single();
 
   if (error) {
-    console.error("Error creating reminder template:", error);
+    handleSupabaseError('create reminder template', error);
     throw error;
   }
 
@@ -177,7 +178,7 @@ export const updateReminderTemplate = async (
     .single();
 
   if (error) {
-    console.error("Error updating reminder template:", error);
+    handleSupabaseError('update reminder template', error);
     throw error;
   }
 
@@ -191,7 +192,7 @@ export const deleteReminderTemplate = async (id: string): Promise<void> => {
     .eq("id", id);
 
   if (error) {
-    console.error("Error deleting reminder template:", error);
+    handleSupabaseError('delete reminder template', error);
     throw error;
   }
 };
@@ -214,13 +215,13 @@ export const uploadContactPhoto = async (
       .from("contact-photos")
       .upload(filePath, file, { upsert: true });
     if (error) {
-      console.error("Error uploading contact photo:", error.message);
+      handleSupabaseError('upload contact photo', error);
       return undefined;
     }
 
     return filePath;
   } catch (uploadError) {
-    console.error("Failed to upload contact photo:", uploadError);
+    handleSupabaseError('upload contact photo', uploadError);
     throw uploadError;
   }
 };

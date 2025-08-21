@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { handleSupabaseError } from './errors';
 
 export interface MaterialType {
   id: string;
@@ -14,7 +15,7 @@ export const getMaterialTypes = async (): Promise<MaterialType[]> => {
     .order('name');
 
   if (error) {
-    console.error('Error fetching material types:', error);
+    handleSupabaseError('fetch material types', error);
     return [];
   }
 
@@ -33,7 +34,7 @@ export const addMaterialType = async (name: string): Promise<MaterialType | null
     .single();
 
   if (error) {
-    console.error('Error adding material type:', error);
+    handleSupabaseError('add material type', error);
     return null;
   }
 
@@ -53,7 +54,7 @@ export const updateMaterialType = async (id: string, updates: Partial<MaterialTy
     .single();
 
   if (error) {
-    console.error('Error updating material type:', error);
+    handleSupabaseError('update material type', error);
     return null;
   }
 
@@ -68,7 +69,7 @@ export const deleteMaterialType = async (id: string): Promise<boolean> => {
     .eq('id', id);
 
   if (error) {
-    console.error('Error deleting material type:', error);
+    handleSupabaseError('delete material type', error);
     return false;
   }
 

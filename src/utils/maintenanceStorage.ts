@@ -7,6 +7,7 @@ import {
 import { supabase } from "./supabaseClient";
 import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";
+import { handleSupabaseError } from "./errors";
 
 // Tasks CRUD operations
 export const getTasks = async (): Promise<MaintenanceTask[]> => {
@@ -25,7 +26,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
     .order("start_date", { ascending: false });
 
   if (error) {
-    console.error("Error fetching maintenance tasks:", error);
+    handleSupabaseError('fetch maintenance tasks', error);
     return [];
   }
 
@@ -38,7 +39,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
         .eq("maintenance_task_id", task.id);
 
       if (serviceGroupsError) {
-        console.error("Error fetching service groups:", serviceGroupsError);
+        handleSupabaseError('fetch service groups', serviceGroupsError);
         return task;
       }
 
@@ -60,7 +61,7 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
     .single();
 
   if (error) {
-    console.error("Error fetching maintenance task:", error);
+    handleSupabaseError('fetch maintenance task', error);
     return null;
   }
 
@@ -71,7 +72,7 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
     .eq("maintenance_task_id", id);
 
   if (serviceGroupsError) {
-    console.error("Error fetching service groups:", serviceGroupsError);
+    handleSupabaseError('fetch service groups', serviceGroupsError);
     return data;
   }
 
@@ -122,7 +123,7 @@ export const createTask = async (
     .single();
 
   if (error) {
-    console.error("Error creating maintenance task:", error);
+    handleSupabaseError('create maintenance task', error);
     throw new Error(`Error creating maintenance task: ${error.message}`);
   }
 
@@ -139,7 +140,7 @@ export const createTask = async (
         },
       });
     } catch (error) {
-      console.error("Error creating audit log:", error);
+      handleSupabaseError('create audit log', error);
       // Continue even if audit log creation fails
     }
 
@@ -147,7 +148,7 @@ export const createTask = async (
     try {
       await updateNextDueForTask(data.id, data.vehicle_id, data.odometer_reading, data.start_date);
     } catch (error) {
-      console.error("Error computing next due for task:", error);
+      handleSupabaseError('compute next due for task', error);
       // Continue even if next due computation fails
     }
 
@@ -176,7 +177,7 @@ export const createTask = async (
           service_groups: insertedGroups || [],
         };
       } catch (error) {
-        console.error("Error creating service groups:", error);
+        handleSupabaseError('create service groups', error);
         // Return the task even if service groups failed
         return data;
       }
@@ -238,7 +239,7 @@ export const updateTask = async (
     .single();
 
   if (error) {
-    console.error("Error updating maintenance task:", error);
+    handleSupabaseError('update maintenance task', error);
     throw new Error(`Error updating maintenance task: ${error.message}`);
   }
 
@@ -261,7 +262,7 @@ export const updateTask = async (
         changes,
       });
     } catch (error) {
-      console.error("Error creating audit log:", error);
+      handleSupabaseError('create audit log', error);
       // Continue even if audit log creation fails
     }
   }
@@ -275,7 +276,7 @@ export const updateTask = async (
       
       await updateNextDueForTask(id, finalVehicleId, finalOdometer, finalStartDate);
     } catch (error) {
-      console.error("Error computing next due for updated task:", error);
+      handleSupabaseError('compute next due for updated task', error);
       // Continue even if next due computation fails
     }
   }
@@ -314,7 +315,7 @@ export const updateTask = async (
         service_groups: insertedGroups || [],
       };
     } catch (error) {
-      console.error("Error updating service groups:", error);
+      handleSupabaseError('update service groups', error);
       // Return the task even if service groups failed
       return updatedTask;
     }
@@ -337,7 +338,7 @@ export const deleteTask = async (id: string): Promise<boolean> => {
     .eq("id", id);
 
   if (error) {
-    console.error("Error deleting maintenance task:", error);
+    handleSupabaseError('delete maintenance task', error);
     return false;
   }
 
@@ -386,11 +387,11 @@ const updateNextDueForTask = async (
         .eq('id', taskId);
 
       if (error) {
-        console.error('Error updating next due for task:', error);
+        handleSupabaseError('update next due for task', error);
       }
     }
   } catch (error) {
-    console.error('Error in updateNextDueForTask:', error);
+    handleSupabaseError('update next due for task', error);
   }
 };
 
@@ -402,7 +403,7 @@ export const getAuditLogs = async (): Promise<MaintenanceAuditLog[]> => {
     .order("timestamp", { ascending: false });
 
   if (error) {
-    console.error("Error fetching audit logs:", error);
+    handleSupabaseError('fetch audit logs', error);
     return [];
   }
 
@@ -424,7 +425,7 @@ const createAuditLog = async (
     .single();
 
   if (error) {
-    console.error("Error creating audit log:", error);
+    handleSupabaseError('create audit log', error);
     throw new Error(`Error creating audit log: ${error.message}`);
   }
 
@@ -441,7 +442,7 @@ const getServiceGroups = async (
     .eq("maintenance_task_id", taskId);
 
   if (error) {
-    console.error("Error fetching service groups:", error);
+    handleSupabaseError('fetch service groups', error);
     return [];
   }
 
@@ -468,7 +469,7 @@ export const uploadServiceBill = async (
     });
 
   if (uploadError) {
-    console.error("Error uploading bill:", uploadError);
+    handleSupabaseError('upload service bill', uploadError);
     return null;
   }
 
