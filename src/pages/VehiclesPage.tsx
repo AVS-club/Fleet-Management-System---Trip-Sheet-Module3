@@ -15,6 +15,7 @@ import {
   getVehicles,
   getVehicleStats,
   createVehicle,
+  deleteVehicle,
   getTrips,
   getDrivers,
 } from "../utils/storage";
@@ -38,6 +39,7 @@ import {
   X,
   User,
   Fuel,
+  Trash2,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -49,6 +51,7 @@ import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
 import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
+import ConfirmationModal from "../components/admin/ConfirmationModal";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -66,6 +69,9 @@ const VehiclesPage: React.FC = () => {
     useState<Vehicle | null>(null);
   const [showActivityLogModal, setShowActivityLogModal] = useState(false);
   const [selectedVehicleForLog, setSelectedVehicleForLog] = useState<Vehicle | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
@@ -353,6 +359,39 @@ const VehiclesPage: React.FC = () => {
     navigate('/trips', { state: { preselectedVehicle: vehicle.id } });
   };
 
+  // Handle delete vehicle
+  const handleDeleteVehicle = (vehicle: Vehicle, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVehicleToDelete(vehicle);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm delete vehicle
+  const handleConfirmDelete = async () => {
+    if (!vehicleToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const result = await deleteVehicle(vehicleToDelete.id);
+      
+      if (result.success) {
+        // Remove vehicle from local state
+        setVehicles(prev => prev.filter(v => v.id !== vehicleToDelete.id));
+        setTotalVehicles(prev => prev - 1);
+        
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      toast.error('An unexpected error occurred while deleting the vehicle');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setVehicleToDelete(null);
+    }
+  };
   // Find the latest trip for a vehicle
   const getLatestTrip = (vehicleId: string): Trip | undefined => {
     return Array.isArray(trips)
@@ -706,6 +745,15 @@ const VehiclesPage: React.FC = () => {
                         >
                           <MessageSquare className="h-4 w-4" />
                         </button>
+                        
+                        <button
+                          className="p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          onClick={(e) => handleDeleteVehicle(vehicle, e)}
+                          aria-label="Delete vehicle"
+                          title="Delete vehicle"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -762,6 +810,22 @@ const VehiclesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        title="Delete Vehicle"
+        message={`Are you sure you want to permanently delete ${vehicleToDelete?.registration_number}? This action cannot be undone and will fail if the vehicle has associated trips, maintenance records, or driver assignments.`}
+        confirmText="Delete Vehicle"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          setVehicleToDelete(null);
+        }}
+        type="delete"
+        isLoading={isDeleting}
+      />
     </Layout>
   );
 };
