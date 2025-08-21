@@ -10,7 +10,6 @@ import {
   bulkArchiveVehicles,
   bulkUnarchiveVehicles,
   deleteVehicle,
-  updateVehicle,
   exportVehicleData,
 } from "../../utils/storage";
 import { hardDeleteVehicle } from "../../utils/storage";
