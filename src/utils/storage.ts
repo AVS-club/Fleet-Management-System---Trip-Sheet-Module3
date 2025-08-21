@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { isNetworkError, handleNetworkError } from './supabaseClient';
 import { 
   Trip, 
   TripFormData, 
@@ -20,6 +21,32 @@ export const VEHICLE_COLS = 'id,registration_number,make,model,year,type,fuel_ty
 
 // Define allowed columns for drivers table
 export const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,photo,license_document,license_expiry_date,documents_verified,driver_status_reason,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at';
+
+export async function getUserData() {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      // Handle network errors gracefully
+      if (isNetworkError(error)) {
+        console.warn('Network error getting user data, returning null user');
+        return { user: null, error: null };
+      }
+      handleSupabaseError('get user data', error);
+      throw error;
+    }
+    
+    return { user, error: null };
+  } catch (error) {
+    // Handle network errors gracefully
+    if (isNetworkError(error)) {
+      console.warn('Network error getting user data, returning null user');
+      return { user: null, error: null };
+    }
+    handleSupabaseError('get user data', error);
+    throw error;
+  }
+}
 
 // Vehicle CRUD operations
 export const getVehicles = async (): Promise<Vehicle[]> => {
