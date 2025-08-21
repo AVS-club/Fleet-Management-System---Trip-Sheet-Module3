@@ -196,6 +196,26 @@ export const bulkArchiveVehicles = async (vehicleIds: string[]): Promise<boolean
   }
 };
 
+// Bulk unarchive vehicles
+export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('vehicles')
+      .update({ status: 'active' })
+      .in('id', vehicleIds);
+
+    if (error) {
+      console.error('Error bulk unarchiving vehicles:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in bulkUnarchiveVehicles:', error);
+    return false;
+  }
+};
+
 // Driver CRUD operations
 export const getDrivers = async (): Promise<Driver[]> => {
   const { data: { user } } = await supabase.auth.getUser();
