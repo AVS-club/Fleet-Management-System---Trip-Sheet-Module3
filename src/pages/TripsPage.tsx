@@ -77,11 +77,13 @@ const TripsPage: React.FC = () => {
       }
       
       // Create trip without the file object (replaced with URL)
-      const { fuel_bill_file, ...tripData } = data;
-      
+      const { fuel_bill_file, station, fuel_station_id, ...tripData } = data;
+
       // Add trip to storage
       const newTrip = await createTrip({
         ...tripData,
+        station,
+        fuel_station_id,
         fuel_bill_url: fuelBillUrl
       });
       

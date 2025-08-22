@@ -286,6 +286,7 @@ export interface Trip {
   end_km: number;
   gross_weight: number;
   station?: string;
+  fuel_station_id?: string;
   refueling_done: boolean;
   fuel_quantity?: number;
   fuel_cost?: number;
@@ -327,6 +328,8 @@ export interface TripFormData
   alert_notes?: string;
   breakdown_expense?: number;
   miscellaneous_expense?: number;
+  station?: string;
+  fuel_station_id?: string;
 }
 
 // Add RouteAnalysis interface

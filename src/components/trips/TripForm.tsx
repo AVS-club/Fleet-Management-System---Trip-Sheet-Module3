@@ -78,6 +78,8 @@ const TripForm: React.FC<TripFormProps> = ({
       warehouse_id: '',
       destinations: [],
       material_type_ids: [],
+      station: '',
+      fuel_station_id: '',
       ...initialData
     }
   });
@@ -283,6 +285,8 @@ const TripForm: React.FC<TripFormProps> = ({
             start_km: startKm,
             end_km: endKm,
             gross_weight: watch('gross_weight') || 0,
+            station: watch('station'),
+            fuel_station_id: watch('fuel_station_id'),
             refueling_done: watch('refueling_done'),
             fuel_quantity: watch('fuel_quantity'),
             fuel_cost: watch('fuel_cost'),
@@ -762,6 +766,20 @@ const TripForm: React.FC<TripFormProps> = ({
                     message: 'Fuel cost must be greater than 0'
                   }
                 })}
+              />
+
+              <Input
+                label="Station"
+                icon={<MapPin className="h-4 w-4" />}
+                error={errors.station?.message}
+                {...register('station')}
+              />
+
+              <Input
+                label="Fuel Station ID"
+                icon={<Settings className="h-4 w-4" />}
+                error={errors.fuel_station_id?.message}
+                {...register('fuel_station_id')}
               />
             </div>
 
