@@ -643,7 +643,7 @@ const DriversPage: React.FC = () => {
                           handleOpenShareModal(driver, e);
                         }}
                         className="ml-2 text-green-600 hover:text-green-800"
-                        message={`Driver details for ${driver.name} (License: ${driver.license_number || driver.dl_number}) from Auto Vital Solution.`}
+                        message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
                       />
                     </div>
                   </div>
