@@ -96,10 +96,18 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
     // Strip UI-only fields and prepare data
     const { documents, selected, ...cleanData } = vehicleData as any;
     
+    // Remove _file properties (client-side File objects, not database columns)
     const payload = withOwner({
       ...cleanData,
       current_odometer: cleanData.current_odometer || 0,
     }, userId);
+
+    // Strip file properties that shouldn't go to database
+    for (const k of Object.keys(payload)) {
+      if (k.endsWith('_file')) {
+        delete payload[k];
+      }
+    }
 
     const { data, error } = await supabase
       .from('vehicles')
