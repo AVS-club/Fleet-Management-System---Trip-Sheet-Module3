@@ -70,7 +70,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         : [],
       medical_document: [],
       police_document: [],
-      aadhaar_document: [],
+      aadhar_doc_file: [],
       license_document: [],
     },
   });
@@ -621,7 +621,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
           <Controller
             control={control}
-            name="aadhaar_document"
+            name="aadhar_doc_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
                 label="Aadhar /ID Proof"

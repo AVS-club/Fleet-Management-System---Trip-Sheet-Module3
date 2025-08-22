@@ -199,10 +199,11 @@ export interface Driver {
   driver_photo_url?: string;
   driver_photo_path?: string;
 
+  aadhar_doc_url?: string[];
   license_document?: File[];
   police_document?: File[];
   medical_document?: File[];
-  aadhaar_document?: File[];
+  aadhar_doc_file?: File[];
   medical_doc_url?: string[];
   license_document_path?: string;
   license_expiry_date?: string;
