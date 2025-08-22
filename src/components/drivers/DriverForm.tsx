@@ -234,10 +234,10 @@ const DriverForm: React.FC<DriverFormProps> = ({
               label="License Number"
               placeholder="CG0419900078925"
               icon={<FileText className="h-4 w-4" />}
-              error={errors.dl_number?.message}
+              error={errors.license_number?.message}
               required
               disabled={isFetching || isSubmitting}
-              {...register("dl_number", {
+              {...register("license_number", {
                 required: "License number is required",
               })}
             />

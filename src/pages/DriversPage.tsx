@@ -541,7 +541,7 @@ const DriversPage: React.FC = () => {
                           {driver.name}
                         </h3>
                         <p className="text-sm text-gray-500">
-                          {driver.dl_number || "No license"}
+                          {driver.license_number || "No license"}
                         </p>
 
                         {/* License Status & Experience */}

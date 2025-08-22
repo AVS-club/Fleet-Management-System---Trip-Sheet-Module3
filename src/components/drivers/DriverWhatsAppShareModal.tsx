@@ -46,7 +46,7 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
   const generateDocumentExpiryMessage = () => {
     return encodeURIComponent(
       `📄 *Driver Document Validity (Auto Vital Solution)*\n\n` +
-      `👨‍✈️ ${driver.name} - ${driver.dl_number || driver.license_number || 'N/A'}\n\n` +
+      `👨‍✈️ ${driver.name} - ${driver.license_number || 'N/A'}\n\n` +
       `🪪 *License Expiry:* ${driver.license_expiry_date ? new Date(driver.license_expiry_date).toLocaleDateString() : 'N/A'}\n\n` +
       `✅ Track & manage your fleet on: www.autovitalsolution.com`
     );
