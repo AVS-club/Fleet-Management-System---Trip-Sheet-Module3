@@ -88,7 +88,7 @@ const getExpiryStatus = (expiryDate: string | null): 'expired' | 'expiring' | 'v
   if (diffDays < 0) return 'expired';
   if (diffDays <= 30) return 'expiring';
   return 'valid';
-}
+};
 
 // Function to get color class based on document status
 const getStatusColorClass = (status: string) => {
@@ -163,8 +163,6 @@ const getFleetAverageCost = (docType: string, vehicles: Vehicle[]): number => {
     return defaultCosts[docType] || 3000;
   }
   
-  const costFieldName = getCostFieldName(docType);
-  
   // If no cost field for this doc type, return default
   if (!costFieldName) {
     return defaultCosts[docType] || 3000;
@@ -184,30 +182,6 @@ const getFleetAverageCost = (docType: string, vehicles: Vehicle[]): number => {
   
   // Return the average or default if no vehicles have this cost
   return count > 0 ? sum / count : defaultCosts[docType] || 3000;
-};
-
-// Helper function to get cost for specific document type
-const getDocumentCost = (vehicle: Vehicle, docType: string): number => {
-  const getCostFieldName = (docType: string): string | null => {
-    switch (docType) {
-      case 'insurance': return 'insurance_premium_amount';
-      case 'fitness': return 'fitness_cost';
-      case 'permit': return 'permit_cost';
-      case 'puc': return 'puc_cost';
-      case 'tax': return 'tax_amount';
-      default: return null;
-    }
-  }
-
-  const costFieldName = getCostFieldName(docType);
-
-  // If no cost field for this doc type, return default
-  if (!costFieldName) {
-    return docType === 'rc' ? 2000 : 3000;
-  }
-
-  const cost = vehicle[costFieldName as keyof Vehicle];
-  return typeof cost === 'number' && cost > 0 ? cost : 0;
 };
 
 // Helper function to get inflation rate for document type
