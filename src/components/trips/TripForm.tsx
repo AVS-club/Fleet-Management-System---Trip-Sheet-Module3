@@ -769,15 +769,12 @@ const TripForm: React.FC<TripFormProps> = ({
               />
 
               <Input
-                label="Station"
-                icon={<MapPin className="h-4 w-4" />}
                 error={errors.station?.message}
                 {...register('station')}
               />
 
               <Input
                 label="Fuel Station ID"
-                icon={<Settings className="h-4 w-4" />}
                 error={errors.fuel_station_id?.message}
                 {...register('fuel_station_id')}
               />

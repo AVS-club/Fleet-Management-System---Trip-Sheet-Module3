@@ -82,7 +82,7 @@ const TripsPage: React.FC = () => {
       // Add trip to storage
       const newTrip = await createTrip({
         ...tripData,
-        station,
+
         fuel_station_id,
         fuel_bill_url: fuelBillUrl
       });
