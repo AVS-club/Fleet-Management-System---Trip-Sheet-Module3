@@ -19,6 +19,7 @@ import {
   getDrivers,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
+import { uploadVehicleDocument } from "../utils/supabaseStorage";
 import { format, parseISO, isValid } from "date-fns";
 import {
   Truck, Users,
@@ -275,7 +276,48 @@ const VehiclesPage: React.FC = () => {
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
     try {
-      const newVehicle = await createVehicle(data);
+      const uploadMap = {
+        rc_copy_file: { urlField: "rc_document_url", docType: "rc" },
+        insurance_document_file: {
+          urlField: "insurance_document_url",
+          docType: "insurance",
+        },
+        fitness_document_file: {
+          urlField: "fitness_document_url",
+          docType: "fitness",
+        },
+        tax_receipt_document_file: {
+          urlField: "tax_document_url",
+          docType: "tax",
+        },
+        permit_document_file: {
+          urlField: "permit_document_url",
+          docType: "permit",
+        },
+        puc_document_file: { urlField: "puc_document_url", docType: "puc" },
+      } as const;
+
+      const payload: any = { ...data };
+
+      for (const [fileField, { urlField, docType }] of Object.entries(uploadMap)) {
+        const files = payload[fileField] as File[] | undefined;
+        if (files && files.length > 0) {
+          try {
+            const filePath = await uploadVehicleDocument(
+              files[0],
+              payload.registration_number,
+              docType
+            );
+            payload[urlField] = filePath;
+          } catch (err) {
+            console.error(`Failed to upload ${docType} document:`, err);
+            toast.error(`Failed to upload ${docType} document`);
+          }
+        }
+        delete payload[fileField];
+      }
+
+      const newVehicle = await createVehicle(payload);
       if (newVehicle) {
         const rawStats = await getVehicleStats(newVehicle.id);
         const conformingStats = {
