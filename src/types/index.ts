@@ -202,8 +202,7 @@ export interface Driver {
   aadhar_doc_file?: File[]; // For frontend handling before upload
   license_document?: File[]; // For frontend handling before upload
   police_document?: File[];
-  medical_document?: File[]; // For frontend handling before upload
-  aadhar_doc_file?: File[];
+  medical_doc_file?: File[]; // For frontend handling before upload
   medical_doc_url?: string[];
   license_document_path?: string;
   license_expiry_date?: string;
