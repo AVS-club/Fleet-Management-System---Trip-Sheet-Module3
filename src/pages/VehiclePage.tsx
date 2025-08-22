@@ -604,3 +604,20 @@ const VehiclePage: React.FC = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </Layout>
+  );
+};
+
+export default VehiclePage;
