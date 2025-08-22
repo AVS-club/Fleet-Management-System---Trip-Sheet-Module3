@@ -109,6 +109,12 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
       }
     }
 
+    // Sanitize empty strings to null for database compatibility
+    for (const key in payload) {
+      if (typeof payload[key] === 'string' && payload[key].trim() === '') {
+        payload[key] = null;
+      }
+    }
     const { data, error } = await supabase
       .from('vehicles')
       .insert(payload)
