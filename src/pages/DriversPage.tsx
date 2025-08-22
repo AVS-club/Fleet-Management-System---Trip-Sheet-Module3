@@ -7,7 +7,7 @@ import {
   createDriver, 
   updateDriver, 
   uploadDriverPhoto 
-} from "../utils/storage";
+} from "../utils/storage"; // ⚠️ Confirm field refactor here
 import { supabase } from "../utils/supabaseClient";
 import {
   User, Users,
@@ -28,7 +28,7 @@ import DriverForm from "../components/drivers/DriverForm";
 import { Driver, Trip } from "../types";
 import { toast } from "react-toastify";
 import StatCard from "../components/ui/StatCard";
-import WhatsAppButton from '../components/drivers/WhatsAppButton';
+import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Confirm field refactor here
 import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
 import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 
@@ -149,7 +149,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Prepare driver data with photo URL
-      const driverData: Partial<Driver> = { // ⚠️ Confirm field refactor here
+      const driverData: Partial<Driver> = {
         ...data,
         driver_photo_url: photoUrl,
       };
@@ -158,7 +158,7 @@ const DriversPage: React.FC = () => {
       delete (driverData as any).photo;
 
       // Handle Aadhaar document upload
-      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) {
+      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) { // ⚠️ Confirm field refactor here
         try { // ⚠️ Confirm field refactor here
           const uploadedUrls = [];
           for (const file of data.aadhar_doc_file) {
@@ -177,7 +177,7 @@ const DriversPage: React.FC = () => {
       }
       
       // Handle license document upload
-      if (data.license_doc_file && Array.isArray(data.license_doc_file)) {
+      if (data.license_doc_file && Array.isArray(data.license_doc_file)) { // ⚠️ Confirm field refactor here
         try { // ⚠️ Confirm field refactor here
           const uploadedUrls = [];
           for (const file of data.license_doc_file) {
@@ -196,7 +196,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Handle police document upload
-      if (data.police_doc_file && Array.isArray(data.police_doc_file)) { // ⚠️ Confirm field refactor here
+      if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
         try {
           const uploadedUrls = [];
           for (const file of data.police_doc_file) {
@@ -215,7 +215,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Handle medical document upload (already handled in previous commit, but ensuring consistency)
-      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) { // ⚠️ Confirm field refactor here
+      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
         try {
           const uploadedUrls = [];
           for (const file of data.medical_doc_file) {
@@ -233,10 +233,10 @@ const DriversPage: React.FC = () => {
         }
       }
       // Remove the File object as it can't be stored in the database
-      delete (driverData as any).medical_doc_file; // ⚠️ Confirm field refactor here
+      delete (driverData as any).medical_doc_file;
 
       // Remove the File object as it can't be stored in the database
-      delete (driverData as any).aadhar_doc_file; // ⚠️ Confirm field refactor here
+      delete (driverData as any).aadhar_doc_file;
 
       // Process other documents
       if (Array.isArray(driverData.other_documents)) {
@@ -271,7 +271,7 @@ const DriversPage: React.FC = () => {
 
       if (editingDriver) {
         // Update existing driver
-        const updatedDriver = await updateDriver(editingDriver.id, driverData);
+        const updatedDriver = await updateDriver(editingDriver.id, driverData); // ⚠️ Confirm field refactor here
         if (updatedDriver) { // ⚠️ Confirm field refactor here
           // Update the drivers list
           setDrivers((prevDrivers) =>
@@ -286,8 +286,8 @@ const DriversPage: React.FC = () => {
         }
       } else {
         // Create new driver
-        // Remove empty id field if present to let Supabase auto-generate
-        const { id, ...cleanDriverData } = driverData as any; // ⚠️ Confirm field refactor here
+        // Remove empty id field if present to let Supabase auto-generate // ⚠️ Confirm field refactor here
+        const { id, ...cleanDriverData } = driverData as any;
         const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
         
         const newDriver = await createDriver(finalDriverData);
@@ -367,7 +367,7 @@ const DriversPage: React.FC = () => {
   // Function to handle opening the WhatsApp share modal
   const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click navigation
-    setSelectedDriverForShare(driver);
+    setSelectedDriverForShare(driver); // ⚠️ Confirm field refactor here
     
     // Generate signed URLs for documents if available
     const urls: { // ⚠️ Confirm field refactor here
@@ -379,19 +379,19 @@ const DriversPage: React.FC = () => {
     } = {
       other: {}
     };
-    // ⚠️ Confirm field refactor here
+    
     try {
       // Generate signed URL for license document
-      if (driver.license_doc_url) {
-        urls.license = driver.license_doc_url;
+      if (driver.license_doc_url && driver.license_doc_url.length > 0) {
+        urls.license = await getSignedDriverDocumentUrl(driver.license_doc_url[0]);
       }
       
       // Generate signed URLs for other documents
       if (driver.other_documents && Array.isArray(driver.other_documents)) {
-        for (let i = 0; i < driver.other_documents.length; i++) { // ⚠️ Confirm field refactor here
+        for (let i = 0; i < driver.other_documents.length; i++) {
           const doc = driver.other_documents[i];
           if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path); // ⚠️ Confirm field refactor here
           }
         }
       }
@@ -618,7 +618,7 @@ const DriversPage: React.FC = () => {
                           </span>
                           
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                            <Calendar className="h-3 w-3 mr-1" />
+                            <Calendar className="h-3 w-3 mr-1" /> {/* ⚠️ Confirm field refactor here */}
                             {driver.experience_years} years
                           </span>
                         </div>

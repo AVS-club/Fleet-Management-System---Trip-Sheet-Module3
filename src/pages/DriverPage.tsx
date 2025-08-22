@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Layout from "../components/layout/Layout";
+import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
 import { getDriver, getVehicle, getTrips, getDrivers, getVehicles } from "../utils/storage";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
@@ -16,7 +16,7 @@ import {
   Share2,
   Download,
   Phone,
-  Mail,
+  Mail, // ⚠️ Confirm field refactor here
   Edit,
 } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -148,7 +148,7 @@ const DriverPage: React.FC = () => {
       }
 
       // Generate signed URL for medical document
-      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) { // ⚠️ Confirm field refactor here
+      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) {
         urls.medical_doc_url = await Promise.all(driverData.medical_doc_url.map(url => getSignedDriverDocumentUrl(url)));
       }
 
