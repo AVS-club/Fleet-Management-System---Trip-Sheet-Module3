@@ -195,16 +195,16 @@ export interface Driver {
   status: "active" | "inactive" | "onLeave" | "suspended" | "blacklisted";
   experience_years: number;
   primary_vehicle_id?: string;
-  photo?: string | File | null;
   driver_photo_url?: string;
   driver_photo_path?: string;
 
   aadhar_doc_file?: File[]; // For frontend handling before upload
-  license_document?: File[]; // For frontend handling before upload
-  police_document?: File[];
+  license_doc_file?: File[]; // For frontend handling before upload
+  police_doc_file?: File[]; // For frontend handling before upload
   medical_doc_file?: File[]; // For frontend handling before upload
   medical_doc_url?: string[];
-  license_document_path?: string;
+  license_doc_url?: string[];
+  police_doc_url?: string[];
   license_expiry_date?: string;
   license_issue_date?: string;
   documents_verified?: boolean;
