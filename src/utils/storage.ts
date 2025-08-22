@@ -337,6 +337,19 @@ export const getDrivers = async (): Promise<Driver[]> => {
       console.error('No user authenticated');
       return [];
     }
+
+    const { data, error } = await supabase
+      .from('drivers')
+      .select(DRIVER_COLS)
+      .eq('added_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch drivers', error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
       console.warn('Network error fetching user for drivers, returning empty array');
@@ -345,19 +358,6 @@ export const getDrivers = async (): Promise<Driver[]> => {
     handleSupabaseError('get user for drivers', error);
     return [];
   }
-
-  const { data, error } = await supabase
-    .from('drivers')
-    .select(DRIVER_COLS)
-    .eq('added_by', user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    handleSupabaseError('fetch drivers', error);
-    return [];
-  }
-
-  return data || [];
 };
 
 export const getDriver = async (id: string): Promise<Driver | null> => {
