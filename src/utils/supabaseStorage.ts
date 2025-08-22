@@ -98,7 +98,7 @@ const uploadDriverDocument = async (
 
   // Upload the file
   const { error: uploadError } = await supabase.storage
-    .from("drivers")
+    .from("driver-docs")
     .upload(filePath, file, {
       upsert: true,
       contentType: file.type,
@@ -128,9 +128,14 @@ export const getSignedDriverDocumentUrl = async (
   }
 
   try {
+    // Clean the file path to remove any URL prefix and bucket name
+    const cleanedPath = filePath
+      .replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/(?:public|sign)\/[^\/]+\//, '')
+      .replace(/^driver-docs\//, '');
+
     const { data, error } = await supabase.storage
-      .from("drivers")
-      .createSignedUrl(filePath, expiresIn);
+      .from("driver-docs")
+      .createSignedUrl(cleanedPath, expiresIn);
 
     if (error) {
       handleSupabaseError('generate signed URL for driver document', error);
