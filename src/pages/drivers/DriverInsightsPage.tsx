@@ -17,6 +17,7 @@ import {
   Gauge,
   TrendingUp,
   BarChart2,
+  BarChart3,
   Filter,
   Search,
   Download,
