@@ -80,14 +80,14 @@ const VehicleManagementPage: React.FC = () => {
   const [deleteModal, setDeleteModal] = useState<{
     isOpen: boolean;
     vehicleId?: string;
-    vehicleReg?: string;
+    registrationNumber?: string;
   }>({
     isOpen: false,
   });
   const [permanentDeleteModal, setPermanentDeleteModal] = useState<{
     isOpen: boolean;
     vehicleId?: string;
-    vehicleReg?: string;
+    registrationNumber?: string;
     relatedData?: {
       tripsCount: number;
       maintenanceCount: number;
@@ -100,14 +100,14 @@ const VehicleManagementPage: React.FC = () => {
   const [archiveModal, setArchiveModal] = useState<{
     isOpen: boolean;
     vehicleId?: string;
-    vehicleReg?: string;
+    registrationNumber?: string;
   }>({
     isOpen: false,
   });
   const [unarchiveModal, setUnarchiveModal] = useState<{
     isOpen: boolean;
     vehicleId?: string;
-    vehicleReg?: string;
+    registrationNumber?: string;
   }>({
     isOpen: false,
   });
@@ -130,7 +130,7 @@ const VehicleManagementPage: React.FC = () => {
   const [driverAssignModal, setDriverAssignModal] = useState<{
     isOpen: boolean;
     vehicleId?: string;
-    vehicleReg?: string;
+    registrationNumber?: string;
     driverId?: string;
   }>({
     isOpen: false,
@@ -223,7 +223,7 @@ const VehicleManagementPage: React.FC = () => {
 
       if (result) {
         toast.success(
-          `Vehicle ${archiveModal.vehicleReg} archived successfully`
+          `Vehicle ${archiveModal.registrationNumber} archived successfully`
         );
         // Update in state
         setVehicles((prevVehicles) =>
@@ -239,7 +239,7 @@ const VehicleManagementPage: React.FC = () => {
         // Refresh activity logs
         setRefreshTrigger((prev) => prev + 1);
       } else {
-        toast.error(`Failed to archive vehicle ${archiveModal.vehicleReg}`);
+        toast.error(`Failed to archive vehicle ${archiveModal.registrationNumber}`);
       }
     } catch (error) {
       console.error("Error archiving vehicle:", error);
@@ -265,7 +265,7 @@ const VehicleManagementPage: React.FC = () => {
 
       if (result) {
         toast.success(
-          `Vehicle ${unarchiveModal.vehicleReg} unarchived successfully`
+          `Vehicle ${unarchiveModal.registrationNumber} unarchived successfully`
         );
         // Update in state
         setVehicles((prevVehicles) =>
@@ -281,7 +281,7 @@ const VehicleManagementPage: React.FC = () => {
         // Refresh activity logs
         setRefreshTrigger((prev) => prev + 1);
       } else {
-        toast.error(`Failed to unarchive vehicle ${unarchiveModal.vehicleReg}`);
+        toast.error(`Failed to unarchive vehicle ${unarchiveModal.registrationNumber}`);
       }
     } catch (error) {
       console.error("Error unarchiving vehicle:", error);
@@ -305,7 +305,7 @@ const VehicleManagementPage: React.FC = () => {
 
       if (success) {
         toast.success(
-          `Vehicle ${deleteModal.vehicleReg} archived successfully`
+          `Vehicle ${deleteModal.registrationNumber} archived successfully`
         );
         // Update in state
         setVehicles((prevVehicles) =>
@@ -321,7 +321,7 @@ const VehicleManagementPage: React.FC = () => {
         // Refresh activity logs
         setRefreshTrigger((prev) => prev + 1);
       } else {
-        toast.error(`Failed to archive vehicle ${deleteModal.vehicleReg}`);
+        toast.error(`Failed to archive vehicle ${deleteModal.registrationNumber}`);
       }
     } catch (error) {
       console.error("Error archiving vehicle:", error);
@@ -344,7 +344,7 @@ const VehicleManagementPage: React.FC = () => {
       const result = await hardDeleteVehicle(permanentDeleteModal.vehicleId, user?.id || 'unknown');
 
       if (result.success) {
-        toast.success(`Vehicle ${permanentDeleteModal.vehicleReg} permanently deleted`);
+        toast.success(`Vehicle ${permanentDeleteModal.registrationNumber} permanently deleted`);
         
         // Remove the vehicle from state completely
         setVehicles(prevVehicles => 
@@ -371,7 +371,10 @@ const VehicleManagementPage: React.FC = () => {
   };
 
   // Handle opening permanent delete confirmation
-  const handleOpenPermanentDelete = async (vehicleId: string, vehicleReg: string) => {
+  const handleOpenPermanentDelete = async (
+    vehicleId: string,
+    registrationNumber: string
+  ) => {
     try {
       // Get related data count before showing the modal
       const { data: dependencies } = await supabase
@@ -392,7 +395,7 @@ const VehicleManagementPage: React.FC = () => {
       setPermanentDeleteModal({
         isOpen: true,
         vehicleId,
-        vehicleReg,
+        registrationNumber,
         relatedData
       });
     } catch (error) {
@@ -502,7 +505,7 @@ const VehicleManagementPage: React.FC = () => {
           ? "assigned to"
           : "unassigned from";
         toast.success(
-          `Driver successfully ${action} vehicle ${driverAssignModal.vehicleReg}`
+          `Driver successfully ${action} vehicle ${driverAssignModal.registrationNumber}`
         );
 
         // Update vehicle in state
@@ -525,7 +528,7 @@ const VehicleManagementPage: React.FC = () => {
       } else {
         const action = driverAssignModal.driverId ? "assign" : "unassign";
         toast.error(
-          `Failed to ${action} driver to vehicle ${driverAssignModal.vehicleReg}`
+          `Failed to ${action} driver to vehicle ${driverAssignModal.registrationNumber}`
         );
       }
     } catch (error) {
@@ -1017,7 +1020,7 @@ const VehicleManagementPage: React.FC = () => {
                           setDriverAssignModal({
                             isOpen: true,
                             vehicleId: vehicle.id,
-                            vehicleReg: vehicle.registration_number,
+                            registrationNumber: vehicle.registration_number,
                             driverId: vehicle.primary_driver_id,
                           })
                         }
@@ -1075,7 +1078,7 @@ const VehicleManagementPage: React.FC = () => {
                               setUnarchiveModal({
                                 isOpen: true,
                                 vehicleId: vehicle.id,
-                                vehicleReg: vehicle.registration_number,
+                                registrationNumber: vehicle.registration_number,
                               })
                             }
                             className="text-success-600 hover:text-success-900"
@@ -1089,7 +1092,7 @@ const VehicleManagementPage: React.FC = () => {
                               setArchiveModal({
                                 isOpen: true,
                                 vehicleId: vehicle.id,
-                                vehicleReg: vehicle.registration_number,
+                                registrationNumber: vehicle.registration_number,
                               })
                             }
                             className="text-warning-600 hover:text-warning-900"
@@ -1152,7 +1155,7 @@ const VehicleManagementPage: React.FC = () => {
         <ConfirmationModal
           isOpen={deleteModal.isOpen}
           title="Archive Vehicle"
-          message={`Are you sure you want to archive vehicle ${deleteModal.vehicleReg}? The vehicle will be hidden from regular views but can be restored later.`}
+          message={`Are you sure you want to archive vehicle ${deleteModal.registrationNumber}? The vehicle will be hidden from regular views but can be restored later.`}
           confirmText="Archive"
           cancelText="Cancel"
           onConfirm={handleDeleteVehicle}
@@ -1179,7 +1182,7 @@ const VehicleManagementPage: React.FC = () => {
                     <div className="mt-2">
                       <p className="text-sm text-gray-500 mb-3">
                         <strong className="text-error-600">WARNING:</strong> This action cannot be undone. 
-                        Vehicle <strong>{permanentDeleteModal.vehicleReg}</strong> and all related data will be permanently removed.
+                        Vehicle <strong>{permanentDeleteModal.registrationNumber}</strong> and all related data will be permanently removed.
                       </p>
                       
                       {permanentDeleteModal.relatedData && (
@@ -1227,7 +1230,7 @@ const VehicleManagementPage: React.FC = () => {
         <ConfirmationModal
           isOpen={archiveModal.isOpen}
           title="Archive Vehicle"
-          message={`Are you sure you want to archive vehicle ${archiveModal.vehicleReg}? The vehicle will be hidden from regular views but can be restored later.`}
+          message={`Are you sure you want to archive vehicle ${archiveModal.registrationNumber}? The vehicle will be hidden from regular views but can be restored later.`}
           confirmText="Archive"
           cancelText="Cancel"
           onConfirm={handleArchiveVehicle}
@@ -1239,7 +1242,7 @@ const VehicleManagementPage: React.FC = () => {
         <ConfirmationModal
           isOpen={unarchiveModal.isOpen}
           title="Unarchive Vehicle"
-          message={`Are you sure you want to unarchive vehicle ${unarchiveModal.vehicleReg}? The vehicle will be restored to active status and visible in regular views.`}
+          message={`Are you sure you want to unarchive vehicle ${unarchiveModal.registrationNumber}? The vehicle will be restored to active status and visible in regular views.`}
           confirmText="Unarchive"
           cancelText="Cancel"
           onConfirm={handleUnarchiveVehicle}
@@ -1304,8 +1307,8 @@ const VehicleManagementPage: React.FC = () => {
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
                         {driverAssignModal.driverId
-                          ? `Select a new driver for vehicle ${driverAssignModal.vehicleReg} or unassign the current one.`
-                          : `Assign a driver to vehicle ${driverAssignModal.vehicleReg}.`}
+                          ? `Select a new driver for vehicle ${driverAssignModal.registrationNumber} or unassign the current one.`
+                          : `Assign a driver to vehicle ${driverAssignModal.registrationNumber}.`}
                       </p>
 
                       <div className="mt-4">
