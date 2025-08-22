@@ -186,6 +186,30 @@ const getFleetAverageCost = (docType: string, vehicles: Vehicle[]): number => {
   return count > 0 ? sum / count : defaultCosts[docType] || 3000;
 };
 
+// Helper function to get cost for specific document type
+const getDocumentCost = (vehicle: Vehicle, docType: string): number => {
+  const getCostFieldName = (docType: string): string | null => {
+    switch (docType) {
+      case 'insurance': return 'insurance_premium_amount';
+      case 'fitness': return 'fitness_cost';
+      case 'permit': return 'permit_cost';
+      case 'puc': return 'puc_cost';
+      case 'tax': return 'tax_amount';
+      default: return null;
+    }
+  }
+
+  const costFieldName = getCostFieldName(docType);
+
+  // If no cost field for this doc type, return default
+  if (!costFieldName) {
+    return docType === 'rc' ? 2000 : 3000;
+  }
+
+  const cost = vehicle[costFieldName as keyof Vehicle];
+  return typeof cost === 'number' && cost > 0 ? cost : 0;
+};
+
 // Helper function to get inflation rate for document type
 const getInflationRateForDocType = (docType: string): number => {
   switch(docType) {
@@ -456,94 +480,6 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       
       // If no specific cost found, use fleet average
       if (!previousCost || previousCost === 0) {
-        previousCost = getFleetAverageCost(doc.type, filteredVehicles);
-      }
-      
-      const inflationRate = getInflationRateForDocType(doc.type);
-      const projectedCost = previousCost * (1 + inflationRate);
-      
-      return total + projectedCost;
-    }, 0);
-    
-    result.thisMonth.expectedExpense = Math.round(expectedExpense);
-    result.thisMonth.renewalsCount = expiringDocsInRange.length;
-    
-    // Count lapsed/expired documents for filtered vehicles
-    const lapsedDocs = filteredVehicles.flatMap(vehicle => {
-      const lapsed = [];
-      
-      const checkLapsed = (dateField: string | null, type: string) => {
-        if (dateField && getExpiryStatus(dateField) === 'expired') {
-          lapsed.push({ vehicleId: vehicle.id, type });
-        }
-      };
-      
-      checkLapsed(vehicle.rc_expiry_date, 'rc');
-      checkLapsed(vehicle.insurance_expiry_date, 'insurance');
-      checkLapsed(vehicle.fitness_expiry_date, 'fitness');
-      checkLapsed(vehicle.permit_expiry_date, 'permit');
-      checkLapsed(vehicle.puc_expiry_date, 'puc');
-      checkLapsed(vehicle.tax_paid_upto, 'tax');
-      
-      return lapsed;
-    });
-    
-    result.thisMonth.lapsedCount = lapsedDocs.length;
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'insurance',
-          vehicle
-        });
-      }
-      
-      if (vehicle.fitness_expiry_date && isWithinDateRange(vehicle.fitness_expiry_date, effectiveDateRange)) {
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'fitness',
-          vehicle
-        });
-      }
-      
-      if (vehicle.permit_expiry_date && isWithinDateRange(vehicle.permit_expiry_date, effectiveDateRange)) {
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'permit',
-          vehicle
-        });
-      }
-      
-      if (vehicle.puc_expiry_date && isWithinDateRange(vehicle.puc_expiry_date, effectiveDateRange)) {
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'puc',
-          vehicle
-        });
-      }
-      
-      if (vehicle.tax_paid_upto && isWithinDateRange(vehicle.tax_paid_upto, effectiveDateRange)) {
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'tax',
-          vehicle
-        });
-      }
-      
-      if (vehicle.rc_expiry_date && isWithinDateRange(vehicle.rc_expiry_date, effectiveDateRange)) {
-        expiring.push({
-          vehicleId: vehicle.id, 
-          type: 'rc',
-          vehicle
-        });
-      }
-      
-      return expiring;
-    });
-    
-    const expectedExpense = expiringDocsInRange.reduce((total, doc) => {
-      let previousCost = getLastRenewalCost(doc.vehicle, doc.type);
-      
-      // If no specific cost found, use fleet average
-      if (!previousCost) {
         previousCost = getFleetAverageCost(doc.type, filteredVehicles);
       }
       
