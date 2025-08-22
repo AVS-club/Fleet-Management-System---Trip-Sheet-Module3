@@ -157,6 +157,28 @@ const DriversPage: React.FC = () => {
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).photo;
 
+      // Handle Aadhaar document upload
+      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) {
+        try {
+          const uploadedUrls = [];
+          for (const file of data.aadhar_doc_file) {
+            if (file instanceof File) {
+              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+              const filePath = await uploadDriverPhoto(file, fileId);
+              uploadedUrls.push(filePath);
+            }
+          }
+          if (uploadedUrls.length > 0) {
+            driverData.aadhar_doc_url = uploadedUrls;
+          }
+        } catch (error) {
+          console.error("Error uploading Aadhaar documents:", error);
+        }
+      }
+
+      // Remove the File object as it can't be stored in the database
+      delete (driverData as any).aadhar_doc_file;
+
       // Process other documents
       if (Array.isArray(driverData.other_documents)) {
         const processedDocs = [];
