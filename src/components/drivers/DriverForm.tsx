@@ -56,6 +56,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
     formState: { errors },
     reset,
     watch,
+    setValue,
   } = useForm<Driver>({
     defaultValues: {
       name: "",
