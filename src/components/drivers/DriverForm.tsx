@@ -68,7 +68,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       other_documents: initialData.other_documents
         ? initialData.other_documents
         : [],
-      medical_doc_file: [], // Changed from medical_document
+      medical_doc_file: [],
       police_document: [],
       aadhar_doc_file: [],
       license_document: [],
@@ -653,7 +653,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
           <Controller
             control={control}
-            name="medical_doc_file" // Changed from medical_document
+            name="medical_doc_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
                 label="Medical Certificate"
