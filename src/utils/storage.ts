@@ -487,6 +487,19 @@ export const getTrips = async (): Promise<Trip[]> => {
       console.error('No user authenticated');
       return [];
     }
+
+    const { data, error } = await supabase
+      .from('trips')
+      .select('*')
+      .eq('added_by', user.id)
+      .order('trip_start_date', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch trips', error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
       console.warn('Network error fetching user for trips, returning empty array');
@@ -495,19 +508,6 @@ export const getTrips = async (): Promise<Trip[]> => {
     handleSupabaseError('get user for trips', error);
     return [];
   }
-
-  const { data, error } = await supabase
-    .from('trips')
-    .select('*')
-    .eq('added_by', user.id)
-    .order('trip_start_date', { ascending: false });
-
-  if (error) {
-    handleSupabaseError('fetch trips', error);
-    return [];
-  }
-
-  return data || [];
 };
 
 export const getTrip = async (id: string): Promise<Trip | null> => {
