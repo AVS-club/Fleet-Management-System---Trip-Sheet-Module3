@@ -41,6 +41,7 @@ import { saveAs } from "file-saver";
 import Layout from "../../components/layout/Layout";
 import LoadingScreen from "../../components/LoadingScreen";
 import Button from "../../components/ui/Button";
+import DriverSummaryModal from "../../components/drivers/DriverSummaryModal";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
 import StatCard from "../../components/ui/StatCard";
@@ -80,6 +81,17 @@ const DriverInsightsPage: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState(true);
+  const [selectedDriverForModal, setSelectedDriverForModal] = useState<Driver | null>(null);
+  const [showDriverModal, setShowDriverModal] = useState(false);
+
+  // Handle opening driver summary modal
+  const handleViewDriverDetails = (driverId: string) => {
+    const driver = drivers.find(d => d.id === driverId);
+    if (driver) {
+      setSelectedDriverForModal(driver);
+      setShowDriverModal(true);
+    }
+  };
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -646,6 +658,12 @@ const DriverInsightsPage: React.FC = () => {
                       >
                         Last Trip
                       </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-4 whitespace-nowrap text-sm text-center"
+                      >
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -655,9 +673,6 @@ const DriverInsightsPage: React.FC = () => {
                         <tr
                           key={driver.driverId}
                           className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() =>
-                            navigate(`/drivers/${driver.driverId}`)
-                          }
                         >
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -714,6 +729,24 @@ const DriverInsightsPage: React.FC = () => {
                                   "dd MMM yyyy",
                                 )
                               : "-"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                            <div className="flex justify-center space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/drivers/${driver.driverId}`)}
+                              >
+                                View Profile
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewDriverDetails(driver.driverId)}
+                              >
+                                View Details
+                              </Button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -881,6 +914,21 @@ const DriverInsightsPage: React.FC = () => {
           )}
         </div>
       </Layout>
+      
+      {/* Driver Summary Modal */}
+      {showDriverModal && selectedDriverForModal && (
+        <DriverSummaryModal
+          isOpen={showDriverModal}
+          onClose={() => {
+            setShowDriverModal(false);
+            setSelectedDriverForModal(null);
+          }}
+          driver={selectedDriverForModal}
+          trips={trips}
+          vehicles={vehicles}
+          maintenanceTasks={[]} // Add maintenance tasks if available
+        />
+      )}
     </>
   );
 };

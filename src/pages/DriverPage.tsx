@@ -24,7 +24,6 @@ import DriverMetrics from "../components/drivers/DriverMetrics";
 import { getAIAlerts } from "../utils/aiAnalytics";
 import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
 import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
-import DriverAIInsights from '../components/ai/DriverAIInsights';
 import DriverForm from "../components/drivers/DriverForm";
 import {
   generateDriverPDF,
@@ -43,6 +42,7 @@ const DriverPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
   const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
@@ -101,11 +101,14 @@ const DriverPage: React.FC = () => {
         );
 
         // Fetch all drivers and vehicles for AI insights
-        const allDriversData = await getDrivers();
+        const [allDriversData, allVehiclesData] = await Promise.all([
+          getDrivers(),
+          getVehicles()
+        ]);
+        
         setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
-
-        const allVehiclesData = await getVehicles();
         setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
+        setMaintenanceTasks([]); // Initialize empty for now
 
         // Generate signed URLs for documents if driver is available
         if (driverData) {
@@ -738,13 +741,13 @@ const DriverPage: React.FC = () => {
           />
 
           {/* Driver AI Insights */}
-          {allDrivers && allDrivers.length > 0 && allVehicles && allVehicles.length > 0 && (
+          {allDrivers.length > 0 && allVehicles.length > 0 && (
             <DriverAIInsights
               driver={driver}
               allDrivers={allDrivers}
               trips={trips}
               vehicles={allVehicles}
-              maintenanceTasks={[]}
+              maintenanceTasks={maintenanceTasks}
             />
           )}
 

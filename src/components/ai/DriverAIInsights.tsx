@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Driver, Trip, Vehicle } from '../../types';
 import { MaintenanceTask } from '../../types/maintenance';
 import {
@@ -10,26 +10,28 @@ import {
   getMaintenanceCostInsight,
   DriverInsight
 } from '../../utils/driverAnalytics';
-import { TrendingUp, AlertTriangle, IndianRupee, PenTool } from 'lucide-react';
+import { TrendingUp, AlertTriangle, IndianRupee, PenTool, User } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
 interface DriverAIInsightsProps {
-  driver: Driver;
   allDrivers: Driver[];
   trips: Trip[];
   vehicles: Vehicle[];
   maintenanceTasks: MaintenanceTask[];
   dateRange?: { start: Date; end: Date };
+  selectedDriverId?: string;
 }
 
 const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
-  driver,
   allDrivers,
   trips,
   vehicles,
   maintenanceTasks,
-  dateRange
+  dateRange,
+  selectedDriverId
 }) => {
+  const [selectedDriver, setSelectedDriver] = useState<string>(selectedDriverId || '');
+  
   const range = useMemo(() => {
     if (dateRange) return dateRange;
     const end = new Date();
@@ -37,7 +39,10 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
   }, [dateRange]);
 
   const insights = useMemo(() => {
-    if (!driver) return [] as DriverInsight[];
+    const driverId = selectedDriver || (allDrivers.length > 0 ? allDrivers[0].id : '');
+    const driver = allDrivers.find(d => d.id === driverId);
+    
+    if (!driver || !driverId) return [] as DriverInsight[];
 
     const metrics = getDriverPerformanceMetrics(
       allDrivers,
@@ -47,6 +52,11 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
       range
     );
     const driverMetric = metrics.find(m => m.driverId === driver.id);
+    
+    if (!driverMetric || driverMetric.totalTrips === 0) {
+      return [] as DriverInsight[];
+    }
+    
     const fleetAvgCostPerKm = getFleetAverageCostPerKm(metrics);
 
     const fleetAvgMaintenanceCost = maintenanceTasks.length > 0
@@ -58,26 +68,29 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
 
     const list: DriverInsight[] = [];
 
-    list.push(
-      getCostComparisonInsight(
-        driver.id || '',
-        driverMetric?.costPerKm || 0,
-        fleetAvgCostPerKm
-      )
-    );
+    // Only add cost comparison if both values are meaningful
+    if (driverMetric.costPerKm > 0 && fleetAvgCostPerKm > 0) {
+      list.push(
+        getCostComparisonInsight(
+          driver.id || '',
+          driverMetric.costPerKm,
+          fleetAvgCostPerKm
+        )
+      );
+    }
 
-    const mileage = getMileageDropInsight(driver.id || '', trips, range);
+    const mileage = getMileageDropInsight(driverId, trips, range);
     if (mileage) list.push(mileage);
 
     const breakdown = getBreakdownInsight(
-      driver.id || '',
+      driverId,
       maintenanceTasks,
       range
     );
     if (breakdown) list.push(breakdown);
 
     const maintenance = getMaintenanceCostInsight(
-      driver.id || '',
+      driverId,
       maintenanceTasks,
       range,
       fleetAvgMaintenanceCost
@@ -85,7 +98,7 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
     if (maintenance) list.push(maintenance);
 
     return list;
-  }, [driver, allDrivers, trips, vehicles, maintenanceTasks, range]);
+  }, [selectedDriver, allDrivers, trips, vehicles, maintenanceTasks, range]);
 
   const getIcon = (type: DriverInsight['type']) => {
     switch (type) {
@@ -111,26 +124,68 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
     }
   };
 
-  if (insights.length === 0) return null;
+  if (allDrivers.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <User className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <p>No drivers available for insights</p>
+      </div>
+    );
+  }
 
   return (
-    <CollapsibleSection
-      title="Driver AI Insights"
-      icon={<TrendingUp className="h-5 w-5" />}
-      iconColor="text-primary-600"
-      defaultExpanded={false}
-    >
-      <ul className="space-y-2">
-        {insights.map((insight, idx) => (
-          <li key={idx} className="flex items-start text-sm">
-            <span className={`mr-2 mt-0.5 ${severityColor(insight.severity)}`}>{
-              getIcon(insight.type)
-            }</span>
-            <span>{insight.message}</span>
-          </li>
-        ))}
-      </ul>
-    </CollapsibleSection>
+    <div className="space-y-4">
+      {/* Driver Selection */}
+      <div className="bg-gray-50 p-4 rounded-lg">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select Driver for AI Insights
+        </label>
+        <select
+          value={selectedDriver}
+          onChange={(e) => setSelectedDriver(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+        >
+          {allDrivers.map(driver => (
+            <option key={driver.id} value={driver.id}>
+              {driver.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Insights Display */}
+      {insights.length > 0 ? (
+        <div className="space-y-3">
+          {insights.map((insight, idx) => (
+            <div key={idx} className={`p-4 rounded-lg border ${
+              insight.severity === 'high' ? 'bg-error-50 border-error-200' :
+              insight.severity === 'medium' ? 'bg-warning-50 border-warning-200' :
+              'bg-success-50 border-success-200'
+            }`}>
+              <div className="flex items-start">
+                <span className={`mr-3 mt-0.5 ${severityColor(insight.severity)}`}>
+                  {getIcon(insight.type)}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{insight.message}</p>
+                  <p className="text-xs text-gray-600 mt-1 capitalize">
+                    {insight.type.replace('_', ' ')} • {insight.severity} priority
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+          <TrendingUp className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+          <p>No insights available for the selected driver</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Insights will appear after sufficient trip and performance data is collected
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 

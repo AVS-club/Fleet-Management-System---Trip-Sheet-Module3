@@ -19,7 +19,11 @@ import { toast } from 'react-toastify';
 
 const AIAlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
+  const [activeTab, setActiveTab] = useState<'alerts' | 'driver-insights'>('alerts');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
   const [vehicleMap, setVehicleMap] = useState<Record<string, Vehicle>>({});
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -44,19 +48,30 @@ const AIAlertsPage: React.FC = () => {
       try {
         // Fetch alerts
         const alertsData = await getAIAlerts();
-        setAlerts(Array.isArray(alertsData) ? alertsData : []);
+        const alertsArray = Array.isArray(alertsData) ? alertsData : [];
+        setAlerts(alertsArray);
         
-        // Fetch vehicles for dropdown and display
-        const vehiclesData = await getVehicles();
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+        // Fetch all data for both tabs
+        const [vehiclesData, driversData, tripsData] = await Promise.all([
+          getVehicles(),
+          getDrivers(),
+          getTrips()
+        ]);
+        
+        const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
+        const driversArray = Array.isArray(driversData) ? driversData : [];
+        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
+        
+        setVehicles(vehiclesArray);
+        setDrivers(driversArray);
+        setTrips(tripsArray);
+        setMaintenanceTasks([]); // Initialize empty for now
         
         // Create vehicle lookup map for efficient access
         const vehicleMapData: Record<string, Vehicle> = {};
-        if (Array.isArray(vehiclesData)) {
-          vehiclesData.forEach(vehicle => {
-            vehicleMapData[vehicle.id] = vehicle;
-          });
-        }
+        vehiclesArray.forEach(vehicle => {
+          vehicleMapData[vehicle.id] = vehicle;
+        });
         setVehicleMap(vehicleMapData);
       } catch (error) {
         console.error('Error fetching AI alerts data:', error);
@@ -310,9 +325,50 @@ const AIAlertsPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">AI AVS Alerts</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {activeTab === 'alerts' ? 'AI AVS Alerts' : 'Driver AI Insights'}
+          </h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Review and manage AI-generated alerts</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
+          {activeTab === 'alerts' 
+            ? 'Review and manage AI-generated alerts' 
+            : 'AI-powered driver performance insights'}
+        </p>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6">
+            <button
+              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'alerts'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => setActiveTab('alerts')}
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                <span>AI Alerts</span>
+              </div>
+            </button>
+            
+            <button
+              className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'driver-insights'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => setActiveTab('driver-insights')}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart2 className="h-4 w-4" />
+                <span>Driver Insights</span>
+              </div>
+            </button>
+          </nav>
+        </div>
       </div>
 
       {loading ? (
@@ -323,6 +379,37 @@ const AIAlertsPage: React.FC = () => {
           </p>
         </div>
       ) : (
+        <>
+          {activeTab === 'driver-insights' ? (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Driver AI Insights</h2>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/drivers/insights')}
+                    icon={<BarChart2 className="h-4 w-4" />}
+                  >
+                    View Full Dashboard
+                  </Button>
+                </div>
+                
+                {drivers.length > 0 && vehicles.length > 0 ? (
+                  <DriverAIInsights
+                    allDrivers={drivers}
+                    trips={trips}
+                    vehicles={vehicles}
+                    maintenanceTasks={maintenanceTasks}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <BarChart2 className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                    <p>No driver data available for insights</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
         <div className="space-y-4">
           {/* Enhanced Filter Bar */}
           <div className="bg-white p-3 sm:p-4 rounded-lg shadow-sm">
@@ -660,6 +747,8 @@ const AIAlertsPage: React.FC = () => {
             )}
           </div>
         </div>
+          )}
+        </>
       )}
 
       {/* Action Modal */}
