@@ -136,7 +136,7 @@ const DriverPage: React.FC = () => {
     try {
       // Generate signed URL for license document
       if (driverData.license_doc_url) {
-        urls.license = driverData.license_doc_url;
+        urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url);
       }
 
       // Generate signed URLs for other documents
