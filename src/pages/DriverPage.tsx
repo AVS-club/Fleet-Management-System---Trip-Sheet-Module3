@@ -455,6 +455,10 @@ const DriverPage: React.FC = () => {
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{driver.name}</h1>
                 <div className="mt-2 space-y-1">
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Personal Information Panel */}
@@ -651,9 +655,6 @@ const DriverPage: React.FC = () => {
                       <p className="text-sm font-medium text-gray-900">
                         License Document
                       </p>
-                    </div>
-                  </div>
-                </div>
                       <p className="text-xs text-gray-500">
                         {driver.license_doc_url ? "Available" : "Not uploaded"}
                       </p>
