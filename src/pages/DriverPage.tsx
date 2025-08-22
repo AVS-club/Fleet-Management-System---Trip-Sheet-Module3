@@ -654,7 +654,6 @@ const DriverPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                      </p>
                       <p className="text-xs text-gray-500">
                         {driver.license_doc_url ? "Available" : "Not uploaded"}
                       </p>
