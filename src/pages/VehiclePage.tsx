@@ -603,4 +603,4 @@ const VehiclePage: React.FC = () => {
                             href={url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-2 py-1 text-sm font
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
