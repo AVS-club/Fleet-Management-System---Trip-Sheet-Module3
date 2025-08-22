@@ -66,6 +66,19 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
       console.error('No user authenticated');
       return [];
     }
+
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select(VEHICLE_COLS)
+      .eq('added_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch vehicles', error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
       console.warn('Network error fetching user for vehicles, returning empty array');
@@ -74,19 +87,6 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     handleSupabaseError('get user for vehicles', error);
     return [];
   }
-
-  const { data, error } = await supabase
-    .from('vehicles')
-    .select(VEHICLE_COLS)
-    .eq('added_by', user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    handleSupabaseError('fetch vehicles', error);
-    return [];
-  }
-
-  return data || [];
 };
 
 export const getVehicle = async (id: string): Promise<Vehicle | null> => {
@@ -605,6 +605,20 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
       console.error('No user authenticated');
       return [];
     }
+
+    const { data, error } = await supabase
+      .from('warehouses')
+      .select('*')
+      .eq('created_by', user.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch warehouses', error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
       console.warn('Network error fetching user for warehouses, returning empty array');
@@ -613,20 +627,6 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     handleSupabaseError('get user for warehouses', error);
     return [];
   }
-
-  const { data, error } = await supabase
-    .from('warehouses')
-    .select('*')
-    .eq('created_by', user.id)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    handleSupabaseError('fetch warehouses', error);
-    return [];
-  }
-
-  return data || [];
 };
 
 export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
@@ -662,6 +662,20 @@ export const getDestinations = async (): Promise<Destination[]> => {
       console.error('No user authenticated');
       return [];
     }
+
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('created_by', user.id)
+      .eq('active', true)
+      .order('name');
+
+    if (error) {
+      handleSupabaseError('fetch destinations', error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
       console.warn('Network error fetching user for destinations, returning empty array');
@@ -670,20 +684,6 @@ export const getDestinations = async (): Promise<Destination[]> => {
     handleSupabaseError('get user for destinations', error);
     return [];
   }
-
-  const { data, error } = await supabase
-    .from('destinations')
-    .select('*')
-    .eq('created_by', user.id)
-    .eq('active', true)
-    .order('name');
-
-  if (error) {
-    handleSupabaseError('fetch destinations', error);
-    return [];
-  }
-
-  return data || [];
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
@@ -745,10 +745,19 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
 // Vehicle stats
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for vehicle stats, returning defaults');
+        return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+      }
+      handleSupabaseError('get user for vehicle stats', userError);
+      return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+    }
     
     if (!user) {
-      console.error('Error fetching user data');
+      console.error('No user authenticated');
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
@@ -784,6 +793,10 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       averageKmpl
     };
   } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error calculating vehicle stats, returning defaults');
+      return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+    }
     handleSupabaseError('calculate vehicle stats', error);
     return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
   }
