@@ -433,6 +433,29 @@ const DriverPage: React.FC = () => {
             </div>
           )}
 
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-start space-x-4">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                {driver.driver_photo_url ? (
+                  <img
+                    src={driver.driver_photo_url}
+                    alt={driver.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to default avatar on image load error
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
+                  <User className="w-12 h-12 text-gray-400" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{driver.name}</h1>
+                <div className="mt-2 space-y-1">
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Personal Information Panel */}
             <div className="bg-white p-6 rounded-lg shadow-sm">

@@ -651,6 +651,13 @@ const VehiclesPage: React.FC = () => {
                         </h3>
                         <p className="text-sm text-gray-500 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
                           {vehicle.make} {vehicle.model}
+                          {vehicle.tax_scope && 
+                           (vehicle.tax_scope.toLowerCase().includes('ltt') || 
+                            vehicle.tax_scope.toLowerCase().includes('lifetime')) && (
+                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full dark:bg-green-900 dark:text-green-200" title="This vehicle has lifetime tax paid">
+                              Lifetime Tax
+                            </span>
+                          )}
                         </p>
                       </div>
                       

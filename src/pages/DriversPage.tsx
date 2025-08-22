@@ -580,18 +580,22 @@ const DriversPage: React.FC = () => {
 
                     <div className="flex items-start gap-3">
                       {/* Driver Photo */}
-                      <div>
+                      <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
                         {driver.driver_photo_url ? (
                           <img
                             src={driver.driver_photo_url}
                             alt={driver.name}
-                            className="h-16 w-16 rounded-full object-cover"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to default avatar on image load error
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                            }}
                           />
-                        ) : (
-                          <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
-                            <User className="h-8 w-8 text-gray-400" />
-                          </div>
-                        )}
+                        ) : null}
+                        <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
+                          <User className="w-8 h-8 text-gray-400" />
+                        </div>
                       </div>
 
                       <div className="flex-1">
