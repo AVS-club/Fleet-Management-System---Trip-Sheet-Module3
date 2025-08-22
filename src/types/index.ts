@@ -185,7 +185,7 @@ export interface Vehicle {
 export interface Driver {
   id?: string;
   name: string;
-  dl_number: string;
+  license_number: string;
   dob: string;
   father_or_husband_name: string;
   contact_number: string;

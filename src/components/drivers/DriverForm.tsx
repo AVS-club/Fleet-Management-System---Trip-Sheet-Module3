@@ -58,7 +58,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
   } = useForm<Driver>({
     defaultValues: {
       name: "",
-      dl_number: "",
+      license_number: "",
       dob: "",
       father_or_husband_name: "",
       contact_number: "",
@@ -118,7 +118,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
   // --- Fetch Driver Details Handler ---
   const handleFetchDetails = async () => {
-    const licenseNumber = watch("dl_number");
+    const licenseNumber = watch("license_number");
     const dob = watch("dob");
 
     if (!licenseNumber || !dob) {
