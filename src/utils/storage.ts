@@ -532,7 +532,15 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       throw new Error('User not authenticated');
     }
 
-    const payload = withOwner(tripData, userId);
+    const { station, fuel_station_id, ...rest } = tripData;
+    const payload = withOwner(
+      {
+        ...rest,
+        station: station ?? null,
+        fuel_station_id: fuel_station_id ?? null,
+      },
+      userId
+    );
 
     const { data, error } = await supabase
       .from('trips')

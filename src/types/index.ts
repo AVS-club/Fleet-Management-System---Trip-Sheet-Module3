@@ -328,6 +328,8 @@ export interface TripFormData
   alert_notes?: string;
   breakdown_expense?: number;
   miscellaneous_expense?: number;
+  station?: string;
+  fuel_station_id?: string;
 }
 
 // Add RouteAnalysis interface
