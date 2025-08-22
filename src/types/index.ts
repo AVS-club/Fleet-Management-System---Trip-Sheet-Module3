@@ -286,6 +286,7 @@ export interface Trip {
   end_km: number;
   gross_weight: number;
   station?: string;
+  fuel_station_id?: string;
   refueling_done: boolean;
   fuel_quantity?: number;
   fuel_cost?: number;
