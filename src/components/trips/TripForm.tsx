@@ -763,6 +763,20 @@ const TripForm: React.FC<TripFormProps> = ({
                   }
                 })}
               />
+
+              <Input
+                label="Fuel Station"
+                placeholder="Enter station name"
+                error={errors.station?.message}
+                {...register('station')}
+              />
+
+              <Input
+                label="Fuel Station ID"
+                placeholder="Enter station ID"
+                error={errors.fuel_station_id?.message}
+                {...register('fuel_station_id')}
+              />
             </div>
 
             {fuelQuantity && fuelCost && (
