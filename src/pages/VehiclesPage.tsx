@@ -550,7 +550,7 @@ const VehiclesPage: React.FC = () => {
               <div className="flex">
                 <AlertTriangle className="h-6 w-6 text-warning-500 mr-2" />
                 <div>
-                  <h3 className="text-warning-800 font-medium">
+                  <h3 className="text-lg font-medium text-gray-900">
                     Viewing Archived Vehicles
                   </h3>
                   <p className="text-warning-700">
