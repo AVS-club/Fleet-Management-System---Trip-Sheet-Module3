@@ -177,7 +177,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         address: driver?.permanent_address || driver?.temporary_address || "",
         contact_number: driver?.contact_number || "",
         email: driver?.email || "",
-        dl_number: driver?.license_number || licenseNumber,
+        license_number: driver?.license_number || licenseNumber,
         vehicle_class:
           (driver?.vehicle_class &&
             driver?.vehicle_class.map((v: any) => v?.cov)) ||

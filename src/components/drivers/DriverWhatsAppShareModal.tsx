@@ -32,7 +32,7 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
     return encodeURIComponent(
       `👨‍✈️ *Driver Profile (Auto Vital Solution)*\n\n` +
       `📌 *Name:* ${driver.name}\n` +
-      `🪪 *License:* ${driver.dl_number || driver.license_number || 'N/A'}\n` +
+      `🪪 *License:* ${driver.license_number || 'N/A'}\n` +
       `📞 *Contact:* ${driver.contact_number || 'N/A'}\n` +
       `📧 *Email:* ${driver.email || 'N/A'}\n` +
       `⏱️ *Experience:* ${driver.experience_years} years\n` +
