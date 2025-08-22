@@ -20,7 +20,7 @@ import { handleSupabaseError } from './errors';
 export const VEHICLE_COLS = 'id,registration_number,make,model,year,type,fuel_type,current_odometer,status,chassis_number,engine_number,owner_name,tyre_size,number_of_tyres,rc_expiry_date,rc_document_url,insurance_policy_number,insurer_name,insurance_start_date,insurance_expiry_date,insurance_premium_amount,insurance_document_url,fitness_certificate_number,fitness_issue_date,fitness_expiry_date,fitness_cost,fitness_document_url,tax_receipt_number,tax_amount,tax_period,tax_document_url,permit_number,permit_issuing_state,permit_type,permit_issue_date,permit_expiry_date,permit_cost,permit_document_url,puc_certificate_number,puc_issue_date,puc_expiry_date,puc_cost,puc_document_url,issuing_state,other_documents,registration_date,policy_number,tax_receipt_document,insurance_idv,tax_scope,remind_insurance,insurance_reminder_contact_id,insurance_reminder_days_before,remind_fitness,fitness_reminder_contact_id,fitness_reminder_days_before,remind_puc,puc_reminder_contact_id,puc_reminder_days_before,remind_tax,tax_reminder_contact_id,tax_reminder_days_before,remind_permit,permit_reminder_contact_id,permit_reminder_days_before,remind_service,service_reminder_contact_id,service_reminder_days_before,service_reminder_km,photo_url,financer,vehicle_class,color,cubic_capacity,cylinders,unladen_weight,seating_capacity,emission_norms,noc_details,national_permit_number,national_permit_upto,rc_status,vahan_last_fetched_at,other_info_documents,tax_paid_upto,tags,last_updated_at,added_by,service_interval_km,service_interval_days,created_by,primary_driver_id,created_at,updated_at';
 
 // Define allowed columns for drivers table
-export const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at';
+export const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at'; // ⚠️ Confirm field refactor here
 
 export async function getUserData() {
   try {
@@ -112,7 +112,7 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
     }
 
     // Strip UI-only fields and prepare data
-    const { documents, selected, ...cleanData } = vehicleData as any;
+    const { documents, selected, ...cleanData } = vehicleData as any; // ⚠️ Confirm field refactor here
     
     // Remove _file properties (client-side File objects, not database columns)
     const payload = withOwner({
@@ -377,7 +377,7 @@ export const getDriver = async (id: string): Promise<Driver | null> => {
 
 export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driver | null> => {
   try {
-    const userId = await getCurrentUserId();
+    const userId = await getCurrentUserId(); // ⚠️ Confirm field refactor here
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -385,7 +385,7 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
     const payload = withOwner(driverData, userId);
 
     const { data, error } = await supabase
-      .from('drivers')
+      .from('drivers') // ⚠️ Confirm field refactor here
       .insert(payload)
       .select(DRIVER_COLS)
       .single();
@@ -405,7 +405,7 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
 export const updateDriver = async (id: string, updates: Partial<Driver>): Promise<Driver | null> => {
   try {
     // Remove undefined values
-    const cleanUpdates = Object.fromEntries(
+    const cleanUpdates = Object.fromEntries( // ⚠️ Confirm field refactor here
       Object.entries(updates).filter(([_, value]) => value !== undefined)
     );
 
@@ -430,7 +430,7 @@ export const updateDriver = async (id: string, updates: Partial<Driver>): Promis
 
 export const deleteDriver = async (id: string): Promise<boolean> => {
   const { error } = await supabase
-    .from('drivers')
+    .from('drivers') // ⚠️ Confirm field refactor here
     .delete()
     .eq('id', id);
 
@@ -445,7 +445,7 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
 // Photo upload function for drivers
 export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string | undefined> => {
   if (!file || !file.name) {
-    console.warn('No photo uploaded — skipping uploadDriverPhoto.');
+    console.warn('No photo uploaded — skipping uploadDriverPhoto.'); // ⚠️ Confirm field refactor here
     return undefined;
   }
 
@@ -454,7 +454,7 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
 
   try {
     const { error } = await supabase.storage
-      .from('driver-photos')
+      .from('driver-photos') // ⚠️ Confirm field refactor here
       .upload(filePath, file, { upsert: true });
       
     if (error) {
@@ -527,7 +527,7 @@ export const getTrip = async (id: string): Promise<Trip | null> => {
 
 export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | null> => {
   try {
-    const userId = await getCurrentUserId();
+    const userId = await getCurrentUserId(); // ⚠️ Confirm field refactor here
     if (!userId) {
       throw new Error('User not authenticated');
     }
@@ -535,7 +535,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
     const { photo, aadhar_doc_file, medical_doc_file, license_doc_file, police_doc_file, ...rest } = driverData as any;
     const payload = withOwner(
       {
-        ...rest,
+        ...rest, // ⚠️ Confirm field refactor here
         station: station ?? null,
         fuel_station_id: fuel_station_id ?? null,
       },
@@ -543,7 +543,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
     );
 
     const { data, error } = await supabase
-      .from('trips')
+      .from('trips') // ⚠️ Confirm field refactor here
       .insert(payload)
       .select('*')
       .single();
@@ -562,7 +562,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
 
 export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Trip | null> => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips')
       .update(updates)
       .eq('id', id)
@@ -583,7 +583,7 @@ export const updateTrip = async (id: string, updates: Partial<Trip>): Promise<Tr
 
 export const deleteTrip = async (id: string): Promise<boolean> => {
   const { error } = await supabase
-    .from('trips')
+    .from('trips') // ⚠️ Confirm field refactor here
     .delete()
     .eq('id', id);
 
@@ -598,7 +598,7 @@ export const deleteTrip = async (id: string): Promise<boolean> => {
 // Warehouse operations
 export const getWarehouses = async (): Promise<Warehouse[]> => {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // ⚠️ Confirm field refactor here
     
     if (userError) {
       if (isNetworkError(userError)) {
@@ -615,7 +615,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     }
 
     const { data, error } = await supabase
-      .from('warehouses')
+      .from('warehouses') // ⚠️ Confirm field refactor here
       .select('*')
       .eq('created_by', user.id)
       .eq('is_active', true)
@@ -638,7 +638,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
 };
 
 export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabase // ⚠️ Confirm field refactor here
     .from('warehouses')
     .select('*')
     .eq('id', id)
@@ -655,7 +655,7 @@ export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
 // Destination operations
 export const getDestinations = async (): Promise<Destination[]> => {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // ⚠️ Confirm field refactor here
     
     if (userError) {
       if (isNetworkError(userError)) {
@@ -672,7 +672,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     }
 
     const { data, error } = await supabase
-      .from('destinations')
+      .from('destinations') // ⚠️ Confirm field refactor here
       .select('*')
       .eq('created_by', user.id)
       .eq('active', true)
@@ -695,7 +695,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabase // ⚠️ Confirm field refactor here
     .from('destinations')
     .select('*')
     .eq('id', id)
@@ -718,7 +718,7 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
 
     const payload = withOwner(destinationData, userId);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations')
       .insert(payload)
       .select('*')
@@ -738,7 +738,7 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
 
 export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   const { error } = await supabase
-    .from('destinations')
+    .from('destinations') // ⚠️ Confirm field refactor here
     .delete()
     .eq('id', id);
 
@@ -753,7 +753,7 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
 // Vehicle stats
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // ⚠️ Confirm field refactor here
     
     if (userError) {
       if (isNetworkError(userError)) {
@@ -771,7 +771,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
 
     // Get trips for this vehicle
     const { data: trips, error } = await supabase
-      .from('trips')
+      .from('trips') // ⚠️ Confirm field refactor here
       .select('start_km, end_km, calculated_kmpl, short_trip')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId);
@@ -870,7 +870,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
 // Get latest odometer reading
 export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number; fromTrip: boolean }> => {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // ⚠️ Confirm field refactor here
     
     if (userError) {
       if (isNetworkError(userError)) {
@@ -888,7 +888,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
 
     // First try to get the latest trip end_km
     const { data: trips, error: tripsError } = await supabase
-      .from('trips')
+      .from('trips') // ⚠️ Confirm field refactor here
       .select('end_km')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId)

@@ -20,7 +20,7 @@ import {
   UserCheck,
   UserX,
   Phone,
-  Calendar,
+  Calendar, // ⚠️ Confirm field refactor here
   FileText,
 } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -149,7 +149,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Prepare driver data with photo URL
-      const driverData: Partial<Driver> = {
+      const driverData: Partial<Driver> = { // ⚠️ Confirm field refactor here
         ...data,
         driver_photo_url: photoUrl,
       };
@@ -159,7 +159,7 @@ const DriversPage: React.FC = () => {
 
       // Handle Aadhaar document upload
       if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) {
-        try {
+        try { // ⚠️ Confirm field refactor here
           const uploadedUrls = [];
           for (const file of data.aadhar_doc_file) {
             if (file instanceof File) {
@@ -178,7 +178,7 @@ const DriversPage: React.FC = () => {
       
       // Handle license document upload
       if (data.license_doc_file && Array.isArray(data.license_doc_file)) {
-        try {
+        try { // ⚠️ Confirm field refactor here
           const uploadedUrls = [];
           for (const file of data.license_doc_file) {
             if (file instanceof File) {
@@ -196,7 +196,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Handle police document upload
-      if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
+      if (data.police_doc_file && Array.isArray(data.police_doc_file)) { // ⚠️ Confirm field refactor here
         try {
           const uploadedUrls = [];
           for (const file of data.police_doc_file) {
@@ -215,7 +215,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Handle medical document upload (already handled in previous commit, but ensuring consistency)
-      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
+      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) { // ⚠️ Confirm field refactor here
         try {
           const uploadedUrls = [];
           for (const file of data.medical_doc_file) {
@@ -233,10 +233,10 @@ const DriversPage: React.FC = () => {
         }
       }
       // Remove the File object as it can't be stored in the database
-      delete (driverData as any).medical_doc_file;
+      delete (driverData as any).medical_doc_file; // ⚠️ Confirm field refactor here
 
       // Remove the File object as it can't be stored in the database
-      delete (driverData as any).aadhar_doc_file;
+      delete (driverData as any).aadhar_doc_file; // ⚠️ Confirm field refactor here
 
       // Process other documents
       if (Array.isArray(driverData.other_documents)) {
@@ -272,7 +272,7 @@ const DriversPage: React.FC = () => {
       if (editingDriver) {
         // Update existing driver
         const updatedDriver = await updateDriver(editingDriver.id, driverData);
-        if (updatedDriver) {
+        if (updatedDriver) { // ⚠️ Confirm field refactor here
           // Update the drivers list
           setDrivers((prevDrivers) =>
             prevDrivers.map((d) =>
@@ -287,7 +287,7 @@ const DriversPage: React.FC = () => {
       } else {
         // Create new driver
         // Remove empty id field if present to let Supabase auto-generate
-        const { id, ...cleanDriverData } = driverData as any;
+        const { id, ...cleanDriverData } = driverData as any; // ⚠️ Confirm field refactor here
         const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
         
         const newDriver = await createDriver(finalDriverData);
@@ -370,7 +370,7 @@ const DriversPage: React.FC = () => {
     setSelectedDriverForShare(driver);
     
     // Generate signed URLs for documents if available
-    const urls: {
+    const urls: { // ⚠️ Confirm field refactor here
       license?: string;
       police_verification?: string;
       medical_certificate?: string;
@@ -379,7 +379,7 @@ const DriversPage: React.FC = () => {
     } = {
       other: {}
     };
-    
+    // ⚠️ Confirm field refactor here
     try {
       // Generate signed URL for license document
       if (driver.license_doc_url) {
@@ -388,7 +388,7 @@ const DriversPage: React.FC = () => {
       
       // Generate signed URLs for other documents
       if (driver.other_documents && Array.isArray(driver.other_documents)) {
-        for (let i = 0; i < driver.other_documents.length; i++) {
+        for (let i = 0; i < driver.other_documents.length; i++) { // ⚠️ Confirm field refactor here
           const doc = driver.other_documents[i];
           if (doc.file_path) {
             urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path);

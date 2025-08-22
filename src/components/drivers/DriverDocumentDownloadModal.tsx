@@ -14,7 +14,7 @@ interface DriverDocumentDownloadModalProps {
     license?: string;
     police_verification?: string;
     medical_certificate?: string;
-    medical_doc_url?: string[]; // Changed from medical_certificate
+    medical_doc_url?: string[]; // ⚠️ Confirm field refactor here
     other: Record<string, string>;
   };
 }
@@ -38,7 +38,7 @@ const DriverDocumentDownloadModal: React.FC<DriverDocumentDownloadModalProps> = 
   const [isDownloading, setIsDownloading] = useState(false);
   
   // Initialize documents based on signedDocUrls
-  useEffect(() => {
+  useEffect(() => { // ⚠️ Confirm field refactor here
     const docs: DocumentItem[] = [
       {
         id: 'license',
@@ -57,7 +57,7 @@ const DriverDocumentDownloadModal: React.FC<DriverDocumentDownloadModalProps> = 
         status: signedDocUrls.police_verification ? 'available' : 'missing'
       },
       {
-        id: 'medical_doc_url', // Changed from medical_certificate
+        id: 'medical_doc_url', // ⚠️ Confirm field refactor here
         name: 'Medical Certificate',
         url: signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0 ? signedDocUrls.medical_doc_url[0] : undefined, // Take first URL if array
         selected: !!(signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0),

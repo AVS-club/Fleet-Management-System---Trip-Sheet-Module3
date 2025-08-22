@@ -127,7 +127,7 @@ const DriverPage: React.FC = () => {
 
   // Function to generate signed URLs for all documents
   const generateSignedUrls = async (driverData: Driver) => {
-    const urls: {
+    const urls: { // ⚠️ Confirm field refactor here
       license?: string;
       police_verification?: string;
       medical_certificate?: string;
@@ -138,7 +138,7 @@ const DriverPage: React.FC = () => {
     } = {
       other: {},
     };
-
+    // ⚠️ Confirm field refactor here
     try {
       // Generate signed URL for license document
       if (driverData.license_doc_url && typeof driverData.license_doc_url === 'string') {
@@ -148,7 +148,7 @@ const DriverPage: React.FC = () => {
       }
 
       // Generate signed URL for medical document
-      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) {
+      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) { // ⚠️ Confirm field refactor here
         urls.medical_doc_url = await Promise.all(driverData.medical_doc_url.map(url => getSignedDriverDocumentUrl(url)));
       }
 

@@ -65,10 +65,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
       contact_number: "",
       email: "",
       status: "active",
+      // ⚠️ Confirm field refactor here
       ...initialData,
       other_documents: initialData.other_documents
         ? initialData.other_documents
-        : [],
+        : [], // ⚠️ Confirm field refactor here
       medical_doc_file: initialData.medical_doc_url ? [] : initialData.medical_doc_file,
       police_doc_file: initialData.police_doc_url ? [] : initialData.police_doc_file,
       aadhar_doc_file: initialData.aadhar_doc_url ? [] : initialData.aadhar_doc_file,
@@ -153,7 +154,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       const driver = result.response || result.data?.response || {};
 
       // Convert base64 image to data URL if present
-      let photoUrl = undefined;
+      let photoUrl = undefined; // ⚠️ Confirm field refactor here
       if (driver.image) {
         photoUrl = `data:image/jpeg;base64,${driver.image}`;
         setPhotoPreview(photoUrl);
@@ -170,14 +171,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
               ? "MALE"
               : driver.gender.toUpperCase() === "FEMALE"
               ? "FEMALE"
-              : "OTHER")) ||
+          : "OTHER")) || // ⚠️ Confirm field refactor here
           "MALE",
         dob: (driver?.dob && driver?.dob.split("-").reverse().join("-")) || dob,
         blood_group:
           (driver?.blood_group && driver.blood_group.toUpperCase()) || "",
         address: driver?.permanent_address || driver?.temporary_address || "",
         contact_number: driver?.contact_number || "",
-        email: driver?.email || "",
+        email: driver?.email || "", // ⚠️ Confirm field refactor here
         license_number: driver?.license_number || licenseNumber,
         vehicle_class:
           (driver?.vehicle_class &&

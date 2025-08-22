@@ -10,7 +10,7 @@ interface DriverWhatsAppShareModalProps {
   signedDocUrls?: {
     license?: string;
     police_verification?: string;
-    medical_doc_url?: string[]; // Use medical_doc_url as array
+    medical_doc_url?: string[]; // ⚠️ Confirm field refactor here
     medical_doc_url?: string[]; // Changed from medical_certificate
     other: Record<string, string>;
   };
@@ -26,7 +26,7 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
   const [showDocumentFiles, setShowDocumentFiles] = useState(false);
 
   if (!isOpen) return null;
-  
+  // ⚠️ Confirm field refactor here
   // Generate Driver Details message
   const generateDriverDetailsMessage = () => {
     return encodeURIComponent(

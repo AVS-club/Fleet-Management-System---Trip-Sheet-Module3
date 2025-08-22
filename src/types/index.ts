@@ -196,10 +196,10 @@ export interface Driver {
   experience_years: number;
   primary_vehicle_id?: string;
   driver_photo_url?: string;
-  driver_photo_path?: string;
 
+  // Document URLs (stored in Supabase Storage)
   aadhar_doc_file?: File[]; // For frontend handling before upload
-  license_doc_file?: File[]; // For frontend handling before upload
+  license_doc_file?: File[];
   police_doc_file?: File[]; // For frontend handling before upload
   medical_doc_file?: File[]; // For frontend handling before upload
   medical_doc_url?: string[];
@@ -207,7 +207,7 @@ export interface Driver {
   police_doc_url?: string[];
   license_expiry_date?: string;
   license_issue_date?: string;
-  documents_verified?: boolean;
+  documents_verified?: boolean; // Indicates if all required documents are verified
   driver_status_reason?: string;
   performance_metrics?: {
     total_trips: number;
@@ -216,18 +216,18 @@ export interface Driver {
     breakdown_count: number;
     last_trip_gap: number;
     risk_score?: number;
-  };
-  state?: string;
-  created_at?: string;
-  updated_at?: string;
-  valid_from?: string;
-  address?: string;
-  blood_group?: string;
-  notes?: string;
-  rto?: string;
-  rto_code?: string;
+  }; // AI-generated performance metrics
+  state?: string; // State of residence
+  created_at?: string; // Timestamp of creation
+  updated_at?: string; // Timestamp of last update
+  valid_from?: string; // License valid from date
+  address?: string; // Driver's current address
+  blood_group?: string; // Driver's blood group
+  notes?: string; // Internal notes about the driver
+  rto?: string; // RTO name
+  rto_code?: string; // RTO code
 
-  vehicle_class: string[];
+  vehicle_class: string[]; // Array of vehicle classes the driver is licensed for
   other_documents?: Array<{
     id?: string;
     name: string;
