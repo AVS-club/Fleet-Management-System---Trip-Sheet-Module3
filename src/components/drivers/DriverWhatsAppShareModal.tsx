@@ -9,7 +9,7 @@ interface DriverWhatsAppShareModalProps {
   driver: Driver;
   signedDocUrls?: {
     license?: string;
-    police_verification?: string;
+    police_verification?: string; // ⚠️ Confirm field refactor here
     medical_doc_url?: string[]; // ⚠️ Confirm field refactor here
     medical_doc_url?: string[]; // Changed from medical_certificate
     other: Record<string, string>;
@@ -22,7 +22,7 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
   driver,
   signedDocUrls = { other: {} }
 }) => {
-  // Add state for showing document files section
+  // Add state for showing document files section // ⚠️ Confirm field refactor here
   const [showDocumentFiles, setShowDocumentFiles] = useState(false);
 
   if (!isOpen) return null;

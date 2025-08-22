@@ -26,7 +26,7 @@ import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
-import { format } from "date-fns";
+import { format, differenceInYears } from "date-fns"; // ⚠️ Confirm field refactor here
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -65,10 +65,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
       contact_number: "",
       email: "",
       status: "active",
-      // ⚠️ Confirm field refactor here
       ...initialData,
       other_documents: initialData.other_documents
-        ? initialData.other_documents
+        ? initialData.other_documents // ⚠️ Confirm field refactor here
         : [], // ⚠️ Confirm field refactor here
       medical_doc_file: initialData.medical_doc_url ? [] : initialData.medical_doc_file,
       police_doc_file: initialData.police_doc_url ? [] : initialData.police_doc_file,

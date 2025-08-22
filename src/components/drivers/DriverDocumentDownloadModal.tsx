@@ -12,7 +12,7 @@ interface DriverDocumentDownloadModalProps {
   driver: Driver;
   signedDocUrls: {
     license?: string;
-    police_verification?: string;
+    police_verification?: string; // ⚠️ Confirm field refactor here
     medical_certificate?: string;
     medical_doc_url?: string[]; // ⚠️ Confirm field refactor here
     other: Record<string, string>;
@@ -35,7 +35,7 @@ const DriverDocumentDownloadModal: React.FC<DriverDocumentDownloadModalProps> = 
   signedDocUrls
 }) => {
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false); // ⚠️ Confirm field refactor here
   
   // Initialize documents based on signedDocUrls
   useEffect(() => { // ⚠️ Confirm field refactor here
