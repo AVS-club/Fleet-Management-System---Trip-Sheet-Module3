@@ -66,6 +66,7 @@ const VehiclesPage: React.FC = () => {
     useState<Vehicle | null>(null);
   const [showActivityLogModal, setShowActivityLogModal] = useState(false);
   const [selectedVehicleForLog, setSelectedVehicleForLog] = useState<Vehicle | null>(null);
+  const [topDriverLogic, setTopDriverLogic] = useState<'cost_per_km' | 'mileage' | 'trips'>('mileage');
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
@@ -524,11 +525,11 @@ const VehiclesPage: React.FC = () => {
                     }
                     icon={<Medal className="h-5 w-5 text-yellow-500" />}
                     onClick={() =>
-                      topDriverData.length > 0 &&
+                      topDriversThisMonth.length > 0 &&
                       setShowTopDriversModal(true)
                     }
                     className={
-                      topDriverData.length > 0 ? "cursor-pointer" : ""
+                      topDriversThisMonth.length > 0 ? "cursor-pointer" : ""
                     }
                   />
 
