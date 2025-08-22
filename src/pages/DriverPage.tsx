@@ -131,7 +131,9 @@ const DriverPage: React.FC = () => {
       license?: string;
       police_verification?: string;
       medical_certificate?: string;
-      id_proof?: string;
+      id_proof?: string; // Assuming this is for Aadhaar
+      // Ensure medical_doc_url is handled as an array of strings
+      medical_doc_url?: string[];
       other: Record<string, string>;
     } = {
       other: {},
@@ -144,6 +146,12 @@ const DriverPage: React.FC = () => {
       } else if (Array.isArray(driverData.license_doc_url) && driverData.license_doc_url.length > 0) {
         urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url[0]);
       }
+
+      // Generate signed URL for medical document
+      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) {
+        urls.medical_doc_url = await Promise.all(driverData.medical_doc_url.map(url => getSignedDriverDocumentUrl(url)));
+      }
+
 
       // Generate signed URLs for other documents
       if (

@@ -176,6 +176,27 @@ const DriversPage: React.FC = () => {
         }
       }
 
+      // Handle medical document upload
+      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
+        try {
+          const uploadedUrls = [];
+          for (const file of data.medical_doc_file) {
+            if (file instanceof File) {
+              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+              const filePath = await uploadDriverPhoto(file, fileId); // Assuming uploadDriverPhoto can handle medical docs
+              uploadedUrls.push(filePath);
+            }
+          }
+          if (uploadedUrls.length > 0) {
+            driverData.medical_doc_url = uploadedUrls;
+          }
+        } catch (error) {
+          console.error("Error uploading medical documents:", error);
+        }
+      }
+      // Remove the File object as it can't be stored in the database
+      delete (driverData as any).medical_doc_file;
+
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).aadhar_doc_file;
 

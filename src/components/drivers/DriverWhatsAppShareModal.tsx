@@ -11,7 +11,7 @@ interface DriverWhatsAppShareModalProps {
     license?: string;
     police_verification?: string;
     medical_certificate?: string;
-    id_proof?: string;
+    medical_doc_url?: string[]; // Changed from medical_certificate
     other: Record<string, string>;
   };
 }
@@ -165,6 +165,36 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                     </div>
                   </div>
                   
+                  {/* Medical Document */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">Medical Certificate</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0 ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.medical_doc_url[0]} // Assuming only one medical doc for sharing
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('Medical Certificate', signedDocUrls.medical_doc_url![0])}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+
+
                   {/* Other Documents */}
                   {Object.entries(signedDocUrls.other).map(([key, url], index) => (
                     <div key={key} className="flex justify-between items-center p-2 bg-white rounded border">

@@ -23,7 +23,7 @@ interface DriverDocumentManagerModalProps {
     license?: string;
     police_verification?: string;
     medical_certificate?: string;
-    id_proof?: string;
+    medical_doc_url?: string[]; // Changed from medical_certificate
     other: Record<string, string>;
   };
 }
@@ -51,7 +51,7 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
           getDocumentStatus(driver.license_expiry_date) : 'missing'
       },
       {
-        id: 'police_verification',
+        id: 'police_verification', // Keep this as is, it's a separate document
         name: 'Police Verification',
         url: signedDocUrls.police_verification,
         selected: !!signedDocUrls.police_verification,
@@ -59,12 +59,12 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
         status: signedDocUrls.police_verification ? 'available' : 'missing'
       },
       {
-        id: 'medical_certificate',
+        id: 'medical_doc_url', // Changed from medical_certificate
         name: 'Medical Certificate',
-        url: signedDocUrls.medical_certificate,
-        selected: !!signedDocUrls.medical_certificate,
-        size: signedDocUrls.medical_certificate ? 'PDF' : undefined,
-        status: signedDocUrls.medical_certificate ? 'available' : 'missing'
+        url: signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0 ? signedDocUrls.medical_doc_url[0] : undefined, // Take first URL if array
+        selected: !!(signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0),
+        size: (signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0) ? 'PDF' : undefined,
+        status: (signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0) ? 'available' : 'missing'
       },
       {
         id: 'id_proof',
