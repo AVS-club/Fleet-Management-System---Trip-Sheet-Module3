@@ -132,7 +132,7 @@ const DriversPage: React.FC = () => {
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
-      let photoUrl = editingDriver?.driver_photo_url;
+      let photoUrl = data.driver_photo_url; // Start with the URL from form data (includes API fetched URL)
 
       // Handle photo upload if a new photo is provided
       if (data.photo && data.photo instanceof File) {
