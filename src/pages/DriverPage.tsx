@@ -32,6 +32,7 @@ import {
 import { toast } from "react-toastify";
 import WhatsAppButton from "../components/drivers/WhatsAppButton";
 import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDownloadModal";
+import DriverAIInsights from "../components/ai/DriverAIInsights";
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -138,8 +139,10 @@ const DriverPage: React.FC = () => {
 
     try {
       // Generate signed URL for license document
-      if (driverData.license_doc_url) {
+      if (driverData.license_doc_url && typeof driverData.license_doc_url === 'string') {
         urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url);
+      } else if (Array.isArray(driverData.license_doc_url) && driverData.license_doc_url.length > 0) {
+        urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url[0]);
       }
 
       // Generate signed URLs for other documents
@@ -149,9 +152,13 @@ const DriverPage: React.FC = () => {
       ) {
         for (let i = 0; i < driverData.other_documents.length; i++) {
           const doc = driverData.other_documents[i];
-          if (doc.file_path) {
+          if (doc.file_path && typeof doc.file_path === 'string') {
             urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(
               doc.file_path
+            );
+          } else if (Array.isArray(doc.file_path) && doc.file_path.length > 0) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(
+              doc.file_path[0]
             );
           }
         }
