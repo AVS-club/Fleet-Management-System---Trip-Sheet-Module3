@@ -50,10 +50,28 @@ export async function getUserData() {
 
 // Vehicle CRUD operations
 export const getVehicles = async (): Promise<Vehicle[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.error('Error fetching user data');
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for vehicles, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for vehicles', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for vehicles, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for vehicles', error);
     return [];
   }
 
@@ -303,10 +321,28 @@ export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<boole
 
 // Driver CRUD operations
 export const getDrivers = async (): Promise<Driver[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.error('Error fetching user data');
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for drivers, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for drivers', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for drivers, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for drivers', error);
     return [];
   }
 
@@ -435,10 +471,28 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
 
 // Trip CRUD operations
 export const getTrips = async (): Promise<Trip[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.error('Error fetching user data');
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for trips, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for trips', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for trips, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for trips', error);
     return [];
   }
 
@@ -535,10 +589,28 @@ export const deleteTrip = async (id: string): Promise<boolean> => {
 
 // Warehouse operations
 export const getWarehouses = async (): Promise<Warehouse[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.error('Error fetching user data');
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for warehouses, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for warehouses', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for warehouses, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for warehouses', error);
     return [];
   }
 
@@ -574,10 +646,28 @@ export const getWarehouse = async (id: string): Promise<Warehouse | null> => {
 
 // Destination operations
 export const getDestinations = async (): Promise<Destination[]> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    console.error('Error fetching user data');
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destinations, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for destinations', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for destinations, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for destinations', error);
     return [];
   }
 
@@ -759,10 +849,19 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
 // Get latest odometer reading
 export const getLatestOdometer = async (vehicleId: string): Promise<{ value: number; fromTrip: boolean }> => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for odometer, returning default');
+        return { value: 0, fromTrip: false };
+      }
+      handleSupabaseError('get user for odometer', userError);
+      return { value: 0, fromTrip: false };
+    }
     
     if (!user) {
-      console.error('Error fetching user data');
+      console.error('No user authenticated');
       return { value: 0, fromTrip: false };
     }
 

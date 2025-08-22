@@ -40,20 +40,47 @@ import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
+import { isNetworkError } from "./utils/supabaseClient";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Test Supabase connection on app start
-    testSupabaseConnection();
+    // Test Supabase connection and get initial session
+    const initializeApp = async () => {
+      try {
+        // Test Supabase connection on app start
+        await testSupabaseConnection();
+      } catch (connectionError) {
+        console.error('Supabase connection test failed:', connectionError);
+        // Continue anyway, but log the issue
+      }
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
-    });
+      try {
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          if (isNetworkError(error)) {
+            console.warn('Network error getting session, continuing without session');
+            setSession(null);
+          } else {
+            console.error('Session error:', error);
+            setSession(null);
+          }
+        } else {
+          setSession(session);
+        }
+      } catch (error) {
+        console.error('Failed to get session:', error);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeApp();
 
     // Listen for auth changes
     const {
