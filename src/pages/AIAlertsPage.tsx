@@ -3,6 +3,7 @@ import Layout from '../components/layout/Layout';
 import { AIAlert } from '../types'; 
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
+import DriverAIInsights from '../components/ai/DriverAIInsights';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, PenTool as Tool } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';

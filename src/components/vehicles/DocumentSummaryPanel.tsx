@@ -112,7 +112,6 @@ const getCostFieldName = (docType: string): string => {
     case 'permit': return 'permit_cost';
     case 'puc': return 'puc_cost';
     case 'tax': return 'tax_amount';
-    case 'rc': return 'rc_cost'; // This might not exist, will need a fallback
     default: return '';
   }
 };
@@ -120,12 +119,29 @@ const getCostFieldName = (docType: string): string => {
 // Helper function to get the last renewal cost for a document type
 const getLastRenewalCost = (vehicle: Vehicle, docType: string): number => {
   const costFieldName = getCostFieldName(docType);
+  
+  if (!costFieldName) {
+    // Handle RC and other types without specific cost fields
+    if (docType === 'rc') return 2000; // Default RC cost
+    return 3000; // Default other cost
+  }
+  
   const cost = vehicle[costFieldName as keyof Vehicle];
   
-  // Default costs for types that might not have specific fields
-  if (docType === 'rc' && (!cost || typeof cost !== 'number')) return 2000; // Nominal RC cost
+  if (!cost || typeof cost !== 'number' || cost <= 0) {
+    // Default costs if no data available
+    const defaults: Record<string, number> = {
+      insurance: 15000,
+      fitness: 5000,
+      permit: 8000,
+      puc: 1000,
+      tax: 10000,
+      rc: 2000
+    };
+    return defaults[docType] || 3000;
+  }
   
-  return typeof cost === 'number' ? cost : 0;
+  return cost;
 };
 
 // Helper function to get fleet average cost for a document type
@@ -143,15 +159,24 @@ const getFleetAverageCost = (docType: string, vehicles: Vehicle[]): number => {
     other: 3000
   };
   
-  if (!vehicles || vehicles.length === 0) return defaultCosts[docType] || 3000;
+  if (!vehicles || vehicles.length === 0) {
+    return defaultCosts[docType] || 3000;
+  }
   
+  const costFieldName = getCostFieldName(docType);
+  
+  // If no cost field for this doc type, return default
+  if (!costFieldName) {
+    return defaultCosts[docType] || 3000;
+  }
+
   // Count vehicles with the specified cost and sum up those costs
   let sum = 0;
   let count = 0;
   
   for (const vehicle of vehicles) {
     const cost = vehicle[costFieldName as keyof Vehicle];
-    if (typeof cost === 'number' && cost > 0) {
+    if (typeof cost === 'number' && !isNaN(cost) && cost > 0) {
       sum += cost;
       count++;
     }
@@ -376,8 +401,94 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     const expiringDocsInRange = filteredVehicles.flatMap(vehicle => {
       const expiring = [];
       
-      // Check if document expiry dates fall within the selected date range
-      if (vehicle.insurance_expiry_date && isWithinDateRange(vehicle.insurance_expiry_date, effectiveDateRange)) {
+      const today = new Date();
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(today.getDate() + 30);
+      
+      // Check if document expiry dates fall within the next 30 days (more realistic for "this month")
+      if (vehicle.insurance_expiry_date) {
+        const expiryDate = new Date(vehicle.insurance_expiry_date);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'insurance', vehicle });
+        }
+      }
+      
+      if (vehicle.fitness_expiry_date) {
+        const expiryDate = new Date(vehicle.fitness_expiry_date);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'fitness', vehicle });
+        }
+      }
+      
+      if (vehicle.permit_expiry_date) {
+        const expiryDate = new Date(vehicle.permit_expiry_date);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'permit', vehicle });
+        }
+      }
+      
+      if (vehicle.puc_expiry_date) {
+        const expiryDate = new Date(vehicle.puc_expiry_date);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'puc', vehicle });
+        }
+      }
+      
+      if (vehicle.tax_paid_upto) {
+        const expiryDate = new Date(vehicle.tax_paid_upto);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'tax', vehicle });
+        }
+      }
+      
+      if (vehicle.rc_expiry_date) {
+        const expiryDate = new Date(vehicle.rc_expiry_date);
+        if (expiryDate >= today && expiryDate <= thirtyDaysFromNow) {
+          expiring.push({ vehicleId: vehicle.id, type: 'rc', vehicle });
+        }
+      }
+      
+      return expiring;
+    });
+    
+    const expectedExpense = expiringDocsInRange.reduce((total, doc) => {
+      let previousCost = getLastRenewalCost(doc.vehicle, doc.type);
+      
+      // If no specific cost found, use fleet average
+      if (!previousCost || previousCost === 0) {
+        previousCost = getFleetAverageCost(doc.type, filteredVehicles);
+      }
+      
+      const inflationRate = getInflationRateForDocType(doc.type);
+      const projectedCost = previousCost * (1 + inflationRate);
+      
+      return total + projectedCost;
+    }, 0);
+    
+    result.thisMonth.expectedExpense = Math.round(expectedExpense);
+    result.thisMonth.renewalsCount = expiringDocsInRange.length;
+    
+    // Count lapsed/expired documents for filtered vehicles
+    const lapsedDocs = filteredVehicles.flatMap(vehicle => {
+      const lapsed = [];
+      
+      const checkLapsed = (dateField: string | null, type: string) => {
+        if (dateField && getExpiryStatus(dateField) === 'expired') {
+          lapsed.push({ vehicleId: vehicle.id, type });
+        }
+      };
+      
+      checkLapsed(vehicle.rc_expiry_date, 'rc');
+      checkLapsed(vehicle.insurance_expiry_date, 'insurance');
+      checkLapsed(vehicle.fitness_expiry_date, 'fitness');
+      checkLapsed(vehicle.permit_expiry_date, 'permit');
+      checkLapsed(vehicle.puc_expiry_date, 'puc');
+      checkLapsed(vehicle.tax_paid_upto, 'tax');
+      
+      return lapsed;
+    });
+    
+    result.thisMonth.lapsedCount = lapsedDocs.length;
         expiring.push({
           vehicleId: vehicle.id, 
           type: 'insurance',

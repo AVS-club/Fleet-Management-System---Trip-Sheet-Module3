@@ -481,27 +481,54 @@ const VehiclesPage: React.FC = () => {
 
                   <StatCard
                     title="Top Driver (This Month)"
+                    className="cursor-pointer"
                     value={
                       topDriver ? (
-                        <div className="flex flex-col">
-                          <span className="text-lg">
-                            {topDriver.name.split(" ")[0]}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {topDriver.mileage.toFixed(1)} km/L
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-lg font-semibold">
+                              {topDriver.name.split(" ")[0]}
+                            </span>
+                            <select
+                              value={topDriverLogic}
+                              onChange={(e) => setTopDriverLogic(e.target.value as 'cost_per_km' | 'mileage' | 'trips')}
+                              className="text-xs border-0 bg-transparent focus:ring-0 p-0"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value="mileage">Best Mileage</option>
+                              <option value="cost_per_km">Best Cost/KM</option>
+                              <option value="trips">Most Trips</option>
+                            </select>
+                          </div>
+                          <span className="text-xs text-gray-500 block">
+                            {topDriverLogic === 'mileage' && `${topDriver.mileage.toFixed(1)} km/L`}
+                            {topDriverLogic === 'cost_per_km' && `₹${topDriver.costPerKm.toFixed(2)}/km`}
+                            {topDriverLogic === 'trips' && `${topDriver.tripCount} trips`}
                           </span>
                         </div>
                       ) : (
-                        <span className="text-yellow-600 italic">No data yet</span>
+                        <div className="space-y-1">
+                          <span className="text-yellow-600 italic text-sm">No data yet</span>
+                          <select
+                            value={topDriverLogic}
+                            onChange={(e) => setTopDriverLogic(e.target.value as 'cost_per_km' | 'mileage' | 'trips')}
+                            className="text-xs border-0 bg-transparent focus:ring-0 p-0 text-gray-400"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <option value="mileage">Best Mileage</option>
+                            <option value="cost_per_km">Best Cost/KM</option>
+                            <option value="trips">Most Trips</option>
+                          </select>
+                        </div>
                       )
                     }
                     icon={<Medal className="h-5 w-5 text-yellow-500" />}
                     onClick={() =>
-                      topDriversThisMonth.length > 0 &&
+                      topDriverData.length > 0 &&
                       setShowTopDriversModal(true)
                     }
                     className={
-                      topDriversThisMonth.length > 0 ? "cursor-pointer" : ""
+                      topDriverData.length > 0 ? "cursor-pointer" : ""
                     }
                   />
 
