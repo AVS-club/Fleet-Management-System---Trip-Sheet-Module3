@@ -10,7 +10,7 @@ interface DriverWhatsAppShareModalProps {
   signedDocUrls?: {
     license?: string;
     police_verification?: string;
-    medical_certificate?: string;
+    medical_doc_url?: string[]; // Use medical_doc_url as array
     medical_doc_url?: string[]; // Changed from medical_certificate
     other: Record<string, string>;
   };

@@ -149,7 +149,7 @@ const DriversPage: React.FC = () => {
       }
 
       // Prepare driver data with photo URL
-      const driverData = {
+      const driverData: Partial<Driver> = {
         ...data,
         driver_photo_url: photoUrl,
       };
@@ -175,8 +175,46 @@ const DriversPage: React.FC = () => {
           console.error("Error uploading Aadhaar documents:", error);
         }
       }
+      
+      // Handle license document upload
+      if (data.license_doc_file && Array.isArray(data.license_doc_file)) {
+        try {
+          const uploadedUrls = [];
+          for (const file of data.license_doc_file) {
+            if (file instanceof File) {
+              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+              const filePath = await uploadDriverPhoto(file, fileId);
+              uploadedUrls.push(filePath);
+            }
+          }
+          if (uploadedUrls.length > 0) {
+            driverData.license_doc_url = uploadedUrls;
+          }
+        } catch (error) {
+          console.error("Error uploading license documents:", error);
+        }
+      }
 
-      // Handle medical document upload
+      // Handle police document upload
+      if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
+        try {
+          const uploadedUrls = [];
+          for (const file of data.police_doc_file) {
+            if (file instanceof File) {
+              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+              const filePath = await uploadDriverPhoto(file, fileId);
+              uploadedUrls.push(filePath);
+            }
+          }
+          if (uploadedUrls.length > 0) {
+            driverData.police_doc_url = uploadedUrls;
+          }
+        } catch (error) {
+          console.error("Error uploading police documents:", error);
+        }
+      }
+
+      // Handle medical document upload (already handled in previous commit, but ensuring consistency)
       if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
         try {
           const uploadedUrls = [];

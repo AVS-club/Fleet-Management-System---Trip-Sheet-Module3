@@ -26,6 +26,7 @@ import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
+import { format } from "date-fns";
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -68,10 +69,10 @@ const DriverForm: React.FC<DriverFormProps> = ({
       other_documents: initialData.other_documents
         ? initialData.other_documents
         : [],
-      medical_doc_file: [],
-      police_document: [],
-      aadhar_doc_file: [],
-      license_document: [],
+      medical_doc_file: initialData.medical_doc_url ? [] : initialData.medical_doc_file,
+      police_doc_file: initialData.police_doc_url ? [] : initialData.police_doc_file,
+      aadhar_doc_file: initialData.aadhar_doc_url ? [] : initialData.aadhar_doc_file,
+      license_doc_file: initialData.license_doc_url ? [] : initialData.license_doc_file,
     },
   });
 
@@ -197,13 +198,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
         rto_code: driver.rto_code || "",
         rto: driver.rto || "",
         state: driver.state || "",
-        join_date: "",
+        join_date: initialData.join_date || format(new Date(), 'yyyy-MM-dd'),
         experience_years: 0,
         primary_vehicle_id: "",
         status: "active",
         driver_photo_url: photoUrl,
-        photo: null, // keep as null, preview is handled separately
-        // ...add more mappings as needed
       };
 
       reset(mapped);
@@ -605,7 +604,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Controller
             control={control}
-            name="license_document"
+            name="license_doc_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
                 label="License Document"
@@ -637,7 +636,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
           <Controller
             control={control}
-            name="police_document"
+            name="police_doc_file"
             render={({ field: { value, onChange, ...field } }) => (
               <FileUpload
                 label="Police Verification"
@@ -659,7 +658,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 label="Medical Certificate"
                 accept=".jpg,.jpeg,.png,.pdf"
                 multiple={true}
-                value={value as File[] | undefined} // Ensure value is File[]
+                value={value as File[] | undefined}
                 onChange={onChange}
                 disabled={isSubmitting}
                 variant="compact"
