@@ -650,6 +650,10 @@ const DriverPage: React.FC = () => {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">
                         License Document
+                      </div>
+                    </div>
+                  </div>
+                </div>
                       </p>
                       <p className="text-xs text-gray-500">
                         {driver.license_doc_url ? "Available" : "Not uploaded"}
