@@ -16,6 +16,20 @@ import { toast } from 'react-toastify';
 import { generateCSV, downloadCSV } from './csvParser';
 import { handleSupabaseError } from './errors';
 
+// Helper function to check if a value is LTT (Lifetime Tax)
+const isLTT = (value: string | null | undefined): boolean => {
+  if (!value || typeof value !== 'string') return false;
+  const upperValue = value.trim().toUpperCase();
+  return ['LTT', 'LIFETIME', 'LIFE TIME', 'LIFE TIME TAX'].includes(upperValue);
+};
+
+// Helper function to get future date (10 years from now)
+const getFutureDateForLTT = (): string => {
+  const futureDate = new Date();
+  futureDate.setFullYear(futureDate.getFullYear() + 10);
+  return futureDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+};
+
 // Define allowed columns for vehicles table
 export const VEHICLE_COLS = 'id,registration_number,make,model,year,type,fuel_type,current_odometer,status,chassis_number,engine_number,owner_name,tyre_size,number_of_tyres,rc_expiry_date,rc_document_url,insurance_policy_number,insurer_name,insurance_start_date,insurance_expiry_date,insurance_premium_amount,insurance_document_url,fitness_certificate_number,fitness_issue_date,fitness_expiry_date,fitness_cost,fitness_document_url,tax_receipt_number,tax_amount,tax_period,tax_document_url,permit_number,permit_issuing_state,permit_type,permit_issue_date,permit_expiry_date,permit_cost,permit_document_url,puc_certificate_number,puc_issue_date,puc_expiry_date,puc_cost,puc_document_url,issuing_state,other_documents,registration_date,policy_number,tax_receipt_document,insurance_idv,tax_scope,remind_insurance,insurance_reminder_contact_id,insurance_reminder_days_before,remind_fitness,fitness_reminder_contact_id,fitness_reminder_days_before,remind_puc,puc_reminder_contact_id,puc_reminder_days_before,remind_tax,tax_reminder_contact_id,tax_reminder_days_before,remind_permit,permit_reminder_contact_id,permit_reminder_days_before,remind_service,service_reminder_contact_id,service_reminder_days_before,service_reminder_km,photo_url,financer,vehicle_class,color,cubic_capacity,cylinders,unladen_weight,seating_capacity,emission_norms,noc_details,national_permit_number,national_permit_upto,rc_status,vahan_last_fetched_at,other_info_documents,tax_paid_upto,tags,last_updated_at,added_by,service_interval_km,service_interval_days,created_by,primary_driver_id,created_at,updated_at';
 
@@ -114,6 +128,16 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
     // Strip UI-only fields and prepare data
     const { documents, selected, ...cleanData } = vehicleData as any; // ⚠️ Confirm field refactor here
     
+    // Handle LTT (Lifetime Tax) conversion
+    // Replacing "LTT" with a valid future date (10 years from now) to match Supabase date format
+    if (isLTT(cleanData.tax_paid_upto)) {
+      cleanData.tax_paid_upto = getFutureDateForLTT();
+      // Save original LTT info in tax_scope for UI badge display
+      if (!cleanData.tax_scope || cleanData.tax_scope.trim() === '') {
+        cleanData.tax_scope = 'Lifetime Tax (LTT)';
+      }
+    }
+    
     // Remove _file properties (client-side File objects, not database columns)
     const payload = withOwner({
       ...cleanData,
@@ -167,6 +191,16 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
       ...rest,
       current_odometer: odometer_km ?? odometer ?? rest.current_odometer,
     };
+
+    // Handle LTT (Lifetime Tax) conversion for updates
+    // Replacing "LTT" with a valid future date (10 years from now) to match Supabase date format
+    if (isLTT(payload.tax_paid_upto)) {
+      payload.tax_paid_upto = getFutureDateForLTT();
+      // Save original LTT info in tax_scope for UI badge display
+      if (!payload.tax_scope || payload.tax_scope.trim() === '') {
+        payload.tax_scope = 'Lifetime Tax (LTT)';
+      }
+    }
 
     // Coerce current_odometer to number
     if (payload.current_odometer != null) {
@@ -382,7 +416,24 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       throw new Error('User not authenticated');
     }
 
-    const payload = withOwner(driverData, userId);
+    // Strip file objects and prepare payload
+    const { photo, aadhar_doc_file, medical_doc_file, license_doc_file, police_doc_file, ...cleanData } = driverData as any;
+    
+    const payload = withOwner(cleanData, userId);
+    
+    // Remove _file properties (client-side File objects, not database columns)
+    for (const k of Object.keys(payload)) {
+      if (k.endsWith('_file')) {
+        delete payload[k];
+      }
+    }
+
+    // Sanitize empty strings to null for database compatibility
+    for (const key in payload) {
+      if (typeof payload[key] === 'string' && payload[key].trim() === '') {
+        payload[key] = null;
+      }
+    }
 
     const { data, error } = await supabase
       .from('drivers') // ⚠️ Confirm field refactor here

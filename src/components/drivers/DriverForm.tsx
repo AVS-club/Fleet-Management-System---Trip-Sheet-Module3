@@ -26,7 +26,7 @@ import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
-import { format, differenceInYears } from "date-fns"; // ⚠️ Confirm field refactor here
+import { format, differenceInYears } from "date-fns";
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -219,6 +219,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
       setIsFetching(false);
     }
   };
+
+  // Auto-calculate experience_years based on join_date
+  useEffect(() => {
+    if (watch('join_date')) {
+      const years = differenceInYears(new Date(), new Date(watch('join_date')));
+      setValue('experience_years', years);
+    }
+  }, [watch('join_date'), setValue]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
