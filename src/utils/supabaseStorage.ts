@@ -2,16 +2,74 @@ import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
 
 /**
+ * Uploads a file with progress tracking using XMLHttpRequest
+ * @param bucketName The Supabase storage bucket name
+ * @param filePath The file path in the bucket
+ * @param file The file to upload
+ * @param onProgress Callback for progress updates (0-100)
+ * @returns Promise<string> The file path
+ */
+export const uploadFileWithProgress = async (
+  bucketName: string,
+  filePath: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    
+    // Get the upload URL from Supabase
+    supabase.storage
+      .from(bucketName)
+      .createSignedUploadUrl(filePath)
+      .then(({ data, error }) => {
+        if (error || !data) {
+          reject(error || new Error('Failed to get upload URL'));
+          return;
+        }
+
+        // Configure the XMLHttpRequest
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable && onProgress) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            onProgress(progress);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(filePath);
+          } else {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Upload failed'));
+        });
+
+        // Perform the upload
+        xhr.open('PUT', data.signedUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(file);
+      })
+      .catch(reject);
+  });
+};
+
+/**
  * Uploads a vehicle document to Supabase Storage
  * @param file The file to upload
  * @param vehicleId The ID of the vehicle
  * @param docType The type of document (e.g., 'rc', 'insurance', 'fitness')
+ * @param onProgress Optional callback for progress updates
  * @returns The file path of the uploaded file (not the public URL)
  */
 export const uploadVehicleDocument = async (
   file: File,
   vehicleId: string,
-  docType: string
+  docType: string,
+  onProgress?: (progress: number) => void
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
@@ -24,17 +82,22 @@ export const uploadVehicleDocument = async (
   const filePath = fileName;
 
 
-  // Upload the file
-  const { error: uploadError } = await supabase.storage
-    .from("vehicle-docs")
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
+  // Upload the file with progress if callback provided
+  if (onProgress) {
+    await uploadFileWithProgress("vehicle-docs", filePath, file, onProgress);
+  } else {
+    // Fallback to regular upload without progress
+    const { error: uploadError } = await supabase.storage
+      .from("vehicle-docs")
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+      });
 
-  if (uploadError) {
-    handleSupabaseError('upload vehicle document', uploadError);
-    throw uploadError;
+    if (uploadError) {
+      handleSupabaseError('upload vehicle document', uploadError);
+      throw uploadError;
+    }
   }
 
 
@@ -79,12 +142,14 @@ export const getSignedDocumentUrl = async (
  * @param file The file to upload
  * @param driverId The ID of the driver
  * @param docType The type of document (e.g., 'license', 'photo')
+ * @param onProgress Optional callback for progress updates
  * @returns The file path of the uploaded file
  */
-const uploadDriverDocument = async (
+export const uploadDriverDocument = async (
   file: File,
   driverId: string,
-  docType: string
+  docType: string,
+  onProgress?: (progress: number) => void
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
@@ -96,19 +161,23 @@ const uploadDriverDocument = async (
   const fileName = `${driverId}/${docType}_${Date.now()}.${fileExt}`;
   const filePath = fileName;
 
-  // Upload the file
-  const { error: uploadError } = await supabase.storage
-    .from("driver-docs")
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    });
+  // Upload the file with progress if callback provided
+  if (onProgress) {
+    await uploadFileWithProgress("driver-docs", filePath, file, onProgress);
+  } else {
+    // Fallback to regular upload without progress
+    const { error: uploadError } = await supabase.storage
+      .from("driver-docs")
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+      });
 
-  if (uploadError) {
-    handleSupabaseError('upload driver document', uploadError);
-    throw new Error(`Error uploading document: ${uploadError.message}`);
+    if (uploadError) {
+      handleSupabaseError('upload driver document', uploadError);
+      throw new Error(`Error uploading document: ${uploadError.message}`);
+    }
   }
-
   // Return the file path instead of the public URL
   return filePath;
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { FileCheck } from 'lucide-react';
 import { Vehicle } from '../../types';
 import { getVehicles } from '../../utils/storage';
 import Button from '../ui/Button';

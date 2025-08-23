@@ -4,7 +4,7 @@ import { Driver, Vehicle } from "../../types";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import MultiSelect from "../ui/MultiSelect";
-import FileUpload from "../ui/FileUpload";
+import DocumentUploader from "../shared/DocumentUploader";
 import Button from "../ui/Button";
 import Textarea from "../ui/Textarea";
 import {
@@ -48,6 +48,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
   const [fetchStatus, setFetchStatus] = useState<
     "idle" | "fetching" | "success" | "error"
   >("idle");
+  const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
 
   const {
     register,
@@ -229,8 +230,33 @@ const DriverForm: React.FC<DriverFormProps> = ({
     }
   }, [watch('join_date'), setValue]);
 
+  // Handle document upload completion
+  const handleDocumentUpload = (docType: string, filePaths: string[]) => {
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [docType]: filePaths
+    }));
+    
+    // Update form field with the uploaded file paths
+    const fieldName = `${docType}_doc_url` as keyof Driver;
+    setValue(fieldName, filePaths as any);
+  };
+
+  const onFormSubmit = (data: Driver) => {
+    // Include uploaded document URLs in the submission
+    const formData = {
+      ...data,
+      license_doc_url: uploadedDocuments.license || [],
+      aadhar_doc_url: uploadedDocuments.aadhar || [],
+      police_doc_url: uploadedDocuments.police || [],
+      medical_doc_url: uploadedDocuments.medical || [],
+    };
+
+    onSubmit(formData);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       {/* Top-level Fetch Block */}
       <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200 mb-6">
         <p className="text-sm text-gray-600 mb-3">
@@ -611,69 +637,50 @@ const DriverForm: React.FC<DriverFormProps> = ({
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Controller
-            control={control}
-            name="license_doc_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                label="License Document"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={value as File[] | undefined}
-                onChange={onChange}
-                disabled={isSubmitting}
-                variant="compact"
-                {...field}
-              />
-            )}
+          <DocumentUploader
+            label="License Document"
+            bucketType="driver"
+            entityId={initialData?.id || 'temp'}
+            docType="license"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('license', paths)}
+            initialFilePaths={initialData?.license_doc_url || []}
+            required
+            helperText="Upload license document (PDF/Image)"
           />
-          <Controller
-            control={control}
-            name="aadhar_doc_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                label="Aadhar /ID Proof"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={value as File[] | undefined}
-                onChange={onChange}
-                disabled={isSubmitting}
-                variant="compact"
-                {...field}
-              />
-            )}
+          <DocumentUploader
+            label="Aadhar / ID Proof"
+            bucketType="driver"
+            entityId={initialData?.id || 'temp'}
+            docType="aadhar"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('aadhar', paths)}
+            initialFilePaths={initialData?.aadhar_doc_url || []}
+            helperText="Upload Aadhar card or ID proof (PDF/Image)"
           />
-          <Controller
-            control={control}
-            name="police_doc_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                label="Police Verification"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={value as File[] | undefined}
-                onChange={onChange}
-                disabled={isSubmitting}
-                variant="compact"
-                {...field}
-              />
-            )}
+          <DocumentUploader
+            label="Police Verification"
+            bucketType="driver"
+            entityId={initialData?.id || 'temp'}
+            docType="police"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('police', paths)}
+            initialFilePaths={initialData?.police_doc_url || []}
+            helperText="Upload police verification (PDF/Image)"
           />
-          <Controller
-            control={control}
-            name="medical_doc_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                label="Medical Certificate"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={value as File[] | undefined}
-                onChange={onChange}
-                disabled={isSubmitting}
-                variant="compact"
-                {...field}
-              />
-            )}
+          <DocumentUploader
+            label="Medical Certificate"
+            bucketType="driver"
+            entityId={initialData?.id || 'temp'}
+            docType="medical"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('medical', paths)}
+            initialFilePaths={initialData?.medical_doc_url || []}
+            helperText="Upload medical certificate (PDF/Image)"
           />
         </div>
       </CollapsibleSection>
