@@ -1,486 +1,214 @@
-import React, { useState, useEffect } from "react";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
-import { Vehicle } from "../../types";
-import {
-  Truck,
-  Upload,
-  X,
+import React, { useState, useEffect, useMemo } from 'react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { Vehicle, Driver } from '../../types';
+import { getDrivers, getVehicles } from '../../utils/storage';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
+import Button from '../ui/Button';
+import Checkbox from '../ui/Checkbox';
+import DocumentUploader from '../shared/DocumentUploader';
+import CollapsibleSection from '../ui/CollapsibleSection';
+import ReminderConfigurationSection from './ReminderConfigurationSection';
+import VehicleVahanSection from './VehicleVahanSection';
+import { 
+  Truck, 
+  Calendar, 
+  FileText, 
+  Shield, 
+  Database, 
+  CheckCircle, 
+  Settings,
   Plus,
-  Database,
-  Info,
-  Paperclip,
-  IndianRupee,
-  Shield,
-  FileCheck,
-  BadgeCheck,
-  Wind,
-  Bell,
-  AlertTriangle,
-  CheckCircle,
-} from "lucide-react";
-import Input from "../ui/Input";
-import Select from "../ui/Select";
-import MultiSelect from "../ui/MultiSelect";
-import FileUpload from "../ui/FileUpload";
-import Checkbox from "../ui/Checkbox";
-import Button from "../ui/Button";
-import { toast } from "react-toastify";
-import CollapsibleSection from "../ui/CollapsibleSection";
-import { normalizeVehicleType, VEHICLE_TYPES } from "../../utils/vehicleNormalize";
-import { supabase } from "../../utils/supabaseClient";
-import {
-  getReminderTemplates,
-  getReminderContacts,
-} from "../../utils/reminderService";
-import {
-  ReminderTemplate,
-  ReminderContact,
-  ReminderAssignedType,
-} from "../../types/reminders";
+  Trash2,
+  Bell
+} from 'lucide-react';
+import { toast } from 'react-toastify';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
-  onSubmit: (data: Omit<Vehicle, "id">) => void;
+  onSubmit: (data: Omit<Vehicle, 'id'>) => void;
   onCancel?: () => void;
   isSubmitting?: boolean;
 }
 
 const VehicleForm: React.FC<VehicleFormProps> = ({
-  initialData,
+  initialData = {},
   onSubmit,
   onCancel,
-  isSubmitting = false,
+  isSubmitting = false
 }) => {
-  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
-  const [fieldsDisabled, setFieldsDisabled] = useState(true);
-  const [isFetching, setIsFetching] = useState(false);
-  const [fetchStatus, setFetchStatus] = useState<
-    "idle" | "fetching" | "success" | "error"
-  >("idle");
-  const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>(
-    []
-  );
-  const [reminderTemplates, setReminderTemplates] = useState<
-    ReminderTemplate[]
-  >([]);
-  const [prefilledByTemplate, setPrefilledByTemplate] = useState<
-    Record<string, boolean>
-  >({});
-
-  // Vehicle type options for the select component
-  const vehicleTypeOptions = VEHICLE_TYPES.map(type => ({
-    value: type,
-    label: type.charAt(0).toUpperCase() + type.slice(1)
-  }));
-
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    formState: { errors },
-    reset,
-  } = useForm<Vehicle>({
-    defaultValues: {
-      registration_number: "",
-      make: "",
-      model: "",
-      year: new Date().getFullYear(),
-      type: "truck",
-      fuel_type: "diesel",
-      current_odometer: 0,
-      status: "active",
-      ...initialData,
-      rc_copy_file: [],
-      insurance_document_file: [],
-      puc_document_file: [],
-      permit_document_file: [],
-      tax_receipt_document_file: [],
-      fitness_document_file: [],
-    },
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [documentUrls, setDocumentUrls] = useState<{
+    rc: string[];
+    insurance: string[];
+    fitness: string[];
+    tax: string[];
+    permit: string[];
+    puc: string[];
+  }>({
+    rc: [],
+    insurance: [],
+    fitness: [],
+    tax: [],
+    permit: [],
+    puc: []
   });
 
-  // Enable fields if initialData is present (for edit mode)
-  useEffect(() => {
-    if (initialData) setFieldsDisabled(false);
-  }, [initialData]);
+  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<Vehicle>({
+    defaultValues: {
+      registration_number: '',
+      make: '',
+      model: '',
+      year: new Date().getFullYear(),
+      type: 'truck',
+      fuel_type: 'diesel',
+      current_odometer: 0,
+      status: 'active',
+      chassis_number: '',
+      engine_number: '',
+      owner_name: '',
+      tyre_size: '',
+      number_of_tyres: 6,
+      remind_insurance: false,
+      remind_fitness: false,
+      remind_puc: false,
+      remind_tax: false,
+      remind_permit: false,
+      remind_service: false,
+      other_documents: [],
+      ...initialData
+    }
+  });
 
-  // Fetch reminder templates on component mount
+  const { fields: otherDocFields, append: appendDoc, remove: removeDoc } = useFieldArray({
+    control,
+    name: 'other_documents'
+  });
+
+  // Fetch drivers and vehicles for dropdowns
   useEffect(() => {
-    const fetchReminderTemplatesAndContacts = async () => {
+    const fetchData = async () => {
       try {
-        const contacts = await getReminderContacts();
-        setReminderContacts(contacts);
-        const templates = await getReminderTemplates();
-
-        setReminderTemplates(templates);
+        const [driversData, vehiclesData] = await Promise.all([
+          getDrivers(),
+          getVehicles()
+        ]);
+        setDrivers(Array.isArray(driversData) ? driversData : []);
+        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
       } catch (error) {
-        console.error("Failed to fetch reminder templates or contacts:", error);
+        console.error('Error fetching form data:', error);
+        toast.error('Failed to load form data');
       }
     };
 
-    fetchReminderTemplatesAndContacts();
+    fetchData();
   }, []);
 
-  // Auto-fill reminder fields with template defaults if fields are empty
-  useEffect(() => {
-    if (reminderTemplates.length === 0) return;
+  // Generate unique entity ID for uploads (use registration number or temp ID)
+  const entityId = useMemo(() => {
+    const regNumber = watch('registration_number');
+    return regNumber || `temp-${Date.now()}`;
+  }, [watch('registration_number')]);
 
-    // Map of reminder types to their corresponding form field prefixes
-    const reminderTypeMap = {
-      Insurance: "insurance_reminder",
-      Fitness: "fitness_reminder",
-      Pollution: "puc_reminder",
-      Tax: "tax_reminder",
-      Permit: "permit_reminder",
-      "Service Due": "service_reminder",
-    };
+  // Handle document upload completion
+  const handleDocumentUpload = useCallback((docType: string, filePaths: string[]) => {
+    setDocumentUrls(prev => ({
+      ...prev,
+      [docType]: filePaths
+    }));
+  }, []);
 
-    reminderTemplates.forEach((template) => {
-      const fieldPrefix =
-        reminderTypeMap[template.reminder_type as keyof typeof reminderTypeMap];
-      if (!fieldPrefix) return;
+  // Handle other document upload
+  const handleOtherDocumentUpload = useCallback((index: number, filePaths: string[]) => {
+    if (filePaths.length > 0) {
+      setValue(`other_documents.${index}.file_path`, filePaths[0]);
+    }
+  }, [setValue]);
 
-      const contactFieldName = `${fieldPrefix}_contact_id` as keyof Vehicle;
-      const daysFieldName = `${fieldPrefix}_days_before` as keyof Vehicle;
-
-      // Get current values from the form
-      const currentContactValue = watch(contactFieldName);
-      const currentDaysValue = watch(daysFieldName);
-
-      // Auto-fill contact field if empty and template has a default
-      if (
-        (!currentContactValue || currentContactValue === "") &&
-        template.default_contact_id
-      ) {
-        setValue(contactFieldName, template.default_contact_id);
-      }
-
-      // Auto-fill days field if empty and template has a default
-      if (
-        (!currentDaysValue || currentDaysValue === 0) &&
-        template.default_days_before
-      ) {
-        setValue(daysFieldName, template.default_days_before);
-      }
-    });
-  }, [reminderTemplates, setValue, watch]);
-
-  // Field array for other documents
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "other_documents",
-  });
-
-  // Watch values for conditional rendering
-  const remindInsurance = watch("remind_insurance");
-  const remindFitness = watch("remind_fitness");
-  const remindPuc = watch("remind_puc");
-  const remindTax = watch("remind_tax");
-  const remindPermit = watch("remind_permit");
-  const remindService = watch("remind_service");
-
-  const handleFormSubmit = (data: Vehicle) => {
-    setIsSubmittingForm(true);
+  const handleFormSubmit = async (data: Vehicle) => {
     try {
-      onSubmit(data);
+      // Include uploaded document URLs in the submission
+      const submissionData = {
+        ...data,
+        rc_document_url: documentUrls.rc,
+        insurance_document_url: documentUrls.insurance,
+        fitness_document_url: documentUrls.fitness,
+        tax_document_url: documentUrls.tax,
+        permit_document_url: documentUrls.permit,
+        puc_document_url: documentUrls.puc
+      };
+
+      onSubmit(submissionData);
     } catch (error) {
-      console.error("Error submitting form:", error);
-      toast.error(
-        "Form submission failed: " +
-          (error instanceof Error ? error.message : "Unknown error")
-      );
-      setIsSubmittingForm(false);
-    }
-  };
-
-  // --- NEW: Fetch RC details handler ---
-  const handleFetchDetails = async () => {
-    const regNum = watch("registration_number");
-    if (!regNum) {
-      toast.error("Please enter a vehicle number first.");
-      return;
-    }
-
-    setIsFetching(true);
-    setFetchStatus("fetching");
-    setFieldsDisabled(true);
-
-    // Clear form before fetching new data
-    reset({
-      registration_number: regNum,
-      make: "",
-      model: "",
-      year: new Date().getFullYear(),
-      type: "truck",
-      fuel_type: "diesel",
-      current_odometer: 0,
-      status: "active",
-    });
-
-    try {
-      // Use supabase.functions.invoke for Edge Functions
-      const { data: result, error } = await supabase.functions.invoke(
-        "fetch-rc-details",
-        {
-          body: { registration_number: regNum },
-        }
-      );
-
-      if (error || !result?.success) {
-        throw new Error(
-          result?.message || error?.message || "Failed to fetch details"
-        );
-      }
-
-      const rc = result.data?.response || {};
-      const mapApiToForm = (rc: any, regNum: string) => ({
-        registration_number:
-          // Use setValue with shouldValidate: true for all fields
-          rc.license_plate || rc.registrationNumber || regNum,
-        chassis_number: rc.chassis_number || rc.chassisNumber || "",
-        engine_number: rc.engine_number || rc.engineNumber || "",
-        make: rc.brand_name || rc.make || "",
-        model: rc.brand_model || rc.model || "",
-        year: rc.manufacturing_date_formatted
-          ? parseInt(rc.manufacturing_date_formatted.split("-")[0])
-          : rc.yearOfManufacture
-          ? parseInt(rc.yearOfManufacture)
-          : rc.registration_date
-          ? parseInt(rc.registration_date.split("-")[0])
-          : undefined,
-        color: rc.color || "",
-        fuel_type:
-          (rc.fuel_type || rc.fuelType || "").toLowerCase() || "diesel",
-        owner_name: rc.owner_name || rc.ownerName || "",
-        seating_capacity: rc.seating_capacity
-          ? parseInt(rc.seating_capacity)
-          : rc.seatingCapacity
-          ? parseInt(rc.seatingCapacity)
-          : undefined,
-        registration_date: rc.registration_date || "",
-        rc_expiry_date: rc.rc_expiry_date || "",
-        permit_number: rc.permit_number || "",
-        permit_issuing_state: rc.rto_name
-          ? rc.rto_name?.split(",")[1]?.trim()
-          : "",
-        permit_issue_date: rc.permit_issue_date || "",
-        permit_expiry_date: rc.permit_valid_upto || rc.permit_valid_from || "",
-        permit_type: rc.permit_type || "",
-        insurance_expiry_date: rc.insurance_expiry || "",
-        insurer_name: rc.insurance_company || "",
-        policy_number: rc.insurance_policy || "",
-        fitness_expiry_date: rc.fit_up_to || "",
-        fitness_issue_date: rc.fitness_issue_date || "",
-        puc_expiry_date: rc.pucc_upto || "",
-        puc_certificate_number: rc.pucc_number || "",
-        tax_paid_upto: rc.tax_paid_upto || "",
-        vehicle_class: rc.class || "",
-        emission_norms: rc.norms || "",
-        unladen_weight: rc.unladen_weight
-          ? parseInt(rc.unladen_weight)
-          : undefined,
-        cubic_capacity: rc.cubic_capacity
-          ? parseFloat(rc.cubic_capacity)
-          : undefined,
-        cylinders: rc.cylinders ? parseInt(rc.cylinders) : undefined,
-        noc_details: rc.noc_details || "",
-        status: (rc.rc_status || "").toLowerCase() || "active",
-        rc_status: rc.rc_status || "",
-        financer: rc.financer || "",
-        current_odometer: 0,
-      });
-
-      // Use setValue with shouldValidate: true for all fields
-      setValue('registration_number', rc.license_plate || rc.registrationNumber || regNum, { shouldDirty: true, shouldValidate: true });
-      setValue('chassis_number', rc.chassis_number || rc.chassisNumber || '', { shouldDirty: true, shouldValidate: true });
-      setValue('engine_number', rc.engine_number || rc.engineNumber || '', { shouldDirty: true, shouldValidate: true });
-      setValue('make', rc.brand_name || rc.make || '', { shouldDirty: true, shouldValidate: true });
-      setValue('model', rc.brand_model || rc.model || '', { shouldDirty: true, shouldValidate: true });
-      setValue('year', rc.manufacturing_date_formatted ? parseInt(rc.manufacturing_date_formatted.split("-")[0]) : rc.yearOfManufacture ? parseInt(rc.yearOfManufacture) : rc.registration_date ? parseInt(rc.registration_date.split("-")[0]) : undefined, { shouldDirty: true, shouldValidate: true });
-      setValue('color', rc.color || '', { shouldDirty: true, shouldValidate: true });
-      setValue('fuel_type', (rc.fuel_type || rc.fuelType || '').toLowerCase() || 'diesel', { shouldDirty: true, shouldValidate: true });
-      setValue('owner_name', rc.owner_name || rc.ownerName || '', { shouldDirty: true, shouldValidate: true });
-      setValue('seating_capacity', rc.seating_capacity ? parseInt(rc.seating_capacity) : rc.seatingCapacity ? parseInt(rc.seatingCapacity) : undefined, { shouldDirty: true, shouldValidate: true });
-      setValue('registration_date', rc.registration_date || '', { shouldDirty: true, shouldValidate: true });
-      setValue('rc_expiry_date', rc.rc_expiry_date || '', { shouldDirty: true, shouldValidate: true });
-      setValue('permit_number', rc.permit_number || '', { shouldDirty: true, shouldValidate: true });
-      setValue('permit_issuing_state', rc.rto_name ? rc.rto_name?.split(",")[1]?.trim() : '', { shouldDirty: true, shouldValidate: true });
-      setValue('permit_issue_date', rc.permit_issue_date || '', { shouldDirty: true, shouldValidate: true });
-      setValue('permit_expiry_date', rc.permit_valid_upto || rc.permit_valid_from || '', { shouldDirty: true, shouldValidate: true });
-      setValue('permit_type', rc.permit_type || '', { shouldDirty: true, shouldValidate: true });
-      setValue('insurance_expiry_date', rc.insurance_expiry || '', { shouldDirty: true, shouldValidate: true });
-      setValue('insurer_name', rc.insurance_company || '', { shouldDirty: true, shouldValidate: true });
-      setValue('policy_number', rc.insurance_policy || '', { shouldDirty: true, shouldValidate: true });
-      setValue('fitness_expiry_date', rc.fit_up_to || '', { shouldDirty: true, shouldValidate: true });
-      setValue('fitness_issue_date', rc.fitness_issue_date || '', { shouldDirty: true, shouldValidate: true });
-      setValue('puc_expiry_date', rc.pucc_upto || '', { shouldDirty: true, shouldValidate: true });
-      setValue('puc_certificate_number', rc.pucc_number || '', { shouldDirty: true, shouldValidate: true });
-      setValue('tax_paid_upto', rc.tax_paid_upto || '', { shouldDirty: true, shouldValidate: true });
-      setValue('vehicle_class', rc.class || '', { shouldDirty: true, shouldValidate: true });
-      setValue('emission_norms', rc.norms || '', { shouldDirty: true, shouldValidate: true });
-      setValue('unladen_weight', rc.unladen_weight ? parseInt(rc.unladen_weight) : undefined, { shouldDirty: true, shouldValidate: true });
-      setValue('cubic_capacity', rc.cubic_capacity ? parseFloat(rc.cubic_capacity) : undefined, { shouldDirty: true, shouldValidate: true });
-      setValue('cylinders', rc.cylinders ? parseInt(rc.cylinders) : undefined, { shouldDirty: true, shouldValidate: true });
-      setValue('noc_details', rc.noc_details || '', { shouldDirty: true, shouldValidate: true });
-      setValue('status', (rc.rc_status || '').toLowerCase() || 'active', { shouldDirty: true, shouldValidate: true });
-      setValue('rc_status', rc.rc_status || '', { shouldDirty: true, shouldValidate: true });
-      setValue('financer', rc.financer || '', { shouldDirty: true, shouldValidate: true });
-      
-      // Normalize and set vehicle type
-      const normalizedType = normalizeVehicleType(rc.type || rc.vehicleType);
-      setValue('type', normalizedType, { shouldDirty: true, shouldValidate: true });
-
-      // Set current odometer to 0 if not provided by API
-      setValue('current_odometer', 0, { shouldDirty: true, shouldValidate: true });
-
-      setFieldsDisabled(false);
-      setFetchStatus("success");
-      toast.success(
-        "Vehicle details fetched. Please verify and complete the form."
-      );
-    } catch (err: any) {
-      toast.error(err.message || "Failed to fetch vehicle details.");
-      setFieldsDisabled(false);
-      setFetchStatus("error");
-      // Reset form to initial state if fetch fails, keeping only reg_number
-      reset({ registration_number: watch('registration_number') });
-    } finally {
-      setIsFetching(false);
+      console.error('Error submitting form:', error);
+      toast.error('Failed to submit form');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6 max-w-4xl mx-auto">
       {/* Basic Information */}
-      <CollapsibleSection
-        title="Basic Information"
+      <CollapsibleSection 
+        title="Basic Information" 
         icon={<Truck className="h-5 w-5" />}
-        defaultExpanded
-        iconColor="text-gray-600"
+        iconColor="text-blue-600"
+        defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div className="space-y-2">
-            <Input
-              label="Vehicle Number"
-              placeholder="CG04NJ5907"
-              error={errors.registration_number?.message}
-              required
-              disabled={isFetching || isSubmittingForm || isSubmitting}
-              {...register("registration_number", {
-                required: "Vehicle number is required",
-              })}
-            />
-            <div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleFetchDetails}
-                isLoading={isFetching}
-                disabled={isFetching || isSubmittingForm || isSubmitting}
-              >
-                Get Details
-              </Button>
-              {fetchStatus === "success" && (
-                <span className="text-xs text-success-600 flex items-center ml-2 inline-block">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Details found!
-                </span>
-              )}
-              {fetchStatus === "error" && (
-                <span className="text-xs text-error-600 flex items-center ml-2 inline-block">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
-                  Not found
-                </span>
-              )}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Chassis Number"
-            placeholder="17 characters"
-            error={errors.chassis_number?.message}
+            label="Registration Number"
+            icon={<Truck className="h-4 w-4" />}
+            error={errors.registration_number?.message}
             required
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("chassis_number", {
-              required: "Chassis number is required",
-            })}
-          />
-
-          <Input
-            label="Engine Number"
-            error={errors.engine_number?.message}
-            required
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("engine_number", {
-              required: "Engine number is required",
-            })}
+            {...register('registration_number', { required: 'Registration number is required' })}
           />
 
           <Input
             label="Make"
-            placeholder="Tata, Ashok Leyland, etc."
             error={errors.make?.message}
             required
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("make", { required: "Make is required" })}
+            {...register('make', { required: 'Make is required' })}
           />
 
           <Input
             label="Model"
-            placeholder="407, 1109, etc."
             error={errors.model?.message}
             required
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("model", { required: "Model is required" })}
+            {...register('model', { required: 'Model is required' })}
+          />
+
+          <Input
+            label="Year"
+            type="number"
+            min="1900"
+            max={new Date().getFullYear() + 1}
+            error={errors.year?.message}
+            required
+            {...register('year', { 
+              required: 'Year is required',
+              valueAsNumber: true,
+              min: { value: 1900, message: 'Year must be 1900 or later' },
+              max: { value: new Date().getFullYear() + 1, message: 'Year cannot be in the future' }
+            })}
           />
 
           <Controller
             control={control}
-            name="year"
-            rules={{ required: "Year is required" }}
+            name="type"
+            rules={{ required: 'Vehicle type is required' }}
             render={({ field }) => (
               <Select
-                label="Year"
-                options={Array.from({ length: 30 }, (_, i) => {
-                  const year = new Date().getFullYear() - i;
-                  return { value: year.toString(), label: year.toString() };
-                })}
-                error={errors.year?.message}
-                required
-                disabled={fieldsDisabled || isSubmitting}
-                {...field}
-                value={field.value?.toString()}
-                onChange={(e) => field.onChange(parseInt(e.target.value))}
-              />
-            )}
-          />
-
-          <Input
-            label="Owner Name"
-            placeholder="Enter owner's name"
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("owner_name")}
-          />
-
-          <Controller
-            control={control} // Use 'control' from useForm
-            name="type" // The name of the field in your form data
-            rules={{ required: "Vehicle type is required" }}
-            render={({ field }) => ( // 'field' contains value, onChange, etc.
-              <Select
                 label="Vehicle Type"
-                options={vehicleTypeOptions} // Use the defined vehicleTypeOptions
+                options={[
+                  { value: 'truck', label: 'Truck' },
+                  { value: 'tempo', label: 'Tempo' },
+                  { value: 'trailer', label: 'Trailer' }
+                ]}
                 error={errors.type?.message}
                 required
-                disabled={fieldsDisabled || isSubmitting}
                 {...field}
-                // Ensure the value passed to Select is the actual string value
-                value={field.value}
-                // Select's onChange should pass the string value directly to RHF's onChange
-                onChange={(e) => field.onChange(e.target.value)}
               />
             )}
           />
@@ -488,100 +216,92 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Controller
             control={control}
             name="fuel_type"
-            rules={{ required: "Fuel type is required" }}
+            rules={{ required: 'Fuel type is required' }}
             render={({ field }) => (
               <Select
                 label="Fuel Type"
                 options={[
-                  { value: "diesel", label: "Diesel" },
-                  { value: "petrol", label: "Petrol" },
-                  { value: "cng", label: "CNG" },
+                  { value: 'diesel', label: 'Diesel' },
+                  { value: 'petrol', label: 'Petrol' },
+                  { value: 'cng', label: 'CNG' }
                 ]}
                 error={errors.fuel_type?.message}
                 required
-                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
           />
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Tyre Size"
-            placeholder="e.g., 215/75 R15"
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("tyre_size")}
-          />
-
-          <Input
-            label="Number of Tyres"
+            label="Current Odometer (km)"
             type="number"
-            placeholder="6, 10, etc."
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("number_of_tyres", { valueAsNumber: true })}
-          />
-
-          <Input
-            label="Registration Date"
-            type="date"
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("registration_date")}
-          />
-
-          <Input
-            label="RC Expiry Date"
-            type="date"
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("rc_expiry_date")}
-          />
-
-          <Input
-            label="Current Odometer"
-            type="number"
+            min="0"
             error={errors.current_odometer?.message}
             required
-            disabled={fieldsDisabled || isSubmitting}
-            {...register("current_odometer", {
-              required: "Current odometer is required",
+            {...register('current_odometer', { 
+              required: 'Current odometer is required',
               valueAsNumber: true,
-              min: { value: 0, message: "Odometer must be positive" },
+              min: { value: 0, message: 'Odometer must be positive' }
             })}
           />
 
           <Controller
             control={control}
             name="status"
-            rules={{ required: "Status is required" }}
+            rules={{ required: 'Status is required' }}
             render={({ field }) => (
               <Select
                 label="Status"
                 options={[
-                  { value: "active", label: "Active" },
-                  { value: "maintenance", label: "Maintenance" },
-                  { value: "inactive", label: "Inactive" },
-                  { value: "stood", label: "Stood" },
+                  { value: 'active', label: 'Active' },
+                  { value: 'maintenance', label: 'Under Maintenance' },
+                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'stood', label: 'Stood' }
                 ]}
                 error={errors.status?.message}
                 required
-                disabled={fieldsDisabled || isSubmitting}
                 {...field}
               />
             )}
           />
         </div>
 
-        <div className="mt-3 sm:mt-4 flex justify-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Chassis Number"
+            error={errors.chassis_number?.message}
+            {...register('chassis_number')}
+          />
+
+          <Input
+            label="Engine Number"
+            error={errors.engine_number?.message}
+            {...register('engine_number')}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Owner Name"
+            error={errors.owner_name?.message}
+            {...register('owner_name')}
+          />
+
           <Controller
             control={control}
-            name="rc_copy_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload RC"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                // icon={<Upload className="h-4 w-4" />}
-                disabled={isSubmitting}
+            name="primary_driver_id"
+            render={({ field }) => (
+              <Select
+                label="Primary Driver"
+                options={[
+                  { value: '', label: 'Select Driver' },
+                  ...drivers.map(driver => ({
+                    value: driver.id || '',
+                    label: driver.name
+                  }))
+                ]}
                 {...field}
               />
             )}
@@ -589,888 +309,255 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
       </CollapsibleSection>
 
-      {/* Insurance Details */}
-      <CollapsibleSection
-        title="Insurance Details"
-        icon={<Shield className="h-5 w-5" />}
-        iconColor="text-blue-600"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <Input
-            label="Policy Number"
-            placeholder="e.g., POL123456789"
-            disabled={isSubmitting}
-            {...register("policy_number")}
-          />
-
-          <Input
-            label="Insurer Name"
-            placeholder="e.g., ICICI Lombard"
-            disabled={isSubmitting}
-            {...register("insurer_name")}
-          />
-
-          <Input
-            label="Insurance Start Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("insurance_start_date")}
-          />
-
-          <Input
-            label="Insurance Expiry Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("insurance_expiry_date")}
-          />
-
-          <Input
-            label="Premium Amount (₹)"
-            type="number"
-            placeholder="e.g., 25000"
-            disabled={isSubmitting}
-            {...register("insurance_premium_amount", { valueAsNumber: true })}
-          />
-
-          <Input
-            label="IDV Amount (₹)"
-            type="number"
-            placeholder="e.g., 500000"
-            disabled={isSubmitting}
-            {...register("insurance_idv", { valueAsNumber: true })}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4 flex justify-end">
-          <Controller
-            control={control}
-            name="insurance_document_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload Insurance"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <Checkbox
-            label="Set Insurance Expiry Reminder"
-            checked={remindInsurance}
-            onChange={(e) => setValue("remind_insurance", e.target.checked)}
-            disabled={isSubmitting}
-          />
-
-          {remindInsurance && (
-            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="insurance_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.Insurance
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
-
-              <Input
-                label="Days Before Expiry"
-                type="number"
-                placeholder="e.g., 30"
-                disabled={isSubmitting}
-                {...register("insurance_reminder_days_before", {
-                  valueAsNumber: true,
-                })}
-              />
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Fitness Certificate */}
-      <CollapsibleSection
-        title="Fitness Certificate"
-        icon={<FileCheck className="h-5 w-5" />}
+      {/* Documents */}
+      <CollapsibleSection 
+        title="Documents" 
+        icon={<FileText className="h-5 w-5" />}
         iconColor="text-green-600"
+        defaultExpanded={true}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <Input
-            label="Fitness Certificate Number"
-            placeholder="e.g., FC123456789"
-            disabled={isSubmitting}
-            {...register("fitness_certificate_number")}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DocumentUploader
+            label="RC Document"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="rc"
+            onUploadComplete={(paths) => handleDocumentUpload('rc', paths)}
+            helperText="Upload Registration Certificate"
+            variant="compact"
           />
 
-          <Input
-            label="Fitness Issue Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("fitness_issue_date")}
+          <DocumentUploader
+            label="Insurance Document"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="insurance"
+            onUploadComplete={(paths) => handleDocumentUpload('insurance', paths)}
+            helperText="Upload Insurance Policy"
+            variant="compact"
           />
 
-          <Input
-            label="Fitness Expiry Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("fitness_expiry_date")}
+          <DocumentUploader
+            label="Fitness Certificate"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="fitness"
+            onUploadComplete={(paths) => handleDocumentUpload('fitness', paths)}
+            helperText="Upload Fitness Certificate"
+            variant="compact"
           />
 
-          <Input
-            label="Fitness Cost (₹)"
-            type="number"
-            placeholder="e.g., 2000"
-            disabled={isSubmitting}
-            {...register("fitness_cost", { valueAsNumber: true })}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4 flex justify-end">
-          <Controller
-            control={control}
-            name="fitness_document_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload Fitness Certificate"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <Checkbox
-            label="Set Fitness Expiry Reminder"
-            checked={remindFitness}
-            onChange={(e) => setValue("remind_fitness", e.target.checked)}
-            disabled={isSubmitting}
+          <DocumentUploader
+            label="Tax Receipt"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="tax"
+            onUploadComplete={(paths) => handleDocumentUpload('tax', paths)}
+            helperText="Upload Tax Receipt"
+            variant="compact"
           />
 
-          {remindFitness && (
-            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="fitness_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.Fitness
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
+          <DocumentUploader
+            label="Permit Document"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="permit"
+            onUploadComplete={(paths) => handleDocumentUpload('permit', paths)}
+            helperText="Upload Transport Permit"
+            variant="compact"
+          />
 
-              <Input
-                label="Days Before Expiry"
-                type="number"
-                placeholder="e.g., 30"
-                disabled={isSubmitting}
-                {...register("fitness_reminder_days_before", {
-                  valueAsNumber: true,
-                })}
-              />
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
+          <DocumentUploader
+            label="PUC Certificate"
+            bucketType="vehicle"
+            entityId={entityId}
+            docType="puc"
+            onUploadComplete={(paths) => handleDocumentUpload('puc', paths)}
+            helperText="Upload Pollution Under Control Certificate"
+            variant="compact"
+          />
         </div>
       </CollapsibleSection>
 
-      {/* Tax Details */}
-      <CollapsibleSection
-        title="Tax Details"
-        icon={<IndianRupee className="h-5 w-5" />}
-        iconColor="text-yellow-600"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <Input
-            label="Tax Receipt Number"
-            placeholder="e.g., TR123456789"
-            disabled={isSubmitting}
-            {...register("tax_receipt_number")}
-          />
-
-          <Input
-            label="Tax Amount (₹)"
-            type="number"
-            placeholder="e.g., 5000"
-            disabled={isSubmitting}
-            {...register("tax_amount", { valueAsNumber: true })}
-          />
-
-          <Input
-            label="Tax Scope"
-            placeholder="e.g., State, National"
-            disabled={isSubmitting}
-            {...register("tax_scope")}
-          />
-
-          <Input
-            label="Tax Paid Up To"
-            type="date"
-            placeholder="e.g., 2025-03-31"
-            disabled={isSubmitting}
-            {...register("tax_paid_upto")}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4 flex justify-end">
-          <Controller
-            control={control}
-            name="tax_receipt_document_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload Tax Receipt"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <Checkbox
-            label="Set Tax Expiry Reminder"
-            checked={remindTax}
-            onChange={(e) => setValue("remind_tax", e.target.checked)}
-            disabled={isSubmitting}
-          />
-
-          {remindTax && (
-            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="tax_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.Tax
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
-
-              <Input
-                label="Days Before Expiry"
-                type="number"
-                placeholder="e.g., 30"
-                disabled={isSubmitting}
-                {...register("tax_reminder_days_before", {
-                  valueAsNumber: true,
-                })}
-              />
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Permit Details */}
-      <CollapsibleSection
-        title="Permit Details"
-        icon={<BadgeCheck className="h-5 w-5" />}
-        iconColor="text-orange-600"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <Input
-            label="Permit Number"
-            placeholder="e.g., PER123456789"
-            disabled={isSubmitting}
-            {...register("permit_number")}
-          />
-
-          <Input
-            label="Issuing State"
-            placeholder="e.g., Chhattisgarh"
-            disabled={isSubmitting}
-            {...register("permit_issuing_state")}
-          />
-
-          <Input
-            label="Permit Type"
-            placeholder="e.g., National, State"
-            disabled={isSubmitting}
-            {...register("permit_type")}
-          />
-
-          <Input
-            label="Permit Issue Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("permit_issue_date")}
-          />
-
-          <Input
-            label="Permit Expiry Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("permit_expiry_date")}
-          />
-
-          <Input
-            label="Permit Cost (₹)"
-            type="number"
-            placeholder="e.g., 10000"
-            disabled={isSubmitting}
-            {...register("permit_cost", { valueAsNumber: true })}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4 flex justify-end">
-          <Controller
-            control={control}
-            name="permit_document_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload Permit"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <Checkbox
-            label="Set Permit Expiry Reminder"
-            checked={remindPermit}
-            onChange={(e) => setValue("remind_permit", e.target.checked)}
-            disabled={isSubmitting}
-          />
-
-          {remindPermit && (
-            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="permit_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.Permit
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
-
-              <Input
-                label="Days Before Expiry"
-                type="number"
-                placeholder="e.g., 30"
-                disabled={isSubmitting}
-                {...register("permit_reminder_days_before", {
-                  valueAsNumber: true,
-                })}
-              />
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Pollution Certificate (PUC) */}
-      <CollapsibleSection
-        title="Pollution Certificate (PUC)"
-        icon={<Wind className="h-5 w-5" />}
+      {/* Vehicle Details */}
+      <CollapsibleSection 
+        title="Additional Details" 
+        icon={<Settings className="h-5 w-5" />}
         iconColor="text-gray-600"
+        defaultExpanded={false}
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="PUC Certificate Number"
-            placeholder="e.g., PUC123456789"
-            disabled={isSubmitting}
-            {...register("puc_certificate_number")}
+            label="Tyre Size"
+            placeholder="e.g., 215/75 R17.5"
+            error={errors.tyre_size?.message}
+            {...register('tyre_size')}
           />
 
           <Input
-            label="PUC Issue Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("puc_issue_date")}
-          />
-
-          <Input
-            label="PUC Expiry Date"
-            type="date"
-            disabled={isSubmitting}
-            {...register("puc_expiry_date")}
-          />
-
-          <Input
-            label="PUC Cost (₹)"
+            label="Number of Tyres"
             type="number"
-            placeholder="e.g., 500"
-            disabled={isSubmitting}
-            {...register("puc_cost", { valueAsNumber: true })}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4 flex justify-end">
-          <Controller
-            control={control}
-            name="puc_document_file"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                multiple={true}
-                label="Upload PUC Certificate"
-                value={value as File[]}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div>
-
-        <div className="mt-3 sm:mt-4">
-          <Checkbox
-            label="Set PUC Expiry Reminder"
-            checked={remindPuc}
-            onChange={(e) => setValue("remind_puc", e.target.checked)}
-            disabled={isSubmitting}
-          />
-
-          {remindPuc && (
-            <div className="mt-3 pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="puc_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.Pollution
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
-
-              <Input
-                label="Days Before Expiry"
-                type="number"
-                placeholder="e.g., 15"
-                disabled={isSubmitting}
-                {...register("puc_reminder_days_before", {
-                  valueAsNumber: true,
-                })}
-              />
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Service Reminder */}
-      <CollapsibleSection
-        title="Service Reminder"
-        icon={<Bell className="h-5 w-5" />}
-        iconColor="text-indigo-600"
-      >
-        <div className="space-y-4">
-          {/* Service Interval Configuration */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">Service Intervals</h4>
-            <p className="text-xs text-blue-600 mb-3">
-              We'll compute next due from your last maintenance record; if none exists, we'll use your current odometer/date as a starting point.
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Service Interval (KM)"
-                type="number"
-                placeholder="e.g., 10000 or 15000"
-                helperText="Distance between services"
-                disabled={isSubmitting}
-                {...register("service_interval_km", { 
-                  valueAsNumber: true,
-                  min: { value: 1000, message: "Minimum 1000 km" },
-                  max: { value: 50000, message: "Maximum 50000 km" }
-                })}
-              />
-              
-              <Input
-                label="Service Interval (Days)"
-                type="number"
-                placeholder="365"
-                helperText="Fallback annual service (days)"
-                disabled={isSubmitting}
-                {...register("service_interval_days", { 
-                  valueAsNumber: true,
-                  min: { value: 30, message: "Minimum 30 days" },
-                  max: { value: 730, message: "Maximum 730 days" }
-                })}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3 sm:space-y-4">
-          <Checkbox
-            label="Enable Service Reminders"
-            checked={remindService}
-            onChange={(e) => setValue("remind_service", e.target.checked)}
-            disabled={isSubmitting}
-          />
-
-          {remindService && (
-            <div className="pl-4 sm:pl-6 border-l-2 border-gray-200 space-y-3 sm:space-y-4">
-              <Controller
-                control={control}
-                name="service_reminder_contact_id"
-                render={({ field }) => (
-                  <Select
-                    label="Notify Contact"
-                    options={reminderContacts
-                      .filter(
-                        (contact) =>
-                          contact.is_active &&
-                          (contact.is_global ||
-                            contact.assigned_types.includes(
-                              ReminderAssignedType.ServiceDue
-                            ))
-                      )
-                      .map((con) => ({
-                        value: con.id,
-                        label: con.full_name,
-                      }))}
-                    isPrefilledByTemplate={
-                      prefilledByTemplate["service_reminder_contact_id"]
-                    }
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                <Input
-                  label="Days Before Service"
-                  type="number"
-                  placeholder="e.g., 7"
-                  helperText="Warning threshold (days before due)"
-                  isPrefilledByTemplate={
-                    prefilledByTemplate["service_reminder_days_before"]
-                  }
-                  disabled={isSubmitting}
-                  {...register("service_reminder_days_before", {
-                    valueAsNumber: true,
-                  })}
-                />
-
-                <Input
-                  label="KM Before Service"
-                  type="number"
-                  placeholder="e.g., 500"
-                  helperText="Warning threshold (km before due)"
-                  isPrefilledByTemplate={
-                    prefilledByTemplate["service_reminder_km"]
-                  }
-                  disabled={isSubmitting}
-                  {...register("service_reminder_km", { valueAsNumber: true })}
-                />
-              </div>
-
-              <p className="text-xs text-gray-500 mt-2">
-                Leave blank to use global default set in Reminder Templates
-              </p>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* Other Information & Documents */}
-      <CollapsibleSection
-        title="Other Information & Documents"
-        icon={<Database className="h-5 w-5" />}
-        iconColor="text-slate-600"
-      >
-        {/* General Information Fields */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-          <Input
-            label="Financer"
-            placeholder="e.g., HDFC Bank"
-            disabled={isSubmitting}
-            {...register("financer")}
+            min="2"
+            max="22"
+            error={errors.number_of_tyres?.message}
+            {...register('number_of_tyres', { 
+              valueAsNumber: true,
+              min: { value: 2, message: 'Must have at least 2 tyres' },
+              max: { value: 22, message: 'Maximum 22 tyres allowed' }
+            })}
           />
 
           <Input
             label="Vehicle Class"
-            placeholder="e.g., LMV"
-            disabled={isSubmitting}
-            {...register("vehicle_class")}
+            placeholder="e.g., Heavy Motor Vehicle"
+            error={errors.vehicle_class?.message}
+            {...register('vehicle_class')}
           />
 
           <Input
             label="Color"
-            placeholder="e.g., White"
-            disabled={isSubmitting}
-            {...register("color")}
+            error={errors.color?.message}
+            {...register('color')}
           />
 
           <Input
-            label="Cubic Capacity"
+            label="Cubic Capacity (CC)"
             type="number"
-            placeholder="e.g., 2500"
-            disabled={isSubmitting}
-            {...register("cubic_capacity", { valueAsNumber: true })}
+            min="0"
+            error={errors.cubic_capacity?.message}
+            {...register('cubic_capacity', { valueAsNumber: true })}
           />
 
           <Input
-            label="Cylinders"
+            label="Number of Cylinders"
             type="number"
-            placeholder="e.g., 4"
-            disabled={isSubmitting}
-            {...register("cylinders", { valueAsNumber: true })}
+            min="1"
+            max="12"
+            error={errors.cylinders?.message}
+            {...register('cylinders', { valueAsNumber: true })}
           />
 
           <Input
             label="Unladen Weight (kg)"
             type="number"
-            placeholder="e.g., 3500"
-            disabled={isSubmitting}
-            {...register("unladen_weight", { valueAsNumber: true })}
+            min="0"
+            error={errors.unladen_weight?.message}
+            {...register('unladen_weight', { valueAsNumber: true })}
           />
 
           <Input
             label="Seating Capacity"
             type="number"
-            placeholder="e.g., 2"
-            disabled={isSubmitting}
-            {...register("seating_capacity", { valueAsNumber: true })}
-          />
-
-          <Input
-            label="Emission Norms"
-            placeholder="e.g., BS6"
-            disabled={isSubmitting}
-            {...register("emission_norms")}
+            min="1"
+            max="100"
+            error={errors.seating_capacity?.message}
+            {...register('seating_capacity', { valueAsNumber: true })}
           />
         </div>
+      </CollapsibleSection>
 
-        {/* Upload Related Documents */}
-        {/* <div className="mb-4 sm:mb-6">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">
-            Upload Related Documents
-          </h4>
-          <Controller
-            control={control}
-            name="other_info_documents"
-            render={({ field: { value, onChange, ...field } }) => (
-              <FileUpload
-                label="Upload Documents"
-                value={value as File[] | null}
-                onChange={onChange}
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple
-                maxFiles={5}
-                helperText="Upload up to 5 additional documents (JPG, PNG, PDF)"
-                icon={<Paperclip className="h-4 w-4" />}
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
-          />
-        </div> */}
-
-        {/* Other Documents */}
-        {/* <div className="space-y-3 sm:space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium text-gray-700">Document List</h4>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ name: "", file_path: "" })}
-              icon={<Plus className="h-4 w-4" />}
-              disabled={isSubmitting}
-            >
-              Add Document
-            </Button>
-          </div>
-
-          {fields.map((field, index) => (
-            <div
-              key={field.id}
-              className="p-3 sm:p-4 border rounded-lg bg-gray-50 relative"
-            >
+      {/* Other Documents */}
+      <CollapsibleSection 
+        title="Other Documents" 
+        icon={<Database className="h-5 w-5" />}
+        iconColor="text-purple-600"
+        defaultExpanded={false}
+      >
+        <div className="space-y-4">
+          {otherDocFields.map((field, index) => (
+            <div key={field.id} className="border rounded-lg p-4 relative">
               <button
                 type="button"
-                className="absolute top-2 right-2 text-gray-400 hover:text-error-500"
-                onClick={() => remove(index)}
-                disabled={isSubmitting}
+                onClick={() => removeDoc(index)}
+                className="absolute top-2 right-2 text-error-500 hover:text-error-700"
               >
-                <X className="h-5 w-5" />
+                <Trash2 className="h-4 w-4" />
               </button>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-8">
                 <Input
                   label="Document Name"
-                  placeholder="e.g., National Permit"
-                  disabled={isSubmitting}
-                  {...register(`other_documents.${index}.name` as const)}
+                  placeholder="e.g., NOC, Bank Documents"
+                  {...register(`other_documents.${index}.name` as const, {
+                    required: 'Document name is required'
+                  })}
                 />
+
+                <div>
+                  <DocumentUploader
+                    label="Upload Document"
+                    bucketType="vehicle"
+                    entityId={entityId}
+                    docType={`other_${index}`}
+                    onUploadComplete={(paths) => handleOtherDocumentUpload(index, paths)}
+                    helperText="Upload additional document"
+                    variant="compact"
+                  />
+                </div>
 
                 <Input
                   label="Issue Date"
                   type="date"
-                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.issue_date` as const)}
                 />
 
                 <Input
                   label="Expiry Date"
                   type="date"
-                  disabled={isSubmitting}
                   {...register(`other_documents.${index}.expiry_date` as const)}
                 />
 
                 <Input
-                  label="Document Cost (₹)"
+                  label="Cost (₹)"
                   type="number"
-                  placeholder="e.g., 1000"
-                  disabled={isSubmitting}
-                  {...register(`other_documents.${index}.cost` as const, {
-                    valueAsNumber: true,
-                  })}
+                  min="0"
+                  {...register(`other_documents.${index}.cost` as const, { valueAsNumber: true })}
                 />
               </div>
-
-              <Controller
-                control={control}
-                name={`other_documents.${index}.file_obj` as const}
-                render={({ field: { value, onChange, ...field } }) => (
-                  <FileUpload
-                    label="Upload Document"
-                    value={value as File | null}
-                    onChange={onChange}
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    icon={<Upload className="h-4 w-4" />}
-                    disabled={isSubmitting}
-                    {...field}
-                  />
-                )}
-              />
             </div>
           ))}
 
-          {fields.length === 0 && (
-            <div className="text-center py-4 sm:py-6 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
-                No documents added yet. Click "Add Document" to add one.
-              </p>
-            </div>
-          )}
-        </div> */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendDoc({ 
+              name: '', 
+              issue_date: '', 
+              expiry_date: '', 
+              cost: 0,
+              file_path: ''
+            })}
+            icon={<Plus className="h-4 w-4" />}
+          >
+            Add Document
+          </Button>
+        </div>
       </CollapsibleSection>
 
-      {/* Form Actions */}
-      <div className="flex justify-end space-x-3 sm:space-x-4 pt-4 sm:pt-6 border-t border-gray-200">
+      {/* Reminder Configuration */}
+      <ReminderConfigurationSection />
+
+      {/* VAHAN Integration */}
+      <VehicleVahanSection />
+
+      {/* Submit Button */}
+      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         )}
-        <Button type="submit" isLoading={isSubmittingForm || isSubmitting}>
-          {initialData ? "Update Vehicle" : "Save Vehicle"}
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          icon={<CheckCircle className="h-4 w-4" />}
+        >
+          {initialData?.id ? 'Update Vehicle' : 'Add Vehicle'}
         </Button>
       </div>
     </form>
