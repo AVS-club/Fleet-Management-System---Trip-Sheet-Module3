@@ -315,7 +315,6 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               {lastSelectedDestination && (
                 <button
                   type="button"
-                  type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -336,9 +335,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
                 setIsOpen(true);
-                requestAnimationFrame(() => {
-                  searchInputRef.current?.focus({ preventScroll: true } as any);
-                });
+                setTimeout(() => {
+                  if (searchInputRef.current) {
+                    searchInputRef.current.focus({ preventScroll: true });
+                  }
+                }, 0);
               }}
             >
               Select destinations
@@ -348,9 +349,11 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(true);
-                  requestAnimationFrame(() => {
-                    searchInputRef.current?.focus({ preventScroll: true } as any);
-                  });
+                  setTimeout(() => {
+                    if (searchInputRef.current) {
+                      searchInputRef.current.focus({ preventScroll: true });
+                    }
+                  }, 0);
                 }}
                 type="button"
               >
@@ -363,15 +366,16 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           {Array.isArray(selectedDestinations) && selectedDestinations.length >= 2 && !isOpen && (
             <button
               type="button"
-              type="button"
               className="mt-2 flex items-center text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setIsOpen(true);
-                requestAnimationFrame(() => {
-                  searchInputRef.current?.focus({ preventScroll: true } as any);
-                });
+                setTimeout(() => {
+                  if (searchInputRef.current) {
+                    searchInputRef.current.focus({ preventScroll: true });
+                  }
+                }, 0);
               }}
             >
               <Plus className="h-3 w-3 mr-1" />
