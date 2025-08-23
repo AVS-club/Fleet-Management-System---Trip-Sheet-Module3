@@ -59,12 +59,12 @@ export interface Vehicle {
   puc_document_file?: File[];
 
   // Document paths for storage
-  rc_document_url?: string;
-  insurance_document_url?: string;
-  fitness_document_url?: string;
-  tax_document_url?: string;
-  permit_document_url?: string;
-  puc_document_url?: string;
+  rc_document_url?: string[];
+  insurance_document_url?: string[];
+  fitness_document_url?: string[];
+  tax_document_url?: string[];
+  permit_document_url?: string[];
+  puc_document_url?: string[];
 
   // Legacy boolean flags (for backward compatibility)
   rc_copy?: boolean;

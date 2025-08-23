@@ -308,7 +308,7 @@ const VehiclesPage: React.FC = () => {
               payload.registration_number,
               docType
             );
-            payload[urlField] = filePath;
+            payload[urlField] = [filePath];
           } catch (err) {
             console.error(`Failed to upload ${docType} document:`, err);
             toast.error(`Failed to upload ${docType} document`);

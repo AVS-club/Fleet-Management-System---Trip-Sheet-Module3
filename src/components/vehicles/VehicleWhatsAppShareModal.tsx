@@ -92,12 +92,12 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
   
   // Check if any document URLs exist
   const hasDocumentUrls = 
-    signedDocUrls.rc || 
-    signedDocUrls.insurance || 
-    signedDocUrls.fitness || 
-    signedDocUrls.permit || 
-    signedDocUrls.puc || 
-    signedDocUrls.tax || 
+    (signedDocUrls.rc && signedDocUrls.rc.length > 0) || 
+    (signedDocUrls.insurance && signedDocUrls.insurance.length > 0) || 
+    (signedDocUrls.fitness && signedDocUrls.fitness.length > 0) || 
+    (signedDocUrls.permit && signedDocUrls.permit.length > 0) || 
+    (signedDocUrls.puc && signedDocUrls.puc.length > 0) || 
+    (signedDocUrls.tax && signedDocUrls.tax.length > 0) || 
     Object.keys(signedDocUrls.other).length > 0;
   
   return (
@@ -325,10 +325,10 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                   {/* Other Documents */}
                   {Object.entries(signedDocUrls.other).map(([key, url], index) => (
                     <div key={key} className="flex justify-between items-center p-2 bg-white rounded border">
-                      <span className="text-sm">Other Document {index + 1}</span>
+                    {signedDocUrls.tax && signedDocUrls.tax.length > 0 ? (
                       <div className="flex items-center gap-2">
                         <a 
-                          href={url} 
+                          href={signedDocUrls.tax[0]} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="p-1 text-primary-600 hover:text-primary-700"
@@ -337,7 +337,7 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                           <LinkIcon className="h-4 w-4" />
                         </a>
                         <button
-                          onClick={() => handleShareDocumentFile(`Additional Document ${index + 1}`, url)}
+                          onClick={() => handleShareDocumentFile('Tax Receipt', signedDocUrls.tax![0])}
                           className="p-1 text-green-600 hover:text-green-700"
                           title="Share on WhatsApp"
                         >
