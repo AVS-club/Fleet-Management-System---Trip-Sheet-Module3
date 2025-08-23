@@ -48,8 +48,9 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
         url: signedDocUrls.license?.[0],
         selected: !!(signedDocUrls.license && signedDocUrls.license.length > 0),
         size: (signedDocUrls.license && signedDocUrls.license.length > 0) ? 'PDF' : undefined,
-        status: (signedDocUrls.license && signedDocUrls.license.length > 0) ? 'available' : 'missing'
-          getDocumentStatus(driver.license_expiry_date) : 'missing'
+        status: (signedDocUrls.license && signedDocUrls.license.length > 0) 
+          ? getDocumentStatus(driver.license_expiry_date) 
+          : 'missing'
       },
       {
         id: 'police_verification', // Keep this as is, it's a separate document
