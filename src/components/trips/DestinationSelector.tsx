@@ -217,7 +217,6 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       // Create a new destination from Google place
       const placeName = placeDetails.name || prediction.description.split(',')[0];
       const newDestination: Destination = {
-        id: '',  // Will be assigned by the server
         name: placeName.trim(),
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
