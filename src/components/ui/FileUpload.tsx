@@ -15,9 +15,6 @@ interface FileUploadProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   variant?: 'default' | 'compact';
-  progress?: number; // 0-100
-  uploadStatus?: 'idle' | 'uploading' | 'success' | 'error';
-  onRetry?: () => void;
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({
@@ -33,9 +30,6 @@ const FileUpload: React.FC<FileUploadProps> = ({
   size = 'md',
   className,
   variant = 'default',
-  progress = 0,
-  uploadStatus = 'idle',
-  onRetry,
 }) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -97,80 +91,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
   };
 
-  // Get status icon
-  const getStatusIcon = () => {
-    switch (uploadStatus) {
-      case 'uploading':
-        return (
-          <div className="flex items-center space-x-2 text-blue-600">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span className="text-xs">Uploading... {progress}%</span>
-          </div>
-        );
-      case 'success':
-        return (
-          <div className="flex items-center space-x-1 text-success-600">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <span className="text-xs font-medium">Uploaded</span>
-          </div>
-        );
-      case 'error':
-        return (
-          <div className="flex items-center space-x-2 text-error-600">
-            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <span className="text-xs">Failed</span>
-            {onRetry && (
-              <button
-                onClick={onRetry}
-                className="text-xs underline hover:no-underline"
-                type="button"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className={cn("form-group", fullWidth && "w-full")}>
       {label && (
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            {label}
-          </label>
-          {getStatusIcon()}
-        </div>
-      )}
-
-      {/* Progress bar */}
-      {uploadStatus === 'uploading' && (
-        <div className="mb-2">
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          {label}
+        </label>
       )}
 
       <div
         className={cn(
           "border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-200",
-          uploadStatus === 'success' && "border-success-300 bg-success-50",
-          uploadStatus === 'error' && "border-error-300 bg-error-50",
           error
             ? "border-error-500 dark:border-error-500"
             : "border-gray-300 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500",
-          (disabled || uploadStatus === 'uploading') && "opacity-50 cursor-not-allowed",
+          disabled && "opacity-50 cursor-not-allowed",
           variant === 'compact' ? variantClasses.compact : sizeClasses[size],
           className
         )}
@@ -179,31 +114,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onClick={openFileDialog}
       >
         <div className={cn(
-          "flex flex-col items-center justify-center space-y-2",
-          uploadStatus === 'success' ? "text-success-600" : 
-          uploadStatus === 'error' ? "text-error-600" :
-          "text-gray-500 dark:text-gray-400",
+          "flex flex-col items-center justify-center space-y-2 text-gray-500 dark:text-gray-400",
           textSizeClasses[variant]
         )}>
-          {uploadStatus === 'uploading' ? (
-            <div className="animate-spin rounded-full border-2 border-blue-600 border-t-transparent h-6 w-6" />
-          ) : uploadStatus === 'success' ? (
-            <svg className={iconSizeClasses[variant]} fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          ) : uploadStatus === 'error' ? (
-            <svg className={iconSizeClasses[variant]} fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          ) : (
-            <Upload className={iconSizeClasses[variant]} />
-          )}
+          <Upload className={iconSizeClasses[variant]} />
           <div className="text-center">
             <p className="font-medium">
-              {uploadStatus === 'uploading' ? 'Uploading...' :
-               uploadStatus === 'success' ? 'Upload complete' :
-               uploadStatus === 'error' ? 'Upload failed' :
-               variant === 'compact' ? 'Upload' : (multiple ? 'Drop files here or click to browse' : 'Drop file here or click to browse')}
+              {variant === 'compact' ? 'Upload' : (multiple ? 'Drop files here or click to browse' : 'Drop file here or click to browse')}
             </p>
             {accept && (
               <p className={cn("mt-1", variant === 'compact' ? 'text-xs opacity-70' : 'text-sm')}>
@@ -221,7 +138,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         multiple={multiple}
         onChange={handleInputChange}
         className="hidden"
-        disabled={disabled || uploadStatus === 'uploading'}
+        disabled={disabled}
       />
 
       {/* File list */}
@@ -242,7 +159,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
                   removeFile(index);
                 }}
                 className="ml-2 p-1 text-gray-500 hover:text-error-500 transition-colors"
-                disabled={disabled || uploadStatus === 'uploading'}
+                disabled={disabled}
               >
                 <X className="h-4 w-4" />
               </button>

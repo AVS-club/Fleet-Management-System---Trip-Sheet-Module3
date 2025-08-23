@@ -2,23 +2,16 @@ import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
 
 /**
- * Upload progress callback function type
- */
-export type UploadProgressCallback = (progress: number) => void;
-
-/**
  * Uploads a vehicle document to Supabase Storage
  * @param file The file to upload
  * @param vehicleId The ID of the vehicle
  * @param docType The type of document (e.g., 'rc', 'insurance', 'fitness')
- * @param onProgress Optional callback for upload progress
  * @returns The file path of the uploaded file (not the public URL)
  */
 export const uploadVehicleDocument = async (
   file: File,
   vehicleId: string,
-  docType: string,
-  onProgress?: UploadProgressCallback
+  docType: string
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
@@ -30,51 +23,6 @@ export const uploadVehicleDocument = async (
   const fileName = `${vehicleId}/${docType}_${Date.now()}.${fileExt}`;
   const filePath = fileName;
 
-  if (onProgress) {
-    // Use XMLHttpRequest for progress tracking
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
-        }
-      };
-      
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          onProgress(100);
-          resolve(filePath);
-        } else {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      };
-      
-      xhr.onerror = () => {
-        reject(new Error('Upload failed'));
-      };
-      
-      // Get signed upload URL from Supabase
-      supabase.storage
-        .from("vehicle-docs")
-        .createSignedUploadUrl(filePath)
-        .then(({ data, error }) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          xhr.open('PUT', data.signedUrl);
-          xhr.setRequestHeader('x-upsert', 'true');
-          xhr.send(file);
-        })
-        .catch(reject);
-    });
-  }
 
   // Upload the file
   const { error: uploadError } = await supabase.storage
@@ -131,14 +79,12 @@ export const getSignedDocumentUrl = async (
  * @param file The file to upload
  * @param driverId The ID of the driver
  * @param docType The type of document (e.g., 'license', 'photo')
- * @param onProgress Optional callback for upload progress
  * @returns The file path of the uploaded file
  */
-export const uploadDriverDocument = async (
+const uploadDriverDocument = async (
   file: File,
   driverId: string,
-  docType: string,
-  onProgress?: UploadProgressCallback
+  docType: string
 ): Promise<string> => {
   if (!file) {
     throw new Error("No file provided");
@@ -149,52 +95,6 @@ export const uploadDriverDocument = async (
   // Create a unique filename
   const fileName = `${driverId}/${docType}_${Date.now()}.${fileExt}`;
   const filePath = fileName;
-
-  if (onProgress) {
-    // Use XMLHttpRequest for progress tracking
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
-        }
-      };
-      
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          onProgress(100);
-          resolve(filePath);
-        } else {
-          reject(new Error(`Upload failed with status ${xhr.status}`));
-        }
-      };
-      
-      xhr.onerror = () => {
-        reject(new Error('Upload failed'));
-      };
-      
-      // Get signed upload URL from Supabase
-      supabase.storage
-        .from("driver-docs")
-        .createSignedUploadUrl(filePath)
-        .then(({ data, error }) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          xhr.open('PUT', data.signedUrl);
-          xhr.setRequestHeader('x-upsert', 'true');
-          xhr.send(file);
-        })
-        .catch(reject);
-    });
-  }
 
   // Upload the file
   const { error: uploadError } = await supabase.storage
