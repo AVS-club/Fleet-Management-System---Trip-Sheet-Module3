@@ -599,18 +599,17 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       throw new Error('User not authenticated');
     }
 
-    const { photo, aadhar_doc_file, medical_doc_file, license_doc_file, police_doc_file, ...rest } = driverData as any;
     const payload = withOwner(
       {
-        ...rest, // ⚠️ Confirm field refactor here
-        station: station ?? null,
-        fuel_station_id: fuel_station_id ?? null,
+        ...tripData,
+        station: tripData.station ?? null,
+        fuel_station_id: tripData.fuel_station_id ?? null,
       },
       userId
     );
- // ⚠️ Confirm field refactor here
+
     const { data, error } = await supabase
-      .from('trips') // ⚠️ Confirm field refactor here
+      .from('trips')
       .insert(payload)
       .select('*')
       .single();
