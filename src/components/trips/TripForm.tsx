@@ -19,6 +19,7 @@ import RouteAnalysisComponent from './RouteAnalysis';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import MaterialSelector from './MaterialSelector';
+import { generateTripSerialNumber, validateTripSerialUniqueness } from '../../utils/tripSerialGenerator';
 import { toast } from 'react-toastify';
 
 interface TripFormProps {
@@ -50,6 +51,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isReturnTrip, setIsReturnTrip] = useState(initialData.is_return_trip || false);
   const [originalDestinations, setOriginalDestinations] = useState<string[]>([]);
   const [manualOverride, setManualOverride] = useState(false);
+  const [manualTripId, setManualTripId] = useState(initialData.manual_trip_id || false);
+  const [generatingSerial, setGeneratingSerial] = useState(false);
 
   useEffect(() => {
     setCachedTrips(Array.isArray(trips) ? trips : []);
@@ -69,6 +72,7 @@ const TripForm: React.FC<TripFormProps> = ({
       refueling_done: false,
       is_return_trip: false,
       manual_trip_id: false,
+      trip_serial_number: '',
       unloading_expense: 0,
       driver_expense: 0,
       road_rto_expense: 0,
@@ -100,6 +104,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const warehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
   const materialTypeIds = watch('material_type_ids') || [];
+  const tripSerialNumber = watch('trip_serial_number');
   const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Calculate total expenses in real-time
@@ -145,6 +150,66 @@ const TripForm: React.FC<TripFormProps> = ({
 
     fetchData();
   }, []);
+
+  // Auto-generate trip serial number when vehicle and trip start date change
+  useEffect(() => {
+    const generateSerialNumber = async () => {
+      // Only generate if we have both vehicle and trip start date, and manual ID is not enabled
+      if (!vehicleId || !tripStartDate || manualTripId || initialData.trip_serial_number) {
+        return;
+      }
+
+      // Find the selected vehicle
+      const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+      if (!selectedVehicle) {
+        return;
+      }
+
+      setGeneratingSerial(true);
+      try {
+        const generatedSerial = await generateTripSerialNumber(
+          selectedVehicle.registration_number,
+          tripStartDate,
+          vehicleId
+        );
+        
+        setValue('trip_serial_number', generatedSerial);
+      } catch (error) {
+        console.error('Error generating trip serial number:', error);
+        toast.error('Failed to generate trip serial number');
+      } finally {
+        setGeneratingSerial(false);
+      }
+    };
+
+    generateSerialNumber();
+  }, [vehicleId, tripStartDate, manualTripId, vehicles, setValue, initialData.trip_serial_number]);
+
+  // Handle manual trip ID toggle
+  const handleManualTripIdToggle = (checked: boolean) => {
+    setManualTripId(checked);
+    setValue('manual_trip_id', checked);
+    
+    if (!checked && vehicleId && tripStartDate) {
+      // Re-generate serial number when switching back to auto mode
+      const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+      if (selectedVehicle) {
+        generateTripSerialNumber(
+          selectedVehicle.registration_number,
+          tripStartDate,
+          vehicleId
+        ).then(generatedSerial => {
+          setValue('trip_serial_number', generatedSerial);
+        }).catch(error => {
+          console.error('Error re-generating trip serial:', error);
+          toast.error('Failed to generate trip serial number');
+        });
+      }
+    } else if (checked) {
+      // Clear the auto-generated serial when switching to manual mode
+      setValue('trip_serial_number', '');
+    }
+  };
 
   useEffect(() => {
     if (Array.isArray(cachedTrips) && Array.isArray(warehouses)) {
@@ -425,30 +490,78 @@ const TripForm: React.FC<TripFormProps> = ({
         iconColor="text-slate-600"
         defaultExpanded={true}
       >
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center">
-            <Controller
-              control={control}
-              name="refueling_done"
-              render={({ field: { value, onChange, ...field } }) => (
-                <Checkbox
-                  label="Refueling Trip"
-                  checked={value}
-                  onChange={e => onChange(e.target.checked)}
-                  {...field}
-                  helperText="Mileage will be calculated from last refueling"
-                />
+        <div className="space-y-4">
+          {/* Trip Serial Number Section */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium text-gray-900 text-sm">Trip Serial Number</h4>
+              <Checkbox
+                label="Manual Entry"
+                checked={manualTripId}
+                onChange={e => handleManualTripIdToggle(e.target.checked)}
+                size="sm"
+              />
+            </div>
+            
+            <div className="relative">
+              <Input
+                label="Trip Serial Number"
+                value={tripSerialNumber}
+                onChange={e => setValue('trip_serial_number', e.target.value)}
+                disabled={!manualTripId}
+                readOnly={!manualTripId}
+                className={!manualTripId ? 'bg-blue-50 border-blue-300' : ''}
+                error={errors.trip_serial_number?.message}
+                required
+                placeholder="Auto-generated based on vehicle and date"
+                {...register('trip_serial_number', {
+                  required: 'Trip serial number is required'
+                })}
+              />
+              {generatingSerial && (
+                <div className="absolute right-3 top-8 flex items-center">
+                  <Loader className="h-4 w-4 animate-spin text-primary-500" />
+                </div>
               )}
-            />
+              {!manualTripId && tripSerialNumber && (
+                <div className="absolute -top-1 right-0 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
+                  Auto-generated
+                </div>
+              )}
+            </div>
+            
+            {!manualTripId && (
+              <p className="text-xs text-gray-600">
+                Format: T(Year)-(Vehicle#)-(Sequence) • Automatically generated from vehicle and trip date
+              </p>
+            )}
           </div>
-          
-          <div className="flex items-center">
-            <Checkbox
-              label="Return Trip"
-              checked={isReturnTrip}
-              onChange={e => handleReturnTripToggle(e.target.checked)}
-              helperText="Vehicle returns to origin. Route distance doubled."
-            />
+
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center">
+              <Controller
+                control={control}
+                name="refueling_done"
+                render={({ field: { value, onChange, ...field } }) => (
+                  <Checkbox
+                    label="Refueling Trip"
+                    checked={value}
+                    onChange={e => onChange(e.target.checked)}
+                    {...field}
+                    helperText="Mileage will be calculated from last refueling"
+                  />
+                )}
+              />
+            </div>
+            
+            <div className="flex items-center">
+              <Checkbox
+                label="Return Trip"
+                checked={isReturnTrip}
+                onChange={e => handleReturnTripToggle(e.target.checked)}
+                helperText="Vehicle returns to origin. Route distance doubled."
+              />
+            </div>
           </div>
         </div>
       </CollapsibleSection>
@@ -900,6 +1013,12 @@ const TripForm: React.FC<TripFormProps> = ({
       )}
 
       <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+        {!manualTripId && !tripSerialNumber && vehicleId && tripStartDate && (
+          <div className="flex items-center text-sm text-gray-500 mr-4">
+            <Loader className="h-4 w-4 animate-spin mr-2" />
+            Generating trip serial...
+          </div>
+        )}
         <Button
           type="submit"
           isLoading={isSubmitting}

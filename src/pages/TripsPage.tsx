@@ -8,6 +8,7 @@ import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
+import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -45,6 +46,23 @@ const TripsPage: React.FC = () => {
   
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
+    
+    // Validate trip serial number uniqueness
+    if (data.trip_serial_number) {
+      try {
+        const isUnique = await validateTripSerialUniqueness(data.trip_serial_number);
+        if (!isUnique) {
+          toast.error('Trip serial number already exists. Please use a different number.');
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error validating trip serial uniqueness:', error);
+        toast.error('Failed to validate trip serial number');
+        setIsSubmitting(false);
+        return;
+      }
+    }
     
     // Validate vehicle_id is present
     if (!data.vehicle_id) {
