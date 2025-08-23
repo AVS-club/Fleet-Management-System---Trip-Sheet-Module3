@@ -325,10 +325,10 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                   {/* Other Documents */}
                   {Object.entries(signedDocUrls.other).map(([key, url], index) => (
                     <div key={key} className="flex justify-between items-center p-2 bg-white rounded border">
-                    {signedDocUrls.tax && signedDocUrls.tax.length > 0 ? (
+                      <span className="text-sm">{key}</span>
                       <div className="flex items-center gap-2">
                         <a 
-                          href={signedDocUrls.tax[0]} 
+                          href={url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           className="p-1 text-primary-600 hover:text-primary-700"
@@ -337,7 +337,7 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                           <LinkIcon className="h-4 w-4" />
                         </a>
                         <button
-                          onClick={() => handleShareDocumentFile('Tax Receipt', signedDocUrls.tax![0])}
+                          onClick={() => handleShareDocumentFile(key, url)}
                           className="p-1 text-green-600 hover:text-green-700"
                           title="Share on WhatsApp"
                         >
