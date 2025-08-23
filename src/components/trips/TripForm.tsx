@@ -328,10 +328,15 @@ const TripForm: React.FC<TripFormProps> = ({
         const analysis = await analyzeRoute(warehouseId, selectedDestinations);
         if (analysis && !cancelled) {
           const actualDistance = endKm - startKm;
+          
+          // Double the Google Maps distance for return trips
+          const effectiveGoogleDistance = isReturnTrip ? analysis.standard_distance * 2 : analysis.standard_distance;
+          
           const updatedAnalysis: RouteAnalysis = {
             ...analysis,
+            standard_distance: effectiveGoogleDistance,
             deviation:
-              ((actualDistance - analysis.standard_distance) / analysis.standard_distance) * 100,
+              ((actualDistance - effectiveGoogleDistance) / effectiveGoogleDistance) * 100,
           };
           setRouteAnalysis(updatedAnalysis);
 
