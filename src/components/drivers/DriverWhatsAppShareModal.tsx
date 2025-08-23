@@ -8,10 +8,10 @@ interface DriverWhatsAppShareModalProps {
   onClose: () => void;
   driver: Driver;
   signedDocUrls?: {
-    license?: string;
-    police_verification?: string; // ⚠️ Confirm field refactor here
+    license?: string[];
+    police_verification?: string[];
     medical_doc_url?: string[]; // ⚠️ Confirm field refactor here
-    medical_doc_url?: string[]; // Changed from medical_certificate
+    id_proof?: string[];
     other: Record<string, string>;
   };
 }
@@ -82,10 +82,10 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
   
   // Check if any document URLs exist
   const hasDocumentUrls = 
-    signedDocUrls.license || 
-    signedDocUrls.police_verification || 
-    signedDocUrls.medical_certificate || 
-    signedDocUrls.id_proof || 
+    (signedDocUrls.license && signedDocUrls.license.length > 0) || 
+    (signedDocUrls.police_verification && signedDocUrls.police_verification.length > 0) || 
+    (signedDocUrls.medical_doc_url && signedDocUrls.medical_doc_url.length > 0) || 
+    (signedDocUrls.id_proof && signedDocUrls.id_proof.length > 0) || 
     Object.keys(signedDocUrls.other).length > 0;
   
   return (
@@ -140,10 +140,10 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                   <div className="flex justify-between items-center p-2 bg-white rounded border">
                     <span className="text-sm">License Document</span>
                     <div className="flex items-center gap-2">
-                      {signedDocUrls.license ? (
+                      {signedDocUrls.license && signedDocUrls.license.length > 0 ? (
                         <>
                           <a 
-                            href={signedDocUrls.license} 
+                            href={signedDocUrls.license[0]} 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="p-1 text-primary-600 hover:text-primary-700"
@@ -152,7 +152,7 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                             <LinkIcon className="h-4 w-4" />
                           </a>
                           <button
-                            onClick={() => handleShareDocumentFile('License Document', signedDocUrls.license!)}
+                            onClick={() => handleShareDocumentFile('License Document', signedDocUrls.license![0])}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >

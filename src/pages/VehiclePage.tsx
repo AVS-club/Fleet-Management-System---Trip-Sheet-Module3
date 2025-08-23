@@ -128,42 +128,42 @@ const VehiclePage: React.FC = () => {
 
     try {
       // Generate signed URL for RC document
-      if (vehicleData.rc_document_url) {
+      if (vehicleData.rc_document_url && Array.isArray(vehicleData.rc_document_url)) {
         urls.rc = await Promise.all(
           vehicleData.rc_document_url.map(path => getSignedDocumentUrl(path))
         );
       }
 
       // Generate signed URL for insurance document
-      if (vehicleData.insurance_document_url) {
+      if (vehicleData.insurance_document_url && Array.isArray(vehicleData.insurance_document_url)) {
         urls.insurance = await Promise.all(
           vehicleData.insurance_document_url.map(path => getSignedDocumentUrl(path))
         );
       }
 
       // Generate signed URL for fitness document
-      if (vehicleData.fitness_document_url) {
+      if (vehicleData.fitness_document_url && Array.isArray(vehicleData.fitness_document_url)) {
         urls.fitness = await Promise.all(
           vehicleData.fitness_document_url.map(path => getSignedDocumentUrl(path))
         );
       }
 
       // Generate signed URL for tax document
-      if (vehicleData.tax_document_url) {
+      if (vehicleData.tax_document_url && Array.isArray(vehicleData.tax_document_url)) {
         urls.tax = await Promise.all(
           vehicleData.tax_document_url.map(path => getSignedDocumentUrl(path))
         );
       }
 
       // Generate signed URL for permit document
-      if (vehicleData.permit_document_url) {
+      if (vehicleData.permit_document_url && Array.isArray(vehicleData.permit_document_url)) {
         urls.permit = await Promise.all(
           vehicleData.permit_document_url.map(path => getSignedDocumentUrl(path))
         );
       }
 
       // Generate signed URL for PUC document
-      if (vehicleData.puc_document_url) {
+      if (vehicleData.puc_document_url && Array.isArray(vehicleData.puc_document_url)) {
         urls.puc = await Promise.all(
           vehicleData.puc_document_url.map(path => getSignedDocumentUrl(path))
         );

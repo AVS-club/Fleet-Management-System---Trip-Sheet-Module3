@@ -128,10 +128,10 @@ const DriverPage: React.FC = () => {
   // Function to generate signed URLs for all documents
   const generateSignedUrls = async (driverData: Driver) => {
     const urls: { // ⚠️ Confirm field refactor here
-      license?: string;
-      police_verification?: string;
-      medical_certificate?: string;
-      id_proof?: string; // Assuming this is for Aadhaar
+      license?: string[];
+      police_verification?: string[];
+      medical_certificate?: string[];
+      id_proof?: string[];
       // Ensure medical_doc_url is handled as an array of strings
       medical_doc_url?: string[];
       other: Record<string, string>;
@@ -141,10 +141,24 @@ const DriverPage: React.FC = () => {
     // ⚠️ Confirm field refactor here
     try {
       // Generate signed URL for license document
-      if (driverData.license_doc_url && typeof driverData.license_doc_url === 'string') {
-        urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url);
-      } else if (Array.isArray(driverData.license_doc_url) && driverData.license_doc_url.length > 0) {
-        urls.license = await getSignedDriverDocumentUrl(driverData.license_doc_url[0]);
+      if (Array.isArray(driverData.license_doc_url) && driverData.license_doc_url.length > 0) {
+        urls.license = await Promise.all(
+          driverData.license_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+
+      // Generate signed URLs for police verification documents
+      if (Array.isArray(driverData.police_doc_url) && driverData.police_doc_url.length > 0) {
+        urls.police_verification = await Promise.all(
+          driverData.police_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+
+      // Generate signed URLs for Aadhaar documents
+      if (Array.isArray(driverData.aadhar_doc_url) && driverData.aadhar_doc_url.length > 0) {
+        urls.id_proof = await Promise.all(
+          driverData.aadhar_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
       }
 
       // Generate signed URL for medical document

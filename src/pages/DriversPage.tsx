@@ -371,10 +371,10 @@ const DriversPage: React.FC = () => {
     
     // Generate signed URLs for documents if available
     const urls: { // ⚠️ Confirm field refactor here
-      license?: string;
-      police_verification?: string;
-      medical_certificate?: string;
-      id_proof?: string;
+      license?: string[];
+      police_verification?: string[];
+      medical_certificate?: string[];
+      id_proof?: string[];
       other: Record<string, string>;
     } = {
       other: {}
@@ -382,16 +382,34 @@ const DriversPage: React.FC = () => {
     
     try {
       // Generate signed URL for license document
-      if (driver.license_doc_url && driver.license_doc_url.length > 0) {
-        urls.license = await getSignedDriverDocumentUrl(driver.license_doc_url[0]);
+      if (Array.isArray(driver.license_doc_url) && driver.license_doc_url.length > 0) {
+        urls.license = await Promise.all(
+          driver.license_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+      
+      // Generate signed URLs for police verification documents
+      if (Array.isArray(driver.police_doc_url) && driver.police_doc_url.length > 0) {
+        urls.police_verification = await Promise.all(
+          driver.police_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+      
+      // Generate signed URLs for Aadhaar documents  
+      if (Array.isArray(driver.aadhar_doc_url) && driver.aadhar_doc_url.length > 0) {
+        urls.id_proof = await Promise.all(
+          driver.aadhar_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
       }
       
       // Generate signed URLs for other documents
       if (driver.other_documents && Array.isArray(driver.other_documents)) {
         for (let i = 0; i < driver.other_documents.length; i++) {
           const doc = driver.other_documents[i];
-          if (doc.file_path) {
+          if (doc.file_path && typeof doc.file_path === 'string') {
             urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path); // ⚠️ Confirm field refactor here
+          } else if (Array.isArray(doc.file_path) && doc.file_path.length > 0) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path[0]);
           }
         }
       }

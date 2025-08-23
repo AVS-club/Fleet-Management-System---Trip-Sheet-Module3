@@ -249,7 +249,23 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
           
           // Only proceed if we have a valid extension
           if (extension) {
-            await uploadVehicleDocument(file, id, 'general');
+            const filePath = await uploadVehicleDocument(file, id, 'general');
+            // Get existing other_documents array and add the new path
+            const existingDocs = data.other_documents || [];
+            const updatedDocs = [
+              ...existingDocs,
+              {
+                name: file.name,
+                file_path: filePath,
+                upload_date: new Date().toISOString()
+              }
+            ];
+            
+            // Update the vehicle with the new other_documents array
+            await supabase
+              .from('vehicles')
+              .update({ other_documents: updatedDocs })
+              .eq('id', id);
           }
         } catch (uploadError) {
           handleSupabaseError('upload vehicle document', uploadError);

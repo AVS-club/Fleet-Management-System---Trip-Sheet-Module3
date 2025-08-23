@@ -20,10 +20,11 @@ interface DriverDocumentManagerModalProps {
   onClose: () => void;
   driver: Driver;
   signedDocUrls: {
-    license?: string;
-    police_verification?: string;
-    medical_certificate?: string;
+    license?: string[];
+    police_verification?: string[];
+    medical_certificate?: string[];
     medical_doc_url?: string[];
+    id_proof?: string[];
     other: Record<string, string>;
   };
 }
@@ -44,19 +45,27 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
       {
         id: 'license',
         name: 'License Document',
-        url: signedDocUrls.license,
-        selected: !!signedDocUrls.license,
-        size: signedDocUrls.license ? 'PDF' : undefined,
-        status: signedDocUrls.license ? 
+        url: signedDocUrls.license?.[0],
+        selected: !!(signedDocUrls.license && signedDocUrls.license.length > 0),
+        size: (signedDocUrls.license && signedDocUrls.license.length > 0) ? 'PDF' : undefined,
+        status: (signedDocUrls.license && signedDocUrls.license.length > 0) ? 'available' : 'missing'
           getDocumentStatus(driver.license_expiry_date) : 'missing'
       },
       {
         id: 'police_verification', // Keep this as is, it's a separate document
         name: 'Police Verification',
-        url: signedDocUrls.police_verification,
-        selected: !!signedDocUrls.police_verification,
-        size: signedDocUrls.police_verification ? 'PDF' : undefined,
-        status: signedDocUrls.police_verification ? 'available' : 'missing'
+        url: signedDocUrls.police_verification?.[0],
+        selected: !!(signedDocUrls.police_verification && signedDocUrls.police_verification.length > 0),
+        size: (signedDocUrls.police_verification && signedDocUrls.police_verification.length > 0) ? 'PDF' : undefined,
+        status: (signedDocUrls.police_verification && signedDocUrls.police_verification.length > 0) ? 'available' : 'missing'
+      },
+      {
+        id: 'id_proof',
+        name: 'Aadhaar / ID Proof',
+        url: signedDocUrls.id_proof?.[0],
+        selected: !!(signedDocUrls.id_proof && signedDocUrls.id_proof.length > 0),
+        size: (signedDocUrls.id_proof && signedDocUrls.id_proof.length > 0) ? 'PDF' : undefined,
+        status: (signedDocUrls.id_proof && signedDocUrls.id_proof.length > 0) ? 'available' : 'missing'
       },
       {
         id: 'medical_doc_url',
