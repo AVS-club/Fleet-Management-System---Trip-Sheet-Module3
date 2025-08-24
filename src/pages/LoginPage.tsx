@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import LoginForm from '../components/auth/LoginForm';
+import React from 'react';
+import AuthForm from '../components/auth/AuthForm';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
 import ThemeToggle from '../components/ui/ThemeToggle';
@@ -7,7 +7,6 @@ import { Truck } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const { theme } = useTheme();
-  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
@@ -29,7 +28,7 @@ const LoginPage: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Sign in to manage your fleet like a pro.</p>
         </div>
         
-        <LoginForm showPassword={showPassword} setShowPassword={setShowPassword} />
+        <AuthForm mode="login" />
         
         <div className="mt-4 flex flex-col sm:flex-row sm:justify-between text-center sm:text-left text-sm">
           <a href="#" className="text-primary-600 dark:text-primary-400 hover:underline mb-2 sm:mb-0">
