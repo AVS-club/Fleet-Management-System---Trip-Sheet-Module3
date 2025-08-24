@@ -147,43 +147,43 @@ const AdminDriversPage: React.FC = () => {
     
     // Handle different bulk actions
     switch (action) {
-      case 'archive':
+      case 'archive': {
         // Show confirmation dialog
         const confirmArchive = window.confirm(
           `Are you sure you want to archive ${selectedDrivers.size} selected driver(s)? Archived drivers will be hidden from regular views but can be restored later.`
         );
-        
+
         if (!confirmArchive) {
           return;
         }
-        
+
         setOperationLoading(true);
         try {
           // Convert Set to Array for archiving
           const driverIdsToArchive = Array.from(selectedDrivers);
-          
+
           // Perform bulk archiving
           const result = await archiveDriversInSupabase(driverIdsToArchive);
-          
+
           if (result.success > 0) {
             // Update local state by changing status to archived
-            const updatedDrivers = drivers.map(driver => 
-              selectedDrivers.has(driver.id || '') 
+            const updatedDrivers = drivers.map(driver =>
+              selectedDrivers.has(driver.id || '')
                 ? { ...driver, status: 'archived' as const }
                 : driver
             );
             setDrivers(updatedDrivers);
-            
+
             // Recalculate statistics
             recalculateStats(updatedDrivers);
-            
+
             // Clear selection
             setSelectedDrivers(new Set());
-            
+
             // Show success message
             toast.success(`Successfully archived ${result.success} driver(s)`);
           }
-          
+
           if (result.failed > 0) {
             toast.error(`Failed to archive ${result.failed} driver(s). Please try again.`);
           }
@@ -194,39 +194,40 @@ const AdminDriversPage: React.FC = () => {
           setOperationLoading(false);
         }
         break;
-      case 'delete':
+      }
+      case 'delete': {
         // Show confirmation dialog
         const confirmDelete = window.confirm(
           `Are you sure you want to permanently delete ${selectedDrivers.size} selected driver(s)? This action cannot be undone and will remove all driver records from the database.`
         );
-        
+
         if (!confirmDelete) {
           return;
         }
-        
+
         setOperationLoading(true);
         try {
           // Convert Set to Array for deletion
           const driverIdsToDelete = Array.from(selectedDrivers);
-          
+
           // Perform bulk deletion
           const result = await deleteDriversFromSupabase(driverIdsToDelete);
-          
+
           if (result.success > 0) {
             // Update local state by filtering out deleted drivers
             const remainingDrivers = drivers.filter(driver => !selectedDrivers.has(driver.id || ''));
             setDrivers(remainingDrivers);
-            
+
             // Recalculate statistics
             recalculateStats(remainingDrivers);
-            
+
             // Clear selection
             setSelectedDrivers(new Set());
-            
+
             // Show success message
             toast.success(`Successfully deleted ${result.success} driver(s)`);
           }
-          
+
           if (result.failed > 0) {
             toast.error(`Failed to delete ${result.failed} driver(s). Please try again.`);
           }
@@ -237,6 +238,7 @@ const AdminDriversPage: React.FC = () => {
           setOperationLoading(false);
         }
         break;
+      }
       case 'whatsapp':
         toast.info(`WhatsApp broadcast for ${selectedDrivers.size} drivers will be implemented`);
         break;

@@ -199,7 +199,7 @@ export const getSignedDriverDocumentUrl = async (
   try {
     // Clean the file path to remove any URL prefix and bucket name
     const cleanedPath = filePath
-      .replace(/^https?:\/\/[^\/]+\/storage\/v1\/object\/(?:public|sign)\/[^\/]+\//, '')
+      .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
       .replace(/^driver-docs\//, '');
 
     const { data, error } = await supabase.storage

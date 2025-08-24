@@ -284,8 +284,6 @@ export interface Trip {
   start_km: number;
   end_km: number;
   gross_weight: number;
-  station?: string;
-  fuel_station_id?: string;
   refueling_done: boolean;
   fuel_quantity?: number;
   fuel_cost?: number;
@@ -314,6 +312,7 @@ export interface Trip {
   net_profit?: number;
   cost_per_km?: number;
   profit_status?: "profit" | "loss" | "neutral";
+  [key: string]: any;
 }
 
 export interface TripFormData
@@ -327,8 +326,6 @@ export interface TripFormData
   alert_notes?: string;
   breakdown_expense?: number;
   miscellaneous_expense?: number;
-  station?: string;
-  fuel_station_id?: string;
 }
 
 // Add RouteAnalysis interface
@@ -380,14 +377,3 @@ export interface Warehouse {
   created_at?: string;
   updated_at?: string;
 }
-
-export interface FuelStation {
-  id: string;
-  name: string;
-  address?: string;
-  city?: string;
-  fuel_types: string[];
-  prices: Record<string, number>;
-  google_place_id?: string;
-  created_by: string;
-  created_at: string;
