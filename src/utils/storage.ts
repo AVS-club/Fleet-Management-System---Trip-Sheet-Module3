@@ -875,6 +875,7 @@ export const getFuelStations = async (): Promise<FuelStation[]> => {
     handleSupabaseError('get fuel stations', error);
     return [];
   }
+  return [];
 };
 
 export const createFuelStation = async (stationData: Omit<FuelStation, 'id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<FuelStation | null> => {
@@ -902,6 +903,40 @@ export const createFuelStation = async (stationData: Omit<FuelStation, 'id' | 'c
     handleSupabaseError('create fuel station', error);
     throw error;
   }
+};
+
+export const updateFuelStation = async (id: string, updates: Partial<FuelStation>): Promise<FuelStation | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('fuel_stations')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      handleSupabaseError('update fuel station', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    handleSupabaseError('update fuel station', error);
+    throw error;
+  }
+};
+
+export const deleteFuelStation = async (id: string): Promise<boolean> => {
+  const { error } = await supabase
+    .from('fuel_stations')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    handleSupabaseError('delete fuel station', error);
+    return false;
+  }
+  return true;
 };
 
 // Vehicle stats

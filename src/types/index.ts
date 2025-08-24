@@ -391,5 +391,3 @@ export interface FuelStation {
   google_place_id?: string;
   created_by: string;
   created_at: string;
-  updated_at: string;
-}
