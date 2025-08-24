@@ -10,6 +10,7 @@ import { getAIAlerts, AIAlert } from '../utils/aiAnalytics';
 import TripMap from '../components/maps/TripMap';
 import { MapPin, X } from 'lucide-react';
 import Button from '../components/ui/Button';
+import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -116,11 +117,13 @@ const TripDetailsPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Handle file upload (in a real app, this would upload to a server)
+      // Handle file upload using Supabase storage
       let fuel_bill_url = trip.fuel_bill_url;
       if (data.fuel_bill_file) {
-        // Create a fake URL for demo purposes
-        fuel_bill_url = URL.createObjectURL(data.fuel_bill_file);
+        // Upload files to Supabase storage and get public URLs
+        const fileArray = Array.isArray(data.fuel_bill_file) ? data.fuel_bill_file : [data.fuel_bill_file];
+        const uploadedUrls = await uploadFilesAndGetPublicUrls(fileArray, 'fuel_bills');
+        fuel_bill_url = uploadedUrls.length > 0 ? uploadedUrls[0] : trip.fuel_bill_url;
       }
       
       // Update trip without the file object (replaced with URL)
