@@ -233,7 +233,6 @@ const AdminTripsPage: React.FC = () => {
           trip.trip_serial_number,
           vehicle?.registration_number,
           driver?.name,
-          trip.station
         ].map(field => field?.toLowerCase());
         
         if (!searchFields.some(field => field?.includes(searchTerm))) {

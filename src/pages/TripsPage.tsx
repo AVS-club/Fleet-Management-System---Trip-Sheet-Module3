@@ -102,16 +102,11 @@ const TripsPage: React.FC = () => {
       }
       
       // Create trip without the file object (replaced with URL)
-      const { fuel_bill_file, station, fuel_station_id, ...tripData } = data;
-
-      // Handle fuel station ID - ensure it's properly set or null
-      const fuelStationId = fuel_station_id && fuel_station_id.trim() !== '' ? fuel_station_id : null;
+      const { fuel_bill_file, ...tripData } = data;
 
       // Add trip to storage
       const newTrip = await createTrip({
         ...tripData,
-        fuel_station_id: fuelStationId,
-        station: station || null,
         fuel_bill_url: fuelBillUrl
       });
       
@@ -240,8 +235,6 @@ const TripsPage: React.FC = () => {
               start_km: editingTrip.start_km,
               end_km: editingTrip.end_km,
               gross_weight: editingTrip.gross_weight,
-              station: editingTrip.station,
-              fuel_station_id: editingTrip.fuel_station_id,
               refueling_done: editingTrip.refueling_done,
               fuel_quantity: editingTrip.fuel_quantity,
               fuel_cost: editingTrip.fuel_cost,
