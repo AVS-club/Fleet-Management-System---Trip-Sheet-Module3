@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
-import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle, getFuelStations } from '../../utils/storage';
+import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle } from '../../utils/storage';
 import type { FuelStation } from '../../types';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info, Loader, Settings } from 'lucide-react';
@@ -42,7 +42,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [frequentWarehouses, setFrequentWarehouses] = useState<Warehouse[]>([]);
   const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
-  const [fuelStations, setFuelStations] = useState<FuelStation[]>([]);
+  const [fuelStations] = useState<FuelStation[]>([]);
   const [lastTripMileage, setLastTripMileage] = useState<number | undefined>();
   const [tripIdPreview, setTripIdPreview] = useState<string>('');
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | undefined>();
@@ -138,13 +138,12 @@ const TripForm: React.FC<TripFormProps> = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData, fuelStationsData] = await Promise.all([
+        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
           getVehicles(),
           getDrivers(),
           getWarehouses(),
           getDestinations(),
-          getMaterialTypes(),
-          getFuelStations()
+          getMaterialTypes()
         ]);
         // Filter out archived vehicles
         const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
@@ -153,7 +152,6 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
-        setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
       } catch (error) {
         console.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
