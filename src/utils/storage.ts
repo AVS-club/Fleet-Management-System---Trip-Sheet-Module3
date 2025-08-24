@@ -16,7 +16,6 @@ import { loadGoogleMaps } from './googleMapsLoader';
 import { toast } from 'react-toastify';
 import { generateCSV, downloadCSV } from './csvParser';
 import { handleSupabaseError } from './errors';
-import type { FuelStation } from '../types';
 
 // Helper function to check if a value is LTT (Lifetime Tax)
 const isLTT = (value: string | null | undefined): boolean => {
@@ -833,109 +832,6 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
     return false;
   }
 
-  return true;
-};
-
-// Fuel Stations CRUD operations
-export const getFuelStations = async (): Promise<FuelStation[]> => {
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      if (isNetworkError(userError)) {
-        console.warn('Network error fetching user for fuel stations, returning empty array');
-        return [];
-      }
-      handleSupabaseError('get user for fuel stations', userError);
-      return [];
-    }
-    
-    if (!user) {
-      console.error('No user authenticated');
-      return [];
-    }
-
-    const { data, error } = await supabase
-      .from('fuel_stations')
-      .select('*')
-      .eq('created_by', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      handleSupabaseError('fetch fuel stations', error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    if (isNetworkError(error)) {
-      console.warn('Network error fetching fuel stations, returning empty array');
-      return [];
-    }
-    handleSupabaseError('get fuel stations', error);
-    return [];
-  }
-  return [];
-};
-
-export const createFuelStation = async (stationData: Omit<FuelStation, 'id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<FuelStation | null> => {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-
-    const payload = withOwner(stationData, userId);
-
-    const { data, error } = await supabase
-      .from('fuel_stations')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) {
-      handleSupabaseError('create fuel station', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    handleSupabaseError('create fuel station', error);
-    throw error;
-  }
-};
-
-export const updateFuelStation = async (id: string, updates: Partial<FuelStation>): Promise<FuelStation | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('fuel_stations')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single();
-
-    if (error) {
-      handleSupabaseError('update fuel station', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    handleSupabaseError('update fuel station', error);
-    throw error;
-  }
-};
-
-export const deleteFuelStation = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('fuel_stations')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    handleSupabaseError('delete fuel station', error);
-    return false;
-  }
   return true;
 };
 
