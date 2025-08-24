@@ -1,38 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout'; 
-import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2, Fuel } from 'lucide-react';
+import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2 } from 'lucide-react';
 import { Archive, ArchiveRestore } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import WarehouseForm from '../../components/admin/WarehouseForm';
 import DestinationForm from '../../components/admin/DestinationForm';
-import FuelStationForm from '../../components/admin/FuelStationForm';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
-import { getDestinations, createDestination, hardDeleteDestination, getFuelStations, createFuelStation, updateFuelStation, deleteFuelStation } from '../../utils/storage';
+import { getDestinations, createDestination, hardDeleteDestination } from '../../utils/storage';
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
-import { Warehouse, Destination, FuelStation } from '../../types'; // Added Warehouse, Destination, and FuelStation imports
+import { Warehouse, Destination } from '../../types'; // Added Warehouse and Destination imports
 import Checkbox from '../../components/ui/Checkbox'; // Import Checkbox
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'warehouses' | 'destinations' | 'fuelstations'>('warehouses');
+  const [activeTab, setActiveTab] = useState<'warehouses' | 'destinations'>('warehouses');
   const [isAddingWarehouse, setIsAddingWarehouse] = useState(false);
   const [isAddingDestination, setIsAddingDestination] = useState(false);
-  const [isAddingFuelStation, setIsAddingFuelStation] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-  const [editingFuelStation, setEditingFuelStation] = useState<FuelStation | null>(null);
   const [deletingWarehouse, setDeletingWarehouse] = useState<Warehouse | null>(null); // Used for archive confirmation
   const [hardDeletingWarehouse, setHardDeletingWarehouse] = useState<Warehouse | null>(null); // New state for hard delete confirmation
   const [deletingDestination, setDeletingDestination] = useState<Destination | null>(null);
-  const [deletingFuelStation, setDeletingFuelStation] = useState<FuelStation | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isManagingMaterialTypes, setIsManagingMaterialTypes] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [fuelStations, setFuelStations] = useState<FuelStation[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false); // New state for showing inactive warehouses
@@ -41,16 +36,14 @@ const TripLocationsPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [warehousesData, destinationsData, fuelStationsData, materialTypesData] = await Promise.all([
+        const [warehousesData, destinationsData, materialTypesData] = await Promise.all([
           listWarehouses({ includeInactive: showInactive }), // Use showInactive filter
           getDestinations(),
-          getFuelStations(),
           getMaterialTypes()
         ]);
         
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
-        setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching location data:', error);
@@ -153,64 +146,6 @@ const TripLocationsPage: React.FC = () => {
     }
   };
 
-  const handleAddFuelStation = async (data: any) => {
-    setIsSubmitting(true);
-    try {
-      const newFuelStation = await createFuelStation(data);
-      
-      setFuelStations(prev => [...prev, newFuelStation]);
-      setIsAddingFuelStation(false);
-      toast.success('Fuel station added successfully');
-    } catch (error) {
-      console.error('Error adding fuel station:', error);
-      toast.error('Failed to add fuel station');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateFuelStation = async (data: any) => {
-    if (!editingFuelStation) return;
-    
-    setIsSubmitting(true);
-    try {
-      const updatedFuelStation = await updateFuelStation(editingFuelStation.id, data);
-      
-      if (updatedFuelStation) {
-        setFuelStations(prev => 
-          prev.map(fs => fs.id === editingFuelStation.id ? updatedFuelStation : fs)
-        );
-        setEditingFuelStation(null);
-        toast.success('Fuel station updated successfully');
-      }
-    } catch (error) {
-      console.error('Error updating fuel station:', error);
-      toast.error('Failed to update fuel station');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteFuelStation = async () => {
-    if (!deletingFuelStation) return;
-    
-    setIsSubmitting(true);
-    try {
-      const success = await deleteFuelStation(deletingFuelStation.id);
-      
-      if (success) {
-        setFuelStations(prev => prev.filter(fs => fs.id !== deletingFuelStation.id));
-        setDeletingFuelStation(null);
-        toast.success('Fuel station deleted successfully');
-      }
-    } catch (error) {
-      console.error('Error deleting fuel station:', error);
-      toast.error('Failed to delete fuel station');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleAddDestination = async (data: any) => {
     try {
       const destinationDataForSupabase = {
@@ -281,17 +216,6 @@ const TripLocationsPage: React.FC = () => {
                 <MapPin className="h-5 w-5" />
                 <span>Destinations</span>
               </button>
-              <button
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'fuelstations'
-                    ? 'bg-primary-50 text-primary-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-                onClick={() => setActiveTab('fuelstations')}
-              >
-                <Fuel className="h-5 w-5" />
-                <span>Fuel Stations</span>
-              </button>
             </div>
             <div className="p-4">
               <Button
@@ -306,119 +230,7 @@ const TripLocationsPage: React.FC = () => {
           </div>
 
           <div className="p-6">
-            {activeTab === 'fuelstations' ? (
-              <div className="space-y-6">
-                {loading ? (
-                  <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                    <p className="ml-3 text-gray-600">Loading fuel stations...</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <div className="border-l-2 border-blue-500 pl-2">
-                        <h2 className="text-lg font-medium text-gray-900">Fuel Stations</h2>
-                        <p className="text-sm text-gray-500">Manage fuel station locations and pricing</p>
-                      </div>
-                      {!editingFuelStation && (
-                        <Button
-                          onClick={() => setIsAddingFuelStation(true)}
-                          icon={<Plus className="h-4 w-4" />}
-                        >
-                          Add Fuel Station
-                        </Button>
-                      )}
-                    </div>
-
-                    {(isAddingFuelStation || editingFuelStation) ? (
-                      <FuelStationForm
-                        initialData={editingFuelStation || undefined}
-                        onSubmit={editingFuelStation ? handleUpdateFuelStation : handleAddFuelStation}
-                        onCancel={() => {
-                          setIsAddingFuelStation(false);
-                          setEditingFuelStation(null);
-                        }}
-                        isSubmitting={isSubmitting}
-                      />
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {fuelStations.length === 0 ? (
-                          <div className="col-span-3 text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                            No fuel stations found. Add your first fuel station to get started.
-                          </div>
-                        ) : (
-                          fuelStations.map(station => (
-                            <div
-                              key={station.id}
-                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
-                            >
-                              {/* Action buttons */}
-                              <div className="absolute top-2 right-2 flex space-x-1">
-                                <button
-                                  onClick={() => setEditingFuelStation(station)}
-                                  className="p-1 text-gray-400 hover:text-primary-600 rounded"
-                                  title="Edit fuel station"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => setDeletingFuelStation(station)}
-                                  className="p-1 text-gray-400 hover:text-error-600 rounded"
-                                  title="Delete fuel station"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                              
-                              <div className="flex items-center space-x-3 mb-3">
-                                <Fuel className="h-5 w-5 text-gray-400" />
-                                <div>
-                                  <h3 className="font-medium text-gray-900">{station.name}</h3>
-                                  {station.city && (
-                                    <p className="text-sm text-gray-500">{station.city}</p>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {station.address && (
-                                <div className="mb-3 text-sm text-gray-600">
-                                  <MapPin className="h-4 w-4 inline mr-1" />
-                                  {station.address}
-                                </div>
-                              )}
-                              
-                              {/* Fuel Types and Prices */}
-                              <div className="space-y-2">
-                                <h4 className="text-sm font-medium text-gray-700">Available Fuels:</h4>
-                                <div className="flex flex-wrap gap-2">
-                                  {station.fuel_types.map(fuelType => {
-                                    const price = station.prices[fuelType];
-                                    return (
-                                      <span
-                                        key={fuelType}
-                                        className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800 capitalize"
-                                      >
-                                        {fuelType}: ₹{price ? price.toFixed(2) : 'N/A'}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                              
-                              {station.google_place_id && (
-                                <div className="mt-3 text-xs text-gray-500">
-                                  Google Place ID: {station.google_place_id}
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : activeTab === 'warehouses' ? (
+            {activeTab === 'warehouses' ? (
               <div className="space-y-6">
                 {loading ? (
                   <div className="flex justify-center items-center h-64">
@@ -685,19 +497,6 @@ const TripLocationsPage: React.FC = () => {
           cancelText="Cancel"
           onConfirm={handleHardDeleteWarehouse}
           onCancel={() => setHardDeletingWarehouse(null)}
-          type="delete"
-          isLoading={isSubmitting}
-        />
-        
-        {/* Fuel Station Delete Confirmation Modal */}
-        <ConfirmationModal
-          isOpen={!!deletingFuelStation}
-          title="Delete Fuel Station"
-          message={`Are you sure you want to delete "${deletingFuelStation?.name}"? This action cannot be undone.`}
-          confirmText="Delete"
-          cancelText="Cancel"
-          onConfirm={handleDeleteFuelStation}
-          onCancel={() => setDeletingFuelStation(null)}
           type="delete"
           isLoading={isSubmitting}
         />

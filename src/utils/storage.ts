@@ -904,45 +904,6 @@ export const createFuelStation = async (stationData: Omit<FuelStation, 'id' | 'c
   }
 };
 
-export const updateFuelStation = async (id: string, updates: Partial<FuelStation>): Promise<FuelStation | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('fuel_stations')
-      .update(updates)
-      .eq('id', id)
-      .select('*')
-      .single();
-
-    if (error) {
-      handleSupabaseError('update fuel station', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    handleSupabaseError('update fuel station', error);
-    throw error;
-  }
-};
-
-export const deleteFuelStation = async (id: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('fuel_stations')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      handleSupabaseError('delete fuel station', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    handleSupabaseError('delete fuel station', error);
-    return false;
-  }
-};
 // Vehicle stats
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
