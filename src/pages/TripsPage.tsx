@@ -22,6 +22,7 @@ const TripsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
   const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   
   // Load data
   useEffect(() => {
@@ -47,61 +48,70 @@ const TripsPage: React.FC = () => {
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
     
+    try {
     // Validate trip serial number uniqueness
     if (data.trip_serial_number) {
-      try {
-        const isUnique = await validateTripSerialUniqueness(data.trip_serial_number);
+        // Pass current trip ID if editing to exclude it from uniqueness check
+        const excludeTripId = editingTrip?.id;
+        const isUnique = await validateTripSerialUniqueness(data.trip_serial_number, excludeTripId);
         if (!isUnique) {
           toast.error('Trip serial number already exists. Please use a different number.');
           setIsSubmitting(false);
           return;
         }
-      } catch (error) {
-        console.error('Error validating trip serial uniqueness:', error);
-        toast.error('Failed to validate trip serial number');
-        setIsSubmitting(false);
-        return;
+    }
+      
+      // Validate vehicle_id is present
+      if (!data.vehicle_id) {
+        throw new Error("Vehicle selection is required");
       }
-    }
-    
-    // Validate vehicle_id is present
-    if (!data.vehicle_id) {
-      console.error("vehicle_id is missing at trip submission.");
-      toast.error("Vehicle selection is required");
-      setIsSubmitting(false);
-      return;
-    }
-    
-    // Extract destination IDs
-    const destinationIds = data.destinations;
-    
-    try {
+      
+      // Validate required fields
+      if (!data.driver_id) {
+        throw new Error("Driver selection is required");
+      }
+      
+      if (!data.warehouse_id) {
+        throw new Error("Origin warehouse is required");
+      }
+      
+      if (!data.destinations || data.destinations.length === 0) {
+        throw new Error("At least one destination is required");
+      }
+      
+      if (!data.start_km) {
+        throw new Error("Start KM is required");
+      }
+      
+      if (!data.end_km) {
+        throw new Error("End KM is required");
+      }
+      
+      // Extract destination IDs
+      const destinationIds = data.destinations;
+      
       // Handle file upload to Supabase Storage
       let fuelBillUrl: string | undefined = undefined;
       if (data.fuel_bill_file && Array.isArray(data.fuel_bill_file) && data.fuel_bill_file.length > 0) {
-        try {
           const uploadedUrls = await uploadFilesAndGetPublicUrls(
             'trip-docs',
             `trip_${Date.now()}/fuel_bill`,
             data.fuel_bill_file
           );
           fuelBillUrl = uploadedUrls[0]; // Take the first uploaded file URL
-        } catch (uploadError) {
-          console.error('Error uploading fuel bill:', uploadError);
-          toast.error('Failed to upload fuel bill');
-          setIsSubmitting(false);
-          return;
-        }
       }
       
       // Create trip without the file object (replaced with URL)
       const { fuel_bill_file, station, fuel_station_id, ...tripData } = data;
 
+      // Handle fuel station ID - ensure it's properly set or null
+      const fuelStationId = fuel_station_id && fuel_station_id.trim() !== '' ? fuel_station_id : null;
+
       // Add trip to storage
       const newTrip = await createTrip({
         ...tripData,
-
-        fuel_station_id,
+        fuel_station_id: fuelStationId,
+        station: station || null,
         fuel_bill_url: fuelBillUrl
       });
       
@@ -109,16 +119,23 @@ const TripsPage: React.FC = () => {
         // Update state
         setTrips(prev => Array.isArray(prev) ? [...prev, newTrip] : [newTrip]);
         setIsAddingTrip(false);
+        setEditingTrip(null);
         
         // Redirect to the trip details page
         navigate(`/trips/${newTrip.id}`);
         toast.success('Trip added successfully');
       } else {
-        toast.error('Failed to add trip');
+        throw new Error('Failed to add trip');
       }
     } catch (error) {
       console.error('Error adding trip:', error);
-      toast.error('Error adding trip');
+      
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Error adding trip';
+      toast.error(errorMessage);
+      
+      // The error will be caught by TripForm's handleFormSubmit which will focus the first error field
+      throw error; // Re-throw to trigger field focusing in TripForm
     } finally {
       setIsSubmitting(false);
     }
@@ -126,6 +143,11 @@ const TripsPage: React.FC = () => {
   
   const handleTripSelect = (trip: Trip) => {
     navigate(`/trips/${trip.id}`);
+  };
+  
+  const handleEditTrip = (trip: Trip) => {
+    setEditingTrip(trip);
+    setIsAddingTrip(true);
   };
 
   const handlePnlClick = (e: React.MouseEvent, trip: Trip) => {
@@ -174,7 +196,10 @@ const TripsPage: React.FC = () => {
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => setIsAddingTrip(false)}
+              onClick={() => {
+                setIsAddingTrip(false);
+                setEditingTrip(null);
+              }}
             >
               Cancel
             </Button>
@@ -192,7 +217,10 @@ const TripsPage: React.FC = () => {
             
             <Button
               variant="outline"
-              onClick={() => setIsAddingTrip(false)}
+              onClick={() => {
+                setIsAddingTrip(false);
+                setEditingTrip(null);
+              }}
             >
               Cancel
             </Button>
@@ -202,6 +230,34 @@ const TripsPage: React.FC = () => {
             onSubmit={handleAddTrip}
             isSubmitting={isSubmitting}
             trips={trips}
+            initialData={editingTrip ? {
+              vehicle_id: editingTrip.vehicle_id,
+              driver_id: editingTrip.driver_id,
+              warehouse_id: editingTrip.warehouse_id,
+              destinations: editingTrip.destinations,
+              trip_start_date: editingTrip.trip_start_date,
+              trip_end_date: editingTrip.trip_end_date,
+              start_km: editingTrip.start_km,
+              end_km: editingTrip.end_km,
+              gross_weight: editingTrip.gross_weight,
+              station: editingTrip.station,
+              fuel_station_id: editingTrip.fuel_station_id,
+              refueling_done: editingTrip.refueling_done,
+              fuel_quantity: editingTrip.fuel_quantity,
+              fuel_cost: editingTrip.fuel_cost,
+              total_fuel_cost: editingTrip.total_fuel_cost,
+              unloading_expense: editingTrip.unloading_expense,
+              driver_expense: editingTrip.driver_expense,
+              road_rto_expense: editingTrip.road_rto_expense,
+              breakdown_expense: editingTrip.breakdown_expense,
+              miscellaneous_expense: editingTrip.miscellaneous_expense,
+              total_road_expenses: editingTrip.total_road_expenses,
+              remarks: editingTrip.remarks,
+              material_type_ids: editingTrip.material_type_ids,
+              trip_serial_number: editingTrip.trip_serial_number,
+              manual_trip_id: editingTrip.manual_trip_id,
+              is_return_trip: editingTrip.is_return_trip
+            } : undefined}
           />
         </div>
       ) : (
@@ -220,6 +276,7 @@ const TripsPage: React.FC = () => {
             drivers={drivers}
             onSelectTrip={handleTripSelect}
             onPnlClick={handlePnlClick}
+            onEditTrip={handleEditTrip}
           />
         </div>
       )}

@@ -12,9 +12,11 @@ import {
 } from '../types';
 import { uploadVehicleDocument } from './supabaseStorage';
 import { getCurrentUserId, withOwner } from './supaHelpers';
+import { loadGoogleMaps } from './googleMapsLoader';
 import { toast } from 'react-toastify';
 import { generateCSV, downloadCSV } from './csvParser';
 import { handleSupabaseError } from './errors';
+import type { FuelStation } from '../types';
 
 // Helper function to check if a value is LTT (Lifetime Tax)
 const isLTT = (value: string | null | undefined): boolean => {
@@ -38,7 +40,7 @@ export const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_dat
 
 export async function getUserData() {
   try {
-++ b/src/utils/storage.ts
+    const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error) {
       // Handle network errors gracefully
@@ -599,11 +601,29 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       throw new Error('User not authenticated');
     }
 
+    // Sanitize empty strings to null for UUID fields to prevent Supabase validation errors
+    const sanitizedTripData = { ...tripData };
+    if (sanitizedTripData.fuel_station_id === '') {
+      sanitizedTripData.fuel_station_id = null;
+    }
+    if (sanitizedTripData.station === '') {
+      sanitizedTripData.station = null;
+    }
+    if (sanitizedTripData.vehicle_id === '') {
+      sanitizedTripData.vehicle_id = null;
+    }
+    if (sanitizedTripData.driver_id === '') {
+      sanitizedTripData.driver_id = null;
+    }
+    if (sanitizedTripData.warehouse_id === '') {
+      sanitizedTripData.warehouse_id = null;
+    }
+
     const payload = withOwner(
       {
-        ...tripData,
-        station: tripData.station ?? null,
-        fuel_station_id: tripData.fuel_station_id ?? null,
+        ...sanitizedTripData,
+        station: sanitizedTripData.station ?? null,
+        fuel_station_id: sanitizedTripData.fuel_station_id ?? null,
       },
       userId
     );
@@ -816,6 +836,113 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
+// Fuel Stations CRUD operations
+export const getFuelStations = async (): Promise<FuelStation[]> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for fuel stations, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for fuel stations', userError);
+      return [];
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('fuel_stations')
+      .select('*')
+      .eq('created_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch fuel stations', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching fuel stations, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get fuel stations', error);
+    return [];
+  }
+};
+
+export const createFuelStation = async (stationData: Omit<FuelStation, 'id' | 'created_at' | 'updated_at' | 'created_by'>): Promise<FuelStation | null> => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    const payload = withOwner(stationData, userId);
+
+    const { data, error } = await supabase
+      .from('fuel_stations')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) {
+      handleSupabaseError('create fuel station', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    handleSupabaseError('create fuel station', error);
+    throw error;
+  }
+};
+
+export const updateFuelStation = async (id: string, updates: Partial<FuelStation>): Promise<FuelStation | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('fuel_stations')
+      .update(updates)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) {
+      handleSupabaseError('update fuel station', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    handleSupabaseError('update fuel station', error);
+    throw error;
+  }
+};
+
+export const deleteFuelStation = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('fuel_stations')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      handleSupabaseError('delete fuel station', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    handleSupabaseError('delete fuel station', error);
+    return false;
+  }
+};
 // Vehicle stats
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
@@ -896,23 +1023,6 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       throw new Error('No valid destinations found');
     }
 
-    // Calculate total standard distance
-    const totalStandardDistance = validDestinations.reduce(
-      (sum, dest) => sum + dest.standard_distance, 
-      0
-    );
-
-    // Calculate estimated time (sum of destination times)
-    const totalMinutes = validDestinations.reduce((sum, dest) => {
-      const timeStr = dest.estimated_time;
-      const hours = parseInt(timeStr.split('h')[0]) || 0;
-      const minutes = timeStr.includes('m') ? parseInt(timeStr.split('h')[1]?.split('m')[0] || '0') : 0;
-      return sum + (hours * 60) + minutes;
-    }, 0);
-
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const estimatedTime = `${hours}h ${minutes}m`;
 
     // Create waypoints for map
     const waypoints = [
@@ -920,15 +1030,94 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       ...validDestinations.map(dest => ({ lat: dest.latitude, lng: dest.longitude }))
     ];
 
+    // Load Google Maps and get live distance/duration using Directions API
+    await loadGoogleMaps();
+    
+    const directionsService = new google.maps.DirectionsService();
+    
+    const origin = new google.maps.LatLng(warehouse.latitude || 0, warehouse.longitude || 0);
+    const destination = new google.maps.LatLng(
+      validDestinations[validDestinations.length - 1].latitude,
+      validDestinations[validDestinations.length - 1].longitude
+    );
+    
+    // Convert intermediate destinations to waypoints
+    const waypointsForDirections = validDestinations.slice(0, -1).map(dest => ({
+      location: new google.maps.LatLng(dest.latitude, dest.longitude),
+      stopover: true
+    }));
+
+    const directionsRequest = {
+      origin,
+      destination,
+      waypoints: waypointsForDirections,
+      optimizeWaypoints: false,
+      travelMode: google.maps.TravelMode.DRIVING,
+      region: 'IN'
+    };
+
+    // Use Promise wrapper for Google Directions API
+    const directionsResult = await new Promise<google.maps.DirectionsResult>((resolve, reject) => {
+      directionsService.route(directionsRequest, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result) {
+          resolve(result);
+        } else {
+          reject(new Error(`Directions request failed: ${status}`));
+        }
+      });
+    });
+
+    // Extract total distance and duration from Google Directions response
+    let totalLiveDistanceMeters = 0;
+    let totalLiveDurationSeconds = 0;
+
+    if (directionsResult.routes[0]?.legs) {
+      directionsResult.routes[0].legs.forEach(leg => {
+        totalLiveDistanceMeters += leg.distance?.value || 0;
+        totalLiveDurationSeconds += leg.duration?.value || 0;
+      });
+    }
+
+    // Convert to appropriate units
+    const totalLiveDistanceKm = Math.round(totalLiveDistanceMeters / 1000 * 10) / 10; // Round to 1 decimal
+    const totalLiveDurationMinutes = Math.round(totalLiveDurationSeconds / 60);
+    const hours = Math.floor(totalLiveDurationMinutes / 60);
+    const minutes = totalLiveDurationMinutes % 60;
+    const estimatedTime = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
     return {
-      total_distance: totalStandardDistance,
-      standard_distance: totalStandardDistance,
+      total_distance: totalLiveDistanceKm,
+      standard_distance: totalLiveDistanceKm,
       deviation: 0, // Will be calculated when actual distance is known
       estimated_time: estimatedTime,
       waypoints
     };
   } catch (error) {
+    console.error('Error in analyzeRoute:', error);
     handleSupabaseError('analyze route', error);
+    
+    // Return fallback with waypoints for map but no distance/time data
+    try {
+      const warehouse = await getWarehouse(warehouseId);
+      const destinations = await Promise.all(destinationIds.map(id => getDestination(id)));
+      const validDestinations = destinations.filter((d): d is Destination => d !== null);
+      
+      if (warehouse && validDestinations.length > 0) {
+        return {
+          total_distance: 0,
+          standard_distance: 0,
+          deviation: 0,
+          estimated_time: '—',
+          waypoints: [
+            { lat: warehouse.latitude || 0, lng: warehouse.longitude || 0 },
+            ...validDestinations.map(dest => ({ lat: dest.latitude, lng: dest.longitude }))
+          ]
+        };
+      }
+    } catch (fallbackError) {
+      console.error('Error in analyzeRoute fallback:', fallbackError);
+    }
+    
     return null;
   }
 };

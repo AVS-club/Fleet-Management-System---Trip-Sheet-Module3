@@ -1,6 +1,6 @@
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../../types';
-import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight } from 'lucide-react';
+import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { getWarehouse, getDestination } from '../../utils/storage';
 
@@ -10,9 +10,10 @@ interface TripCardProps {
   driver: Driver | undefined;
   onClick?: () => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
+  onEditClick?: (trip: Trip) => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick }) => {
+const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
   const [warehouseData, setWarehouseData] = useState<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -133,6 +134,20 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
           >
             <IndianRupee className="h-4 w-4" />
           </button>
+          
+          {/* Edit Button */}
+          {onEditClick && (
+            <button 
+              className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick(trip);
+              }}
+              title="Edit Trip"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
       

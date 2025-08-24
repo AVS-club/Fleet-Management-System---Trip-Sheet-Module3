@@ -380,3 +380,16 @@ export interface Warehouse {
   created_at?: string;
   updated_at?: string;
 }
+
+export interface FuelStation {
+  id: string;
+  name: string;
+  address?: string;
+  city?: string;
+  fuel_types: string[];
+  prices: Record<string, number>;
+  google_place_id?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}

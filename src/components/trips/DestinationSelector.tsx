@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Destination, Warehouse } from '../../types';
-import { MapPin, Clock, TrendingUp, AlertTriangle, CheckCircle, Plus } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, AlertTriangle, CheckCircle, Plus, Loader } from 'lucide-react';
 import { createDestination, getDestination } from '../../utils/storage';
-import { Loader } from '@googlemaps/js-api-loader';
+import { Loader as GoogleMapsLoader } from '@googlemaps/js-api-loader';
 import { checkRouteOptimization } from '../../utils/routeOptimizer';
 import PortalDropdown from '../ui/PortalDropdown';
 
@@ -21,6 +21,13 @@ interface DestinationSelectorProps {
   onAddAndSelectDestination?: (destination: Destination) => void;
 }
 
+interface DestinationMetrics {
+  distance?: number;
+  duration?: string;
+  loading: boolean;
+  error: boolean;
+}
+
 const DestinationSelector: React.FC<DestinationSelectorProps> = ({
   destinations,
   selectedDestinations,
@@ -35,6 +42,9 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
   const [autocompleteService, setAutocompleteService] = useState<google.maps.places.AutocompleteService | null>(null);
   const [placesService, setPlacesService] = useState<google.maps.places.PlacesService | null>(null);
   const [googlePredictions, setGooglePredictions] = useState<GooglePrediction[]>([]);
+  const [directionsService, setDirectionsService] = useState<google.maps.DirectionsService | null>(null);
+  const [destinationMetrics, setDestinationMetrics] = useState<Map<string, DestinationMetrics>>(new Map());
+  const [metricsCache, setMetricsCache] = useState<Map<string, { distance: number; duration: string }>>(new Map());
   const [routeWarning, setRouteWarning] = useState<string>();
   const [selectedDestinationDetails, setSelectedDestinationDetails] = useState<Destination[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +66,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       return;
     }
     
-    const loader = new Loader({
+    const loader = new GoogleMapsLoader({
       apiKey,
       version: 'weekly',
       libraries: ['places']
@@ -64,6 +74,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
     loader.load().then(() => {
       setAutocompleteService(new google.maps.places.AutocompleteService());
+      setDirectionsService(new google.maps.DirectionsService());
       
       // Create a dummy div for PlacesService (required)
       const placesDiv = document.createElement('div');
@@ -72,6 +83,110 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       console.error('Error loading Google Maps:', err);
     });
   }, []);
+
+  // Clear cache when warehouse changes
+  useEffect(() => {
+    setMetricsCache(new Map());
+    setDestinationMetrics(new Map());
+  }, [warehouse?.id]);
+
+  // Fetch live metrics for destinations when warehouse and destinations are available
+  useEffect(() => {
+    if (!isOpen || !warehouse || !directionsService || !destinationsArray || destinationsArray.length === 0) {
+      return;
+    }
+
+    const fetchMetricsForDestinations = async () => {
+      for (const dest of destinationsArray) {
+        const cacheKey = `${warehouse.id}-${dest.id}`;
+        
+        // Check cache first
+        const cached = metricsCache.get(cacheKey);
+        if (cached) {
+          setDestinationMetrics(prev => new Map(prev.set(dest.id, {
+            distance: cached.distance,
+            duration: cached.duration,
+            loading: false,
+            error: false
+          })));
+          continue;
+        }
+
+        // Set loading state
+        setDestinationMetrics(prev => new Map(prev.set(dest.id, {
+          loading: true,
+          error: false
+        })));
+
+        // Fetch from Google Directions
+        try {
+          await fetchDirectionsForDestination(warehouse, dest, directionsService, cacheKey);
+        } catch (error) {
+          console.error(`Error fetching directions for ${dest.name}:`, error);
+          setDestinationMetrics(prev => new Map(prev.set(dest.id, {
+            loading: false,
+            error: true
+          })));
+        }
+      }
+    };
+
+    fetchMetricsForDestinations();
+  }, [isOpen, warehouse, directionsService, destinationsArray, metricsCache]);
+
+  // Helper function to fetch directions for a single destination
+  const fetchDirectionsForDestination = async (
+    warehouse: Warehouse,
+    destination: Destination,
+    directionsService: google.maps.DirectionsService,
+    cacheKey: string
+  ) => {
+    return new Promise<void>((resolve, reject) => {
+      const request = {
+        origin: new google.maps.LatLng(warehouse.latitude || 0, warehouse.longitude || 0),
+        destination: new google.maps.LatLng(destination.latitude, destination.longitude),
+        travelMode: google.maps.TravelMode.DRIVING,
+        optimizeWaypoints: false,
+        provideRouteAlternatives: false,
+        region: 'IN'
+      };
+
+      directionsService.route(request, (result, status) => {
+        if (status === google.maps.DirectionsStatus.OK && result && result.routes[0] && result.routes[0].legs[0]) {
+          const leg = result.routes[0].legs[0];
+          const distanceKm = leg.distance ? Math.round(leg.distance.value / 1000 * 10) / 10 : 0;
+          const durationMinutes = leg.duration ? Math.round(leg.duration.value / 60) : 0;
+          
+          const hours = Math.floor(durationMinutes / 60);
+          const minutes = durationMinutes % 60;
+          const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+          // Update cache
+          setMetricsCache(prev => new Map(prev.set(cacheKey, {
+            distance: distanceKm,
+            duration: durationStr
+          })));
+
+          // Update destination metrics
+          setDestinationMetrics(prev => new Map(prev.set(destination.id, {
+            distance: distanceKm,
+            duration: durationStr,
+            loading: false,
+            error: false
+          })));
+
+          resolve();
+        } else {
+          console.error(`Directions request failed for ${destination.name}:`, status);
+          setDestinationMetrics(prev => new Map(prev.set(destination.id, {
+            loading: false,
+            error: true
+          })));
+          reject(new Error(`Directions request failed: ${status}`));
+        }
+      });
+    });
+  };
 
   // Handle search input changes
   useEffect(() => {
@@ -220,9 +335,9 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
         name: placeName.trim(),
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
-        standard_distance: 100, // Default value
-        estimated_time: '2h', // Default value
-        historical_deviation: 5, // Default value
+        standard_distance: 0, // Will be calculated dynamically
+        estimated_time: '', // Will be calculated dynamically
+        historical_deviation: 0, // Default value
         type: 'city', // Default value
         state: 'chhattisgarh', // Default value
         place_id: placeDetails.place_id, // Store the Google Place ID
@@ -281,7 +396,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
 
       <div ref={anchorRef} className="relative">
         {/* Selected destinations display */}
-        <div className="min-h-[42px] p-2 border rounded-lg bg-white cursor-text">
+        <div className="min-h-[56px] p-2 border rounded-lg bg-white cursor-text">
           {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 ? (
             <div className="flex flex-wrap gap-2 items-center">
               {selectedDestinationDetails.map((dest, index) => (
@@ -362,7 +477,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
           )}
 
           {/* Add destination button (when there are already 2+ destinations) */}
-          {Array.isArray(selectedDestinations) && selectedDestinations.length >= 2 && !isOpen && (
+          {Array.isArray(selectedDestinations) && selectedDestinations.length > 0 && !isOpen && (
             <button
               type="button"
               className="mt-2 flex items-center text-xs text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50"
@@ -429,15 +544,31 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                   <MapPin className="h-4 w-4 text-gray-400 mr-2 mt-0.5" />
                   <div>
                     <div className="font-medium text-gray-900">{dest.name}</div>
-                    <div className="flex items-center mt-1 space-x-3">
-                      <span className="flex items-center text-xs text-gray-500">
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                        <span>{dest.standard_distance} km</span>
-                      </span>
-                      <span className="flex items-center text-xs text-gray-500">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{dest.estimated_time}</span>
-                      </span>
+                    <div className="flex items-center mt-1 space-x-3 text-xs text-gray-500">
+                      {warehouse ? (
+                        <>
+                          <span className="flex items-center">
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                            {(() => {
+                              const metrics = destinationMetrics.get(dest.id);
+                              if (metrics?.loading) return <Loader className="h-3 w-3 animate-spin" />;
+                              if (metrics?.error || !metrics?.distance) return <span>—</span>;
+                              return <span>{metrics.distance} km</span>;
+                            })()}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {(() => {
+                              const metrics = destinationMetrics.get(dest.id);
+                              if (metrics?.loading) return <Loader className="h-3 w-3 animate-spin" />;
+                              if (metrics?.error || !metrics?.duration) return <span>—</span>;
+                              return <span>{metrics.duration}</span>;
+                            })()}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-gray-400">Select warehouse first</span>
+                      )}
                     </div>
                   </div>
                 </div>

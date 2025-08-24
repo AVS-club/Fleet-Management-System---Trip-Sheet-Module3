@@ -3,7 +3,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
-import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle } from '../../utils/storage';
+import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle, getFuelStations } from '../../utils/storage';
+import type { FuelStation } from '../../types';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info, Loader, Settings } from 'lucide-react';
 import Button from '../ui/Button';
@@ -41,6 +42,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [frequentWarehouses, setFrequentWarehouses] = useState<Warehouse[]>([]);
   const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
+  const [fuelStations, setFuelStations] = useState<FuelStation[]>([]);
   const [lastTripMileage, setLastTripMileage] = useState<number | undefined>();
   const [tripIdPreview, setTripIdPreview] = useState<string>('');
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | undefined>();
@@ -53,6 +55,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [manualOverride, setManualOverride] = useState(false);
   const [manualTripId, setManualTripId] = useState(initialData.manual_trip_id || false);
   const [generatingSerial, setGeneratingSerial] = useState(false);
+  const [endKmForAnalysis, setEndKmForAnalysis] = useState<number | undefined>(initialData.end_km);
 
   useEffect(() => {
     setCachedTrips(Array.isArray(trips) ? trips : []);
@@ -64,6 +67,7 @@ const TripForm: React.FC<TripFormProps> = ({
     watch,
     control,
     setValue,
+    setFocus,
     formState: { errors }
   } = useForm<TripFormData>({
     defaultValues: {
@@ -96,6 +100,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const tripEndDate = watch('trip_end_date');
   const fuelQuantity = watch('fuel_quantity');
   const fuelCost = watch('fuel_cost');
+  const selectedFuelStationId = watch('fuel_station_id');
   const unloadingExpense = watch('unloading_expense') || 0;
   const driverExpense = watch('driver_expense') || 0;
   const roadRtoExpense = watch('road_rto_expense') || 0;
@@ -105,6 +110,13 @@ const TripForm: React.FC<TripFormProps> = ({
   const selectedDestinations = watch('destinations') || [];
   const materialTypeIds = watch('material_type_ids') || [];
   const tripSerialNumber = watch('trip_serial_number');
+  
+  // Helper function to clear field if it contains default value of 0
+  const handleExpenseFieldFocus = (fieldName: keyof TripFormData, currentValue: number) => {
+    if (currentValue === 0) {
+      setValue(fieldName, '' as any); // Clear the field by setting it to empty string
+    }
+  };
   const analysisTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Calculate total expenses in real-time
@@ -126,12 +138,13 @@ const TripForm: React.FC<TripFormProps> = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
+        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData, fuelStationsData] = await Promise.all([
           getVehicles(),
           getDrivers(),
           getWarehouses(),
           getDestinations(),
-          getMaterialTypes()
+          getMaterialTypes(),
+          getFuelStations()
         ]);
         // Filter out archived vehicles
         const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
@@ -140,6 +153,7 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+        setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
       } catch (error) {
         console.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
@@ -154,7 +168,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Auto-generate trip serial number when vehicle and trip start date change
   useEffect(() => {
     const generateSerialNumber = async () => {
-      // Only generate if we have both vehicle and trip start date, and manual ID is not enabled
+      // Only generate if we have both vehicle and trip start date, manual ID is not enabled, and we're not editing an existing trip
       if (!vehicleId || !tripStartDate || manualTripId || initialData.trip_serial_number) {
         return;
       }
@@ -247,8 +261,8 @@ const TripForm: React.FC<TripFormProps> = ({
             setSelectedVehicle(vehicle);
           }
 
-          // Auto-fill start KM based on trip type and manual override
-          if (!manualOverride) {
+          // Auto-fill start KM based on trip type and manual override, but only if not editing an existing trip
+          if (!manualOverride && !initialData.start_km) {
             if (refuelingDone) {
               const vehicleTrips = Array.isArray(cachedTrips)
                 ? cachedTrips
@@ -293,7 +307,7 @@ const TripForm: React.FC<TripFormProps> = ({
       
       fetchVehicleData();
     }
-  }, [vehicleId, vehicles, refuelingDone, setValue, manualOverride, cachedTrips]);
+  }, [vehicleId, vehicles, refuelingDone, setValue, manualOverride, cachedTrips, initialData.start_km]);
 
   useEffect(() => {
     if (tripStartDate && tripEndDate) {
@@ -312,11 +326,32 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [fuelQuantity, fuelCost, setValue]);
 
+  // Auto-fill fuel cost when fuel station is selected
+  useEffect(() => {
+    if (selectedFuelStationId) {
+      const selectedStation = fuelStations.find(station => station.id === selectedFuelStationId);
+      if (selectedStation && selectedStation.prices) {
+        // Try to get price for diesel first (most common), then other fuel types
+        const fuelPrice = selectedStation.prices.diesel || 
+                          selectedStation.prices.petrol || 
+                          selectedStation.prices.cng ||
+                          Object.values(selectedStation.prices)[0]; // Fallback to first available price
+        
+        if (fuelPrice && typeof fuelPrice === 'number') {
+          setValue('fuel_cost', fuelPrice);
+        }
+        
+        // Also auto-fill station name
+        setValue('station', selectedStation.name);
+      }
+    }
+  }, [selectedFuelStationId, fuelStations, setValue]);
+
   useEffect(() => {
     let cancelled = false;
     
     const runAnalysis = async () => {
-      if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKm) {
+      if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKmForAnalysis) {
         if (!cancelled) {
           setRouteAnalysis(undefined);
           setAlerts([]);
@@ -327,7 +362,7 @@ const TripForm: React.FC<TripFormProps> = ({
       try {
         const analysis = await analyzeRoute(warehouseId, selectedDestinations);
         if (analysis && !cancelled) {
-          const actualDistance = endKm - startKm;
+          const actualDistance = endKmForAnalysis - startKm;
           
           // Double the Google Maps distance for return trips
           const effectiveGoogleDistance = isReturnTrip ? analysis.standard_distance * 2 : analysis.standard_distance;
@@ -353,7 +388,7 @@ const TripForm: React.FC<TripFormProps> = ({
             trip_serial_number: '', // This will be generated on submit
             manual_trip_id: watch('manual_trip_id') || false,
             start_km: startKm,
-            end_km: endKm,
+            end_km: endKmForAnalysis,
             gross_weight: watch('gross_weight') || 0,
             station: watch('station'),
             fuel_station_id: watch('fuel_station_id'),
@@ -408,7 +443,7 @@ const TripForm: React.FC<TripFormProps> = ({
     warehouseId,
     selectedDestinations,
     startKm,
-    endKm,
+    endKmForAnalysis,
     vehicleId,
     cachedTrips,
     watch,
@@ -419,6 +454,23 @@ const TripForm: React.FC<TripFormProps> = ({
       clearTimeout(analysisTimeoutRef.current);
     }
   }, []);
+
+  // Handle form submission with error focusing
+  const handleFormSubmit = async (data: TripFormData) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      // Focus first field with error and scroll to it
+      const errorFields = Object.keys(errors);
+      if (errorFields.length > 0) {
+        const firstErrorField = errorFields[0] as keyof TripFormData;
+        setTimeout(() => {
+          setFocus(firstErrorField);
+        }, 100);
+      }
+      throw error; // Re-throw to maintain error handling in parent
+    }
+  };
 
   const validateEndKm = (value: number) => {
     return !startKm || value > startKm || 'End KM must be greater than Start KM';
@@ -487,7 +539,7 @@ const TripForm: React.FC<TripFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-w-4xl mx-auto">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 max-w-4xl mx-auto">
       {/* Trip Type Section */}
       <CollapsibleSection 
         title="Trip Type" 
@@ -785,6 +837,12 @@ const TripForm: React.FC<TripFormProps> = ({
             required
             inputMode="numeric"
             pattern="[0-9]*"
+            onBlur={(e) => {
+              const value = parseFloat(e.target.value);
+              if (!isNaN(value)) {
+                setEndKmForAnalysis(value);
+              }
+            }}
             {...register('end_km', {
               required: {
                 value: true,
@@ -861,6 +919,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 inputMode="decimal"
                 icon={<Fuel className="h-4 w-4" />}
                 step="0.01"
+                onFocus={() => handleExpenseFieldFocus('fuel_quantity', fuelQuantity || 0)}
                 error={errors.fuel_quantity?.message}
                 {...register('fuel_quantity', {
                   required: refuelingDone ? 'Fuel quantity is required when refueling' : false,
@@ -872,9 +931,30 @@ const TripForm: React.FC<TripFormProps> = ({
                 })}
               />
 
+              <Controller
+                control={control}
+                name="fuel_station_id"
+                render={({ field: { value, onChange }, fieldState: { error } }) => (
+                  <Select
+                    label="Fuel Station"
+                    options={[
+                      { value: '', label: 'Select Fuel Station' },
+                      ...fuelStations.map(station => ({
+                        value: station.id,
+                        label: station.city ? `${station.name} - ${station.city}` : station.name
+                      }))
+                    ]}
+                    value={value || ''}
+                    onChange={onChange}
+                    error={error?.message}
+                  />
+                )}
+              />
+
               <CurrencyInput
                 label="Fuel Cost (/L)"
                 step="0.01"
+                onFocus={() => handleExpenseFieldFocus('fuel_cost', fuelCost || 0)}
                 error={errors.fuel_cost?.message}
                 {...register('fuel_cost', {
                   required: refuelingDone ? 'Fuel cost is required when refueling' : false,
@@ -886,16 +966,24 @@ const TripForm: React.FC<TripFormProps> = ({
                 })}
               />
 
-              <Input
-                error={errors.station?.message}
-                {...register('station')}
-              />
-
-              <Input
-                label="Fuel Station ID"
-                error={errors.fuel_station_id?.message}
-                {...register('fuel_station_id')}
-              />
+              <div className="md:col-span-2">
+                <Input
+                  label="Station Name (Auto-filled)"
+                  onFocus={() => {
+                    const currentValue = watch('station') || '';
+                    if (currentValue === '') {
+                      setValue('station', '');
+                    }
+                  }}
+                  error={errors.station?.message}
+                  className="bg-gray-50"
+                  readOnly
+                  {...register('station')}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Station name is auto-filled when you select a fuel station above
+                </p>
+              </div>
             </div>
 
             {fuelQuantity && fuelCost && (
@@ -919,6 +1007,7 @@ const TripForm: React.FC<TripFormProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <CurrencyInput
             label="Unloading Expense"
+            onFocus={() => handleExpenseFieldFocus('unloading_expense', unloadingExpense)}
             {...register('unloading_expense', {
               valueAsNumber: true,
               min: { value: 0, message: 'Expense must be positive' }
@@ -928,6 +1017,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
           <CurrencyInput
             label="Driver Bata"
+            onFocus={() => handleExpenseFieldFocus('driver_expense', driverExpense)}
             {...register('driver_expense', {
               valueAsNumber: true,
               min: { value: 0, message: 'Expense must be positive' }
@@ -937,6 +1027,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
           <CurrencyInput
             label="Road/RTO Expense"
+            onFocus={() => handleExpenseFieldFocus('road_rto_expense', roadRtoExpense)}
             {...register('road_rto_expense', {
               valueAsNumber: true,
               min: { value: 0, message: 'Expense must be positive' }
@@ -946,6 +1037,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
           <CurrencyInput
             label="Breakdown Expense"
+            onFocus={() => handleExpenseFieldFocus('breakdown_expense', breakdownExpense)}
             {...register('breakdown_expense', {
               valueAsNumber: true,
               min: { value: 0, message: 'Expense must be positive' }
@@ -955,6 +1047,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
           <CurrencyInput
             label="Miscellaneous"
+            onFocus={() => handleExpenseFieldFocus('miscellaneous_expense', miscellaneousExpense)}
             {...register('miscellaneous_expense', {
               valueAsNumber: true,
               min: { value: 0, message: 'Expense must be positive' }

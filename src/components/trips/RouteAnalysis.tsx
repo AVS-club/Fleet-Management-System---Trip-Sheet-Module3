@@ -36,10 +36,10 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
               Actual Distance
             </div>
             <div className="text-2xl font-semibold text-gray-900">
-              {analysis.total_distance.toFixed(1)} km
+              {analysis.total_distance > 0 ? `${analysis.total_distance.toFixed(1)} km` : '—'}
             </div>
             <div className="text-sm text-gray-500 mt-1">
-              Standard: {analysis.standard_distance.toFixed(1)} km
+              Standard: {analysis.standard_distance > 0 ? `${analysis.standard_distance.toFixed(1)} km` : '—'}
             </div>
           </div>
 
@@ -54,7 +54,7 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
                   ? 'text-error-600'
                   : 'text-success-600'
               }`}>
-                {analysis.deviation.toFixed(1)}%
+                {analysis.standard_distance > 0 ? `${analysis.deviation.toFixed(1)}%` : '—'}
               </div>
               <div className="text-sm text-gray-500 mt-1">
                 From standard route
@@ -68,7 +68,7 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
               Estimated Time
             </div>
             <div className="text-2xl font-semibold text-gray-900">
-              {analysis.estimated_time}
+              {analysis.estimated_time && analysis.estimated_time !== '—' ? analysis.estimated_time : '—'}
             </div>
             <div className="text-sm text-gray-500 mt-1">
               Based on standard route
