@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout'; 
 import { MapPin, Building2, ChevronLeft, Plus, Package, Settings, Loader, Edit, Trash2, Fuel } from 'lucide-react';
@@ -41,16 +41,14 @@ const TripLocationsPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [warehousesData, destinationsData, fuelStationsData, materialTypesData] = await Promise.all([
+        const [warehousesData, destinationsData, materialTypesData] = await Promise.all([
           listWarehouses({ includeInactive: showInactive }), // Use showInactive filter
           getDestinations(),
-          getFuelStations(),
           getMaterialTypes()
         ]);
-        
+
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
-        setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching location data:', error);
@@ -59,9 +57,38 @@ const TripLocationsPage: React.FC = () => {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [showInactive]); // Add showInactive to dependencies
+
+  const fetchFuelStationsData = useCallback(async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+    try {
+      const fuelStationsData = await getFuelStations();
+      setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
+    } catch (error) {
+      console.error('Error fetching fuel stations:', error);
+      toast.error('Failed to load fuel stations');
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
+  }, []);
+
+  // Initial fuel station fetch
+  useEffect(() => {
+    fetchFuelStationsData();
+  }, [fetchFuelStationsData]);
+
+  // Refetch when fuel stations tab becomes active
+  useEffect(() => {
+    if (activeTab === 'fuelstations') {
+      fetchFuelStationsData(true);
+    }
+  }, [activeTab, fetchFuelStationsData]);
 
   const handleAddWarehouse = async (data: any) => {
     setIsSubmitting(true);
@@ -154,9 +181,10 @@ const TripLocationsPage: React.FC = () => {
   };
 
   const handleAddFuelStation = async (data: any) => {
+    const { id, ...payload } = data || {};
     setIsSubmitting(true);
     try {
-      const newFuelStation = await createFuelStation(data);
+      const newFuelStation = await createFuelStation(payload);
       
       setFuelStations(prev => [...prev, newFuelStation]);
       setIsAddingFuelStation(false);
@@ -170,15 +198,15 @@ const TripLocationsPage: React.FC = () => {
   };
 
   const handleUpdateFuelStation = async (data: any) => {
-    if (!editingFuelStation) return;
-    
+    if (!data?.id) return;
+
     setIsSubmitting(true);
     try {
-      const updatedFuelStation = await updateFuelStation(editingFuelStation.id, data);
-      
+      const updatedFuelStation = await updateFuelStation(data.id, data);
+
       if (updatedFuelStation) {
-        setFuelStations(prev => 
-          prev.map(fs => fs.id === editingFuelStation.id ? updatedFuelStation : fs)
+        setFuelStations(prev =>
+          prev.map(fs => fs.id === data.id ? updatedFuelStation : fs)
         );
         setEditingFuelStation(null);
         toast.success('Fuel station updated successfully');
@@ -325,7 +353,7 @@ const TripLocationsPage: React.FC = () => {
                           onClick={() => setIsAddingFuelStation(true)}
                           icon={<Plus className="h-4 w-4" />}
                         >
-                          Add Fuel Station
+                          + Add Fuel Station
                         </Button>
                       )}
                     </div>
@@ -374,8 +402,12 @@ const TripLocationsPage: React.FC = () => {
                                 <Fuel className="h-5 w-5 text-gray-400" />
                                 <div>
                                   <h3 className="font-medium text-gray-900">{station.name}</h3>
-                                  {station.city && (
-                                    <p className="text-sm text-gray-500">{station.city}</p>
+                                  {(station.city || station.state) && (
+                                    <p className="text-sm text-gray-500">
+                                      {station.city}
+                                      {station.city && station.state ? ', ' : ''}
+                                      {station.state}
+                                    </p>
                                   )}
                                 </div>
                               </div>

@@ -386,6 +386,7 @@ export interface FuelStation {
   name: string;
   address?: string;
   city?: string;
+  state?: string;
   fuel_types: string[];
   prices: Record<string, number>;
   google_place_id?: string;
