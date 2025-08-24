@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
-import ChartWrapper from './ChartWrapper';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -104,56 +103,68 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
   };
 
   return (
-    <ChartWrapper dataLength={chartData.length} scrollDirection="y">
-      <BarChart
-        data={chartData}
-        layout="vertical"
-        margin={{ top: 10, right: 30, left: 70, bottom: 10 }}
-      >
-        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-        <XAxis
-          type="number"
-          axisLine={false}
-          tickLine={false}
-          domain={[0, 'auto']}
-          tick={{ fontSize: 10 }}
-          label={{
-            value: 'Liters',
-            position: 'insideBottom',
-            offset: -5,
-            style: { fontSize: 10 }
-          }}
-        />
-        <YAxis
-          type="category"
-          dataKey="registration"
-          axisLine={false}
-          tickLine={false}
-          width={70}
-          tick={{ fontSize: 11, fontWeight: 500 }}
-        />
-        <Tooltip content={(props) => <CustomTooltip {...props} />} />
-        <Bar
-          dataKey="fuelLiters"
-          name="Fuel Consumed"
-          label={{
-            position: 'right',
-            formatter: (value: number) => `${value.toLocaleString()} L`,
-            fill: '#6B7280',
-            fontSize: 11,
-            fontWeight: 500
-          }}
-          barSize={32}
-        >
-          {chartData.map((entry, index) => (
-            <Cell
-              key={`cell-${index}`}
-              fill={CHART_COLORS[index % CHART_COLORS.length]}
-            />
-          ))}
-        </Bar>
-      </BarChart>
-    </ChartWrapper>
+    <div className="space-y-2">      
+      <div className="h-72 overflow-y-auto">
+        <div className="min-h-[350px] h-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              layout="vertical"
+              margin={{ top: 10, right: 30, left: 70, bottom: 10 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <XAxis 
+                type="number" 
+                axisLine={false}
+                tickLine={false}
+                domain={[0, 'auto']} 
+                tick={{ fontSize: 10 }}
+                label={{
+                  value: 'Liters',
+                  position: 'insideBottom',
+                  offset: -5,
+                  style: { fontSize: 10 }
+                }}
+              />
+              <YAxis 
+                type="category" 
+                dataKey="registration" 
+                axisLine={false}
+                tickLine={false}
+                width={70} 
+                tick={{ fontSize: 11, fontWeight: 500 }}
+              />
+              <Tooltip content={(props) => <CustomTooltip {...props} />} />
+              <Bar 
+                dataKey="fuelLiters" 
+                name="Fuel Consumed"
+                label={{
+                  position: 'right',
+                  formatter: (value: number) => `${value.toLocaleString()} L`,
+                  fill: '#6B7280',
+                  fontSize: 11,
+                  fontWeight: 500
+                }}
+                barSize={32}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={CHART_COLORS[index % CHART_COLORS.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      
+      {chartData.length === 0 && (
+        <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
+          No fuel consumption data available for the selected period
+        </div>
+      )}
+    </div>
   );
 };
 

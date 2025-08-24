@@ -3,42 +3,6 @@ import { X, MessageSquare, FileText, Link as LinkIcon } from 'lucide-react';
 import { Vehicle } from '../../types';
 import Button from '../ui/Button';
 
-interface DocumentRowProps {
-  label: string;
-  url?: string;
-  onShare: (docType: string, url: string) => void;
-}
-
-const DocumentRow: React.FC<DocumentRowProps> = ({ label, url, onShare }) => (
-  <div className="flex justify-between items-center p-2 bg-white rounded border">
-    <span className="text-sm">{label}</span>
-    <div className="flex items-center gap-2">
-      {url ? (
-        <>
-          <a
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1 text-primary-600 hover:text-primary-700"
-            title="Open document"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </a>
-          <button
-            onClick={() => onShare(label, url)}
-            className="p-1 text-green-600 hover:text-green-700"
-            title="Share on WhatsApp"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </button>
-        </>
-      ) : (
-        <span className="text-xs text-gray-400">Missing</span>
-      )}
-    </div>
-  </div>
-);
-
 interface VehicleWhatsAppShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -125,19 +89,15 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
     const message = generateDocumentFileMessage(docType, url);
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
-
-  const documentTypes = [
-    { label: 'RC Document', url: signedDocUrls.rc },
-    { label: 'Insurance', url: signedDocUrls.insurance },
-    { label: 'Fitness Certificate', url: signedDocUrls.fitness },
-    { label: 'Permit', url: signedDocUrls.permit },
-    { label: 'PUC Certificate', url: signedDocUrls.puc },
-    { label: 'Tax Receipt', url: signedDocUrls.tax }
-  ];
-
+  
   // Check if any document URLs exist
-  const hasDocumentUrls =
-    documentTypes.some((doc) => !!doc.url) ||
+  const hasDocumentUrls = 
+    (signedDocUrls.rc && signedDocUrls.rc.length > 0) || 
+    (signedDocUrls.insurance && signedDocUrls.insurance.length > 0) || 
+    (signedDocUrls.fitness && signedDocUrls.fitness.length > 0) || 
+    (signedDocUrls.permit && signedDocUrls.permit.length > 0) || 
+    (signedDocUrls.puc && signedDocUrls.puc.length > 0) || 
+    (signedDocUrls.tax && signedDocUrls.tax.length > 0) || 
     Object.keys(signedDocUrls.other).length > 0;
   
   return (
@@ -188,21 +148,203 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
               
               {hasDocumentUrls ? (
                 <div className="space-y-3">
-                  {documentTypes.map(({ label, url }) => (
-                    <DocumentRow
-                      key={label}
-                      label={label}
-                      url={url}
-                      onShare={handleShareDocumentFile}
-                    />
-                  ))}
-                  {Object.entries(signedDocUrls.other).map(([key, url]) => (
-                    <DocumentRow
-                      key={key}
-                      label={key}
-                      url={url}
-                      onShare={handleShareDocumentFile}
-                    />
+                  {/* RC Document */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">RC Document</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.rc ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.rc} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('RC Document', signedDocUrls.rc!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Insurance */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">Insurance</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.insurance ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.insurance} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('Insurance', signedDocUrls.insurance!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Fitness Certificate */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">Fitness Certificate</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.fitness ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.fitness} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('Fitness Certificate', signedDocUrls.fitness!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Permit */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">Permit</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.permit ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.permit} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('Permit', signedDocUrls.permit!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* PUC Certificate */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">PUC Certificate</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.puc ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.puc} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('PUC Certificate', signedDocUrls.puc!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Tax Receipt */}
+                  <div className="flex justify-between items-center p-2 bg-white rounded border">
+                    <span className="text-sm">Tax Receipt</span>
+                    <div className="flex items-center gap-2">
+                      {signedDocUrls.tax ? (
+                        <>
+                          <a 
+                            href={signedDocUrls.tax} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="p-1 text-primary-600 hover:text-primary-700"
+                            title="Open document"
+                          >
+                            <LinkIcon className="h-4 w-4" />
+                          </a>
+                          <button
+                            onClick={() => handleShareDocumentFile('Tax Receipt', signedDocUrls.tax!)}
+                            className="p-1 text-green-600 hover:text-green-700"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">Missing</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Other Documents */}
+                  {Object.entries(signedDocUrls.other).map(([key, url], index) => (
+                    <div key={key} className="flex justify-between items-center p-2 bg-white rounded border">
+                      <span className="text-sm">{key}</span>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="p-1 text-primary-600 hover:text-primary-700"
+                          title="Open document"
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                        </a>
+                        <button
+                          onClick={() => handleShareDocumentFile(key, url)}
+                          className="p-1 text-green-600 hover:text-green-700"
+                          title="Share on WhatsApp"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (

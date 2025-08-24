@@ -1,5 +1,5 @@
-import React from 'react';
-import AuthForm from '../components/auth/AuthForm';
+import React, { useState } from 'react';
+import RegisterForm from '../components/auth/RegisterForm';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
 import ThemeToggle from '../components/ui/ThemeToggle';
@@ -7,6 +7,7 @@ import { Truck } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const { theme } = useTheme();
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
@@ -28,7 +29,7 @@ const RegisterPage: React.FC = () => {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Join us to manage your fleet efficiently</p>
         </div>
         
-        <AuthForm mode="register" />
+        <RegisterForm showPassword={showPassword} setShowPassword={setShowPassword} />
         
         <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
