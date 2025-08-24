@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Fuel, MapPin, Building2, X } from 'lucide-react';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import Checkbox from '../ui/Checkbox';
 import { FuelStation } from '../../types';
 
-export interface FuelStationFormData {
+interface FuelStationFormData {
   name: string;
   address?: string;
   city?: string;
@@ -17,7 +17,7 @@ export interface FuelStationFormData {
 
 interface FuelStationFormProps {
   initialData?: Partial<FuelStation>;
-  onSubmit: (data: FuelStationFormData & { id?: string }) => void;
+  onSubmit: (data: FuelStationFormData) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -42,7 +42,7 @@ const FuelStationForm: React.FC<FuelStationFormProps> = ({
     initialData?.prices || {}
   );
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FuelStationFormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<FuelStationFormData>({
     defaultValues: {
       name: initialData?.name || '',
       address: initialData?.address || '',
@@ -96,8 +96,7 @@ const FuelStationForm: React.FC<FuelStationFormProps> = ({
     onSubmit({
       ...data,
       fuel_types: validFuelTypes,
-      prices: validPrices,
-      id: initialData?.id
+      prices: validPrices
     });
   };
 
