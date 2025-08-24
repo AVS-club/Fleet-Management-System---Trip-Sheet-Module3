@@ -42,7 +42,7 @@ const TripList: React.FC<TripListProps> = ({
 
   const filteredTrips = useMemo(() => {
     return Array.isArray(trips) ? trips.filter(trip => {
-        // Search by trip serial, vehicle registration, driver name or station
+        // Search by trip serial, vehicle registration or driver name
         if (searchTerm) {
           const vehicle = vehiclesMap.get(trip.vehicle_id);
           const driver = driversMap.get(trip.driver_id);
@@ -51,9 +51,7 @@ const TripList: React.FC<TripListProps> = ({
           const serialMatch = trip.trip_serial_number?.toLowerCase().includes(searchLower);
           const vehicleMatch = vehicle?.registration_number?.toLowerCase().includes(searchLower);
           const driverMatch = driver?.name?.toLowerCase().includes(searchLower);
-          const stationMatch = trip.station?.toLowerCase()?.includes(searchLower);
-          
-          if (!(serialMatch || vehicleMatch || driverMatch || stationMatch)) {
+          if (!(serialMatch || vehicleMatch || driverMatch)) {
             return false;
           }
         }
@@ -89,7 +87,7 @@ const TripList: React.FC<TripListProps> = ({
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <Input
-            placeholder="Search trips by serial, vehicle, driver or station"
+            placeholder="Search trips by serial, vehicle or driver"
             icon={<Search className="h-4 w-4" />}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
