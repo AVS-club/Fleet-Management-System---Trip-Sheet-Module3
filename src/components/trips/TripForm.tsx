@@ -3,8 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { format, differenceInDays } from 'date-fns';
 import { nanoid } from 'nanoid';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse, Destination, RouteAnalysis, Alert } from '../../types';
-import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle, getFuelStations } from '../../utils/storage';
-import type { FuelStation } from '../../types';
+import { getVehicles, getDrivers, getWarehouses, getDestinations, getDestination, analyzeRoute, createDestination, getVehicle } from '../../utils/storage';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { Calendar, Fuel, MapPin, FileText, Truck, IndianRupee, Weight, AlertTriangle, Package, ArrowLeftRight, Repeat, Info, Loader, Settings } from 'lucide-react';
 import Button from '../ui/Button';
@@ -42,7 +41,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [frequentWarehouses, setFrequentWarehouses] = useState<Warehouse[]>([]);
   const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
-  const [fuelStations, setFuelStations] = useState<FuelStation[]>([]);
   const [lastTripMileage, setLastTripMileage] = useState<number | undefined>();
   const [tripIdPreview, setTripIdPreview] = useState<string>('');
   const [routeAnalysis, setRouteAnalysis] = useState<RouteAnalysis | undefined>();
@@ -87,7 +85,6 @@ const TripForm: React.FC<TripFormProps> = ({
       destinations: [],
       material_type_ids: [],
       station: '',
-      fuel_station_id: '',
       ...initialData
     }
   });
@@ -100,7 +97,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const tripEndDate = watch('trip_end_date');
   const fuelQuantity = watch('fuel_quantity');
   const fuelCost = watch('fuel_cost');
-  const selectedFuelStationId = watch('fuel_station_id');
   const unloadingExpense = watch('unloading_expense') || 0;
   const driverExpense = watch('driver_expense') || 0;
   const roadRtoExpense = watch('road_rto_expense') || 0;
@@ -138,13 +134,12 @@ const TripForm: React.FC<TripFormProps> = ({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData, fuelStationsData] = await Promise.all([
+        const [vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
           getVehicles(),
           getDrivers(),
           getWarehouses(),
           getDestinations(),
-          getMaterialTypes(),
-          getFuelStations()
+          getMaterialTypes()
         ]);
         // Filter out archived vehicles
         const activeVehicles = Array.isArray(vehiclesData) ? vehiclesData.filter(v => v.status !== 'archived') : [];
@@ -153,7 +148,6 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setAllDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
-        setFuelStations(Array.isArray(fuelStationsData) ? fuelStationsData : []);
       } catch (error) {
         console.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
@@ -326,27 +320,6 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [fuelQuantity, fuelCost, setValue]);
 
-  // Auto-fill fuel cost when fuel station is selected
-  useEffect(() => {
-    if (selectedFuelStationId) {
-      const selectedStation = fuelStations.find(station => station.id === selectedFuelStationId);
-      if (selectedStation && selectedStation.prices) {
-        // Try to get price for diesel first (most common), then other fuel types
-        const fuelPrice = selectedStation.prices.diesel || 
-                          selectedStation.prices.petrol || 
-                          selectedStation.prices.cng ||
-                          Object.values(selectedStation.prices)[0]; // Fallback to first available price
-        
-        if (fuelPrice && typeof fuelPrice === 'number') {
-          setValue('fuel_cost', fuelPrice);
-        }
-        
-        // Also auto-fill station name
-        setValue('station', selectedStation.name);
-      }
-    }
-  }, [selectedFuelStationId, fuelStations, setValue]);
-
   useEffect(() => {
     let cancelled = false;
     
@@ -391,7 +364,6 @@ const TripForm: React.FC<TripFormProps> = ({
             end_km: endKmForAnalysis,
             gross_weight: watch('gross_weight') || 0,
             station: watch('station'),
-            fuel_station_id: watch('fuel_station_id'),
             refueling_done: watch('refueling_done'),
             fuel_quantity: watch('fuel_quantity'),
             fuel_cost: watch('fuel_cost'),
@@ -931,26 +903,6 @@ const TripForm: React.FC<TripFormProps> = ({
                 })}
               />
 
-              <Controller
-                control={control}
-                name="fuel_station_id"
-                render={({ field: { value, onChange }, fieldState: { error } }) => (
-                  <Select
-                    label="Fuel Station"
-                    options={[
-                      { value: '', label: 'Select Fuel Station' },
-                      ...fuelStations.map(station => ({
-                        value: station.id,
-                        label: station.city ? `${station.name} - ${station.city}` : station.name
-                      }))
-                    ]}
-                    value={value || ''}
-                    onChange={onChange}
-                    error={error?.message}
-                  />
-                )}
-              />
-
               <CurrencyInput
                 label="Fuel Cost (/L)"
                 step="0.01"
@@ -968,21 +920,10 @@ const TripForm: React.FC<TripFormProps> = ({
 
               <div className="md:col-span-2">
                 <Input
-                  label="Station Name (Auto-filled)"
-                  onFocus={() => {
-                    const currentValue = watch('station') || '';
-                    if (currentValue === '') {
-                      setValue('station', '');
-                    }
-                  }}
+                  label="Station Name"
                   error={errors.station?.message}
-                  className="bg-gray-50"
-                  readOnly
                   {...register('station')}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Station name is auto-filled when you select a fuel station above
-                </p>
               </div>
             </div>
 
