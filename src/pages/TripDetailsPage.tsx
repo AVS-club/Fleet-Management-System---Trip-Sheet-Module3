@@ -225,7 +225,6 @@ const TripDetailsPage: React.FC = () => {
               start_km: trip.start_km,
               end_km: trip.end_km,
               gross_weight: trip.gross_weight,
-              station: trip.station,
               refueling_done: trip.refueling_done,
               fuel_quantity: trip.fuel_quantity,
               fuel_cost: trip.fuel_cost,
