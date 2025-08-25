@@ -13,7 +13,7 @@ interface VehicleWithStats extends Vehicle {
 
 import {
   getVehicles,
-  getVehicleStats,
+  getAllVehicleStats,
   createVehicle,
   getTrips,
   getDrivers,
@@ -122,13 +122,17 @@ const VehiclesPage: React.FC = () => {
         setDrivers(driversArray);
         setTrips(tripsArray);
 
-        // Fetch stats for each vehicle
-        const vehiclesWithStats = await Promise.all(
-          vehiclesArray.map(async (vehicle) => {
-            const stats = await getVehicleStats(vehicle.id);
-            return { ...vehicle, stats, selected: false };
-          })
-        );
+        const statsMap = await getAllVehicleStats(tripsArray);
+        const vehiclesWithStats = vehiclesArray.map((vehicle) => ({
+          ...vehicle,
+          stats:
+            statsMap[vehicle.id] ?? {
+              totalTrips: 0,
+              totalDistance: 0,
+              averageKmpl: undefined,
+            },
+          selected: false,
+        }));
 
         setVehicles(vehiclesWithStats);
 
