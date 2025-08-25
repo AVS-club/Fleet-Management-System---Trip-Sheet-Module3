@@ -107,8 +107,8 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
   
   // Calculate stats
   const stats = useMemo(() => {
-    // Filter out short trips for most calculations
-    const regularTrips = Array.isArray(trips) ? trips.filter(trip => !trip.short_trip) : [];
+    // Use all trips for calculations
+    const regularTrips = Array.isArray(trips) ? trips : [];
     
     // Filter trips based on the selected date range
     const filteredTrips = regularTrips.filter(trip => {

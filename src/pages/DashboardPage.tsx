@@ -49,8 +49,8 @@ const DashboardPage: React.FC = () => {
   
   // Calculate stats
   const stats = useMemo(() => {
-    // Filter out short trips for most calculations
-    const regularTrips = Array.isArray(trips) ? trips.filter(trip => !trip.short_trip) : [];
+    // Use all trips for calculations
+    const regularTrips = Array.isArray(trips) ? trips : [];
     
     // Total distance
     const totalDistance = regularTrips.reduce(
