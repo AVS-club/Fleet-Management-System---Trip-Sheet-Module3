@@ -836,6 +836,101 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
 };
 
 // Vehicle stats
+
+export interface VehicleStats {
+  totalTrips: number;
+  totalDistance: number;
+  averageKmpl?: number;
+}
+
+export const getAllVehicleStats = async (
+  trips?: Trip[]
+): Promise<Record<string, VehicleStats>> => {
+  try {
+    let tripData = trips;
+
+    if (!tripData) {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        if (isNetworkError(userError)) {
+          console.warn(
+            'Network error fetching user for vehicle stats, returning empty object'
+          );
+          return {};
+        }
+        handleSupabaseError('get user for vehicle stats', userError);
+        return {};
+      }
+
+      if (!user) {
+        console.error('No user authenticated');
+        return {};
+      }
+
+      const { data, error } = await supabase
+        .from('trips')
+        .select('vehicle_id,start_km,end_km,calculated_kmpl,short_trip')
+        .eq('added_by', user.id);
+
+      if (error) {
+        handleSupabaseError('fetch vehicle trips', error);
+        return {};
+      }
+
+      tripData = data || [];
+    }
+
+    const stats: Record<
+      string,
+      { totalTrips: number; totalDistance: number; kmplSum: number; kmplCount: number }
+    > = {};
+
+    tripData.forEach((trip) => {
+      if (!trip.vehicle_id) return;
+      if (!stats[trip.vehicle_id]) {
+        stats[trip.vehicle_id] = {
+          totalTrips: 0,
+          totalDistance: 0,
+          kmplSum: 0,
+          kmplCount: 0,
+        };
+      }
+
+      const entry = stats[trip.vehicle_id];
+      entry.totalTrips += 1;
+      entry.totalDistance += (trip.end_km ?? 0) - (trip.start_km ?? 0);
+      if (trip.calculated_kmpl && !trip.short_trip) {
+        entry.kmplSum += trip.calculated_kmpl;
+        entry.kmplCount += 1;
+      }
+    });
+
+    const result: Record<string, VehicleStats> = {};
+    for (const [id, s] of Object.entries(stats)) {
+      result[id] = {
+        totalTrips: s.totalTrips,
+        totalDistance: s.totalDistance,
+        averageKmpl: s.kmplCount > 0 ? s.kmplSum / s.kmplCount : undefined,
+      };
+    }
+
+    return result;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn(
+        'Network error calculating vehicle stats, returning empty object'
+      );
+      return {};
+    }
+    handleSupabaseError('calculate all vehicle stats', error);
+    return {};
+  }
+};
+
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
