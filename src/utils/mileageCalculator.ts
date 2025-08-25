@@ -1,14 +1,5 @@
 import { Trip, Vehicle } from '../types';
 
-interface TripEntry {
-  start_km: number;
-  end_km: number;
-  fuel_liters: number;
-  is_loaded?: boolean;
-  vehicle_id?: string;
-  driver_id?: string;
-}
-
 export function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefined {
   // If the current trip doesn't have refueling or fuel quantity is missing/invalid, we can't calculate
   if (!currentTrip.refueling_done || !currentTrip.fuel_quantity || currentTrip.fuel_quantity <= 0) {

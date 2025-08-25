@@ -249,7 +249,7 @@ const TripsPage: React.FC = () => {
               material_type_ids: editingTrip.material_type_ids,
               trip_serial_number: editingTrip.trip_serial_number,
               manual_trip_id: editingTrip.manual_trip_id,
-              is_return_trip: editingTrip.is_return_trip
+              is_return_trip: editingTrip.is_return_trip // ⚠️ Confirm field refactor here
             } : undefined}
           />
         </div>
