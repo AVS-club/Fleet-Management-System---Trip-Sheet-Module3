@@ -283,8 +283,6 @@ export interface Trip {
   destinations: string[];
   trip_start_date: string;
   trip_end_date: string;
-  trip_duration: number;
-  trip_serial_number: string;
   start_km: number;
   end_km: number;
   gross_weight: number;
@@ -293,9 +291,9 @@ export interface Trip {
   fuel_cost?: number;
   fuel_rate_per_liter?: number;
   total_fuel_cost?: number;
-  unloading_expense: number;
-  driver_expense: number;
-  road_rto_expense: number;
+  unloading_expense?: number;
+  driver_expense?: number;
+  road_rto_expense?: number;
   miscellaneous_expense?: number;
   total_road_expenses: number;
   remarks?: string;
@@ -316,7 +314,6 @@ export interface Trip {
   net_profit?: number;
   cost_per_km?: number;
   profit_status?: "profit" | "loss" | "neutral";
-  [key: string]: any;
 }
 
 export interface TripFormData
@@ -324,7 +321,6 @@ export interface TripFormData
     Trip,
     "id" | "created_at" | "updated_at" | "trip_serial_number" | "manual_trip_id"
   > {
-  fuel_bill_file?: File[];
   is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;
