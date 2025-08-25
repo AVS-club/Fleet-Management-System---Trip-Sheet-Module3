@@ -122,6 +122,15 @@ const TripForm: React.FC<TripFormProps> = ({
   const materialTypeIds = watch('material_type_ids') || [];
   const tripSerialNumber = watch('trip_serial_number');
 
+  // Debug: Watch form values to see what react-hook-form is holding
+  useEffect(() => {
+    console.log('Form values after reset:', {
+      trip_start_date: tripStartDate,
+      trip_end_date: tripEndDate,
+      material_type_ids: materialTypeIds
+    });
+  }, [tripStartDate, tripEndDate, materialTypeIds]);
+
   // Apply debounce to analysis dependencies (500ms delay)
   const debouncedVehicleId = useDebounce(vehicleId, 500);
   const debouncedStartKm = useDebounce(startKm, 500);
