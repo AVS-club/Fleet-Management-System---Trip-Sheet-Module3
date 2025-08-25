@@ -15,6 +15,8 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
   onChange,
   error
 }) => {
+  const selectedWarehouseData = warehouses.find(w => w.id === selectedWarehouse);
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">
@@ -22,68 +24,48 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
         <span className="text-error-500 ml-1">*</span>
       </label>
       
-      <div className="grid grid-cols-1 gap-2">
-        {warehouses.map(warehouse => (
-          <label
-            key={warehouse.id}
-            className={`relative flex items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
-              selectedWarehouse === warehouse.id
-                ? 'border-green-500 bg-green-50'
-                : 'border-gray-200 hover:border-green-300 hover:bg-green-25'
-            }`}
-          >
-            <input
-              type="radio"
-              name="warehouse"
-              value={warehouse.id}
-              checked={selectedWarehouse === warehouse.id}
-              onChange={(e) => onChange(e.target.value)}
-              className="sr-only"
-            />
-            
-            <div className="flex items-center space-x-3 w-full">
-              <div className={`p-2 rounded-full ${
+      {/* Selected Warehouse Display */}
+      {selectedWarehouseData && (
+        <div className="mb-3">
+          <div className="inline-flex items-center px-3 py-2 rounded-lg bg-green-100 text-green-800 border border-green-200">
+            <Building2 className="h-4 w-4 mr-2" />
+            <span className="font-medium">{selectedWarehouseData.name}</span>
+            <span className="ml-2 px-2 py-0.5 bg-green-200 text-green-900 rounded-full text-xs font-medium">
+              📍 {selectedWarehouseData.pincode}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Warehouse Selection */}
+      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+        <div className="flex flex-wrap gap-2">
+          {warehouses.map(warehouse => (
+            <label
+              key={warehouse.id}
+              className={`inline-flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium border ${
                 selectedWarehouse === warehouse.id
-                  ? 'bg-green-100'
-                  : 'bg-gray-100'
-              }`}>
-                <Building2 className={`h-5 w-5 ${
-                  selectedWarehouse === warehouse.id
-                    ? 'text-green-600'
-                    : 'text-gray-500'
-                }`} />
-              </div>
+                  ? 'bg-green-100 text-green-800 border-green-300'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50'
+              }`}
+            >
+              <input
+                type="radio"
+                name="warehouse"
+                value={warehouse.id}
+                checked={selectedWarehouse === warehouse.id}
+                onChange={(e) => onChange(e.target.value)}
+                className="sr-only"
+              />
               
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  <h4 className={`font-medium ${
-                    selectedWarehouse === warehouse.id
-                      ? 'text-green-800'
-                      : 'text-gray-900'
-                  }`}>
-                    {warehouse.name}
-                  </h4>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    <MapPin className="h-3 w-3 mr-1" />
-                    📍 {warehouse.pincode}
-                  </span>
-                </div>
-                
-                {warehouse.latitude && warehouse.longitude && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    🗺️ {warehouse.latitude.toFixed(4)}, {warehouse.longitude.toFixed(4)}
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            {selectedWarehouse === warehouse.id && (
-              <div className="absolute top-2 right-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              </div>
-            )}
-          </label>
-        ))}
+              <Building2 className="h-4 w-4 mr-2" />
+              <span>{warehouse.name}</span>
+              <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                📍 {warehouse.pincode}
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
       
       {warehouses.length === 0 && (

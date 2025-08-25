@@ -4,6 +4,7 @@ import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
+import { subDays, format } from 'date-fns';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -13,6 +14,7 @@ import WarehouseSelector from './WarehouseSelector';
 import DestinationSelector from './DestinationSelector';
 import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
+import FuelRateSelector from './FuelRateSelector';
 import {
   Truck,
   User,
@@ -50,6 +52,9 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Get yesterday's date for auto-defaulting
+  const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
   const {
     register,
     handleSubmit,
@@ -59,6 +64,8 @@ const TripForm: React.FC<TripFormProps> = ({
     formState: { errors }
   } = useForm<TripFormData>({
     defaultValues: {
+      trip_start_date: yesterdayDate, // Auto-default to yesterday
+      trip_end_date: yesterdayDate, // Auto-default to yesterday
       refueling_done: false,
       short_trip: false,
       is_return_trip: false,
@@ -82,8 +89,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const selectedWarehouseId = watch('warehouse_id');
   const selectedDestinations = watch('destinations') || [];
   const refuelingDone = watch('refueling_done');
-  const fuelQuantity = watch('fuel_quantity');
-  const fuelCost = watch('fuel_cost');
+  const totalFuelCost = watch('total_fuel_cost');
+  const fuelRatePerLiter = watch('fuel_rate_per_liter');
 
   // Fetch form data
   useEffect(() => {
@@ -113,6 +120,16 @@ const TripForm: React.FC<TripFormProps> = ({
 
     fetchFormData();
   }, []);
+
+  // Auto-select assigned driver when vehicle is selected
+  useEffect(() => {
+    if (selectedVehicleId && vehicles.length > 0) {
+      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+      if (selectedVehicle?.primary_driver_id) {
+        setValue('driver_id', selectedVehicle.primary_driver_id);
+      }
+    }
+  }, [selectedVehicleId, vehicles, setValue]);
 
   // Auto-generate trip serial number when vehicle and start date are selected
   useEffect(() => {
@@ -153,13 +170,14 @@ const TripForm: React.FC<TripFormProps> = ({
     fillStartKm();
   }, [selectedVehicleId, setValue, initialData]);
 
-  // Calculate total fuel cost when fuel quantity and cost change
+  // Reverse calculation: Calculate fuel quantity when total fuel cost and rate change
   useEffect(() => {
-    if (fuelQuantity && fuelCost) {
-      const totalFuelCost = fuelQuantity * fuelCost;
-      setValue('total_fuel_cost', totalFuelCost);
+    if (totalFuelCost && fuelRatePerLiter && totalFuelCost > 0 && fuelRatePerLiter > 0) {
+      const fuelQuantity = totalFuelCost / fuelRatePerLiter;
+      setValue('fuel_quantity', parseFloat(fuelQuantity.toFixed(2)));
+      setValue('fuel_cost', fuelRatePerLiter);
     }
-  }, [fuelQuantity, fuelCost, setValue]);
+  }, [totalFuelCost, fuelRatePerLiter, setValue]);
 
   // Calculate total road expenses
   useEffect(() => {
@@ -287,7 +305,7 @@ const TripForm: React.FC<TripFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <Input
             label="Trip Start Date"
-            type="datetime-local"
+            type="date"
             icon={<Calendar className="h-4 w-4" />}
             error={errors.trip_start_date?.message}
             required
@@ -296,7 +314,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
           <Input
             label="Trip End Date"
-            type="datetime-local"
+            type="date"
             icon={<Calendar className="h-4 w-4" />}
             error={errors.trip_end_date?.message}
             required
@@ -321,10 +339,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <Select
                 label="Vehicle"
                 icon={<Truck className="h-4 w-4" />}
-                options={vehicles.map(vehicle => ({
-                  value: vehicle.id,
-                  label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-                }))}
+                options={[
+                  { value: '', label: 'Select Vehicle' },
+                  ...vehicles.map(vehicle => ({
+                    value: vehicle.id,
+                    label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+                  }))
+                ]}
                 error={errors.vehicle_id?.message}
                 required
                 {...field}
@@ -340,10 +361,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <Select
                 label="Driver"
                 icon={<User className="h-4 w-4" />}
-                options={drivers.map(driver => ({
-                  value: driver.id || '',
-                  label: `${driver.name} - ${driver.license_number}`
-                }))}
+                options={[
+                  { value: '', label: 'Select Driver' },
+                  ...drivers.map(driver => ({
+                    value: driver.id || '',
+                    label: `${driver.name} - ${driver.license_number}`
+                  }))
+                ]}
                 error={errors.driver_id?.message}
                 required
                 {...field}
@@ -477,7 +501,7 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </div>
 
-      {/* Fuel Information */}
+      {/* Fuel Information with Reverse Calculation */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
@@ -499,60 +523,69 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
         
         {refuelingDone && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              label="Fuel Quantity (L)"
-              type="number"
-              step="0.01"
-              icon={<Fuel className="h-4 w-4" />}
-              error={errors.fuel_quantity?.message}
-              {...register('fuel_quantity', {
-                valueAsNumber: true,
-                min: { value: 0.01, message: 'Fuel quantity must be positive' }
-              })}
-            />
-
-            <Input
-              label="Fuel Cost per Liter (₹)"
-              type="number"
-              step="0.01"
-              icon={<IndianRupee className="h-4 w-4" />}
-              error={errors.fuel_cost?.message}
-              {...register('fuel_cost', {
-                valueAsNumber: true,
-                min: { value: 0.01, message: 'Fuel cost must be positive' }
-              })}
-            />
-
-            <Input
-              label="Total Fuel Cost (₹)"
-              type="number"
-              step="0.01"
-              icon={<IndianRupee className="h-4 w-4" />}
-              value={watchedValues.total_fuel_cost || 0}
-              disabled
-              helperText="Auto-calculated"
-            />
-          </div>
-        )}
-
-        {refuelingDone && (
-          <div className="mt-4">
-            <Controller
-              control={control}
-              name="fuel_bill_file"
-              render={({ field: { value, onChange } }) => (
-              <FileUpload
-                label="Fuel Bill / Receipt"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={value as File[]}
-                onChange={onChange}
-                helperText="Upload fuel bill or receipt (optional)"
-                variant="compact"
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input
+                label="Total Fuel Cost (₹)"
+                type="number"
+                step="0.01"
+                icon={<IndianRupee className="h-4 w-4" />}
+                error={errors.total_fuel_cost?.message}
+                placeholder="Enter total amount paid"
+                onFocus={(e) => {
+                  if (e.target.value === "0") {
+                    e.target.value = "";
+                  }
+                }}
+                {...register('total_fuel_cost', {
+                  valueAsNumber: true,
+                  min: { value: 0.01, message: 'Total fuel cost must be positive' }
+                })}
               />
-            )}
-          />
+
+              <Controller
+                control={control}
+                name="fuel_rate_per_liter"
+                render={({ field }) => (
+                  <FuelRateSelector
+                    selectedRate={field.value}
+                    onChange={field.onChange}
+                    trips={trips}
+                    warehouses={warehouses}
+                    selectedWarehouseId={selectedWarehouseId}
+                    error={errors.fuel_rate_per_liter?.message}
+                  />
+                )}
+              />
+
+              <Input
+                label="Fuel Quantity (L)"
+                type="number"
+                step="0.01"
+                icon={<Fuel className="h-4 w-4" />}
+                value={watchedValues.fuel_quantity || 0}
+                disabled
+                helperText="Auto-calculated from cost ÷ rate"
+              />
+            </div>
+
+            <div className="mt-4">
+              <Controller
+                control={control}
+                name="fuel_bill_file"
+                render={({ field: { value, onChange } }) => (
+                  <FileUpload
+                    label="Fuel Bill / Receipt"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    multiple={true}
+                    value={value as File[]}
+                    onChange={onChange}
+                    helperText="Upload fuel bill or receipt (optional)"
+                    variant="compact"
+                  />
+                )}
+              />
+            </div>
           </div>
         )}
       </div>
