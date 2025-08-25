@@ -299,7 +299,6 @@ export interface Trip {
   road_rto_expense: number;
   miscellaneous_expense?: number;
   total_road_expenses: number;
-  short_trip: boolean;
   remarks?: string;
   calculated_kmpl?: number;
   route_deviation?: number;
