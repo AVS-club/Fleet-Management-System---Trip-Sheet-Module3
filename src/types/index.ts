@@ -306,6 +306,7 @@ export interface Trip {
   material_type_ids?: string[];
   is_return_trip?: boolean;
   advance_amount?: number; // New field for advance amount
+  fuel_rate_per_liter?: number;
   created_at: string;
   updated_at: string;
 
