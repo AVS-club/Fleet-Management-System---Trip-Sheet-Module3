@@ -67,7 +67,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
         
         // Add distance
         const distance = trip.end_km - trip.start_km;
-        if (distance > 0 && !trip.short_trip) {
+        if (distance > 0) {
           vehicleMileageMap[trip.vehicle_id].totalDistance += distance;
         }
         
@@ -85,9 +85,8 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
       } else if (vehicle.totalDistance > 0) {
         // If we have distance but no fuel records, use calculated_kmpl from trips
         const vehicleTrips = filteredTrips.filter(
-          trip => trip.vehicle_id === vehicle.vehicleId && 
-                 trip.calculated_kmpl !== undefined && 
-                 !trip.short_trip
+          trip => trip.vehicle_id === vehicle.vehicleId &&
+                 trip.calculated_kmpl !== undefined
         );
         
         if (vehicleTrips.length > 0) {

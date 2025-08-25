@@ -599,7 +599,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips')
-      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id, short_trip')
+      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id')
       .eq('added_by', user.id)
       .order('trip_start_date', { ascending: false });
 
@@ -915,7 +915,7 @@ export const getAllVehicleStats = async (
 
       const { data, error } = await supabase
         .from('trips')
-        .select('vehicle_id,start_km,end_km,calculated_kmpl,short_trip')
+        .select('vehicle_id,start_km,end_km,calculated_kmpl')
         .eq('added_by', user.id);
 
       if (error) {
@@ -945,7 +945,7 @@ export const getAllVehicleStats = async (
       const entry = stats[trip.vehicle_id];
       entry.totalTrips += 1;
       entry.totalDistance += (trip.end_km ?? 0) - (trip.start_km ?? 0);
-      if (trip.calculated_kmpl && !trip.short_trip) {
+      if (trip.calculated_kmpl) {
         entry.kmplSum += trip.calculated_kmpl;
         entry.kmplCount += 1;
       }
@@ -994,7 +994,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     // Get trips for this vehicle
     const { data: trips, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
-      .select('start_km, end_km, calculated_kmpl, short_trip')
+      .select('start_km, end_km, calculated_kmpl')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId);
 
@@ -1011,8 +1011,8 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     const totalTrips = trips.length;
     const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
     
-    // Calculate average KMPL from trips with calculated_kmpl (excluding short trips)
-    const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl && !trip.short_trip);
+    // Calculate average KMPL from trips with calculated_kmpl
+    const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl);
     const averageKmpl = tripsWithKmpl.length > 0
       ? tripsWithKmpl.reduce((sum, trip) => sum + trip.calculated_kmpl, 0) / tripsWithKmpl.length
       : undefined;

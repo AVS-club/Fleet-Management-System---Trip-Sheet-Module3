@@ -26,7 +26,7 @@ const DriverMetrics: React.FC<DriverMetricsProps> = ({ driver, trips }) => {
       0
     );
 
-    const tripsWithMileage = monthTrips.filter(trip => trip.calculated_kmpl && !trip.short_trip);
+    const tripsWithMileage = monthTrips.filter(trip => trip.calculated_kmpl);
     const avgMileage = tripsWithMileage.length > 0
       ? tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length
       : 0;
@@ -42,7 +42,7 @@ const DriverMetrics: React.FC<DriverMetricsProps> = ({ driver, trips }) => {
   // Calculate overall metrics
   const totalTrips = Array.isArray(trips) ? trips.length : 0;
   const totalDistance = Array.isArray(trips) ? trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0) : 0;
-  const tripsWithMileage = Array.isArray(trips) ? trips.filter(trip => trip.calculated_kmpl && !trip.short_trip) : [];
+  const tripsWithMileage = Array.isArray(trips) ? trips.filter(trip => trip.calculated_kmpl) : [];
   const averageMileage = tripsWithMileage.length > 0
     ? tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length
     : 0;

@@ -43,7 +43,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
           const vehicleTrips = Array.isArray(trips) ? trips.filter(trip => trip.vehicle_id === vehicle.id) : [];
           const totalTrips = Array.isArray(vehicleTrips) ? vehicleTrips.length : 0;
           const totalDistance = vehicleTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-          const tripsWithKmpl = vehicleTrips.filter(trip => trip.calculated_kmpl !== undefined && !trip.short_trip);
+          const tripsWithKmpl = vehicleTrips.filter(trip => trip.calculated_kmpl !== undefined);
           const averageKmpl = tripsWithKmpl.length > 0
             ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
             : undefined;
