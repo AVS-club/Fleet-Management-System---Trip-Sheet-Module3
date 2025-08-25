@@ -159,19 +159,6 @@ const TripsPage: React.FC = () => {
       trip_end_date: formatDateForInput(trip.trip_end_date)
     };
     
-    // Debug: Log the original trip and formatted trip
-    console.log('Original trip data:', trip);
-    console.log('Formatted trip data:', formattedTrip);
-    console.log('Start date formatting:', {
-      original: trip.trip_start_date,
-      formatted: formattedTrip.trip_start_date
-    });
-    console.log('End date formatting:', {
-      original: trip.trip_end_date,
-      formatted: formattedTrip.trip_end_date
-    });
-    console.log('Material type IDs:', trip.material_type_ids);
-    
     setEditingTrip(formattedTrip);
     setIsAddingTrip(true);
   };
