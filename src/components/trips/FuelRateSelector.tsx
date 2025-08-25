@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Trip, Warehouse } from '../../types';
 import { cn } from '../../utils/cn';
-import { cn } from '../../utils/cn';
 
 interface FuelRateSelectorProps {
   selectedRate?: number;
