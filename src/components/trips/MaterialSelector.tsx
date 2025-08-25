@@ -117,7 +117,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       )}
 
       {/* Material Selection Grid */}
-      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
           {materialTypes.map(material => {
             const isSelected = selectedMaterials.includes(material.id);
@@ -128,7 +128,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                 className={`relative flex items-center p-2 rounded-lg border-2 cursor-pointer transition-all ${
                   isSelected
                     ? `border-current ${getColorForMaterial(material.name)} dark:bg-gray-700`
-                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
               >
                 <input

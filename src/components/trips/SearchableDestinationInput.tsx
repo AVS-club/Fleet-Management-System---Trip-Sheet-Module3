@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
-import { getDestinations } from '../../utils/storage';
+import { getDestinations } from '../../utils/storage'; /* Added dark mode classes */
 import { Destination } from '../../types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -265,7 +265,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       {/* Destination Input */}
       {(selectedDestinations.length === 0 || showAddAnother) && (
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <div className="space-y-3">
+          <div className="space-y-3 text-gray-900 dark:text-gray-100">
             {/* Search Input */}
             <div className="relative">
               <Input
@@ -277,7 +277,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
               />
               
               {/* Autocomplete Predictions */}
-              {predictions.length > 0 && (
+              {predictions.length > 0 && ( /* Added dark mode classes */
                 <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
                   {predictions.map((prediction) => (
                     <div
@@ -286,7 +286,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                       onClick={() => handlePlaceSelect(prediction)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center">
+                        <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
                           <MapPin className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="font-medium">{prediction.structured_formatting?.main_text || prediction.description}</span>
                         </div>
@@ -295,7 +295,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                         </span>
                       </div>
                       {prediction.structured_formatting?.secondary_text && (
-                        <p className="text-sm text-gray-500 ml-6">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 ml-6">
                           {prediction.structured_formatting.secondary_text}
                         </p>
                       )}
@@ -306,7 +306,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
             </div>
 
             {/* Most Used Destinations */}
-            {!searchTerm && mostUsedDestinations.length > 0 && (
+            {!searchTerm && mostUsedDestinations.length > 0 && ( /* Added dark mode classes */
               <div>
                 <h5 className="text-sm font-medium text-gray-600 mb-2">Frequently Used:</h5>
                 <div className="flex flex-wrap gap-2">

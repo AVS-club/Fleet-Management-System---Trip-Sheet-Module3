@@ -1,6 +1,7 @@
 import React from 'react';
 import { Warehouse } from '../../types';
 import { Building2, MapPin } from 'lucide-react';
+import { cn } from '../../utils/cn';
 
 interface WarehouseSelectorProps {
   warehouses: Warehouse[];
@@ -39,10 +40,10 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       </label>
       
       {/* Warehouse Selection */}
-      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         <div className="flex flex-wrap gap-2">
           {warehouses.map((warehouse, index) => (
-            <label
+            <label /* Added dark mode classes */
               key={warehouse.id}
               className={`inline-flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium border-2 ${
                 selectedWarehouse === warehouse.id
@@ -61,7 +62,7 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
               
               <Building2 className="h-4 w-4 mr-2" />
               <span>{warehouse.name}</span>
-              <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+              <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded text-xs">
                 📍 {warehouse.pincode}
               </span>
             </label>

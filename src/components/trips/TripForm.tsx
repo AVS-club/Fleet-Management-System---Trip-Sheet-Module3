@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
@@ -62,10 +62,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const {
     register,
     handleSubmit,
-    control,
     watch,
-    setValue,
-    formState: { errors }
+    setValue
   } = useForm<TripFormData>({
     defaultValues: {
       trip_start_date: yesterdayDate, // Auto-default to yesterday
@@ -81,7 +79,6 @@ const TripForm: React.FC<TripFormProps> = ({
       miscellaneous_expense: 0,
       total_road_expenses: 0,
       material_type_ids: [],
-      destinations: [],
       ...initialData
     }
   });
@@ -333,8 +330,8 @@ const TripForm: React.FC<TripFormProps> = ({
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto">
       {/* Trip Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Route className="h-5 w-5 mr-2 text-primary-500" />
           Trip Information
         </h3>
@@ -345,156 +342,100 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<FileText className="h-4 w-4" />}
             value={watchedValues.trip_serial_number || ''}
             disabled
-            helperText="Auto-generated based on vehicle and date"
             size="sm"
           />
 
           <div className="flex flex-col md:flex-row gap-3">
-            <Controller
-              control={control}
-              name="manual_trip_id"
-              render={({ field: { value, onChange } }) => (
-                <Checkbox
-                  label="Manual Trip ID"
-                  checked={value}
-                  onChange={(e) => onChange(e.target.checked)}
-                  helperText="Override auto-generated serial"
-                />
-              )}
+            <Input
+              label="Trip Start Date"
+              type="date"
+              icon={<Calendar className="h-4 w-4" />}
+              required
+              {...register('trip_start_date', { required: 'Start date is required' })}
+              size="sm"
             />
 
-            <Controller
-              control={control}
-              name="is_return_trip"
-              render={({ field: { value, onChange } }) => (
-                <Checkbox
-                  label="Return Trip"
-                  checked={value}
-                  onChange={(e) => onChange(e.target.checked)}
-                />
-              )}
+            <Input
+              label="Trip End Date"
+              type="date"
+              icon={<Calendar className="h-4 w-4" />}
+              required
+              {...register('trip_end_date', { required: 'End date is required' })}
+              size="sm"
             />
           </div>
-        </div>
-
-        <div className="flex flex-col md:flex-row gap-3 mt-3">
-          <Input
-            label="Trip Start Date"
-            type="date"
-            icon={<Calendar className="h-4 w-4" />}
-            error={errors.trip_start_date?.message}
-            required
-            {...register('trip_start_date', { required: 'Start date is required' })}
-            size="sm"
-          />
-
-          <Input
-            label="Trip End Date"
-            type="date"
-            icon={<Calendar className="h-4 w-4" />}
-            error={errors.trip_end_date?.message}
-            required
-            {...register('trip_end_date', { required: 'End date is required' })}
-            size="sm"
+          <Checkbox
+            label="Return Trip"
+            checked={watchedValues.is_return_trip}
+            onChange={(e) => setValue('is_return_trip', e.target.checked)}
           />
         </div>
       </div>
 
       {/* Vehicle & Driver Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
           Vehicle & Driver
         </h3>
         
         <div className="space-y-3">
-          <Controller
-            control={control}
-            name="vehicle_id"
-            rules={{ required: 'Vehicle selection is required' }}
-            render={({ field }) => (
-              <Select
-                label="Vehicle"
-                icon={<Truck className="h-4 w-4" />}
-                options={[
-                  { value: '', label: 'Select Vehicle' },
-                  ...vehicles.map(vehicle => ({
-                    value: vehicle.id,
-                    label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-                  }))
-                ]}
-                error={errors.vehicle_id?.message}
-                required
-                {...field}
-                size="sm"
-              />
-            )}
+          <Select
+            label="Vehicle"
+            icon={<Truck className="h-4 w-4" />}
+            options={[
+              { value: '', label: 'Select Vehicle' },
+              ...vehicles.map(vehicle => ({
+                value: vehicle.id,
+                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+              }))
+            ]}
+            required
+            {...register('vehicle_id', { required: 'Vehicle selection is required' })}
+            size="sm"
           />
 
-          <Controller
-            control={control}
-            name="driver_id"
-            rules={{ required: 'Driver selection is required' }}
-            render={({ field }) => (
-              <Select
-                label="Driver"
-                icon={<User className="h-4 w-4" />}
-                options={[
-                  { value: '', label: 'Select Driver' },
-                  ...drivers.map(driver => ({
-                    value: driver.id || '',
-                    label: `${driver.name} - ${driver.license_number}`
-                  }))
-                ]}
-                error={errors.driver_id?.message}
-                required
-                {...field}
-                size="sm"
-              />
-            )}
+          <Select
+            label="Driver"
+            icon={<User className="h-4 w-4" />}
+            options={[
+              { value: '', label: 'Select Driver' },
+              ...drivers.map(driver => ({
+                value: driver.id || '',
+                label: `${driver.name} - ${driver.license_number}`
+              }))
+            ]}
+            required
+            {...register('driver_id', { required: 'Driver selection is required' })}
+            size="sm"
           />
         </div>
       </div>
 
       {/* Route Planning */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <MapPin className="h-5 w-5 mr-2 text-primary-500" />
           Route Planning
         </h3>
         
         <div className="space-y-3">
-          <Controller
-            control={control}
-            name="warehouse_id"
-            rules={{ required: 'Origin warehouse is required' }}
-            render={({ field }) => (
-              <WarehouseSelector
-                warehouses={warehouses}
-                selectedWarehouse={field.value}
-                onChange={field.onChange}
-                error={errors.warehouse_id?.message}
-              />
-            )}
+          <WarehouseSelector
+            warehouses={warehouses}
+            selectedWarehouse={selectedWarehouseId}
+            onChange={(value) => setValue('warehouse_id', value)}
           />
 
           <SearchableDestinationInput
             onDestinationSelect={handleDestinationSelect}
             selectedDestinations={selectedDestinationObjects}
             onRemoveDestination={handleRemoveDestination}
-            error={errors.destinations?.message}
           />
 
-          <Controller
-            control={control}
-            name="material_type_ids"
-            render={({ field }) => (
-              <MaterialSelector
-                materialTypes={materialTypes}
-                selectedMaterials={field.value || []}
-                onChange={field.onChange}
-              />
-            )}
+          <MaterialSelector
+            materialTypes={materialTypes}
+            selectedMaterials={watchedValues.material_type_ids || []}
+            onChange={(value) => setValue('material_type_ids', value)}
           />
         </div>
 
@@ -561,7 +502,7 @@ const TripForm: React.FC<TripFormProps> = ({
       {/* Trip Details & Fuel Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Trip Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
             <Calculator className="h-5 w-5 mr-2 text-primary-500" />
             Trip Details
@@ -572,7 +513,6 @@ const TripForm: React.FC<TripFormProps> = ({
               label="Start KM"
               type="number"
               icon={<MapPin className="h-4 w-4" />}
-              error={errors.start_km?.message}
               required
               size="sm"
               {...register('start_km', {
@@ -586,7 +526,6 @@ const TripForm: React.FC<TripFormProps> = ({
               label="End KM"
               type="number"
               icon={<MapPin className="h-4 w-4" />}
-              error={errors.end_km?.message}
               required
               onBlur={handleEndKmBlur}
               size="sm"
@@ -601,7 +540,6 @@ const TripForm: React.FC<TripFormProps> = ({
               label="Gross Weight (kg)"
               type="number"
               icon={<Package className="h-4 w-4" />}
-              error={errors.gross_weight?.message}
               required
               size="sm"
               onFocus={(e) => {
@@ -619,23 +557,17 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
 
         {/* Fuel Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Fuel className="h-5 w-5 mr-2 text-primary-500" />
             Fuel Information
           </h3>
           
-          <Controller
-            control={control}
-            name="refueling_done"
-            render={({ field: { value, onChange } }) => (
-              <Checkbox
-                label="Refueling Done"
-                checked={value}
-                onChange={(e) => onChange(e.target.checked)}
-              />
-            )}
+          <Checkbox
+            label="Refueling Done"
+            checked={refuelingDone}
+            onChange={(e) => setValue('refueling_done', e.target.checked)}
           />
         </div>
         
@@ -647,7 +579,6 @@ const TripForm: React.FC<TripFormProps> = ({
                   type="number"
                   step="0.01"
                   icon={<IndianRupee className="h-4 w-4" />}
-                  error={errors.total_fuel_cost?.message}
                   placeholder="Enter total amount paid"
                   size="sm"
                   onFocus={(e) => {
@@ -661,20 +592,12 @@ const TripForm: React.FC<TripFormProps> = ({
                   })}
                 />
 
-                <Controller
-                  control={control}
-                  name="fuel_rate_per_liter"
-                  render={({ field }) => (
-                    <FuelRateSelector
-                      selectedRate={field.value}
-                      onChange={field.onChange}
-                      trips={trips}
-                      warehouses={warehouses}
-                      selectedWarehouseId={selectedWarehouseId}
-                      error={errors.fuel_rate_per_liter?.message}
-                      size="sm"
-                    />
-                  )}
+                <FuelRateSelector
+                  selectedRate={watchedValues.fuel_rate_per_liter}
+                  onChange={(value) => setValue('fuel_rate_per_liter', value)}
+                  warehouses={warehouses}
+                  selectedWarehouseId={selectedWarehouseId}
+                  size="sm"
                 />
 
                 <Input
@@ -690,20 +613,14 @@ const TripForm: React.FC<TripFormProps> = ({
               </div>
 
             <div className="mt-3">
-              <Controller
-                control={control}
-                name="fuel_bill_file"
-                render={({ field: { value, onChange } }) => (
-                  <FileUpload
-                    label="Fuel Bill / Receipt"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    multiple={true}
-                    value={value as File[]}
-                    onChange={onChange}
-                    helperText="Upload fuel bill or receipt (optional)"
-                    variant="compact"
-                  />
-                )}
+              <FileUpload
+                label="Fuel Bill / Receipt"
+                accept=".jpg,.jpeg,.png,.pdf"
+                multiple={true}
+                value={watchedValues.fuel_bill_file as File[]}
+                onChange={(files) => setValue('fuel_bill_file', files)}
+                helperText="Upload fuel bill or receipt (optional)"
+                variant="compact"
               />
             </div>
           </div>
@@ -713,7 +630,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Expenses */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
           Trip Expenses
         </h3>
@@ -819,7 +736,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Additional Information */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Additional Information
         </h3>

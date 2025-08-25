@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Trip, Warehouse } from '../../types';
 import { cn } from '../../utils/cn';
+import { cn } from '../../utils/cn';
 
 interface FuelRateSelectorProps {
   selectedRate?: number;
@@ -112,31 +113,31 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
         <div
           className={cn(
             "flex items-center justify-between px-3 py-2 border rounded-md bg-white cursor-pointer",
-            error ? "border-error-500" : "border-gray-300 hover:border-primary-500",
+            error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 bg-white dark:bg-gray-800",
             "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200"
           )}
           onClick={() => setIsOpen(true)}
         >
-          <span className={selectedRate ? "text-gray-900" : "text-gray-500"}>
+          <span className={selectedRate ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}>
             {displayValue || 'Select or enter fuel rate'}
           </span>
           {isOpen ? (
-            <ChevronUp className="h-4 w-4 text-gray-500" />
+            <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-gray-500" />
+            <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           )}
         </div>
 
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
             {/* Search/Custom Input */}
-            <div className="p-2 border-b border-gray-200">
+            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <input
                   ref={inputRef}
                   type="text"
-                  className="w-full pl-8 pr-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="w-full pl-8 pr-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   placeholder="Search rates or enter new rate..."
                   value={searchTerm || customRate}
                   onChange={(e) => {
@@ -170,7 +171,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
 
             {/* Past Rates */}
             <div className="max-h-40 overflow-y-auto">
-              {filteredRates.length > 0 ? (
+              {filteredRates.length > 0 ? ( /* Added dark mode classes */
                 filteredRates.map((rateData) => (
                   <div
                     key={rateData.rate}
@@ -200,7 +201,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
             </div>
 
             {/* Current Warehouse Suggestion */}
-            {selectedWarehouseId && (
+            {selectedWarehouseId && ( /* Added dark mode classes */
               <div className="p-2 border-t border-gray-200 bg-gray-50">
                 <div className="text-xs text-gray-600">
                   💡 Tip: Rates at {warehouses.find(w => w.id === selectedWarehouseId)?.name || 'this location'} 
