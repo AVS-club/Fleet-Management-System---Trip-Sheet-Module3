@@ -12,6 +12,7 @@ import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { format, parseISO, isValid } from 'date-fns';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -141,7 +142,24 @@ const TripsPage: React.FC = () => {
   };
   
   const handleEditTrip = (trip: Trip) => {
-    setEditingTrip(trip);
+    // Format dates to YYYY-MM-DD for HTML date inputs
+    const formatDateForInput = (dateString: string) => {
+      try {
+        const date = parseISO(dateString);
+        return isValid(date) ? format(date, 'yyyy-MM-dd') : dateString;
+      } catch (error) {
+        console.error('Error formatting date:', error);
+        return dateString;
+      }
+    };
+
+    const formattedTrip = {
+      ...trip,
+      trip_start_date: formatDateForInput(trip.trip_start_date),
+      trip_end_date: formatDateForInput(trip.trip_end_date)
+    };
+    
+    setEditingTrip(formattedTrip);
     setIsAddingTrip(true);
   };
 
