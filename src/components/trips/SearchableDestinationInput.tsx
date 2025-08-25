@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MapPin, Plus, Search, Building, MapIcon as Town, Globe } from 'lucide-react';
+import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getDestinations } from '../../utils/storage';
 import { Destination } from '../../types';
