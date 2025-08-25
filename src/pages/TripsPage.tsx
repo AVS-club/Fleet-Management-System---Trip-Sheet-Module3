@@ -229,9 +229,13 @@ const TripsPage: React.FC = () => {
               vehicle_id: editingTrip.vehicle_id,
               driver_id: editingTrip.driver_id,
               warehouse_id: editingTrip.warehouse_id,
-              destinations: editingTrip.destinations,
-              trip_start_date: editingTrip.trip_start_date,
-              trip_end_date: editingTrip.trip_end_date,
+              destinations: editingTrip.destinations || [],
+              trip_start_date: editingTrip.trip_start_date ? 
+                new Date(editingTrip.trip_start_date).toISOString().split('T')[0] : 
+                undefined,
+              trip_end_date: editingTrip.trip_end_date ? 
+                new Date(editingTrip.trip_end_date).toISOString().split('T')[0] : 
+                undefined,
               start_km: editingTrip.start_km,
               end_km: editingTrip.end_km,
               gross_weight: editingTrip.gross_weight,
@@ -246,7 +250,7 @@ const TripsPage: React.FC = () => {
               miscellaneous_expense: editingTrip.miscellaneous_expense,
               total_road_expenses: editingTrip.total_road_expenses,
               remarks: editingTrip.remarks,
-              material_type_ids: editingTrip.material_type_ids,
+              material_type_ids: editingTrip.material_type_ids || [],
               trip_serial_number: editingTrip.trip_serial_number,
               manual_trip_id: editingTrip.manual_trip_id,
               is_return_trip: editingTrip.is_return_trip
