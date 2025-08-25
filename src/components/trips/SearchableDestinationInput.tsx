@@ -277,18 +277,18 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
               />
               
               {/* Autocomplete Predictions */}
-              {predictions.length > 0 && ( /* Added dark mode classes */
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+              {predictions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
                   {predictions.map((prediction) => (
                     <div
                       key={prediction.place_id}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                      className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-200 dark:border-gray-600 last:border-b-0"
                       onClick={() => handlePlaceSelect(prediction)}
                     >
                       <div className="flex items-center justify-between">
-                        <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
-                          <MapPin className="h-4 w-4 text-gray-400 mr-2" />
-                          <span className="font-medium">{prediction.structured_formatting?.main_text || prediction.description}</span>
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{prediction.structured_formatting?.main_text || prediction.description}</span>
                         </div>
                         <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
                           Place
@@ -306,19 +306,19 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
             </div>
 
             {/* Most Used Destinations */}
-            {!searchTerm && mostUsedDestinations.length > 0 && ( /* Added dark mode classes */
+            {!searchTerm && mostUsedDestinations.length > 0 && (
               <div>
-                <h5 className="text-sm font-medium text-gray-600 mb-2">Frequently Used:</h5>
+                <h5 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Frequently Used:</h5>
                 <div className="flex flex-wrap gap-2">
                   {mostUsedDestinations.map(destination => (
                     <button
                       key={destination.id}
                       type="button"
                       onClick={() => handleFrequentDestinationSelect(destination)}
-                      className="inline-flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                      className="inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       {getTypeIcon(destination.type)}
-                      <span className="ml-1 font-medium">{destination.name}</span>
+                      <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{destination.name}</span>
                       <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
                         {destination.type}
                       </span>
