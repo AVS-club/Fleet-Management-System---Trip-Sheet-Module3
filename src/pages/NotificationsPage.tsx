@@ -69,6 +69,8 @@ const NotificationsPage: React.FC = () => {
         return 'Maintenance';
       case 'trips':
         return 'Trip';
+      case 'ai_alerts':
+        return 'AI Alerts';
       default:
         return 'Unknown';
     }
@@ -152,7 +154,8 @@ const NotificationsPage: React.FC = () => {
                   { value: 'vehicles', label: 'Vehicles' },
                   { value: 'drivers', label: 'Drivers' },
                   { value: 'maintenance', label: 'Maintenance' },
-                  { value: 'trips', label: 'Trips' }
+                  { value: 'trips', label: 'Trips' },
+                  { value: 'ai_alerts', label: 'AI Alerts' }
                 ]}
                 value={filters.module}
                 onChange={e => setFilters({ ...filters, module: e.target.value })}

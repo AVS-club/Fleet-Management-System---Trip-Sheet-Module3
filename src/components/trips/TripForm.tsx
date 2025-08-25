@@ -20,6 +20,7 @@ import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import MaterialSelector from './MaterialSelector';
 import { generateTripSerialNumber, validateTripSerialUniqueness } from '../../utils/tripSerialGenerator';
+import useDebounce from '../../hooks/useDebounce';
 import { toast } from 'react-toastify';
 
 interface TripFormProps {
@@ -106,6 +107,13 @@ const TripForm: React.FC<TripFormProps> = ({
   const selectedDestinations = watch('destinations') || [];
   const materialTypeIds = watch('material_type_ids') || [];
   const tripSerialNumber = watch('trip_serial_number');
+
+  // Apply debounce to analysis dependencies (500ms delay)
+  const debouncedVehicleId = useDebounce(vehicleId, 500);
+  const debouncedStartKm = useDebounce(startKm, 500);
+  const debouncedWarehouseId = useDebounce(warehouseId, 500);
+  const debouncedSelectedDestinations = useDebounce(selectedDestinations, 500);
+  // Note: endKmForAnalysis is already updated onBlur, so we don't need to debounce it
   
   // Helper function to clear field if it contains default value of 0
   const handleExpenseFieldFocus = (fieldName: keyof TripFormData, currentValue: number) => {
@@ -324,7 +332,7 @@ const TripForm: React.FC<TripFormProps> = ({
     let cancelled = false;
     
     const runAnalysis = async () => {
-      if (!warehouseId || !Array.isArray(selectedDestinations) || selectedDestinations.length === 0 || !startKm || !endKmForAnalysis) {
+      if (!debouncedWarehouseId || !Array.isArray(debouncedSelectedDestinations) || debouncedSelectedDestinations.length === 0 || !debouncedStartKm || !endKmForAnalysis) {
         if (!cancelled) {
           setRouteAnalysis(undefined);
           setAlerts([]);
@@ -333,9 +341,9 @@ const TripForm: React.FC<TripFormProps> = ({
       }
 
       try {
-        const analysis = await analyzeRoute(warehouseId, selectedDestinations);
+        const analysis = await analyzeRoute(debouncedWarehouseId, debouncedSelectedDestinations);
         if (analysis && !cancelled) {
-          const actualDistance = endKmForAnalysis - startKm;
+          const actualDistance = endKmForAnalysis - debouncedStartKm;
           
           // Double the Google Maps distance for return trips
           const effectiveGoogleDistance = isReturnTrip ? analysis.standard_distance * 2 : analysis.standard_distance;
@@ -351,16 +359,16 @@ const TripForm: React.FC<TripFormProps> = ({
           // Generate alerts based on current trip data
           const tripData: Trip = {
             id: nanoid(),
-            vehicle_id: vehicleId,
+            vehicle_id: debouncedVehicleId,
             driver_id: watch('driver_id'),
-            warehouse_id: warehouseId,
-            destinations: selectedDestinations,
+            warehouse_id: debouncedWarehouseId,
+            destinations: debouncedSelectedDestinations,
             trip_start_date: watch('trip_start_date'),
             trip_end_date: watch('trip_end_date'),
             trip_duration: watch('trip_duration') || 0,
             trip_serial_number: '', // This will be generated on submit
             manual_trip_id: watch('manual_trip_id') || false,
-            start_km: startKm,
+            start_km: debouncedStartKm,
             end_km: endKmForAnalysis,
             gross_weight: watch('gross_weight') || 0,
             station: watch('station'),
@@ -412,11 +420,11 @@ const TripForm: React.FC<TripFormProps> = ({
       cancelled = true;
     };
   }, [
-    warehouseId,
-    selectedDestinations,
-    startKm,
+    debouncedWarehouseId,
+    debouncedSelectedDestinations,
+    debouncedStartKm,
     endKmForAnalysis,
-    vehicleId,
+    debouncedVehicleId,
     cachedTrips,
     watch,
   ]);

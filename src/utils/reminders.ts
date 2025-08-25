@@ -1,10 +1,12 @@
 import { supabase } from "./supabaseClient";
 import { differenceInDays, isAfter, isBefore, addDays } from "date-fns";
 import { Vehicle, Driver } from "../types";
+import { AIAlert } from "../types";
 import { MaintenanceTask } from "../types/maintenance";
 import { Trip } from "../types";
 import { computeDueStatus } from "./serviceDue";
 import { getLatestOdometer } from "./storage";
+import { handleSupabaseError } from "./errors";
 
 // Define the reminder status types
 type ReminderStatus = "critical" | "warning" | "normal";
@@ -24,7 +26,7 @@ export interface ReminderItem {
 }
 
 // Define the module types
-type ReminderModule = "vehicles" | "drivers" | "maintenance" | "trips";
+type ReminderModule = "vehicles" | "drivers" | "maintenance" | "trips" | "ai_alerts";
 
 /**
  * Get reminders for a specific module
@@ -43,6 +45,8 @@ const getRemindersFor = async (
       return getRemindersForMaintenance();
     case "trips":
       return getRemindersForTrips();
+    case "ai_alerts":
+      return getRemindersForAIAlerts();
     default:
       return [];
   }
@@ -59,11 +63,13 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
       driverReminders,
       maintenanceReminders,
       tripReminders,
+      aiAlertReminders,
     ] = await Promise.all([
       getRemindersForVehicles(),
       getRemindersForDrivers(),
       getRemindersForMaintenance(),
       getRemindersForTrips(),
+      getRemindersForAIAlerts(),
     ]);
 
     // Combine all reminders and sort by dueDate first, then by daysLeft
@@ -72,6 +78,7 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
       ...driverReminders,
       ...maintenanceReminders,
       ...tripReminders,
+      ...aiAlertReminders,
     ].sort((a, b) => {
       if (a.dueDate && b.dueDate) {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
@@ -84,6 +91,119 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
   }
 };
 
+/**
+ * Get AI alerts as reminders
+ * @returns A promise that resolves to an array of AI alert reminder items
+ */
+const getRemindersForAIAlerts = async (): Promise<ReminderItem[]> => {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      console.error("Error fetching user data");
+      return [];
+    }
+
+    // Fetch pending AI alerts from Supabase
+    const { data: alerts, error } = await supabase
+      .from("ai_alerts")
+      .select("*")
+      .eq("added_by", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(20); // Limit to most recent 20 alerts
+
+    if (error) {
+      handleSupabaseError('fetch AI alerts for reminders', error);
+      return [];
+    }
+
+    if (!alerts || alerts.length === 0) {
+      return [];
+    }
+
+    const reminders: ReminderItem[] = [];
+
+    // Process each AI alert
+    for (const alert of alerts) {
+      let entityName = 'Unknown';
+      let link = '/alerts';
+
+      // Get entity name based on affected entity type
+      if (alert.affected_entity?.type === 'vehicle' && alert.affected_entity.id) {
+        try {
+          const { data: vehicle, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('registration_number')
+            .eq('id', alert.affected_entity.id)
+            .single();
+
+          if (!vehicleError && vehicle) {
+            entityName = vehicle.registration_number;
+            link = `/vehicles/${alert.affected_entity.id}`;
+          }
+        } catch (error) {
+          console.error('Error fetching vehicle for AI alert:', error);
+        }
+      } else if (alert.affected_entity?.type === 'driver' && alert.affected_entity.id) {
+        try {
+          const { data: driver, error: driverError } = await supabase
+            .from('drivers')
+            .select('name')
+            .eq('id', alert.affected_entity.id)
+            .single();
+
+          if (!driverError && driver) {
+            entityName = driver.name;
+            link = `/drivers/${alert.affected_entity.id}`;
+          }
+        } catch (error) {
+          console.error('Error fetching driver for AI alert:', error);
+        }
+      } else if (alert.affected_entity?.type === 'trip' && alert.metadata?.trip_id) {
+        entityName = `Trip ${alert.metadata.trip_id}`;
+        link = `/trips/${alert.metadata.trip_id}`;
+      }
+
+      // Calculate days since alert was created (for sorting)
+      const alertDate = new Date(alert.created_at);
+      const today = new Date();
+      const daysSinceCreated = Math.floor((today.getTime() - alertDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Map severity to status
+      let status: ReminderStatus;
+      switch (alert.severity) {
+        case 'high':
+          status = 'critical';
+          break;
+        case 'medium':
+          status = 'warning';
+          break;
+        default:
+          status = 'normal';
+      }
+
+      reminders.push({
+        id: `ai-alert-${alert.id}`,
+        title: alert.title,
+        entityId: alert.affected_entity?.id || alert.id,
+        entityName,
+        dueDate: alert.created_at,
+        daysLeft: daysSinceCreated,
+        status,
+        link,
+        type: alert.alert_type,
+        module: "ai_alerts",
+      });
+    }
+
+    return reminders;
+  } catch (error) {
+    console.error("Error in getRemindersForAIAlerts:", error);
+    return [];
+  }
+};
 /**
  * Get vehicle reminders
  * @returns A promise that resolves to an array of vehicle reminder items
