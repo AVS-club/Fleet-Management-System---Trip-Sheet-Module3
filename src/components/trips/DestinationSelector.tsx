@@ -132,7 +132,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                   </span>
                   <span className="ml-1 text-xs opacity-75">
                     📏 {destination.standard_distance}km
-                  </div>
+                  </span>
                 </label>
               );
             })}
