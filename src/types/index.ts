@@ -285,7 +285,6 @@ export interface Trip {
   trip_end_date: string;
   trip_duration: number;
   trip_serial_number: string;
-  manual_trip_id: boolean;
   start_km: number;
   end_km: number;
   gross_weight: number;
@@ -303,7 +302,6 @@ export interface Trip {
   calculated_kmpl?: number;
   route_deviation?: number;
   fuel_bill_url?: string;
-  material_type_ids?: string[];
   is_return_trip?: boolean;
   advance_amount?: number; // New field for advance amount
   fuel_rate_per_liter?: number;
@@ -324,7 +322,7 @@ export interface Trip {
 export interface TripFormData
   extends Omit<
     Trip,
-    "id" | "created_at" | "updated_at" | "trip_serial_number"
+    "id" | "created_at" | "updated_at" | "trip_serial_number" | "manual_trip_id"
   > {
   fuel_bill_file?: File[];
   is_return_trip?: boolean;
