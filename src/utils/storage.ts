@@ -668,6 +668,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       userId
     );
 
+    console.log("Submitting trip with payload:", payload);
     const { data, error } = await supabase
       .from('trips')
       .insert(payload)
