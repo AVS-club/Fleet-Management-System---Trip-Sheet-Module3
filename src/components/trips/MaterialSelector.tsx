@@ -87,14 +87,14 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
         Material Types (Optional)
       </label>
 
       {/* Selected Materials Display */}
       {selectedMaterialObjects.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-600">Selected Materials:</h4>
+          <h4 className="text-xs font-medium text-gray-600 dark:text-gray-400">Selected Materials:</h4>
           <div className="flex flex-wrap gap-2">
             {selectedMaterialObjects.map(material => (
               <span
@@ -106,7 +106,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                 <button
                   type="button"
                   onClick={() => handleMaterialToggle(material.id)}
-                  className="ml-2 text-current hover:text-gray-700"
+                  className="ml-2 text-current hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   ×
                 </button>
@@ -117,8 +117,8 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       )}
 
       {/* Material Selection Grid */}
-      <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-32 overflow-y-auto">
           {materialTypes.map(material => {
             const isSelected = selectedMaterials.includes(material.id);
             
@@ -127,8 +127,8 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                 key={material.id}
                 className={`relative flex items-center p-2 rounded-lg border-2 cursor-pointer transition-all ${
                   isSelected
-                    ? `border-current ${getColorForMaterial(material.name)}`
-                    : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
+                    ? `border-current ${getColorForMaterial(material.name)} dark:bg-gray-700`
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
               >
                 <input
@@ -143,7 +143,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   
                   <span className={`text-sm font-medium capitalize ${
                     isSelected ? 'text-current' : 'text-gray-700'
-                  }`}>
+                  } dark:text-gray-200`}>
                     {material.name}
                   </span>
                   
@@ -159,7 +159,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         </div>
         
         {materialTypes.length === 0 && (
-          <div className="text-center py-4 text-gray-500">
+          <div className="text-center py-4 text-gray-500 dark:text-gray-400">
             <Package className="h-8 w-8 mx-auto mb-2 text-gray-400" />
             <p>No material types available.</p>
           </div>

@@ -39,7 +39,7 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       </label>
       
       {/* Warehouse Selection */}
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
         <div className="flex flex-wrap gap-2">
           {warehouses.map((warehouse, index) => (
             <label
@@ -47,7 +47,7 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
               className={`inline-flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium border-2 ${
                 selectedWarehouse === warehouse.id
                   ? getWarehouseColor(warehouse.name, index)
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600'
               }`}
             >
               <input
@@ -70,7 +70,7 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       </div>
       
       {warehouses.length === 0 && (
-        <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="text-center py-4 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
           <Building2 className="h-8 w-8 mx-auto mb-2 text-gray-400" />
           <p>No warehouses available. Please add warehouses first.</p>
         </div>

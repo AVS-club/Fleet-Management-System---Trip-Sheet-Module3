@@ -71,7 +71,6 @@ const TripForm: React.FC<TripFormProps> = ({
       trip_start_date: yesterdayDate, // Auto-default to yesterday
       trip_end_date: yesterdayDate, // Auto-default to yesterday
       refueling_done: false,
-      short_trip: false,
       is_return_trip: false,
       manual_trip_id: false,
       gross_weight: 0,
@@ -332,24 +331,25 @@ const TripForm: React.FC<TripFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto">
       {/* Trip Information */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Route className="h-5 w-5 mr-2 text-primary-500" />
           Trip Information
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-3">
           <Input
             label="Trip Serial Number"
             icon={<FileText className="h-4 w-4" />}
             value={watchedValues.trip_serial_number || ''}
             disabled
             helperText="Auto-generated based on vehicle and date"
+            size="sm"
           />
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <Controller
               control={control}
               name="manual_trip_id"
@@ -377,7 +377,7 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="flex flex-col md:flex-row gap-3 mt-3">
           <Input
             label="Trip Start Date"
             type="date"
@@ -385,6 +385,7 @@ const TripForm: React.FC<TripFormProps> = ({
             error={errors.trip_start_date?.message}
             required
             {...register('trip_start_date', { required: 'Start date is required' })}
+            size="sm"
           />
 
           <Input
@@ -394,18 +395,19 @@ const TripForm: React.FC<TripFormProps> = ({
             error={errors.trip_end_date?.message}
             required
             {...register('trip_end_date', { required: 'End date is required' })}
+            size="sm"
           />
         </div>
       </div>
 
       {/* Vehicle & Driver Selection */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
           Vehicle & Driver
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-3">
           <Controller
             control={control}
             name="vehicle_id"
@@ -424,6 +426,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 error={errors.vehicle_id?.message}
                 required
                 {...field}
+                size="sm"
               />
             )}
           />
@@ -446,6 +449,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 error={errors.driver_id?.message}
                 required
                 {...field}
+                size="sm"
               />
             )}
           />
@@ -453,13 +457,13 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Route Planning */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <MapPin className="h-5 w-5 mr-2 text-primary-500" />
           Route Planning
         </h3>
         
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Controller
             control={control}
             name="warehouse_id"
@@ -496,17 +500,17 @@ const TripForm: React.FC<TripFormProps> = ({
 
         {/* Route Analysis */}
         {routeDeviation !== null && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-medium text-blue-800">Live Route Analysis</h4>
-                <p className="text-sm text-blue-600 mt-1">
+                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
+                <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
                   Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
                     {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
                   </span>
                 </p>
                 {routeAnalysis && (
-                  <p className="text-xs text-blue-500 mt-1">
+                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
                     Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
                   </p>
                 )}
@@ -520,13 +524,13 @@ const TripForm: React.FC<TripFormProps> = ({
 
         {/* AI Alerts Display */}
         {aiAlerts.length > 0 && (
-          <div className="mt-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
+          <div className="mt-3 p-3 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
             <div className="flex items-center mb-2">
               <AlertTriangle className="h-5 w-5 text-warning-500 mr-2" />
-              <h4 className="text-sm font-medium text-warning-800">AI Alert Generated</h4>
+              <h4 className="text-sm font-medium text-warning-800 dark:text-warning-300">AI Alert Generated</h4>
             </div>
             {aiAlerts.map((alert, index) => (
-              <div key={index} className="text-sm text-warning-700">
+              <div key={index} className="text-sm text-warning-700 dark:text-warning-400">
                 <p className="font-medium">{alert.message}</p>
                 {alert.details && <p className="text-xs mt-1">{alert.details}</p>}
               </div>
@@ -535,16 +539,16 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
 
         {isAnalyzing && (
-          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-blue-700">Analyzing route...</span>
+              <span className="text-blue-700 dark:text-blue-300">Analyzing route...</span>
             </div>
           </div>
         )}
 
         {routeAnalysis && (
-          <div className="mt-4">
+          <div className="mt-3">
             <RouteAnalysis
               analysis={routeAnalysis}
               alerts={[]}
@@ -554,65 +558,70 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </div>
 
-      {/* Trip Details */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-          <Calculator className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Details
-        </h3>
+      {/* Trip Details & Fuel Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Trip Details */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+            <Calculator className="h-5 w-5 mr-2 text-primary-500" />
+            Trip Details
+          </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Input
-            label="Start KM"
-            type="number"
-            icon={<MapPin className="h-4 w-4" />}
-            error={errors.start_km?.message}
-            required
-            {...register('start_km', {
-              required: 'Start KM is required',
-              valueAsNumber: true,
-              min: { value: 0, message: 'Start KM must be positive' }
-            })}
-          />
+          <div className="space-y-3">
+            <Input
+              label="Start KM"
+              type="number"
+              icon={<MapPin className="h-4 w-4" />}
+              error={errors.start_km?.message}
+              required
+              size="sm"
+              {...register('start_km', {
+                required: 'Start KM is required',
+                valueAsNumber: true,
+                min: { value: 0, message: 'Start KM must be positive' }
+              })}
+            />
 
-          <Input
-            label="End KM"
-            type="number"
-            icon={<MapPin className="h-4 w-4" />}
-            error={errors.end_km?.message}
-            required
-            onBlur={handleEndKmBlur}
-            {...register('end_km', {
-              required: 'End KM is required',
-              valueAsNumber: true,
-              min: { value: 0, message: 'End KM must be positive' }
-            })}
-          />
+            <Input
+              label="End KM"
+              type="number"
+              icon={<MapPin className="h-4 w-4" />}
+              error={errors.end_km?.message}
+              required
+              onBlur={handleEndKmBlur}
+              size="sm"
+              {...register('end_km', {
+                required: 'End KM is required',
+                valueAsNumber: true,
+                min: { value: 0, message: 'End KM must be positive' }
+              })}
+            />
 
-          <Input
-            label="Gross Weight (kg)"
-            type="number"
-            icon={<Package className="h-4 w-4" />}
-            error={errors.gross_weight?.message}
-            required
-            onFocus={(e) => {
-              if (e.target.value === "0") {
-                e.target.select();
-              }
-            }}
-            {...register('gross_weight', {
-              required: 'Gross weight is required',
-              valueAsNumber: true,
-              min: { value: 0, message: 'Gross weight must be positive' }
-            })}
-          />
+            <Input
+              label="Gross Weight (kg)"
+              type="number"
+              icon={<Package className="h-4 w-4" />}
+              error={errors.gross_weight?.message}
+              required
+              size="sm"
+              onFocus={(e) => {
+                if (e.target.value === "0") {
+                  e.target.select();
+                }
+              }}
+              {...register('gross_weight', {
+                required: 'Gross weight is required',
+                valueAsNumber: true,
+                min: { value: 0, message: 'Gross weight must be positive' }
+              })}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Fuel Information with Reverse Calculation */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        {/* Fuel Information */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Fuel className="h-5 w-5 mr-2 text-primary-500" />
             Fuel Information
           </h3>
@@ -631,53 +640,56 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
         
         {refuelingDone && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input
-                label="Total Fuel Cost (₹)"
-                type="number"
-                step="0.01"
-                icon={<IndianRupee className="h-4 w-4" />}
-                error={errors.total_fuel_cost?.message}
-                placeholder="Enter total amount paid"
-                onFocus={(e) => {
-                  if (e.target.value === "0") {
-                    e.target.select();
-                  }
-                }}
-                {...register('total_fuel_cost', {
-                  valueAsNumber: true,
-                  min: { value: 0.01, message: 'Total fuel cost must be positive' }
-                })}
-              />
+            <div className="space-y-3">
+              <div className="space-y-3">
+                <Input
+                  label="Total Fuel Cost (₹)"
+                  type="number"
+                  step="0.01"
+                  icon={<IndianRupee className="h-4 w-4" />}
+                  error={errors.total_fuel_cost?.message}
+                  placeholder="Enter total amount paid"
+                  size="sm"
+                  onFocus={(e) => {
+                    if (e.target.value === "0") {
+                      e.target.select();
+                    }
+                  }}
+                  {...register('total_fuel_cost', {
+                    valueAsNumber: true,
+                    min: { value: 0.01, message: 'Total fuel cost must be positive' }
+                  })}
+                />
 
-              <Controller
-                control={control}
-                name="fuel_rate_per_liter"
-                render={({ field }) => (
-                  <FuelRateSelector
-                    selectedRate={field.value}
-                    onChange={field.onChange}
-                    trips={trips}
-                    warehouses={warehouses}
-                    selectedWarehouseId={selectedWarehouseId}
-                    error={errors.fuel_rate_per_liter?.message}
-                  />
-                )}
-              />
+                <Controller
+                  control={control}
+                  name="fuel_rate_per_liter"
+                  render={({ field }) => (
+                    <FuelRateSelector
+                      selectedRate={field.value}
+                      onChange={field.onChange}
+                      trips={trips}
+                      warehouses={warehouses}
+                      selectedWarehouseId={selectedWarehouseId}
+                      error={errors.fuel_rate_per_liter?.message}
+                      size="sm"
+                    />
+                  )}
+                />
 
-              <Input
-                label="Fuel Quantity (L)"
-                type="number"
-                step="0.01"
-                icon={<Fuel className="h-4 w-4" />}
-                value={watchedValues.fuel_quantity || 0}
-                disabled
-                helperText="Auto-calculated from cost ÷ rate"
-              />
-            </div>
+                <Input
+                  label="Fuel Quantity (L)"
+                  type="number"
+                  step="0.01"
+                  icon={<Fuel className="h-4 w-4" />}
+                  value={watchedValues.fuel_quantity || 0}
+                  disabled
+                  size="sm"
+                  helperText="Auto-calculated from cost ÷ rate"
+                />
+              </div>
 
-            <div className="mt-4">
+            <div className="mt-3">
               <Controller
                 control={control}
                 name="fuel_bill_file"
@@ -695,22 +707,24 @@ const TripForm: React.FC<TripFormProps> = ({
               />
             </div>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Expenses */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
           Trip Expenses
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
             label="Unloading Expense (₹)"
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             onFocus={(e) => {
               if (e.target.value === "0") {
                 e.target.select();
@@ -727,6 +741,7 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             onFocus={(e) => {
               if (e.target.value === "0") {
                 e.target.select();
@@ -743,6 +758,7 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             onFocus={(e) => {
               if (e.target.value === "0") {
                 e.target.select();
@@ -759,6 +775,7 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             onFocus={(e) => {
               if (e.target.value === "0") {
                 e.target.select();
@@ -775,6 +792,7 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             onFocus={(e) => {
               if (e.target.value === "0") {
                 e.target.select();
@@ -791,6 +809,7 @@ const TripForm: React.FC<TripFormProps> = ({
             type="number"
             step="0.01"
             icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
             value={watchedValues.total_road_expenses || 0}
             disabled
             helperText="Auto-calculated"
@@ -799,41 +818,29 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Additional Information */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Additional Information
         </h3>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <div className="space-y-3">
             <Input
               label="Station"
               icon={<Fuel className="h-4 w-4" />}
               placeholder="Fuel station name (optional)"
+              size="sm"
               {...register('station')}
-            />
-
-            <Controller
-              control={control}
-              name="short_trip"
-              render={({ field: { value, onChange } }) => (
-                <Checkbox
-                  label="Short/Local Trip"
-                  checked={value}
-                  onChange={(e) => onChange(e.target.checked)}
-                  helperText="Mark if this is a local/short distance trip"
-                />
-              )}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               Remarks
             </label>
             <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
               rows={3}
               placeholder="Any additional notes or remarks about this trip..."
               {...register('remarks')}
@@ -843,11 +850,19 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
+        <Button
+          variant="outline"
+          className="w-full md:w-auto order-2 md:order-1"
+          onClick={() => window.history.back()}
+        >
+          Cancel
+        </Button>
         <Button
           type="submit"
           isLoading={isSubmitting}
           disabled={isSubmitting}
+          className="w-full md:w-auto order-1 md:order-2"
         >
           {initialData ? 'Update Trip' : 'Save Trip'}
         </Button>
