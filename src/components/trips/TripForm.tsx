@@ -5,13 +5,14 @@ import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, 
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
 import { subDays, format } from 'date-fns';
+import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
 import Button from '../ui/Button';
 import FileUpload from '../ui/FileUpload';
 import WarehouseSelector from './WarehouseSelector';
-import DestinationSelector from './DestinationSelector';
+import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
 import FuelRateSelector from './FuelRateSelector';
@@ -49,8 +50,11 @@ const TripForm: React.FC<TripFormProps> = ({
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [routeAnalysis, setRouteAnalysis] = useState<any>(null);
+  const [aiAlerts, setAiAlerts] = useState<any[]>([]);
+  const [routeDeviation, setRouteDeviation] = useState<number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -87,7 +91,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const watchedValues = watch();
   const selectedVehicleId = watch('vehicle_id');
   const selectedWarehouseId = watch('warehouse_id');
-  const selectedDestinations = watch('destinations') || [];
+  const startKm = watch('start_km');
+  const endKm = watch('end_km');
   const refuelingDone = watch('refueling_done');
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
@@ -120,6 +125,16 @@ const TripForm: React.FC<TripFormProps> = ({
 
     fetchFormData();
   }, []);
+
+  // Initialize selected destinations from initialData
+  useEffect(() => {
+    if (initialData?.destinations && destinations.length > 0) {
+      const selectedDests = initialData.destinations
+        .map(id => destinations.find(d => d.id === id))
+        .filter(Boolean) as Destination[];
+      setSelectedDestinationObjects(selectedDests);
+    }
+  }, [initialData?.destinations, destinations]);
 
   // Auto-select assigned driver when vehicle is selected
   useEffect(() => {
@@ -170,6 +185,66 @@ const TripForm: React.FC<TripFormProps> = ({
     fillStartKm();
   }, [selectedVehicleId, setValue, initialData]);
 
+  // Handle adding destinations
+  const handleDestinationSelect = (destination: Destination) => {
+    const newDestinations = [...selectedDestinationObjects, destination];
+    setSelectedDestinationObjects(newDestinations);
+    setValue('destinations', newDestinations.map(d => d.id));
+  };
+
+  // Handle removing destinations
+  const handleRemoveDestination = (index: number) => {
+    const newDestinations = selectedDestinationObjects.filter((_, i) => i !== index);
+    setSelectedDestinationObjects(newDestinations);
+    setValue('destinations', newDestinations.map(d => d.id));
+  };
+
+  // Auto-trigger route analysis and AI alerts when key fields change
+  const handleEndKmBlur = async () => {
+    if (selectedVehicleId && selectedWarehouseId && selectedDestinationObjects.length > 0 && startKm && endKm) {
+      setIsAnalyzing(true);
+      try {
+        // Analyze route
+        const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
+        setRouteAnalysis(analysis);
+        
+        if (analysis) {
+          // Calculate route deviation
+          const actualDistance = endKm - startKm;
+          const standardDistance = analysis.total_distance;
+          
+          if (standardDistance > 0) {
+            const deviation = ((actualDistance - standardDistance) / standardDistance) * 100;
+            setRouteDeviation(deviation);
+            
+            // Create temporary trip data for AI analysis
+            const tempTripData = {
+              ...watchedValues,
+              vehicle_id: selectedVehicleId,
+              warehouse_id: selectedWarehouseId,
+              destinations: selectedDestinationObjects.map(d => d.id),
+              start_km: startKm,
+              end_km: endKm,
+              route_deviation: deviation,
+              id: 'temp-' + Date.now(),
+              trip_serial_number: watchedValues.trip_serial_number || 'TEMP-001',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            } as Trip;
+            
+            // Generate AI alerts
+            const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
+            setAiAlerts(alerts);
+          }
+        }
+      } catch (error) {
+        console.error('Error analyzing route:', error);
+      } finally {
+        setIsAnalyzing(false);
+      }
+    }
+  };
+
   // Reverse calculation: Calculate fuel quantity when total fuel cost and rate change
   useEffect(() => {
     if (totalFuelCost && fuelRatePerLiter && totalFuelCost > 0 && fuelRatePerLiter > 0) {
@@ -201,10 +276,10 @@ const TripForm: React.FC<TripFormProps> = ({
   // Analyze route when warehouse and destinations change
   useEffect(() => {
     const performRouteAnalysis = async () => {
-      if (selectedWarehouseId && selectedDestinations.length > 0) {
+      if (selectedWarehouseId && selectedDestinationObjects.length > 0) {
         setIsAnalyzing(true);
         try {
-          const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinations);
+          const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
           setRouteAnalysis(analysis);
         } catch (error) {
           console.error('Error analyzing route:', error);
@@ -218,7 +293,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     performRouteAnalysis();
-  }, [selectedWarehouseId, selectedDestinations]);
+  }, [selectedWarehouseId, selectedDestinationObjects]);
 
   const handleFormSubmit = (data: TripFormData) => {
     // Calculate mileage if refueling data is available
@@ -399,18 +474,11 @@ const TripForm: React.FC<TripFormProps> = ({
             )}
           />
 
-          <Controller
-            control={control}
-            name="destinations"
-            rules={{ required: 'At least one destination is required' }}
-            render={({ field }) => (
-              <DestinationSelector
-                destinations={destinations}
-                selectedDestinations={field.value || []}
-                onChange={field.onChange}
-                error={errors.destinations?.message}
-              />
-            )}
+          <SearchableDestinationInput
+            onDestinationSelect={handleDestinationSelect}
+            selectedDestinations={selectedDestinationObjects}
+            onRemoveDestination={handleRemoveDestination}
+            error={errors.destinations?.message}
           />
 
           <Controller
@@ -427,6 +495,45 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
 
         {/* Route Analysis */}
+        {routeDeviation !== null && (
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-blue-800">Live Route Analysis</h4>
+                <p className="text-sm text-blue-600 mt-1">
+                  Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
+                    {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
+                  </span>
+                </p>
+                {routeAnalysis && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
+                  </p>
+                )}
+              </div>
+              {Math.abs(routeDeviation) > 15 && (
+                <AlertTriangle className="h-5 w-5 text-warning-500" />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* AI Alerts Display */}
+        {aiAlerts.length > 0 && (
+          <div className="mt-4 p-4 bg-warning-50 border border-warning-200 rounded-lg">
+            <div className="flex items-center mb-2">
+              <AlertTriangle className="h-5 w-5 text-warning-500 mr-2" />
+              <h4 className="text-sm font-medium text-warning-800">AI Alert Generated</h4>
+            </div>
+            {aiAlerts.map((alert, index) => (
+              <div key={index} className="text-sm text-warning-700">
+                <p className="font-medium">{alert.message}</p>
+                {alert.details && <p className="text-xs mt-1">{alert.details}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
         {isAnalyzing && (
           <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center">
@@ -474,6 +581,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<MapPin className="h-4 w-4" />}
             error={errors.end_km?.message}
             required
+            onBlur={handleEndKmBlur}
             {...register('end_km', {
               required: 'End KM is required',
               valueAsNumber: true,
@@ -489,7 +597,7 @@ const TripForm: React.FC<TripFormProps> = ({
             required
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('gross_weight', {
@@ -534,7 +642,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 placeholder="Enter total amount paid"
                 onFocus={(e) => {
                   if (e.target.value === "0") {
-                    e.target.value = "";
+                    e.target.select();
                   }
                 }}
                 {...register('total_fuel_cost', {
@@ -605,7 +713,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<IndianRupee className="h-4 w-4" />}
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('unloading_expense', {
@@ -621,7 +729,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<IndianRupee className="h-4 w-4" />}
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('driver_expense', {
@@ -637,7 +745,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<IndianRupee className="h-4 w-4" />}
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('road_rto_expense', {
@@ -653,7 +761,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<IndianRupee className="h-4 w-4" />}
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('breakdown_expense', {
@@ -669,7 +777,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<IndianRupee className="h-4 w-4" />}
             onFocus={(e) => {
               if (e.target.value === "0") {
-                e.target.value = "";
+                e.target.select();
               }
             }}
             {...register('miscellaneous_expense', {

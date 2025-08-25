@@ -15,7 +15,21 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
   onChange,
   error
 }) => {
-  const selectedWarehouseData = warehouses.find(w => w.id === selectedWarehouse);
+  // Define distinct colors for different warehouses
+  const getWarehouseColor = (warehouseName: string, index: number) => {
+    const colors = [
+      'bg-green-100 text-green-800 border-green-300', // Green
+      'bg-blue-100 text-blue-800 border-blue-300',   // Blue  
+      'bg-orange-100 text-orange-800 border-orange-300', // Orange
+      'bg-purple-100 text-purple-800 border-purple-300', // Purple
+      'bg-pink-100 text-pink-800 border-pink-300',     // Pink
+      'bg-indigo-100 text-indigo-800 border-indigo-300' // Indigo
+    ];
+    
+    // Use warehouse name hash or index to assign color consistently
+    const colorIndex = warehouseName.length % colors.length;
+    return colors[colorIndex];
+  };
 
   return (
     <div className="space-y-2">
@@ -27,13 +41,13 @@ const WarehouseSelector: React.FC<WarehouseSelectorProps> = ({
       {/* Warehouse Selection */}
       <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
         <div className="flex flex-wrap gap-2">
-          {warehouses.map(warehouse => (
+          {warehouses.map((warehouse, index) => (
             <label
               key={warehouse.id}
-              className={`inline-flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium border ${
+              className={`inline-flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all text-sm font-medium border-2 ${
                 selectedWarehouse === warehouse.id
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-white text-gray-700 border-gray-200 hover:border-green-300 hover:bg-green-50'
+                  ? getWarehouseColor(warehouse.name, index)
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
               <input
