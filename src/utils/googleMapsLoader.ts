@@ -2,9 +2,9 @@ import { Loader } from '@googlemaps/js-api-loader';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-// if (!GOOGLE_MAPS_API_KEY) {
-//   throw new Error('Google Maps API key is missing');
-// }
+if (!GOOGLE_MAPS_API_KEY) {
+  throw new Error('Google Maps API key is missing. Please check your .env file and ensure VITE_GOOGLE_MAPS_API_KEY is set.');
+}
 
 const loader = new Loader({
   apiKey: GOOGLE_MAPS_API_KEY,
