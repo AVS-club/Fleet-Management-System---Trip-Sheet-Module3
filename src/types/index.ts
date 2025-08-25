@@ -240,6 +240,11 @@ export interface Driver {
   }>;
 }
 
+export interface DriverSummary {
+  id: string;
+  name: string;
+}
+
 // Add AIAlert interface
 export interface AIAlert {
   id: string;

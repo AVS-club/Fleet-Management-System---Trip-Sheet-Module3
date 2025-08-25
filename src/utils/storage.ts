@@ -1,14 +1,15 @@
 import { supabase } from './supabaseClient';
 import { isNetworkError, handleNetworkError } from './supabaseClient';
-import { 
-  Trip, 
-  TripFormData, 
-  Vehicle, 
-  Driver, 
-  Destination, 
-  Warehouse, 
-  RouteAnalysis, 
-  AIAlert 
+import {
+  Trip,
+  TripFormData,
+  Vehicle,
+  Driver,
+  DriverSummary,
+  Destination,
+  Warehouse,
+  RouteAnalysis,
+  AIAlert
 } from '../types';
 import { uploadVehicleDocument } from './supabaseStorage';
 import { getCurrentUserId, withOwner } from './supaHelpers';
@@ -411,6 +412,46 @@ export const getDrivers = async (): Promise<Driver[]> => {
   }
 };
 
+export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for driver summaries, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for driver summaries', userError);
+      return [];
+    }
+
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('id,name')
+      .eq('added_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch driver summaries', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for driver summaries, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for driver summaries', error);
+    return [];
+  }
+};
+
 export const getDriver = async (id: string): Promise<Driver | null> => {
   const { data, error } = await supabase
     .from('drivers')
@@ -558,7 +599,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips')
-      .select('*')
+      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id, short_trip')
       .eq('added_by', user.id)
       .order('trip_start_date', { ascending: false });
 

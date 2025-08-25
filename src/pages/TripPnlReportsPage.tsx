@@ -270,7 +270,10 @@ const TripPnlReportsPage: React.FC = () => {
       }
 
       // Search filter
-      if (searchTerm && !trip.trip_serial_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+      if (
+        searchTerm &&
+        !(trip.trip_serial_number || "").toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
         return false;
       }
 

@@ -60,7 +60,6 @@ const DashboardPage: React.FC = () => {
     
     // Total fuel
     const totalFuel = regularTrips
-      .filter(trip => trip.refueling_done && trip.fuel_quantity)
       .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
     
     // Average mileage
@@ -150,7 +149,7 @@ const DashboardPage: React.FC = () => {
 
   // Check if we have enough data to show insights
   const hasEnoughData = Array.isArray(trips) && trips.length > 0;
-  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.refueling_done && trip.fuel_quantity);
+  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
   
   return (
     <Layout>
