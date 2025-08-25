@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { Vehicle, Driver, Trip } from "../types"; // Import the Vehicle interface
+import { Vehicle, Trip, DriverSummary } from "../types"; // Import the Vehicle interface
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -16,7 +16,7 @@ import {
   getVehicleStats,
   createVehicle,
   getTrips,
-  getDrivers,
+  getDriverSummaries,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
@@ -54,7 +54,7 @@ import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [drivers, setDrivers] = useState<DriverSummary[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,7 +71,7 @@ const VehiclesPage: React.FC = () => {
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
-    const map: Record<string, Driver> = {};
+    const map: Record<string, DriverSummary> = {};
     if (Array.isArray(drivers)) {
       drivers.forEach(driver => {
         if (driver.id) {
@@ -99,7 +99,7 @@ const VehiclesPage: React.FC = () => {
         // if (user) setUser(user);
         const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
-          getDrivers(), // TODO: Ensure this fetches ALL drivers including inactive/archived ones for proper driver assignment display
+          getDriverSummaries(), // TODO: Ensure this fetches ALL drivers including inactive/archived ones for proper driver assignment display
           getTrips(),
         ]);
 

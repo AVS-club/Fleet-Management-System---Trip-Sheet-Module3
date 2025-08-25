@@ -466,7 +466,11 @@ const AdminTripsPage: React.FC = () => {
         'Revenue': trip.income_amount || 0,
         'Profit/Loss': trip.net_profit ? `₹${trip.net_profit.toLocaleString()}` : '-',
         'Status': trip.profit_status ? trip.profit_status.charAt(0).toUpperCase() + trip.profit_status.slice(1) : '-',
-        'Type': trip.short_trip ? 'Local' : trip.destinations.length > 1 ? 'Two Way' : 'One Way'
+        'Type': trip.short_trip
+          ? 'Local'
+          : Array.isArray(trip.destinations) && trip.destinations.length > 1
+            ? 'Two Way'
+            : 'One Way'
       };
     });
 
