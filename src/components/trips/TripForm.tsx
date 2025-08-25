@@ -56,6 +56,19 @@ const TripForm: React.FC<TripFormProps> = ({
   const [generatingSerial, setGeneratingSerial] = useState(false);
   const [endKmForAnalysis, setEndKmForAnalysis] = useState<number | undefined>(initialData.end_km);
 
+  // Add debugging log to see what initialData is received
+  useEffect(() => {
+    console.log('TripForm received initialData:', initialData);
+  }, [initialData]);
+
+  // Reset form when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData && Object.keys(initialData).length > 0) {
+      console.log('Resetting form with initialData:', initialData);
+      reset(initialData);
+    }
+  }, [initialData, reset]);
+
   useEffect(() => {
     setCachedTrips(Array.isArray(trips) ? trips : []);
   }, [trips]);
@@ -66,6 +79,7 @@ const TripForm: React.FC<TripFormProps> = ({
     watch,
     control,
     setValue,
+    reset,
     setFocus,
     formState: { errors }
   } = useForm<TripFormData>({
