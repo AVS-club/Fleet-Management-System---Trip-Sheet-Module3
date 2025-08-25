@@ -250,7 +250,7 @@ const TripForm: React.FC<TripFormProps> = ({
     if (totalFuelCost && fuelRatePerLiter && totalFuelCost > 0 && fuelRatePerLiter > 0) {
       const fuelQuantity = totalFuelCost / fuelRatePerLiter;
       setValue('fuel_quantity', parseFloat(fuelQuantity.toFixed(2)));
-      setValue('fuel_cost', fuelRatePerLiter);
+      setValue('fuel_rate_per_liter', fuelRatePerLiter);
     }
   }, [totalFuelCost, fuelRatePerLiter, setValue]);
 

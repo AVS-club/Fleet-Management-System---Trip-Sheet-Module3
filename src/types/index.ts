@@ -287,6 +287,7 @@ export interface Trip {
   refueling_done: boolean;
   fuel_quantity?: number;
   fuel_cost?: number;
+  fuel_rate_per_liter?: number;
   total_fuel_cost?: number;
   unloading_expense: number;
   driver_expense: number;
