@@ -519,12 +519,14 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             <p className="text-sm text-gray-500 mb-3">Trip Slip / Fuel Bill</p>
             <div className="relative inline-block">
               {isImageAttachment(trip.fuel_bill_url) ? (
-                <div className="relative group">
+                <div 
+                  className="relative group cursor-pointer"
+                  onClick={() => setSelectedImage(trip.fuel_bill_url!)}
+                >
                   <img
                     src={trip.fuel_bill_url}
                     alt="Fuel Bill"
-                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => setSelectedImage(trip.fuel_bill_url!)}
+                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
                   />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 rounded-lg">
                     <div className="text-white text-center">
