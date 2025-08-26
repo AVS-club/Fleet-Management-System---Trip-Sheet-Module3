@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
@@ -186,32 +186,48 @@ const DashboardPage: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard
-            title="Total Trips"
-            value={stats.totalTrips}
-            icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-            trend={stats.tripsThisMonth > 0 ? {
-              value: 12,
-              label: "vs last month",
-              isPositive: true
-            } : undefined}
-          />
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Trips"
+              value={stats.totalTrips}
+              icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              trend={stats.tripsThisMonth > 0 ? {
+                value: 12,
+                label: "vs last month",
+                isPositive: true
+              } : undefined}
+            />
+          </div>
 
-          <StatCard
-            title="Total Distance"
-            value={stats.totalDistance.toLocaleString()}
-            className={
-              stats.avgMileage > 4.0
-                ? "bg-emerald-50"
-                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
-                ? "bg-orange-50"
-                : stats.avgMileage < 3.0 && stats.avgMileage > 0
-                ? "bg-red-50"
-                : ""
-            }
-            subtitle="km"
-            icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-          />
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Distance"
+              value={stats.totalDistance.toLocaleString()}
+              className={
+                stats.avgMileage > 4.0
+                  ? "bg-emerald-50"
+                  : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                  ? "bg-orange-50"
+                  : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                  ? "bg-red-50"
+                  : ""
+              }
+              subtitle="km"
+              icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+            />
+          </div>
 
           {hasRefuelingData ? (
             <>
@@ -239,17 +255,21 @@ const DashboardPage: React.FC = () => {
               />
             </>
           ) : (
-            <>
-              <div className="col-span-2 bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center">
-                <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mileage and fuel consumption insights will appear after trips with refueling are logged.
-                  </p>
-                </div>
+            <div
+              onClick={() => navigate("/trips")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+              className="col-span-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center"
+            >
+              <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Mileage and fuel consumption insights will appear after trips with refueling are logged.
+                </p>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -320,12 +340,24 @@ const DashboardPage: React.FC = () => {
           Detailed Analytics
         </h2>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
             <MileageChart trips={trips} />
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div
+            onClick={() => navigate("/vehicles")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
             <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
           </div>
         </div>
