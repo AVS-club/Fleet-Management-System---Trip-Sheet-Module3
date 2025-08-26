@@ -6,27 +6,7 @@ import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
 import Card from '../components/ui/Card'; // New Card component
 import SnapshotStrip from '../components/SnapshotStrip'; // New SnapshotStrip component
-import { 
-  Truck, 
-  Gauge, 
-  Fuel, 
-  Users, 
-  FileText, 
-  Wrench, 
-  Calendar, 
-  Activity, 
-  IndianRupee, 
-  Bell, 
-  TrendingUp,
-  BarChart,
-  BarChart2,
-  Calculator,
-  CalendarRange,
-  AlertTriangle,
-  Lightbulb,
-  LayoutDashboard,
-  Award
-} from 'lucide-react'; // Icons for cards
+import { Truck, Gauge, Fuel, Users, FileText, Wrench, Calendar, Activity, IndianRupee, Bell, TrendingUp } from 'lucide-react'; // Icons for cards
 
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
@@ -34,6 +14,27 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
+import { 
+  BarChart, 
+  BarChart2, 
+  Calculator, 
+  Truck, 
+  Users, 
+  TrendingUp, 
+  CalendarRange, 
+  Fuel, 
+  AlertTriangle, 
+  IndianRupee, 
+  Bell, 
+  Lightbulb, 
+  LayoutDashboard,
+  Gauge,
+  FileText,
+  Wrench,
+  Calendar,
+  Activity,
+  Award
+} from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
