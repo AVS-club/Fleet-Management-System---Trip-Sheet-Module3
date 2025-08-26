@@ -47,9 +47,7 @@ const SnapshotStrip: React.FC<SnapshotStripProps> = ({ vehicles, drivers, trips 
       <span className="rounded-full px-3 py-1 bg-[#E9F8F2] text-[#0A7F5D] text-sm flex items-center">
         <Users className="h-4 w-4 mr-1" />
         Drivers: {activeDrivers} active / {idleDrivers} idle
-        {licensesExpiringSoon > 0 && (
-          <span> ({licensesExpiringSoon} expiring)</span>
-        )}
+        {licensesExpiringSoon > 0 && ` (${licensesExpiringSoon} expiring)`}
       </span>
       <span className="rounded-full px-3 py-1 bg-[#E9F8F2] text-[#0A7F5D] text-sm flex items-center">
         <Package className="h-4 w-4 mr-1" />
