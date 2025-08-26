@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
@@ -736,6 +736,56 @@ const TripForm: React.FC<TripFormProps> = ({
             name="breakdown_expense"
             control={control}
             render={({ field }) => (
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
+                <Input
+                  {...field}
+                  type="number"
+                  step="0.01"
+                  className="h-9 text-sm"
+                  onFocus={(e) => {
+                    if (e.target.value === '0' || e.target.value === '0.00') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            )}
+          />
+          
+          <Controller
+            name="miscellaneous_expense"
+            control={control}
+            render={({ field }) => (
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
+                <Input
+                  {...field}
+                  type="number"
+                  step="0.01"
+                  className="h-9 text-sm"
+                  onFocus={(e) => {
+                    if (e.target.value === '0' || e.target.value === '0.00') {
+                      e.target.select();
+                    }
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            )}
+          />
+          
+          <div>
+            <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Total Road Expenses (₹)</label>
+            <Input
+              type="number"
+              step="0.01"
+              value={watchedValues.total_road_expenses || 0}
+              disabled
+              className="h-9 text-sm bg-gray-50 dark:bg-gray-700"
+            />
+          </div>
         </div>
       </div>
 
