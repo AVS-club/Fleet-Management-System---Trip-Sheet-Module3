@@ -1,74 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
-import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
-import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
-import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
-import { subDays, format } from 'date-fns';
-import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
-import Checkbox from '../ui/Checkbox';
-import Button from '../ui/Button';
-import FileUpload from '../ui/FileUpload';
-import WarehouseSelector from './WarehouseSelector';
-import SearchableDestinationInput from './SearchableDestinationInput';
-import MaterialSelector from './MaterialSelector';
-import RouteAnalysis from './RouteAnalysis';
-import FuelRateSelector from './FuelRateSelector';
-import {
-  Truck,
-  User,
-  Calendar,
-  MapPin,
-  Fuel,
-  IndianRupee,
-  FileText,
-  Package,
-  Route,
-  Calculator,
-  AlertTriangle
+import { 
+  Truck, 
+  User, 
+  MapPin, 
+  Calendar, 
+  Route, 
+  FileText, 
+  Calculator, 
+  Package, 
+  Fuel, 
+  IndianRupee 
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Checkbox } from '../ui/Checkbox';
+import { Button } from '../ui/Button';
+import { FileUpload } from '../ui/FileUpload';
+import { WarehouseSelector } from './WarehouseSelector';
+import { SearchableDestinationInput } from './SearchableDestinationInput';
+import { MaterialSelector } from './MaterialSelector';
+import { FuelRateSelector } from './FuelRateSelector';
+
+interface TripFormData {
+  trip_serial_number: string;
+  vehicle_id: string;
+  driver_id: string;
+  warehouse_id: string;
+  destinations: string[];
+  trip_start_date: string;
+  trip_end_date: string;
+  is_return_trip: boolean;
+  start_km: number;
+  end_km: number;
+  gross_weight: number;
+  refueling_done: boolean;
+  fuel_quantity?: number;
+  total_fuel_cost?: number;
+  fuel_rate_per_liter?: number;
+  fuel_bill_file?: File[];
+  unloading_expense: number;
+  driver_expense: number;
+  road_rto_expense: number;
+  breakdown_expense: number;
+  miscellaneous_expense: number;
+  total_road_expenses: number;
+  station?: string;
+  remarks?: string;
+  material_type_ids: string[];
+}
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
-  isSubmitting?: boolean;
-  trips?: Trip[];
-  initialData?: Partial<TripFormData>;
+  onCancel: () => void;
+  vehicles: any[];
+  drivers: any[];
+  warehouses: any[];
+  materialTypes: any[];
+  isLoading?: boolean;
 }
 
-const TripForm: React.FC<TripFormProps> = ({
+export function TripForm({
   onSubmit,
-  isSubmitting = false,
-  trips = [],
-  initialData
-}) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
-  const [routeAnalysis, setRouteAnalysis] = useState<any>(null);
-  const [aiAlerts, setAiAlerts] = useState<any[]>([]);
-  const [routeDeviation, setRouteDeviation] = useState<number | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
+  onCancel,
+  vehicles,
+  drivers,
+  warehouses,
+  materialTypes,
+  isLoading = false
+}: TripFormProps) {
+  const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<any[]>([]);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+  const [showAdditionalExpenses, setShowAdditionalExpenses] = useState(false);
 
-  // Get yesterday's date for auto-defaulting
-  const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+  // Get yesterday's date as default
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayString = yesterdayDate.toISOString().split('T')[0];
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    control
+    control,
+    formState: { errors }
   } = useForm<TripFormData>({
     defaultValues: {
-      trip_start_date: yesterdayDate, // Auto-default to yesterday
-      trip_end_date: yesterdayDate, // Auto-default to yesterday
+      trip_start_date: yesterdayString,
+      trip_end_date: yesterdayString,
       refueling_done: false,
       is_return_trip: true,
       gross_weight: 0,
@@ -78,188 +98,35 @@ const TripForm: React.FC<TripFormProps> = ({
       breakdown_expense: 0,
       miscellaneous_expense: 0,
       total_road_expenses: 0,
-      material_type_ids: [],
-      ...initialData
+      material_type_ids: []
     }
   });
 
-  // Watch form values for calculations
   const watchedValues = watch();
-  const selectedVehicleId = watch('vehicle_id');
-  const selectedWarehouseId = watch('warehouse_id');
-  const startKm = watch('start_km');
-  const endKm = watch('end_km');
-  const refuelingDone = watch('refueling_done');
-  const totalFuelCost = watch('total_fuel_cost');
-  const fuelRatePerLiter = watch('fuel_rate_per_liter');
+  const refuelingDone = watchedValues.refueling_done;
 
-  // Fetch form data
-  useEffect(() => {
-    const fetchFormData = async () => {
-      setLoading(true);
-      try {
-        const [vehiclesData, driversData, destinationsData, warehousesData, materialTypesData] = await Promise.all([
-          getVehicles(),
-          getDrivers(),
-          getDestinations(),
-          getWarehouses(),
-          getMaterialTypes()
-        ]);
+  // Watch all expense fields for total calculation
+  const watchedExpenses = watch(['unloading_expense', 'road_rto_expense', 'driver_expense', 'breakdown_expense', 'miscellaneous_expense']);
 
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
-        setDrivers(Array.isArray(driversData) ? driversData : []);
-        setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
-        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
-        setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
-      } catch (error) {
-        console.error('Error fetching form data:', error);
-        toast.error('Failed to load form data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchFormData();
-  }, []);
-
-  // Initialize selected destinations from initialData
-  useEffect(() => {
-    if (initialData?.destinations && destinations.length > 0) {
-      const selectedDests = initialData.destinations
-        .map(id => destinations.find(d => d.id === id))
-        .filter(Boolean) as Destination[];
-      setSelectedDestinationObjects(selectedDests);
-    }
-  }, [initialData?.destinations, destinations]);
-
-  // Auto-select assigned driver when vehicle is selected
-  useEffect(() => {
-    if (selectedVehicleId && vehicles.length > 0) {
-      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-      if (selectedVehicle?.primary_driver_id) {
-        setValue('driver_id', selectedVehicle.primary_driver_id);
-      }
-    }
-  }, [selectedVehicleId, vehicles, setValue]);
-
-  // Auto-generate trip serial number when vehicle and start date are selected
-  useEffect(() => {
-    const generateSerial = async () => {
-      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number) {
-        try {
-          const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-          if (vehicle) {
-            const serialNumber = await generateTripSerialNumber(
-              vehicle.registration_number,
-              watchedValues.trip_start_date,
-              selectedVehicleId
-            );
-            setValue('trip_serial_number', serialNumber);
-          }
-        } catch (error) {
-          console.error('Error generating trip serial:', error);
-        }
-      }
-    };
-
-    generateSerial();
-  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData]);
-
-  // Auto-fill start KM when vehicle is selected
-  useEffect(() => {
-    const fillStartKm = async () => {
-      if (selectedVehicleId && !initialData?.start_km) {
-        try {
-          const { value: latestOdometer } = await getLatestOdometer(selectedVehicleId);
-          setValue('start_km', latestOdometer);
-        } catch (error) {
-          console.error('Error getting latest odometer:', error);
-        }
-      }
-    };
-
-    fillStartKm();
-  }, [selectedVehicleId, setValue, initialData]);
-
-  // Handle adding destinations
-  const handleDestinationSelect = (destination: Destination) => {
-    const newDestinations = [...selectedDestinationObjects, destination];
-    setSelectedDestinationObjects(newDestinations);
-    setValue('destinations', newDestinations.map(d => d.id));
-  };
-
-  // Handle removing destinations
-  const handleRemoveDestination = (index: number) => {
-    const newDestinations = selectedDestinationObjects.filter((_, i) => i !== index);
-    setSelectedDestinationObjects(newDestinations);
-    setValue('destinations', newDestinations.map(d => d.id));
-  };
-
-  // Auto-trigger route analysis and AI alerts when key fields change
-  const handleEndKmBlur = async () => {
-    if (selectedVehicleId && selectedWarehouseId && selectedDestinationObjects.length > 0 && startKm && endKm) {
-      setIsAnalyzing(true);
-      try {
-        // Analyze route
-        const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
-        setRouteAnalysis(analysis);
-        
-        if (analysis) {
-          // Calculate route deviation
-          const actualDistance = endKm - startKm;
-          const standardDistance = analysis.total_distance;
-          
-          if (standardDistance > 0) {
-            const deviation = ((actualDistance - standardDistance) / standardDistance) * 100;
-            setRouteDeviation(deviation);
-            
-            // Create temporary trip data for AI analysis
-            const tempTripData = {
-              ...watchedValues,
-              vehicle_id: selectedVehicleId,
-              warehouse_id: selectedWarehouseId,
-              destinations: selectedDestinationObjects.map(d => d.id),
-              start_km: startKm,
-              end_km: endKm,
-              route_deviation: deviation,
-              id: 'temp-' + Date.now(),
-              trip_serial_number: watchedValues.trip_serial_number || 'TEMP-001',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            } as Trip;
-            
-            // Generate AI alerts
-            const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
-            setAiAlerts(alerts);
-          }
-        }
-      } catch (error) {
-        console.error('Error analyzing route:', error);
-      } finally {
-        setIsAnalyzing(false);
-      }
-    }
-  };
-
-  // Reverse calculation: Calculate fuel quantity when total fuel cost and rate change
-  useEffect(() => {
-    if (totalFuelCost && fuelRatePerLiter && totalFuelCost > 0 && fuelRatePerLiter > 0) {
-      const fuelQuantity = totalFuelCost / fuelRatePerLiter;
-      setValue('fuel_quantity', parseFloat(fuelQuantity.toFixed(2)));
-      setValue('fuel_rate_per_liter', fuelRatePerLiter);
-    }
-  }, [totalFuelCost, fuelRatePerLiter, setValue]);
+  // Memoize the total road expenses calculation
+  const computedTotalRoadExpenses = useMemo(() => {
+    const [unloading, roadRto, driver, breakdown, misc] = watchedExpenses;
+    return (
+      (parseFloat(unloading as any) || 0) +
+      (parseFloat(roadRto as any) || 0) +
+      (parseFloat(driver as any) || 0) +
+      (parseFloat(breakdown as any) || 0) +
+      (parseFloat(misc as any) || 0));
+  }, [watchedExpenses]);
 
   // Calculate total road expenses
   useEffect(() => {
-    const totalRoadExpenses = (
-      (watchedValues.unloading_expense || 0) +
-      (watchedValues.driver_expense || 0) +
-      (watchedValues.road_rto_expense || 0) +
-      (watchedValues.breakdown_expense || 0) +
-      (watchedValues.miscellaneous_expense || 0)
-    );
-    setValue('total_road_expenses', totalRoadExpenses);
+    const total = (watchedValues.unloading_expense || 0) +
+                 (watchedValues.driver_expense || 0) +
+                 (watchedValues.road_rto_expense || 0) +
+                 (watchedValues.breakdown_expense || 0) +
+                 (watchedValues.miscellaneous_expense || 0);
+    setValue('total_road_expenses', total);
   }, [
     watchedValues.unloading_expense,
     watchedValues.driver_expense,
@@ -269,63 +136,33 @@ const TripForm: React.FC<TripFormProps> = ({
     setValue
   ]);
 
-  // Analyze route when warehouse and destinations change
+  // Calculate fuel quantity when cost and rate change
   useEffect(() => {
-    const performRouteAnalysis = async () => {
-      if (selectedWarehouseId && selectedDestinationObjects.length > 0) {
-        setIsAnalyzing(true);
-        try {
-          const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
-          setRouteAnalysis(analysis);
-        } catch (error) {
-          console.error('Error analyzing route:', error);
-          setRouteAnalysis(null);
-        } finally {
-          setIsAnalyzing(false);
-        }
-      } else {
-        setRouteAnalysis(null);
-      }
-    };
-
-    performRouteAnalysis();
-  }, [selectedWarehouseId, selectedDestinationObjects]);
+    if (watchedValues.total_fuel_cost && watchedValues.fuel_rate_per_liter) {
+      const quantity = watchedValues.total_fuel_cost / watchedValues.fuel_rate_per_liter;
+      setValue('fuel_quantity', Math.round(quantity * 100) / 100);
+    }
+  }, [watchedValues.total_fuel_cost, watchedValues.fuel_rate_per_liter, setValue]);
 
   const handleFormSubmit = (data: TripFormData) => {
-    // Calculate mileage if refueling data is available
-    if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
-      const distance = data.end_km - data.start_km;
-      if (distance > 0) {
-        data.calculated_kmpl = distance / data.fuel_quantity;
-      }
-    }
-
-    // Calculate route deviation if analysis is available
-    if (routeAnalysis) {
-      const actualDistance = (data.end_km || 0) - (data.start_km || 0);
-      if (routeAnalysis.total_distance > 0 && actualDistance > 0) {
-        data.route_deviation = ((actualDistance - routeAnalysis.total_distance) / routeAnalysis.total_distance) * 100;
-      }
-    }
-
-    // Calculate trip duration
-    if (data.trip_start_date && data.trip_end_date) {
-      const startTime = new Date(data.trip_start_date).getTime();
-      const endTime = new Date(data.trip_end_date).getTime();
-      data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
-    }
-
-    onSubmit(data);
+    const formData = {
+      ...data,
+      destinations: selectedDestinationObjects.map(d => d.id)
+    };
+    onSubmit(formData);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p className="ml-3 text-gray-600">Loading form...</p>
-      </div>
-    );
-  }
+  const handleDestinationSelect = (destination: any) => {
+    setSelectedDestinationObjects(prev => [...prev, destination]);
+  };
+
+  const handleRemoveDestination = (index: number) => {
+    setSelectedDestinationObjects(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleEndKmBlur = () => {
+    // Any additional logic for end KM validation
+  };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto h-full">
@@ -445,7 +282,10 @@ const TripForm: React.FC<TripFormProps> = ({
           <WarehouseSelector
             warehouses={warehouses}
             selectedWarehouse={selectedWarehouseId}
-            onChange={(value) => setValue('warehouse_id', value)}
+            onChange={(value) => {
+              setValue('warehouse_id', value);
+              setSelectedWarehouseId(value);
+            }}
           />
 
           <SearchableDestinationInput
@@ -460,65 +300,6 @@ const TripForm: React.FC<TripFormProps> = ({
             onChange={(value) => setValue('material_type_ids', value)}
           />
         </div>
-
-        {/* Route Analysis */}
-        {routeDeviation !== null && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
-                <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                  Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
-                    {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
-                  </span>
-                </p>
-                {routeAnalysis && (
-                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-                    Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
-                  </p>
-                )}
-              </div>
-              {Math.abs(routeDeviation) > 15 && (
-                <AlertTriangle className="h-5 w-5 text-warning-500" />
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* AI Alerts Display */}
-        {aiAlerts.length > 0 && (
-          <div className="mt-3 p-3 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
-            <div className="flex items-center mb-2">
-              <AlertTriangle className="h-5 w-5 text-warning-500 mr-2" />
-              <h4 className="text-sm font-medium text-warning-800 dark:text-warning-300">AI Alert Generated</h4>
-            </div>
-            {aiAlerts.map((alert, index) => (
-              <div key={index} className="text-sm text-warning-700 dark:text-warning-400">
-                <p className="font-medium">{alert.message}</p>
-                {alert.details && <p className="text-xs mt-1">{alert.details}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {isAnalyzing && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-blue-700 dark:text-blue-300">Analyzing route...</span>
-            </div>
-          </div>
-        )}
-
-        {routeAnalysis && (
-          <div className="mt-3">
-            <RouteAnalysis
-              analysis={routeAnalysis}
-              alerts={[]}
-              onAlertAction={() => {}}
-            />
-          </div>
-        )}
       </div>
 
       {/* Trip Details & Fuel Information */}
@@ -591,69 +372,69 @@ const TripForm: React.FC<TripFormProps> = ({
         {/* Fuel Information */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-            <Fuel className="h-5 w-5 mr-2 text-primary-500" />
-            Fuel Information
-          </h3>
-          
-          <Checkbox
-            label="Refueling Done"
-            checked={refuelingDone}
-            onChange={(e) => setValue('refueling_done', e.target.checked)}
-          />
-        </div>
-        
-        {refuelingDone && (
-            <div className="space-y-3">
-                <Input
-                  label="Total Fuel Cost (₹)"
-                  type="number"
-                  step="0.01"
-                  icon={<IndianRupee className="h-4 w-4" />}
-                  placeholder="Enter total amount paid"
-                  size="sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0') {
-                      e.target.select();
-                    }
-                  }}
-                  {...register('total_fuel_cost', {
-                    valueAsNumber: true,
-                    min: { value: 0.01, message: 'Total fuel cost must be positive' }
-                  })}
-                />
-
-                <FuelRateSelector
-                  selectedRate={watchedValues.fuel_rate_per_liter}
-                  onChange={(value) => setValue('fuel_rate_per_liter', value)}
-                  warehouses={warehouses}
-                  selectedWarehouseId={selectedWarehouseId}
-                  size="sm"
-                />
-
-                <Input
-                  label="Fuel Quantity (L)"
-                  type="number"
-                  step="0.01"
-                  icon={<Fuel className="h-4 w-4" />}
-                  value={watchedValues.fuel_quantity || 0}
-                  disabled
-                  size="sm"
-                  helperText="Auto-calculated from cost ÷ rate"
-                />
-
-            <div className="mt-3">
-              <FileUpload
-                label="Fuel Bill / Receipt"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={watchedValues.fuel_bill_file as File[]}
-                onChange={(files) => setValue('fuel_bill_file', files)}
-                helperText="Upload fuel bill or receipt (optional)"
-                variant="compact"
-              />
-            </div>
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
+              <Fuel className="h-5 w-5 mr-2 text-primary-500" />
+              Fuel Information
+            </h3>
+            
+            <Checkbox
+              label="Refueling Done"
+              checked={refuelingDone}
+              onChange={(e) => setValue('refueling_done', e.target.checked)}
+            />
           </div>
+          
+          {refuelingDone && (
+            <div className="space-y-3">
+              <Input
+                label="Total Fuel Cost (₹)"
+                type="number"
+                step="0.01"
+                icon={<IndianRupee className="h-4 w-4" />}
+                placeholder="Enter total amount paid"
+                size="sm"
+                onFocus={(e) => {
+                  if (e.target.value === '0') {
+                    e.target.select();
+                  }
+                }}
+                {...register('total_fuel_cost', {
+                  valueAsNumber: true,
+                  min: { value: 0.01, message: 'Total fuel cost must be positive' }
+                })}
+              />
+
+              <FuelRateSelector
+                selectedRate={watchedValues.fuel_rate_per_liter}
+                onChange={(value) => setValue('fuel_rate_per_liter', value)}
+                warehouses={warehouses}
+                selectedWarehouseId={selectedWarehouseId}
+                size="sm"
+              />
+
+              <Input
+                label="Fuel Quantity (L)"
+                type="number"
+                step="0.01"
+                icon={<Fuel className="h-4 w-4" />}
+                value={watchedValues.fuel_quantity || 0}
+                disabled
+                size="sm"
+                helperText="Auto-calculated from cost ÷ rate"
+              />
+
+              <div className="mt-3">
+                <FileUpload
+                  label="Fuel Bill / Receipt"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  multiple={true}
+                  value={watchedValues.fuel_bill_file as File[]}
+                  onChange={(files) => setValue('fuel_bill_file', files)}
+                  helperText="Upload fuel bill or receipt (optional)"
+                  variant="compact"
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -665,13 +446,16 @@ const TripForm: React.FC<TripFormProps> = ({
           Trip Expenses
         </h3>
         
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Unloading Expense */}
           <Controller
             name="unloading_expense"
             control={control}
             render={({ field }) => (
               <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-green-600">📥</span> Unloading (₹)
+                </label>
                 <Input
                   {...field}
                   type="number"
@@ -687,57 +471,16 @@ const TripForm: React.FC<TripFormProps> = ({
               </div>
             )}
           />
-          
-          <Controller
-            name="driver_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
+
+          {/* Road/RTO Expense */}
           <Controller
             name="road_rto_expense"
             control={control}
             render={({ field }) => (
               <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0'|| e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="breakdown_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-blue-600">🛣</span> Road/RTO (₹)
+                </label>
                 <Input
                   {...field}
                   type="number"
@@ -753,94 +496,159 @@ const TripForm: React.FC<TripFormProps> = ({
               </div>
             )}
           />
-          
-          <Controller
-            name="miscellaneous_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
+        </div>
+
+        {/* Show Additional Expenses Toggle */}
+        <div className="mt-3">
+          <Checkbox
+            label="Show Additional Expenses"
+            checked={showAdditionalExpenses}
+            onChange={(e) => setShowAdditionalExpenses(e.target.checked)}
           />
-          
-          <div>
-            <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Total Road Expenses (₹)</label>
+        </div>
+
+        {/* Collapsible Additional Expenses */}
+        {showAdditionalExpenses && (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Driver Bata */}
+              <Controller
+                name="driver_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-orange-600">👷</span> Driver Bata (₹)
+                    </label>
+                    <Input
+                      {...field}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+
+              {/* Breakdown Expense */}
+              <Controller
+                name="breakdown_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-red-600">🛠</span> Breakdown (₹)
+                    </label>
+                    <Input
+                      {...field}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+
+              {/* Miscellaneous Expense */}
+              <Controller
+                name="miscellaneous_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                      <span className="text-gray-600">📦</span> Miscellaneous (₹)
+                    </label>
+                    <Input
+                      {...field}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Total Road Expenses (always visible) */}
+        <div className="mt-3 rounded-md border border-gray-200 dark:border-gray-700 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Total Road Expenses</span>
             <Input
-              type="number"
-              step="0.01"
-              value={watchedValues.total_road_expenses || 0}
-              disabled
-              className="h-9 text-sm bg-gray-50 dark:bg-gray-700"
+              value={computedTotalRoadExpenses.toFixed(2)}
+              readOnly
+              className="h-9 w-40 text-right text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
           </div>
+          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Auto-calculated</p>
         </div>
       </div>
 
       {/* Additional Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Additional Information
         </h3>
         
-        <div className="space-y-3">
-          <div className="space-y-3">
-            <Input
-              label="Station"
-              icon={<Fuel className="h-4 w-4" />}
-              placeholder="Fuel station name (optional)"
-              size="sm"
-              {...register('station')}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Input
+            label="Station"
+            icon={<Fuel className="h-4 w-4" />}
+            placeholder="Fuel station name (optional)"
+            size="sm"
+            {...register('station')}
+          />
 
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Remarks
-            </label>
-            <textarea
-              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
-              rows={3}
-              placeholder="Any additional notes or remarks about this trip..."
-              {...register('remarks')}
-            />
-          </div>
+          <Input
+            label="Remarks"
+            icon={<FileText className="h-4 w-4" />}
+            placeholder="Additional notes (optional)"
+            size="sm"
+            {...register('remarks')}
+          />
         </div>
       </div>
 
       {/* Form Actions */}
-      <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
-        <Button
-          variant="outline"
-          className="w-full md:w-auto order-2 md:order-1"
-          onClick={() => window.history.back()}
-        >
-          Cancel
-        </Button>
+      <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
         <Button
           type="submit"
-          isLoading={isSubmitting}
-          disabled={isSubmitting}
-          className="w-full md:w-auto order-1 md:order-2"
+          disabled={isLoading}
+          className="flex-1"
         >
-          {initialData ? 'Update Trip' : 'Save Trip'}
+          {isLoading ? 'Creating Trip...' : 'Create Trip'}
+        </Button>
+        
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="flex-1 sm:flex-none"
+        >
+          Cancel
         </Button>
       </div>
     </form>
   );
-};
-
-export default TripForm;
+}
