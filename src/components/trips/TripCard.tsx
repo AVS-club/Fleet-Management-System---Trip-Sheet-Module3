@@ -101,7 +101,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
     >
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
-          {trip.refueling_done ? ( // ⚠️ Confirm field refactor here
+          {trip.refueling_done ? (
             <div className="bg-accent-100 text-accent-700 p-1.5 rounded-full">
               <Fuel className="h-5 w-5" />
             </div>

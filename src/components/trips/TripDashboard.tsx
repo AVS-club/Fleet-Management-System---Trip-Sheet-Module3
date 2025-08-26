@@ -149,7 +149,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
     return {
       totalTrips: filteredTrips.length,
       totalDistance,
-      totalFuel, // ⚠️ Confirm field refactor here
+      totalFuel,
       avgMileage
     };
   }, [trips, effectiveDateRange]);

@@ -864,7 +864,7 @@ const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
       (trip: Trip & { vehicles: { registration_number: string } }) => {
         // Check for missing fuel bill
         if (trip.refueling_done && !trip.fuel_bill_url) {
-          const tripEndDate = new Date(trip.trip_end_date); // ⚠️ Confirm field refactor here
+          const tripEndDate = new Date(trip.trip_end_date);
           if (isBefore(tripEndDate, threeDaysAgo)) {
             reminders.push({
               id: `missing-fuel-bill-${trip.id}-${trip.trip_end_date}`,
