@@ -30,7 +30,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
   const pastRates = useMemo(() => {
     const rateMap = new Map<number, { count: number; warehouseNames: Set<string> }>();
     
-    trips.forEach(trip => {
+    (trips ?? []).forEach(trip => {
       if (trip.refueling_done && trip.fuel_cost && trip.fuel_cost > 0) {
         const rate = Math.round(trip.fuel_cost * 100) / 100; // Round to 2 decimal places
         
