@@ -14,27 +14,7 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { 
-  BarChart, 
-  BarChart2, 
-  Calculator, 
-  Truck, 
-  Users, 
-  TrendingUp, 
-  CalendarRange, 
-  Fuel, 
-  AlertTriangle, 
-  IndianRupee, 
-  Bell, 
-  Lightbulb, 
-  LayoutDashboard,
-  Gauge,
-  FileText,
-  Wrench,
-  Calendar,
-  Activity,
-  Award
-} from 'lucide-react';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();

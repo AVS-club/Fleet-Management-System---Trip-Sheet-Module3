@@ -1,6 +1,4 @@
 /** @type {import('tailwindcss').Config} */
-import { gray } from './src/tailwind-colors.js';
-
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
@@ -10,9 +8,9 @@ export default {
     // while keeping existing gray shades.
     // If you want to replace gray entirely, remove the gray object below
     // and rename neutral to gray.
+    neutral: { ...require('./src/tailwind-colors').gray },
     extend: {
       colors: {
-        neutral: { ...gray },
         primary: {
           50: '#E8F5E9',
           100: '#C8E6C9',
@@ -106,6 +104,11 @@ export default {
           900: '#111827',
           950: '#030712',
         },
+        // New custom colors for dashboard
+        'light-green-bg': '#E9F8F2',
+        'dark-teal-text': '#0A7F5D',
+        'brand-green-primary': '#1BBF8C',
+        'neutral': { ...require('./src/tailwind-colors').gray }, // Ensure neutral is defined
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
