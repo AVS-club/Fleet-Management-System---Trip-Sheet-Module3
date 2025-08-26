@@ -1,6 +1,5 @@
-```typescript
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
@@ -64,14 +63,14 @@ const TripForm: React.FC<TripFormProps> = ({
     register,
     handleSubmit,
     watch,
-    setValue,
-    control
+    setValue
   } = useForm<TripFormData>({
     defaultValues: {
       trip_start_date: yesterdayDate, // Auto-default to yesterday
       trip_end_date: yesterdayDate, // Auto-default to yesterday
       refueling_done: false,
-      is_return_trip: true,
+      is_return_trip: false,
+      manual_trip_id: false,
       gross_weight: 0,
       unloading_expense: 0,
       driver_expense: 0,
@@ -329,10 +328,10 @@ const TripForm: React.FC<TripFormProps> = ({
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto h-full">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto">
       {/* Trip Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Route className="h-5 w-5 mr-2 text-primary-500" />
           Trip Information
         </h3>
@@ -365,44 +364,22 @@ const TripForm: React.FC<TripFormProps> = ({
               size="sm"
             />
           </div>
-          
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Return Trip</label>
-            <Controller
-              name="is_return_trip"
-              control={control}
-              render={({ field }) => (
-                <button
-                  type="button"
-                  onClick={() => field.onChange(!field.value)}
-                  aria-pressed={field.value}
-                  className={\`relative inline-flex h-5 w-9 items-center rounded-full transition ${
-                    field.value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                >
-                  <span
-                    className={\`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                      field.value ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              )}
-            />
-          </div>
-          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-            Doubles route distance. Untick if not returning.
-          </p>
+          <Checkbox
+            label="Return Trip"
+            checked={watchedValues.is_return_trip}
+            onChange={(e) => setValue('is_return_trip', e.target.checked)}
+          />
         </div>
       </div>
 
       {/* Vehicle & Driver Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <Truck className="h-5 w-5 mr-2 text-primary-500" />
           Vehicle & Driver
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-3">
           <Select
             label="Vehicle"
             icon={<Truck className="h-4 w-4" />}
@@ -410,7 +387,7 @@ const TripForm: React.FC<TripFormProps> = ({
               { value: '', label: 'Select Vehicle' },
               ...vehicles.map(vehicle => ({
                 value: vehicle.id,
-                label: \`${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
               }))
             ]}
             required
@@ -425,7 +402,7 @@ const TripForm: React.FC<TripFormProps> = ({
               { value: '', label: 'Select Driver' },
               ...drivers.map(driver => ({
                 value: driver.id || '',
-                label: \`${driver.name} - ${driver.license_number}`
+                label: `${driver.name} - ${driver.license_number}`
               }))
             ]}
             required
@@ -436,8 +413,8 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Route Planning */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <MapPin className="h-5 w-5 mr-2 text-primary-500" />
           Route Planning
         </h3>
@@ -469,7 +446,7 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
                 <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                  Route deviation: <span className={\`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
+                  Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
                     {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
                   </span>
                 </p>
@@ -523,10 +500,10 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Trip Details & Fuel Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Trip Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
             <Calculator className="h-5 w-5 mr-2 text-primary-500" />
             Trip Details
           </h3>
@@ -538,11 +515,6 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<MapPin className="h-4 w-4" />}
               required
               size="sm"
-              onFocus={(e) => {
-                if (e.target.value === '0') {
-                  e.target.select();
-                }
-              }}
               {...register('start_km', {
                 required: 'Start KM is required',
                 valueAsNumber: true,
@@ -557,11 +529,6 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               onBlur={handleEndKmBlur}
               size="sm"
-              onFocus={(e) => {
-                if (e.target.value === '0') {
-                  e.target.select();
-                }
-              }}
               {...register('end_km', {
                 required: 'End KM is required',
                 valueAsNumber: true,
@@ -576,7 +543,7 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === "0") {
                   e.target.select();
                 }
               }}
@@ -590,9 +557,9 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
 
         {/* Fuel Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Fuel className="h-5 w-5 mr-2 text-primary-500" />
             Fuel Information
           </h3>
@@ -606,6 +573,7 @@ const TripForm: React.FC<TripFormProps> = ({
         
         {refuelingDone && (
             <div className="space-y-3">
+              <div className="space-y-3">
                 <Input
                   label="Total Fuel Cost (₹)"
                   type="number"
@@ -614,7 +582,7 @@ const TripForm: React.FC<TripFormProps> = ({
                   placeholder="Enter total amount paid"
                   size="sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0') {
+                    if (e.target.value === "0") {
                       e.target.select();
                     }
                   }}
@@ -642,6 +610,8 @@ const TripForm: React.FC<TripFormProps> = ({
                   size="sm"
                   helperText="Auto-calculated from cost ÷ rate"
                 />
+              </div>
+
             <div className="mt-3">
               <FileUpload
                 label="Fuel Bill / Receipt"
@@ -654,151 +624,125 @@ const TripForm: React.FC<TripFormProps> = ({
               />
             </div>
           </div>
-           )}
-         </div>
-       </div>
- 
-       {/* Expenses */}
-       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-         <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-           <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
-           Trip Expenses
-         </h3>
-         
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <Controller
-            name="unloading_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="driver_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="road_rto_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0'|| e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="breakdown_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="miscellaneous_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
-                <Input
-                  {...field}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
+          )}
         </div>
+      </div>
 
-        {/* Total row (read-only) */}
-        <div className="mt-3 rounded-md border border-gray-200 dark:border-gray-600 p-3 bg-gray-50 dark:bg-gray-800">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Road Expenses</span>
-            <Input
-              value={watchedValues.total_road_expenses || 0}
-              readOnly
-              className="h-9 w-40 text-right text-sm bg-gray-100 dark:bg-gray-700"
-            />
-          </div>
-          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">Auto-calculated</p>
+      {/* Expenses */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+          <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
+          Trip Expenses
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Input
+            label="Unloading Expense (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            onFocus={(e) => {
+              if (e.target.value === "0") {
+                e.target.select();
+              }
+            }}
+            {...register('unloading_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Driver Bata (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            onFocus={(e) => {
+              if (e.target.value === "0") {
+                e.target.select();
+              }
+            }}
+            {...register('driver_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Road/RTO Expense (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            onFocus={(e) => {
+              if (e.target.value === "0") {
+                e.target.select();
+              }
+            }}
+            {...register('road_rto_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Breakdown Expense (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            onFocus={(e) => {
+              if (e.target.value === "0") {
+                e.target.select();
+              }
+            }}
+            {...register('breakdown_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Miscellaneous Expense (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            onFocus={(e) => {
+              if (e.target.value === "0") {
+                e.target.select();
+              }
+            }}
+            {...register('miscellaneous_expense', {
+              valueAsNumber: true,
+              min: { value: 0, message: 'Expense must be positive' }
+            })}
+          />
+
+          <Input
+            label="Total Road Expenses (₹)"
+            type="number"
+            step="0.01"
+            icon={<IndianRupee className="h-4 w-4" />}
+            size="sm"
+            value={watchedValues.total_road_expenses || 0}
+            disabled
+            helperText="Auto-calculated"
+          />
         </div>
       </div>
 
       {/* Additional Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Additional Information
         </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="space-y-3">
+          <div className="space-y-3">
             <Input
               label="Station"
               icon={<Fuel className="h-4 w-4" />}
@@ -806,13 +750,14 @@ const TripForm: React.FC<TripFormProps> = ({
               size="sm"
               {...register('station')}
             />
+          </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               Remarks
             </label>
             <textarea
-              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 dark:focus:ring-primary-500 focus:border-primary-500 dark:focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
+              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
               rows={3}
               placeholder="Any additional notes or remarks about this trip..."
               {...register('remarks')}
@@ -844,4 +789,3 @@ const TripForm: React.FC<TripFormProps> = ({
 };
 
 export default TripForm;
-```
