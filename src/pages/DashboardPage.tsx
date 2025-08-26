@@ -254,6 +254,7 @@ const DashboardPage: React.FC = () => {
               tabIndex={0}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
               className="col-span-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center"
+            >
               <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
               <div>
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
@@ -387,6 +388,16 @@ const DashboardPage: React.FC = () => {
               <p className="text-gray-500 dark:text-gray-400">New trips added, maintenance updates, uploads</p>
               <p className="text-gray-500 dark:text-gray-400 mt-2">Recent activity log coming soon.</p>
             </Card>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
           >
             <MileageChart trips={trips} />
           </div>
