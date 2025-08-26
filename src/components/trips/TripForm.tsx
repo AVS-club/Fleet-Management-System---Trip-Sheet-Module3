@@ -376,12 +376,12 @@ const TripForm: React.FC<TripFormProps> = ({
                   type="button"
                   onClick={() => field.onChange(!field.value)}
                   aria-pressed={field.value}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
+                  className={\`relative inline-flex h-5 w-9 items-center rounded-full transition ${
                     field.value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                    className={\`inline-block h-4 w-4 transform rounded-full bg-white transition ${
                       field.value ? 'translate-x-5' : 'translate-x-1'
                     }`}
                   />
@@ -410,7 +410,7 @@ const TripForm: React.FC<TripFormProps> = ({
               { value: '', label: 'Select Vehicle' },
               ...vehicles.map(vehicle => ({
                 value: vehicle.id,
-                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
+                label: \`${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
               }))
             ]}
             required
@@ -425,7 +425,7 @@ const TripForm: React.FC<TripFormProps> = ({
               { value: '', label: 'Select Driver' },
               ...drivers.map(driver => ({
                 value: driver.id || '',
-                label: `${driver.name} - ${driver.license_number}`
+                label: \`${driver.name} - ${driver.license_number}`
               }))
             ]}
             required
@@ -469,7 +469,7 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
                 <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                  Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
+                  Route deviation: <span className={\`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
                     {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
                   </span>
                 </p>
