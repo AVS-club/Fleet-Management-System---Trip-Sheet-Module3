@@ -4,7 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
-import StatCard from '../components/ui/StatCard';
+import Card from '../components/ui/Card'; // New Card component
+import SnapshotStrip from '../components/SnapshotStrip'; // New SnapshotStrip component
+import { Truck, Gauge, Fuel, Users, FileText, Wrench, Calendar, Activity, IndianRupee, Bell, TrendingUp } from 'lucide-react'; // Icons for cards
+
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
@@ -12,7 +15,6 @@ import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
 import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
-import { getMileageInsights } from '../utils/mileageCalculator';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +22,6 @@ const DashboardPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -78,7 +79,6 @@ const DashboardPage: React.FC = () => {
     }) : [];
     
     // Get mileage insights
-    const mileageInsights = getMileageInsights(trips);
     
     // Calculate date range for summary
     const tripDates = Array.isArray(trips) && trips.length > 0 
@@ -94,10 +94,10 @@ const DashboardPage: React.FC = () => {
       totalFuel,
       avgMileage,
       tripsThisMonth: tripsThisMonth.length,
-      lastTripDate: trips.length > 0 
+      lastTripDate: trips.length > 0
         ? new Date(Math.max(...trips.map(t => new Date(t.trip_start_date || new Date()).getTime())))
         : undefined,
-      bestVehicle: null,
+      bestVehicle: null, // This will be fetched in a separate useEffect
       bestVehicleMileage: mileageInsights.bestVehicleMileage,
       bestDriver: null,
       bestDriverMileage: mileageInsights.bestDriverMileage,
@@ -106,7 +106,7 @@ const DashboardPage: React.FC = () => {
       latestTripDate
     };
   }, [trips]);
-
+  
   // Fetch best vehicle and driver data
   const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
   const [bestDriver, setBestDriver] = useState<Driver | null>(null);
@@ -175,84 +175,58 @@ const DashboardPage: React.FC = () => {
             )}
           </div>
         </div>
-
-        {/* Date Range Summary */}
+        
+        {/* Snapshot Strip */}
+        <SnapshotStrip vehicles={vehicles} drivers={drivers} trips={trips} />
 
         {/* Key Metrics Section */}
         <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
           <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
           Key Metrics
         </h2>
-
+        
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div
             onClick={() => navigate("/trips")}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
-            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")} // Accessibility
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all" // Click affordance
           >
-            <StatCard
-              title="Total Trips"
-              value={stats.totalTrips}
-              icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-              trend={stats.tripsThisMonth > 0 ? {
-                value: 12,
-                label: "vs last month",
-                isPositive: true
-              } : undefined}
-            />
+            <Card title="Total Trips" icon={<BarChart2 />}>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalTrips}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {stats.tripsThisMonth > 0 ? `+12% vs last month` : `No trips this month`}
+              </p>
+            </Card>
           </div>
 
           <div
-            onClick={() => navigate("/trips")}
+            onClick={() => navigate("/trips?view=distance")}
             role="button"
             tabIndex={0}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
-            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips?view=distance")} // Accessibility
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all" // Click affordance
           >
-            <StatCard
-              title="Total Distance"
-              value={stats.totalDistance.toLocaleString()}
-              className={
-                stats.avgMileage > 4.0
-                  ? "bg-emerald-50"
-                  : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
-                  ? "bg-orange-50"
-                  : stats.avgMileage < 3.0 && stats.avgMileage > 0
-                  ? "bg-red-50"
-                  : ""
-              }
-              subtitle="km"
-              icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-            />
+            <Card title="Total Distance" icon={<TrendingUp />}>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDistance.toLocaleString()} km</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Across {vehicles.filter(v => v.status !== 'archived').length} vehicles
+              </p>
+            </Card>
           </div>
 
           {hasRefuelingData ? (
             <>
-              <StatCard
-                title="Average Mileage"
-                value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
-            className={
-              stats.avgMileage > 4.0
-                ? "bg-emerald-50"
-                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
-                ? "bg-orange-50"
-                : stats.avgMileage < 3.0 && stats.avgMileage > 0
-                ? "bg-red-50"
-                : ""
-            }
-                subtitle="km/L"
-                icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-              />
-              
-              <StatCard
-                title="Total Fuel Used"
-                value={stats.totalFuel.toLocaleString()}
-                subtitle="L"
-                icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-              />
+              <Card title="Average Mileage" icon={<Gauge />}>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"} km/L</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Fleet average</p>
+              </Card>
+              <Card title="Total Fuel Used" icon={<Fuel />}>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalFuel.toLocaleString()} L</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Across all trips</p>
+              </Card>
             </>
           ) : (
             <div
@@ -340,13 +314,61 @@ const DashboardPage: React.FC = () => {
           Detailed Analytics
         </h2>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
-          <div
-            onClick={() => navigate("/trips")}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
-            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+          {/* Left Column (8 cols) */}
+          <div className="xl:col-span-8 space-y-4">
+            <Card title="Mileage Trends" onClick={() => navigate("/trips?view=mileage")} icon={<TrendingUp />}>
+              {/* Existing MileageChart component */}
+              <MileageChart trips={trips} />
+            </Card>
+
+            <Card title="Fuel Consumption (30d)" onClick={() => navigate("/trips?view=fuel")} icon={<Fuel />}>
+              {/* Existing MonthlyFuelConsumptionChart component */}
+              <MonthlyFuelConsumptionChart trips={trips} dateRange={effectiveDateRange} />
+            </Card>
+
+            <Card title="Cost per KM" onClick={() => navigate("/trips?view=cost-per-km")} icon={<IndianRupee />}>
+              <p className="text-gray-500 dark:text-gray-400">Overall + segmented by tag (pickup/6W/10W)</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Cost per KM chart coming soon.</p>
+            </Card>
+
+            <Card title="Trip Expense Breakdown" onClick={() => navigate("/trips?view=expenses")} icon={<IndianRupee />}>
+              <p className="text-gray-500 dark:text-gray-400">Bata, toll/FASTag, unloading, road/RTO</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Trip Expense Breakdown chart coming soon.</p>
+            </Card>
+
+            <Card title="Best / Worst Vehicle & Driver" onClick={() => navigate("/vehicles?sort=kmpl")} icon={<Award />}>
+              <p className="text-gray-500 dark:text-gray-400">Based on cost per km & mileage</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Best/Worst Vehicle & Driver insights coming soon.</p>
+            </Card>
+          </div>
+
+          {/* Right Column (4 cols) */}
+          <div className="xl:col-span-4 space-y-4">
+            <Card title="AVS Insights" onClick={() => navigate("/alerts")} icon={<Bell />}>
+              <p className="text-gray-500 dark:text-gray-400">AI alerts hub</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Route deviation, mileage anomalies, driver bata highlights.</p>
+            </Card>
+
+            <Card title="Document Expiries (30/60/90d)" onClick={() => navigate("/vehicles?tab=docs&filter=expiring")} icon={<FileText />}>
+              <p className="text-gray-500 dark:text-gray-400">Insurance / PUC / Permit compliance rate</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Document expiry list coming soon.</p>
+            </Card>
+
+            <Card title="Maintenance Queue" onClick={() => navigate("/maintenance?filter=in-progress")} icon={<Wrench />}>
+              <p className="text-gray-500 dark:text-gray-400">Count by status: In progress / Awaiting parts / Rework</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Maintenance queue details coming soon.</p>
+            </Card>
+
+            <Card title="Upcoming Service (km/date)" onClick={() => navigate("/maintenance?filter=upcoming")} icon={<Calendar />}>
+              <p className="text-gray-500 dark:text-gray-400">Uses service_interval_km/service_interval_days</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Upcoming service details coming soon.</p>
+            </Card>
+
+            <Card title="Recent Activity (5 items)" onClick={() => navigate("/admin/activity-logs")} icon={<Activity />}>
+              <p className="text-gray-500 dark:text-gray-400">New trips added, maintenance updates, uploads</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Recent activity log coming soon.</p>
+            </Card>
           >
             <MileageChart trips={trips} />
           </div>

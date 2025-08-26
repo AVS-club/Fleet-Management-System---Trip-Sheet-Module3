@@ -3,6 +3,12 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'class',
   theme: {
+    // Map neutral to gray for consistency with prompt
+    // This ensures neutral-200/60 and neutral-800 work as expected
+    // while keeping existing gray shades.
+    // If you want to replace gray entirely, remove the gray object below
+    // and rename neutral to gray.
+    neutral: { ...require('./src/tailwind-colors').gray },
     extend: {
       colors: {
         primary: {
@@ -10,6 +16,7 @@ export default {
           100: '#C8E6C9',
           200: '#A5D6A7',
           300: '#81C784',
+          // New brand green
           400: '#66BB6A',
           500: '#4CAF50',
           600: '#43A047',
@@ -17,6 +24,7 @@ export default {
           800: '#2E7D32',
           900: '#1B5E20',
           950: '#0A3D0A',
+          'brand-green': '#1BBF8C', // New brand green
         },
         secondary: {
           50: '#E1F5FE',
@@ -96,6 +104,11 @@ export default {
           900: '#111827',
           950: '#030712',
         },
+        // New custom colors for dashboard
+        'light-green-bg': '#E9F8F2',
+        'dark-teal-text': '#0A7F5D',
+        'brand-green-primary': '#1BBF8C',
+        'neutral': { ...require('./src/tailwind-colors').gray }, // Ensure neutral is defined
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',

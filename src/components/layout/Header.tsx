@@ -21,7 +21,10 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 dark:border-gray-700 dark:bg-gray-900/80">
+    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-gray-200 dark:border-gray-700 dark:bg-gray-900/80"> 
+      {/* Subtle gradient bottom rule */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#1BBF8C]/30 to-[#0A7F5D]/30"></div>
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <button

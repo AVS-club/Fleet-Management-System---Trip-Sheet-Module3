@@ -19,7 +19,7 @@ const AppNav: React.FC = () => {
             <NavLink
               key={to}
               to={to}
-              className={({ isActive: navIsActive }) =>
+              className={({ isActive: navIsActive }) => 
                 cn(
                   "group inline-flex items-center rounded-lg px-2.5 py-2 lg:px-3 transition-colors",
                   "text-gray-600 hover:text-primary-700 hover:bg-primary-50",
@@ -64,8 +64,8 @@ const AppNav: React.FC = () => {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 rounded-md text-base transition-colors",
                     isActive 
-                      ? "bg-primary-100 text-primary-700 font-medium" 
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-light-green-bg text-dark-teal-text font-medium" 
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-gray-100"
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                   end={to === "/"}
