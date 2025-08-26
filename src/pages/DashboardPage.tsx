@@ -13,6 +13,7 @@ import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
 import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
+import DashboardQuickLinks from '../components/DashboardQuickLinks';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -251,6 +252,18 @@ const DashboardPage: React.FC = () => {
               </div>
             </>
           )}
+        </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Quick Access Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+          <LayoutDashboard className="h-5 w-5 mr-2 text-primary-600" />
+          Quick Access
+        </h2>
+        
+        <div className="mb-6">
+          <DashboardQuickLinks />
         </div>
 
         <hr className="my-6 border-gray-200 dark:border-gray-700" />
