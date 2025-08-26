@@ -1,3 +1,4 @@
+```typescript
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
@@ -843,3 +844,4 @@ const TripForm: React.FC<TripFormProps> = ({
 };
 
 export default TripForm;
+```
