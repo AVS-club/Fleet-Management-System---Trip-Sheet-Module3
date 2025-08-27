@@ -70,7 +70,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       }
     };
     
-    onDestinationSelect(destination);
+    fetchMostUsed();
   }, []);
 
   // Handle search
@@ -164,46 +164,49 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
 
   // Handle frequent destination selection
   const handleFrequentDestinationSelect = async (destination: FrequentDestination) => {
-    
     // Check if destination already exists by place_id
-    let destination: Destination | null = null;
+    let destinationData: Destination | null = null;
     
-    if (place.place_id) {
+    try {
       // First try to find existing destination by place_id
       const { getDestinationByPlaceId } = await import('../../utils/storage');
-      destination = await getDestinationByPlaceId(place.place_id);
+      destinationData = await getDestinationByPlaceId(destination.id);
+    } catch (error) {
+      console.error('Error finding destination:', error);
     }
     
-    if (!destination) {
+    if (!destinationData) {
       // Create new destination if it doesn't exist
-      const destinationData = {
-        name: place.name || place.formatted_address || 'Unknown Location',
-        latitude: place.geometry.location.lat(),
-        longitude: place.geometry.location.lng(),
+      const newDestinationData = {
+        name: destination.name || 'Unknown Location',
+        latitude: 0,
+        longitude: 0,
         standard_distance: 0,
         estimated_time: '0h 0m',
         historical_deviation: 0,
-        type: 'city' as const,
+        type: destination.type as 'city' | 'district' | 'town' | 'village',
         state: 'odisha' as const,
         active: true,
-        place_id: place.place_id || null,
-        formatted_address: place.formatted_address || null,
+        place_id: destination.id || null,
+        formatted_address: null,
       };
       
       const { createDestination } = await import('../../utils/storage');
-      destination = await createDestination(destinationData);
+      destinationData = await createDestination(newDestinationData);
     }
     
-    if (destination) {
-      onDestinationSelect(destination);
-      setSearchQuery('');
-      setIsOpen(false);
+    if (destinationData) {
+      onDestinationSelect(destinationData);
+      setSearchTerm('');
+      setShowAddAnother(false);
     }
   };
 
   const handleExistingDestinationSelect = (destination: Destination) => {
     const destData: Destination = {
       ...destination
+    };
+    onDestinationSelect(destData);
   };
 
   const getTypeIcon = (type: string) => {
