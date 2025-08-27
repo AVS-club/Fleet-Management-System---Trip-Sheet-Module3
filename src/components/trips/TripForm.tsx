@@ -55,6 +55,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
+  const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
+  const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -639,7 +641,6 @@ const TripForm: React.FC<TripFormProps> = ({
                   value={watchedValues.fuel_quantity || 0}
                   disabled
                   size="sm"
-                  helperText="Auto-calculated from cost ÷ rate"
                 />
 
             <div className="mt-3">
@@ -649,8 +650,9 @@ const TripForm: React.FC<TripFormProps> = ({
                 multiple={true}
                 value={watchedValues.fuel_bill_file as File[]}
                 onChange={(files) => setValue('fuel_bill_file', files)}
-                helperText="Upload fuel bill or receipt (optional)"
                 variant="compact"
+                uploadProgress={fuelBillUploadProgress}
+                uploadStatus={fuelBillUploadStatus}
               />
             </div>
           </div>
@@ -838,7 +840,7 @@ const TripForm: React.FC<TripFormProps> = ({
         <Button
           type="submit"
           isLoading={isSubmitting}
-          disabled={isSubmitting}
+          disabled={isSubmitting || fuelBillUploadStatus === 'uploading'}
           className="w-full md:w-auto order-1 md:order-2"
         >
           {initialData ? 'Update Trip' : 'Save Trip'}

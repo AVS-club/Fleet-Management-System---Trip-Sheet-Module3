@@ -223,13 +223,15 @@ export const getSignedDriverDocumentUrl = async (
  * @param bucketId - The Supabase Storage bucket name.
  * @param pathPrefix - The folder path prefix (e.g., "{userId}/drivingLicence").
  * @param files - Array of File objects to upload.
+ * @param onProgress - Optional callback for progress updates (0-100).
  * @returns Array of public URLs for the uploaded files.
  * @throws Error if any upload fails.
  */
 export async function uploadFilesAndGetPublicUrls(
   bucketId: string,
   pathPrefix: string,
-  files: File[]
+  files: File[],
+  onProgress?: (progress: number) => void
 ): Promise<string[]> {
   // Handle case where files is null or undefined
   if (!files || files.length === 0) {
@@ -238,9 +240,11 @@ export async function uploadFilesAndGetPublicUrls(
 
   try {
     const uploadedPaths: string[] = [];
+    const totalFiles = files.length;
 
-    await Promise.all(
-      files.map(async (file, i) => {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
         const docName = pathPrefix.split("/").pop() || "document";
         const ext = file.name.split(".").pop();
         const filePath = `${pathPrefix}/${docName}_${i}.${ext}`;
@@ -249,8 +253,17 @@ export async function uploadFilesAndGetPublicUrls(
           .upload(filePath, file, { upsert: true });
         if (error) throw error;
         if (data?.path) uploadedPaths.push(data.path);
-      })
-    );
+        
+        // Report progress
+        if (onProgress) {
+          const progress = Math.round(((i + 1) / totalFiles) * 100);
+          onProgress(progress);
+        }
+      } catch (error) {
+        console.error(`Error uploading file ${i}:`, error);
+        throw error;
+      }
+    }
 
     // Get public URLs for all uploaded files
     const urls = uploadedPaths.map((path) => {
