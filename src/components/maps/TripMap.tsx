@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Warehouse, Destination } from '../../types';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 
 interface TripMapProps {
   warehouse?: Warehouse;
@@ -9,6 +9,11 @@ interface TripMapProps {
   className?: string;
   optimizedOrder?: Destination[];
   showOptimizedRoute?: boolean;
+}
+
+interface MapStatus {
+  message: string;
+  type: 'error' | 'info';
 }
 
 const TripMap: React.FC<TripMapProps> = ({
@@ -20,26 +25,50 @@ const TripMap: React.FC<TripMapProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<MapStatus | null>(null);
 
-  const getDirectionsErrorMessage = (status: google.maps.DirectionsStatus): string => {
+  const getDirectionsErrorMessage = (status: google.maps.DirectionsStatus): MapStatus => {
     switch (status) {
       case google.maps.DirectionsStatus.ZERO_RESULTS:
-        return 'No drivable route found between the selected locations. Please check the coordinates or try different locations.';
+        return {
+          message: 'No drivable route found between the selected locations. Please check the coordinates or try different locations.',
+          type: 'info'
+        };
       case google.maps.DirectionsStatus.NOT_FOUND:
-        return 'One or more locations could not be found. Please verify the coordinates.';
+        return {
+          message: 'One or more locations could not be found. Please verify the coordinates.',
+          type: 'error'
+        };
       case google.maps.DirectionsStatus.OVER_QUERY_LIMIT:
-        return 'Too many requests. Please try again later.';
+        return {
+          message: 'Too many requests. Please try again later.',
+          type: 'error'
+        };
       case google.maps.DirectionsStatus.REQUEST_DENIED:
-        return 'Directions request was denied. Please check your API key permissions.';
+        return {
+          message: 'Directions request was denied. Please check your API key permissions.',
+          type: 'error'
+        };
       case google.maps.DirectionsStatus.INVALID_REQUEST:
-        return 'Invalid directions request. Please check the route parameters.';
+        return {
+          message: 'Invalid directions request. Please check the route parameters.',
+          type: 'error'
+        };
       case google.maps.DirectionsStatus.MAX_WAYPOINTS_EXCEEDED:
-        return 'Too many waypoints in the route. Please reduce the number of destinations.';
+        return {
+          message: 'Too many waypoints in the route. Please reduce the number of destinations.',
+          type: 'error'
+        };
       case google.maps.DirectionsStatus.MAX_ROUTE_LENGTH_EXCEEDED:
-        return 'The route is too long. Please try a shorter route.';
+        return {
+          message: 'The route is too long. Please try a shorter route.',
+          type: 'error'
+        };
       default:
-        return `Directions request failed: ${status}`;
+        return {
+          message: `Directions request failed: ${status}`,
+          type: 'error'
+        };
     }
   };
 
@@ -47,12 +76,12 @@ const TripMap: React.FC<TripMapProps> = ({
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     if (!apiKey) {
-      setError('Google Maps API key is missing');
+      setStatus({ message: 'Google Maps API key is missing', type: 'error' });
       return;
     }
 
     if (!warehouse && (!Array.isArray(destinations) || destinations.length === 0)) {
-      setError('No locations to display');
+      setStatus({ message: 'No locations to display', type: 'info' });
       return;
     }
 
@@ -93,7 +122,7 @@ const TripMap: React.FC<TripMapProps> = ({
         }
 
         if (!hasValidLocation) {
-          setError('No valid location coordinates found');
+          setStatus({ message: 'No valid location coordinates found', type: 'info' });
           return;
         }
 
@@ -215,7 +244,7 @@ const TripMap: React.FC<TripMapProps> = ({
                 directionsRenderer.setDirections(result);
               } else {
                 console.error('Directions request failed:', status);
-                setError(getDirectionsErrorMessage(status));
+                setStatus(getDirectionsErrorMessage(status));
               }
             });
           }
@@ -223,20 +252,28 @@ const TripMap: React.FC<TripMapProps> = ({
 
       } catch (err) {
         console.error('Error initializing map:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize map');
+        setStatus({ 
+          message: err instanceof Error ? err.message : 'Failed to initialize map', 
+          type: 'error' 
+        });
       }
     }).catch(err => {
       console.error('Error loading Google Maps:', err);
-      setError('Failed to load Google Maps');
+      setStatus({ message: 'Failed to load Google Maps', type: 'error' });
     });
   }, [warehouse, destinations, optimizedOrder, showOptimizedRoute]);
 
-  if (error) {
+  if (status) {
+    const bgColor = status.type === 'error' ? 'bg-error-50 border-error-200' : 'bg-blue-50 border-blue-200';
+    const textColor = status.type === 'error' ? 'text-error-700' : 'text-blue-700';
+    const iconColor = status.type === 'error' ? 'text-error-500' : 'text-blue-500';
+    const Icon = status.type === 'error' ? AlertTriangle : Info;
+    
     return (
-      <div className={`${className} bg-error-50 border border-error-200 rounded-lg flex items-center justify-center`}>
+      <div className={`${className} ${bgColor} border rounded-lg flex items-center justify-center`}>
         <div className="text-center p-4">
-          <AlertTriangle className="h-8 w-8 text-error-500 mx-auto mb-2" />
-          <p className="text-error-700">{error}</p>
+          <Icon className={`h-8 w-8 ${iconColor} mx-auto mb-2`} />
+          <p className={textColor}>{status.message}</p>
         </div>
       </div>
     );
