@@ -111,9 +111,6 @@ const TripDetailsPage: React.FC = () => {
   const handleUpdate = async (data: TripFormData) => {
     if (!trip) return;
     
-    // Extract destination IDs from the destination objects
-    const destinationIds = data.destinations;
-    
     setIsSubmitting(true);
     
     try {
