@@ -3,7 +3,6 @@ import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
 import { MaterialType } from '../../utils/materialTypes';
 import { AIAlert } from '../../types';
-import { truncateString } from '../../utils/format';
 import Button from '../ui/Button';
 import { 
   Calendar, 
@@ -265,7 +264,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                         <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
                           {index + 1}
                         </span>
-                        {truncateString(dest.name)}
+                        {dest.name}
                       </span>
                     ))
                   ) : (

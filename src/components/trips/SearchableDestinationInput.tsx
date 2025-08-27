@@ -3,7 +3,6 @@ import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucid
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getDestinations } from '../../utils/storage';
 import { Destination } from '../../types';
-import { truncateString } from '../../utils/format';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 
@@ -248,7 +247,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                 </div>
                 
                 <MapPin className="h-4 w-4 mr-1" />
-                <span className="font-medium">{truncateString(destination.name)}</span>
+                <span className="font-medium">{destination.name}</span>
                 
                 <button
                   type="button"
@@ -320,7 +319,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                     >
                       {getTypeIcon(destination.type)}
                       <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{destination.name}</span>
-                      <span className="ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}">
+                      <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
                         {destination.type}
                       </span>
                     </button>
