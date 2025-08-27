@@ -19,9 +19,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
       <div className="text-center">
         <div className="flex justify-center mb-4">
           <img
-            src="https://images.pexels.com/photos/1118448/pexels-photo-1118448.jpeg?auto=compress&cs=tinysrgb&w=96&h=96&fit=crop"
+            src="/assets/logo.png"
             alt="Auto Vital Solution Logo"
             className="h-24 w-auto object-contain"
+            onError={(e) => {
+              // Fallback to Pexels image if local logo fails
+              (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1118448/pexels-photo-1118448.jpeg?auto=compress&cs=tinysrgb&w=96&h=96&fit=crop';
+            }}
           />
         </div>
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Auto Vital Solution</h1>
