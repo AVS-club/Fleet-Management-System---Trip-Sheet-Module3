@@ -600,7 +600,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
     const { data, error } = await supabase
       .from('trips')
-      .select('*')
+      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id, refueling_done, fuel_quantity, fuel_rate_per_liter')
       .eq('added_by', user.id)
       .order('trip_start_date', { ascending: false });
 
