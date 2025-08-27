@@ -139,7 +139,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
     onChange(rate);
   };
 
-  const displayValue = selectedRate ? `₹${selectedRate.toFixed(2)}` : '';
+  const displayValue = selectedRate ? \`₹${selectedRate.toFixed(2)}` : '';
 
   return (
     <div className="space-y-2">
