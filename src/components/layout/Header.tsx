@@ -31,13 +31,10 @@ const Header: React.FC = () => {
           title="Auto Vital Solution"
         >
           <img 
-            src="/assets/logo.png" 
+            src="https://images.pexels.com/photos/1118448/pexels-photo-1118448.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop" 
             alt="Auto Vital Solution" 
             className="h-8 w-auto" 
-            onError={(e) => {
-              // Fallback to Pexels image if local logo fails
-              (e.target as HTMLImageElement).src = 'https://images.pexels.com/photos/1118448/pexels-photo-1118448.jpeg?auto=compress&cs=tinysrgb&w=64&h=64&fit=crop';
-            }} 
+            onError={(e) => {(e.target as HTMLImageElement).style.display='none'}} 
           />
           <span className="hidden sm:inline text-gray-900 dark:text-gray-100 font-semibold whitespace-nowrap">
             Auto Vital Solution
