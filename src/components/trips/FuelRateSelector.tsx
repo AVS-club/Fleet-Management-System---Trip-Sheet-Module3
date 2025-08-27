@@ -6,28 +6,64 @@ import { cn } from '../../utils/cn';
 interface FuelRateSelectorProps {
   selectedRate?: number;
   onChange: (rate: number) => void;
-  trips: Trip[];
   warehouses: Warehouse[];
   selectedWarehouseId?: string;
   error?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
+
+// Define warehouse colors for consistent UI
+const WAREHOUSE_COLORS = [
+  { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
+  { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
+  { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
+  { bg: 'bg-purple-100', text: 'text-purple-800', dot: 'bg-purple-500' },
+  { bg: 'bg-pink-100', text: 'text-pink-800', dot: 'bg-pink-500' },
+  { bg: 'bg-indigo-100', text: 'text-indigo-800', dot: 'bg-indigo-500' },
+];
+
+// Get consistent color for warehouse based on its name
+const getWarehouseColor = (warehouseName: string) => {
+  const hash = warehouseName.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  return WAREHOUSE_COLORS[Math.abs(hash) % WAREHOUSE_COLORS.length];
+};
 
 const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
   selectedRate,
   onChange,
-  trips,
   warehouses,
   selectedWarehouseId,
-  error
+  error,
+  size = 'md'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [customRate, setCustomRate] = useState('');
+  const [trips, setTrips] = useState<Trip[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch trips data on component mount
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const { getTrips } = await import('../../utils/storage');
+        const tripsData = await getTrips();
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
+      } catch (error) {
+        console.error('Error fetching trips:', error);
+        setTrips([]);
+      }
+    };
+    
+    fetchTrips();
+  }, []);
+
   // Get past fuel rates from trips
-  const pastRates = useMemo(() => {
+  const { pastRates, frequentRates } = useMemo(() => {
     const rateMap = new Map<number, { count: number; warehouseNames: Set<string> }>();
     
     (trips ?? []).forEach(trip => {
@@ -52,7 +88,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
     });
 
     // Convert to array and sort by frequency (most used first)
-    return Array.from(rateMap.entries())
+    const allRates = Array.from(rateMap.entries())
       .map(([rate, data]) => ({
         rate,
         count: data.count,
@@ -60,8 +96,21 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10); // Limit to top 10 rates
+    
+    // Get top 4 for frequent rates display
+    const topFrequentRates = allRates.slice(0, 4);
+    
+    return {
+      pastRates: allRates,
+      frequentRates: topFrequentRates
+    };
   }, [trips, warehouses]);
 
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-xs',
+    md: 'px-3 py-2 text-sm', 
+    lg: 'px-4 py-3 text-base'
+  };
   // Filter rates based on search term
   const filteredRates = pastRates.filter(rateData => 
     rateData.rate.toString().includes(searchTerm) ||
@@ -99,6 +148,11 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
     }
   };
 
+  // Handle frequent rate chip click
+  const handleFrequentRateClick = (rate: number) => {
+    onChange(rate);
+  };
+
   const displayValue = selectedRate ? `₹${selectedRate.toFixed(2)}` : '';
 
   return (
@@ -114,6 +168,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
             "flex items-center justify-between px-3 py-2 border rounded-md bg-white cursor-pointer",
             error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 bg-white dark:bg-gray-800",
             "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200"
+            sizeClasses[size]
           )}
           onClick={() => setIsOpen(true)}
         >
@@ -127,6 +182,40 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
           )}
         </div>
 
+        {/* Frequent Rates Quick Chips - Always visible below input */}
+        {frequentRates.length > 0 && (
+          <div className="mt-2 space-y-2">
+            <p className="text-xs font-medium text-gray-600">Frequently used at:</p>
+            <div className="flex flex-wrap gap-2">
+              {frequentRates.map((rateData) => {
+                const warehouseName = rateData.warehouseNames[0] || 'Unknown';
+                const color = getWarehouseColor(warehouseName);
+                
+                return (
+                  <button
+                    key={rateData.rate}
+                    type="button"
+                    onClick={() => handleFrequentRateClick(rateData.rate)}
+                    className={cn(
+                      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:shadow-sm",
+                      color.bg, color.text, "border-current hover:opacity-90"
+                    )}
+                  >
+                    <span className={cn("w-2 h-2 rounded-full mr-2", color.dot)}></span>
+                    ₹{rateData.rate.toFixed(2)} — {warehouseName}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        {/* No past rates fallback */}
+        {frequentRates.length === 0 && !isOpen && (
+          <div className="mt-2">
+            <p className="text-xs text-gray-500">No past fuel rates available.</p>
+          </div>
+        )}
         {isOpen && (
           <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
             {/* Search/Custom Input */}
@@ -170,7 +259,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
 
             {/* Past Rates */}
             <div className="max-h-40 overflow-y-auto">
-              {filteredRates.length > 0 ? ( /* Added dark mode classes */
+              {filteredRates.length > 0 ? (
                 filteredRates.map((rateData) => (
                   <div
                     key={rateData.rate}
@@ -200,7 +289,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
             </div>
 
             {/* Current Warehouse Suggestion */}
-            {selectedWarehouseId && ( /* Added dark mode classes */
+            {selectedWarehouseId && (
               <div className="p-2 border-t border-gray-200 bg-gray-50">
                 <div className="text-xs text-gray-600">
                   💡 Tip: Rates at {warehouses.find(w => w.id === selectedWarehouseId)?.name || 'this location'} 
