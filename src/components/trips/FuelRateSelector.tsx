@@ -8,6 +8,7 @@ interface FuelRateSelectorProps {
   onChange: (rate: number) => void;
   warehouses: Warehouse[];
   selectedWarehouseId?: string;
+  trips?: Trip[];
   error?: string;
   size?: 'sm' | 'md' | 'lg';
 }
@@ -45,37 +46,22 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
   onChange,
   warehouses,
   selectedWarehouseId,
+  trips = [],
   error,
   size = 'md'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [customRate, setCustomRate] = useState('');
-  const [trips, setTrips] = useState<Trip[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch trips data on component mount
-  useEffect(() => {
-    const fetchTrips = async () => {
-      try {
-        const { getTrips } = await import('../../utils/storage');
-        const tripsData = await getTrips();
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-      } catch (error) {
-        console.error('Error fetching trips:', error);
-        setTrips([]);
-      }
-    };
-    
-    fetchTrips();
-  }, []);
 
   // Get past fuel rates from trips
   const { pastRates, frequentRates } = useMemo(() => {
     const rateMap = new Map<number, { count: number; warehouseNames: Set<string> }>();
     
-    (trips ?? []).forEach(trip => {
+    if (Array.isArray(trips)) {
+      trips.forEach(trip => {
       if (trip.refueling_done && trip.fuel_rate_per_liter && trip.fuel_rate_per_liter > 0) {
         const rate = Math.round(trip.fuel_rate_per_liter * 100) / 100; // Round to 2 decimal places
         
@@ -94,7 +80,8 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
           }
         }
       }
-    });
+      });
+    }
 
     // Convert to array and sort by frequency (most used first)
     const allRates = Array.from(rateMap.entries())
