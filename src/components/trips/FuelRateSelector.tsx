@@ -167,7 +167,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
           className={cn(
             "flex items-center justify-between px-3 py-2 border rounded-md bg-white cursor-pointer",
             error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 bg-white dark:bg-gray-800",
-            "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200"
+            "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200",
             sizeClasses[size]
           )}
           onClick={() => setIsOpen(true)}
