@@ -293,7 +293,7 @@ const TripForm: React.FC<TripFormProps> = ({
     performRouteAnalysis();
   }, [selectedWarehouseId, selectedDestinationObjects]);
 
-  const handleFormSubmit = (data: TripFormData) => {
+  const handleFormSubmit = async (data: TripFormData) => {
     // Calculate mileage if refueling data is available
     if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
       const distance = data.end_km - data.start_km;
@@ -317,7 +317,12 @@ const TripForm: React.FC<TripFormProps> = ({
       data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
     }
 
-    onSubmit(data);
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      // Rethrow the error so react-hook-form can handle focus management
+      throw error;
+    }
   };
 
   if (loading) {
