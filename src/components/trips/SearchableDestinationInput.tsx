@@ -69,8 +69,8 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         console.error('Error fetching destinations:', error);
       }
     };
-
-    fetchMostUsed();
+    
+    onDestinationSelect(destination);
   }, []);
 
   // Handle search
@@ -164,22 +164,46 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
 
   // Handle frequent destination selection
   const handleFrequentDestinationSelect = async (destination: FrequentDestination) => {
-    // For frequent destinations, we already have the data
-    const destData: Destination = {
-      id: destination.id,
-      name: destination.name,
-      latitude: 0, // These would be fetched from the database
-      longitude: 0,
-      standard_distance: 0,
-      estimated_time: '0h 0m',
-      historical_deviation: 0,
-      type: destination.type as any,
-      state: 'chhattisgarh',
-      active: true
-    };
+    
+    // Check if destination already exists by place_id
+    let destination: Destination | null = null;
+    
+    if (place.place_id) {
+      // First try to find existing destination by place_id
+      const { getDestinationByPlaceId } = await import('../../utils/storage');
+      destination = await getDestinationByPlaceId(place.place_id);
+    }
+    
+    if (!destination) {
+      // Create new destination if it doesn't exist
+      const destinationData = {
+        name: place.name || place.formatted_address || 'Unknown Location',
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng(),
+        standard_distance: 0,
+        estimated_time: '0h 0m',
+        historical_deviation: 0,
+        type: 'city' as const,
+        state: 'odisha' as const,
+        active: true,
+        place_id: place.place_id || null,
+        formatted_address: place.formatted_address || null,
+      };
+      
+      const { createDestination } = await import('../../utils/storage');
+      destination = await createDestination(destinationData);
+    }
+    
+    if (destination) {
+      onDestinationSelect(destination);
+      setSearchQuery('');
+      setIsOpen(false);
+    }
+  };
 
-    onDestinationSelect(destData);
-    setShowAddAnother(false);
+  const handleExistingDestinationSelect = (destination: Destination) => {
+    const destData: Destination = {
+      ...destination
   };
 
   const getTypeIcon = (type: string) => {

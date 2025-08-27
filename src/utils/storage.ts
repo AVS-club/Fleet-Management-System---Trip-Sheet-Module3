@@ -822,6 +822,13 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
+  // Validate that the ID is a valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    console.warn(`Invalid UUID format for destination ID: ${id}`);
+    return null;
+  }
+
   const { data, error } = await supabase // ⚠️ Confirm field refactor here
     .from('destinations') // ⚠️ Confirm field refactor here
     .select('*')
@@ -836,11 +843,61 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
   return data;
 };
 
+export const getDestinationByPlaceId = async (placeId: string): Promise<Destination | null> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destination by place ID, returning null');
+        return null;
+      }
+      handleSupabaseError('get user for destination by place ID', userError);
+      return null;
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('place_id', placeId)
+      .eq('created_by', user.id)
+      .eq('active', true)
+      .maybeSingle();
+
+    if (error) {
+      handleSupabaseError('fetch destination by place ID', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching destination by place ID, returning null');
+      return null;
+    }
+    handleSupabaseError('get destination by place ID', error);
+    return null;
+  }
+};
+
 export const createDestination = async (destinationData: Omit<Destination, 'id'>): Promise<Destination | null> => {
   try {
     const userId = await getCurrentUserId();
     if (!userId) {
       throw new Error('User not authenticated');
+    }
+
+    // Check if destination with this place_id already exists
+    if (destinationData.place_id) {
+      const existingDestination = await getDestinationByPlaceId(destinationData.place_id);
+      if (existingDestination) {
+        return existingDestination;
+      }
     }
 
     const payload = withOwner(destinationData, userId);
