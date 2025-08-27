@@ -31,6 +31,15 @@ const getWarehouseColor = (warehouseName: string) => {
   return WAREHOUSE_COLORS[Math.abs(hash) % WAREHOUSE_COLORS.length];
 };
 
+// Get a shortened alias for warehouse name
+const getWarehouseAlias = (warehouseName: string) => {
+  const words = warehouseName.split(' ');
+  if (words.length > 1) {
+    return words.map(word => word.charAt(0)).join('').substring(0, 3).toUpperCase();
+  }
+  return warehouseName.substring(0, 3).toUpperCase();
+};
+
 const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
   selectedRate,
   onChange,
@@ -164,30 +173,31 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
       </label>
 
       <div className="relative" ref={dropdownRef}>
-        <div
-          className={cn(
-            "flex items-center justify-between border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
-            error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400",
-            "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200",
-            sizeClasses[size]
-          )}
-          onClick={() => setIsOpen(true)}
-        >
-          <span className={selectedRate ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}>
-            {displayValue || 'Select or enter fuel rate'}
-          </span>
-          {isOpen ? (
-            <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-          )}
-        </div>
+        <div className="grid grid-cols-[1fr_auto] gap-2 items-center"> {/* Grid for input and pills */}
+          <div
+            className={cn(
+              "relative flex items-center justify-between border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
+              error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400",
+              "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200",
+              sizeClasses[size]
+            )}
+            onClick={() => setIsOpen(true)}
+          >
+            <span className={selectedRate ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}>
+              {displayValue || 'Select or enter fuel rate'}
+            </span>
+            <div className="absolute right-0 top-0 bottom-0 flex items-center pr-2 pointer-events-none">
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              )}
+            </div>
+          </div>
 
-        {/* Frequent Rates Quick Chips - Always visible below input */}
-        {frequentRates.length > 0 && (
-          <div className="mt-2 space-y-2">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Frequently used at:</p>
-            <div className="flex flex-wrap gap-2">
+          {/* Frequent Rates Pill Buttons */}
+          {frequentRates.length > 0 ? (
+            <div className="flex flex-wrap gap-2 justify-end">
               {frequentRates.map((rateData) => {
                 const warehouseName = rateData.warehouseNames[0] || 'Unknown';
                 const color = getWarehouseColor(warehouseName);
@@ -198,26 +208,25 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
                     type="button"
                     onClick={() => handleFrequentRateClick(rateData.rate)}
                     className={cn(
-                      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:shadow-sm",
+                      "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border transition-all hover:shadow-sm",
                       color.bg, color.text, "border-current hover:opacity-90"
                     )}
+                    title={`₹${rateData.rate.toFixed(2)} at ${warehouseName}`}
                   >
-                    <span className={cn("w-2 h-2 rounded-full mr-2", color.dot)}></span>
-                    ₹{rateData.rate.toFixed(2)} — {warehouseName}
+                    <span className={cn("w-2 h-2 rounded-full mr-1", color.dot)}></span>
+                    ₹{rateData.rate.toFixed(2)}
+                    <span className="ml-1 opacity-80">{getWarehouseAlias(warehouseName)}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-right">
+              No past rates available.
+            </div>
+          )}
+        </div>
         
-        {/* No past rates fallback */}
-        {frequentRates.length === 0 && !isOpen && (
-          <div className="mt-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400">No past fuel rates available.</p>
-          </div>
-        )}
-
         {isOpen && (
           <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
             {/* Search/Custom Input */}
