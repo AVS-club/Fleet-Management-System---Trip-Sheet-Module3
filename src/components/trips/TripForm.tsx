@@ -15,7 +15,7 @@ import WarehouseSelector from './WarehouseSelector';
 import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
-import FuelRateSelector from 'src/components/trips/FuelRateSelector.tsx';
+import FuelRateSelector from './FuelRateSelector';
 import {
   Truck,
   User,
