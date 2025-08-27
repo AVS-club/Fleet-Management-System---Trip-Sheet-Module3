@@ -1,4 +1,3 @@
-```typescript
 import { supabase } from './supabaseClient';
 import { isNetworkError, handleNetworkError } from './supabaseClient';
 import {
@@ -129,7 +128,7 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
     }
 
     // Strip UI-only fields and prepare data
-    const { documents, selected, ...cleanData } = vehicleData as any;
+    const { documents, selected, ...cleanData } = vehicleData as any; // ⚠️ Confirm field refactor here
     
     // Handle LTT (Lifetime Tax) conversion
     // Replacing "LTT" with a valid future date (10 years from now) to match Supabase date format
@@ -582,7 +581,7 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
 // Trip CRUD operations
 export const getTrips = async (): Promise<Trip[]> => {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser(); // ⚠️ Confirm field refactor here
     
     if (userError) {
       if (isNetworkError(userError)) {
@@ -598,9 +597,9 @@ export const getTrips = async (): Promise<Trip[]> => {
       return [];
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips')
-      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id, refueling_done, fuel_quantity, fuel_rate_per_liter')
+      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id')
       .eq('added_by', user.id)
       .order('trip_start_date', { ascending: false });
 
@@ -1198,4 +1197,3 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
 
 // Export alias for compatibility
 export const hardDeleteVehicle = deleteVehicle;
-```
