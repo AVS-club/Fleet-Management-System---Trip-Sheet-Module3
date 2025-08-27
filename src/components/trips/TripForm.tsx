@@ -35,7 +35,6 @@ interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
   isSubmitting?: boolean;
   trips?: Trip[];
-  allTrips?: Trip[];
   initialData?: Partial<TripFormData>;
 }
 
@@ -43,7 +42,6 @@ const TripForm: React.FC<TripFormProps> = ({
   onSubmit,
   isSubmitting = false,
   trips = [],
-  allTrips = [],
   initialData
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -630,7 +628,6 @@ const TripForm: React.FC<TripFormProps> = ({
                   onChange={(value) => setValue('fuel_rate_per_liter', value)}
                   warehouses={warehouses}
                   selectedWarehouseId={selectedWarehouseId}
-                  trips={allTrips}
                   size="sm"
                 />
 

@@ -225,7 +225,6 @@ const TripsPage: React.FC = () => {
             onSubmit={handleAddTrip}
             isSubmitting={isSubmitting}
             trips={trips}
-            allTrips={trips}
             initialData={editingTrip ? {
               vehicle_id: editingTrip.vehicle_id,
               driver_id: editingTrip.driver_id,
