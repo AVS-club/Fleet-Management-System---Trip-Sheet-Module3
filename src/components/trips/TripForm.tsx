@@ -673,7 +673,8 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
                 <Input
-                  {...field}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
@@ -695,7 +696,8 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
                 <Input
-                  {...field}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
@@ -717,7 +719,8 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
                 <Input
-                  {...field}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
@@ -739,7 +742,8 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
                 <Input
-                  {...field}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
@@ -761,7 +765,8 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
                 <Input
-                  {...field}
+                  value={field.value || 0}
+                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
