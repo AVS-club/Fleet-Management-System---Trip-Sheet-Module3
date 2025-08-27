@@ -6,8 +6,8 @@ import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
-import { Trip, TripFormData, Vehicle, Driver, Destination } from '../types';
-import { getTrips, getVehicles, getDrivers, createTrip, deleteTrip } from '../utils/storage';
+import { Trip, TripFormData, Vehicle, Driver } from '../types';
+import { getTrips, getVehicles, getDrivers, createTrip } from '../utils/storage';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
@@ -86,9 +86,6 @@ const TripsPage: React.FC = () => {
       if (!data.end_km) {
         throw new Error("End KM is required");
       }
-      
-      // Extract destination IDs
-      const destinationIds = data.destinations;
       
       // Handle file upload to Supabase Storage
       let fuelBillUrl: string | undefined = undefined;
