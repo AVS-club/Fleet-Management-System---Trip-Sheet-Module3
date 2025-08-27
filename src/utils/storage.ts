@@ -1098,13 +1098,6 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       throw new Error('Warehouse not found');
     }
 
-    // Validate warehouse coordinates
-    if (typeof warehouse.latitude !== 'number' || typeof warehouse.longitude !== 'number' || 
-        isNaN(warehouse.latitude) || isNaN(warehouse.longitude) ||
-        warehouse.latitude === 0 || warehouse.longitude === 0) {
-      throw new Error('Invalid warehouse coordinates. Please update warehouse location.');
-    }
-
     // Get destinations
     const destinations = await Promise.all(
       destinationIds.map(id => getDestination(id))
@@ -1116,14 +1109,6 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       throw new Error('No valid destinations found');
     }
 
-    // Validate destination coordinates
-    for (const dest of validDestinations) {
-      if (typeof dest.latitude !== 'number' || typeof dest.longitude !== 'number' || 
-          isNaN(dest.latitude) || isNaN(dest.longitude) ||
-          dest.latitude === 0 || dest.longitude === 0) {
-        throw new Error(`Invalid coordinates for destination "${dest.name}". Please update destination location.`);
-      }
-    }
 
     // Create waypoints for map
     const waypoints = [
