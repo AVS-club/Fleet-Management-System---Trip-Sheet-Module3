@@ -69,7 +69,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         console.error('Error fetching destinations:', error);
       }
     };
-    
+
     fetchMostUsed();
   }, []);
 
@@ -164,49 +164,22 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
 
   // Handle frequent destination selection
   const handleFrequentDestinationSelect = async (destination: FrequentDestination) => {
-    // Check if destination already exists by place_id
-    let destinationData: Destination | null = null;
-    
-    try {
-      // First try to find existing destination by place_id
-      const { getDestinationByPlaceId } = await import('../../utils/storage');
-      destinationData = await getDestinationByPlaceId(destination.id);
-    } catch (error) {
-      console.error('Error finding destination:', error);
-    }
-    
-    if (!destinationData) {
-      // Create new destination if it doesn't exist
-      const newDestinationData = {
-        name: destination.name || 'Unknown Location',
-        latitude: 0,
-        longitude: 0,
-        standard_distance: 0,
-        estimated_time: '0h 0m',
-        historical_deviation: 0,
-        type: destination.type as 'city' | 'district' | 'town' | 'village',
-        state: 'odisha' as const,
-        active: true,
-        place_id: destination.id || null,
-        formatted_address: null,
-      };
-      
-      const { createDestination } = await import('../../utils/storage');
-      destinationData = await createDestination(newDestinationData);
-    }
-    
-    if (destinationData) {
-      onDestinationSelect(destinationData);
-      setSearchTerm('');
-      setShowAddAnother(false);
-    }
-  };
-
-  const handleExistingDestinationSelect = (destination: Destination) => {
+    // For frequent destinations, we already have the data
     const destData: Destination = {
-      ...destination
+      id: destination.id,
+      name: destination.name,
+      latitude: 0, // These would be fetched from the database
+      longitude: 0,
+      standard_distance: 0,
+      estimated_time: '0h 0m',
+      historical_deviation: 0,
+      type: destination.type as any,
+      state: 'chhattisgarh',
+      active: true
     };
+
     onDestinationSelect(destData);
+    setShowAddAnother(false);
   };
 
   const getTypeIcon = (type: string) => {
