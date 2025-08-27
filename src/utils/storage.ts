@@ -1117,27 +1117,18 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
     }
 
     // Validate destination coordinates
-    const destinationsWithValidCoords = validDestinations.filter(dest => {
-      const hasValidCoords = typeof dest.latitude === 'number' && 
-                            typeof dest.longitude === 'number' && 
-                            !isNaN(dest.latitude) && !isNaN(dest.longitude) &&
-                            dest.latitude !== 0 && dest.longitude !== 0;
-      
-      if (!hasValidCoords) {
-        console.warn(`Skipping destination "${dest.name}" due to invalid coordinates. Please update destination location in Trip Locations.`);
+    for (const dest of validDestinations) {
+      if (typeof dest.latitude !== 'number' || typeof dest.longitude !== 'number' || 
+          isNaN(dest.latitude) || isNaN(dest.longitude) ||
+          dest.latitude === 0 || dest.longitude === 0) {
+        throw new Error(`Invalid coordinates for destination "${dest.name}". Please update destination location.`);
       }
-      
-      return hasValidCoords;
-    });
-
-    if (destinationsWithValidCoords.length === 0) {
-      throw new Error('No destinations with valid coordinates found. Please update destination coordinates in Trip Locations.');
     }
 
     // Create waypoints for map
     const waypoints = [
       { lat: warehouse.latitude || 0, lng: warehouse.longitude || 0 },
-      ...destinationsWithValidCoords.map(dest => ({ lat: dest.latitude, lng: dest.longitude }))
+      ...validDestinations.map(dest => ({ lat: dest.latitude, lng: dest.longitude }))
     ];
 
     // Load Google Maps and get live distance/duration using Directions API
@@ -1147,12 +1138,12 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
     
     const origin = new google.maps.LatLng(warehouse.latitude || 0, warehouse.longitude || 0);
     const destination = new google.maps.LatLng(
-      destinationsWithValidCoords[destinationsWithValidCoords.length - 1].latitude,
-      destinationsWithValidCoords[destinationsWithValidCoords.length - 1].longitude
+      validDestinations[validDestinations.length - 1].latitude,
+      validDestinations[validDestinations.length - 1].longitude
     );
     
     // Convert intermediate destinations to waypoints
-    const waypointsForDirections = destinationsWithValidCoords.slice(0, -1).map(dest => ({
+    const waypointsForDirections = validDestinations.slice(0, -1).map(dest => ({
       location: new google.maps.LatLng(dest.latitude, dest.longitude),
       stopover: true
     }));
