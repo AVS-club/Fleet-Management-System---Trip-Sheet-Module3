@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../utils/supabaseClient';
 import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
