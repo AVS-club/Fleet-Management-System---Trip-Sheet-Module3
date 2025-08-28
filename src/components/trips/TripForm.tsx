@@ -211,7 +211,7 @@ const TripForm: React.FC<TripFormProps> = ({
           const actualDistance = endKm - startKm;
           const standardDistance = analysis.total_distance;
           
-          if (standardDistance > 0) {
+          if (standardDistance > 0 && actualDistance > 0) {
             const deviation = ((actualDistance - standardDistance) / standardDistance) * 100;
             setRouteDeviation(deviation);
             
@@ -233,6 +233,8 @@ const TripForm: React.FC<TripFormProps> = ({
             // Generate AI alerts
             const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
             setAiAlerts(alerts);
+          } else {
+            console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
           }
         }
       } catch (error) {
@@ -474,18 +476,24 @@ const TripForm: React.FC<TripFormProps> = ({
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
-                <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                  Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
-                    {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
-                  </span>
-                </p>
-                {routeAnalysis && (
+                {routeAnalysis.total_distance > 0 && startKm && endKm && (endKm > startKm) ? (
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    Route deviation: <span className={`font-bold ${Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 ? 'text-error-600' : 'text-success-600'}`}>
+                      {(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 0 ? '+' : ''}{(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100).toFixed(1)}%
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    Route analysis available
+                  </p>
+                )}
+                {routeAnalysis && routeAnalysis.total_distance > 0 && startKm && endKm && (
                   <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
                     Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
                   </p>
                 )}
               </div>
-              {Math.abs(routeDeviation) > 15 && (
+              {routeAnalysis.total_distance > 0 && startKm && endKm && Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 && (
                 <AlertTriangle className="h-5 w-5 text-warning-500" />
               )}
             </div>
