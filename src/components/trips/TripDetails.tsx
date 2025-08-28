@@ -255,7 +255,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <div>
                 <p className="text-sm text-gray-500 mb-2">Destinations</p>
                 <div>
-                  {destinations && destinations.length > 0 ? (
+                  {destinations && Array.isArray(destinations) && destinations.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {destinations.map((dest, index) => (
                         <span
@@ -269,11 +269,26 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                         </span>
                       ))}
                     </div>
+                  ) : trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-500 italic">Loading destination names...</p>
+                      <div className="flex flex-wrap gap-2">
+                        {trip.destinations.map((destId, index) => (
+                          <span
+                            key={destId}
+                            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
+                          >
+                            <span className="bg-gray-200 text-gray-800 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
+                              {index + 1}
+                            </span>
+                            Destination {index + 1}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-gray-500 text-sm">
-                      {trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0
-                        ? "Destinations not available"
-                        : "No destinations recorded"}
+                      No destinations recorded
                     </span>
                   )}
                 </div>
