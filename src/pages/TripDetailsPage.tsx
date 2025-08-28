@@ -94,10 +94,27 @@ const TripDetailsPage: React.FC = () => {
             }
             
             if (Array.isArray(tripData.destinations) && tripData.destinations.length > 0) {
-              const destinationPromises = tripData.destinations.map(destId => getDestinationByAnyId(destId));
-              const destinationResults = await Promise.all(destinationPromises);
-              const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
-              setDestinations(validDestinations);
+              try {
+                // Query destinations table using place_id field for Google Place IDs
+                const { data: destinationData, error: destError } = await supabase
+                  .from('destinations')
+                  .select('*')
+                  .in('place_id', tripData.destinations)
+                  .eq('created_by', user.id);
+
+                if (!destError && destinationData) {
+                  setDestinations(destinationData);
+                } else {
+                  // Fallback: try querying by UUID in case destinations are stored as UUIDs
+                  const destinationPromises = tripData.destinations.map(destId => getDestinationByAnyId(destId));
+                  const destinationResults = await Promise.all(destinationPromises);
+                  const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
+                  setDestinations(validDestinations);
+                }
+              } catch (error) {
+                console.error('Error fetching destinations:', error);
+                setDestinations([]);
+              }
             }
           } else {
             // Trip not found, redirect back to trips page
