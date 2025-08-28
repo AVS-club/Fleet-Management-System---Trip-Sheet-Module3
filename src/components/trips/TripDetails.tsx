@@ -265,7 +265,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                           <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
                             {index + 1}
                           </span>
-                          {dest.name}
+                          <span className="whitespace-nowrap">{dest.name}</span>
                         </span>
                       ))}
                     </div>
@@ -279,7 +279,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                             <span className="bg-gray-200 text-gray-800 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
                               {index + 1}
                             </span>
-                            Destination {index + 1}
+                            <span className="whitespace-nowrap">Destination {index + 1}</span>
                           </span>
                         ))}
                       </div>
