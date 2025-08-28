@@ -69,8 +69,8 @@ const TripForm: React.FC<TripFormProps> = ({
     control
   } = useForm<TripFormData>({
     defaultValues: {
-      trip_start_date: yesterdayDate, // Auto-default to yesterday
-      trip_end_date: yesterdayDate, // Auto-default to yesterday
+      trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
+      trip_end_date: initialData?.trip_end_date || yesterdayDate, // Use initial data if available
       refueling_done: false,
       is_return_trip: true,
       gross_weight: 0,
@@ -84,6 +84,34 @@ const TripForm: React.FC<TripFormProps> = ({
       ...initialData
     }
   });
+
+  // Reset form with initial data whenever initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setValue('trip_start_date', initialData.trip_start_date || yesterdayDate);
+      setValue('trip_end_date', initialData.trip_end_date || yesterdayDate);
+      setValue('vehicle_id', initialData.vehicle_id || '');
+      setValue('driver_id', initialData.driver_id || '');
+      setValue('warehouse_id', initialData.warehouse_id || '');
+      setValue('destinations', initialData.destinations || []);
+      setValue('start_km', initialData.start_km || 0);
+      setValue('end_km', initialData.end_km || 0);
+      setValue('gross_weight', initialData.gross_weight || 0);
+      setValue('refueling_done', initialData.refueling_done || false);
+      setValue('fuel_quantity', initialData.fuel_quantity || 0);
+      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
+      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      setValue('unloading_expense', initialData.unloading_expense || 0);
+      setValue('driver_expense', initialData.driver_expense || 0);
+      setValue('road_rto_expense', initialData.road_rto_expense || 0);
+      setValue('breakdown_expense', initialData.breakdown_expense || 0);
+      setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
+      setValue('is_return_trip', initialData.is_return_trip || false);
+      setValue('remarks', initialData.remarks || '');
+      setValue('trip_serial_number', initialData.trip_serial_number || '');
+      setValue('material_type_ids', initialData.material_type_ids || []);
+    }
+  }, [initialData, setValue, yesterdayDate]);
 
   // Watch form values for calculations
   const watchedValues = watch();
@@ -136,7 +164,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Auto-select assigned driver when vehicle is selected
   useEffect(() => {
-    if (selectedVehicleId && vehicles.length > 0) {
+    if (selectedVehicleId && vehicles.length > 0 && !initialData?.driver_id) { // Only auto-select if no initial driver
       const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
       if (selectedVehicle?.primary_driver_id) {
         setValue('driver_id', selectedVehicle.primary_driver_id);
@@ -147,7 +175,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Auto-generate trip serial number when vehicle and start date are selected
   useEffect(() => {
     const generateSerial = async () => {
-      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number) {
+      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number && !watchedValues.trip_serial_number) {
         try {
           const vehicle = vehicles.find(v => v.id === selectedVehicleId);
           if (vehicle) {
@@ -170,7 +198,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Auto-fill start KM when vehicle is selected
   useEffect(() => {
     const fillStartKm = async () => {
-      if (selectedVehicleId && !initialData?.start_km) {
+      if (selectedVehicleId && !initialData?.start_km && !watchedValues.start_km) { // Only auto-fill if no initial or current value
         try {
           const { value: latestOdometer } = await getLatestOdometer(selectedVehicleId);
           setValue('start_km', latestOdometer);
@@ -295,7 +323,35 @@ const TripForm: React.FC<TripFormProps> = ({
     performRouteAnalysis();
   }, [selectedWarehouseId, selectedDestinationObjects]);
 
+  // Form validation function
+  const validateFormData = (data: TripFormData): string | null => {
+    // Validate distance is positive
+    const distance = (data.end_km || 0) - (data.start_km || 0);
+    if (distance <= 0) {
+      return 'Distance cannot be zero or negative. End KM must be greater than Start KM.';
+    }
+    
+    // Validate fuel data if refueling is done
+    if (data.refueling_done) {
+      if (!data.fuel_quantity || data.fuel_quantity <= 0) {
+        return 'Fuel quantity must be greater than zero when refueling is done.';
+      }
+      if (!data.total_fuel_cost || data.total_fuel_cost < 0) {
+        return 'Fuel cost cannot be negative.';
+      }
+    }
+    
+    return null;
+  };
+
   const handleFormSubmit = async (data: TripFormData) => {
+    // Validate form data before submission
+    const validationError = validateFormData(data);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     // Calculate mileage if refueling data is available
     if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
       const distance = data.end_km - data.start_km;
@@ -553,14 +609,14 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('start_km', {
                 required: 'Start KM is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'Start KM must be positive' }
+                min: { value: 0, message: 'Start KM cannot be negative' }
               })}
             />
 
@@ -572,14 +628,21 @@ const TripForm: React.FC<TripFormProps> = ({
               onBlur={handleEndKmBlur}
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('end_km', {
                 required: 'End KM is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'End KM must be positive' }
+                min: { value: 0, message: 'End KM cannot be negative' },
+                validate: (value) => {
+                  const startKm = watchedValues.start_km || 0;
+                  if (value <= startKm) {
+                    return 'End KM must be greater than Start KM';
+                  }
+                  return true;
+                }
               })}
             />
 
@@ -590,14 +653,14 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('gross_weight', {
                 required: 'Gross weight is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'Gross weight must be positive' }
+                min: { value: 0, message: 'Gross weight cannot be negative' }
               })}
             />
           </div>
@@ -628,13 +691,13 @@ const TripForm: React.FC<TripFormProps> = ({
                   placeholder="Enter total amount paid"
                   size="sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0') {
+                    if (e.target.value === '0' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
                   {...register('total_fuel_cost', {
                     valueAsNumber: true,
-                    min: { value: 0.01, message: 'Total fuel cost must be positive' }
+                    min: { value: 0, message: 'Total fuel cost cannot be negative' }
                   })}
                 />
 
@@ -654,6 +717,10 @@ const TripForm: React.FC<TripFormProps> = ({
                   value={watchedValues.fuel_quantity || 0}
                   disabled
                   size="sm"
+                  {...register('fuel_quantity', {
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Fuel quantity cannot be negative' }
+                  })}
                 />
 
             <div className="mt-3">
@@ -688,13 +755,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -711,13 +778,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -734,13 +801,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0'|| e.target.value === '0.00') {
+                    if (e.target.value === '0'|| e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -757,13 +824,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -780,13 +847,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
