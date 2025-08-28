@@ -44,6 +44,15 @@ const TripDetailsPage: React.FC = () => {
         try {
           const tripData = await getTrip(id);
           if (tripData) {
+            // Get current user for RLS queries
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+              console.error('No authenticated user found');
+              navigate('/login');
+              return;
+            }
+            
             setTrip(tripData);
             
             // Load related data and all lookup data needed for editing
