@@ -24,6 +24,8 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
       try {
         setLoadingError(null);
         
+        if (trip.warehouse_id) {
+          try {
             const warehouse = await getWarehouse(trip.warehouse_id);
             setWarehouseData(warehouse);
           } catch (error) {
@@ -31,10 +33,11 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             // Set loading error for warehouse failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
-            // Only set error if warehouse_id exists but data is null
-            if (!warehouseData) {
-              setLoadingError('Unable to load warehouse data');
-            }
+            } else {
+              // Only set error if warehouse_id exists but data is null
+              if (!warehouseData) {
+                setLoadingError('Unable to load warehouse data');
+              }
               setLoadingError('Unable to load warehouse data due to connection issues');
             }
           }
@@ -70,6 +73,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
       } catch (error) {
         console.error('Error in fetchData:', error);
         setLoadingError('Failed to load trip details');
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
           setLoadingError('Unable to load trip details');
         }
       }
