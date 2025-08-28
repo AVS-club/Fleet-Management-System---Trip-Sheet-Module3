@@ -108,7 +108,7 @@ const TripDetailsPage: React.FC = () => {
                 // Query destinations table using place_id field for Google Place IDs, include place_name
                 const { data: destinationData, error: destError } = await supabase
                   .from('destinations')
-                  .select('id, name, place_name, latitude, longitude, type, state, active, place_id, formatted_address')
+                  .select('id, name, latitude, longitude, type, state, active, place_id, formatted_address')
                   .in('place_id', tripData.destinations)
                   .eq('created_by', user.id);
 
