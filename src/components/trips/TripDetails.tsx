@@ -255,7 +255,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <div>
                 <p className="text-sm text-gray-500 mb-2">Destinations</p>
                 <div>
-                  {/* Show destinations from the destinations prop if available */}
                   {destinations && destinations.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {destinations.map((dest, index) => (
@@ -270,14 +269,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                         </span>
                       ))}
                     </div>
-                  ) : trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0 ? (
-                    /* Fallback: Show raw destination IDs if destination objects couldn't be loaded */
-                    <div className="text-sm text-gray-700">
-                      <span className="font-semibold">Destinations:</span>{" "}
-                      {trip.destinations.join(" → ")}
-                    </div>
                   ) : (
-                    <span className="text-gray-500 text-sm">No destinations recorded</span>
+                    <span className="text-gray-500 text-sm">
+                      {trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0
+                        ? "Destinations not available"
+                        : "No destinations recorded"}
+                    </span>
                   )}
                 </div>
               </div>

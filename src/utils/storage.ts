@@ -822,42 +822,85 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
-  // Validate that id is a proper UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(id)) {
-    console.error('Invalid UUID format for destination id:', id);
-    return null;
-  }
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destination, returning null');
+        return null;
+      }
+      handleSupabaseError('get user for destination', userError);
+      return null;
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return null;
+    }
 
-  const { data, error } = await supabase // ⚠️ Confirm field refactor here
-    .from('destinations') // ⚠️ Confirm field refactor here
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+    // Validate that id is a proper UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.error('Invalid UUID format for destination id:', id);
+      return null;
+    }
 
-  if (error) {
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('id', id)
+      .eq('created_by', user.id)
+      .maybeSingle();
+
+    if (error) {
+      handleSupabaseError('fetch destination', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching destination, returning null');
+      return null;
+    }
     handleSupabaseError('fetch destination', error);
     return null;
   }
-
-  return data;
 };
 
 export const getDestinationByAnyId = async (id: string): Promise<Destination | null> => {
-  // First try to get by UUID (standard database ID)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  
-  if (uuidRegex.test(id)) {
-    // It's a UUID, use the standard getDestination function
-    return await getDestination(id);
-  }
-  
-  // If not a UUID, try to find by place_id (Google Places ID)
   try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destination by any id, returning null');
+        return null;
+      }
+      handleSupabaseError('get user for destination by any id', userError);
+      return null;
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return null;
+    }
+
+    // First try to get by UUID (standard database ID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(id)) {
+      // It's a UUID, use the standard getDestination function
+      return await getDestination(id);
+    }
+    
+    // If not a UUID, try to find by place_id (Google Places ID)
     const { data, error } = await supabase
       .from('destinations')
       .select('*')
       .eq('place_id', id)
+      .eq('created_by', user.id)
       .maybeSingle();
 
     if (error) {
@@ -867,6 +910,10 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
 
     return data;
   } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching destination by any id, returning null');
+      return null;
+    }
     handleSupabaseError('fetch destination by any id', error);
     return null;
   }
