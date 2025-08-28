@@ -822,6 +822,13 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
+  // Validate that id is a proper UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    console.error('Invalid UUID format for destination id:', id);
+    return null;
+  }
+
   const { data, error } = await supabase // ⚠️ Confirm field refactor here
     .from('destinations') // ⚠️ Confirm field refactor here
     .select('*')

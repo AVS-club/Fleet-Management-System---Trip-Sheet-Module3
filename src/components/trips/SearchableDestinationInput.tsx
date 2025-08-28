@@ -102,6 +102,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
   const handlePlaceSelect = async (prediction: google.maps.places.AutocompletePrediction) => {
     if (!placesService) return;
 
+    setSearchTerm('');
+    setPredictions([]);
+
     try {
       const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
         placesService.getDetails(
@@ -137,9 +140,8 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         }
       }
 
-      // Create destination object
-      const newDestination: Destination = {
-        id: prediction.place_id,
+      // Create destination data (without id)
+      const destinationData: Omit<Destination, 'id'> = {
         name: placeDetails.name || prediction.description.split(',')[0],
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
@@ -153,9 +155,20 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         active: true
       };
 
+      // Find or create destination in database and get proper UUID
+      const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, destinationData);
+      
+      if (!destinationId) {
+        throw new Error('Failed to create or find destination');
+      }
+
+      // Create final destination object with proper UUID
+      const newDestination: Destination = {
+        ...destinationData,
+        id: destinationId
+      };
+
       onDestinationSelect(newDestination);
-      setSearchTerm('');
-      setPredictions([]);
       setShowAddAnother(false);
     } catch (error) {
       console.error('Error selecting place:', error);
