@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
@@ -27,7 +28,8 @@ import {
   Package,
   Route,
   Calculator,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -68,6 +70,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
   const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [vehicleQuery, setVehicleQuery] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -149,6 +153,29 @@ const TripForm: React.FC<TripFormProps> = ({
   const refuelingDone = watch('refueling_done');
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
+
+  // Filter vehicles based on search query
+  const filteredVehicles = useMemo(() => {
+    if (!vehicleQuery) return vehicles;
+    const query = vehicleQuery.toLowerCase();
+    return vehicles.filter(vehicle => 
+      vehicle.registration_number.toLowerCase().includes(query)
+    );
+  }, [vehicleQuery, vehicles]);
+
+  // Update selected vehicle when vehicle_id changes
+  useEffect(() => {
+    if (selectedVehicleId) {
+      const vehicle = vehicles.find(v => v.id === selectedVehicleId);
+      setSelectedVehicle(vehicle || null);
+      if (vehicle) {
+        setVehicleQuery(vehicle.registration_number);
+      }
+    } else {
+      setSelectedVehicle(null);
+      setVehicleQuery('');
+    }
+  }, [selectedVehicleId, vehicles]);
 
   // Fetch form data - only if not provided as props
   useEffect(() => {
@@ -506,20 +533,56 @@ const TripForm: React.FC<TripFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Select
-            label="Vehicle"
-            icon={<Truck className="h-4 w-4" />}
-            options={[
-              { value: '', label: 'Select Vehicle' },
-              ...vehicles.map(vehicle => ({
-                value: vehicle.id,
-                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-              }))
-            ]}
-            required
-            {...register('vehicle_id', { required: 'Vehicle selection is required' })}
-            size="sm"
-          />
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Vehicle
+              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
+            </label>
+            <Combobox
+              value={selectedVehicle}
+              onChange={(vehicle: Vehicle | null) => {
+                setSelectedVehicle(vehicle);
+                setValue('vehicle_id', vehicle?.id || '');
+              }}
+            >
+              <div className="relative">
+                <div className="relative">
+                  <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Combobox.Input
+                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    displayValue={(vehicle: Vehicle | null) => vehicle?.registration_number || ''}
+                    onChange={(event) => setVehicleQuery(event.target.value)}
+                    placeholder="Type vehicle number..."
+                  />
+                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </Combobox.Button>
+                </div>
+                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredVehicles.length === 0 && vehicleQuery !== '' ? (
+                    <div className="px-4 py-2 text-sm text-gray-500">No vehicles found</div>
+                  ) : (
+                    filteredVehicles.map((vehicle) => (
+                      <Combobox.Option
+                        key={vehicle.id}
+                        value={vehicle}
+                        className={({ active }) =>
+                          `cursor-pointer select-none px-4 py-2 ${
+                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
+                          }`
+                        }
+                      >
+                        <div>
+                          <div className="font-medium">{vehicle.registration_number}</div>
+                          <div className="text-xs text-gray-500">{vehicle.make} {vehicle.model}</div>
+                        </div>
+                      </Combobox.Option>
+                    ))
+                  )}
+                </Combobox.Options>
+              </div>
+            </Combobox>
+          </div>
 
           <Select
             label="Driver"

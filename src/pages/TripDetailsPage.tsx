@@ -5,6 +5,7 @@ import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
 import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse, getTrips, getVehicles, getDrivers, getDestinations, getWarehouses } from '../utils/storage';
+import { getDestinationByAnyId } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { getAIAlerts, AIAlert } from '../utils/aiAnalytics';
 import TripMap from '../components/maps/TripMap';
@@ -93,13 +94,7 @@ const TripDetailsPage: React.FC = () => {
             }
             
             if (Array.isArray(tripData.destinations) && tripData.destinations.length > 0) {
-              // Filter out non-UUID destination IDs (like Google Place IDs) before calling getDestination
-              const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-              const validDestinationIds = tripData.destinations.filter(destId => 
-                typeof destId === 'string' && uuidRegex.test(destId)
-              );
-              
-              const destinationPromises = validDestinationIds.map(destId => getDestination(destId));
+              const destinationPromises = tripData.destinations.map(destId => getDestinationByAnyId(destId));
               const destinationResults = await Promise.all(destinationPromises);
               const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
               setDestinations(validDestinations);

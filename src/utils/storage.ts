@@ -843,6 +843,35 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
   return data;
 };
 
+export const getDestinationByAnyId = async (id: string): Promise<Destination | null> => {
+  // First try to get by UUID (standard database ID)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (uuidRegex.test(id)) {
+    // It's a UUID, use the standard getDestination function
+    return await getDestination(id);
+  }
+  
+  // If not a UUID, try to find by place_id (Google Places ID)
+  try {
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('place_id', id)
+      .maybeSingle();
+
+    if (error) {
+      handleSupabaseError('fetch destination by place_id', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    handleSupabaseError('fetch destination by any id', error);
+    return null;
+  }
+};
+
 export const createDestination = async (destinationData: Omit<Destination, 'id'>): Promise<Destination | null> => {
   try {
     const userId = await getCurrentUserId();
