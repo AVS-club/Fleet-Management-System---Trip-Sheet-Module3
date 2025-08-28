@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
-import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse, getTrips } from '../utils/storage';
+import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse, getTrips, getVehicles, getDrivers, getDestinations, getWarehouses } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { getAIAlerts, AIAlert } from '../utils/aiAnalytics';
 import TripMap from '../components/maps/TripMap';
@@ -26,6 +26,11 @@ const TripDetailsPage: React.FC = () => {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [aiAlerts, setAiAlerts] = useState<AIAlert[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
+  const [allDestinations, setAllDestinations] = useState<Destination[]>([]);
+  const [allWarehouses, setAllWarehouses] = useState<Warehouse[]>([]);
+  const [allMaterialTypes, setAllMaterialTypes] = useState<MaterialType[]>([]);
   const [showMapModal, setShowMapModal] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   
@@ -39,18 +44,37 @@ const TripDetailsPage: React.FC = () => {
           if (tripData) {
             setTrip(tripData);
             
-            // Load related vehicle, driver, material types, AI alerts, and all trips
-            const [vehicleData, driverData, materialTypesData, aiAlertsData, tripsData] = await Promise.all([
+            // Load related data and all lookup data needed for editing
+            const [
+              vehicleData, 
+              driverData, 
+              materialTypesData, 
+              aiAlertsData, 
+              tripsData,
+              allVehiclesData,
+              allDriversData,
+              allDestinationsData,
+              allWarehousesData
+            ] = await Promise.all([
               getVehicle(tripData.vehicle_id),
               getDriver(tripData.driver_id),
               getMaterialTypes(),
               getAIAlerts(),
-              getTrips()
+              getTrips(),
+              getVehicles(),
+              getDrivers(),
+              getDestinations(),
+              getWarehouses()
             ]);
             
             setVehicle(vehicleData || undefined);
             setDriver(driverData || undefined);
             setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+            setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
+            setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
+            setAllDestinations(Array.isArray(allDestinationsData) ? allDestinationsData : []);
+            setAllWarehouses(Array.isArray(allWarehousesData) ? allWarehousesData : []);
+            setAllMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
             
             // Filter AI alerts for this specific trip
             const tripAlerts = Array.isArray(aiAlertsData) 
@@ -234,13 +258,25 @@ const TripDetailsPage: React.FC = () => {
               refueling_done: trip.refueling_done,
               fuel_quantity: trip.fuel_quantity,
               fuel_cost: trip.fuel_cost,
+              total_fuel_cost: trip.total_fuel_cost,
+              fuel_rate_per_liter: trip.fuel_rate_per_liter,
               unloading_expense: trip.unloading_expense,
               driver_expense: trip.driver_expense,
               road_rto_expense: trip.road_rto_expense,
+              breakdown_expense: trip.breakdown_expense,
+              miscellaneous_expense: trip.miscellaneous_expense,
+              total_road_expenses: trip.total_road_expenses,
               is_return_trip: trip.is_return_trip,
               remarks: trip.remarks,
-              trip_serial_number: trip.trip_serial_number // Pass the original serial number
+              material_type_ids: trip.material_type_ids,
+              trip_serial_number: trip.trip_serial_number,
+              station: trip.station
             }}
+            allVehicles={allVehicles}
+            allDrivers={allDrivers}
+            allDestinations={allDestinations}
+            allWarehouses={allWarehouses}
+            allMaterialTypes={allMaterialTypes}
             onSubmit={handleUpdate}
             isSubmitting={isSubmitting}
             trips={trips}

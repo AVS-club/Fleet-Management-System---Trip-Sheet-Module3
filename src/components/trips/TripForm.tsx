@@ -36,13 +36,24 @@ interface TripFormProps {
   isSubmitting?: boolean;
   trips?: Trip[];
   initialData?: Partial<TripFormData>;
+  // Pre-fetched lookup data to prevent async loading issues during form initialization
+  allVehicles?: Vehicle[];
+  allDrivers?: Driver[];
+  allDestinations?: Destination[];
+  allWarehouses?: Warehouse[];
+  allMaterialTypes?: MaterialType[];
 }
 
 const TripForm: React.FC<TripFormProps> = ({
   onSubmit,
   isSubmitting = false,
   trips = [],
-  initialData
+  initialData,
+  allVehicles,
+  allDrivers,
+  allDestinations,
+  allWarehouses,
+  allMaterialTypes
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -85,11 +96,23 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   });
 
-  // Reset form with initial data whenever initialData changes
+  // Reset form with initial data whenever initialData changes - with proper date formatting
   useEffect(() => {
     if (initialData) {
-      setValue('trip_start_date', initialData.trip_start_date || yesterdayDate);
-      setValue('trip_end_date', initialData.trip_end_date || yesterdayDate);
+      // Format dates properly for date inputs (YYYY-MM-DD)
+      const formatDateForInput = (dateString?: string) => {
+        if (!dateString) return yesterdayDate;
+        try {
+          const date = parseISO(dateString);
+          return format(date, 'yyyy-MM-dd');
+        } catch (error) {
+          console.error('Error formatting date:', error);
+          return yesterdayDate;
+        }
+      };
+
+      setValue('trip_start_date', formatDateForInput(initialData.trip_start_date));
+      setValue('trip_end_date', formatDateForInput(initialData.trip_end_date));
       setValue('vehicle_id', initialData.vehicle_id || '');
       setValue('driver_id', initialData.driver_id || '');
       setValue('warehouse_id', initialData.warehouse_id || '');
@@ -101,17 +124,21 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
       setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
       setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
+      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
       setValue('unloading_expense', initialData.unloading_expense || 0);
       setValue('driver_expense', initialData.driver_expense || 0);
       setValue('road_rto_expense', initialData.road_rto_expense || 0);
       setValue('breakdown_expense', initialData.breakdown_expense || 0);
       setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
+      setValue('total_road_expenses', initialData.total_road_expenses || 0);
       setValue('is_return_trip', initialData.is_return_trip || false);
       setValue('remarks', initialData.remarks || '');
       setValue('trip_serial_number', initialData.trip_serial_number || '');
       setValue('material_type_ids', initialData.material_type_ids || []);
+      setValue('station', initialData.station || '');
     }
-  }, [initialData, setValue, yesterdayDate]);
+  }, [initialData, setValue]);
 
   // Watch form values for calculations
   const watchedValues = watch();
@@ -123,8 +150,20 @@ const TripForm: React.FC<TripFormProps> = ({
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
 
-  // Fetch form data
+  // Fetch form data - only if not provided as props
   useEffect(() => {
+    // If data is provided as props (editing mode), use it instead of fetching
+    if (allVehicles && allDrivers && allDestinations && allWarehouses && allMaterialTypes) {
+      setVehicles(allVehicles);
+      setDrivers(allDrivers);
+      setDestinations(allDestinations);
+      setWarehouses(allWarehouses);
+      setMaterialTypes(allMaterialTypes);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch the data (for new trip mode)
     const fetchFormData = async () => {
       setLoading(true);
       try {
@@ -150,7 +189,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     fetchFormData();
-  }, []);
+  }, [allVehicles, allDrivers, allDestinations, allWarehouses, allMaterialTypes]);
 
   // Initialize selected destinations from initialData
   useEffect(() => {
@@ -193,7 +232,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     generateSerial();
-  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData]);
+  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData?.trip_serial_number]);
 
   // Auto-fill start KM when vehicle is selected
   useEffect(() => {
@@ -209,7 +248,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     fillStartKm();
-  }, [selectedVehicleId, setValue, initialData]);
+  }, [selectedVehicleId, setValue, initialData?.start_km, watchedValues.start_km]);
 
   // Handle adding destinations
   const handleDestinationSelect = (destination: Destination) => {
