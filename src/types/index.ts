@@ -352,6 +352,7 @@ export interface Alert {
 export interface Destination {
   id: string;
   name: string;
+  place_name?: string; // Human-readable place name from Google Places API
   latitude: number;
   longitude: number;
   standard_distance: number;

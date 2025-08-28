@@ -143,6 +143,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       // Create destination data (without id)
       const destinationData: Omit<Destination, 'id'> = {
         name: placeDetails.name || prediction.description.split(',')[0],
+        place_name: placeDetails.name || prediction.description,
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
         standard_distance: 0, // Will be calculated
@@ -156,7 +157,11 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       };
 
       // Find or create destination in database and get proper UUID
-      const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, destinationData);
+      const destinationId = await findOrCreateDestinationByPlaceId(
+        prediction.place_id, 
+        destinationData,
+        placeDetails.name || prediction.description
+      );
       
       if (!destinationId) {
         throw new Error('Failed to create or find destination');
