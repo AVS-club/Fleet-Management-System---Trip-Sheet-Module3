@@ -6,11 +6,13 @@ import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
 import { Trip, TripFormData, Vehicle, Driver } from '../types';
 import { getTrips, getVehicles, getDrivers, createTrip } from '../utils/storage';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
-import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2, Route, Search, Filter, ChevronLeft, ChevronRight, SortAsc } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TripsPage: React.FC = () => {
@@ -23,6 +25,21 @@ const TripsPage: React.FC = () => {
   const [showDashboard, setShowDashboard] = useState(false);
   const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  
+  // Filter and sorting states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterVehicle, setFilterVehicle] = useState('');
+  const [filterDriver, setFilterDriver] = useState('');
+  const [filterRefueling, setFilterRefueling] = useState('');
+  const [sortConfig, setSortConfig] = useState<{
+    key: 'date' | 'distance' | 'mileage' | 'profit' | 'vehicle' | 'driver';
+    direction: 'asc' | 'desc';
+  }>({ key: 'date', direction: 'desc' });
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // 12 trips per page for good mobile experience
   
   // Load data
   useEffect(() => {
@@ -45,6 +62,134 @@ const TripsPage: React.FC = () => {
     fetchData();
   }, []);
   
+  // Create lookup maps for efficient filtering
+  const vehiclesMap = React.useMemo(() => {
+    return new Map(vehicles.map(v => [v.id, v]));
+  }, [vehicles]);
+
+  const driversMap = React.useMemo(() => {
+    return new Map(drivers.map(d => [d.id, d]));
+  }, [drivers]);
+
+  // Filter and sort trips
+  const filteredAndSortedTrips = React.useMemo(() => {
+    let filtered = Array.isArray(trips) ? trips.filter(trip => {
+      // Search by trip serial, vehicle registration or driver name
+      if (searchTerm) {
+        const vehicle = vehiclesMap.get(trip.vehicle_id);
+        const driver = driversMap.get(trip.driver_id);
+        
+        const searchLower = searchTerm.toLowerCase();
+        const serialMatch = trip.trip_serial_number?.toLowerCase().includes(searchLower);
+        const vehicleMatch = vehicle?.registration_number?.toLowerCase().includes(searchLower);
+        const driverMatch = driver?.name?.toLowerCase().includes(searchLower);
+        if (!(serialMatch || vehicleMatch || driverMatch)) {
+          return false;
+        }
+      }
+      
+      // Filter by vehicle
+      if (filterVehicle && trip.vehicle_id !== filterVehicle) {
+        return false;
+      }
+      
+      // Filter by driver
+      if (filterDriver && trip.driver_id !== filterDriver) {
+        return false;
+      }
+      
+      // Filter by refueling status
+      if (filterRefueling === 'refueling' && !trip.refueling_done) {
+        return false;
+      } else if (filterRefueling === 'no-refueling' && trip.refueling_done) {
+        return false;
+      }
+      
+      return true;
+    }) : [];
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortConfig.key) {
+        case 'date':
+          aValue = new Date(a.trip_start_date || 0).getTime();
+          bValue = new Date(b.trip_start_date || 0).getTime();
+          break;
+        case 'distance':
+          aValue = (a.end_km || 0) - (a.start_km || 0);
+          bValue = (b.end_km || 0) - (b.start_km || 0);
+          break;
+        case 'mileage':
+          aValue = a.calculated_kmpl || 0;
+          bValue = b.calculated_kmpl || 0;
+          break;
+        case 'profit':
+          aValue = a.net_profit || 0;
+          bValue = b.net_profit || 0;
+          break;
+        case 'vehicle':
+          const vehicleA = vehiclesMap.get(a.vehicle_id);
+          const vehicleB = vehiclesMap.get(b.vehicle_id);
+          aValue = vehicleA?.registration_number || '';
+          bValue = vehicleB?.registration_number || '';
+          break;
+        case 'driver':
+          const driverA = driversMap.get(a.driver_id);
+          const driverB = driversMap.get(b.driver_id);
+          aValue = driverA?.name || '';
+          bValue = driverB?.name || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortConfig.direction === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      return sortConfig.direction === 'asc' 
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+
+    return sorted;
+  }, [trips, searchTerm, filterVehicle, filterDriver, filterRefueling, sortConfig, vehiclesMap, driversMap]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedTrips.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedTrips = filteredAndSortedTrips.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterVehicle, filterDriver, filterRefueling, sortConfig]);
+
+  // Handle page navigation
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle sort change
+  const handleSortChange = (value: string) => {
+    const [key, direction] = value.split('-') as [typeof sortConfig.key, 'asc' | 'desc'];
+    setSortConfig({ key, direction });
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterVehicle('');
+    setFilterDriver('');
+    setFilterRefueling('');
+    setSortConfig({ key: 'date', direction: 'desc' });
+  };
+
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
     
@@ -260,14 +405,206 @@ const TripsPage: React.FC = () => {
             />
           )}
           
+          {/* Filters and Sorting */}
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex flex-col space-y-4">
+              {/* Top row: Search, Sort, Filter toggle */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search trips by serial, vehicle or driver"
+                    icon={<Search className="h-4 w-4" />}
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <div className="w-48">
+                    <Select
+                      options={[
+                        { value: 'date-desc', label: 'Date (Newest)' },
+                        { value: 'date-asc', label: 'Date (Oldest)' },
+                        { value: 'distance-desc', label: 'Distance (High to Low)' },
+                        { value: 'distance-asc', label: 'Distance (Low to High)' },
+                        { value: 'mileage-desc', label: 'Mileage (High to Low)' },
+                        { value: 'mileage-asc', label: 'Mileage (Low to High)' },
+                        { value: 'profit-desc', label: 'Profit (High to Low)' },
+                        { value: 'profit-asc', label: 'Profit (Low to High)' },
+                        { value: 'vehicle-asc', label: 'Vehicle (A-Z)' },
+                        { value: 'driver-asc', label: 'Driver (A-Z)' }
+                      ]}
+                      value={`${sortConfig.key}-${sortConfig.direction}`}
+                      onChange={(e) => handleSortChange(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilters(!showFilters)}
+                    icon={<Filter className="h-4 w-4" />}
+                  >
+                    Filters
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Expandable filters row */}
+              {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 animate-fade-in">
+                  <Select
+                    label="Vehicle"
+                    options={[
+                      { value: '', label: 'All Vehicles' },
+                      ...vehicles.map(vehicle => ({
+                        value: vehicle.id,
+                        label: vehicle.registration_number
+                      }))
+                    ]}
+                    value={filterVehicle}
+                    onChange={e => setFilterVehicle(e.target.value)}
+                  />
+                  
+                  <Select
+                    label="Driver"
+                    options={[
+                      { value: '', label: 'All Drivers' },
+                      ...drivers.map(driver => ({
+                        value: driver.id,
+                        label: driver.name
+                      }))
+                    ]}
+                    value={filterDriver}
+                    onChange={e => setFilterDriver(e.target.value)}
+                  />
+                  
+                  <Select
+                    label="Refueling Status"
+                    options={[
+                      { value: '', label: 'All Trips' },
+                      { value: 'refueling', label: 'Refueling Trips' },
+                      { value: 'no-refueling', label: 'No Refueling' }
+                    ]}
+                    value={filterRefueling}
+                    onChange={e => setFilterRefueling(e.target.value)}
+                  />
+                  
+                  <div className="sm:col-span-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearFilters}
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Results summary */}
+              <div className="flex justify-between items-center text-sm text-gray-500">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredAndSortedTrips.length)} of {filteredAndSortedTrips.length} trips
+                </span>
+                <span>
+                  Page {currentPage} of {totalPages}
+                </span>
+              </div>
+            </div>
+          </div>
+          
           <TripList 
-            trips={trips} 
+            trips={paginatedTrips} 
             vehicles={vehicles} 
             drivers={drivers}
             onSelectTrip={handleTripSelect}
             onPnlClick={handlePnlClick}
             onEditTrip={handleEditTrip}
           />
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-4">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  icon={<ChevronLeft className="h-4 w-4" />}
+                >
+                  Previous
+                </Button>
+                
+                {/* Page numbers - show max 5 pages */}
+                <div className="hidden sm:flex space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = i + 1;
+                    
+                    // Adjust page numbers based on current page
+                    if (totalPages > 5) {
+                      if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 text-sm rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  icon={<ChevronRight className="h-4 w-4" />}
+                >
+                  Next
+                </Button>
+              </div>
+              
+              {/* Mobile page indicator */}
+              <div className="sm:hidden text-sm text-gray-500">
+                {currentPage} / {totalPages}
+              </div>
+              
+              {/* Jump to page input for large datasets */}
+              {totalPages > 10 && (
+                <div className="hidden md:flex items-center space-x-2">
+                  <span className="text-sm text-gray-500">Go to page:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const page = parseInt(e.target.value);
+                      if (page >= 1 && page <= totalPages) {
+                        handlePageChange(page);
+                      }
+                    }}
+                    className="w-16 px-2 py-1 text-sm border border-gray-300 rounded-md"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
