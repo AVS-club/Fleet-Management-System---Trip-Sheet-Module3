@@ -1,9 +1,11 @@
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../../types';
-import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit, Camera, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getWarehouse, getDestination } from '../../utils/storage';
 import { truncateString } from '../../utils/format';
+import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
+import { toast } from 'react-toastify';
 
 interface TripCardProps {
   trip: Trip;
@@ -15,6 +17,8 @@ interface TripCardProps {
 }
 
 const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -105,6 +109,41 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
     }
   };
 
+  const handleCameraClick = () => {
+    if (fileInputRef.current && !isUploading) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const uploadedUrls = await uploadFilesAndGetPublicUrls(
+        'trip-docs',
+        `${trip.id}/attachments`,
+        [file]
+      );
+      
+      if (uploadedUrls.length > 0) {
+        toast.success('Image uploaded successfully');
+      } else {
+        throw new Error('No URLs returned from upload');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <div 
       className="card p-4 cursor-pointer hover:bg-gray-50 transition-colors animate-fade-in"
@@ -140,6 +179,23 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             <IndianRupee className="h-4 w-4" />
           </button>
           
+          {/* Camera Button */}
+          <button 
+            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors disabled:opacity-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCameraClick();
+            }}
+            title="Upload Image"
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+          </button>
+          
           {/* Edit Button */}
           {onEditClick && (
             <button 
@@ -153,6 +209,15 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
               <Edit className="h-4 w-4" />
             </button>
           )}
+          
+          {/* Hidden File Input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </div>
       </div>
       
