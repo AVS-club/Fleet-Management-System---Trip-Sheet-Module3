@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../../components/layout/Layout"; 
-import { getVehicles, getVehicleStats, updateVehicle, bulkArchiveVehicles, bulkUnarchiveVehicles, deleteVehicle, exportVehicleData, hardDeleteVehicle } from "../../services/vehicles";
-import { getDrivers } from "../../services/drivers";
+import {
+  getVehicles,
+  getVehicleStats,
+  getDrivers,
+  updateVehicle,
+  bulkUpdateVehicles,
+  bulkArchiveVehicles,
+  bulkUnarchiveVehicles,
+  deleteVehicle,
+  exportVehicleData,
+} from "../../utils/storage";
+import { hardDeleteVehicle } from "../../utils/storage";
 import {
   Truck,
   ChevronLeft,

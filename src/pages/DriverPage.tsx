@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import Layout from "../components/layout/Layout";
 import {
   User,
   Calendar,

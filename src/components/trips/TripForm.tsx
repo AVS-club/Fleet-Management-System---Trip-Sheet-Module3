@@ -2,10 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
-import { getDestinations, getWarehouses } from '../../utils/storage';
-import { getVehicles, getLatestOdometer } from '../../services/vehicles';
-import { getDrivers } from '../../services/drivers';
-import { analyzeRoute } from '../../services/trips';
+import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
@@ -469,7 +466,12 @@ const TripForm: React.FC<TripFormProps> = ({
       data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
     }
 
-    await onSubmit(data);
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      // Rethrow the error so react-hook-form can handle focus management
+      throw error;
+    }
   };
 
   if (loading) {

@@ -11,9 +11,13 @@ interface VehicleWithStats extends Vehicle {
   };
 }
 
-import { getVehicles, getAllVehicleStats, createVehicle } from "../services/vehicles";
-import { getTrips } from "../services/trips";
-import { getDriverSummaries } from "../services/drivers";
+import {
+  getVehicles,
+  getAllVehicleStats,
+  createVehicle,
+  getTrips,
+  getDriverSummaries,
+} from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
 import { format, parseISO, isValid } from "date-fns";

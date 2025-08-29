@@ -1,7 +1,7 @@
 import React from 'react';
 import { Driver, Vehicle } from '../../types';
 import { X, User, Truck, FileText, Calendar } from 'lucide-react';
-import { getVehicle } from '../../services/vehicles';
+import { getVehicle } from '../../utils/storage';
 
 interface DriverProfileModalProps {
   driver: Driver;
