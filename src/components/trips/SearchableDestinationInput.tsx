@@ -336,7 +336,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                       {getTypeIcon(destination.type)}
                       <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{truncateString(destination.name, 4)}</span>
                       <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
-                        <span>{dest.place_name || dest.name}</span>
+                        <span>{destination.name}</span>
                       </span>
                     </button>
                   ))}
