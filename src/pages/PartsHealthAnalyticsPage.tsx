@@ -10,7 +10,7 @@ import TaskDistributionChart from '../components/maintenance/TaskDistributionCha
 import { MaintenanceTask } from '../types/maintenance';
 import { Vehicle } from '../types';
 import { getTasks } from '../utils/maintenanceStorage';
-import { getVehicles } from '../utils/storage';
+import { getVehicles } from '../services/vehicles';
 import { getDateRangeForFilter, calculateMaintenanceMetrics } from '../utils/maintenanceAnalytics';
 import { 
   getPartsHealthMetrics, 

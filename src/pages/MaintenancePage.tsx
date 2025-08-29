@@ -4,7 +4,7 @@ import Layout from '../components/layout/Layout';
 import { MaintenanceTask, Vehicle } from '../types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
-import { getVehicles } from '../utils/storage';
+import { getVehicles } from '../services/vehicles';
 import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3, Wrench } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
