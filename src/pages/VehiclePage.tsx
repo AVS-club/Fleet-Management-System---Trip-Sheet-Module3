@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { getVehicle, getVehicleStats, getTrips } from "../utils/storage";
-import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import {
   Truck,
   Calendar,
@@ -12,10 +10,6 @@ import {
   Fuel,
   FileText,
   Shield,
-  Download,
-  Share2,
-  FileDown,
-  Eye,
   Clock,
   Info,
   BarChart2,
@@ -27,221 +21,14 @@ import { Vehicle } from "@/types";
 import Button from "../components/ui/Button";
 import MileageChart from "../components/dashboard/MileageChart";
 import VehicleForm from "../components/vehicles/VehicleForm";
-import {
-  generateVehiclePDF,
-  downloadVehicleDocuments,
-  createShareableVehicleLink,
-} from "../utils/exportUtils";
-import { toast } from "react-toastify";
-import { format } from "date-fns";
-import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
 import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
-import WhatsAppButton from "../components/vehicles/WhatsAppButton";
-import DocumentDownloadModal from "../components/vehicles/DocumentDownloadModal";
-import DocumentViewerModal from "../components/vehicles/DocumentViewerModal";
-
+import VehicleActions from "../components/vehicles/VehicleActions";
+import useVehicleData from "../hooks/useVehicleData";
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [downloadLoading, setDownloadLoading] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [showDocumentViewerModal, setShowDocumentViewerModal] = useState(false);
-  const [selectedVehicleForShare, setSelectedVehicleForShare] =
-    useState<Vehicle | null>(null);
-
-  const [stats, setStats] = useState<{
-    totalTrips: number;
-    totalDistance: number;
-    averageKmpl?: number;
-  }>({
-    totalTrips: 0,
-    totalDistance: 0,
-  });
-
-  // State for signed document URLs
-  const [signedDocUrls, setSignedDocUrls] = useState<{
-    rc?: string[];
-    insurance?: string[];
-    fitness?: string[];
-    tax?: string[];
-    permit?: string[];
-    puc?: string[];
-    other: Record<string, string>;
-  }>({
-    other: {},
-  });
-
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-
-      setLoading(true);
-      try {
-        const [vehicleData, tripsData, vehicleStats] = await Promise.all([
-          getVehicle(id),
-          getTrips(),
-          getVehicleStats(id),
-        ]);
-
-        setVehicle(vehicleData);
-        setTrips(
-          Array.isArray(tripsData)
-            ? tripsData.filter((trip) => trip.vehicle_id === id)
-            : []
-        );
-        setStats(vehicleStats || { totalTrips: 0, totalDistance: 0 });
-
-        // Generate signed URLs for documents
-        if (vehicleData) {
-          await generateSignedUrls(vehicleData);
-        }
-      } catch (error) {
-        console.error("Error fetching vehicle data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
-  // Function to generate signed URLs for all documents
-  const generateSignedUrls = async (vehicleData: Vehicle) => {
-    const urls: {
-      rc?: string[];
-      insurance?: string[];
-      fitness?: string[];
-      tax?: string[];
-      permit?: string[];
-      puc?: string[];
-      other: Record<string, string>;
-    } = {
-      other: {},
-    };
-
-    try {
-      // Generate signed URL for RC document
-      if (vehicleData.rc_document_url && Array.isArray(vehicleData.rc_document_url)) {
-        urls.rc = await Promise.all(
-          vehicleData.rc_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for insurance document
-      if (vehicleData.insurance_document_url && Array.isArray(vehicleData.insurance_document_url)) {
-        urls.insurance = await Promise.all(
-          vehicleData.insurance_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for fitness document
-      if (vehicleData.fitness_document_url && Array.isArray(vehicleData.fitness_document_url)) {
-        urls.fitness = await Promise.all(
-          vehicleData.fitness_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for tax document
-      if (vehicleData.tax_document_url && Array.isArray(vehicleData.tax_document_url)) {
-        urls.tax = await Promise.all(
-          vehicleData.tax_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for permit document
-      if (vehicleData.permit_document_url && Array.isArray(vehicleData.permit_document_url)) {
-        urls.permit = await Promise.all(
-          vehicleData.permit_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for PUC document
-      if (vehicleData.puc_document_url && Array.isArray(vehicleData.puc_document_url)) {
-        urls.puc = await Promise.all(
-          vehicleData.puc_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URLs for other documents
-      if (
-        vehicleData.other_documents &&
-        Array.isArray(vehicleData.other_documents)
-      ) {
-        for (let i = 0; i < vehicleData.other_documents.length; i++) {
-          const doc = vehicleData.other_documents[i];
-          if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDocumentUrl(
-              doc.file_path
-            );
-          }
-        }
-      }
-
-      setSignedDocUrls(urls);
-    } catch (error) {
-      console.error("Error generating signed URLs:", error);
-      toast.error("Failed to generate document access links");
-    }
-  };
-
-  // Prepare documents for document viewer modal
-  // const getDocumentsForViewer = () => {
-  //   return [
-  //     {
-  //       type: "RC Document",
-  //       name: "RC Document",
-  //       url: signedDocUrls.rc || null,
-  //       status: vehicle?.rc_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Insurance",
-  //       name: "Insurance",
-  //       url: signedDocUrls.insurance || null,
-  //       status: vehicle?.insurance_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Fitness Certificate",
-  //       name: "Fitness Certificate",
-  //       url: signedDocUrls.fitness || null,
-  //       status: vehicle?.fitness_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Permit",
-  //       name: "Permit",
-  //       url: signedDocUrls.permit || null,
-  //       status: vehicle?.permit_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "PUC Certificate",
-  //       name: "PUC Certificate",
-  //       url: signedDocUrls.puc || null,
-  //       status: vehicle?.puc_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Tax Receipt",
-  //       name: "Tax Receipt",
-  //       url: signedDocUrls.tax || null,
-  //       status: vehicle?.tax_document_url ? "submitted" : "missing",
-  //     },
-  //     // Add other documents if any
-  //     ...(vehicle?.other_documents && Array.isArray(vehicle.other_documents)
-  //       ? vehicle.other_documents.map((doc, index) => ({
-  //           type: doc.name || `Additional Document ${index + 1}`,
-  //           name: doc.name || `Additional Document ${index + 1}`,
-  //           url: signedDocUrls.other[`other_${index}`] || null,
-  //           status: doc.file_path ? "submitted" : "missing",
-  //         }))
-  //       : []),
-  //   ];
-  // };
-
+  const { vehicle, trips, stats, signedDocUrls, loading } = useVehicleData(id);
   if (!vehicle) {
     return (
       <Layout title="Vehicle Not Found">
@@ -361,48 +148,6 @@ const VehiclePage: React.FC = () => {
     vehicle.puc_expiry_date
   );
 
-  // Handle export as PDF
-  const handleExportPDF = async () => {
-    try {
-      setExportLoading(true);
-      const doc = await generateVehiclePDF(vehicle, stats);
-      doc.save(`${vehicle.registration_number}_profile.pdf`);
-      toast.success("Vehicle profile exported successfully");
-    } catch (error) {
-      console.error("Error exporting vehicle profile:", error);
-      toast.error("Failed to export vehicle profile");
-    } finally {
-      setExportLoading(false);
-    }
-  };
-
-  // Handle download documents
-  const handleDownloadDocuments = () => {
-    setShowDownloadModal(true);
-  };
-
-  // Handle create shareable link
-  const handleCreateShareableLink = async () => {
-    try {
-      setShareLoading(true);
-      const link = await createShareableVehicleLink(vehicle.id);
-
-      // Copy link to clipboard
-      await navigator.clipboard.writeText(link);
-      toast.success("Shareable link copied to clipboard (valid for 7 days)");
-    } catch (error) {
-      console.error("Error creating shareable link:", error);
-      toast.error("Failed to create shareable link");
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  // Handle WhatsApp share
-  const handleWhatsAppShare = () => {
-    setSelectedVehicleForShare(vehicle);
-    setShowShareModal(true);
-  };
 
   return (
     <Layout
@@ -418,43 +163,13 @@ const VehiclePage: React.FC = () => {
             Back
           </Button>
 
-          <Button
-            variant="outline"
-            onClick={handleExportPDF}
-            isLoading={exportLoading}
-            icon={<FileDown className="h-4 w-4" />}
-          >
-            Export PDF
-          </Button>
-
-          {/* <Button
-            variant="outline"
-            onClick={() => setShowDocumentViewerModal(true)}
-            icon={<Eye className="h-4 w-4" />}
-            title="View Documents"
-          /> */}
-
-          <Button
-            variant="outline"
-            onClick={handleDownloadDocuments}
-            isLoading={downloadLoading}
-            icon={<Download className="h-4 w-4" />}
-            title="Download Documents"
-          />
-
-          <WhatsAppButton
-            onClick={handleWhatsAppShare}
-            className="text-green-600 hover:text-green-800"
-          />
-
-          <Button
-            variant="outline"
-            onClick={handleCreateShareableLink}
-            isLoading={shareLoading}
-            icon={<Share2 className="h-4 w-4" />}
-          >
-            Share
-          </Button>
+          {vehicle && (
+            <VehicleActions
+              vehicle={vehicle}
+              stats={stats}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
 
           <Button
             onClick={() => setIsEditing(true)}
