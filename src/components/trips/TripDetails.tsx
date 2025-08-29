@@ -266,7 +266,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                           <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
                             {index + 1}
                           </span>
-                          <span className="whitespace-nowrap">{truncateString(dest.place_name || dest.name, 4)}</span>
+                          <span className="whitespace-nowrap">{dest.place_name || dest.name}</span>
                         </span>
                       ))}
                     </div>
