@@ -308,9 +308,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                         <div className="flex items-center">
                           <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
                           <span className="font-medium text-gray-900 dark:text-gray-100">{prediction.structured_formatting?.main_text || prediction.description}</span>
-                        </div>
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                          <span className="whitespace-nowrap">{truncateString(destination.name, 4)}</span>
+                        <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{destination.name}</span>
+                            <span>Destination {index + 1}</span>
+                          <span>{destination.name}</span>
                         </span>
                       </div>
                       {prediction.structured_formatting?.secondary_text && (
@@ -339,7 +339,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                       {getTypeIcon(destination.type)}
                       <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{truncateString(destination.name, 4)}</span>
                       <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
-                        {destination.type}
+                        <span>{dest.place_name || dest.name}</span>
                       </span>
                     </button>
                   ))}
