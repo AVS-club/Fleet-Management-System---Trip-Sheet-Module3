@@ -17,6 +17,7 @@ import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
 import FuelRateSelector from './FuelRateSelector';
+import CollapsibleSection from '../ui/CollapsibleSection';
 import {
   Truck,
   User,
@@ -909,7 +910,8 @@ const TripForm: React.FC<TripFormProps> = ({
           Trip Expenses
         </h3>
         
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
+          {/* Always visible: Unloading expense */}
           <Controller
             name="unloading_expense"
             control={control}
@@ -933,98 +935,109 @@ const TripForm: React.FC<TripFormProps> = ({
             )}
           />
           
-          <Controller
-            name="driver_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
-                <Input
-                  value={field.value >= 0 ? field.value : 0}
-                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
+          {/* Collapsible section for other expenses */}
+          <CollapsibleSection
+            title="Other Expenses"
+            icon={<IndianRupee className="h-4 w-4" />}
+            iconColor="text-gray-600"
+            defaultExpanded={false}
+          >
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Controller
+                name="driver_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
+                    <Input
+                      value={field.value >= 0 ? field.value : 0}
+                      onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+              
+              <Controller
+                name="road_rto_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
+                    <Input
+                      value={field.value >= 0 ? field.value : 0}
+                      onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0'|| e.target.value === '0.00' || e.target.value === '') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+              
+              <Controller
+                name="breakdown_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
+                    <Input
+                      value={field.value >= 0 ? field.value : 0}
+                      onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+              
+              <Controller
+                name="miscellaneous_expense"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
+                    <Input
+                      value={field.value >= 0 ? field.value : 0}
+                      onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                      type="number"
+                      step="0.01"
+                      className="h-9 text-sm"
+                      onFocus={(e) => {
+                        if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
+                          e.target.select();
+                        }
+                      }}
+                      placeholder="0"
+                    />
+                  </div>
+                )}
+              />
+            </div>
+          </CollapsibleSection>
           
-          <Controller
-            name="road_rto_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
-                <Input
-                  value={field.value >= 0 ? field.value : 0}
-                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0'|| e.target.value === '0.00' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="breakdown_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
-                <Input
-                  value={field.value >= 0 ? field.value : 0}
-                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
-          <Controller
-            name="miscellaneous_expense"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
-                <Input
-                  value={field.value >= 0 ? field.value : 0}
-                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                  type="number"
-                  step="0.01"
-                  className="h-9 text-sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  placeholder="0"
-                />
-              </div>
-            )}
-          />
-          
+          {/* Always visible: Total Road Expenses */}
           <div>
             <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Total Road Expenses (₹)</label>
             <Input
