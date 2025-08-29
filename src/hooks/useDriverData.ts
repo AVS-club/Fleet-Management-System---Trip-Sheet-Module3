@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getDriver, getVehicle, getTrips, getDrivers, getVehicles } from '../utils/storage';
+import { getDriver, getDrivers } from '../services/drivers';
+import { getVehicle, getVehicles } from '../services/vehicles';
+import { getTrips } from '../services/trips';
 import { getAIAlerts } from '../utils/aiAnalytics';
 import type { Driver, Vehicle, Trip, AIAlert } from '@/types';
 
