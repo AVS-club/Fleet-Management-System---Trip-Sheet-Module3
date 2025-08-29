@@ -365,6 +365,7 @@ const TripsPage: React.FC = () => {
               onClick={() => {
                 setIsAddingTrip(false);
                 setEditingTrip(null);
+                setClonedTripData(null);
               }}
             >
               Cancel
