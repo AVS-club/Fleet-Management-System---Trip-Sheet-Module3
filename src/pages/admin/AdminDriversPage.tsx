@@ -8,7 +8,7 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import StatCard from '../../components/ui/StatCard';
 import { Driver } from '../../types';
-import { getDrivers } from '../../services/drivers';
+import { getDrivers } from '../../utils/storage';
 import { toast } from 'react-toastify';
 
 const AdminDriversPage: React.FC = () => {
