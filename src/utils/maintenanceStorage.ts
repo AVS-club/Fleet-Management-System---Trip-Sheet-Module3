@@ -6,8 +6,7 @@ import {
 } from "../types/maintenance";
 import { supabase } from "./supabaseClient";
 import { computeNextDueFromLast } from "./serviceDue";
-import { getLatestOdometer } from "./storage";
-import { getVehicle } from "../services/vehicles";
+import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
 
 // Tasks CRUD operations
