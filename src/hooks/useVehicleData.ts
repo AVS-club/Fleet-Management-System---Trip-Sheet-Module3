@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getVehicle, getVehicleStats, getTrips } from '../utils/storage';
+import { getVehicle, getVehicleStats } from '../services/vehicles';
+import { getTrips } from '../services/trips';
 import { getSignedDocumentUrl } from '../utils/supabaseStorage';
 import type { Vehicle, Trip } from '@/types';
 import { toast } from 'react-toastify';
