@@ -72,6 +72,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [vehicleQuery, setVehicleQuery] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [driverQuery, setDriverQuery] = useState('');
+  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -163,6 +165,14 @@ const TripForm: React.FC<TripFormProps> = ({
     );
   }, [vehicleQuery, vehicles]);
 
+  // Filter drivers based on search query
+  const filteredDrivers = useMemo(() => {
+    if (!driverQuery) return drivers;
+    const query = driverQuery.toLowerCase();
+    return drivers.filter(driver => 
+      driver.name.toLowerCase().includes(query)
+    );
+  }, [driverQuery, drivers]);
   // Update selected vehicle when vehicle_id changes
   useEffect(() => {
     if (selectedVehicleId) {
@@ -177,6 +187,20 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [selectedVehicleId, vehicles]);
 
+  // Update selected driver when driver_id changes
+  useEffect(() => {
+    const selectedDriverId = watch('driver_id');
+    if (selectedDriverId) {
+      const driver = drivers.find(d => d.id === selectedDriverId);
+      setSelectedDriver(driver || null);
+      if (driver) {
+        setDriverQuery(driver.name);
+      }
+    } else {
+      setSelectedDriver(null);
+      setDriverQuery('');
+    }
+  }, [watch('driver_id'), drivers]);
   // Fetch form data - only if not provided as props
   useEffect(() => {
     // If data is provided as props (editing mode), use it instead of fetching
@@ -584,20 +608,56 @@ const TripForm: React.FC<TripFormProps> = ({
             </Combobox>
           </div>
 
-          <Select
-            label="Driver"
-            icon={<User className="h-4 w-4" />}
-            options={[
-              { value: '', label: 'Select Driver' },
-              ...drivers.map(driver => ({
-                value: driver.id || '',
-                label: `${driver.name} - ${driver.license_number}`
-              }))
-            ]}
-            required
-            {...register('driver_id', { required: 'Driver selection is required' })}
-            size="sm"
-          />
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Driver
+              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
+            </label>
+            <Combobox
+              value={selectedDriver}
+              onChange={(driver: Driver | null) => {
+                setSelectedDriver(driver);
+                setValue('driver_id', driver?.id || '');
+              }}
+            >
+              <div className="relative">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Combobox.Input
+                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    displayValue={(driver: Driver | null) => driver?.name || ''}
+                    onChange={(event) => setDriverQuery(event.target.value)}
+                    placeholder="Type driver name..."
+                  />
+                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </Combobox.Button>
+                </div>
+                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredDrivers.length === 0 && driverQuery !== '' ? (
+                    <div className="px-4 py-2 text-sm text-gray-500">No drivers found</div>
+                  ) : (
+                    filteredDrivers.map((driver) => (
+                      <Combobox.Option
+                        key={driver.id}
+                        value={driver}
+                        className={({ active }) =>
+                          `cursor-pointer select-none px-4 py-2 ${
+                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
+                          }`
+                        }
+                      >
+                        <div>
+                          <div className="font-medium">{driver.name}</div>
+                          <div className="text-xs text-gray-500">{driver.license_number}</div>
+                        </div>
+                      </Combobox.Option>
+                    ))
+                  )}
+                </Combobox.Options>
+              </div>
+            </Combobox>
+          </div>
         </div>
       </div>
 
