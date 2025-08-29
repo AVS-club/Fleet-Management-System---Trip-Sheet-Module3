@@ -1,6 +1,6 @@
 import { MaintenanceTask, MAINTENANCE_ITEMS } from '../types/maintenance';
 import { getTasks } from './maintenanceStorage';
-import { getVehicle } from './storage';
+import { getVehicle } from '../services/vehicles';
 
 interface ServicePrediction {
   date: string;
