@@ -6,44 +6,199 @@ import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
 import Button from '../components/ui/Button';
-import { Trip, TripFormData, Vehicle, Driver } from '../types';
-import { getTrips, getVehicles, getDrivers, createTrip } from '../utils/storage';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import MultiSelect from '../components/ui/MultiSelect';
+import Checkbox from '../components/ui/Checkbox';
+import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '../types';
+import { getTrips, getVehicles, getDrivers, createTrip, getWarehouses } from '../utils/storage';
+import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
-import { PlusCircle, FileText, BarChart2, Route } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2, Route, Calendar, MapPin, Package, AlertTriangle, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { parseISO, isValid, isWithinInterval } from 'date-fns';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tripsPerPage] = useState(10);
+  const [showLoadMore, setShowLoadMore] = useState(false);
+  
+  // Enhanced filter state
+  const [filters, setFilters] = useState({
+    search: '',
+    vehicle: '',
+    driver: '',
+    refueling: '',
+    startDate: '',
+    endDate: '',
+    warehouse: '',
+    materials: [] as string[],
+    routeDeviation: false
+  });
+  const [showFilters, setShowFilters] = useState(false);
   
   // Load data
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        const [tripsData, vehiclesData, driversData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, warehousesData, materialTypesData] = await Promise.all([
           getTrips(),
           getVehicles(),
-          getDrivers()
+          getDrivers(),
+          getWarehouses(),
+          getMaterialTypes()
         ]);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setDrivers(Array.isArray(driversData) ? driversData : []);
+        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
+        setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data');
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchData();
   }, []);
+  
+  // Filter trips based on all filter criteria
+  const filteredTrips = React.useMemo(() => {
+    return Array.isArray(trips) ? trips.filter(trip => {
+      // Search filter
+      if (filters.search) {
+        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+        const driver = drivers.find(d => d.id === trip.driver_id);
+        
+        const searchLower = filters.search.toLowerCase();
+        const serialMatch = trip.trip_serial_number?.toLowerCase().includes(searchLower);
+        const vehicleMatch = vehicle?.registration_number?.toLowerCase().includes(searchLower);
+        const driverMatch = driver?.name?.toLowerCase().includes(searchLower);
+        if (!(serialMatch || vehicleMatch || driverMatch)) {
+          return false;
+        }
+      }
+      
+      // Vehicle filter
+      if (filters.vehicle && trip.vehicle_id !== filters.vehicle) {
+        return false;
+      }
+      
+      // Driver filter
+      if (filters.driver && trip.driver_id !== filters.driver) {
+        return false;
+      }
+      
+      // Refueling filter
+      if (filters.refueling === 'refueling' && !trip.refueling_done) {
+        return false;
+      } else if (filters.refueling === 'no-refueling' && trip.refueling_done) {
+        return false;
+      }
+      
+      // Date range filter
+      if (filters.startDate || filters.endDate) {
+        const tripDate = parseISO(trip.trip_start_date);
+        if (!isValid(tripDate)) return false;
+        
+        if (filters.startDate) {
+          const startDate = parseISO(filters.startDate);
+          if (isValid(startDate) && tripDate < startDate) return false;
+        }
+        
+        if (filters.endDate) {
+          const endDate = parseISO(filters.endDate);
+          if (isValid(endDate) && tripDate > endDate) return false;
+        }
+      }
+      
+      // Warehouse filter
+      if (filters.warehouse && trip.warehouse_id !== filters.warehouse) {
+        return false;
+      }
+      
+      // Material filter
+      if (filters.materials.length > 0) {
+        if (!trip.material_type_ids || trip.material_type_ids.length === 0) {
+          return false;
+        }
+        const hasMatchingMaterial = filters.materials.some(materialId => 
+          trip.material_type_ids?.includes(materialId)
+        );
+        if (!hasMatchingMaterial) return false;
+      }
+      
+      // Route deviation filter
+      if (filters.routeDeviation) {
+        if (!trip.route_deviation || Math.abs(trip.route_deviation) <= 8) {
+          return false;
+        }
+      }
+      
+      return true;
+    })
+    .sort((a, b) =>
+      new Date(b.trip_start_date || 0).getTime() -
+      new Date(a.trip_start_date || 0).getTime()
+    ) : [];
+  }, [trips, filters, vehicles, drivers]);
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
+  const indexOfLastTrip = currentPage * tripsPerPage;
+  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
+  const currentTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+  
+  // Handle pagination
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  // Handle load more
+  const handleLoadMore = () => {
+    const nextPageTrips = filteredTrips.slice(indexOfLastTrip, indexOfLastTrip + tripsPerPage);
+    setCurrentPage(prev => prev + 1);
+  };
+  
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      search: '',
+      vehicle: '',
+      driver: '',
+      refueling: '',
+      startDate: '',
+      endDate: '',
+      warehouse: '',
+      materials: [],
+      routeDeviation: false
+    });
+    setCurrentPage(1);
+  };
   
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
@@ -260,14 +415,247 @@ const TripsPage: React.FC = () => {
             />
           )}
           
-          <TripList 
-            trips={trips} 
-            vehicles={vehicles} 
-            drivers={drivers}
-            onSelectTrip={handleTripSelect}
-            onPnlClick={handlePnlClick}
-            onEditTrip={handleEditTrip}
-          />
+          {/* Enhanced Filters */}
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <Filter className="h-5 w-5 mr-2 text-primary-500" />
+                Trip Filters
+              </h3>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  disabled={Object.values(filters).every(v => !v || (Array.isArray(v) && v.length === 0))}
+                >
+                  Clear All
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  {showFilters ? 'Hide' : 'Show'} Filters
+                </Button>
+              </div>
+            </div>
+            
+            {showFilters && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Search */}
+                <Input
+                  placeholder="Search trips..."
+                  value={filters.search}
+                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  size="sm"
+                />
+                
+                {/* Vehicle Filter */}
+                <Select
+                  options={[
+                    { value: '', label: 'All Vehicles' },
+                    ...vehicles.map(vehicle => ({
+                      value: vehicle.id,
+                      label: vehicle.registration_number
+                    }))
+                  ]}
+                  value={filters.vehicle}
+                  onChange={e => setFilters(prev => ({ ...prev, vehicle: e.target.value }))}
+                  size="sm"
+                />
+                
+                {/* Driver Filter */}
+                <Select
+                  options={[
+                    { value: '', label: 'All Drivers' },
+                    ...drivers.map(driver => ({
+                      value: driver.id,
+                      label: driver.name
+                    }))
+                  ]}
+                  value={filters.driver}
+                  onChange={e => setFilters(prev => ({ ...prev, driver: e.target.value }))}
+                  size="sm"
+                />
+                
+                {/* Refueling Status */}
+                <Select
+                  options={[
+                    { value: '', label: 'All Trips' },
+                    { value: 'refueling', label: 'Refueling Trips' },
+                    { value: 'no-refueling', label: 'No Refueling' }
+                  ]}
+                  value={filters.refueling}
+                  onChange={e => setFilters(prev => ({ ...prev, refueling: e.target.value }))}
+                  size="sm"
+                />
+                
+                {/* Date Range */}
+                <Input
+                  type="date"
+                  placeholder="Start Date"
+                  value={filters.startDate}
+                  onChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+                  size="sm"
+                  icon={<Calendar className="h-4 w-4" />}
+                />
+                
+                <Input
+                  type="date"
+                  placeholder="End Date"
+                  value={filters.endDate}
+                  onChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+                  size="sm"
+                  icon={<Calendar className="h-4 w-4" />}
+                />
+                
+                {/* Warehouse Filter */}
+                <Select
+                  options={[
+                    { value: '', label: 'All Warehouses' },
+                    ...warehouses.map(warehouse => ({
+                      value: warehouse.id,
+                      label: warehouse.name
+                    }))
+                  ]}
+                  value={filters.warehouse}
+                  onChange={e => setFilters(prev => ({ ...prev, warehouse: e.target.value }))}
+                  size="sm"
+                />
+                
+                {/* Material Types Filter */}
+                <MultiSelect
+                  options={materialTypes.map(material => ({
+                    value: material.id,
+                    label: material.name
+                  }))}
+                  value={filters.materials}
+                  onChange={materials => setFilters(prev => ({ ...prev, materials }))}
+                  size="sm"
+                />
+                
+                {/* Route Deviation Toggle */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    label="Route Deviation > 8%"
+                    checked={filters.routeDeviation}
+                    onChange={e => setFilters(prev => ({ ...prev, routeDeviation: e.target.checked }))}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Filter Summary */}
+            <div className="mt-3 text-sm text-gray-600">
+              Showing {currentTrips.length} of {filteredTrips.length} trips
+              {filteredTrips.length !== trips.length && ` (filtered from ${trips.length} total)`}
+            </div>
+          </div>
+          
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <span className="ml-3 text-gray-600">Loading trips...</span>
+            </div>
+          ) : (
+            <>
+              <TripList 
+                trips={currentTrips} 
+                vehicles={vehicles} 
+                drivers={drivers}
+                onSelectTrip={handleTripSelect}
+                onPnlClick={handlePnlClick}
+                onEditTrip={handleEditTrip}
+              />
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    {/* Page Info */}
+                    <div className="text-sm text-gray-600">
+                      Page {currentPage} of {totalPages} • {filteredTrips.length} total trips
+                    </div>
+                    
+                    {/* Pagination Buttons */}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        icon={<ChevronLeft className="h-4 w-4" />}
+                      >
+                        Prev
+                      </Button>
+                      
+                      {/* Page Numbers */}
+                      <div className="flex gap-1">
+                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                          let pageNum = i + 1;
+                          
+                          // Smart pagination logic
+                          if (totalPages > 5) {
+                            if (currentPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = currentPage - 2 + i;
+                            }
+                          }
+                          
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => handlePageChange(pageNum)}
+                              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                                currentPage === pageNum
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        icon={<ChevronRight className="h-4 w-4" />}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                    
+                    {/* Load More Option */}
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        label="Load More Style"
+                        checked={showLoadMore}
+                        onChange={e => setShowLoadMore(e.target.checked)}
+                      />
+                      {showLoadMore && currentPage < totalPages && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleLoadMore}
+                        >
+                          Load More
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 
