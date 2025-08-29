@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getVehicles } from '../../utils/storage';
+import { getVehicles } from '../../services/vehicles';
 import { getAllVehicleActivityLogs, VehicleActivityLog } from '../../utils/vehicleActivity';
 import { Clock, UserCircle, Truck, Filter, Search, RefreshCw } from 'lucide-react';
 import Select from '../ui/Select';

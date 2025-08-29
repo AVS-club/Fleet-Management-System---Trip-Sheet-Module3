@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { 
-  getDrivers, 
-  getTrips, 
-  createDriver, 
-  updateDriver, 
-  uploadDriverPhoto 
-} from "../utils/storage"; // ⚠️ Confirm field refactor here
+import { getTrips } from "../services/trips";
+import { getDrivers, createDriver, updateDriver, uploadDriverPhoto } from "../services/drivers";
 import { supabase } from "../utils/supabaseClient";
 import {
   User, Users,

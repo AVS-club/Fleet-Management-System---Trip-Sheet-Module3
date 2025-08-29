@@ -2,7 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Trip, Vehicle, Driver, Warehouse } from '../types';
-import { getTrips, getVehicles, getDrivers, getWarehouses } from '../utils/storage';
+import { getWarehouses } from '../utils/storage';
+import { getTrips } from '../services/trips';
+import { getVehicles } from '../services/vehicles';
+import { getDrivers } from '../services/drivers';
 import { 
   Calendar, 
   ChevronDown, 

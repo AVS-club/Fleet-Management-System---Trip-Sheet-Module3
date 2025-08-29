@@ -50,7 +50,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const { getTrips } = await import('../../utils/storage');
+        const { getTrips } = await import('../../services/trips');
         const tripsData = await getTrips();
         setTrips(Array.isArray(tripsData) ? tripsData : []);
       } catch (error) {

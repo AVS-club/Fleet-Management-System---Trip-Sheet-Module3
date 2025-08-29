@@ -11,7 +11,7 @@ import {
   deleteTask,
   uploadServiceBill,
 } from "../utils/maintenanceStorage";
-import { getVehicles } from "../utils/storage";
+import { getVehicles } from "../services/vehicles";
 import { supabase } from "../utils/supabaseClient";
 import Button from "../components/ui/Button";
 import { ChevronLeft, Trash2 } from "lucide-react";

@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
-import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
+import { getTrips } from '../services/trips';
+import { getVehicles, getVehicle, getVehicleStats } from '../services/vehicles';
+import { getDrivers, getDriver } from '../services/drivers';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
 import StatCard from '../components/ui/StatCard';

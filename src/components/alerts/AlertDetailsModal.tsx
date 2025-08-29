@@ -2,7 +2,8 @@ import React from 'react';
 import { X, AlertTriangle, Info, CheckCircle, Truck, User, PenTool as Tool, TrendingDown, Fuel, Clipboard } from 'lucide-react';
 import Button from '../ui/Button';
 import { AIAlert, Vehicle, Driver } from '../../types';
-import { getVehicle, getDriver } from '../../utils/storage';
+import { getVehicle } from '../../services/vehicles';
+import { getDriver } from '../../services/drivers';
 import { format, isValid } from 'date-fns';
 import { toast } from 'react-toastify';
 

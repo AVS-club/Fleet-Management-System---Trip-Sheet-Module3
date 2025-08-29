@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { getVehicle, getVehicleStats, getTrips } from "../utils/storage";
+import { getVehicle, getVehicleStats } from "../services/vehicles";
+import { getTrips } from "../services/trips";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import {
   Truck,

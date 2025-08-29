@@ -4,7 +4,7 @@ import { Trip, Vehicle, Driver } from '../../types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { updateTrip } from '../../utils/storage';
+import { updateTrip } from '../../services/trips';
 import { toast } from 'react-toastify';
 
 interface TripPnlModalProps {

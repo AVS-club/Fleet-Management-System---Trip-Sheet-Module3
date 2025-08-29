@@ -22,7 +22,7 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react";
-import { getVehicles } from "../../utils/storage";
+import { getVehicles } from "../../services/vehicles";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
