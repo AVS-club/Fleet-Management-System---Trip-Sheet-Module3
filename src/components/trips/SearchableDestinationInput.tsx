@@ -308,10 +308,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                         <div className="flex items-center">
                           <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
                           <span className="font-medium text-gray-900 dark:text-gray-100">{prediction.structured_formatting?.main_text || prediction.description}</span>
-                        <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{destination.name}</span>
-                            <span>Destination {index + 1}</span>
-                          <span>{destination.name}</span>
-                        </span>
+                          </div>
                       </div>
                       {prediction.structured_formatting?.secondary_text && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 ml-6">
