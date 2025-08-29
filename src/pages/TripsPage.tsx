@@ -20,7 +20,7 @@ const TripsPage: React.FC = () => {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(true);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   
