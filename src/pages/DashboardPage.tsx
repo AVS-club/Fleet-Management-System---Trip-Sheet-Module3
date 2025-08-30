@@ -283,7 +283,7 @@ const DashboardPage: React.FC = () => {
               Performance Highlights
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
@@ -316,18 +316,6 @@ const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between gap-2 ">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Potential Savings</h3>
-                <IndianRupee className="h-6 w-6 text-success-500 dark:text-success-400" />
-              </div>
-              <div className="mt-3 sm:mt-4">
-                <p className="text-xl sm:text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
-              </div>
-
-
-            </div>
             </div>
           </>
         )}
