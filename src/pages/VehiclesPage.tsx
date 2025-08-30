@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
+import { getTasks } from '../utils/maintenanceStorage';
 import { format } from 'date-fns';
-import { Trip, Vehicle, Driver } from '../types';
+import { Trip, Vehicle, Driver, MaintenanceTask } from '../types';
 import StatCard from '../components/ui/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
@@ -19,26 +20,30 @@ const DashboardPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tripsData, vehiclesData, driversData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, maintenanceData] = await Promise.all([
           getTrips(),
           getVehicles(),
-          getDrivers()
+          getDrivers(),
+          getTasks()
         ]);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setDrivers(Array.isArray(driversData) ? driversData : []);
+        setMaintenanceTasks(Array.isArray(maintenanceData) ? maintenanceData : []);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Initialize with empty arrays if fetch fails
         setTrips([]);
         setVehicles([]);
         setDrivers([]);
+        setMaintenanceTasks([]);
       } finally {
         setLoading(false);
       }
