@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '../utils/supabaseClient';
 import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
@@ -43,6 +44,15 @@ const TripDetailsPage: React.FC = () => {
         try {
           const tripData = await getTrip(id);
           if (tripData) {
+            // Get current user for RLS queries
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+              console.error('No authenticated user found');
+              navigate('/login');
+              return;
+            }
+            
             setTrip(tripData);
             
             // Load related data and all lookup data needed for editing
@@ -95,10 +105,10 @@ const TripDetailsPage: React.FC = () => {
             
             if (Array.isArray(tripData.destinations) && tripData.destinations.length > 0) {
               try {
-                // Query destinations table using place_id field for Google Place IDs
+                // Query destinations table using place_id field for Google Place IDs, include place_name
                 const { data: destinationData, error: destError } = await supabase
                   .from('destinations')
-                  .select('*')
+                  .select('id, name, latitude, longitude, type, state, active, place_id, formatted_address')
                   .in('place_id', tripData.destinations)
                   .eq('created_by', user.id);
 

@@ -963,7 +963,8 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
 // Find or create destination by Google Place ID
 export const findOrCreateDestinationByPlaceId = async (
   placeId: string,
-  destinationData: Omit<Destination, 'id'>
+  destinationData: Omit<Destination, 'id'>,
+  placeName?: string
 ): Promise<string | null> => {
   try {
     const userId = await getCurrentUserId();
@@ -990,7 +991,10 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // If destination doesn't exist, create a new one
-    const payload = withOwner(destinationData, userId);
+    const payload = withOwner({
+      ...destinationData,
+      place_name: placeName || destinationData.name
+    }, userId);
 
     const { data: newDestination, error: createError } = await supabase
       .from('destinations')
