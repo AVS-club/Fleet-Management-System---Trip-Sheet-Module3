@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
-import { subDays, format } from 'date-fns';
+import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -27,7 +28,8 @@ import {
   Package,
   Route,
   Calculator,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -36,13 +38,24 @@ interface TripFormProps {
   isSubmitting?: boolean;
   trips?: Trip[];
   initialData?: Partial<TripFormData>;
+  // Pre-fetched lookup data to prevent async loading issues during form initialization
+  allVehicles?: Vehicle[];
+  allDrivers?: Driver[];
+  allDestinations?: Destination[];
+  allWarehouses?: Warehouse[];
+  allMaterialTypes?: MaterialType[];
 }
 
 const TripForm: React.FC<TripFormProps> = ({
   onSubmit,
   isSubmitting = false,
   trips = [],
-  initialData
+  initialData,
+  allVehicles,
+  allDrivers,
+  allDestinations,
+  allWarehouses,
+  allMaterialTypes
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -57,6 +70,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
   const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [vehicleQuery, setVehicleQuery] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -69,8 +84,8 @@ const TripForm: React.FC<TripFormProps> = ({
     control
   } = useForm<TripFormData>({
     defaultValues: {
-      trip_start_date: yesterdayDate, // Auto-default to yesterday
-      trip_end_date: yesterdayDate, // Auto-default to yesterday
+      trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
+      trip_end_date: initialData?.trip_end_date || yesterdayDate, // Use initial data if available
       refueling_done: false,
       is_return_trip: true,
       gross_weight: 0,
@@ -85,6 +100,50 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   });
 
+  // Reset form with initial data whenever initialData changes - with proper date formatting
+  useEffect(() => {
+    if (initialData) {
+      // Format dates properly for date inputs (YYYY-MM-DD)
+      const formatDateForInput = (dateString?: string) => {
+        if (!dateString) return yesterdayDate;
+        try {
+          const date = parseISO(dateString);
+          return format(date, 'yyyy-MM-dd');
+        } catch (error) {
+          console.error('Error formatting date:', error);
+          return yesterdayDate;
+        }
+      };
+
+      setValue('trip_start_date', formatDateForInput(initialData.trip_start_date));
+      setValue('trip_end_date', formatDateForInput(initialData.trip_end_date));
+      setValue('vehicle_id', initialData.vehicle_id || '');
+      setValue('driver_id', initialData.driver_id || '');
+      setValue('warehouse_id', initialData.warehouse_id || '');
+      setValue('destinations', initialData.destinations || []);
+      setValue('start_km', initialData.start_km || 0);
+      setValue('end_km', initialData.end_km || 0);
+      setValue('gross_weight', initialData.gross_weight || 0);
+      setValue('refueling_done', initialData.refueling_done || false);
+      setValue('fuel_quantity', initialData.fuel_quantity || 0);
+      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
+      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
+      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      setValue('unloading_expense', initialData.unloading_expense || 0);
+      setValue('driver_expense', initialData.driver_expense || 0);
+      setValue('road_rto_expense', initialData.road_rto_expense || 0);
+      setValue('breakdown_expense', initialData.breakdown_expense || 0);
+      setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
+      setValue('total_road_expenses', initialData.total_road_expenses || 0);
+      setValue('is_return_trip', initialData.is_return_trip || false);
+      setValue('remarks', initialData.remarks || '');
+      setValue('trip_serial_number', initialData.trip_serial_number || '');
+      setValue('material_type_ids', initialData.material_type_ids || []);
+      setValue('station', initialData.station || '');
+    }
+  }, [initialData, setValue]);
+
   // Watch form values for calculations
   const watchedValues = watch();
   const selectedVehicleId = watch('vehicle_id');
@@ -95,8 +154,43 @@ const TripForm: React.FC<TripFormProps> = ({
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
 
-  // Fetch form data
+  // Filter vehicles based on search query
+  const filteredVehicles = useMemo(() => {
+    if (!vehicleQuery) return vehicles;
+    const query = vehicleQuery.toLowerCase();
+    return vehicles.filter(vehicle => 
+      vehicle.registration_number.toLowerCase().includes(query)
+    );
+  }, [vehicleQuery, vehicles]);
+
+  // Update selected vehicle when vehicle_id changes
   useEffect(() => {
+    if (selectedVehicleId) {
+      const vehicle = vehicles.find(v => v.id === selectedVehicleId);
+      setSelectedVehicle(vehicle || null);
+      if (vehicle) {
+        setVehicleQuery(vehicle.registration_number);
+      }
+    } else {
+      setSelectedVehicle(null);
+      setVehicleQuery('');
+    }
+  }, [selectedVehicleId, vehicles]);
+
+  // Fetch form data - only if not provided as props
+  useEffect(() => {
+    // If data is provided as props (editing mode), use it instead of fetching
+    if (allVehicles && allDrivers && allDestinations && allWarehouses && allMaterialTypes) {
+      setVehicles(allVehicles);
+      setDrivers(allDrivers);
+      setDestinations(allDestinations);
+      setWarehouses(allWarehouses);
+      setMaterialTypes(allMaterialTypes);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise fetch the data (for new trip mode)
     const fetchFormData = async () => {
       setLoading(true);
       try {
@@ -122,7 +216,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     fetchFormData();
-  }, []);
+  }, [allVehicles, allDrivers, allDestinations, allWarehouses, allMaterialTypes]);
 
   // Initialize selected destinations from initialData
   useEffect(() => {
@@ -136,7 +230,7 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Auto-select assigned driver when vehicle is selected
   useEffect(() => {
-    if (selectedVehicleId && vehicles.length > 0) {
+    if (selectedVehicleId && vehicles.length > 0 && !initialData?.driver_id) { // Only auto-select if no initial driver
       const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
       if (selectedVehicle?.primary_driver_id) {
         setValue('driver_id', selectedVehicle.primary_driver_id);
@@ -147,7 +241,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Auto-generate trip serial number when vehicle and start date are selected
   useEffect(() => {
     const generateSerial = async () => {
-      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number) {
+      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number && !watchedValues.trip_serial_number) {
         try {
           const vehicle = vehicles.find(v => v.id === selectedVehicleId);
           if (vehicle) {
@@ -165,12 +259,12 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     generateSerial();
-  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData]);
+  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData?.trip_serial_number]);
 
   // Auto-fill start KM when vehicle is selected
   useEffect(() => {
     const fillStartKm = async () => {
-      if (selectedVehicleId && !initialData?.start_km) {
+      if (selectedVehicleId && !initialData?.start_km && !watchedValues.start_km) { // Only auto-fill if no initial or current value
         try {
           const { value: latestOdometer } = await getLatestOdometer(selectedVehicleId);
           setValue('start_km', latestOdometer);
@@ -181,7 +275,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     fillStartKm();
-  }, [selectedVehicleId, setValue, initialData]);
+  }, [selectedVehicleId, setValue, initialData?.start_km, watchedValues.start_km]);
 
   // Handle adding destinations
   const handleDestinationSelect = (destination: Destination) => {
@@ -295,7 +389,35 @@ const TripForm: React.FC<TripFormProps> = ({
     performRouteAnalysis();
   }, [selectedWarehouseId, selectedDestinationObjects]);
 
+  // Form validation function
+  const validateFormData = (data: TripFormData): string | null => {
+    // Validate distance is positive
+    const distance = (data.end_km || 0) - (data.start_km || 0);
+    if (distance <= 0) {
+      return 'Distance cannot be zero or negative. End KM must be greater than Start KM.';
+    }
+    
+    // Validate fuel data if refueling is done
+    if (data.refueling_done) {
+      if (!data.fuel_quantity || data.fuel_quantity <= 0) {
+        return 'Fuel quantity must be greater than zero when refueling is done.';
+      }
+      if (!data.total_fuel_cost || data.total_fuel_cost < 0) {
+        return 'Fuel cost cannot be negative.';
+      }
+    }
+    
+    return null;
+  };
+
   const handleFormSubmit = async (data: TripFormData) => {
+    // Validate form data before submission
+    const validationError = validateFormData(data);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+
     // Calculate mileage if refueling data is available
     if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
       const distance = data.end_km - data.start_km;
@@ -411,20 +533,56 @@ const TripForm: React.FC<TripFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Select
-            label="Vehicle"
-            icon={<Truck className="h-4 w-4" />}
-            options={[
-              { value: '', label: 'Select Vehicle' },
-              ...vehicles.map(vehicle => ({
-                value: vehicle.id,
-                label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`
-              }))
-            ]}
-            required
-            {...register('vehicle_id', { required: 'Vehicle selection is required' })}
-            size="sm"
-          />
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Vehicle
+              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
+            </label>
+            <Combobox
+              value={selectedVehicle}
+              onChange={(vehicle: Vehicle | null) => {
+                setSelectedVehicle(vehicle);
+                setValue('vehicle_id', vehicle?.id || '');
+              }}
+            >
+              <div className="relative">
+                <div className="relative">
+                  <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Combobox.Input
+                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    displayValue={(vehicle: Vehicle | null) => vehicle?.registration_number || ''}
+                    onChange={(event) => setVehicleQuery(event.target.value)}
+                    placeholder="Type vehicle number..."
+                  />
+                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </Combobox.Button>
+                </div>
+                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+                  {filteredVehicles.length === 0 && vehicleQuery !== '' ? (
+                    <div className="px-4 py-2 text-sm text-gray-500">No vehicles found</div>
+                  ) : (
+                    filteredVehicles.map((vehicle) => (
+                      <Combobox.Option
+                        key={vehicle.id}
+                        value={vehicle}
+                        className={({ active }) =>
+                          `cursor-pointer select-none px-4 py-2 ${
+                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
+                          }`
+                        }
+                      >
+                        <div>
+                          <div className="font-medium">{vehicle.registration_number}</div>
+                          <div className="text-xs text-gray-500">{vehicle.make} {vehicle.model}</div>
+                        </div>
+                      </Combobox.Option>
+                    ))
+                  )}
+                </Combobox.Options>
+              </div>
+            </Combobox>
+          </div>
 
           <Select
             label="Driver"
@@ -553,14 +711,14 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('start_km', {
                 required: 'Start KM is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'Start KM must be positive' }
+                min: { value: 0, message: 'Start KM cannot be negative' }
               })}
             />
 
@@ -572,14 +730,21 @@ const TripForm: React.FC<TripFormProps> = ({
               onBlur={handleEndKmBlur}
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('end_km', {
                 required: 'End KM is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'End KM must be positive' }
+                min: { value: 0, message: 'End KM cannot be negative' },
+                validate: (value) => {
+                  const startKm = watchedValues.start_km || 0;
+                  if (value <= startKm) {
+                    return 'End KM must be greater than Start KM';
+                  }
+                  return true;
+                }
               })}
             />
 
@@ -590,14 +755,14 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               size="sm"
               onFocus={(e) => {
-                if (e.target.value === '0') {
+                if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
                 }
               }}
               {...register('gross_weight', {
                 required: 'Gross weight is required',
                 valueAsNumber: true,
-                min: { value: 0, message: 'Gross weight must be positive' }
+                min: { value: 0, message: 'Gross weight cannot be negative' }
               })}
             />
           </div>
@@ -628,13 +793,13 @@ const TripForm: React.FC<TripFormProps> = ({
                   placeholder="Enter total amount paid"
                   size="sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0') {
+                    if (e.target.value === '0' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
                   {...register('total_fuel_cost', {
                     valueAsNumber: true,
-                    min: { value: 0.01, message: 'Total fuel cost must be positive' }
+                    min: { value: 0, message: 'Total fuel cost cannot be negative' }
                   })}
                 />
 
@@ -654,6 +819,10 @@ const TripForm: React.FC<TripFormProps> = ({
                   value={watchedValues.fuel_quantity || 0}
                   disabled
                   size="sm"
+                  {...register('fuel_quantity', {
+                    valueAsNumber: true,
+                    min: { value: 0, message: 'Fuel quantity cannot be negative' }
+                  })}
                 />
 
             <div className="mt-3">
@@ -688,13 +857,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -711,13 +880,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -734,13 +903,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0'|| e.target.value === '0.00') {
+                    if (e.target.value === '0'|| e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -757,13 +926,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
@@ -780,13 +949,13 @@ const TripForm: React.FC<TripFormProps> = ({
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
                 <Input
-                  value={field.value || 0}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  value={field.value >= 0 ? field.value : 0}
+                  onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
                   type="number"
                   step="0.01"
                   className="h-9 text-sm"
                   onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '0.00') {
+                    if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
                       e.target.select();
                     }
                   }}
