@@ -5,7 +5,6 @@ import { getDestinations, findOrCreateDestinationByPlaceId } from '../../utils/s
 import { Destination } from '../../types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import { truncateString } from '../../utils/format';
 
 interface SearchableDestinationInputProps {
   onDestinationSelect: (destination: Destination) => void;
@@ -144,7 +143,6 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       // Create destination data (without id)
       const destinationData: Omit<Destination, 'id'> = {
         name: placeDetails.name || prediction.description.split(',')[0],
-        place_name: placeDetails.name || prediction.description,
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
         standard_distance: 0, // Will be calculated
@@ -158,11 +156,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       };
 
       // Find or create destination in database and get proper UUID
-      const destinationId = await findOrCreateDestinationByPlaceId(
-        prediction.place_id, 
-        destinationData,
-        placeDetails.name || prediction.description
-      );
+      const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, destinationData);
       
       if (!destinationId) {
         throw new Error('Failed to create or find destination');
@@ -308,7 +302,10 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                         <div className="flex items-center">
                           <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
                           <span className="font-medium text-gray-900 dark:text-gray-100">{prediction.structured_formatting?.main_text || prediction.description}</span>
-                          </div>
+                        </div>
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                          Place
+                        </span>
                       </div>
                       {prediction.structured_formatting?.secondary_text && (
                         <p className="text-sm text-gray-500 dark:text-gray-400 ml-6">
@@ -334,9 +331,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                       className="inline-flex items-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       {getTypeIcon(destination.type)}
-                      <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{truncateString(destination.name, 4)}</span>
+                      <span className="ml-1 font-medium text-gray-900 dark:text-gray-100">{destination.name}</span>
                       <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
-                        <span>{destination.name}</span>
+                        {destination.type}
                       </span>
                     </button>
                   ))}
