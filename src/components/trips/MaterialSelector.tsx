@@ -117,15 +117,15 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
       )}
 
       {/* Material Selection Grid */}
-      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 max-h-24 overflow-y-auto">
+      <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-1 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-20 overflow-y-auto">
           {materialTypes.map(material => {
             const isSelected = selectedMaterials.includes(material.id);
             
             return (
               <label
                 key={material.id}
-                className={`relative flex items-center p-1.5 rounded-md border-2 cursor-pointer transition-all ${
+                className={`relative flex items-center p-1 rounded-md border-2 cursor-pointer transition-all ${
                   isSelected
                     ? `border-current ${getColorForMaterial(material.name)} dark:bg-gray-700`
                     : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -138,10 +138,10 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   className="sr-only"
                 />
                 
-                <div className="flex items-center space-x-1.5 w-full">
-                  <span className="text-base">{getIconForMaterial(material.name)}</span>
+                <div className="flex items-center space-x-1 w-full">
+                  <span className="text-sm">{getIconForMaterial(material.name)}</span>
                   
-                  <span className={`text-xs font-medium capitalize ${
+                  <span className={`text-[10px] font-medium capitalize ${
                     isSelected ? 'text-current' : 'text-gray-700'
                   } dark:text-gray-200`}>
                     {material.name}
@@ -149,7 +149,7 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
                   
                   {isSelected && (
                     <div className="ml-auto">
-                      <div className="w-1.5 h-1.5 bg-current rounded-full"></div>
+                      <div className="w-1 h-1 bg-current rounded-full"></div>
                     </div>
                   )}
                 </div>
@@ -159,8 +159,8 @@ const MaterialSelector: React.FC<MaterialSelectorProps> = ({
         </div>
         
         {materialTypes.length === 0 && (
-          <div className="text-center py-3 text-gray-500 dark:text-gray-400">
-            <Package className="h-6 w-6 mx-auto mb-1 text-gray-400" />
+          <div className="text-center py-2 text-gray-500 dark:text-gray-400">
+            <Package className="h-4 w-4 mx-auto mb-1 text-gray-400" />
             <p>No material types available.</p>
           </div>
         )}
