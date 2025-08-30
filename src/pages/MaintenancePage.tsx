@@ -10,8 +10,10 @@ import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
 import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
+import MaintenanceTaskForm from '../components/maintenance/MaintenanceTaskForm';
+import { createTask } from '../utils/maintenanceStorage';
+import { toast } from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'react-toastify';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
@@ -62,6 +64,25 @@ const MaintenancePage = () => {
     queryFn: getVehicles,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const handleSaveMaintenance = async (taskData: any) => {
+    setIsSubmitting(true);
+    try {
+      await createTask(taskData);
+      toast.success('Maintenance task created successfully');
+      setIsAddingMaintenance(false);
+      refetchTasks(); // Refresh the task list
+    } catch (error) {
+      console.error('Error creating maintenance task:', error);
+      toast.error('Failed to create maintenance task');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelMaintenance = () => {
+    setIsAddingMaintenance(false);
+  };
 
   // Calculate metrics whenever date range changes or data is loaded
   useEffect(() => {
@@ -121,6 +142,42 @@ const MaintenancePage = () => {
     const dateRange = getDateRangeForFilter(dateRangeFilter, customDateRange.start, customDateRange.end);
     exportMaintenanceReport(tasks || [], vehicles || [], 'csv', dateRange);
   };
+
+  if (tasksLoading || vehiclesLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show maintenance form when adding
+  if (isAddingMaintenance) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Add Maintenance Task</h1>
+            <Button
+              variant="outline"
+              onClick={handleCancelMaintenance}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+          </div>
+          <MaintenanceTaskForm
+            vehicles={vehicles || []}
+            onSubmit={handleSaveMaintenance}
+            onCancel={handleCancelMaintenance}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      </Layout>
+    );
+  }
 
   const loading = tasksLoading || vehiclesLoading;
 
