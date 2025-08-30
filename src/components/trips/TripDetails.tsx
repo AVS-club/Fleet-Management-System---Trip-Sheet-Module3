@@ -192,6 +192,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 Refueling Trip
               </span>
             )}
+            {trip.short_trip && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                Local Trip
+              </span>
+            )}
             {(hasFuelAnomalyAlert || hasRouteDeviationAlert) && (
               <span 
                 className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 cursor-help"

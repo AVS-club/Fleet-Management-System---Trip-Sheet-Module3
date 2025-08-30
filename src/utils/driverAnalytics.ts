@@ -203,7 +203,8 @@ export const getMileageDropInsight = (
   // Filter driver's trips in current period
   const currentPeriodTrips = trips.filter(trip => 
     trip.driver_id === driverId &&
-    trip.calculated_kmpl !== undefined &&
+    trip.calculated_kmpl !== undefined && 
+    !trip.short_trip &&
     isValid(parseISO(trip.trip_start_date)) &&
     isWithinInterval(parseISO(trip.trip_start_date), dateRange)
   );
@@ -224,7 +225,8 @@ export const getMileageDropInsight = (
   // Filter driver's trips in previous period
   const previousPeriodTrips = trips.filter(trip => 
     trip.driver_id === driverId &&
-    trip.calculated_kmpl !== undefined &&
+    trip.calculated_kmpl !== undefined && 
+    !trip.short_trip &&
     isValid(parseISO(trip.trip_start_date)) &&
     isWithinInterval(parseISO(trip.trip_start_date), { start: previousPeriodStart, end: previousPeriodEnd })
   );

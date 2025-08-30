@@ -240,11 +240,6 @@ export interface Driver {
   }>;
 }
 
-export interface DriverSummary {
-  id: string;
-  name: string;
-}
-
 // Add AIAlert interface
 export interface AIAlert {
   id: string;
@@ -283,26 +278,29 @@ export interface Trip {
   destinations: string[];
   trip_start_date: string;
   trip_end_date: string;
+  trip_duration: number;
+  trip_serial_number: string;
+  manual_trip_id: boolean;
   start_km: number;
   end_km: number;
   gross_weight: number;
   refueling_done: boolean;
   fuel_quantity?: number;
   fuel_cost?: number;
-  fuel_rate_per_liter?: number;
   total_fuel_cost?: number;
-  unloading_expense?: number;
-  driver_expense?: number;
-  road_rto_expense?: number;
+  unloading_expense: number;
+  driver_expense: number;
+  road_rto_expense: number;
   miscellaneous_expense?: number;
   total_road_expenses: number;
+  short_trip: boolean;
   remarks?: string;
   calculated_kmpl?: number;
   route_deviation?: number;
   fuel_bill_url?: string;
+  material_type_ids?: string[];
   is_return_trip?: boolean;
   advance_amount?: number; // New field for advance amount
-  fuel_rate_per_liter?: number;
   created_at: string;
   updated_at: string;
 
@@ -314,13 +312,15 @@ export interface Trip {
   net_profit?: number;
   cost_per_km?: number;
   profit_status?: "profit" | "loss" | "neutral";
+  [key: string]: any;
 }
 
 export interface TripFormData
   extends Omit<
     Trip,
-    "id" | "created_at" | "updated_at" | "trip_serial_number" | "manual_trip_id"
+    "id" | "created_at" | "updated_at" | "trip_serial_number"
   > {
+  fuel_bill_file?: File[];
   is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;

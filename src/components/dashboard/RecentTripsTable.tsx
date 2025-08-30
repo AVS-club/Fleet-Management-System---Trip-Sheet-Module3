@@ -94,8 +94,9 @@ const RecentTripsTable: React.FC<RecentTripsTableProps> = ({
                         {driver?.name || 'Unknown'}
                       </td>
                       <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
-                        <span className="text-gray-900 dark:text-gray-100 font-medium">
+                        <span className={trip.short_trip ? "text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-gray-100 font-medium"}>
                           {distance.toLocaleString()} km
+                          {trip.short_trip && <span className="ml-1 text-[10px] sm:text-xs">(local)</span>}
                         </span>
                       </td>
                       <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">

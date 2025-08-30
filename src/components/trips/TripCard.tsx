@@ -117,6 +117,12 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
         </div>
         
         <div className="flex items-center gap-2">
+          {trip.short_trip && (
+            <span className="bg-gray-100 text-gray-600 text-xs py-1 px-2 rounded-full">
+              Local Trip
+            </span>
+          )}
+          
           {/* P&L Button */}
           <button 
             className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors"

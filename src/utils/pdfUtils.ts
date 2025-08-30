@@ -180,7 +180,7 @@ export const generateDriverPDF = async (
 
   const totalTrips = trips.length;
   const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-  const tripsWithMileage = trips.filter((trip) => trip.calculated_kmpl);
+  const tripsWithMileage = trips.filter((trip) => trip.calculated_kmpl && !trip.short_trip);
   const averageMileage =
     tripsWithMileage.length > 0
       ? tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length

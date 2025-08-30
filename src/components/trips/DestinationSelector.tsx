@@ -66,29 +66,39 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       {selectedDestinationObjects.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-600">Route Order:</h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {selectedDestinationObjects.map((destination, index) => (
               <div
                 key={destination.id}
-                className="inline-flex items-center px-3 py-2 bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-sm font-medium"
+                className="flex items-center justify-between p-3 bg-blue-50 border-2 border-blue-200 rounded-lg"
               >
-                <div className="flex items-center justify-center w-5 h-5 bg-blue-500 text-white rounded-full text-xs font-bold mr-2">
-                  {index + 1}
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-6 h-6 bg-blue-500 text-white rounded-full text-xs font-bold">
+                    {index + 1}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <MapPin className="h-3 w-3 mr-1" />
+                      🏙️ {destination.type}
+                    </span>
+                    <span className="font-medium text-blue-800">{destination.name}</span>
+                  </div>
                 </div>
                 
-                <MapPin className="h-4 w-4 mr-1" />
-                <span className="font-medium">{destination.name}</span>
-                <span className="ml-1 text-xs opacity-75">
-                  📏 {destination.standard_distance}km
-                </span>
-                
-                <button
-                  type="button"
-                  onClick={() => handleDestinationToggle(destination.id)}
-                  className="ml-2 text-blue-600 hover:text-red-600 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-blue-600">
+                    📏 {destination.standard_distance} km • ⏱️ {destination.estimated_time}
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleDestinationToggle(destination.id)}
+                    className="p-1 text-red-500 hover:text-red-700 rounded"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -98,7 +108,7 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
       {/* Destination Selection Grid */}
       {showDestinations && (
         <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-          <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
             {destinations.map(destination => {
               const isSelected = selectedDestinations.includes(destination.id);
               const order = isSelected ? getDestinationOrder(destination.id) : null;
@@ -106,10 +116,10 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
               return (
                 <label
                   key={destination.id}
-                  className={`inline-flex items-center px-3 py-2 rounded-lg border cursor-pointer transition-all text-sm font-medium ${
+                  className={`relative flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-100 text-blue-800'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-25'
                   }`}
                 >
                   <input
@@ -119,20 +129,43 @@ const DestinationSelector: React.FC<DestinationSelectorProps> = ({
                     className="sr-only"
                   />
                   
-                  {isSelected && order && (
-                    <div className="flex items-center justify-center w-5 h-5 bg-blue-500 text-white rounded-full text-xs font-bold mr-2">
-                      {order}
+                  <div className="flex items-center space-x-3 w-full">
+                    <div className={`p-2 rounded-full ${
+                      isSelected ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <MapPin className={`h-4 w-4 ${
+                        isSelected ? 'text-blue-600' : 'text-gray-500'
+                      }`} />
                     </div>
-                  )}
-                  
-                  <MapPin className="h-4 w-4 mr-1" />
-                  <span className="font-medium">{destination.name}</span>
-                  <span className="ml-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                    🏙️ {destination.type}
-                  </span>
-                  <span className="ml-1 text-xs opacity-75">
-                    📏 {destination.standard_distance}km
-                  </span>
+                    
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <h4 className={`font-medium ${
+                          isSelected ? 'text-blue-800' : 'text-gray-900'
+                        }`}>
+                          {destination.name}
+                        </h4>
+                        
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                          🏙️ {destination.type}
+                        </span>
+                        
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          📍 {destination.state}
+                        </span>
+                      </div>
+                      
+                      <p className="text-xs text-gray-500 mt-1">
+                        📏 {destination.standard_distance} km • ⏱️ {destination.estimated_time}
+                      </p>
+                    </div>
+                    
+                    {isSelected && order && (
+                      <div className="flex items-center justify-center w-6 h-6 bg-blue-500 text-white rounded-full text-xs font-bold">
+                        {order}
+                      </div>
+                    )}
+                  </div>
                 </label>
               );
             })}

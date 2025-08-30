@@ -35,9 +35,10 @@ export function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | 
 
   // Get all trips between last refueling trip and current trip (inclusive of current trip)
   const relevantTrips = allTrips
-    .filter(trip =>
-      trip.vehicle_id === currentTrip.vehicle_id &&
-      new Date(trip.trip_end_date) > new Date(lastRefuelingTrip.trip_end_date) &&
+    .filter(trip => 
+      trip.vehicle_id === currentTrip.vehicle_id && 
+      !trip.short_trip &&
+      new Date(trip.trip_end_date) > new Date(lastRefuelingTrip.trip_end_date) && 
       new Date(trip.trip_end_date) <= new Date(currentTrip.trip_end_date)
     )
     .sort((a, b) => new Date(a.trip_end_date).getTime() - new Date(b.trip_end_date).getTime());
@@ -56,9 +57,10 @@ export function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | 
 
 function predictMileage(vehicle_id: string, allTrips: Trip[]): number | undefined {
   const vehicleTrips = allTrips
-    .filter(trip =>
-      trip.vehicle_id === vehicle_id &&
-      trip.calculated_kmpl
+    .filter(trip => 
+      trip.vehicle_id === vehicle_id && 
+      trip.calculated_kmpl && 
+      !trip.short_trip
     )
     .sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
 
@@ -106,7 +108,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
 
     if (Array.isArray(trips)) {
       for (const trip of trips) {
-        if (trip.calculated_kmpl) {
+        if (!trip.short_trip && trip.calculated_kmpl) {
           const distance = trip.end_km - trip.start_km;
           const fuel = trip.fuel_quantity || 0;
 
@@ -236,7 +238,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
   // Process all trips to accumulate data per segment
   if (Array.isArray(trips)) {
     trips.forEach(trip => {
-      if (trip.calculated_kmpl && trip.vehicle_id && trip.driver_id) {
+      if (!trip.short_trip && trip.calculated_kmpl && trip.vehicle_id && trip.driver_id) {
         const vehicle = vehicleMap.get(trip.vehicle_id);
         
         if (!vehicle) return; // Skip if vehicle not found
@@ -343,7 +345,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
   
   if (Array.isArray(trips)) {
     for (const trip of trips) {
-      if (trip.calculated_kmpl) {
+      if (!trip.short_trip && trip.calculated_kmpl) {
         const distance = trip.end_km - trip.start_km;
         const fuel = trip.fuel_quantity || 0;
         

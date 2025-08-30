@@ -20,6 +20,11 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
     return null;
   }
 
+  // Skip short/local trips as they often have unusual mileage patterns
+  if (trip.short_trip) {
+    return null;
+  }
+
   const distance = trip.end_km - trip.start_km;
 
   // Skip if distance is invalid
@@ -48,6 +53,7 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
       .eq("refueling_done", true)
       .not("fuel_quantity", "is", null)
       .not("calculated_kmpl", "is", null)
+      .eq("short_trip", false)
       .order("trip_end_date", { ascending: false });
 
     if (error) {
@@ -155,10 +161,11 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
  * @returns An alert if deviation is above threshold, or null if within acceptable range
  */
 const checkRouteDeviation = async (trip: Trip): Promise<AIAlert | null> => {
-  // Skip trips without route_deviation data
+  // Skip trips without route_deviation data or short trips
   if (
     trip.route_deviation === undefined ||
-    trip.route_deviation === null
+    trip.route_deviation === null ||
+    trip.short_trip
   ) {
     return null;
   }

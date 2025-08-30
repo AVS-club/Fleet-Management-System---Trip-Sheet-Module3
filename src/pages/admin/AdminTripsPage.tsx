@@ -275,10 +275,13 @@ const AdminTripsPage: React.FC = () => {
 
       // Trip type filter
       if (filters.tripType) {
+        if (filters.tripType === 'local' && !trip.short_trip) {
+          return false;
+        }
         if (filters.tripType === 'two_way' && !(Array.isArray(trip.destinations) && trip.destinations.length > 1)) {
           return false;
         }
-        if (filters.tripType === 'one_way' && !(Array.isArray(trip.destinations) && trip.destinations.length === 1)) {
+        if (filters.tripType === 'one_way' && (!(!trip.short_trip && Array.isArray(trip.destinations) && trip.destinations.length === 1))) {
           return false;
         }
       }
@@ -434,8 +437,9 @@ const AdminTripsPage: React.FC = () => {
 
     if (options.tripType) {
       filteredTrips = filteredTrips.filter(trip => {
+        if (options.tripType === 'local') return trip.short_trip;
         if (options.tripType === 'two_way') return Array.isArray(trip.destinations) && trip.destinations.length > 1;
-        return Array.isArray(trip.destinations) && trip.destinations.length === 1;
+        return !trip.short_trip && Array.isArray(trip.destinations) && trip.destinations.length === 1;
       });
     }
 
@@ -462,9 +466,7 @@ const AdminTripsPage: React.FC = () => {
         'Revenue': trip.income_amount || 0,
         'Profit/Loss': trip.net_profit ? `₹${trip.net_profit.toLocaleString()}` : '-',
         'Status': trip.profit_status ? trip.profit_status.charAt(0).toUpperCase() + trip.profit_status.slice(1) : '-',
-        'Type': Array.isArray(trip.destinations) && trip.destinations.length > 1
-          ? 'Two Way'
-          : 'One Way'
+        'Type': trip.short_trip ? 'Local' : trip.destinations.length > 1 ? 'Two Way' : 'One Way'
       };
     });
 

@@ -36,7 +36,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id || `select-${useId()}`;
 
     const sizeClasses = {
-      sm: 'px-3 py-2 text-sm',
+      sm: 'px-2 py-1 text-sm',
       md: 'px-3 py-2',
       lg: 'px-4 py-3 text-lg'
     };
@@ -46,7 +46,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label 
             htmlFor={selectId} 
-            className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
           >
             {label}
             {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
