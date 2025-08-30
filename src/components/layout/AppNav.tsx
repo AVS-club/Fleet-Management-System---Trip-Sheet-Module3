@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import Layout from '../components/layout/Layout';
+import Layout from './Layout';
 import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
