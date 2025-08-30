@@ -31,9 +31,10 @@ const Header: React.FC = () => {
           title="Auto Vital Solution"
         >
           <img 
-            src="/assets/AVS LOGO 512x512.png" 
+            src="/assets/logo.png" 
             alt="Auto Vital Solution" 
             className="h-8 w-auto" 
+            onError={(e) => {(e.target as HTMLImageElement).style.display='none'}} 
           />
           <span className="hidden sm:inline text-gray-900 dark:text-gray-100 font-semibold whitespace-nowrap">
             Auto Vital Solution

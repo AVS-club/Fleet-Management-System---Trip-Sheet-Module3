@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
-import { getDestinations, findOrCreateDestinationByPlaceId } from '../../utils/storage';
+import { getDestinations } from '../../utils/storage';
 import { Destination } from '../../types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -102,9 +102,6 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
   const handlePlaceSelect = async (prediction: google.maps.places.AutocompletePrediction) => {
     if (!placesService) return;
 
-    setSearchTerm('');
-    setPredictions([]);
-
     try {
       const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
         placesService.getDetails(
@@ -140,8 +137,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         }
       }
 
-      // Create destination data (without id)
-      const destinationData: Omit<Destination, 'id'> = {
+      // Create destination object
+      const newDestination: Destination = {
+        id: prediction.place_id,
         name: placeDetails.name || prediction.description.split(',')[0],
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
@@ -155,20 +153,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         active: true
       };
 
-      // Find or create destination in database and get proper UUID
-      const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, destinationData);
-      
-      if (!destinationId) {
-        throw new Error('Failed to create or find destination');
-      }
-
-      // Create final destination object with proper UUID
-      const newDestination: Destination = {
-        ...destinationData,
-        id: destinationId
-      };
-
       onDestinationSelect(newDestination);
+      setSearchTerm('');
+      setPredictions([]);
       setShowAddAnother(false);
     } catch (error) {
       console.error('Error selecting place:', error);
