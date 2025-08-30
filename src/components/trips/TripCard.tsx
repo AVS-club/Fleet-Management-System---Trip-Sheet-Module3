@@ -33,7 +33,11 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             // Set loading error for warehouse failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
-            } else if (error instanceof Error && error.message.includes('Network connection failed')) {
+            } else {
+              // Only set error if warehouse_id exists but data is null
+              if (!warehouseData) {
+                setLoadingError('Unable to load warehouse data');
+              }
               setLoadingError('Unable to load warehouse data due to connection issues');
             }
           }
@@ -47,15 +51,20 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
                   return await getDestination(id);
                 } catch (error) {
                   console.warn(`Destination ${id} not found or error fetching:`, error);
-                  // Return null for failed destinations instead of throwing
                   return null;
                 }
               })
             );
-            setDestinationData(destinations.filter(d => d !== null));
+            const validDestinations = destinations.filter(d => d !== null);
+            setDestinationData(validDestinations);
+            
+            // If we have destination IDs but no valid destinations loaded, show error
+            if (validDestinations.length === 0) {
+              setLoadingError('Unable to load trip destinations');
+            }
           } catch (error) {
             console.error('Error fetching destinations:', error);
-            // Set a user-friendly error message for destination failures
+            setLoadingError('Error loading trip destinations');
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load some trip locations');
             }
@@ -63,6 +72,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
         }
       } catch (error) {
         console.error('Error in fetchData:', error);
+        setLoadingError('Failed to load trip details');
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
           setLoadingError('Unable to load trip details');
         }
@@ -70,7 +80,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
     };
     
     fetchData();
-  }, [trip.warehouse_id, trip.destinations]);
+  }, [trip.warehouse_id, trip.destinations]); // Remove warehouseData dependency to prevent loops
   
   const distance = trip.end_km - trip.start_km;
   
