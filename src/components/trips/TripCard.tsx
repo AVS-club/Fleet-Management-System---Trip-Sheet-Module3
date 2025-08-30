@@ -186,7 +186,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
           // Show loading state or fallback when data is not available
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-gray-400" />
-            <span className="text-gray-500 italic">Loading trip locations...</span>
+            <span className="text-gray-500 italic">No trip locations found</span>
           </div>
         )}
       </div>
