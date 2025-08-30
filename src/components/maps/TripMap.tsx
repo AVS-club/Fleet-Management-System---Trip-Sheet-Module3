@@ -25,7 +25,7 @@ const TripMap: React.FC<TripMapProps> = ({
   const getDirectionsErrorMessage = (status: google.maps.DirectionsStatus): string => {
     switch (status) {
       case google.maps.DirectionsStatus.ZERO_RESULTS:
-        return 'No drivable route found between the selected locations. This may occur if: 1) Locations are too remote or not accessible by road, 2) Coordinates are incorrect or point to water/restricted areas, 3) Locations are on different continents, or 4) One location is inside a restricted zone. Please verify the warehouse and destination coordinates are accurate and road-accessible.';
+        return 'No drivable route found between the selected locations. Please check the coordinates or try different locations.';
       case google.maps.DirectionsStatus.NOT_FOUND:
         return 'One or more locations could not be found. Please verify the coordinates.';
       case google.maps.DirectionsStatus.OVER_QUERY_LIMIT:
