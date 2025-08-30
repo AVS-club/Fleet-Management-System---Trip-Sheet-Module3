@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { format, isValid, parseISO } from 'date-fns';
-import { Trip, Vehicle, Driver, Warehouse, Destination, TripFormData } from '../../types';
+import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
 import { MaterialType } from '../../utils/materialTypes';
 import { AIAlert } from '../../types';
 import Button from '../ui/Button';
@@ -25,8 +24,7 @@ import {
   X,
   Download,
   Settings,
-  Info,
-  Copy
+  Info
 } from 'lucide-react';
 
 interface TripDetailsProps {
@@ -54,7 +52,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onEdit,
   onDelete
 }) => {
-  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const distance = trip.end_km - trip.start_km;
@@ -82,47 +79,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     return trip.material_type_ids
       .map(id => materialTypes.find(mt => mt.id === id)?.name)
       .filter(Boolean) as string[];
-  };
-
-  // Handle clone trip
-  const handleCloneTrip = () => {
-    const clonedData: Partial<TripFormData> = {
-      vehicle_id: trip.vehicle_id,
-      driver_id: trip.driver_id,
-      warehouse_id: trip.warehouse_id,
-      destinations: trip.destinations,
-      material_type_ids: trip.material_type_ids,
-      refueling_done: true,
-      is_return_trip: false,
-      // Reset all other fields
-      trip_start_date: '',
-      trip_end_date: '',
-      start_km: 0,
-      end_km: 0,
-      gross_weight: 0,
-      fuel_quantity: 0,
-      fuel_cost: 0,
-      total_fuel_cost: 0,
-      fuel_rate_per_liter: 0,
-      unloading_expense: 0,
-      driver_expense: 0,
-      road_rto_expense: 0,
-      breakdown_expense: 0,
-      miscellaneous_expense: 0,
-      total_road_expenses: 0,
-      remarks: '',
-      trip_serial_number: '',
-      manual_trip_id: false,
-      station: ''
-    };
-
-    // Navigate to trips page with cloned data
-    navigate('/trips', { 
-      state: { 
-        clonedTripData: clonedData,
-        shouldStartAdding: true 
-      } 
-    });
   };
 
   // Check for AI alerts related to this trip
@@ -237,14 +193,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 Refueling Trip
               </span>
             )}
-            <button
-              onClick={handleCloneTrip}
-              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 hover:bg-green-200 transition-colors"
-              title="Clone this trip with same vehicle, driver, and warehouse"
-            >
-              <Copy className="h-3 w-3 mr-1" />
-              CLONE
-            </button>
             {(hasFuelAnomalyAlert || hasRouteDeviationAlert) && (
               <span 
                 className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 cursor-help"
