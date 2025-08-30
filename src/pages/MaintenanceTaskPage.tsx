@@ -14,7 +14,7 @@ import {
 import { getVehicles } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, PlusCircle } from "lucide-react";
+import { ChevronLeft, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 // Define a more specific type for the data coming from MaintenanceTaskForm
@@ -346,24 +346,15 @@ const MaintenanceTaskPage: React.FC = () => {
       title={id === "new" ? "New Maintenance Task" : "Edit Maintenance Task"}
       subtitle={task ? `Task #${task.id}` : "Create a new maintenance task"}
       actions={
-        <div className="flex gap-3">
+        id !== "new" ? (
           <Button
-            variant="outline"
-            onClick={() => navigate('/maintenance', { state: { openAddForm: true } })}
-            icon={<PlusCircle className="h-4 w-4" />}
+            variant="danger"
+            onClick={handleDelete}
+            icon={<Trash2 className="h-4 w-4" />}
           >
-            Add New Task
+            Delete Task
           </Button>
-          {id !== "new" && (
-            <Button
-              variant="danger"
-              onClick={handleDelete}
-              icon={<Trash2 className="h-4 w-4" />}
-            >
-              Delete Task
-            </Button>
-          )}
-        </div>
+        ) : undefined
       }
     >
       {loading ? (

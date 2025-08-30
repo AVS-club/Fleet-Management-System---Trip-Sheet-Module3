@@ -1,262 +1,443 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
-import { getVehicles, createVehicle, updateVehicle, deleteVehicle } from '../utils/storage';
-import { uploadVehicleDocument } from '../utils/supabaseStorage';
-import { Vehicle } from '../types';
-import { Truck, PlusCircle, Edit2, Trash2, FileText, Calendar, Fuel, MapPin } from 'lucide-react';
-import Button from '../components/ui/Button';
-import VehicleForm from '../components/vehicles/VehicleForm';
-import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
+import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
+import { format } from 'date-fns';
+import { Trip, Vehicle, Driver } from '../types';
+import StatCard from '../components/ui/StatCard';
+import MileageChart from '../components/dashboard/MileageChart';
+import VehicleStatsList from '../components/dashboard/VehicleStatsList';
+import RecentTripsTable from '../components/dashboard/RecentTripsTable';
+import DashboardSummary from '../components/dashboard/DashboardSummary';
+import DashboardTip from '../components/dashboard/DashboardTip';
+import EmptyState from '../components/dashboard/EmptyState';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
+import { getMileageInsights } from '../utils/mileageCalculator';
 
-const VehiclesPage: React.FC = () => {
+const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Check for openAddForm state on mount
+  
   useEffect(() => {
-    if (location.state?.openAddForm) {
-      setIsAddingVehicle(true);
-      // Clear the location state to prevent form from reopening
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state, navigate, location.pathname]);
-
-  useEffect(() => {
-    const fetchVehicles = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const vehiclesData = await getVehicles();
+        const [tripsData, vehiclesData, driversData] = await Promise.all([
+          getTrips(),
+          getVehicles(),
+          getDrivers()
+        ]);
+        setTrips(Array.isArray(tripsData) ? tripsData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+        setDrivers(Array.isArray(driversData) ? driversData : []);
       } catch (error) {
-        console.error('Error fetching vehicles:', error);
-        toast.error('Failed to load vehicles');
+        console.error('Error fetching dashboard data:', error);
+        // Initialize with empty arrays if fetch fails
+        setTrips([]);
+        setVehicles([]);
+        setDrivers([]);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchVehicles();
+    
+    fetchData();
   }, []);
+  
+  // Calculate stats
+  const stats = useMemo(() => {
+    // Use all trips for calculations
+    const regularTrips = Array.isArray(trips) ? trips : [];
+    
+    // Total distance
+    const totalDistance = regularTrips.reduce(
+      (sum, trip) => sum + (trip.end_km - trip.start_km), 
+      0
+    );
+    
+    // Total fuel
+    const totalFuel = regularTrips
+      .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
+    
+    // Average mileage
+    const tripsWithKmpl = regularTrips.filter(trip => trip.calculated_kmpl);
+    const avgMileage = tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
+      : 0;
+    
+    // Activity this month
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const tripsThisMonth = Array.isArray(trips) ? trips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
+    }) : [];
+    
+    // Get mileage insights
+    const mileageInsights = getMileageInsights(trips);
+    
+    // Most Active Vehicle (highest distance in last 30 days)
+    const vehicleActivityMap: Record<string, { distance: number; trips: number }> = {};
+    tripsLast30Days.forEach(trip => {
+      if (!vehicleActivityMap[trip.vehicle_id]) {
+        vehicleActivityMap[trip.vehicle_id] = { distance: 0, trips: 0 };
+      }
+      vehicleActivityMap[trip.vehicle_id].distance += (trip.end_km - trip.start_km);
+      vehicleActivityMap[trip.vehicle_id].trips += 1;
+    });
+    
+    const mostActiveVehicleId = Object.entries(vehicleActivityMap)
+      .sort((a, b) => b[1].distance - a[1].distance)[0]?.[0];
+    const mostActiveVehicle = mostActiveVehicleId ? vehicles.find(v => v.id === mostActiveVehicleId) : null;
+    const mostActiveVehicleStats = mostActiveVehicleId ? vehicleActivityMap[mostActiveVehicleId] : null;
+    
+    // Most Expensive Trip (last 30 days)
+    const mostExpensiveTrip = tripsLast30Days
+      .filter(trip => trip.total_expense && trip.total_expense > 0)
+      .sort((a, b) => (b.total_expense || 0) - (a.total_expense || 0))[0];
+    
+    // Driver with Maximum Trips (last 30 days)
+    const driverTripCount: Record<string, number> = {};
+    tripsLast30Days.forEach(trip => {
+      if (trip.driver_id) {
+        driverTripCount[trip.driver_id] = (driverTripCount[trip.driver_id] || 0) + 1;
+      }
+    });
+    
+    const maxTripsDriverId = Object.entries(driverTripCount)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxTripsDriver = maxTripsDriverId ? drivers.find(d => d.id === maxTripsDriverId) : null;
+    const maxTripsCount = maxTripsDriverId ? driverTripCount[maxTripsDriverId] : 0;
+    
+    // Vehicle with Max Downtime (last 30 days)
+    const vehicleDowntimeMap: Record<string, number> = {};
+    const maintenanceTasksLast30Days = Array.isArray(maintenanceTasks) ? maintenanceTasks.filter(task => {
+      const taskDate = new Date(task.start_date);
+      return taskDate >= thirtyDaysAgo;
+    }) : [];
+    
+    maintenanceTasksLast30Days.forEach(task => {
+      if (task.vehicle_id && task.downtime_days) {
+        vehicleDowntimeMap[task.vehicle_id] = (vehicleDowntimeMap[task.vehicle_id] || 0) + task.downtime_days;
+      }
+    });
+    
+    const maxDowntimeVehicleId = Object.entries(vehicleDowntimeMap)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxDowntimeVehicle = maxDowntimeVehicleId ? vehicles.find(v => v.id === maxDowntimeVehicleId) : null;
+    const maxDowntimeDays = maxDowntimeVehicleId ? vehicleDowntimeMap[maxDowntimeVehicleId] : 0;
+    
+    // Calculate date range for summary
+    const tripDates = Array.isArray(trips) && trips.length > 0 
+      ? trips.map(t => new Date(t.trip_start_date || new Date()).getTime())
+      : [];
+    
+    const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
+    const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
+    
+    return {
+      totalTrips: trips.length,
+      totalDistance,
+      totalFuel,
+      avgMileage,
+      tripsThisMonth: tripsThisMonth.length,
+      lastTripDate: trips.length > 0 
+        ? new Date(Math.max(...trips.map(t => new Date(t.trip_start_date || new Date()).getTime())))
+        : undefined,
+      bestVehicle: null,
+      bestVehicleMileage: mileageInsights.bestVehicleMileage,
+      bestDriver: null,
+      bestDriverMileage: mileageInsights.bestDriverMileage,
+      estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
+      earliestTripDate,
+      latestTripDate
+    };
+  }, [trips]);
 
-  const handleSaveVehicle = async (data: Omit<Vehicle, 'id'>) => {
-    setIsSubmitting(true);
-    try {
-      if (editingVehicle) {
-        const updatedVehicle = await updateVehicle(editingVehicle.id, data);
-        if (updatedVehicle) {
-          setVehicles(prev => prev.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
-          setEditingVehicle(null);
-          toast.success('Vehicle updated successfully');
-        }
-      } else {
-        const newVehicle = await createVehicle(data);
-        if (newVehicle) {
-          setVehicles(prev => [newVehicle, ...prev]);
-          setIsAddingVehicle(false);
-          toast.success('Vehicle added successfully');
+  // Fetch best vehicle and driver data
+  const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
+  const [bestDriver, setBestDriver] = useState<Driver | null>(null);
+  
+  useEffect(() => {
+    const fetchBestPerformers = async () => {
+      const insights = getMileageInsights(trips);
+      
+      if (insights.bestVehicle) {
+        try {
+          const vehicle = await getVehicle(insights.bestVehicle);
+          setBestVehicle(vehicle);
+        } catch (error) {
+          console.error('Error fetching best vehicle:', error);
         }
       }
-    } catch (error) {
-      console.error('Error saving vehicle:', error);
-      toast.error(`Failed to ${editingVehicle ? 'update' : 'add'} vehicle`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditVehicle = (vehicle: Vehicle) => {
-    setEditingVehicle(vehicle);
-    setIsAddingVehicle(false);
-  };
-
-  const handleDeleteVehicle = async (vehicleId: string) => {
-    if (window.confirm('Are you sure you want to delete this vehicle?')) {
-      try {
-        const success = await deleteVehicle(vehicleId);
-        if (success) {
-          setVehicles(prev => prev.filter(v => v.id !== vehicleId));
-          toast.success('Vehicle deleted successfully');
+      
+      if (insights.bestDriver) {
+        try {
+          const driver = await getDriver(insights.bestDriver);
+          setBestDriver(driver);
+        } catch (error) {
+          console.error('Error fetching best driver:', error);
         }
-      } catch (error) {
-        console.error('Error deleting vehicle:', error);
-        toast.error('Failed to delete vehicle');
       }
+    };
+    
+    if (Array.isArray(trips) && trips.length > 0) {
+      fetchBestPerformers();
     }
+  }, [trips]);
+  
+  const handleSelectTrip = (trip: Trip) => {
+    navigate(`/trips/${trip.id}`);
+  };
+  
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    navigate(`/vehicles/${vehicle.id}`);
   };
 
-  const handleCancelForm = () => {
-    setIsAddingVehicle(false);
-    setEditingVehicle(null);
-  };
-
+  // Check if we have enough data to show insights
+  const hasEnoughData = Array.isArray(trips) && trips.length > 0;
+  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
+  
   return (
     <Layout>
-      {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicles</h1>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
-        {!isAddingVehicle && !editingVehicle && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              onClick={() => setIsAddingVehicle(true)}
-              icon={<PlusCircle className="h-4 w-4" />}
+      ) : (
+      <div className="space-y-4">
+        {/* Page Header */}
+        <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            <span>Last updated: {format(new Date(), 'MMMM dd, yyyy HH:mm')}</span>
+            {hasEnoughData && stats.earliestTripDate && stats.latestTripDate && (
+              <span className="block sm:inline sm:ml-4 mt-1 sm:mt-0">
+                Tracking from: {format(stats.earliestTripDate, 'dd MMM yyyy')} to {format(stats.latestTripDate, 'dd MMM yyyy')} 
+                across {vehicles.filter(v => v.status !== 'archived').length} {vehicles.filter(v => v.status !== 'archived').length === 1 ? 'vehicle' : 'vehicles'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Date Range Summary */}
+
+        {/* Key Metrics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+          <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
+          Key Metrics
+        </h2>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Trips"
+              value={stats.totalTrips}
+              icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              trend={stats.tripsThisMonth > 0 ? {
+                value: 12,
+                label: "vs last month",
+                isPositive: true
+              } : undefined}
+            />
+          </div>
+
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Distance"
+              value={stats.totalDistance.toLocaleString()}
+              className={
+                stats.avgMileage > 4.0
+                  ? "bg-emerald-50"
+                  : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                  ? "bg-orange-50"
+                  : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                  ? "bg-red-50"
+                  : ""
+              }
+              subtitle="km"
+              icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+            />
+          </div>
+
+          {hasRefuelingData ? (
+            <>
+              <StatCard
+                title="Average Mileage"
+                value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+            className={
+              stats.avgMileage > 4.0
+                ? "bg-emerald-50"
+                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                ? "bg-orange-50"
+                : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                ? "bg-red-50"
+                : ""
+            }
+                subtitle="km/L"
+                icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+              
+              <StatCard
+                title="Total Fuel Used"
+                value={stats.totalFuel.toLocaleString()}
+                subtitle="L"
+                icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+            </>
+          ) : (
+            <div
+              onClick={() => navigate("/trips")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+              className="col-span-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center"
             >
-              Add Vehicle
-            </Button>
+              <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Mileage and fuel consumption insights will appear after trips with refueling are logged.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Mileage Insights */}
+        {hasRefuelingData && (
+          <>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+              <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
+              Performance Highlights
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {bestVehicle && (
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Vehicle</h3>
+                  <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                    {stats.bestVehicleMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {bestDriver && (
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Driver</h3>
+                  <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                    {stats.bestDriverMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            </div>
+          </>
+        )}
+        
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Detailed Analytics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+          <BarChart className="h-5 w-5 mr-2 text-blue-600" />
+          Detailed Analytics
+        </h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <MileageChart trips={trips} />
+          </div>
+          
+          <div
+            onClick={() => navigate("/vehicles")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+          </div>
+        </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Tip Section */}
+        {hasEnoughData && (
+          <div className="max-w-4xl">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+              <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
+              Quick Tip
+            </h2>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+              <DashboardTip 
+                title="Did you know?"
+                content="You can track insurance, permit, and PUC expiry reminders for every vehicle."
+                link={{
+                  text: "Go to Vehicles → Edit → Enable Reminders",
+                  url: "/vehicles"
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Empty Dashboard State */}
+        {!hasEnoughData && (
+          <div className="mt-6">
+            <EmptyState 
+              type="generic"
+              message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
+              showAction={true}
+            />
           </div>
         )}
       </div>
-
-      {isAddingVehicle || editingVehicle ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <Truck className="h-5 w-5 mr-2 text-primary-500" />
-              {editingVehicle ? 'Edit Vehicle' : 'New Vehicle'}
-            </h2>
-            <Button variant="outline" onClick={handleCancelForm}>
-              Cancel
-            </Button>
-          </div>
-
-          <VehicleForm
-            initialData={editingVehicle || {}}
-            onSubmit={handleSaveVehicle}
-            onCancel={handleCancelForm}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-      ) : (
-        <>
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading vehicles...</p>
-            </div>
-          ) : vehicles.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <Truck className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-gray-900">No vehicles found</h3>
-              <p className="text-gray-500 mt-1">Add your first vehicle to get started</p>
-              <Button
-                onClick={() => setIsAddingVehicle(true)}
-                icon={<PlusCircle className="h-4 w-4" />}
-                className="mt-4"
-              >
-                Add Vehicle
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {vehicles.map((vehicle) => (
-                <div
-                  key={vehicle.id}
-                  className="bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer"
-                  onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                >
-                  {/* Edit Button */}
-                  <button
-                    className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleEditVehicle(vehicle);
-                    }}
-                    title="Edit Vehicle"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Truck className="h-6 w-6 text-primary-600" />
-                    </div>
-
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900 pr-8">
-                        {vehicle.registration_number}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {vehicle.make} {vehicle.model} ({vehicle.year})
-                      </p>
-
-                      <div className="mt-2 flex gap-2 flex-wrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          vehicle.status === 'active' 
-                            ? 'bg-success-100 text-success-800'
-                            : vehicle.status === 'maintenance'
-                            ? 'bg-warning-100 text-warning-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {vehicle.status}
-                        </span>
-                        
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 capitalize">
-                          <Fuel className="h-3 w-3 mr-1" />
-                          {vehicle.fuel_type}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Vehicle Stats */}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center">
-                        <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Type</span>
-                        <p className="font-medium capitalize">{vehicle.type}</p>
-                      </div>
-                      <div className="text-center">
-                        <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Odometer</span>
-                        <p className="font-medium">{vehicle.current_odometer?.toLocaleString()} km</p>
-                      </div>
-                      <div className="text-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <span className="text-sm text-gray-500 block">Year</span>
-                        <p className="font-medium">{vehicle.year}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/vehicles/${vehicle.id}`);
-                      }}
-                      className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteVehicle(vehicle.id);
-                      }}
-                      className="text-error-600 hover:text-error-800 text-sm font-medium"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
       )}
     </Layout>
   );
 };
 
-export default VehiclesPage;
+export default DashboardPage;
