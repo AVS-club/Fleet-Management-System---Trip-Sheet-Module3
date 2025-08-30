@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Layout from "../components/layout/Layout";
+import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
+import { getDriver, getVehicle, getTrips, getDrivers, getVehicles } from "../utils/storage";
+import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
   User,
   Calendar,
@@ -10,24 +12,233 @@ import {
   AlertTriangle,
   FileText,
   Shield,
+  FileDown,
+  Share2,
+  Download,
   Phone,
-  Mail,
+  Mail, // ⚠️ Confirm field refactor here
   Edit,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
-import DriverInsightsPanel from "../components/drivers/DriverInsightsPanel";
+import { getAIAlerts } from "../utils/aiAnalytics";
+import DriverDocumentManagerModal from '../components/drivers/DriverDocumentManagerModal';
+import DriverInsightsPanel from '../components/drivers/DriverInsightsPanel';
 import DriverForm from "../components/drivers/DriverForm";
+import {
+  generateDriverPDF,
+  createShareableDriverLink,
+} from "../utils/exportUtils";
 import { toast } from "react-toastify";
+import WhatsAppButton from "../components/drivers/WhatsAppButton";
+import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDownloadModal";
 import DriverAIInsights from "../components/ai/DriverAIInsights";
-import DriverDocuments from "../components/drivers/DriverDocuments";
-import useDriverData from "../hooks/useDriverData";
+
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { driver, primaryVehicle, trips, alerts, allDrivers, allVehicles, loading } = useDriverData(id);
-  const [maintenanceTasks] = useState<any[]>([]);
+  const [driver, setDriver] = useState<Driver | null>(null);
+  const [primaryVehicle, setPrimaryVehicle] = useState<Vehicle | null>(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [alerts, setAlerts] = useState<AIAlert[]>([]);
+  const [allDrivers, setAllDrivers] = useState<Driver[]>([]);
+  const [allVehicles, setAllVehicles] = useState<Vehicle[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
+  const [showDocumentManagerModal, setShowDocumentManagerModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // State for signed document URLs
+  const [signedDocUrls, setSignedDocUrls] = useState<{
+    license?: string;
+    police_verification?: string;
+    medical_certificate?: string;
+    id_proof?: string;
+    other: Record<string, string>;
+  }>({
+    other: {},
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      try {
+        // Fetch driver data
+        const driverData = await getDriver(id);
+        setDriver(driverData);
+
+        // Fetch primary vehicle if available
+        if (driverData?.primary_vehicle_id) {
+          const vehicleData = await getVehicle(driverData.primary_vehicle_id);
+          setPrimaryVehicle(vehicleData);
+        }
+
+        // Fetch trips
+        const tripsData = await getTrips();
+        setTrips(
+          Array.isArray(tripsData)
+            ? tripsData.filter((trip) => trip.driver_id === id)
+            : []
+        );
+
+        // Fetch alerts
+        const alertsData = await getAIAlerts();
+        setAlerts(
+          Array.isArray(alertsData)
+            ? alertsData.filter(
+                (alert) =>
+                  alert.affected_entity?.type === "driver" &&
+                  alert.affected_entity?.id === id &&
+                  alert.status === "pending"
+              )
+            : []
+        );
+
+        // Fetch all drivers and vehicles for AI insights
+        const [allDriversData, allVehiclesData] = await Promise.all([
+          getDrivers(),
+          getVehicles()
+        ]);
+        
+        setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
+        setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
+        setMaintenanceTasks([]); // Initialize empty for now
+
+        // Generate signed URLs for documents if driver is available
+        if (driverData) {
+          await generateSignedUrls(driverData);
+        }
+      } catch (error) {
+        console.error("Error fetching driver data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  // Function to generate signed URLs for all documents
+  const generateSignedUrls = async (driverData: Driver) => {
+    const urls: { // ⚠️ Confirm field refactor here
+      license?: string[];
+      police_verification?: string[];
+      medical_certificate?: string[];
+      id_proof?: string[];
+      // Ensure medical_doc_url is handled as an array of strings
+      medical_doc_url?: string[];
+      other: Record<string, string>;
+    } = {
+      other: {},
+    };
+    // ⚠️ Confirm field refactor here
+    try {
+      // Generate signed URL for license document
+      if (Array.isArray(driverData.license_doc_url) && driverData.license_doc_url.length > 0) {
+        urls.license = await Promise.all(
+          driverData.license_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+
+      // Generate signed URLs for police verification documents
+      if (Array.isArray(driverData.police_doc_url) && driverData.police_doc_url.length > 0) {
+        urls.police_verification = await Promise.all(
+          driverData.police_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+
+      // Generate signed URLs for Aadhaar documents
+      if (Array.isArray(driverData.aadhar_doc_url) && driverData.aadhar_doc_url.length > 0) {
+        urls.id_proof = await Promise.all(
+          driverData.aadhar_doc_url.map(path => getSignedDriverDocumentUrl(path))
+        );
+      }
+
+      // Generate signed URL for medical document
+      if (driverData.medical_doc_url && Array.isArray(driverData.medical_doc_url) && driverData.medical_doc_url.length > 0) {
+        urls.medical_doc_url = await Promise.all(driverData.medical_doc_url.map(url => getSignedDriverDocumentUrl(url)));
+      }
+
+
+      // Generate signed URLs for other documents
+      if (
+        driverData.other_documents &&
+        Array.isArray(driverData.other_documents)
+      ) {
+        for (let i = 0; i < driverData.other_documents.length; i++) {
+          const doc = driverData.other_documents[i];
+          if (doc.file_path && typeof doc.file_path === 'string') {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(
+              doc.file_path
+            );
+          } else if (Array.isArray(doc.file_path) && doc.file_path.length > 0) {
+            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(
+              doc.file_path[0]
+            );
+          }
+        }
+      }
+
+      setSignedDocUrls(urls);
+    } catch (error) {
+      console.error("Error generating signed URLs:", error);
+      toast.error("Failed to generate document access links");
+    }
+  }; 
+
+  // Handle export as PDF
+  const handleExportPDF = async () => {
+    if (!driver) return;
+
+    try {
+      setExportLoading(true);
+      const doc = await generateDriverPDF(driver, trips, primaryVehicle);
+      doc.save(`${driver.name.replace(/\s+/g, "_")}_profile.pdf`);
+      toast.success("Driver profile exported successfully");
+    } catch (error) {
+      console.error("Error exporting driver profile:", error);
+      toast.error("Failed to export driver profile");
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // Handle manage documents
+  const handleManageDocuments = () => {
+    setShowDocumentManagerModal(true);
+  };
+
+  // Handle WhatsApp share
+  const handleWhatsAppShare = () => {
+    setSelectedDriverForShare(driver);
+    setShowShareModal(true);
+  };
+
+  // Handle create shareable link
+  const handleCreateShareableLink = async () => {
+    if (!driver) return;
+
+    try {
+      setShareLoading(true);
+      const link = await createShareableDriverLink(driver.id);
+
+      // Copy link to clipboard
+      await navigator.clipboard.writeText(link);
+      toast.success("Shareable link copied to clipboard (valid for 7 days)");
+    } catch (error) {
+      console.error("Error creating shareable link:", error);
+      toast.error("Failed to create shareable link");
+    } finally {
+      setShareLoading(false);
+    }
+  };
 
   const handleEditDriver = () => {
     setIsEditing(true);
@@ -39,7 +250,11 @@ const DriverPage: React.FC = () => {
 
   const handleUpdateDriver = async (data: Omit<Driver, "id">) => {
     try {
+      // Update logic would go here
+      // For now, just close the edit mode
       setIsEditing(false);
+      // Reload driver data
+      // This would be replaced with actual update logic
       window.location.reload();
     } catch (error) {
       console.error('Error updating driver:', error);
@@ -122,13 +337,35 @@ const DriverPage: React.FC = () => {
             Back
           </Button>
 
-          {driver && (
-            <DriverDocuments
-              driver={driver}
-              trips={trips}
-              primaryVehicle={primaryVehicle}
-            />
-          )}
+          <Button
+            variant="outline"
+            onClick={handleExportPDF}
+            isLoading={exportLoading}
+            icon={<FileDown className="h-4 w-4" />}
+          >
+            Export PDF
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleManageDocuments}
+            icon={<Download className="h-4 w-4" />}
+            title="Manage Documents"
+          />
+
+          <WhatsAppButton
+            onClick={handleWhatsAppShare}
+            message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
+          />
+
+          <Button
+            variant="outline"
+            onClick={handleCreateShareableLink}
+            isLoading={shareLoading}
+            icon={<Share2 className="h-4 w-4" />}
+          >
+            Share
+          </Button>
         </div>
       }
     >
@@ -577,6 +814,35 @@ const DriverPage: React.FC = () => {
             vehicles={primaryVehicle ? [primaryVehicle] : undefined} 
           />
 
+          {/* Document Manager Modal */}
+          {showDocumentManagerModal && (
+            <DriverDocumentManagerModal
+              isOpen={showDocumentManagerModal}
+              onClose={() => setShowDocumentManagerModal(false)}
+              driver={driver}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
+
+          {/* WhatsApp Share Modal */}
+          {showShareModal && selectedDriverForShare && (
+            <DriverWhatsAppShareModal
+              isOpen={showShareModal}
+              onClose={() => setShowShareModal(false)}
+              driver={selectedDriverForShare}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
+
+          {/* Document Download Modal */}
+          {showDownloadModal && !showDocumentManagerModal && (
+            <DriverDocumentDownloadModal
+              isOpen={showDownloadModal}
+              onClose={() => setShowDownloadModal(false)}
+              driver={driver}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
         </div>
       )}
     </Layout>
