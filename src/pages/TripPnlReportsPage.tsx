@@ -186,7 +186,7 @@ const TripPnlReportsPage: React.FC = () => {
     const avgDistance = totalTrips > 0 ? totalDistance / totalTrips : 0;
     
     // Calculate mean mileage from trips with valid kmpl
-    const tripsWithMileage = tripsArray.filter(trip => trip.calculated_kmpl && !trip.short_trip);
+    const tripsWithMileage = tripsArray.filter(trip => trip.calculated_kmpl);
     const meanMileage = tripsWithMileage.length > 0 
       ? tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length 
       : 0;
@@ -270,7 +270,10 @@ const TripPnlReportsPage: React.FC = () => {
       }
 
       // Search filter
-      if (searchTerm && !trip.trip_serial_number.toLowerCase().includes(searchTerm.toLowerCase())) {
+      if (
+        searchTerm &&
+        !(trip.trip_serial_number || "").toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
         return false;
       }
 

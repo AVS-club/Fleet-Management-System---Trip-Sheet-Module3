@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
@@ -49,8 +49,8 @@ const DashboardPage: React.FC = () => {
   
   // Calculate stats
   const stats = useMemo(() => {
-    // Filter out short trips for most calculations
-    const regularTrips = Array.isArray(trips) ? trips.filter(trip => !trip.short_trip) : [];
+    // Use all trips for calculations
+    const regularTrips = Array.isArray(trips) ? trips : [];
     
     // Total distance
     const totalDistance = regularTrips.reduce(
@@ -60,7 +60,6 @@ const DashboardPage: React.FC = () => {
     
     // Total fuel
     const totalFuel = regularTrips
-      .filter(trip => trip.refueling_done && trip.fuel_quantity)
       .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
     
     // Average mileage
@@ -150,7 +149,7 @@ const DashboardPage: React.FC = () => {
 
   // Check if we have enough data to show insights
   const hasEnoughData = Array.isArray(trips) && trips.length > 0;
-  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.refueling_done && trip.fuel_quantity);
+  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
   
   return (
     <Layout>
@@ -187,32 +186,48 @@ const DashboardPage: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard
-            title="Total Trips"
-            value={stats.totalTrips}
-            icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-            trend={stats.tripsThisMonth > 0 ? {
-              value: 12,
-              label: "vs last month",
-              isPositive: true
-            } : undefined}
-          />
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Trips"
+              value={stats.totalTrips}
+              icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              trend={stats.tripsThisMonth > 0 ? {
+                value: 12,
+                label: "vs last month",
+                isPositive: true
+              } : undefined}
+            />
+          </div>
 
-          <StatCard
-            title="Total Distance"
-            value={stats.totalDistance.toLocaleString()}
-            className={
-              stats.avgMileage > 4.0
-                ? "bg-emerald-50"
-                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
-                ? "bg-orange-50"
-                : stats.avgMileage < 3.0 && stats.avgMileage > 0
-                ? "bg-red-50"
-                : ""
-            }
-            subtitle="km"
-            icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-          />
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Distance"
+              value={stats.totalDistance.toLocaleString()}
+              className={
+                stats.avgMileage > 4.0
+                  ? "bg-emerald-50"
+                  : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                  ? "bg-orange-50"
+                  : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                  ? "bg-red-50"
+                  : ""
+              }
+              subtitle="km"
+              icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+            />
+          </div>
 
           {hasRefuelingData ? (
             <>
@@ -240,17 +255,21 @@ const DashboardPage: React.FC = () => {
               />
             </>
           ) : (
-            <>
-              <div className="col-span-2 bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center">
-                <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
-                <div>
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Mileage and fuel consumption insights will appear after trips with refueling are logged.
-                  </p>
-                </div>
+            <div
+              onClick={() => navigate("/trips")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+              className="col-span-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center"
+            >
+              <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Mileage and fuel consumption insights will appear after trips with refueling are logged.
+                </p>
               </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -264,7 +283,7 @@ const DashboardPage: React.FC = () => {
               Performance Highlights
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
@@ -297,18 +316,6 @@ const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between gap-2 ">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Potential Savings</h3>
-                <IndianRupee className="h-6 w-6 text-success-500 dark:text-success-400" />
-              </div>
-              <div className="mt-3 sm:mt-4">
-                <p className="text-xl sm:text-2xl font-bold text-success-600 dark:text-success-400">₹{stats.estimatedFuelSaved.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Estimated monthly savings with best practices</p>
-              </div>
-
-
-            </div>
             </div>
           </>
         )}
@@ -321,12 +328,24 @@ const DashboardPage: React.FC = () => {
           Detailed Analytics
         </h2>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
             <MileageChart trips={trips} />
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div
+            onClick={() => navigate("/vehicles")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
             <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
           </div>
         </div>

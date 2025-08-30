@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { Vehicle, Driver, Trip } from "../types"; // Import the Vehicle interface
+import { Vehicle, Trip, DriverSummary } from "../types"; // Import the Vehicle interface
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -13,10 +13,10 @@ interface VehicleWithStats extends Vehicle {
 
 import {
   getVehicles,
-  getVehicleStats,
+  getAllVehicleStats,
   createVehicle,
   getTrips,
-  getDrivers,
+  getDriverSummaries,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
@@ -50,11 +50,12 @@ import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
 import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
+import ReactPaginate from "react-paginate";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [drivers, setDrivers] = useState<DriverSummary[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -68,10 +69,12 @@ const VehiclesPage: React.FC = () => {
   const [showActivityLogModal, setShowActivityLogModal] = useState(false);
   const [selectedVehicleForLog, setSelectedVehicleForLog] = useState<Vehicle | null>(null);
   const [topDriverLogic, setTopDriverLogic] = useState<'cost_per_km' | 'mileage' | 'trips'>('mileage');
+  const [currentPage, setCurrentPage] = useState(0);
+  const ITEMS_PER_PAGE = 9;
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
-    const map: Record<string, Driver> = {};
+    const map: Record<string, DriverSummary> = {};
     if (Array.isArray(drivers)) {
       drivers.forEach(driver => {
         if (driver.id) {
@@ -99,7 +102,7 @@ const VehiclesPage: React.FC = () => {
         // if (user) setUser(user);
         const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
-          getDrivers(), // TODO: Ensure this fetches ALL drivers including inactive/archived ones for proper driver assignment display
+          getDriverSummaries(), // TODO: Ensure this fetches ALL drivers including inactive/archived ones for proper driver assignment display
           getTrips(),
         ]);
 
@@ -122,13 +125,17 @@ const VehiclesPage: React.FC = () => {
         setDrivers(driversArray);
         setTrips(tripsArray);
 
-        // Fetch stats for each vehicle
-        const vehiclesWithStats = await Promise.all(
-          vehiclesArray.map(async (vehicle) => {
-            const stats = await getVehicleStats(vehicle.id);
-            return { ...vehicle, stats, selected: false };
-          })
-        );
+        const statsMap = await getAllVehicleStats(tripsArray);
+        const vehiclesWithStats = vehiclesArray.map((vehicle) => ({
+          ...vehicle,
+          stats:
+            statsMap[vehicle.id] ?? {
+              totalTrips: 0,
+              totalDistance: 0,
+              averageKmpl: undefined,
+            },
+          selected: false,
+        }));
 
         setVehicles(vehiclesWithStats);
 
@@ -182,6 +189,10 @@ const VehiclesPage: React.FC = () => {
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [showArchived]);
 
   // Calculate Average Distance This Month
   const averageDistanceThisMonth = useMemo(() => {
@@ -428,6 +439,15 @@ const VehiclesPage: React.FC = () => {
     showArchived ? v.status === "archived" : v.status !== "archived"
   );
 
+  const pageCount = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
+  const paginatedVehicles = useMemo(() => {
+    const start = currentPage * ITEMS_PER_PAGE;
+    return filteredVehicles.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredVehicles, currentPage]);
+  const handlePageClick = ({ selected }: { selected: number }) => {
+    setCurrentPage(selected);
+  };
+
   return (
     <Layout>
       {/* Page Header */}
@@ -524,7 +544,6 @@ const VehiclesPage: React.FC = () => {
 
                   <StatCard
                     title="Top Driver (This Month)"
-                    className="cursor-pointer"
                     value={
                       topDriver ? (
                         <div className="space-y-1">
@@ -619,8 +638,9 @@ const VehiclesPage: React.FC = () => {
               </p>
             </div>
           ) : (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredVehicles.map((vehicle) => {
+              {paginatedVehicles.map((vehicle) => {
                 // Count documents using actual document paths
                 const { uploaded, total } = countDocuments(vehicle);
 
@@ -789,6 +809,22 @@ const VehiclesPage: React.FC = () => {
                 );
               })}
             </div>
+            {pageCount > 1 && (
+              <ReactPaginate
+                pageCount={pageCount}
+                onPageChange={handlePageClick}
+                forcePage={currentPage}
+                className="flex justify-center mt-6 gap-2"
+                pageLinkClassName="px-3 py-1 border rounded"
+                previousLinkClassName="px-3 py-1 border rounded"
+                nextLinkClassName="px-3 py-1 border rounded"
+                activeLinkClassName="bg-primary-100 text-primary-700"
+                disabledLinkClassName="opacity-50"
+                previousLabel="<"
+                nextLabel=">"
+              />
+            )}
+            </>
           )}
         </>
       )}

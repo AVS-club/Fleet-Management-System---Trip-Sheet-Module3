@@ -12,10 +12,9 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
   const chartData = useMemo(() => {
     // Filter trips with calculated KMPL
     const tripsWithKmpl = Array.isArray(trips) ? trips
-      .filter(trip => 
-        trip.calculated_kmpl !== undefined && 
-        trip.refueling_done && 
-        trip.trip_end_date && 
+      .filter(trip =>
+        trip.calculated_kmpl !== undefined &&
+        trip.trip_end_date &&
         isValid(new Date(trip.trip_end_date))
       )
       .sort((a, b) => new Date(a.trip_end_date).getTime() - new Date(b.trip_end_date).getTime())

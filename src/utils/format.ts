@@ -3,3 +3,9 @@ export function formatKmPerLitre(value: number | string, decimalPlaces = 2): str
   if (isNaN(num)) return 'N/A';
   return `${num.toFixed(decimalPlaces)} km/L`;
 }
+
+export function truncateString(str: string, num: number = 4): string {
+  if (!str) return '';
+  if (str.length <= num) return str;
+  return str.slice(0, num).toUpperCase();
+}

@@ -19,7 +19,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
       <div className="text-center">
         <div className="flex justify-center mb-4">
           <img
-            src="/assets/logo.png"
+            src="/assets/AVS LOGO 512x512.png"
             alt="Auto Vital Solution Logo"
             className="h-24 w-auto object-contain"
           />

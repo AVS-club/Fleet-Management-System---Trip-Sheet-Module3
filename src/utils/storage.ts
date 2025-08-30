@@ -1,14 +1,15 @@
 import { supabase } from './supabaseClient';
 import { isNetworkError, handleNetworkError } from './supabaseClient';
-import { 
-  Trip, 
-  TripFormData, 
-  Vehicle, 
-  Driver, 
-  Destination, 
-  Warehouse, 
-  RouteAnalysis, 
-  AIAlert 
+import {
+  Trip,
+  TripFormData,
+  Vehicle,
+  Driver,
+  DriverSummary,
+  Destination,
+  Warehouse,
+  RouteAnalysis,
+  AIAlert
 } from '../types';
 import { uploadVehicleDocument } from './supabaseStorage';
 import { getCurrentUserId, withOwner } from './supaHelpers';
@@ -411,6 +412,46 @@ export const getDrivers = async (): Promise<Driver[]> => {
   }
 };
 
+export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for driver summaries, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for driver summaries', userError);
+      return [];
+    }
+
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('drivers')
+      .select('id,name')
+      .eq('added_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      handleSupabaseError('fetch driver summaries', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching user for driver summaries, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for driver summaries', error);
+    return [];
+  }
+};
+
 export const getDriver = async (id: string): Promise<Driver | null> => {
   const { data, error } = await supabase
     .from('drivers')
@@ -558,7 +599,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips')
-      .select('*')
+      .select('id, vehicle_id, trip_start_date, trip_end_date, start_km, end_km, calculated_kmpl, driver_id, refueling_done, fuel_quantity, fuel_rate_per_liter, total_fuel_cost, warehouse_id')
       .eq('added_by', user.id)
       .order('trip_start_date', { ascending: false });
 
@@ -627,6 +668,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       userId
     );
 
+    console.log("Submitting trip with payload:", payload);
     const { data, error } = await supabase
       .from('trips')
       .insert(payload)
@@ -780,18 +822,101 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
-  const { data, error } = await supabase // ⚠️ Confirm field refactor here
-    .from('destinations') // ⚠️ Confirm field refactor here
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destination, returning null');
+        return null;
+      }
+      handleSupabaseError('get user for destination', userError);
+      return null;
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return null;
+    }
 
-  if (error) {
+    // Validate that id is a proper UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.error('Invalid UUID format for destination id:', id);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('id', id)
+      .eq('created_by', user.id)
+      .maybeSingle();
+
+    if (error) {
+      handleSupabaseError('fetch destination', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching destination, returning null');
+      return null;
+    }
     handleSupabaseError('fetch destination', error);
     return null;
   }
+};
 
-  return data;
+export const getDestinationByAnyId = async (id: string): Promise<Destination | null> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      if (isNetworkError(userError)) {
+        console.warn('Network error fetching user for destination by any id, returning null');
+        return null;
+      }
+      handleSupabaseError('get user for destination by any id', userError);
+      return null;
+    }
+    
+    if (!user) {
+      console.error('No user authenticated');
+      return null;
+    }
+
+    // First try to get by UUID (standard database ID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    
+    if (uuidRegex.test(id)) {
+      // It's a UUID, use the standard getDestination function
+      return await getDestination(id);
+    }
+    
+    // If not a UUID, try to find by place_id (Google Places ID)
+    const { data, error } = await supabase
+      .from('destinations')
+      .select('*')
+      .eq('place_id', id)
+      .eq('created_by', user.id)
+      .maybeSingle();
+
+    if (error) {
+      handleSupabaseError('fetch destination by place_id', error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn('Network error fetching destination by any id, returning null');
+      return null;
+    }
+    handleSupabaseError('fetch destination by any id', error);
+    return null;
+  }
 };
 
 export const createDestination = async (destinationData: Omit<Destination, 'id'>): Promise<Destination | null> => {
@@ -835,7 +960,155 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
+// Find or create destination by Google Place ID
+export const findOrCreateDestinationByPlaceId = async (
+  placeId: string,
+  destinationData: Omit<Destination, 'id'>,
+  placeName?: string
+): Promise<string | null> => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    // First, try to find existing destination by place_id
+    const { data: existingDestination, error: searchError } = await supabase
+      .from('destinations')
+      .select('id')
+      .eq('place_id', placeId)
+      .eq('created_by', userId)
+      .maybeSingle();
+
+    if (searchError) {
+      handleSupabaseError('search destination by place_id', searchError);
+      return null;
+    }
+
+    // If destination exists, return its UUID
+    if (existingDestination) {
+      return existingDestination.id;
+    }
+
+    // If destination doesn't exist, create a new one
+    const payload = withOwner({
+      ...destinationData,
+      place_name: placeName || destinationData.name
+    }, userId);
+
+    const { data: newDestination, error: createError } = await supabase
+      .from('destinations')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (createError) {
+      handleSupabaseError('create destination', createError);
+      return null;
+    }
+
+    return newDestination.id;
+  } catch (error) {
+    handleSupabaseError('find or create destination by place_id', error);
+    return null;
+  }
+};
 // Vehicle stats
+
+export interface VehicleStats {
+  totalTrips: number;
+  totalDistance: number;
+  averageKmpl?: number;
+}
+
+export const getAllVehicleStats = async (
+  trips?: Trip[]
+): Promise<Record<string, VehicleStats>> => {
+  try {
+    let tripData = trips;
+
+    if (!tripData) {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        if (isNetworkError(userError)) {
+          console.warn(
+            'Network error fetching user for vehicle stats, returning empty object'
+          );
+          return {};
+        }
+        handleSupabaseError('get user for vehicle stats', userError);
+        return {};
+      }
+
+      if (!user) {
+        console.error('No user authenticated');
+        return {};
+      }
+
+      const { data, error } = await supabase
+        .from('trips')
+        .select('vehicle_id,start_km,end_km,calculated_kmpl')
+        .eq('added_by', user.id);
+
+      if (error) {
+        handleSupabaseError('fetch vehicle trips', error);
+        return {};
+      }
+
+      tripData = data || [];
+    }
+
+    const stats: Record<
+      string,
+      { totalTrips: number; totalDistance: number; kmplSum: number; kmplCount: number }
+    > = {};
+
+    tripData.forEach((trip) => {
+      if (!trip.vehicle_id) return;
+      if (!stats[trip.vehicle_id]) {
+        stats[trip.vehicle_id] = {
+          totalTrips: 0,
+          totalDistance: 0,
+          kmplSum: 0,
+          kmplCount: 0,
+        };
+      }
+
+      const entry = stats[trip.vehicle_id];
+      entry.totalTrips += 1;
+      entry.totalDistance += (trip.end_km ?? 0) - (trip.start_km ?? 0);
+      if (trip.calculated_kmpl) {
+        entry.kmplSum += trip.calculated_kmpl;
+        entry.kmplCount += 1;
+      }
+    });
+
+    const result: Record<string, VehicleStats> = {};
+    for (const [id, s] of Object.entries(stats)) {
+      result[id] = {
+        totalTrips: s.totalTrips,
+        totalDistance: s.totalDistance,
+        averageKmpl: s.kmplCount > 0 ? s.kmplSum / s.kmplCount : undefined,
+      };
+    }
+
+    return result;
+  } catch (error) {
+    if (isNetworkError(error)) {
+      console.warn(
+        'Network error calculating vehicle stats, returning empty object'
+      );
+      return {};
+    }
+    handleSupabaseError('calculate all vehicle stats', error);
+    return {};
+  }
+};
+
 export const getVehicleStats = async (vehicleId: string): Promise<any> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -857,7 +1130,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     // Get trips for this vehicle
     const { data: trips, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
-      .select('start_km, end_km, calculated_kmpl, short_trip')
+      .select('start_km, end_km, calculated_kmpl')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId);
 
@@ -874,8 +1147,8 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     const totalTrips = trips.length;
     const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
     
-    // Calculate average KMPL from trips with calculated_kmpl (excluding short trips)
-    const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl && !trip.short_trip);
+    // Calculate average KMPL from trips with calculated_kmpl
+    const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl);
     const averageKmpl = tripsWithKmpl.length > 0
       ? tripsWithKmpl.reduce((sum, trip) => sum + trip.calculated_kmpl, 0) / tripsWithKmpl.length
       : undefined;
