@@ -35,9 +35,6 @@ const Header: React.FC = () => {
             alt="Auto Vital Solution" 
             className="h-8 w-auto" 
           />
-          <span className="hidden sm:inline text-gray-900 dark:text-gray-100 font-semibold whitespace-nowrap">
-            Auto Vital Solution
-          </span>
         </button>
 
         {/* Navigation */}
