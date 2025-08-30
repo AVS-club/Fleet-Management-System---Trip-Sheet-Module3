@@ -280,8 +280,6 @@ export interface Trip {
   vehicle_id: string;
   driver_id: string;
   warehouse_id: string;
-  trip_serial_number?: string;
-  manual_trip_id?: string;
   destinations: string[];
   trip_start_date: string;
   trip_end_date: string;
@@ -304,6 +302,7 @@ export interface Trip {
   fuel_bill_url?: string;
   is_return_trip?: boolean;
   advance_amount?: number; // New field for advance amount
+  fuel_rate_per_liter?: number;
   created_at: string;
   updated_at: string;
 
@@ -352,7 +351,6 @@ export interface Alert {
 export interface Destination {
   id: string;
   name: string;
-  place_name?: string; // Human-readable place name from Google Places API
   latitude: number;
   longitude: number;
   standard_distance: number;
