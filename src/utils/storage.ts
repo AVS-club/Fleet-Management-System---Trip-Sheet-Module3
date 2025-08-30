@@ -822,6 +822,13 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
+  // Validate that id is a proper UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    console.error('Invalid UUID format for destination id:', id);
+    return null;
+  }
+
   const { data, error } = await supabase // ⚠️ Confirm field refactor here
     .from('destinations') // ⚠️ Confirm field refactor here
     .select('*')
@@ -877,6 +884,55 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
+// Find or create destination by Google Place ID
+export const findOrCreateDestinationByPlaceId = async (
+  placeId: string,
+  destinationData: Omit<Destination, 'id'>
+): Promise<string | null> => {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    // First, try to find existing destination by place_id
+    const { data: existingDestination, error: searchError } = await supabase
+      .from('destinations')
+      .select('id')
+      .eq('place_id', placeId)
+      .eq('created_by', userId)
+      .maybeSingle();
+
+    if (searchError) {
+      handleSupabaseError('search destination by place_id', searchError);
+      return null;
+    }
+
+    // If destination exists, return its UUID
+    if (existingDestination) {
+      return existingDestination.id;
+    }
+
+    // If destination doesn't exist, create a new one
+    const payload = withOwner(destinationData, userId);
+
+    const { data: newDestination, error: createError } = await supabase
+      .from('destinations')
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (createError) {
+      handleSupabaseError('create destination', createError);
+      return null;
+    }
+
+    return newDestination.id;
+  } catch (error) {
+    handleSupabaseError('find or create destination by place_id', error);
+    return null;
+  }
+};
 // Vehicle stats
 
 export interface VehicleStats {
