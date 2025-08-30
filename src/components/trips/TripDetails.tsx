@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, isValid, parseISO } from 'date-fns';
-import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
+import { Trip, Vehicle, Driver, Warehouse, Destination, TripFormData } from '../../types';
 import { MaterialType } from '../../utils/materialTypes';
 import { AIAlert } from '../../types';
 import Button from '../ui/Button';
+import { truncateString } from '../../utils/format';
 import { 
   Calendar, 
   MapPin, 
@@ -23,7 +25,8 @@ import {
   X,
   Download,
   Settings,
-  Info
+  Info,
+  Copy
 } from 'lucide-react';
 
 interface TripDetailsProps {
@@ -51,6 +54,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onEdit,
   onDelete
 }) => {
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const distance = trip.end_km - trip.start_km;
@@ -78,6 +82,47 @@ const TripDetails: React.FC<TripDetailsProps> = ({
     return trip.material_type_ids
       .map(id => materialTypes.find(mt => mt.id === id)?.name)
       .filter(Boolean) as string[];
+  };
+
+  // Handle clone trip
+  const handleCloneTrip = () => {
+    const clonedData: Partial<TripFormData> = {
+      vehicle_id: trip.vehicle_id,
+      driver_id: trip.driver_id,
+      warehouse_id: trip.warehouse_id,
+      destinations: trip.destinations,
+      material_type_ids: trip.material_type_ids,
+      refueling_done: true,
+      is_return_trip: false,
+      // Reset all other fields
+      trip_start_date: '',
+      trip_end_date: '',
+      start_km: 0,
+      end_km: 0,
+      gross_weight: 0,
+      fuel_quantity: 0,
+      fuel_cost: 0,
+      total_fuel_cost: 0,
+      fuel_rate_per_liter: 0,
+      unloading_expense: 0,
+      driver_expense: 0,
+      road_rto_expense: 0,
+      breakdown_expense: 0,
+      miscellaneous_expense: 0,
+      total_road_expenses: 0,
+      remarks: '',
+      trip_serial_number: '',
+      manual_trip_id: false,
+      station: ''
+    };
+
+    // Navigate to trips page with cloned data
+    navigate('/trips', { 
+      state: { 
+        clonedTripData: clonedData,
+        shouldStartAdding: true 
+      } 
+    });
   };
 
   // Check for AI alerts related to this trip
@@ -192,6 +237,14 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 Refueling Trip
               </span>
             )}
+            <button
+              onClick={handleCloneTrip}
+              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 hover:bg-green-200 transition-colors"
+              title="Clone this trip with same vehicle, driver, and warehouse"
+            >
+              <Copy className="h-3 w-3 mr-1" />
+              CLONE
+            </button>
             {(hasFuelAnomalyAlert || hasRouteDeviationAlert) && (
               <span 
                 className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200 cursor-help"
@@ -254,21 +307,39 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 mb-2">Destinations</p>
-                <div className="flex flex-wrap gap-2">
+                <div>
                   {destinations.length > 0 ? (
-                    destinations.map((dest, index) => (
-                      <span
-                        key={dest.id}
-                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
-                      >
-                        <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
-                          {index + 1}
+                    <div className="flex flex-wrap gap-2">
+                      {destinations.map((dest, index) => (
+                        <span
+                          key={dest.id}
+                          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
+                        >
+                          <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
+                            {index + 1}
+                          </span>
+                          <span className="whitespace-nowrap">{dest.place_name || dest.name}</span>
                         </span>
-                        {dest.name}
-                      </span>
-                    ))
+                      ))}
+                    </div>
+                  ) : trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {trip.destinations.map((destId, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
+                          >
+                            <span className="bg-gray-200 text-gray-800 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
+                              {index + 1}
+                            </span>
+                            <span className="whitespace-nowrap">Destination {index + 1}</span>
+                          </span>
+                        ))}
+                      </div>
                   ) : (
-                    <span className="text-gray-500 text-sm">N/A</span>
+                    <span className="text-gray-500 text-sm">
+                      No destinations recorded
+                    </span>
                   )}
                 </div>
               </div>
