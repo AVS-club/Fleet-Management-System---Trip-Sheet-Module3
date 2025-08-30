@@ -31,7 +31,7 @@ const Header: React.FC = () => {
           title="Auto Vital Solution"
         >
           <img 
-            src="/assets/AVS LOGO 512x512.png" 
+            src="https://stackblitz.com/storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBCRVNEeGdFPSIsImV4cCI6bnVsbCwicHVyIjoiYmxvYl9pZCJ9fQ==--617a060349851de48db861f90b3400cceaf8dd4e/-AVS%20LOGO%20512x512.png"
             alt="Auto Vital Solution" 
             className="h-8 w-auto" 
           />
