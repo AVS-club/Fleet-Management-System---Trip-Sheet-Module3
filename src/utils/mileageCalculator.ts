@@ -291,6 +291,12 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
   }
   
   // Calculate best and worst driver for each segment
+  const worstVehicle = Object.keys(mileageByVehicle).length > 0 
+    ? Object.entries(mileageByVehicle)
+      .map(([vehicle, values]) => [vehicle, values.reduce((a, b) => a + b, 0) / values.length] as const)
+      .sort((a, b) => a[1] - b[1])[0]
+    : undefined;
+
   const fuelCostPerLiter = 90;
   const distanceSample = 1000;
   let totalSavings = 0;
@@ -394,6 +400,8 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
     avgMileage,
     bestVehicle: bestVehicle?.[0],
     bestVehicleMileage: bestVehicle?.[1],
+    worstVehicle: worstVehicle?.[0],
+    worstVehicleMileage: worstVehicle?.[1],
     bestDriver: overallBestDriver?.driverId,
     bestDriverMileage: overallBestDriver?.mileage,
     estimatedFuelSaved: parseFloat(totalSavings.toFixed(2)),

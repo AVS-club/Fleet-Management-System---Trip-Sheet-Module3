@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../types';
+import { MaintenanceTask } from '../types/maintenance';
+import { getTasks } from '../utils/maintenanceStorage';
 import StatCard from '../components/ui/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
@@ -11,34 +13,39 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard, TrendingDown, Activity, User, PenTool as Tool } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
+import { subDays } from 'date-fns';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tripsData, vehiclesData, driversData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, maintenanceData] = await Promise.all([
           getTrips(),
           getVehicles(),
-          getDrivers()
+          getDrivers(),
+          getTasks()
         ]);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setDrivers(Array.isArray(driversData) ? driversData : []);
+        setMaintenanceTasks(Array.isArray(maintenanceData) ? maintenanceData : []);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Initialize with empty arrays if fetch fails
         setTrips([]);
         setVehicles([]);
         setDrivers([]);
+        setMaintenanceTasks([]);
       } finally {
         setLoading(false);
       }
@@ -77,6 +84,64 @@ const DashboardPage: React.FC = () => {
       return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
     }) : [];
     
+    // Last 30 days calculations
+    const thirtyDaysAgo = subDays(now, 30);
+    const tripsLast30Days = regularTrips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate >= thirtyDaysAgo;
+    });
+    
+    // Most Active Vehicle (highest distance in last 30 days)
+    const vehicleActivityMap: Record<string, { distance: number; trips: number }> = {};
+    tripsLast30Days.forEach(trip => {
+      if (!vehicleActivityMap[trip.vehicle_id]) {
+        vehicleActivityMap[trip.vehicle_id] = { distance: 0, trips: 0 };
+      }
+      vehicleActivityMap[trip.vehicle_id].distance += (trip.end_km - trip.start_km);
+      vehicleActivityMap[trip.vehicle_id].trips += 1;
+    });
+    
+    const mostActiveVehicleId = Object.entries(vehicleActivityMap)
+      .sort((a, b) => b[1].distance - a[1].distance)[0]?.[0];
+    const mostActiveVehicle = mostActiveVehicleId ? vehicles.find(v => v.id === mostActiveVehicleId) : null;
+    const mostActiveVehicleStats = mostActiveVehicleId ? vehicleActivityMap[mostActiveVehicleId] : null;
+    
+    // Most Expensive Trip (last 30 days)
+    const mostExpensiveTrip = tripsLast30Days
+      .filter(trip => trip.total_expense && trip.total_expense > 0)
+      .sort((a, b) => (b.total_expense || 0) - (a.total_expense || 0))[0];
+    
+    // Driver with Maximum Trips (last 30 days)
+    const driverTripCount: Record<string, number> = {};
+    tripsLast30Days.forEach(trip => {
+      if (trip.driver_id) {
+        driverTripCount[trip.driver_id] = (driverTripCount[trip.driver_id] || 0) + 1;
+      }
+    });
+    
+    const maxTripsDriverId = Object.entries(driverTripCount)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxTripsDriver = maxTripsDriverId ? drivers.find(d => d.id === maxTripsDriverId) : null;
+    const maxTripsCount = maxTripsDriverId ? driverTripCount[maxTripsDriverId] : 0;
+    
+    // Vehicle with Max Downtime (last 30 days)
+    const vehicleDowntimeMap: Record<string, number> = {};
+    const maintenanceTasksLast30Days = Array.isArray(maintenanceTasks) ? maintenanceTasks.filter(task => {
+      const taskDate = new Date(task.start_date);
+      return taskDate >= thirtyDaysAgo;
+    }) : [];
+    
+    maintenanceTasksLast30Days.forEach(task => {
+      if (task.vehicle_id && task.downtime_days) {
+        vehicleDowntimeMap[task.vehicle_id] = (vehicleDowntimeMap[task.vehicle_id] || 0) + task.downtime_days;
+      }
+    });
+    
+    const maxDowntimeVehicleId = Object.entries(vehicleDowntimeMap)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxDowntimeVehicle = maxDowntimeVehicleId ? vehicles.find(v => v.id === maxDowntimeVehicleId) : null;
+    const maxDowntimeDays = maxDowntimeVehicleId ? vehicleDowntimeMap[maxDowntimeVehicleId] : 0;
+    
     // Get mileage insights
     const mileageInsights = getMileageInsights(trips);
     
@@ -99,17 +164,27 @@ const DashboardPage: React.FC = () => {
         : undefined,
       bestVehicle: null,
       bestVehicleMileage: mileageInsights.bestVehicleMileage,
+      worstVehicle: null,
+      worstVehicleMileage: mileageInsights.worstVehicleMileage,
+      mostActiveVehicle,
+      mostActiveVehicleStats,
+      mostExpensiveTrip,
+      maxTripsDriver,
+      maxTripsCount,
+      maxDowntimeVehicle,
+      maxDowntimeDays,
       bestDriver: null,
       bestDriverMileage: mileageInsights.bestDriverMileage,
       estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
       earliestTripDate,
       latestTripDate
     };
-  }, [trips]);
+  }, [trips, vehicles, drivers, maintenanceTasks]);
 
   // Fetch best vehicle and driver data
   const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
   const [bestDriver, setBestDriver] = useState<Driver | null>(null);
+  const [worstVehicle, setWorstVehicle] = useState<Vehicle | null>(null);
   
   useEffect(() => {
     const fetchBestPerformers = async () => {
@@ -121,6 +196,15 @@ const DashboardPage: React.FC = () => {
           setBestVehicle(vehicle);
         } catch (error) {
           console.error('Error fetching best vehicle:', error);
+        }
+      }
+      
+      if (insights.worstVehicle) {
+        try {
+          const vehicle = await getVehicle(insights.worstVehicle);
+          setWorstVehicle(vehicle);
+        } catch (error) {
+          console.error('Error fetching worst vehicle:', error);
         }
       }
       
