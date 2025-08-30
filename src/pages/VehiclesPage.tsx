@@ -52,6 +52,14 @@ const DashboardPage: React.FC = () => {
     // Use all trips for calculations
     const regularTrips = Array.isArray(trips) ? trips : [];
     
+    // Calculate trips from last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const tripsLast30Days = regularTrips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate >= thirtyDaysAgo;
+    });
+    
     // Total distance
     const totalDistance = regularTrips.reduce(
       (sum, trip) => sum + (trip.end_km - trip.start_km), 
