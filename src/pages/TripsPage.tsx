@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import TripList from '../components/trips/TripList';
 import TripDashboard from '../components/trips/TripDashboard';
@@ -21,6 +21,7 @@ import { parseISO, isValid, isWithinInterval } from 'date-fns';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -52,6 +53,24 @@ const TripsPage: React.FC = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   
+  // Handle cloned trip data from location state
+  const [clonedTripData, setClonedTripData] = useState<Partial<TripFormData> | null>(null);
+
+  // Check for cloned trip data on component mount
+  useEffect(() => {
+    if (location.state?.clonedTripData) {
+      setClonedTripData(location.state.clonedTripData);
+      
+      // Auto-start adding trip if shouldStartAdding is true
+      if (location.state.shouldStartAdding) {
+        setIsAddingTrip(true);
+      }
+      
+      // Clear the location state to prevent re-applying cloned data
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   // Load data
   useEffect(() => {
     const fetchData = async () => {
@@ -346,6 +365,7 @@ const TripsPage: React.FC = () => {
               onClick={() => {
                 setIsAddingTrip(false);
                 setEditingTrip(null);
+                setClonedTripData(null);
               }}
             >
               Cancel
@@ -377,7 +397,7 @@ const TripsPage: React.FC = () => {
             onSubmit={handleAddTrip}
             isSubmitting={isSubmitting}
             trips={trips}
-            initialData={editingTrip ? {
+            initialData={clonedTripData || (editingTrip ? {
               vehicle_id: editingTrip.vehicle_id,
               driver_id: editingTrip.driver_id,
               warehouse_id: editingTrip.warehouse_id,
@@ -402,7 +422,7 @@ const TripsPage: React.FC = () => {
               trip_serial_number: editingTrip.trip_serial_number,
               manual_trip_id: editingTrip.manual_trip_id,
               is_return_trip: editingTrip.is_return_trip
-            } : undefined}
+            } : undefined)}
           />
         </div>
       ) : (
