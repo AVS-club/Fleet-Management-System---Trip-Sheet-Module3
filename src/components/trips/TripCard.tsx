@@ -1,11 +1,8 @@
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver } from '../../types';
-import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit, Camera, RefreshCw } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { getWarehouse, getDestination } from '../../utils/storage';
-import { truncateString } from '../../utils/format';
-import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
-import { toast } from 'react-toastify';
 
 interface TripCardProps {
   trip: Trip;
@@ -17,8 +14,6 @@ interface TripCardProps {
 }
 
 const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -38,11 +33,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             // Set loading error for warehouse failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
-            } else {
-              // Only set error if warehouse_id exists but data is null
-              if (!warehouseData) {
-                setLoadingError('Unable to load warehouse data');
-              }
+            } else if (error instanceof Error && error.message.includes('Network connection failed')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
             }
           }
@@ -56,20 +47,15 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
                   return await getDestination(id);
                 } catch (error) {
                   console.warn(`Destination ${id} not found or error fetching:`, error);
+                  // Return null for failed destinations instead of throwing
                   return null;
                 }
               })
             );
-            const validDestinations = destinations.filter(d => d !== null);
-            setDestinationData(validDestinations);
-            
-            // If we have destination IDs but no valid destinations loaded, show error
-            if (validDestinations.length === 0) {
-              setLoadingError('Unable to load trip destinations');
-            }
+            setDestinationData(destinations.filter(d => d !== null));
           } catch (error) {
             console.error('Error fetching destinations:', error);
-            setLoadingError('Error loading trip destinations');
+            // Set a user-friendly error message for destination failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load some trip locations');
             }
@@ -77,7 +63,6 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
         }
       } catch (error) {
         console.error('Error in fetchData:', error);
-        setLoadingError('Failed to load trip details');
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
           setLoadingError('Unable to load trip details');
         }
@@ -85,7 +70,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
     };
     
     fetchData();
-  }, [trip.warehouse_id, trip.destinations]); // Remove warehouseData dependency to prevent loops
+  }, [trip.warehouse_id, trip.destinations]);
   
   const distance = trip.end_km - trip.start_km;
   
@@ -106,41 +91,6 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
       case 'loss': return 'text-red-600';
       case 'neutral': return 'text-gray-600';
       default: return '';
-    }
-  };
-
-  const handleCameraClick = () => {
-    if (fileInputRef.current && !isUploading) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const uploadedUrls = await uploadFilesAndGetPublicUrls(
-        'trip-docs',
-        `${trip.id}/attachments`,
-        [file]
-      );
-      
-      if (uploadedUrls.length > 0) {
-        toast.success('Image uploaded successfully');
-      } else {
-        throw new Error('No URLs returned from upload');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    } finally {
-      setIsUploading(false);
-      // Reset the file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
     }
   };
 
@@ -179,23 +129,6 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             <IndianRupee className="h-4 w-4" />
           </button>
           
-          {/* Camera Button */}
-          <button 
-            className="p-1.5 rounded-full bg-gray-100 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-colors disabled:opacity-50"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCameraClick();
-            }}
-            title="Upload Image"
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Camera className="h-4 w-4" />
-            )}
-          </button>
-          
           {/* Edit Button */}
           {onEditClick && (
             <button 
@@ -209,15 +142,6 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
               <Edit className="h-4 w-4" />
             </button>
           )}
-          
-          {/* Hidden File Input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
         </div>
       </div>
       
@@ -249,7 +173,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
               <span className="truncate max-w-[100px]">{warehouseData.name}</span>
               <ArrowRight className="h-3 w-3 flex-shrink-0" />
               <span className="truncate max-w-[100px]">
-                {truncateString(destinationData[0]?.name, 4)}
+                {destinationData[0]?.name}
               </span>
               {destinationData.length > 1 && (
                 <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
@@ -262,7 +186,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
           // Show loading state or fallback when data is not available
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-gray-400" />
-            <span className="text-gray-500 italic">No trip locations found</span>
+            <span className="text-gray-500 italic">Loading trip locations...</span>
           </div>
         )}
       </div>

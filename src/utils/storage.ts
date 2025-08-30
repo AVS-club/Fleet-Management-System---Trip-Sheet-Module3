@@ -822,63 +822,37 @@ export const getDestinations = async (): Promise<Destination[]> => {
 };
 
 export const getDestination = async (id: string): Promise<Destination | null> => {
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      if (isNetworkError(userError)) {
-        console.warn('Network error fetching user for destination, returning null');
-        return null;
-      }
-      handleSupabaseError('get user for destination', userError);
-      return null;
-    }
-    
-    if (!user) {
-      console.error('No user authenticated');
-      return null;
-    }
+  // Validate that the ID is a valid UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    console.warn(`Invalid UUID format for destination ID: ${id}`);
+    return null;
+  }
 
-    // Validate that id is a proper UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
-      console.error('Invalid UUID format for destination id:', id);
-      return null;
-    }
+  const { data, error } = await supabase // ⚠️ Confirm field refactor here
+    .from('destinations') // ⚠️ Confirm field refactor here
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
 
-    const { data, error } = await supabase
-      .from('destinations')
-      .select('*')
-      .eq('id', id)
-      .eq('created_by', user.id)
-      .maybeSingle();
-
-    if (error) {
-      handleSupabaseError('fetch destination', error);
-      return null;
-    }
-
-    return data;
-  } catch (error) {
-    if (isNetworkError(error)) {
-      console.warn('Network error fetching destination, returning null');
-      return null;
-    }
+  if (error) {
     handleSupabaseError('fetch destination', error);
     return null;
   }
+
+  return data;
 };
 
-export const getDestinationByAnyId = async (id: string): Promise<Destination | null> => {
+export const getDestinationByPlaceId = async (placeId: string): Promise<Destination | null> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
       if (isNetworkError(userError)) {
-        console.warn('Network error fetching user for destination by any id, returning null');
+        console.warn('Network error fetching user for destination by place ID, returning null');
         return null;
       }
-      handleSupabaseError('get user for destination by any id', userError);
+      handleSupabaseError('get user for destination by place ID', userError);
       return null;
     }
     
@@ -887,34 +861,26 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
       return null;
     }
 
-    // First try to get by UUID (standard database ID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    
-    if (uuidRegex.test(id)) {
-      // It's a UUID, use the standard getDestination function
-      return await getDestination(id);
-    }
-    
-    // If not a UUID, try to find by place_id (Google Places ID)
     const { data, error } = await supabase
       .from('destinations')
       .select('*')
-      .eq('place_id', id)
+      .eq('place_id', placeId)
       .eq('created_by', user.id)
+      .eq('active', true)
       .maybeSingle();
 
     if (error) {
-      handleSupabaseError('fetch destination by place_id', error);
+      handleSupabaseError('fetch destination by place ID', error);
       return null;
     }
 
     return data;
   } catch (error) {
     if (isNetworkError(error)) {
-      console.warn('Network error fetching destination by any id, returning null');
+      console.warn('Network error fetching destination by place ID, returning null');
       return null;
     }
-    handleSupabaseError('fetch destination by any id', error);
+    handleSupabaseError('get destination by place ID', error);
     return null;
   }
 };
@@ -924,6 +890,14 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
     const userId = await getCurrentUserId();
     if (!userId) {
       throw new Error('User not authenticated');
+    }
+
+    // Check if destination with this place_id already exists
+    if (destinationData.place_id) {
+      const existingDestination = await getDestinationByPlaceId(destinationData.place_id);
+      if (existingDestination) {
+        return existingDestination;
+      }
     }
 
     const payload = withOwner(destinationData, userId);
@@ -960,59 +934,6 @@ export const hardDeleteDestination = async (id: string): Promise<boolean> => {
   return true;
 };
 
-// Find or create destination by Google Place ID
-export const findOrCreateDestinationByPlaceId = async (
-  placeId: string,
-  destinationData: Omit<Destination, 'id'>,
-  placeName?: string
-): Promise<string | null> => {
-  try {
-    const userId = await getCurrentUserId();
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
-
-    // First, try to find existing destination by place_id
-    const { data: existingDestination, error: searchError } = await supabase
-      .from('destinations')
-      .select('id')
-      .eq('place_id', placeId)
-      .eq('created_by', userId)
-      .maybeSingle();
-
-    if (searchError) {
-      handleSupabaseError('search destination by place_id', searchError);
-      return null;
-    }
-
-    // If destination exists, return its UUID
-    if (existingDestination) {
-      return existingDestination.id;
-    }
-
-    // If destination doesn't exist, create a new one
-    const payload = withOwner({
-      ...destinationData,
-      place_name: placeName || destinationData.name
-    }, userId);
-
-    const { data: newDestination, error: createError } = await supabase
-      .from('destinations')
-      .insert(payload)
-      .select('id')
-      .single();
-
-    if (createError) {
-      handleSupabaseError('create destination', createError);
-      return null;
-    }
-
-    return newDestination.id;
-  } catch (error) {
-    handleSupabaseError('find or create destination by place_id', error);
-    return null;
-  }
-};
 // Vehicle stats
 
 export interface VehicleStats {
