@@ -1,730 +1,443 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "../components/layout/Layout";
-import { 
-  getDrivers, 
-  getTrips, 
-  createDriver, 
-  updateDriver, 
-  uploadDriverPhoto 
-} from "../utils/storage"; // ⚠️ Confirm field refactor here
-import { supabase } from "../utils/supabaseClient";
-import {
-  User, Users,
-  Truck,
-  BarChart,
-  PlusCircle,
-  MapPin,
-  Edit2,
-  Clock,
-  UserCheck,
-  UserX,
-  Phone,
-  Calendar, // ⚠️ Confirm field refactor here
-  FileText,
-} from "lucide-react";
-import Button from "../components/ui/Button";
-import DriverForm from "../components/drivers/DriverForm";
-import { Driver, Trip } from "../types";
-import { toast } from "react-toastify";
-import StatCard from "../components/ui/StatCard";
-import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Confirm field refactor here
-import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
-import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
+import React, { useState, useMemo, useEffect } from 'react';
+import Layout from '../components/layout/Layout';
+import { useNavigate } from 'react-router-dom';
+import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
+import { format } from 'date-fns';
+import { Trip, Vehicle, Driver } from '../types';
+import StatCard from '../components/ui/StatCard';
+import MileageChart from '../components/dashboard/MileageChart';
+import VehicleStatsList from '../components/dashboard/VehicleStatsList';
+import RecentTripsTable from '../components/dashboard/RecentTripsTable';
+import DashboardSummary from '../components/dashboard/DashboardSummary';
+import DashboardTip from '../components/dashboard/DashboardTip';
+import EmptyState from '../components/dashboard/EmptyState';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
+import { getMileageInsights } from '../utils/mileageCalculator';
 
-const DriversPage: React.FC = () => {
+const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>();
-  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAddingDriver, setIsAddingDriver] = useState(false);
-  const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
   
-  const [signedDocUrls, setSignedDocUrls] = useState<{
-    license?: string;
-    police_verification?: string;
-    medical_certificate?: string;
-    id_proof?: string;
-    other: Record<string, string>;
-  }>({ other: {} });
-
-  // Stats state
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [totalDrivers, setTotalDrivers] = useState(0);
-  const [activeDrivers, setActiveDrivers] = useState(0);
-  const [inactiveDrivers, setInactiveDrivers] = useState(0);
-  const [avgExperience, setAvgExperience] = useState(0);
-  const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
-    useState(0);
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setStatsLoading(true);
       try {
-        const userdetails = localStorage.getItem("user");
-        if (!userdetails) throw new Error("Cannot get user details");
-        const user = JSON.parse(userdetails);
-        if (user) setUser(user);
-        const [driversData, tripsData] = await Promise.all([
-          getDrivers(),
+        const [tripsData, vehiclesData, driversData] = await Promise.all([
           getTrips(),
+          getVehicles(),
+          getDrivers()
         ]);
-
-        const driversArray = Array.isArray(driversData) ? driversData : [];
-        setDrivers(driversArray);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
-
-        // Calculate statistics
-        setTotalDrivers(driversArray.length);
-
-        const active = driversArray.filter((d) => d.status === "active").length;
-        setActiveDrivers(active);
-
-        const inactive = driversArray.filter(
-          (d) => d.status === "inactive"
-        ).length;
-        setInactiveDrivers(inactive);
-
-        // Calculate average experience
-        const totalExperience = driversArray.reduce(
-          (sum, driver) => sum + (driver.experience_years || 0),
-          0
-        );
-        setAvgExperience(
-          driversArray.length > 0
-            ? Math.round((totalExperience / driversArray.length) * 10) / 10
-            : 0
-        );
-
-        // Calculate drivers with expiring license (within 30 days)
-        const today = new Date();
-        const thirtyDaysFromNow = new Date(today);
-        thirtyDaysFromNow.setDate(today.getDate() + 30);
-
-        const expiringLicenses = driversArray.filter((driver) => {
-          if (!driver.license_expiry_date) return false;
-
-          const expiryDate = new Date(driver.license_expiry_date);
-          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
-        }).length;
-
-        setDriversWithExpiringLicense(expiringLicenses);
-
-        setStatsLoading(false);
-
+        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+        setDrivers(Array.isArray(driversData) ? driversData : []);
       } catch (error) {
-        console.error("Error fetching drivers data:", error);
-        toast.error("Failed to load drivers");
-        setStatsLoading(false);
+        console.error('Error fetching dashboard data:', error);
+        // Initialize with empty arrays if fetch fails
+        setTrips([]);
+        setVehicles([]);
+        setDrivers([]);
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchData();
   }, []);
-
-  const handleSaveDriver = async (data: Omit<Driver, "id">) => {
-    setIsSubmitting(true);
-    try {
-      let photoUrl = data.driver_photo_url; // Start with the URL from form data (includes API fetched URL)
-
-      // Handle photo upload if a new photo is provided
-      if (data.photo && data.photo instanceof File) {
-        try {
-          // For new drivers, we'll use a temporary ID until we get the real one
-          const tempId = editingDriver?.id || `temp-${Date.now()}`;
-          photoUrl = await uploadDriverPhoto(data.photo, tempId);
-        } catch (error) {
-          console.error("Error uploading photo:", error);
-          toast.error(
-            "Failed to upload photo, but continuing with driver save"
-          );
-        }
+  
+  // Calculate stats
+  const stats = useMemo(() => {
+    // Use all trips for calculations
+    const regularTrips = Array.isArray(trips) ? trips : [];
+    
+    // Total distance
+    const totalDistance = regularTrips.reduce(
+      (sum, trip) => sum + (trip.end_km - trip.start_km), 
+      0
+    );
+    
+    // Total fuel
+    const totalFuel = regularTrips
+      .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
+    
+    // Average mileage
+    const tripsWithKmpl = regularTrips.filter(trip => trip.calculated_kmpl);
+    const avgMileage = tripsWithKmpl.length > 0
+      ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
+      : 0;
+    
+    // Activity this month
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const tripsThisMonth = Array.isArray(trips) ? trips.filter(trip => {
+      const tripDate = new Date(trip.trip_start_date);
+      return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
+    }) : [];
+    
+    // Get mileage insights
+    const mileageInsights = getMileageInsights(trips);
+    
+    // Most Active Vehicle (highest distance in last 30 days)
+    const vehicleActivityMap: Record<string, { distance: number; trips: number }> = {};
+    tripsLast30Days.forEach(trip => {
+      if (!vehicleActivityMap[trip.vehicle_id]) {
+        vehicleActivityMap[trip.vehicle_id] = { distance: 0, trips: 0 };
       }
+      vehicleActivityMap[trip.vehicle_id].distance += (trip.end_km - trip.start_km);
+      vehicleActivityMap[trip.vehicle_id].trips += 1;
+    });
+    
+    const mostActiveVehicleId = Object.entries(vehicleActivityMap)
+      .sort((a, b) => b[1].distance - a[1].distance)[0]?.[0];
+    const mostActiveVehicle = mostActiveVehicleId ? vehicles.find(v => v.id === mostActiveVehicleId) : null;
+    const mostActiveVehicleStats = mostActiveVehicleId ? vehicleActivityMap[mostActiveVehicleId] : null;
+    
+    // Most Expensive Trip (last 30 days)
+    const mostExpensiveTrip = tripsLast30Days
+      .filter(trip => trip.total_expense && trip.total_expense > 0)
+      .sort((a, b) => (b.total_expense || 0) - (a.total_expense || 0))[0];
+    
+    // Driver with Maximum Trips (last 30 days)
+    const driverTripCount: Record<string, number> = {};
+    tripsLast30Days.forEach(trip => {
+      if (trip.driver_id) {
+        driverTripCount[trip.driver_id] = (driverTripCount[trip.driver_id] || 0) + 1;
+      }
+    });
+    
+    const maxTripsDriverId = Object.entries(driverTripCount)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxTripsDriver = maxTripsDriverId ? drivers.find(d => d.id === maxTripsDriverId) : null;
+    const maxTripsCount = maxTripsDriverId ? driverTripCount[maxTripsDriverId] : 0;
+    
+    // Vehicle with Max Downtime (last 30 days)
+    const vehicleDowntimeMap: Record<string, number> = {};
+    const maintenanceTasksLast30Days = Array.isArray(maintenanceTasks) ? maintenanceTasks.filter(task => {
+      const taskDate = new Date(task.start_date);
+      return taskDate >= thirtyDaysAgo;
+    }) : [];
+    
+    maintenanceTasksLast30Days.forEach(task => {
+      if (task.vehicle_id && task.downtime_days) {
+        vehicleDowntimeMap[task.vehicle_id] = (vehicleDowntimeMap[task.vehicle_id] || 0) + task.downtime_days;
+      }
+    });
+    
+    const maxDowntimeVehicleId = Object.entries(vehicleDowntimeMap)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+    const maxDowntimeVehicle = maxDowntimeVehicleId ? vehicles.find(v => v.id === maxDowntimeVehicleId) : null;
+    const maxDowntimeDays = maxDowntimeVehicleId ? vehicleDowntimeMap[maxDowntimeVehicleId] : 0;
+    
+    // Calculate date range for summary
+    const tripDates = Array.isArray(trips) && trips.length > 0 
+      ? trips.map(t => new Date(t.trip_start_date || new Date()).getTime())
+      : [];
+    
+    const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
+    const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
+    
+    return {
+      totalTrips: trips.length,
+      totalDistance,
+      totalFuel,
+      avgMileage,
+      tripsThisMonth: tripsThisMonth.length,
+      lastTripDate: trips.length > 0 
+        ? new Date(Math.max(...trips.map(t => new Date(t.trip_start_date || new Date()).getTime())))
+        : undefined,
+      bestVehicle: null,
+      bestVehicleMileage: mileageInsights.bestVehicleMileage,
+      bestDriver: null,
+      bestDriverMileage: mileageInsights.bestDriverMileage,
+      estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
+      earliestTripDate,
+      latestTripDate
+    };
+  }, [trips]);
 
-      // Prepare driver data with photo URL
-      const driverData: Partial<Driver> = {
-        ...data,
-        driver_photo_url: photoUrl,
-      };
-
-      // Remove the File object as it can't be stored in the database
-      delete (driverData as any).photo;
-
-      // Handle Aadhaar document upload
-      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) { // ⚠️ Confirm field refactor here
-        try { // ⚠️ Confirm field refactor here
-          const uploadedUrls = [];
-          for (const file of data.aadhar_doc_file) {
-            if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.aadhar_doc_url = uploadedUrls;
-          }
+  // Fetch best vehicle and driver data
+  const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
+  const [bestDriver, setBestDriver] = useState<Driver | null>(null);
+  
+  useEffect(() => {
+    const fetchBestPerformers = async () => {
+      const insights = getMileageInsights(trips);
+      
+      if (insights.bestVehicle) {
+        try {
+          const vehicle = await getVehicle(insights.bestVehicle);
+          setBestVehicle(vehicle);
         } catch (error) {
-          console.error("Error uploading Aadhaar documents:", error);
+          console.error('Error fetching best vehicle:', error);
         }
       }
       
-      // Handle license document upload
-      if (data.license_doc_file && Array.isArray(data.license_doc_file)) { // ⚠️ Confirm field refactor here
-        try { // ⚠️ Confirm field refactor here
-          const uploadedUrls = [];
-          for (const file of data.license_doc_file) {
-            if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.license_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          console.error("Error uploading license documents:", error);
-        }
-      }
-
-      // Handle police document upload
-      if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
+      if (insights.bestDriver) {
         try {
-          const uploadedUrls = [];
-          for (const file of data.police_doc_file) {
-            if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.police_doc_url = uploadedUrls;
-          }
+          const driver = await getDriver(insights.bestDriver);
+          setBestDriver(driver);
         } catch (error) {
-          console.error("Error uploading police documents:", error);
+          console.error('Error fetching best driver:', error);
         }
       }
-
-      // Handle medical document upload (already handled in previous commit, but ensuring consistency)
-      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
-        try {
-          const uploadedUrls = [];
-          for (const file of data.medical_doc_file) {
-            if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId); // Assuming uploadDriverPhoto can handle medical docs
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.medical_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          console.error("Error uploading medical documents:", error);
-        }
-      }
-      // Remove the File object as it can't be stored in the database
-      delete (driverData as any).medical_doc_file;
-
-      // Remove the File object as it can't be stored in the database
-      delete (driverData as any).aadhar_doc_file;
-
-      // Process other documents
-      if (Array.isArray(driverData.other_documents)) {
-        const processedDocs = [];
-
-        for (const doc of driverData.other_documents) {
-          const processedDoc: any = {
-            name: doc.name,
-            issue_date: doc.issue_date,
-          };
-
-          // Handle file upload for each document
-          if (doc.file_obj instanceof File) {
-            try {
-              const fileId =
-                editingDriver?.id ||
-                `temp-${Date.now()}-${processedDocs.length}`;
-              const filePath = await uploadDriverPhoto(doc.file_obj, fileId);
-              processedDoc.file_path = filePath;
-            } catch (error) {
-              console.error(`Error uploading document "${doc.name}":`, error);
-            }
-          } else if (doc.file_path) {
-            processedDoc.file_path = doc.file_path;
-          }
-
-          processedDocs.push(processedDoc);
-        }
-
-        driverData.other_documents = processedDocs;
-      }
-
-      if (editingDriver) {
-        // Update existing driver
-        const updatedDriver = await updateDriver(editingDriver.id, driverData); // ⚠️ Confirm field refactor here
-        if (updatedDriver) { // ⚠️ Confirm field refactor here
-          // Update the drivers list
-          setDrivers((prevDrivers) =>
-            prevDrivers.map((d) =>
-              d.id === updatedDriver.id ? updatedDriver : d
-            )
-          );
-          setEditingDriver(null);
-          toast.success("Driver updated successfully");
-        } else {
-          toast.error("Failed to update driver");
-        }
-      } else {
-        // Create new driver
-        // Remove empty id field if present to let Supabase auto-generate // ⚠️ Confirm field refactor here
-        const { id, ...cleanDriverData } = driverData as any;
-        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
-        
-        const newDriver = await createDriver(finalDriverData);
-        if (newDriver) {
-          // Update other documents with the correct driver ID
-          if (
-            Array.isArray(newDriver.other_documents) &&
-            newDriver.other_documents.length > 0
-          ) {
-            const updatedDocs = [];
-
-            for (const doc of newDriver.other_documents) {
-              const updatedDoc = { ...doc };
-
-              if (doc.file_path && doc.file_path.includes("temp-")) {
-                try {
-                  // Find the original file object
-                  const originalDoc = data.other_documents?.find(
-                    (d) => d.name === doc.name
-                  );
-                  if (originalDoc && originalDoc.file_obj) {
-                    // Re-upload with the correct ID
-                    const finalFilePath = await uploadDriverPhoto(
-                      originalDoc.file_obj as File,
-                      `${newDriver.id}-${doc.name
-                        .replace(/\s+/g, "-")
-                        .toLowerCase()}`
-                    );
-                    updatedDoc.file_path = finalFilePath;
-                  }
-                } catch (error) {
-                  console.error(
-                    `Error updating document "${doc.name}" with final ID:`,
-                    error
-                  );
-                }
-              }
-
-              updatedDocs.push(updatedDoc);
-            }
-
-            if (updatedDocs.length > 0) {
-              await updateDriver(newDriver.id, {
-                other_documents: updatedDocs,
-              });
-              newDriver.other_documents = updatedDocs;
-            }
-          }
-
-          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
-          setTotalDrivers((prev) => prev + 1);
-          if (newDriver.status === "active") {
-            setActiveDrivers((prev) => prev + 1);
-          } else if (newDriver.status === "inactive") {
-            setInactiveDrivers((prev) => prev + 1);
-          }
-
-          setIsAddingDriver(false);
-          toast.success("Driver added successfully");
-        } else {
-          toast.error("Failed to add driver");
-        }
-      }
-    } catch (error) {
-      console.error("Error saving driver:", error);
-      toast.error(`Failed to ${editingDriver ? "update" : "add"} driver`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleEditDriver = (driver: Driver) => {
-    setEditingDriver(driver);
-    setIsAddingDriver(false); // Ensure we're in edit mode, not add mode
-  };
-  
-  // Function to handle opening the WhatsApp share modal
-  const handleOpenShareModal = async (driver: Driver, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click navigation
-    setSelectedDriverForShare(driver); // ⚠️ Confirm field refactor here
-    
-    // Generate signed URLs for documents if available
-    const urls: { // ⚠️ Confirm field refactor here
-      license?: string[];
-      police_verification?: string[];
-      medical_certificate?: string[];
-      id_proof?: string[];
-      other: Record<string, string>;
-    } = {
-      other: {}
     };
     
-    try {
-      // Generate signed URL for license document
-      if (Array.isArray(driver.license_doc_url) && driver.license_doc_url.length > 0) {
-        urls.license = await Promise.all(
-          driver.license_doc_url.map(path => getSignedDriverDocumentUrl(path))
-        );
-      }
-      
-      // Generate signed URLs for police verification documents
-      if (Array.isArray(driver.police_doc_url) && driver.police_doc_url.length > 0) {
-        urls.police_verification = await Promise.all(
-          driver.police_doc_url.map(path => getSignedDriverDocumentUrl(path))
-        );
-      }
-      
-      // Generate signed URLs for Aadhaar documents  
-      if (Array.isArray(driver.aadhar_doc_url) && driver.aadhar_doc_url.length > 0) {
-        urls.id_proof = await Promise.all(
-          driver.aadhar_doc_url.map(path => getSignedDriverDocumentUrl(path))
-        );
-      }
-      
-      // Generate signed URLs for other documents
-      if (driver.other_documents && Array.isArray(driver.other_documents)) {
-        for (let i = 0; i < driver.other_documents.length; i++) {
-          const doc = driver.other_documents[i];
-          if (doc.file_path && typeof doc.file_path === 'string') {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path); // ⚠️ Confirm field refactor here
-          } else if (Array.isArray(doc.file_path) && doc.file_path.length > 0) {
-            urls.other[`other_${i}`] = await getSignedDriverDocumentUrl(doc.file_path[0]);
-          }
-        }
-      }
-      
-      setSignedDocUrls(urls);
-    } catch (error) {
-      console.error('Error generating signed URLs:', error);
+    if (Array.isArray(trips) && trips.length > 0) {
+      fetchBestPerformers();
     }
-    
-    setShowShareModal(true);
+  }, [trips]);
+  
+  const handleSelectTrip = (trip: Trip) => {
+    navigate(`/trips/${trip.id}`);
+  };
+  
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    navigate(`/vehicles/${vehicle.id}`);
   };
 
-  const handleCancelForm = () => {
-    setIsAddingDriver(false);
-    setEditingDriver(null);
-  };
-
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch (error) {
-      return "-";
-    }
-  };
-
-  // Check if license is expired or expiring soon
-  const getLicenseStatus = (expiryDate?: string) => {
-    if (!expiryDate) return { status: "unknown", label: "Unknown" };
-
-    try {
-      const expiry = new Date(expiryDate);
-      const now = new Date();
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-      if (expiry < now) {
-        return { status: "expired", label: "Expired" };
-      } else if (expiry < thirtyDaysFromNow) {
-        return { status: "expiring", label: "Expiring Soon" };
-      } else {
-        return { status: "valid", label: "Valid" };
-      }
-    } catch (error) {
-      return { status: "unknown", label: "Unknown" };
-    }
-  };
-
+  // Check if we have enough data to show insights
+  const hasEnoughData = Array.isArray(trips) && trips.length > 0;
+  const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
+  
   return (
     <Layout>
-      {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Drivers</h1>
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
-        {!isAddingDriver && !editingDriver && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/drivers/insights')}
-              icon={<BarChart className="h-4 w-4" />}
+      ) : (
+      <div className="space-y-4">
+        {/* Page Header */}
+        <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          </div>
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            <span>Last updated: {format(new Date(), 'MMMM dd, yyyy HH:mm')}</span>
+            {hasEnoughData && stats.earliestTripDate && stats.latestTripDate && (
+              <span className="block sm:inline sm:ml-4 mt-1 sm:mt-0">
+                Tracking from: {format(stats.earliestTripDate, 'dd MMM yyyy')} to {format(stats.latestTripDate, 'dd MMM yyyy')} 
+                across {vehicles.filter(v => v.status !== 'archived').length} {vehicles.filter(v => v.status !== 'archived').length === 1 ? 'vehicle' : 'vehicles'}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Date Range Summary */}
+
+        {/* Key Metrics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+          <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
+          Key Metrics
+        </h2>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Trips"
+              value={stats.totalTrips}
+              icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              trend={stats.tripsThisMonth > 0 ? {
+                value: 12,
+                label: "vs last month",
+                isPositive: true
+              } : undefined}
+            />
+          </div>
+
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
+          >
+            <StatCard
+              title="Total Distance"
+              value={stats.totalDistance.toLocaleString()}
+              className={
+                stats.avgMileage > 4.0
+                  ? "bg-emerald-50"
+                  : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                  ? "bg-orange-50"
+                  : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                  ? "bg-red-50"
+                  : ""
+              }
+              subtitle="km"
+              icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+            />
+          </div>
+
+          {hasRefuelingData ? (
+            <>
+              <StatCard
+                title="Average Mileage"
+                value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+            className={
+              stats.avgMileage > 4.0
+                ? "bg-emerald-50"
+                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                ? "bg-orange-50"
+                : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                ? "bg-red-50"
+                : ""
+            }
+                subtitle="km/L"
+                icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+              
+              <StatCard
+                title="Total Fuel Used"
+                value={stats.totalFuel.toLocaleString()}
+                subtitle="L"
+                icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+              />
+            </>
+          ) : (
+            <div
+              onClick={() => navigate("/trips")}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+              className="col-span-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-slate-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center"
             >
-              Driver Insights
-            </Button>
-            <Button
-              onClick={() => setIsAddingDriver(true)}
-              icon={<PlusCircle className="h-4 w-4" />}
-            >
-              Add Driver
-            </Button>
+              <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Mileage and fuel consumption insights will appear after trips with refueling are logged.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Mileage Insights */}
+        {hasRefuelingData && (
+          <>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+              <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
+              Performance Highlights
+            </h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            {bestVehicle && (
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Vehicle</h3>
+                  <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                    {stats.bestVehicleMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {bestDriver && (
+              <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Driver</h3>
+                  <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
+                </div>
+                <div className="mt-3 sm:mt-4">
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                    {stats.bestDriverMileage?.toFixed(2)} km/L
+                  </p>
+                </div>
+              </div>
+            )}
+
+            </div>
+          </>
+        )}
+        
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Detailed Analytics Section */}
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+          <BarChart className="h-5 w-5 mr-2 text-blue-600" />
+          Detailed Analytics
+        </h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
+          <div
+            onClick={() => navigate("/trips")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <MileageChart trips={trips} />
+          </div>
+          
+          <div
+            onClick={() => navigate("/vehicles")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
+            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+          >
+            <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+          </div>
+        </div>
+
+        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+
+        {/* Tip Section */}
+        {hasEnoughData && (
+          <div className="max-w-4xl">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+              <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
+              Quick Tip
+            </h2>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 sm:p-5 border border-gray-200 dark:border-gray-700">
+              <DashboardTip 
+                title="Did you know?"
+                content="You can track insurance, permit, and PUC expiry reminders for every vehicle."
+                link={{
+                  text: "Go to Vehicles → Edit → Enable Reminders",
+                  url: "/vehicles"
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Empty Dashboard State */}
+        {!hasEnoughData && (
+          <div className="mt-6">
+            <EmptyState 
+              type="generic"
+              message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
+              showAction={true}
+            />
           </div>
         )}
       </div>
-
-      {isAddingDriver || editingDriver ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-              <User className="h-5 w-5 mr-2 text-primary-500" />
-              {editingDriver ? "Edit Driver" : "New Driver"}
-            </h2>
-
-            <Button variant="outline" onClick={handleCancelForm}>
-              Cancel
-            </Button>
-          </div>
-
-          <DriverForm
-            initialData={editingDriver || {}}
-            onSubmit={handleSaveDriver}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-      ) : (
-        <>
-          {/* Driver Stats Section */}
-          {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
-                >
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <StatCard
-                title="Total Drivers"
-                value={totalDrivers}
-                icon={<Users className="h-5 w-5 text-primary-600" />}
-              />
-
-              <StatCard
-                title="Active Drivers"
-                value={activeDrivers}
-                icon={<UserCheck className="h-5 w-5 text-success-600" />}
-              />
-
-              <StatCard
-                title="Inactive Drivers"
-                value={inactiveDrivers}
-                icon={<UserX className="h-5 w-5 text-gray-600" />}
-              />
-
-              <StatCard
-                title="Avg. Experience"
-                value={avgExperience}
-                subtitle="years"
-                icon={<Clock className="h-5 w-5 text-primary-600" />}
-              />
-            </div>
-          )}
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading drivers...</p>
-            </div>
-          ) : drivers.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
-                No drivers found. Add your first driver to get started.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {drivers.map((driver: Driver) => {
-                const driverTrips = Array.isArray(trips)
-                  ? trips.filter((trip) => trip.driver_id === driver.id)
-                  : [];
-                const totalDistance = driverTrips.reduce(
-                  (sum, trip) => sum + (trip.end_km - trip.start_km),
-                  0
-                );
-                const licenseStatus = getLicenseStatus(
-                  driver.license_expiry_date
-                );
-
-                return (
-                  <div
-                    key={driver.id}
-                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
-                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
-                    }`}
-                    onClick={() => navigate(`/drivers/${driver.id}`)}
-                  >
-                    {/* Edit Button */}
-                    <button
-                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditDriver(driver);
-                      }}
-                      title="Edit Driver"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-
-                    <div className="flex items-start gap-3">
-                      {/* Driver Photo */}
-                      <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-                        {driver.driver_photo_url ? (
-                          <img
-                            src={driver.driver_photo_url}
-                            alt={driver.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to default avatar on image load error
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
-                          <User className="w-8 h-8 text-gray-400" />
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        {/* Driver Name & License */}
-                        <h3 className="text-lg font-medium text-gray-900 pr-8">
-                          {driver.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {driver.license_number || "No license"}
-                        </p>
-
-                        {/* License Status & Experience */}
-                        <div className="mt-2 flex gap-2 flex-wrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              licenseStatus.status === "expired"
-                                ? "bg-error-100 text-error-800"
-                                : licenseStatus.status === "expiring"
-                                ? "bg-warning-100 text-warning-800"
-                                : "bg-success-100 text-success-800"
-                            }`}
-                          >
-                            {licenseStatus.label}
-                          </span>
-                          
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                            <Calendar className="h-3 w-3 mr-1" /> {/* ⚠️ Confirm field refactor here */}
-                            {driver.experience_years} years
-                          </span>
-                        </div>
-                        
-                        {/* Contact Number */}
-                        {driver.contact_number && (
-                          <div className="mt-2 flex items-center text-sm">
-                            <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-gray-600">{driver.contact_number}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Trip Stats Section */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Trips
-                          </span>
-                          <p className="font-medium">{driverTrips.length}</p>
-                        </div>
-                        <div className="text-center">
-                          <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Distance
-                          </span>
-                          <p className="font-medium">
-                            {totalDistance.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
-                            Vehicle
-                          </span>
-                          <p className="font-medium">
-                            {driver.primary_vehicle_id ? "Assigned" : "-"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* View Details Link */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/drivers/${driver.id}`);
-                        }}
-                        className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                      >
-                        View Details
-                      </button>
-                      <WhatsAppButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenShareModal(driver, e);
-                        }}
-                        className="ml-2 text-green-600 hover:text-green-800"
-                        message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
-      
-      {/* WhatsApp Share Modal */}
-      {showShareModal && selectedDriverForShare && (
-        <DriverWhatsAppShareModal
-          isOpen={showShareModal}
-          onClose={() => setShowShareModal(false)}
-          driver={selectedDriverForShare}
-          signedDocUrls={signedDocUrls}
-        />
       )}
     </Layout>
   );
 };
 
-export default DriversPage;
+export default DashboardPage;
