@@ -367,7 +367,7 @@ const DashboardPage: React.FC = () => {
               Performance Highlights
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
