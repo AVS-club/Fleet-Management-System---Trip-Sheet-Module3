@@ -4,7 +4,6 @@ import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
 import { MaterialType } from '../../utils/materialTypes';
 import { AIAlert } from '../../types';
 import Button from '../ui/Button';
-import { truncateString } from '../../utils/format';
 import { 
   Calendar, 
   MapPin, 
@@ -255,39 +254,21 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 mb-2">Destinations</p>
-                <div>
+                <div className="flex flex-wrap gap-2">
                   {destinations.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {destinations.map((dest, index) => (
-                        <span
-                          key={dest.id}
-                          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
-                        >
-                          <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
-                            {index + 1}
-                          </span>
-                          <span className="whitespace-nowrap">{dest.place_name || dest.name}</span>
+                    destinations.map((dest, index) => (
+                      <span
+                        key={dest.id}
+                        className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
+                      >
+                        <span className="bg-primary-200 text-primary-900 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
+                          {index + 1}
                         </span>
-                      ))}
-                    </div>
-                  ) : trip.destinations && Array.isArray(trip.destinations) && trip.destinations.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {trip.destinations.map((destId, index) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
-                          >
-                            <span className="bg-gray-200 text-gray-800 rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold mr-1.5">
-                              {index + 1}
-                            </span>
-                            <span className="whitespace-nowrap">Destination {index + 1}</span>
-                          </span>
-                        ))}
-                      </div>
+                        {dest.name}
+                      </span>
+                    ))
                   ) : (
-                    <span className="text-gray-500 text-sm">
-                      No destinations recorded
-                    </span>
+                    <span className="text-gray-500 text-sm">N/A</span>
                   )}
                 </div>
               </div>
