@@ -1,8 +1,7 @@
-import Papa from 'papaparse';
-
-export const parseCSV = (file: File): Promise<any[]> => {
+export const parseCSV = async (file: File): Promise<any[]> => {
+  const Papa = await import('papaparse');
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
+    Papa.default.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
@@ -19,7 +18,8 @@ export const parseCSV = (file: File): Promise<any[]> => {
   });
 };
 
-export const generateCSV = (data: any[], headers: { [key: string]: string }): string => {
+export const generateCSV = async (data: any[], headers: { [key: string]: string }): Promise<string> => {
+  const Papa = await import('papaparse');
   const csvData = data.map(row => {
     const newRow: { [key: string]: any } = {};
     Object.entries(headers).forEach(([key, label]) => {
@@ -28,7 +28,7 @@ export const generateCSV = (data: any[], headers: { [key: string]: string }): st
     return newRow;
   });
 
-  return Papa.unparse(csvData);
+  return Papa.default.unparse(csvData);
 };
 
 export const downloadCSV = (filename: string, data: string) => {

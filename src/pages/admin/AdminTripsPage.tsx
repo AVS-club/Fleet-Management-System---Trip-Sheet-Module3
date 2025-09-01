@@ -404,7 +404,7 @@ const AdminTripsPage: React.FC = () => {
     setDatePreset('last30');
   };
 
-  const handleExport = (options: ExportOptions) => {
+  const handleExport = async (options: ExportOptions) => {
     // Filter trips based on export options
     let filteredTrips = trips;
 
@@ -475,12 +475,12 @@ const AdminTripsPage: React.FC = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'Trips');
       XLSX.writeFile(wb, 'trips-export.xlsx');
     } else {
-      const csv = generateCSV(exportData, {});
+      const csv = await generateCSV(exportData, {});
       downloadCSV('trips-export.csv', csv);
     }
   };
 
-  const handleDownloadFormat = () => {
+  const handleDownloadFormat = async () => {
     const sampleData = [{
       'Trip ID': 'T0001',
       'Vehicle Registration': 'CG-04-XX-1234',
@@ -498,7 +498,7 @@ const AdminTripsPage: React.FC = () => {
       'Notes': 'Regular delivery trip'
     }];
 
-    const csv = generateCSV(sampleData, {});
+    const csv = await generateCSV(sampleData, {});
     downloadCSV('trips-import-format.csv', csv);
   };
 
