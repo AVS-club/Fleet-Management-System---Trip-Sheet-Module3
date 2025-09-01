@@ -242,7 +242,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       // In a real implementation, you'd generate a signed URL and open it
-                      console.log('View document:', path);
+                      if (import.meta.env.DEV) console.log('View document:', path);
                     }}
                   >
                     <Eye className="h-4 w-4" />

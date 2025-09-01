@@ -18,7 +18,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
     
     // Safety check for date range validity
     if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      console.warn('Invalid date range:', dateRange);
+      if (import.meta.env.DEV) console.warn('Invalid date range:', dateRange);
       return [];
     }
 
@@ -32,7 +32,7 @@ const MonthlyFuelConsumptionChart: React.FC<MonthlyFuelConsumptionChartProps> = 
         
         return isWithinInterval(tripDate, dateRange);
       } catch (error) {
-        console.warn('Error filtering trip by date:', error);
+        if (import.meta.env.DEV) console.warn('Error filtering trip by date:', error);
         return false;
       }
     });

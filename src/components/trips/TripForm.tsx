@@ -353,7 +353,7 @@ const TripForm: React.FC<TripFormProps> = ({
             const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
             setAiAlerts(alerts);
           } else {
-            console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
+            if (import.meta.env.DEV) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
           }
         }
       } catch (error) {
@@ -466,12 +466,7 @@ const TripForm: React.FC<TripFormProps> = ({
       data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
     }
 
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      // Rethrow the error so react-hook-form can handle focus management
-      throw error;
-    }
+    await onSubmit(data);
   };
 
   if (loading) {

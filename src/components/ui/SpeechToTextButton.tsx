@@ -49,7 +49,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
     } else {
       setIsSupported(false);
-      console.warn('Speech recognition is not supported in this browser');
+      if (import.meta.env.DEV) console.warn('Speech recognition is not supported in this browser');
     }
 
     return () => {
