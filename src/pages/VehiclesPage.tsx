@@ -287,6 +287,18 @@ const VehiclesPage: React.FC = () => {
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
     try {
+      // Check if vehicle with same registration number already exists
+      const existingVehicles = await getVehicles();
+      const duplicateVehicle = existingVehicles.find(
+        vehicle => vehicle.registration_number.toLowerCase() === data.registration_number.toLowerCase()
+      );
+      
+      if (duplicateVehicle) {
+        toast.error(`A vehicle with registration number "${data.registration_number}" already exists.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const uploadMap = {
         rc_copy_file: { urlField: "rc_document_url", docType: "rc" },
         insurance_document_file: {

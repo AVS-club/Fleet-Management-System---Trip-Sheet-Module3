@@ -41,6 +41,12 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
      - http://localhost:5173
      - https://localhost:5173
    - Save the changes and wait 1-2 minutes for them to take effect
+
+   **Important**: If you're experiencing CORS errors with Edge Functions, ensure that:
+   - Your Supabase project has the correct CORS configuration
+   - The Edge Function `fetch-vehicle-details` exists in your Supabase project
+   - Your network allows connections to Supabase Edge Functions
+   - If issues persist, the VAHAN fetch feature will be temporarily disabled with a fallback to manual entry
 4. Start the development server:
    ```
    npm run dev

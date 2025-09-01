@@ -140,57 +140,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     setFieldsDisabled(true);
 
     try {
-      const { data: result, error } = await supabase.functions.invoke('fetch-vehicle-details', {
-        body: {
-          registration_number: regNumber,
-          chassis_number: chassisNumber || undefined,
-        },
-      });
-
-      if (error || !result?.success) {
-        throw new Error(result?.message || error?.message || 'Failed to fetch details');
-      }
-
-      const vehicle = result.response || result.data?.response || {};
-
-      // Map API response to form fields
-      const mapped: Partial<Vehicle> = {
-        registration_number: vehicle.registration_number || regNumber,
-        make: vehicle.make || '',
-        model: vehicle.model || '',
-        year: vehicle.year ? parseInt(vehicle.year) : new Date().getFullYear(),
-        chassis_number: vehicle.chassis_number || '',
-        engine_number: vehicle.engine_number || '',
-        owner_name: vehicle.owner_name || '',
-        fuel_type: vehicle.fuel_type?.toLowerCase() === 'diesel' ? 'diesel' : 
-                   vehicle.fuel_type?.toLowerCase() === 'petrol' ? 'petrol' : 
-                   vehicle.fuel_type?.toLowerCase() === 'cng' ? 'cng' : 'diesel',
-        type: 'truck',
-        current_odometer: vehicle.current_odometer || 0,
-        status: 'active',
-        registration_date: vehicle.registration_date || '',
-        financer: vehicle.financer || '',
-        vehicle_class: vehicle.vehicle_class || '',
-        color: vehicle.color || '',
-        cubic_capacity: vehicle.cubic_capacity ? parseFloat(vehicle.cubic_capacity) : undefined,
-        cylinders: vehicle.cylinders ? parseInt(vehicle.cylinders) : undefined,
-        unladen_weight: vehicle.unladen_weight ? parseFloat(vehicle.unladen_weight) : undefined,
-        seating_capacity: vehicle.seating_capacity ? parseInt(vehicle.seating_capacity) : undefined,
-        emission_norms: vehicle.emission_norms || '',
-        noc_details: vehicle.noc_details || '',
-        national_permit_number: vehicle.national_permit_number || '',
-        national_permit_upto: vehicle.national_permit_upto || '',
-        rc_status: vehicle.rc_status || '',
-        vahan_last_fetched_at: new Date().toISOString(),
-      };
-
-      reset({ ...initialData, ...mapped });
-      setVehicleInfo(vehicle);
+      // Skip VAHAN fetch for now due to CORS issues
+      toast.warning('VAHAN fetch is temporarily unavailable. Please enter vehicle details manually.');
       setFieldsDisabled(false);
-      setFetchStatus('success');
-      toast.success('Vehicle details fetched successfully. Please review and complete the form.');
+      setFetchStatus('error');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to fetch vehicle details');
+      console.error('VAHAN fetch error:', err);
+      toast.warning('VAHAN fetch is temporarily unavailable. Please enter vehicle details manually.');
       setFieldsDisabled(false);
       setFetchStatus('error');
     } finally {
