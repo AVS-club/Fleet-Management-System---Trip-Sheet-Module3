@@ -340,7 +340,7 @@ export const exportVehicleData = async (): Promise<void> => {
     };
     
     // Generate CSV
-    const csvData = generateCSV(vehicles, headers);
+    const csvData = await generateCSV(vehicles, headers);
     
     // Download CSV
     const fileName = `vehicles_export_${new Date().toISOString().split('T')[0]}.csv`;
