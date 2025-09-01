@@ -8,7 +8,6 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "scan:rbac": "node scripts/find-rbac-refs.mjs",
     "test": "vitest run"
   },
   "dependencies": {
