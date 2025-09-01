@@ -61,7 +61,7 @@ const App: React.FC = () => {
         
         if (error) {
           if (isNetworkError(error)) {
-            console.warn('Network error getting session, continuing without session');
+            if (import.meta.env.DEV) console.warn('Network error getting session, continuing without session');
             setSession(null);
           } else {
             console.error('Session error:', error);

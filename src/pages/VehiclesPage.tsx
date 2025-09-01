@@ -111,13 +111,13 @@ const VehiclesPage: React.FC = () => {
         const tripsArray = Array.isArray(tripsData) ? tripsData : [];
 
         // Debug: Log driver count and any missing assignments
-        console.log('Fetched drivers count:', driversArray.length);
+        if (import.meta.env.DEV) console.log('Fetched drivers count:', driversArray.length);
         const vehiclesWithDriverIds = vehiclesArray.filter(v => v.primary_driver_id);
         const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
           !driversArray.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
-          console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
+          if (import.meta.env.DEV) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
             vehicle: v.registration_number,
             primary_driver_id: v.primary_driver_id
           })));

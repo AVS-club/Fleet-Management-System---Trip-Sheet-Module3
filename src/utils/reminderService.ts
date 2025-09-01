@@ -203,7 +203,7 @@ export const uploadContactPhoto = async (
   contactId: string
 ): Promise<string | undefined> => {
   if (!file || !file.name) {
-    console.warn("No photo uploaded — skipping uploadContactPhoto.");
+    if (import.meta.env.DEV) console.warn("No photo uploaded — skipping uploadContactPhoto.");
     return undefined;
   }
 

@@ -55,7 +55,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
                 try {
                   return await getDestination(id);
                 } catch (error) {
-                  console.warn(`Destination ${id} not found or error fetching:`, error);
+                  if (import.meta.env.DEV) console.warn(`Destination ${id} not found or error fetching:`, error);
                   return null;
                 }
               })

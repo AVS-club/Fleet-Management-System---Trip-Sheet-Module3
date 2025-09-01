@@ -25,7 +25,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
 
     // Safety check for date range validity
     if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      console.warn('Invalid date range:', dateRange);
+      if (import.meta.env.DEV) console.warn('Invalid date range:', dateRange);
       return [];
     }
 
@@ -39,7 +39,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
         
         return isWithinInterval(tripDate, dateRange);
       } catch (error) {
-        console.warn('Error filtering trip by date:', error);
+        if (import.meta.env.DEV) console.warn('Error filtering trip by date:', error);
         return false;
       }
     });

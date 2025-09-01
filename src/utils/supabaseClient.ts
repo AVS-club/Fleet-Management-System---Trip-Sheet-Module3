@@ -249,7 +249,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       return false;
     }
 
-    console.log("Supabase connection test passed (database query)");
+    if (import.meta.env.DEV) console.log("Supabase connection test passed (database query)");
     return true;
   } catch (error) {
     console.error("Supabase connection test error:", error);
@@ -271,7 +271,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 Current origin: ${window.location.origin}`);
     }
     
-    console.log("Supabase connection test passed (auth check)");
+    if (import.meta.env.DEV) console.log("Supabase connection test passed (auth check)");
     
     // Handle timeout errors
     if (error instanceof Error && error.message === 'REQUEST_TIMEOUT') {
@@ -323,7 +323,7 @@ export const isNetworkError = (error: any): boolean => {
 // Helper function to handle network errors gracefully
 export const handleNetworkError = (error: any, fallbackData: any = null) => {
   if (isNetworkError(error)) {
-    console.warn('Network connectivity issue detected. Using fallback data or retrying...');
+    if (import.meta.env.DEV) console.warn('Network connectivity issue detected. Using fallback data or retrying...');
     return { data: fallbackData, error: null };
   }
   return { data: null, error };
