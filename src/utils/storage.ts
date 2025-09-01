@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { isNetworkError, handleNetworkError } from './supabaseClient';
+import config from './config';
 import {
   Trip,
   TripFormData,
@@ -45,7 +46,7 @@ export async function getUserData() {
     if (error) {
       // Handle network errors gracefully
       if (isNetworkError(error)) {
-        if (import.meta.env.DEV) console.warn('Network error getting user data, returning null user');
+        if (config.isDev) console.warn('Network error getting user data, returning null user');
         return { user: null, error: null };
       }
       handleSupabaseError('get user data', error);
@@ -56,7 +57,7 @@ export async function getUserData() {
   } catch (error) {
     // Handle network errors gracefully
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error getting user data, returning null user');
+      if (config.isDev) console.warn('Network error getting user data, returning null user');
       return { user: null, error: null };
     }
     handleSupabaseError('get user data', error);
@@ -71,7 +72,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for vehicles, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for vehicles, returning empty array');
         return [];
       }
       handleSupabaseError('get user for vehicles', userError);
@@ -97,7 +98,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for vehicles, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for vehicles, returning empty array');
       return [];
     }
     handleSupabaseError('get user for vehicles', error);
@@ -378,7 +379,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for drivers, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for drivers, returning empty array');
         return [];
       }
       handleSupabaseError('get user for drivers', userError);
@@ -404,7 +405,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for drivers, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for drivers, returning empty array');
       return [];
     }
     handleSupabaseError('get user for drivers', error);
@@ -418,7 +419,7 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for driver summaries, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for driver summaries, returning empty array');
         return [];
       }
       handleSupabaseError('get user for driver summaries', userError);
@@ -444,7 +445,7 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for driver summaries, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for driver summaries, returning empty array');
       return [];
     }
     handleSupabaseError('get user for driver summaries', error);
@@ -554,7 +555,7 @@ export const deleteDriver = async (id: string): Promise<boolean> => {
 // Photo upload function for drivers
 export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string | undefined> => {
   if (!file || !file.name) { // ⚠️ Confirm field refactor here
-    if (import.meta.env.DEV) console.warn('No photo uploaded — skipping uploadDriverPhoto.'); // ⚠️ Confirm field refactor here
+    if (config.isDev) console.warn('No photo uploaded — skipping uploadDriverPhoto.'); // ⚠️ Confirm field refactor here
     return undefined;
   }
 
@@ -585,7 +586,7 @@ export const getTrips = async (): Promise<Trip[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for trips, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for trips, returning empty array');
         return [];
       }
       handleSupabaseError('get user for trips', userError);
@@ -611,7 +612,7 @@ export const getTrips = async (): Promise<Trip[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for trips, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for trips, returning empty array');
       return [];
     }
     handleSupabaseError('get user for trips', error);
@@ -668,7 +669,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       userId
     );
 
-    if (import.meta.env.DEV) console.log("Submitting trip with payload:", payload);
+    if (config.isDev) console.log("Submitting trip with payload:", payload);
     const { data, error } = await supabase
       .from('trips')
       .insert(payload)
@@ -729,7 +730,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for warehouses, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for warehouses, returning empty array');
         return [];
       }
       handleSupabaseError('get user for warehouses', userError);
@@ -756,7 +757,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for warehouses, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for warehouses, returning empty array');
       return [];
     }
     handleSupabaseError('get user for warehouses', error);
@@ -786,7 +787,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for destinations, returning empty array');
+        if (config.isDev) console.warn('Network error fetching user for destinations, returning empty array');
         return [];
       }
       handleSupabaseError('get user for destinations', userError);
@@ -813,7 +814,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching user for destinations, returning empty array');
+      if (config.isDev) console.warn('Network error fetching user for destinations, returning empty array');
       return [];
     }
     handleSupabaseError('get user for destinations', error);
@@ -827,7 +828,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for destination, returning null');
+        if (config.isDev) console.warn('Network error fetching user for destination, returning null');
         return null;
       }
       handleSupabaseError('get user for destination', userError);
@@ -861,7 +862,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
     return data;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching destination, returning null');
+      if (config.isDev) console.warn('Network error fetching destination, returning null');
       return null;
     }
     handleSupabaseError('fetch destination', error);
@@ -875,7 +876,7 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for destination by any id, returning null');
+        if (config.isDev) console.warn('Network error fetching user for destination by any id, returning null');
         return null;
       }
       handleSupabaseError('get user for destination by any id', userError);
@@ -911,7 +912,7 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
     return data;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error fetching destination by any id, returning null');
+      if (config.isDev) console.warn('Network error fetching destination by any id, returning null');
       return null;
     }
     handleSupabaseError('fetch destination by any id', error);
@@ -1035,7 +1036,7 @@ export const getAllVehicleStats = async (
 
       if (userError) {
         if (isNetworkError(userError)) {
-          if (import.meta.env.DEV) console.warn(
+          if (config.isDev) console.warn(
             'Network error fetching user for vehicle stats, returning empty object'
           );
           return {};
@@ -1099,7 +1100,7 @@ export const getAllVehicleStats = async (
     return result;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn(
+      if (config.isDev) console.warn(
         'Network error calculating vehicle stats, returning empty object'
       );
       return {};
@@ -1115,7 +1116,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for vehicle stats, returning defaults');
+        if (config.isDev) console.warn('Network error fetching user for vehicle stats, returning defaults');
         return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
       }
       handleSupabaseError('get user for vehicle stats', userError);
@@ -1160,7 +1161,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     };
   } catch (error) {
     if (isNetworkError(error)) {
-      if (import.meta.env.DEV) console.warn('Network error calculating vehicle stats, returning defaults');
+      if (config.isDev) console.warn('Network error calculating vehicle stats, returning defaults');
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
     handleSupabaseError('calculate vehicle stats', error);
@@ -1294,7 +1295,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (import.meta.env.DEV) console.warn('Network error fetching user for odometer, returning default');
+        if (config.isDev) console.warn('Network error fetching user for odometer, returning default');
         return { value: 0, fromTrip: false };
       }
       handleSupabaseError('get user for odometer', userError);

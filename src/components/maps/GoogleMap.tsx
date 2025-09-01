@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { AlertTriangle } from 'lucide-react';
+import config from '../../utils/config';
 
 interface GoogleMapProps {
   waypoints: Array<{ lat: number; lng: number }>;
@@ -13,7 +14,7 @@ const GoogleMap: React.FC<GoogleMapProps> = ({ waypoints, className = 'h-64' }) 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = config.googleMapsApiKey;
 
     if (!apiKey) {
       setError('Google Maps API key is missing. Please check your environment variables.');

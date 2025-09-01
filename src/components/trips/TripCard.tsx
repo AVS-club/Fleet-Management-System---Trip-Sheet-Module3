@@ -6,6 +6,7 @@ import { getWarehouse, getDestination } from '../../utils/storage';
 import { truncateString } from '../../utils/format';
 import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
 import { toast } from 'react-toastify';
+import config from '../../utils/config';
 
 interface TripCardProps {
   trip: Trip;
@@ -55,7 +56,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
                 try {
                   return await getDestination(id);
                 } catch (error) {
-                  if (import.meta.env.DEV) console.warn(`Destination ${id} not found or error fetching:`, error);
+                  if (config.isDev) console.warn(`Destination ${id} not found or error fetching:`, error);
                   return null;
                 }
               })

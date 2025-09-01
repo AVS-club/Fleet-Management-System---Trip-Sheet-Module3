@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader } from 'lucide-react';
+import config from '../../utils/config';
 
 interface SpeechToTextButtonProps {
   onTranscript: (text: string) => void;
@@ -49,7 +50,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
     } else {
       setIsSupported(false);
-      if (import.meta.env.DEV) console.warn('Speech recognition is not supported in this browser');
+      if (config.isDev) console.warn('Speech recognition is not supported in this browser');
     }
 
     return () => {
