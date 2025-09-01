@@ -18,6 +18,7 @@ import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
 import FuelRateSelector from './FuelRateSelector';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import config from '../../utils/config';
 import {
   Truck,
   User,
@@ -353,7 +354,7 @@ const TripForm: React.FC<TripFormProps> = ({
             const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
             setAiAlerts(alerts);
           } else {
-            if (import.meta.env.DEV) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
+            if (config.isDev) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
           }
         }
       } catch (error) {

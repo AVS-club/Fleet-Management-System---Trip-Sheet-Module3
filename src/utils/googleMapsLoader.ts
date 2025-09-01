@@ -1,13 +1,14 @@
 import { Loader } from '@googlemaps/js-api-loader';
+import config from './config';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const { googleMapsApiKey } = config;
 
-if (!GOOGLE_MAPS_API_KEY) {
+if (!googleMapsApiKey) {
   throw new Error('Google Maps API key is missing. Please check your .env file and ensure VITE_GOOGLE_MAPS_API_KEY is set.');
 }
 
 const loader = new Loader({
-  apiKey: GOOGLE_MAPS_API_KEY,
+  apiKey: googleMapsApiKey,
   version: 'weekly',
   libraries: ['places']
 });
