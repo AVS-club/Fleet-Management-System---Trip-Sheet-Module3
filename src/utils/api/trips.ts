@@ -1,5 +1,5 @@
 import { supabase, isNetworkError } from '../supabaseClient';
-import config from '../config';
+import config from '../env';
 import { Trip } from '../../types';
 import { getCurrentUserId, withOwner } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';

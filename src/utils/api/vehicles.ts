@@ -1,5 +1,5 @@
 import { supabase, isNetworkError } from '../supabaseClient';
-import config from '../config';
+import config from '../env';
 import { Vehicle } from '../../types';
 import { uploadVehicleDocument } from '../supabaseStorage';
 import { getCurrentUserId, withOwner } from '../supaHelpers';
