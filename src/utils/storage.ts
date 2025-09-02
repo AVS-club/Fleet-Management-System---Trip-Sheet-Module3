@@ -5,6 +5,7 @@ import { supabase, isNetworkError } from './supabaseClient';
 import config from './env';
 import { getVehicle, deleteVehicle, getTrips } from './api';
 export * from './api';
+export { getTrips };
 
 export async function getUserData() {
   try {
