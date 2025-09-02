@@ -12,7 +12,6 @@ import Button from '../ui/Button';
 import Textarea from '../ui/Textarea';
 import DocumentUploader from '../shared/DocumentUploader';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import VehicleSummaryChips from './VehicleSummaryChips';
 import {
   Truck,
   Calendar,
@@ -34,9 +33,12 @@ import {
   Palette,
   Weight,
   Users,
+  DollarSign,
+  Clock,
+  CreditCard,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { format, differenceInYears } from 'date-fns';
+import { format } from 'date-fns';
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -51,8 +53,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   onCancel,
   isSubmitting = false,
 }) => {
-  const [vehicleInfo, setVehicleInfo] = useState<any>(null);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [reminderContacts, setReminderContacts] = useState<ReminderContact[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<Driver[]>([]);
   const [fieldsDisabled, setFieldsDisabled] = useState(true);
@@ -100,13 +100,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [materialsData, contactsData, driversData] = await Promise.all([
-          getMaterialTypes(),
+        const [contactsData, driversData] = await Promise.all([
           getReminderContacts(),
           getDrivers()
         ]);
         
-        setMaterialTypes(Array.isArray(materialsData) ? materialsData : []);
         setReminderContacts(Array.isArray(contactsData) ? contactsData : []);
         setAvailableDrivers(Array.isArray(driversData) ? driversData : []);
       } catch (error) {
@@ -125,7 +123,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       [docType]: filePaths
     }));
     
-    // Update form field with the uploaded file paths
     const fieldName = `${docType}_document_url` as keyof Vehicle;
     setValue(fieldName, filePaths as any);
   };
@@ -144,7 +141,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     setFieldsDisabled(true);
 
     try {
-      // Call the Edge function - fetch-rc-details
       const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
         body: {
           registration_number: regNumber,
@@ -159,10 +155,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         throw new Error(result?.message || 'Failed to fetch vehicle details');
       }
 
-      // Extract the RC data from the response
       const rcData = result.data?.response || result.data || {};
 
-      // Map RC API response to form fields
+      // Map RC API response to form fields - only map fields that exist in database
       const mappedData: Partial<Vehicle> = {
         registration_number: regNumber.toUpperCase(),
         make: rcData.maker_model || rcData.maker || '',
@@ -205,9 +200,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         }
       });
 
-      // Mark that data was fetched from VAHAN
       setValue('vahan_last_fetched_at', new Date().toISOString());
-      setVehicleInfo(mappedData);
 
       setFieldsDisabled(false);
       setFetchStatus('success');
@@ -222,62 +215,46 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  // Helper function to map fuel type from API response
+  // Helper functions
   const mapFuelType = (fuelType: string): Vehicle['fuel_type'] => {
     const fuel = fuelType.toLowerCase();
     if (fuel.includes('diesel')) return 'diesel';
     if (fuel.includes('petrol')) return 'petrol';
     if (fuel.includes('cng')) return 'cng';
-    if (fuel.includes('electric') || fuel.includes('battery')) return 'electric';
-    if (fuel.includes('hybrid')) return 'hybrid';
-    return 'diesel'; // default
+    return 'diesel';
   };
 
-  // Helper function to determine vehicle type from class
   const getVehicleTypeFromClass = (vehicleClass: string): Vehicle['type'] => {
     const classLower = vehicleClass.toLowerCase();
-    if (classLower.includes('truck') || classLower.includes('goods')) return 'truck';
-    if (classLower.includes('bus')) return 'bus';
-    if (classLower.includes('van')) return 'van';
-    if (classLower.includes('tanker')) return 'tanker';
-    if (classLower.includes('tipper')) return 'tipper';
-    if (classLower.includes('trailer')) return 'trailer';
-    if (classLower.includes('container')) return 'container';
     if (classLower.includes('tempo')) return 'tempo';
-    return 'truck'; // default
+    if (classLower.includes('trailer')) return 'trailer';
+    if (classLower.includes('truck') || classLower.includes('goods')) return 'truck';
+    return 'truck';
   };
 
-  // Helper function to format date strings from API
   const formatDateString = (dateStr: string | undefined): string | undefined => {
     if (!dateStr) return undefined;
-    
-    // Handle different date formats from API
-    // Format: DD-MM-YYYY or DD/MM/YYYY to YYYY-MM-DD
     const parts = dateStr.split(/[-\/]/);
     if (parts.length === 3) {
-      // Assume DD-MM-YYYY or DD/MM/YYYY format
       if (parts[2].length === 4) {
         return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
-      // Assume YYYY-MM-DD format (already correct)
       if (parts[0].length === 4) {
         return dateStr.replace(/\//g, '-');
       }
     }
-    
     return dateStr;
   };
 
   const onFormSubmit = (data: Vehicle) => {
-    // Include uploaded document URLs in the submission
     const formData = {
       ...data,
-      rc_document_url: uploadedDocuments.rc || [],
-      insurance_document_url: uploadedDocuments.insurance || [],
-      fitness_document_url: uploadedDocuments.fitness || [],
-      tax_document_url: uploadedDocuments.tax || [],
-      permit_document_url: uploadedDocuments.permit || [],
-      puc_document_url: uploadedDocuments.puc || [],
+      rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
+      insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
+      fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
+      tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
+      permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
+      puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
     };
 
     onSubmit(formData);
@@ -287,16 +264,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* RC Fetch Section */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm text-gray-700 font-medium">
-            Fetch Vehicle Info from RC Details (VAHAN Portal)
-          </p>
-          {vehicleInfo?.vahan_last_fetched_at && (
-            <span className="text-xs text-gray-500">
-              Last fetched: {format(new Date(vehicleInfo.vahan_last_fetched_at), 'dd MMM yyyy HH:mm')}
-            </span>
-          )}
-        </div>
+        <p className="text-sm text-gray-700 font-medium mb-3">
+          Fetch Vehicle Info from RC Details
+        </p>
         <div className="flex flex-col md:flex-row items-center gap-4">
           <div className="w-full md:w-3/5">
             <Input
@@ -309,8 +279,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               {...register('registration_number', {
                 required: 'Registration number is required',
                 pattern: {
-                  value: /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,2}[0-9]{1,4}$/i,
-                  message: 'Invalid registration number format (e.g., CG04AB1234)'
+                  value: /^[A-Z]{2}[0-9]{1,2}[A-Z]{0,2}[0-9]{1,4}$/i,
+                  message: 'Invalid registration number format'
                 }
               })}
             />
@@ -329,7 +299,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               <div className="text-center mt-1">
                 <span className="text-xs text-success-600 flex items-center justify-center">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  Details fetched successfully!
+                  Details fetched!
                 </span>
               </div>
             )}
@@ -337,7 +307,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               <div className="text-center mt-1">
                 <span className="text-xs text-error-600 flex items-center justify-center">
                   <AlertTriangle className="h-3 w-3 mr-1" />
-                  Fetch failed - Enter manually
+                  Enter manually
                 </span>
               </div>
             )}
@@ -396,14 +366,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 options={[
                   { value: 'truck', label: 'Truck' },
                   { value: 'tempo', label: 'Tempo' },
-                  { value: 'trailer', label: 'Trailer' },
-                  { value: 'bus', label: 'Bus' },
-                  { value: 'van', label: 'Van' },
-                  { value: 'tanker', label: 'Tanker' },
-                  { value: 'tipper', label: 'Tipper' },
-                  { value: 'container', label: 'Container' },
-                  { value: 'car', label: 'Car' },
-                  { value: 'other', label: 'Other' }
+                  { value: 'trailer', label: 'Trailer' }
                 ]}
                 error={errors.type?.message}
                 required
@@ -423,9 +386,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 options={[
                   { value: 'diesel', label: 'Diesel' },
                   { value: 'petrol', label: 'Petrol' },
-                  { value: 'cng', label: 'CNG' },
-                  { value: 'electric', label: 'Electric' },
-                  { value: 'hybrid', label: 'Hybrid' }
+                  { value: 'cng', label: 'CNG' }
                 ]}
                 error={errors.fuel_type?.message}
                 required
@@ -445,7 +406,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 options={[
                   { value: 'active', label: 'Active' },
                   { value: 'maintenance', label: 'Under Maintenance' },
-                  { value: 'inactive', label: 'Inactive' }
+                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'stood', label: 'Stood' },
+                  { value: 'archived', label: 'Archived' }
                 ]}
                 error={errors.status?.message}
                 required
@@ -503,7 +466,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Chassis Number"
             icon={<Hash className="h-4 w-4" />}
-            error={errors.chassis_number?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('chassis_number')}
           />
@@ -511,23 +473,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Engine Number"
             icon={<Hash className="h-4 w-4" />}
-            error={errors.engine_number?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('engine_number')}
           />
 
           <Input
-            label="Owner Name"
-            icon={<User className="h-4 w-4" />}
-            error={errors.owner_name?.message}
-            disabled={fieldsDisabled || isSubmitting}
-            {...register('owner_name')}
-          />
-
-          <Input
             label="Vehicle Class"
             icon={<Car className="h-4 w-4" />}
-            error={errors.vehicle_class?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('vehicle_class')}
           />
@@ -535,7 +487,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Color"
             icon={<Palette className="h-4 w-4" />}
-            error={errors.color?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('color')}
           />
@@ -544,7 +495,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Cubic Capacity (cc)"
             type="number"
             icon={<Database className="h-4 w-4" />}
-            error={errors.cubic_capacity?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('cubic_capacity', { valueAsNumber: true })}
           />
@@ -553,7 +503,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Number of Cylinders"
             type="number"
             icon={<Database className="h-4 w-4" />}
-            error={errors.cylinders?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('cylinders', { valueAsNumber: true })}
           />
@@ -562,7 +511,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Unladen Weight (kg)"
             type="number"
             icon={<Weight className="h-4 w-4" />}
-            error={errors.unladen_weight?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('unladen_weight', { valueAsNumber: true })}
           />
@@ -571,7 +519,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Seating Capacity"
             type="number"
             icon={<Users className="h-4 w-4" />}
-            error={errors.seating_capacity?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('seating_capacity', { valueAsNumber: true })}
           />
@@ -579,7 +526,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Emission Norms"
             icon={<Database className="h-4 w-4" />}
-            error={errors.emission_norms?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('emission_norms')}
           />
@@ -588,7 +534,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Tyre Size"
             placeholder="e.g., 295/80 R22.5"
             icon={<Settings className="h-4 w-4" />}
-            error={errors.tyre_size?.message}
             disabled={isSubmitting}
             {...register('tyre_size')}
           />
@@ -597,51 +542,53 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Number of Tyres"
             type="number"
             icon={<Settings className="h-4 w-4" />}
-            error={errors.number_of_tyres?.message}
             disabled={isSubmitting}
             {...register('number_of_tyres', { valueAsNumber: true })}
           />
         </div>
       </CollapsibleSection>
 
-      {/* Registration & Finance Details */}
+      {/* Registration & Ownership */}
       <CollapsibleSection
-        title="Registration & Finance"
-        icon={<Shield className="h-5 w-5" />}
+        title="Registration & Ownership"
+        icon={<FileText className="h-5 w-5" />}
         iconColor="text-green-600"
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
+            label="Owner Name"
+            icon={<User className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('owner_name')}
+          />
+
+          <Input
             label="Registration Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
-            error={errors.registration_date?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('registration_date')}
+          />
+
+          <Input
+            label="RC Status"
+            icon={<FileText className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('rc_status')}
           />
 
           <Input
             label="RC Expiry Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
-            error={errors.rc_expiry_date?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('rc_expiry_date')}
           />
 
           <Input
-            label="RC Status"
-            icon={<FileText className="h-4 w-4" />}
-            error={errors.rc_status?.message}
-            disabled={fieldsDisabled || isSubmitting}
-            {...register('rc_status')}
-          />
-
-          <Input
             label="Financer"
-            icon={<Shield className="h-4 w-4" />}
-            error={errors.financer?.message}
+            icon={<CreditCard className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('financer')}
           />
@@ -649,101 +596,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="NOC Details"
             icon={<FileText className="h-4 w-4" />}
-            error={errors.noc_details?.message}
             disabled={fieldsDisabled || isSubmitting}
             {...register('noc_details')}
           />
         </div>
       </CollapsibleSection>
 
-      {/* Documents */}
-      <CollapsibleSection
-        title="Documents"
-        icon={<FileText className="h-5 w-5" />}
-        iconColor="text-red-600"
-        defaultExpanded={true}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <DocumentUploader
-            label="RC Document"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="rc"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('rc', paths)}
-            initialFilePaths={initialData?.rc_document_url || []}
-            required
-            helperText="Upload RC copy (PDF/Image)"
-          />
-
-          <DocumentUploader
-            label="Insurance Document"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="insurance"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('insurance', paths)}
-            initialFilePaths={initialData?.insurance_document_url || []}
-            required
-            helperText="Upload insurance policy (PDF/Image)"
-          />
-
-          <DocumentUploader
-            label="Fitness Certificate"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="fitness"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('fitness', paths)}
-            initialFilePaths={initialData?.fitness_document_url || []}
-            helperText="Upload fitness certificate (PDF/Image)"
-          />
-
-          <DocumentUploader
-            label="Tax Receipt"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="tax"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('tax', paths)}
-            initialFilePaths={initialData?.tax_document_url || []}
-            helperText="Upload tax receipt (PDF/Image)"
-          />
-
-          <DocumentUploader
-            label="Permit Document"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="permit"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('permit', paths)}
-            initialFilePaths={initialData?.permit_document_url || []}
-            helperText="Upload permit document (PDF/Image)"
-          />
-
-          <DocumentUploader
-            label="PUC Certificate"
-            bucketType="vehicle"
-            entityId={initialData?.id || 'temp'}
-            docType="puc"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple={true}
-            onUploadComplete={(paths) => handleDocumentUpload('puc', paths)}
-            initialFilePaths={initialData?.puc_document_url || []}
-            required
-            helperText="Upload PUC certificate (PDF/Image)"
-          />
-        </div>
-      </CollapsibleSection>
-
       {/* Insurance Details */}
       <CollapsibleSection
-        title="Insurance Details"
+        title="Insurance"
         icon={<Shield className="h-5 w-5" />}
         iconColor="text-blue-600"
         defaultExpanded={false}
@@ -782,7 +643,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Premium Amount"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_premium_amount', { valueAsNumber: true })}
           />
@@ -790,30 +651,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="IDV Amount"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_idv', { valueAsNumber: true })}
           />
         </div>
       </CollapsibleSection>
 
-      {/* Fitness Details */}
+      {/* Fitness Certificate */}
       <CollapsibleSection
-        title="Fitness Details"
+        title="Fitness Certificate"
         icon={<Shield className="h-5 w-5" />}
         iconColor="text-yellow-600"
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Fitness Certificate Number"
+            label="Certificate Number"
             icon={<FileText className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_certificate_number')}
           />
 
           <Input
-            label="Fitness Issue Date"
+            label="Issue Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -821,7 +682,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="Fitness Expiry Date"
+            label="Expiry Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -829,9 +690,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="Fitness Cost"
+            label="Cost"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_cost', { valueAsNumber: true })}
           />
@@ -840,47 +701,47 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
       {/* Tax Details */}
       <CollapsibleSection
-        title="Tax Details"
+        title="Tax"
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-indigo-600"
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Tax Receipt Number"
+            label="Receipt Number"
             icon={<FileText className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_receipt_number')}
           />
 
           <Input
-            label="Tax Amount"
+            label="Amount"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_amount', { valueAsNumber: true })}
           />
 
           <Input
-            label="Tax Paid Upto"
+            label="Period"
+            icon={<Calendar className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('tax_period')}
+          />
+
+          <Input
+            label="Paid Upto"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_paid_upto')}
-          />
-
-          <Input
-            label="Tax Period"
-            icon={<Calendar className="h-4 w-4" />}
-            disabled={fieldsDisabled || isSubmitting}
-            {...register('tax_period')}
           />
         </div>
       </CollapsibleSection>
 
       {/* Permit Details */}
       <CollapsibleSection
-        title="Permit Details"
+        title="Permit"
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-orange-600"
         defaultExpanded={false}
@@ -894,34 +755,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="Permit Issuing State"
+            label="Issuing State"
             icon={<MapPin className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_issuing_state')}
           />
 
-          <Controller
-            control={control}
-            name="permit_type"
-            render={({ field }) => (
-              <Select
-                label="Permit Type"
-                options={[
-                  { value: '', label: 'Select permit type' },
-                  { value: 'national', label: 'National' },
-                  { value: 'state', label: 'State' },
-                  { value: 'contract', label: 'Contract' },
-                  { value: 'tourist', label: 'Tourist' }
-                ]}
-                icon={<FileText className="h-4 w-4" />}
-                disabled={fieldsDisabled || isSubmitting}
-                {...field}
-              />
-            )}
+          <Input
+            label="Permit Type"
+            icon={<FileText className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('permit_type')}
           />
 
           <Input
-            label="Permit Issue Date"
+            label="Issue Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -929,7 +777,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="Permit Expiry Date"
+            label="Expiry Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -937,9 +785,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="Permit Cost"
+            label="Cost"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_cost', { valueAsNumber: true })}
           />
@@ -963,21 +811,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
       {/* PUC Details */}
       <CollapsibleSection
-        title="PUC Details"
+        title="Pollution Certificate (PUC)"
         icon={<FileText className="h-5 w-5" />}
         iconColor="text-green-600"
         defaultExpanded={false}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="PUC Certificate Number"
+            label="Certificate Number"
             icon={<FileText className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_certificate_number')}
           />
 
           <Input
-            label="PUC Issue Date"
+            label="Issue Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -985,7 +833,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="PUC Expiry Date"
+            label="Expiry Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
@@ -993,17 +841,369 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
-            label="PUC Cost"
+            label="Cost"
             type="number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_cost', { valueAsNumber: true })}
           />
         </div>
       </CollapsibleSection>
 
-      {/* Submit Button */}
-      <div className="flex justify-end space-x-3 pt-6">
+      {/* Document Uploads */}
+      <CollapsibleSection
+        title="Document Uploads"
+        icon={<FileText className="h-5 w-5" />}
+        iconColor="text-red-600"
+        defaultExpanded={true}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <DocumentUploader
+            label="RC Document"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="rc"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('rc', paths)}
+            initialFilePaths={initialData?.rc_document_url || []}
+            helperText="Upload RC copy"
+          />
+
+          <DocumentUploader
+            label="Insurance Document"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="insurance"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('insurance', paths)}
+            initialFilePaths={initialData?.insurance_document_url || []}
+            helperText="Upload insurance policy"
+          />
+
+          <DocumentUploader
+            label="Fitness Certificate"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="fitness"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('fitness', paths)}
+            initialFilePaths={initialData?.fitness_document_url || []}
+            helperText="Upload fitness certificate"
+          />
+
+          <DocumentUploader
+            label="Tax Receipt"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="tax"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('tax', paths)}
+            initialFilePaths={initialData?.tax_document_url || []}
+            helperText="Upload tax receipt"
+          />
+
+          <DocumentUploader
+            label="Permit Document"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="permit"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('permit', paths)}
+            initialFilePaths={initialData?.permit_document_url || []}
+            helperText="Upload permit document"
+          />
+
+          <DocumentUploader
+            label="PUC Certificate"
+            bucketType="vehicle"
+            entityId={initialData?.id || 'temp'}
+            docType="puc"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            onUploadComplete={(paths) => handleDocumentUpload('puc', paths)}
+            initialFilePaths={initialData?.puc_document_url || []}
+            helperText="Upload PUC certificate"
+          />
+        </div>
+      </CollapsibleSection>
+
+      {/* Reminders Configuration */}
+      <CollapsibleSection
+        title="Reminder Settings"
+        icon={<Bell className="h-5 w-5" />}
+        iconColor="text-purple-600"
+        defaultExpanded={false}
+      >
+        <div className="space-y-6">
+          {/* Insurance Reminder */}
+          <div className="border-l-4 border-blue-500 pl-4">
+            <Controller
+              name="remind_insurance"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable Insurance Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_insurance') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <Controller
+                  name="insurance_reminder_contact_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Contact Person"
+                      options={[
+                        { value: '', label: 'Select contact' },
+                        ...reminderContacts.map(contact => ({
+                          value: contact.id,
+                          label: contact.full_name
+                        }))
+                      ]}
+                      {...field}
+                    />
+                  )}
+                />
+                <Input
+                  label="Days Before Expiry"
+                  type="number"
+                  {...register('insurance_reminder_days_before', { valueAsNumber: true })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Fitness Reminder */}
+          <div className="border-l-4 border-yellow-500 pl-4">
+            <Controller
+              name="remind_fitness"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable Fitness Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_fitness') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <Controller
+                  name="fitness_reminder_contact_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Contact Person"
+                      options={[
+                        { value: '', label: 'Select contact' },
+                        ...reminderContacts.map(contact => ({
+                          value: contact.id,
+                          label: contact.full_name
+                        }))
+                      ]}
+                      {...field}
+                    />
+                  )}
+                />
+                <Input
+                  label="Days Before Expiry"
+                  type="number"
+                  {...register('fitness_reminder_days_before', { valueAsNumber: true })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Tax Reminder */}
+          <div className="border-l-4 border-indigo-500 pl-4">
+            <Controller
+              name="remind_tax"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable Tax Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_tax') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <Controller
+                  name="tax_reminder_contact_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Contact Person"
+                      options={[
+                        { value: '', label: 'Select contact' },
+                        ...reminderContacts.map(contact => ({
+                          value: contact.id,
+                          label: contact.full_name
+                        }))
+                      ]}
+                      {...field}
+                    />
+                  )}
+                />
+                <Input
+                  label="Days Before Expiry"
+                  type="number"
+                  {...register('tax_reminder_days_before', { valueAsNumber: true })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Permit Reminder */}
+          <div className="border-l-4 border-orange-500 pl-4">
+            <Controller
+              name="remind_permit"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable Permit Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_permit') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <Controller
+                  name="permit_reminder_contact_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Contact Person"
+                      options={[
+                        { value: '', label: 'Select contact' },
+                        ...reminderContacts.map(contact => ({
+                          value: contact.id,
+                          label: contact.full_name
+                        }))
+                      ]}
+                      {...field}
+                    />
+                  )}
+                />
+                <Input
+                  label="Days Before Expiry"
+                  type="number"
+                  {...register('permit_reminder_days_before', { valueAsNumber: true })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* PUC Reminder */}
+          <div className="border-l-4 border-green-500 pl-4">
+            <Controller
+              name="remind_puc"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable PUC Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_puc') && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                <Controller
+                  name="puc_reminder_contact_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      label="Contact Person"
+                      options={[
+                        { value: '', label: 'Select contact' },
+                        ...reminderContacts.map(contact => ({
+                          value: contact.id,
+                          label: contact.full_name
+                        }))
+                      ]}
+                      {...field}
+                    />
+                  )}
+                />
+                <Input
+                  label="Days Before Expiry"
+                  type="number"
+                  {...register('puc_reminder_days_before', { valueAsNumber: true })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Service Reminder */}
+          <div className="border-l-4 border-purple-500 pl-4">
+            <Controller
+              name="remind_service"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  label="Enable Service Reminder"
+                  {...field}
+                  checked={field.value}
+                />
+              )}
+            />
+            {watch('remind_service') && (
+              <div className="space-y-4 mt-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Controller
+                    name="service_reminder_contact_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        label="Contact Person"
+                        options={[
+                          { value: '', label: 'Select contact' },
+                          ...reminderContacts.map(contact => ({
+                            value: contact.id,
+                            label: contact.full_name
+                          }))
+                        ]}
+                        {...field}
+                      />
+                    )}
+                  />
+                  <Input
+                    label="Days Before Service"
+                    type="number"
+                    {...register('service_reminder_days_before', { valueAsNumber: true })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    label="Service Interval (km)"
+                    type="number"
+                    {...register('service_interval_km', { valueAsNumber: true })}
+                  />
+                  <Input
+                    label="Service Interval (days)"
+                    type="number"
+                    {...register('service_interval_days', { valueAsNumber: true })}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* Submit Buttons */}
+      <div className="flex justify-end space-x-3 pt-6 border-t">
         {onCancel && (
           <Button
             type="button"
