@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getDestinations, findOrCreateDestinationByPlaceId } from '../../utils/storage';
-import { Destination } from '../../types';
+import { Destination } from '@/types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 

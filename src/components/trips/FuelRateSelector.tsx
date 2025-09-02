@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, ChevronUp, Fuel } from 'lucide-react';
-import { Trip, Warehouse } from '../../types';
+import { Trip, Warehouse } from '@/types';
 import { cn } from '../../utils/cn';
 
 interface FuelRateSelectorProps {

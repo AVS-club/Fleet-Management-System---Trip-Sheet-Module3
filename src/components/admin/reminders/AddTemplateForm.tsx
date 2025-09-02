@@ -5,7 +5,7 @@ import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
-import { ReminderTemplate, ReminderContact } from '../../../types/reminders';
+import { ReminderTemplate, ReminderContact } from '@/types/reminders';
 import { toast } from 'react-toastify';
 
 // Predefined reminder types with labels and internal values

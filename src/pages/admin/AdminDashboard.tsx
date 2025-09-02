@@ -3,7 +3,7 @@ import Layout from '../../components/layout/Layout';
 import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar, FileCheck, BarChart2, Database, MessageSquare, Activity, ShieldCheck } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
-import { Vehicle, Driver } from '../../types';
+import { Vehicle, Driver } from '@/types';
 import DataTable from '../../components/shared/DataTable';
 import Button from '../../components/ui/Button';
 import VehicleProfileModal from '../../components/admin/VehicleProfileModal';

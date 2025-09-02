@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout'; 
-import { MaintenanceTask, Vehicle } from '../types';
+import { MaintenanceTask, Vehicle } from '@/types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';

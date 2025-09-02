@@ -1,5 +1,5 @@
 import React from 'react';
-import { Vehicle, Trip } from '../../types';
+import { Vehicle, Trip } from '@/types';
 import { Fuel, TrendingUp, Activity } from 'lucide-react';
 import EmptyState from './EmptyState';
 

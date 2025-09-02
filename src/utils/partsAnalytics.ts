@@ -1,5 +1,5 @@
-import { MaintenanceTask, MAINTENANCE_ITEMS } from '../types/maintenance';
-import { Vehicle } from '../types';
+import { MaintenanceTask, MAINTENANCE_ITEMS } from '@/types/maintenance';
+import { Vehicle } from '@/types';
 import { format, differenceInDays, differenceInMonths } from 'date-fns';
 
 export interface PartDefinition {

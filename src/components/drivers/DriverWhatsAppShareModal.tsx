@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, MessageSquare, FileText, Link as LinkIcon } from 'lucide-react';
 import Button from '../ui/Button';
-import { Driver } from '../../types';
+import { Driver } from '@/types';
 
 interface DriverWhatsAppShareModalProps {
   isOpen: boolean;

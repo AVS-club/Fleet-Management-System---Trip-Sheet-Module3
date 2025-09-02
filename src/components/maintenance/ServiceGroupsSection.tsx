@@ -1,6 +1,6 @@
 import React from "react";
 import { useFormContext, useFieldArray } from "react-hook-form";
-import { MaintenanceTask } from "../../types/maintenance";
+import { MaintenanceTask } from "@/types/maintenance";
 import Button from "../ui/Button";
 import { Plus } from "lucide-react";
 import ServiceGroupItem from "./ServiceGroupItem";

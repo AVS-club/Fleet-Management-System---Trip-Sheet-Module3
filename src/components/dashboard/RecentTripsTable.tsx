@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trip, Vehicle, Driver } from '../../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import { format, isValid, parseISO } from 'date-fns';
 import { Fuel, FileText } from 'lucide-react';
 import EmptyState from './EmptyState';

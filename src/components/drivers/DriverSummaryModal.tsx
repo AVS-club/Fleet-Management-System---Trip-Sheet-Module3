@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Truck, Fuel, IndianRupee, Calendar, TrendingUp, Clock, PenTool as Tool } from 'lucide-react';
-import { Driver, Trip, Vehicle } from '../../types';
-import { MaintenanceTask } from '../../types/maintenance';
+import { Driver, Trip, Vehicle } from '@/types';
+import { MaintenanceTask } from '@/types/maintenance';
 import Button from '../ui/Button';
 import { format, isValid, parseISO } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';

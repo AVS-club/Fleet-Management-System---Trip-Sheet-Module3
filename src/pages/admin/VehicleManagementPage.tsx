@@ -35,7 +35,7 @@ import {
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import Select from "../../components/ui/Select";
-import { Vehicle, Driver } from "../../types";
+import { Vehicle, Driver } from "@/types";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import VehicleActivityLogTable from "../../components/admin/VehicleActivityLogTable";
 import VehicleForm from "../../components/vehicles/VehicleForm";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, FormProvider, Controller } from "react-hook-form";
-import { Vehicle } from "../../types";
+import { Vehicle } from "@/types";
 import { MaintenanceTask } from "@/types/maintenance";
 import { addDays, addHours, format } from "date-fns";
 import Input from "../ui/Input";

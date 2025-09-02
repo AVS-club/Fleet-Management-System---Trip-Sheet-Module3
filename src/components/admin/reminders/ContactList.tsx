@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Edit, Trash2, Mail, Phone, Check, X, Globe } from 'lucide-react';
-import { ReminderContact, ReminderContactMode } from '../../../types/reminders';
+import { ReminderContact, ReminderContactMode } from '@/types/reminders';
 import { toast } from 'react-toastify';
 
 interface ContactListProps {
