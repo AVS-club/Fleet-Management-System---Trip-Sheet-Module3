@@ -128,92 +128,337 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
   // Handle fetch vehicle details from RC API
-  const handleFetchDetails = async () => {
-    const regNumber = watch('registration_number');
+  // Replace just the handleFetchDetails function in your VehicleForm with this version:
 
-    if (!regNumber) {
-      toast.error('Please enter registration number');
-      return;
+const handleFetchDetails = async () => {
+  const regNumber = watch('registration_number');
+
+  if (!regNumber) {
+    toast.error('Please enter registration number');
+    return;
+  }
+
+  setIsFetching(true);
+  setFetchStatus('fetching');
+  setFieldsDisabled(true);
+
+  try {
+    const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
+      body: {
+        registration_number: regNumber,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to fetch details');
     }
 
-    setIsFetching(true);
-    setFetchStatus('fetching');
-    setFieldsDisabled(true);
+    if (!result?.success) {
+      throw new Error(result?.message || 'Failed to fetch vehicle details');
+    }
 
-    try {
-      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
-        body: {
-          registration_number: regNumber,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch details');
-      }
-
-      if (!result?.success) {
-        throw new Error(result?.message || 'Failed to fetch vehicle details');
-      }
-
-      const rcData = result.data?.response || result.data || {};
-
-      // Map RC API response to form fields - only map fields that exist in database
-      const mappedData: Partial<Vehicle> = {
-        registration_number: regNumber.toUpperCase(),
-        make: rcData.maker_model || rcData.maker || '',
-        model: rcData.maker_model || rcData.model || '',
-        year: parseInt(rcData.manufacturing_year || rcData.m_y_manufacturing) || new Date().getFullYear(),
-        chassis_number: rcData.chassis_number || rcData.ch_no || '',
-        engine_number: rcData.engine_number || rcData.eng_no || '',
-        owner_name: rcData.owner_name || rcData.registered_owner_name || '',
-        fuel_type: mapFuelType(rcData.fuel_type || rcData.fuel || 'diesel'),
-        vehicle_class: rcData.vehicle_class || rcData.v_catg || rcData.vch_catg || '',
-        color: rcData.color || rcData.colour || '',
-        cubic_capacity: parseFloat(rcData.cubic_capacity || rcData.cubic_cap) || undefined,
-        cylinders: parseInt(rcData.no_of_cylinders || rcData.no_cyl) || undefined,
-        unladen_weight: parseFloat(rcData.unladen_weight || rcData.u_weight) || undefined,
-        seating_capacity: parseInt(rcData.seating_capacity || rcData.seat_cap) || undefined,
-        emission_norms: rcData.emission_norms || rcData.norms || '',
-        financer: rcData.financer || rcData.financed_by || '',
-        insurance_policy_number: rcData.insurance_policy_no || rcData.insurance_policy || '',
-        insurer_name: rcData.insurance_company || rcData.insurance_comp || '',
-        insurance_expiry_date: formatDateString(rcData.insurance_validity || rcData.insurance_upto),
-        fitness_expiry_date: formatDateString(rcData.fitness_validity || rcData.fitness_upto),
-        tax_paid_upto: formatDateString(rcData.tax_validity || rcData.tax_upto),
-        permit_expiry_date: formatDateString(rcData.permit_validity_upto || rcData.permit_upto),
-        permit_number: rcData.permit_no || rcData.permit_number || '',
-        permit_issuing_state: rcData.permit_issue_state || '',
-        puc_expiry_date: formatDateString(rcData.pucc_validity || rcData.pucc_upto),
-        puc_certificate_number: rcData.pucc_no || rcData.pucc_number || '',
-        rc_status: rcData.rc_status || rcData.status || '',
-        registration_date: formatDateString(rcData.registration_date || rcData.regd_date),
-        noc_details: rcData.noc_details || rcData.noc || '',
-        national_permit_number: rcData.national_permit_no || '',
-        national_permit_upto: formatDateString(rcData.national_permit_validity),
-        type: getVehicleTypeFromClass(rcData.vehicle_class || rcData.v_catg || ''),
-      };
-
-      // Update form with fetched data
-      Object.entries(mappedData).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
-          setValue(key as keyof Vehicle, value as any);
+    // Extract the RC data - check multiple possible response structures
+    let rcData = {};
+    
+    // The API might return data in different structures
+    if (result.data?.response) {
+      rcData = result.data.response;
+    } else if (result.data) {
+      rcData = result.data;
+    } else if (result.response) {
+      rcData = result.response;
+    }
+    
+    // Log the full response to debug structure
+    console.log('Full API Response:', result);
+    console.log('Extracted RC Data:', rcData);
+    
+    // Helper function to parse DD/MM/YYYY dates
+    const parseDateDDMMYYYY = (dateStr: string | undefined): string | undefined => {
+      if (!dateStr) return undefined;
+      
+      // Handle DD/MM/YYYY or DD-MM-YYYY format
+      const parts = dateStr.split(/[-\/]/);
+      if (parts.length === 3) {
+        const day = parts[0].padStart(2, '0');
+        const month = parts[1].padStart(2, '0');
+        let year = parts[2];
+        
+        // Handle 2-digit year
+        if (year.length === 2) {
+          year = parseInt(year) > 50 ? '19' + year : '20' + year;
         }
-      });
+        
+        // Return in YYYY-MM-DD format for HTML date input
+        if (year.length === 4) {
+          return `${year}-${month}-${day}`;
+        }
+      }
+      return dateStr;
+    };
+    
+    // Helper function to calculate start date from expiry date (364 days before)
+    const calculateStartDate = (expiryDate: string | undefined): string | undefined => {
+      if (!expiryDate) return undefined;
+      try {
+        const expiry = new Date(expiryDate);
+        if (isNaN(expiry.getTime())) return undefined;
+        
+        const start = new Date(expiry);
+        start.setDate(start.getDate() - 364);
+        return start.toISOString().split('T')[0];
+      } catch {
+        return undefined;
+      }
+    };
 
-      setValue('vahan_last_fetched_at', new Date().toISOString());
-
-      setFieldsDisabled(false);
-      setFetchStatus('success');
-      toast.success('Vehicle details fetched successfully! Please verify and complete the form.');
-    } catch (err: any) {
-      console.error('RC fetch error:', err);
-      toast.error(err.message || 'Failed to fetch vehicle details. Please enter details manually.');
-      setFieldsDisabled(false);
-      setFetchStatus('error');
-    } finally {
-      setIsFetching(false);
+    // Extract Make and Model - check all possible field names
+    let make = '';
+    let model = '';
+    
+    // Log all fields that might contain make/model
+    console.log('Possible make fields:', {
+      maker: rcData.maker,
+      maker_model: rcData.maker_model,
+      manufacturer: rcData.manufacturer,
+      maker_name: rcData.maker_name,
+      make: rcData.make,
+      vehicle_manufacturer: rcData.vehicle_manufacturer,
+      manu_name: rcData.manu_name,
+      maker_desc: rcData.maker_desc
+    });
+    
+    console.log('Possible model fields:', {
+      model: rcData.model,
+      model_name: rcData.model_name,
+      vehicle_model: rcData.vehicle_model,
+      model_desc: rcData.model_desc,
+      variant: rcData.variant
+    });
+    
+    // Try to extract make
+    make = rcData.maker || 
+           rcData.manufacturer || 
+           rcData.maker_name || 
+           rcData.make || 
+           rcData.vehicle_manufacturer ||
+           rcData.manu_name ||
+           rcData.maker_desc ||
+           '';
+    
+    // Try to extract model
+    model = rcData.model || 
+            rcData.model_name || 
+            rcData.vehicle_model ||
+            rcData.model_desc ||
+            rcData.variant ||
+            '';
+    
+    // If maker_model contains both, try to split it
+    if (!make && !model && rcData.maker_model) {
+      const makerModel = rcData.maker_model.toUpperCase();
+      
+      // Known patterns
+      if (makerModel.includes('TATA')) {
+        make = 'TATA MOTORS LIMITED';
+        model = makerModel.replace(/TATA\s*MOTORS?\s*LIMITED?\s*/gi, '').trim();
+      } else if (makerModel.includes('MAHINDRA')) {
+        make = 'MAHINDRA & MAHINDRA LTD';
+        model = makerModel.replace(/MAHINDRA\s*(&|AND)?\s*MAHINDRA\s*LTD?\s*/gi, '').trim();
+      } else if (makerModel.includes('ASHOK')) {
+        make = 'ASHOK LEYLAND LTD';
+        model = makerModel.replace(/ASHOK\s*LEYLAND\s*LTD?\s*/gi, '').trim();
+      } else if (makerModel.includes('MARUTI')) {
+        make = 'MARUTI SUZUKI';
+        model = makerModel.replace(/MARUTI\s*SUZUKI?\s*/gi, '').trim();
+      } else if (makerModel.includes('HYUNDAI')) {
+        make = 'HYUNDAI';
+        model = makerModel.replace(/HYUNDAI\s*/gi, '').trim();
+      } else {
+        // Generic split - first word as make, rest as model
+        const parts = makerModel.split(' ');
+        if (parts.length > 1) {
+          make = parts[0];
+          model = parts.slice(1).join(' ');
+        } else {
+          make = makerModel;
+        }
+      }
     }
-  };
+    
+    // Clean up make and model
+    make = make.trim();
+    model = model.trim();
+    
+    console.log('Final extracted make:', make);
+    console.log('Final extracted model:', model);
+
+    // Map vehicle class
+    let vehicleClass = rcData.vehicle_class || 
+                      rcData.v_catg || 
+                      rcData.vch_catg || 
+                      rcData.vehicle_category ||
+                      rcData.body_type ||
+                      rcData.class ||
+                      '';
+                      
+    // Normalize vehicle class
+    if (vehicleClass) {
+      const classLower = vehicleClass.toLowerCase();
+      if (classLower.includes('goods') || classLower.includes('lgv') || classLower.includes('carrier')) {
+        vehicleClass = 'GOODS CARRIER';
+      }
+    }
+
+    // Extract and parse dates with DD/MM/YYYY format
+    const insuranceExpiryDate = parseDateDDMMYYYY(
+      rcData.insurance_validity || 
+      rcData.insurance_upto || 
+      rcData.insurance_expiry_date ||
+      rcData.insurance_valid_upto ||
+      rcData.insurance_expiry
+    );
+    
+    const fitnessExpiryDate = parseDateDDMMYYYY(
+      rcData.fitness_validity || 
+      rcData.fitness_upto || 
+      rcData.fitness_expiry_date ||
+      rcData.fitness_valid_upto ||
+      rcData.fitness_expiry
+    );
+    
+    const taxPaidUpto = parseDateDDMMYYYY(
+      rcData.tax_validity || 
+      rcData.tax_upto || 
+      rcData.tax_paid_upto ||
+      rcData.tax_valid_upto ||
+      rcData.road_tax_paid_upto
+    );
+    
+    const permitExpiryDate = parseDateDDMMYYYY(
+      rcData.permit_validity_upto || 
+      rcData.permit_upto || 
+      rcData.permit_expiry_date ||
+      rcData.permit_valid_upto ||
+      rcData.permit_expiry
+    );
+    
+    const pucExpiryDate = parseDateDDMMYYYY(
+      rcData.pucc_validity || 
+      rcData.pucc_upto || 
+      rcData.puc_expiry_date ||
+      rcData.pollution_valid_upto ||
+      rcData.puc_valid_upto
+    );
+    
+    const registrationDate = parseDateDDMMYYYY(
+      rcData.registration_date || 
+      rcData.regd_date || 
+      rcData.reg_date ||
+      rcData.registered_date
+    );
+
+    // Build mapped data object
+    const mappedData: Partial<Vehicle> = {
+      registration_number: regNumber.toUpperCase(),
+      
+      // Basic Information - with explicit values
+      make: make || undefined,
+      model: model || undefined,
+      year: parseInt(
+        rcData.manufacturing_year || 
+        rcData.m_y_manufacturing || 
+        rcData.manufacture_year ||
+        rcData.mfg_yr ||
+        rcData.year_of_manufacture ||
+        new Date().getFullYear()
+      ),
+      fuel_type: mapFuelType(
+        rcData.fuel_type || 
+        rcData.fuel || 
+        rcData.fuel_descr ||
+        rcData.fuel_used ||
+        'diesel'
+      ),
+      type: getVehicleTypeFromClass(vehicleClass),
+      
+      // Technical Details
+      chassis_number: rcData.chassis_number || rcData.ch_no || rcData.chasi_no || rcData.chassis_no || '',
+      engine_number: rcData.engine_number || rcData.eng_no || rcData.engine_no || '',
+      vehicle_class: vehicleClass,
+      color: rcData.color || rcData.colour || rcData.vehicle_color || rcData.body_color || '',
+      cubic_capacity: parseFloat(rcData.cubic_capacity || rcData.cubic_cap || rcData.cc || rcData.engine_capacity) || undefined,
+      cylinders: parseInt(rcData.no_of_cylinders || rcData.no_cyl || rcData.cylinders || rcData.number_of_cylinders) || undefined,
+      unladen_weight: parseFloat(rcData.unladen_weight || rcData.u_weight || rcData.unladen_wt || rcData.kerb_weight) || undefined,
+      seating_capacity: parseInt(rcData.seating_capacity || rcData.seat_cap || rcData.seats || rcData.no_of_seats) || undefined,
+      emission_norms: rcData.emission_norms || rcData.norms || rcData.emission_norm || rcData.pollution_norms || '',
+      
+      // Registration & Ownership
+      owner_name: rcData.owner_name || rcData.registered_owner_name || rcData.owner || rcData.present_owner || '',
+      registration_date: registrationDate,
+      rc_status: rcData.rc_status || rcData.status || rcData.vehicle_status || rcData.registration_status || '',
+      rc_expiry_date: parseDateDDMMYYYY(rcData.rc_expiry_date || rcData.rc_valid_upto || rcData.rc_validity),
+      financer: rcData.financer || rcData.financed_by || rcData.hypothecation || rcData.hp || '',
+      noc_details: rcData.noc_details || rcData.noc || rcData.noc_status || '',
+      
+      // Insurance Details
+      insurance_policy_number: rcData.insurance_policy_no || rcData.insurance_policy || rcData.policy_no || rcData.insurance_number || '',
+      insurer_name: rcData.insurance_company || rcData.insurance_comp || rcData.insurer || rcData.insurance_company_name || '',
+      insurance_expiry_date: insuranceExpiryDate,
+      insurance_start_date: calculateStartDate(insuranceExpiryDate),
+      
+      // Fitness Details
+      fitness_certificate_number: rcData.fitness_no || rcData.fitness_number || rcData.fitness_cert_no || '',
+      fitness_expiry_date: fitnessExpiryDate,
+      fitness_issue_date: calculateStartDate(fitnessExpiryDate),
+      
+      // Tax Details
+      tax_receipt_number: rcData.tax_receipt_no || rcData.tax_no || rcData.road_tax_receipt || '',
+      tax_paid_upto: taxPaidUpto,
+      tax_amount: parseFloat(rcData.tax_amount || rcData.road_tax || rcData.tax) || undefined,
+      
+      // Permit Details
+      permit_number: rcData.permit_no || rcData.permit_number || rcData.permit || '',
+      permit_issuing_state: rcData.permit_issue_state || rcData.permit_state || rcData.permit_issued_by || '',
+      permit_type: rcData.permit_type || rcData.permit_category || '',
+      permit_expiry_date: permitExpiryDate,
+      permit_issue_date: calculateStartDate(permitExpiryDate),
+      national_permit_number: rcData.national_permit_no || rcData.np_no || rcData.national_permit || '',
+      national_permit_upto: parseDateDDMMYYYY(rcData.national_permit_validity || rcData.np_valid_upto || rcData.national_permit_upto),
+      
+      // PUC Details
+      puc_certificate_number: rcData.pucc_no || rcData.pucc_number || rcData.pollution_no || rcData.puc_number || '',
+      puc_expiry_date: pucExpiryDate,
+      puc_issue_date: calculateStartDate(pucExpiryDate),
+      
+      // Additional fields
+      vahan_last_fetched_at: new Date().toISOString(),
+    };
+
+    // Log the final mapped data
+    console.log('Final mapped data:', mappedData);
+
+    // Update form with fetched data - only set if value exists
+    Object.entries(mappedData).forEach(([key, value]) => {
+      if (value !== undefined && value !== '' && value !== null) {
+        console.log(`Setting ${key} to:`, value);
+        setValue(key as keyof Vehicle, value as any);
+      }
+    });
+
+    setFieldsDisabled(false);
+    setFetchStatus('success');
+    toast.success('Vehicle details fetched! Please verify and complete any missing fields.');
+    
+  } catch (err: any) {
+    console.error('RC fetch error:', err);
+    toast.error(err.message || 'Failed to fetch vehicle details. Please enter details manually.');
+    setFieldsDisabled(false);
+    setFetchStatus('error');
+  } finally {
+    setIsFetching(false);
+  }
+};
 
   // Helper functions
   const mapFuelType = (fuelType: string): Vehicle['fuel_type'] => {
