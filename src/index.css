@@ -173,3 +173,65 @@ body {
 .scroll-indicator.scrolled-right::before {
   opacity: 1;
 }
+/* Material Selector Dropdown Scrollbar Styles */
+.material-selector-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.material-selector-dropdown::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.material-selector-dropdown::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 3px;
+}
+
+.material-selector-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Dark mode scrollbar */
+.dark .material-selector-dropdown::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark .material-selector-dropdown::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark .material-selector-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Firefox scrollbar */
+.material-selector-dropdown {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+.dark .material-selector-dropdown {
+  scrollbar-color: #4b5563 #374151;
+}
+
+/* Smooth transitions for material items */
+.material-selector-dropdown button {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Optional: Add animation for dropdown */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.material-selector-dropdown {
+  animation: slideDown 0.2s ease-out;
+}
