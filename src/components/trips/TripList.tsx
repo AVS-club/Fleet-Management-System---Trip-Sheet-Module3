@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trip, Vehicle, Driver } from '../../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import TripCard from './TripCard';
 import { Search, Filter, AlertCircle } from 'lucide-react';
 import Input from '../ui/Input';

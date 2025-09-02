@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Vehicle } from "../../types";
-import { MaintenanceTask } from "../../types/maintenance";
+import { Vehicle } from "@/types";
+import { MaintenanceTask } from "@/types/maintenance";
 import {
   ChevronDown,
   ChevronUp,

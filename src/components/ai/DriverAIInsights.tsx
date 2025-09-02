@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Driver, Trip, Vehicle } from '../../types';
-import { MaintenanceTask } from '../../types/maintenance';
+import { Driver, Trip, Vehicle } from '@/types';
+import { MaintenanceTask } from '@/types/maintenance';
 import {
   getDriverPerformanceMetrics,
   getFleetAverageCostPerKm,

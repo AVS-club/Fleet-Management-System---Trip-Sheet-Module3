@@ -1,6 +1,6 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
-import { MaintenanceTask } from "../../types/maintenance";
+import { MaintenanceTask } from "@/types/maintenance";
 import Input from "../ui/Input";
 import Switch from "../ui/Switch";
 import { Calendar, PenTool as PenToolIcon, Bell } from "lucide-react";

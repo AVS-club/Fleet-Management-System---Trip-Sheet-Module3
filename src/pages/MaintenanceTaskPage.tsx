@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import MaintenanceTaskForm from "../components/maintenance/MaintenanceTaskForm";
-import { Vehicle } from "../types";
-import { MaintenanceTask, MaintenanceServiceGroup } from "../types/maintenance";
+import { Vehicle } from "@/types";
+import { MaintenanceTask, MaintenanceServiceGroup } from "@/types/maintenance";
 import {
   getTask,
   createTask,

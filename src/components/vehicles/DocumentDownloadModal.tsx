@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Link as LinkIcon } from 'lucide-react';
-import { Vehicle } from '../../types';
+import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import DocumentModalBase, { DocumentItemBase } from '../shared/DocumentModalBase';
 

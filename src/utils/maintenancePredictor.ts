@@ -1,4 +1,4 @@
-import { MaintenanceTask, MAINTENANCE_ITEMS } from '../types/maintenance';
+import { MaintenanceTask, MAINTENANCE_ITEMS } from '@/types/maintenance';
 import { getTasks } from './maintenanceStorage';
 import { getVehicle } from './storage';
 

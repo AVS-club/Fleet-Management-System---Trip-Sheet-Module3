@@ -1,4 +1,4 @@
-import { Trip, Vehicle } from '../types';
+import { Trip, Vehicle } from '@/types';
 
 interface TripEntry {
   start_km: number;

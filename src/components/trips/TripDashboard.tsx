@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Trip, Vehicle, Driver } from '../../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import { Calendar, TrendingUp, Fuel, IndianRupee, Package, MapPin, Truck, AlertTriangle, BarChart2, BarChartHorizontal, Gauge } from 'lucide-react';
 import { format, subDays, startOfYear, endOfYear, subYears, isWithinInterval, isValid, parseISO, subMonths, isBefore, isAfter } from 'date-fns';
 import Select from '../ui/Select';

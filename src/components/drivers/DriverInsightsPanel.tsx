@@ -3,7 +3,7 @@ import {
   Driver, 
   Trip, 
   Vehicle 
-} from '../../types';
+} from '@/types';
 import { IndianRupee, Calendar, Fuel, TrendingUp, PenTool as Tool, AlertTriangle, BarChart2 } from 'lucide-react';
 import { 
   LineChart, 

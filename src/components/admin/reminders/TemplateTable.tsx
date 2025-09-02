@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Edit2, Trash2, Clock, Bell, User, Globe, FileText, ArrowRight, CheckCircle, XCircle } from 'lucide-react';
-import { ReminderTemplate, ReminderContact } from '../../../types/reminders';
+import { ReminderTemplate, ReminderContact } from '@/types/reminders';
 import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';

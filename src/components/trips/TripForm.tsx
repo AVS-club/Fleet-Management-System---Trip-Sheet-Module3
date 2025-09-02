@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
-import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../../types';
+import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';

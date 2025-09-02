@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { Vehicle, Driver } from '../types';
+import { Vehicle, Driver } from '@/types';
 
 // Helper function to add a section title to the PDF
 const addSectionTitle = (doc: jsPDF, title: string, y: number): number => {

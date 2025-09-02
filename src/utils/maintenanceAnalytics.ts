@@ -1,7 +1,7 @@
-import { MaintenanceTask, Vehicle } from '../types';
+import { MaintenanceTask, Vehicle } from '@/types';
 import { supabase } from './supabaseClient';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
-import { AIAlert } from '../types';
+import { AIAlert } from '@/types';
 
 type DateRange = {
   start: Date;
@@ -805,4 +805,4 @@ export const exportMaintenanceReport = (
 };
 
 // Import MAINTENANCE_ITEMS and MAINTENANCE_GROUPS for task type distribution
-import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../types/maintenance';
+import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '@/types/maintenance';

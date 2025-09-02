@@ -1,5 +1,5 @@
 import React from 'react';
-import { RouteAnalysis as RouteAnalysisType, Alert } from '../../types';
+import { RouteAnalysis as RouteAnalysisType, Alert } from '@/types';
 import { Map, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import GoogleMap from '../maps/GoogleMap';
 

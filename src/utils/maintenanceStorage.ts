@@ -3,7 +3,7 @@ import {
   MaintenanceStats,
   MaintenanceAuditLog,
   MaintenanceServiceGroup,
-} from "../types/maintenance";
+} from "@/types/maintenance";
 import { supabase } from "./supabaseClient";
 import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";

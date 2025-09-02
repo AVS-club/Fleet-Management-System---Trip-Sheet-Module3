@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Building2, MapPin, Phone, Check } from "lucide-react";
-import { MaintenanceVendor, DEMO_VENDORS } from "../../types/maintenance";
+import { MaintenanceVendor, DEMO_VENDORS } from "@/types/maintenance";
 
 interface VendorSelectorProps {
   selectedVendor?: string;

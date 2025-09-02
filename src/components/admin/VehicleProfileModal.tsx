@@ -1,5 +1,5 @@
 import React from 'react';
-import { Vehicle, Driver } from '../../types';
+import { Vehicle, Driver } from '@/types';
 import { X, Truck, User, FileText, PenTool as Tool, Calendar } from 'lucide-react';
 import { getDriver } from '../../utils/storage';
 
