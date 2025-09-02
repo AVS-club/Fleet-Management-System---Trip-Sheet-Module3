@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, IndianRupee, TrendingUp, Truck, Weight, Calculator, Info } from 'lucide-react';
-import { Trip, Vehicle, Driver } from '../../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';

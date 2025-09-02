@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader } from 'lucide-react';
-import config from '../../utils/config';
+import config from '../../utils/env';
 
 interface SpeechToTextButtonProps {
   onTranscript: (text: string) => void;

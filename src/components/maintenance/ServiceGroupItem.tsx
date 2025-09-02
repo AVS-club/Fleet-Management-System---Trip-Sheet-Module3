@@ -5,7 +5,7 @@ import {
   BATTERY_BRANDS,
   TYRE_BRANDS,
   MaintenanceTask,
-} from "../../types/maintenance";
+} from "@/types/maintenance";
 import Input from "../ui/Input";
 import CurrencyInput from "../ui/CurrencyInput";
 import FileUpload from "../ui/FileUpload";

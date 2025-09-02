@@ -1,6 +1,6 @@
 import React from "react";
 import { Controller, useFormContext } from "react-hook-form";
-import { MaintenanceTask } from "../../types/maintenance";
+import { MaintenanceTask } from "@/types/maintenance";
 import FileUpload from "../ui/FileUpload";
 import { FileText } from "lucide-react";
 

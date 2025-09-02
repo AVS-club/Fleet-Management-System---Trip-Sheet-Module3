@@ -4,7 +4,7 @@ import Layout from '../../components/layout/Layout';
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
 import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
-import { Trip, Vehicle, Driver, Warehouse } from '../../types';
+import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import { supabase } from '../../utils/supabaseClient';

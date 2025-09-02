@@ -5,7 +5,7 @@ import Button from '../../ui/Button';
 import Input from '../../ui/Input';
 import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
-import { ReminderContactFormData, ReminderContactMode, ReminderAssignedType } from '../../../types/reminders';
+import { ReminderContactFormData, ReminderContactMode, ReminderAssignedType } from '@/types/reminders';
 import { toast } from 'react-toastify';
 
 interface ContactFormProps {

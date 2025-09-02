@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, MessageSquare, Eye } from 'lucide-react';
 import Button from '../ui/Button';
-import { Driver } from '../../types';
+import { Driver } from '@/types';
 import DocumentModalBase, { DocumentItemBase } from '../shared/DocumentModalBase';
 
 interface DocumentFile extends DocumentItemBase {

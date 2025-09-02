@@ -1,5 +1,3 @@
-import { Vehicle } from "./index";
-
 // Add audit log interfaces
 interface MaintenanceAuditLogChange {
   previous_value: any;

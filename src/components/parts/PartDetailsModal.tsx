@@ -1,8 +1,8 @@
 import React from 'react';
 import { X, TrendingUp, IndianRupee, Calendar, Truck, BarChart3 } from 'lucide-react';
 import { PartHealthMetrics } from '../../utils/partsAnalytics';
-import { MaintenanceTask } from '../../types/maintenance';
-import { Vehicle } from '../../types';
+import { MaintenanceTask } from '@/types/maintenance';
+import { Vehicle } from '@/types';
 import Button from '../ui/Button';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { Vehicle, Trip, DriverSummary } from "../types"; // Import the Vehicle interface
+import { Vehicle, Trip, DriverSummary } from "@/types"; // Import the Vehicle interface
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -19,7 +19,7 @@ import {
   getDriverSummaries,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
-import config from "../utils/config";
+import config from "../utils/env";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
 import { format, parseISO, isValid } from "date-fns";
 import {

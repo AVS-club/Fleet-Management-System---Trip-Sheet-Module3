@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
-import { Driver, Vehicle } from "../../types";
+import { Driver, Vehicle } from "@/types";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import MultiSelect from "../ui/MultiSelect";

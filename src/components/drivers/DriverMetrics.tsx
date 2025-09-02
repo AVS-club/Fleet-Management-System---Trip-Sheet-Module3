@@ -1,5 +1,5 @@
 import React from 'react';
-import { Driver, Trip } from '../../types';
+import { Driver, Trip } from '@/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { Truck, TrendingUp, AlertTriangle, Clock } from 'lucide-react';

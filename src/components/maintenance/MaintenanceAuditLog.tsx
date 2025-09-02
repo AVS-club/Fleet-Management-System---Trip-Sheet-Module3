@@ -1,6 +1,6 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { MaintenanceAuditLog as MaintenanceAuditLogType } from '../../types/maintenance';
+import { MaintenanceAuditLog as MaintenanceAuditLogType } from '@/types/maintenance';
 import { Clock, User, FileText } from 'lucide-react';
 
 interface MaintenanceAuditLogProps {

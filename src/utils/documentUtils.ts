@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import { Vehicle } from '../types';
+import { Vehicle } from '@/types';
 import { getSignedDocumentUrl } from './supabaseStorage';
 
 export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> => {

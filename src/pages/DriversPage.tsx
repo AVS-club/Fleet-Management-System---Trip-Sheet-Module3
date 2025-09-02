@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverForm from "../components/drivers/DriverForm";
-import { Driver, Trip } from "../types";
+import { Driver, Trip } from "@/types";
 import { toast } from "react-toastify";
 import StatCard from "../components/ui/StatCard";
 import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Confirm field refactor here

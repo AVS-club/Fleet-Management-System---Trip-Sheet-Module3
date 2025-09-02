@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { Vehicle, Driver } from '../../types';
+import { Vehicle, Driver } from '@/types';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { getReminderContacts, ReminderContact } from '../../utils/reminderService';
 import { getDrivers } from '../../utils/storage';

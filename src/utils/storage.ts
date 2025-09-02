@@ -1,6 +1,3 @@
-import { supabase, isNetworkError, handleNetworkError } from './supabaseClient';
-import config from './config';
-import { Trip, Destination, Warehouse, RouteAnalysis, AIAlert } from '../types';
 import { getCurrentUserId, withOwner } from './supaHelpers';
 import { loadGoogleMaps } from './googleMapsLoader';
 import { handleSupabaseError } from './errors';

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { format, isValid, parseISO } from 'date-fns';
-import { Trip, Vehicle, Driver, Warehouse, Destination } from '../../types';
+import { Trip, Vehicle, Driver, Warehouse, Destination } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
-import { AIAlert } from '../../types';
+import { AIAlert } from '@/types';
 import Button from '../ui/Button';
 import { 
   Calendar, 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Truck, Calendar, FileText, Fuel, MapPin } from 'lucide-react';
-import { Vehicle } from '../../types';
+import { Vehicle } from '@/types';
 
 interface VehicleSummaryChipsProps {
   vehicle: Vehicle;

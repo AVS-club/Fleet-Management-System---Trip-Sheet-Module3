@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import { useNavigate } from 'react-router-dom';
 import { getTrips, getVehicles, getDrivers, getDriver, getVehicle, getVehicleStats } from '../utils/storage';
 import { format } from 'date-fns';
-import { Trip, Vehicle, Driver } from '../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import StatCard from '../components/ui/StatCard';
 import MileageChart from '../components/dashboard/MileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
