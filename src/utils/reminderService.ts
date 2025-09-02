@@ -1,7 +1,7 @@
 import { supabase } from "./supabaseClient";
 import { ReminderContact, ReminderTemplate } from "@/types/reminders";
 import { handleSupabaseError } from "./errors";
-import config from "./config";
+import config from "./env";
 
 // Reminder Contacts CRUD operations
 export const getReminderContacts = async (): Promise<ReminderContact[]> => {

@@ -18,7 +18,7 @@ import MaterialSelector from './MaterialSelector';
 import RouteAnalysis from './RouteAnalysis';
 import FuelRateSelector from './FuelRateSelector';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import config from '../../utils/config';
+import config from '../../utils/env';
 import {
   Truck,
   User,

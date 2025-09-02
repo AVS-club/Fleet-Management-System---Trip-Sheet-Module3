@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip } from '@/types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
-import config from '../../../utils/config';
+import config from '../../../utils/env';
 
 interface MonthlyFuelConsumptionChartProps {
   trips: Trip[];

@@ -7,7 +7,7 @@ import {
 } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
-import config from "./utils/config";
+import config from "./utils/env";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingScreen from "./components/LoadingScreen";
 import { ToastContainer } from 'react-toastify';

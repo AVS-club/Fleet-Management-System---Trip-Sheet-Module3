@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { AlertTriangle } from 'lucide-react';
-import config from '../../utils/config';
+import config from '../../utils/env';
 
 interface GoogleMapProps {
   waypoints: Array<{ lat: number; lng: number }>;
