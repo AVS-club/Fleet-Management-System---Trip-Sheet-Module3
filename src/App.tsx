@@ -3,7 +3,9 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate
+  Navigate,
+  Outlet,
+  useNavigate,
 } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
