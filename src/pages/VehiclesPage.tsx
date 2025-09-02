@@ -19,7 +19,7 @@ import {
   getDriverSummaries,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
-import config from "../utils/config";
+import config from "../utils/env";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
 import { format, parseISO, isValid } from "date-fns";
 import {

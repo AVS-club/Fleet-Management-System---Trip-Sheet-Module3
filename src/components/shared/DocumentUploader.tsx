@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument } from '../../utils/supabaseStorage';
-import config from '../../utils/config';
+import config from '../../utils/env';
 
 interface DocumentUploaderProps {
   label: string;

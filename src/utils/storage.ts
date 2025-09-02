@@ -1,6 +1,6 @@
 import { supabase } from './supabaseClient';
 import { isNetworkError, handleNetworkError } from './supabaseClient';
-import config from './config';
+import config from './env';
 import {
   Trip,
   TripFormData,

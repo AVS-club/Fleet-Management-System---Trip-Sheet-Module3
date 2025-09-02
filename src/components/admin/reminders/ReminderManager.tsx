@@ -6,7 +6,7 @@ import ContactList from './ContactList';
 import TemplateTable from './TemplateTable';
 import AddTemplateForm from './AddTemplateForm';
 import { ReminderContact, ReminderTemplate, ReminderContactFormData } from '../../../types/reminders';
-import config from '../../../utils/config';
+import config from '../../../utils/env';
 import { 
   getReminderContacts, 
   createReminderContact, 

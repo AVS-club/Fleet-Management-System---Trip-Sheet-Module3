@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
-import config from '../../../utils/config';
+import config from '../../../utils/env';
 
 interface AverageMileagePerVehicleChartProps {
   trips: Trip[];

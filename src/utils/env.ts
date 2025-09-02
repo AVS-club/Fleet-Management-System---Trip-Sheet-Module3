@@ -32,4 +32,21 @@ export const config = {
   isDev,
 };
 
+export const isValidUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const isSupabaseConfigured =
+  !!config.supabaseUrl &&
+  !!config.supabaseAnonKey &&
+  config.supabaseUrl !== 'your_project_url' &&
+  config.supabaseAnonKey !== 'your_anon_key' &&
+  isValidUrl(config.supabaseUrl);
+
 export default config;

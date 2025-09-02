@@ -1,5 +1,5 @@
 import { Loader } from '@googlemaps/js-api-loader';
-import config from './config';
+import config from './env';
 
 const { googleMapsApiKey } = config;
 
