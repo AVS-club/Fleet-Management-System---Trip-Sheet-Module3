@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { isDev, isProd } from "../config/env";
 
 // Handle both Vite (browser) and Node.js environments
 const getEnvVar = (key: string): string | undefined => {
@@ -163,12 +164,19 @@ const createMockClient = () => {
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
   if (!isConfigured) {
+    if (isProd) {
+      throw new Error(
+        "Supabase is not properly configured in production environment."
+      );
+    }
     console.error("Supabase is not properly configured. Using mock client.");
     console.error("Environment variables:", {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? "Present" : "Missing",
     });
-    console.error("Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials");
+    console.error(
+      "Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials"
+    );
     return createMockClient() as any;
   }
 
@@ -249,7 +257,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       return false;
     }
 
-    if (import.meta.env.DEV) console.log("Supabase connection test passed (database query)");
+    if (isDev) console.log("Supabase connection test passed (database query)");
     return true;
   } catch (error) {
     console.error("Supabase connection test error:", error);
@@ -271,7 +279,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 Current origin: ${window.location.origin}`);
     }
     
-    if (import.meta.env.DEV) console.log("Supabase connection test passed (auth check)");
+    if (isDev) console.log("Supabase connection test passed (auth check)");
     
     // Handle timeout errors
     if (error instanceof Error && error.message === 'REQUEST_TIMEOUT') {
@@ -323,7 +331,7 @@ export const isNetworkError = (error: any): boolean => {
 // Helper function to handle network errors gracefully
 export const handleNetworkError = (error: any, fallbackData: any = null) => {
   if (isNetworkError(error)) {
-    if (import.meta.env.DEV) console.warn('Network connectivity issue detected. Using fallback data or retrying...');
+    if (isDev) console.warn('Network connectivity issue detected. Using fallback data or retrying...');
     return { data: fallbackData, error: null };
   }
   return { data: null, error };

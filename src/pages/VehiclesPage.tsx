@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { Vehicle, Trip, DriverSummary } from "../types"; // Import the Vehicle interface
+import { isDev } from "../config/env";
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -111,13 +112,13 @@ const VehiclesPage: React.FC = () => {
         const tripsArray = Array.isArray(tripsData) ? tripsData : [];
 
         // Debug: Log driver count and any missing assignments
-        if (import.meta.env.DEV) console.log('Fetched drivers count:', driversArray.length);
+        if (isDev) console.log('Fetched drivers count:', driversArray.length);
         const vehiclesWithDriverIds = vehiclesArray.filter(v => v.primary_driver_id);
         const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
           !driversArray.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
-          if (import.meta.env.DEV) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
+          if (isDev) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
             vehicle: v.registration_number,
             primary_driver_id: v.primary_driver_id
           })));
