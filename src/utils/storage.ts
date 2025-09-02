@@ -3,9 +3,8 @@ import { loadGoogleMaps } from './googleMapsLoader';
 import { handleSupabaseError } from './errors';
 import { supabase, isNetworkError } from './supabaseClient';
 import config from './env';
-import { getVehicle, deleteVehicle, getTrips } from './api';
+import { getVehicle, deleteVehicle } from './api';
 export * from './api';
-export { getTrips };
 
 export async function getUserData() {
   try {
