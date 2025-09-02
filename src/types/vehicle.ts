@@ -42,9 +42,9 @@ export interface Vehicle {
   chassis_number?: string;
   engine_number?: string;
   owner_name?: string;
+  registration_date?: string;
   tyre_size?: string;
   number_of_tyres?: number;
-  registration_date?: string;
   rc_expiry_date?: string;
 
   // Document files for upload
@@ -87,19 +87,20 @@ export interface Vehicle {
 
   // Tax Details
   tax_receipt_number?: string;
+  tax_scope?: string;
   tax_amount?: number;
   tax_period?: "monthly" | "quarterly" | "half-yearly" | "yearly";
-  tax_scope?: string;
+  tax_document_url?: string[];
   tax_paid_upto?: string; // New field for tax paid up to date
 
   // Permit Details
   permit_number?: string;
+  permit_issuing_state?: string;
   issuing_state?: string;
   permit_type?: "national" | "state" | "contract" | "tourist";
   permit_issue_date?: string;
   permit_expiry_date?: string;
   permit_cost?: number;
-  permit_issuing_state?: string;
 
   // PUC Details
   puc_certificate_number?: string;
@@ -110,14 +111,15 @@ export interface Vehicle {
   // Other Documents
   other_documents?: Array<{
     id?: string;
-    name: string;
     file_path?: string;
     file?: string;
     file_obj?: File;
+    name?: string;
     issue_date?: string;
     expiry_date?: string;
     cost?: number;
   }>;
+  other_info_documents?: string[];
 
   // Reminder fields for Insurance
   remind_insurance?: boolean;
@@ -158,7 +160,6 @@ export interface Vehicle {
   photo_url?: string;
 
   // Other Information & Documents (VAHAN data)
-  financer?: string;
   vehicle_class?: string;
   color?: string;
   cubic_capacity?: number;
@@ -171,7 +172,7 @@ export interface Vehicle {
   national_permit_upto?: string;
   rc_status?: string;
   vahan_last_fetched_at?: string;
-  other_info_documents?: File[] | string[];
+  financer?: string;
 
   created_at?: string;
   updated_at?: string;
