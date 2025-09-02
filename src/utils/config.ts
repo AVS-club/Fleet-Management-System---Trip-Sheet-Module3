@@ -2,8 +2,7 @@ import { z } from 'zod';
 
 // Combine environment variables from Vite and Node.js for flexibility
 const rawEnv = {
-  ...(typeof import.meta !== 'undefined' ? (import.meta as any).env : {}),
-  ...process.env
+  ...(typeof import.meta !== 'undefined' ? (import.meta as any).env : {})
 } as Record<string, string | boolean | undefined>;
 
 // Define schema for required environment variables
