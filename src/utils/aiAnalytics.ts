@@ -1,4 +1,4 @@
-import { Trip, RouteAnalysis, Alert, AIAlert, MaintenanceTask } from "../types";
+import { Trip, RouteAnalysis, Alert, AIAlert, MaintenanceTask } from "@/types";
 import { supabase } from "./supabaseClient";
 import {
   format,

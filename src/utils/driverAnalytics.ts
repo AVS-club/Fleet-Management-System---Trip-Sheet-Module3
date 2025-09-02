@@ -1,5 +1,5 @@
-import { Driver, Trip, Vehicle } from '../types';
-import { MaintenanceTask } from '../types/maintenance';
+import { Driver, Trip, Vehicle } from '@/types';
+import { MaintenanceTask } from '@/types/maintenance';
 import { format, parseISO, isValid, isWithinInterval, differenceInDays, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 // --- Interfaces ---

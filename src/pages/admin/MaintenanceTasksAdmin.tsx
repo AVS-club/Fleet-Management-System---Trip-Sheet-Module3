@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '../../types/maintenance'; 
+import { MaintenanceItem, MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '@/types/maintenance'; 
 import { PlusCircle, Edit2, Trash2, AlertTriangle, ChevronLeft, PenTool as Tool } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';

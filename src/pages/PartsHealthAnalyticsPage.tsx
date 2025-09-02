@@ -7,8 +7,8 @@ import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics
 import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
-import { MaintenanceTask } from '../types/maintenance';
-import { Vehicle } from '../types';
+import { MaintenanceTask } from '@/types/maintenance';
+import { Vehicle } from '@/types';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
 import { getDateRangeForFilter, calculateMaintenanceMetrics } from '../utils/maintenanceAnalytics';

@@ -11,7 +11,7 @@ import {
   Warehouse,
   RouteAnalysis,
   AIAlert
-} from '../types';
+} from '@/types';
 import { uploadVehicleDocument } from './supabaseStorage';
 import { getCurrentUserId, withOwner } from './supaHelpers';
 import { loadGoogleMaps } from './googleMapsLoader';

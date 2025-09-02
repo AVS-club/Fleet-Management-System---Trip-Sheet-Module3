@@ -4,7 +4,7 @@ import { supabase } from '../utils/supabaseClient';
 import Layout from '../components/layout/Layout';
 import TripDetails from '../components/trips/TripDetails';
 import TripForm from '../components/trips/TripForm';
-import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '../types';
+import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
 import { getTrip, getVehicle, getDriver, getDestination, updateTrip, deleteTrip, getWarehouse, getTrips, getVehicles, getDrivers, getDestinations, getWarehouses } from '../utils/storage';
 import { getDestinationByAnyId } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';

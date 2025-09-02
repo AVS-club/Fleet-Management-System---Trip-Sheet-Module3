@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/layout/Layout';
-import { AIAlert } from '../types'; 
+import { AIAlert } from '@/types'; 
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
@@ -15,7 +15,7 @@ import AlertTypeTag from '../components/alerts/AlertTypeTag';
 import { safeFormatDate, formatRelativeDate } from '../utils/dateUtils';
 import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
-import { Vehicle } from '../types';
+import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 
 const AIAlertsPage: React.FC = () => {

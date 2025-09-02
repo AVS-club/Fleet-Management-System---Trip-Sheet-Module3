@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient";
-import { ReminderContact, ReminderTemplate } from "../types/reminders";
+import { ReminderContact, ReminderTemplate } from "@/types/reminders";
 import { handleSupabaseError } from "./errors";
 import config from "./env";
 

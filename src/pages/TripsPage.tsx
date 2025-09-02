@@ -10,7 +10,7 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import MultiSelect from '../components/ui/MultiSelect';
 import Checkbox from '../components/ui/Checkbox';
-import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '../types';
+import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getDrivers, createTrip, getWarehouses } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';

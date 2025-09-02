@@ -1,9 +1,9 @@
 import { supabase } from "./supabaseClient";
 import { differenceInDays, isAfter, isBefore, addDays } from "date-fns";
-import { Vehicle, Driver } from "../types";
-import { AIAlert } from "../types";
-import { MaintenanceTask } from "../types/maintenance";
-import { Trip } from "../types";
+import { Vehicle, Driver } from "@/types";
+import { AIAlert } from "@/types";
+import { MaintenanceTask } from "@/types/maintenance";
+import { Trip } from "@/types";
 import { computeDueStatus } from "./serviceDue";
 import { getLatestOdometer } from "./storage";
 import { handleSupabaseError } from "./errors";

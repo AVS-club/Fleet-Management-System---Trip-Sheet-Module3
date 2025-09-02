@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, MessageSquare, FileText, Link as LinkIcon } from 'lucide-react';
-import { Vehicle } from '../../types';
+import { Vehicle } from '@/types';
 import Button from '../ui/Button';
 
 interface VehicleWhatsAppShareModalProps {

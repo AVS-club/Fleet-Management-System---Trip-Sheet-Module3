@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Building2, MapPin, Phone } from 'lucide-react';
-import { MaintenanceGarage, DEMO_GARAGES } from '../../types/maintenance';
+import { MaintenanceGarage, DEMO_GARAGES } from '@/types/maintenance';
 
 interface GarageSelectorProps {
   selectedGarage?: string;

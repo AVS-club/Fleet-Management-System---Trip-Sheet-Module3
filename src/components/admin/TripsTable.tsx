@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Trip, Vehicle, Driver } from '../../types';
+import { Trip, Vehicle, Driver } from '@/types';
 import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2, IndianRupee } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';

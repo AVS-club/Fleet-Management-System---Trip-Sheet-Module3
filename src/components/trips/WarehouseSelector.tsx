@@ -1,5 +1,5 @@
 import React from 'react';
-import { Warehouse } from '../../types';
+import { Warehouse } from '@/types';
 import { Building2, MapPin } from 'lucide-react';
 import { cn } from '../../utils/cn';
 

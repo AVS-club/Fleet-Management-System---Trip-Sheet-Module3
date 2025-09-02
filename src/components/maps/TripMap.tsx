@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
-import { Warehouse, Destination } from '../../types';
+import { Warehouse, Destination } from '@/types';
 import { AlertTriangle } from 'lucide-react';
 import config from '../../utils/env';
 
