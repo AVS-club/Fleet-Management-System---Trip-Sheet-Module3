@@ -6,6 +6,7 @@ import ContactList from './ContactList';
 import TemplateTable from './TemplateTable';
 import AddTemplateForm from './AddTemplateForm';
 import { ReminderContact, ReminderTemplate, ReminderContactFormData } from '../../../types/reminders';
+import config from '../../../utils/config';
 import { 
   getReminderContacts, 
   createReminderContact, 
@@ -59,7 +60,7 @@ const ReminderManager: React.FC = () => {
           const tempId = `temp-${Date.now()}`;
           photoUrl = await uploadContactPhoto(data.photo, tempId);
         } catch (photoError) {
-          if (import.meta.env.DEV) console.warn('Photo upload failed, proceeding without photo:', photoError);
+          if (config.isDev) console.warn('Photo upload failed, proceeding without photo:', photoError);
           toast.warning('Contact created successfully, but photo upload failed. Please ensure the storage bucket exists.');
         }
       }
@@ -86,7 +87,7 @@ const ReminderManager: React.FC = () => {
             newContact.photo_url = updatedPhotoUrl;
           }
         } catch (photoError) {
-          if (import.meta.env.DEV) console.warn('Photo update failed, but contact was created:', photoError);
+          if (config.isDev) console.warn('Photo update failed, but contact was created:', photoError);
         }
       }
 
@@ -114,7 +115,7 @@ const ReminderManager: React.FC = () => {
             photoUrl = uploadedPhotoUrl;
           }
         } catch (photoError) {
-          if (import.meta.env.DEV) console.warn('Photo upload failed during update:', photoError);
+          if (config.isDev) console.warn('Photo upload failed during update:', photoError);
           toast.warning('Contact updated successfully, but photo upload failed. Please ensure the storage bucket exists.');
         }
       }

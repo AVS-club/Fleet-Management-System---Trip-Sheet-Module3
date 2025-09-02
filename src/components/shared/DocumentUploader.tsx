@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument } from '../../utils/supabaseStorage';
+import config from '../../utils/config';
 
 interface DocumentUploaderProps {
   label: string;
@@ -242,7 +243,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       // In a real implementation, you'd generate a signed URL and open it
-                      if (import.meta.env.DEV) console.log('View document:', path);
+                      if (config.isDev) console.log('View document:', path);
                     }}
                   >
                     <Eye className="h-4 w-4" />

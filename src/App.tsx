@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
+import config from "./utils/config";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingScreen from "./components/LoadingScreen";
 import { ToastContainer } from 'react-toastify';
@@ -61,7 +62,7 @@ const App: React.FC = () => {
         
         if (error) {
           if (isNetworkError(error)) {
-            if (import.meta.env.DEV) console.warn('Network error getting session, continuing without session');
+            if (config.isDev) console.warn('Network error getting session, continuing without session');
             setSession(null);
           } else {
             console.error('Session error:', error);

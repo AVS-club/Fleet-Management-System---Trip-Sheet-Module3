@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { Warehouse, Destination } from '../../types';
 import { AlertTriangle } from 'lucide-react';
+import config from '../../utils/config';
 
 interface TripMapProps {
   warehouse?: Warehouse;
@@ -44,7 +45,7 @@ const TripMap: React.FC<TripMapProps> = ({
   };
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = config.googleMapsApiKey;
 
     if (!apiKey) {
       setError('Google Maps API key is missing');

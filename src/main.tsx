@@ -7,6 +7,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import { ThemeProvider } from "./utils/themeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import config from "./utils/config";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -53,7 +54,7 @@ setTimeout(() => {
             <App />
           </ErrorBoundary>
         </ThemeProvider>
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        {config.isDev && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </StrictMode>
   );

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Trip, Vehicle } from '../../../types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
+import config from '../../../utils/config';
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -25,7 +26,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
 
     // Safety check for date range validity
     if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      if (import.meta.env.DEV) console.warn('Invalid date range:', dateRange);
+      if (config.isDev) console.warn('Invalid date range:', dateRange);
       return [];
     }
 
@@ -39,7 +40,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
         
         return isWithinInterval(tripDate, dateRange);
       } catch (error) {
-        if (import.meta.env.DEV) console.warn('Error filtering trip by date:', error);
+        if (config.isDev) console.warn('Error filtering trip by date:', error);
         return false;
       }
     });

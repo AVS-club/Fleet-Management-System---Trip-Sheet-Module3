@@ -1,19 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import { isDev, isProd } from "../config/env";
 
-// Handle both Vite (browser) and Node.js environments
-const getEnvVar = (key: string): string | undefined => {
-  // Check if we're in a Vite environment (browser)
-  if (typeof import.meta !== "undefined" && import.meta.env) {
-    return import.meta.env[key];
-  }
-  // Fallback to Node.js environment
-  return process.env[key];
-};
-
-// Get environment variables with cross-environment support
-const supabaseUrl = getEnvVar("VITE_SUPABASE_URL");
-const supabaseAnonKey = getEnvVar("VITE_SUPABASE_ANON_KEY");
+// Load required environment variables from central config
+const supabaseUrl = config.supabaseUrl;
+const supabaseAnonKey = config.supabaseAnonKey;
 
 // Check if the environment variables are properly set
 const isValidUrl = (url: string | undefined): boolean => {
@@ -257,7 +246,6 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
       return false;
     }
 
-    if (isDev) console.log("Supabase connection test passed (database query)");
     return true;
   } catch (error) {
     console.error("Supabase connection test error:", error);
@@ -279,7 +267,6 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 Current origin: ${window.location.origin}`);
     }
     
-    if (isDev) console.log("Supabase connection test passed (auth check)");
     
     // Handle timeout errors
     if (error instanceof Error && error.message === 'REQUEST_TIMEOUT') {
@@ -331,7 +318,6 @@ export const isNetworkError = (error: any): boolean => {
 // Helper function to handle network errors gracefully
 export const handleNetworkError = (error: any, fallbackData: any = null) => {
   if (isNetworkError(error)) {
-    if (isDev) console.warn('Network connectivity issue detected. Using fallback data or retrying...');
     return { data: fallbackData, error: null };
   }
   return { data: null, error };

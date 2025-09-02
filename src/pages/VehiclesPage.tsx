@@ -20,6 +20,7 @@ import {
   getDriverSummaries,
 } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
+import config from "../utils/config";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
 import { format, parseISO, isValid } from "date-fns";
 import {
@@ -112,13 +113,13 @@ const VehiclesPage: React.FC = () => {
         const tripsArray = Array.isArray(tripsData) ? tripsData : [];
 
         // Debug: Log driver count and any missing assignments
-        if (isDev) console.log('Fetched drivers count:', driversArray.length);
+
         const vehiclesWithDriverIds = vehiclesArray.filter(v => v.primary_driver_id);
         const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
           !driversArray.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
-          if (isDev) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
+
             vehicle: v.registration_number,
             primary_driver_id: v.primary_driver_id
           })));

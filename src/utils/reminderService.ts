@@ -2,6 +2,7 @@ import { supabase } from "./supabaseClient";
 import { isDev } from "../config/env";
 import { ReminderContact, ReminderTemplate } from "../types/reminders";
 import { handleSupabaseError } from "./errors";
+import config from "./config";
 
 // Reminder Contacts CRUD operations
 export const getReminderContacts = async (): Promise<ReminderContact[]> => {
@@ -204,7 +205,6 @@ export const uploadContactPhoto = async (
   contactId: string
 ): Promise<string | undefined> => {
   if (!file || !file.name) {
-    if (isDev) console.warn("No photo uploaded — skipping uploadContactPhoto.");
     return undefined;
   }
 
