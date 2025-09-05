@@ -4,234 +4,281 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base text smoothing */
+/* Brand Font Import - Using Inter and Lexend for modern look */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lexend:wght@400;500;600;700&display=swap');
+
+/* CSS Variables for Brand Colors */
 :root {
+  /* Light Mode Brand Colors */
+  --brand-primary: 22, 163, 74; /* rgb values for primary-600 */
+  --brand-secondary: 37, 99, 235; /* rgb values for secondary-600 */
+  --brand-accent: 249, 115, 22; /* rgb values for accent-500 */
+  
+  /* Smooth animations */
+  --transition-base: 200ms;
+  --transition-slow: 300ms;
+  
+  /* Font smoothing */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Brand shadows */
+  --shadow-brand: 0 4px 14px 0 rgba(0, 0, 0, 0.10);
+  --shadow-brand-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.10);
 }
 
-/* Optional: system font stack for mobile-friendliness (skip if you already set a font) */
-body {
-  font-family:
-    ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
-    "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol", sans-serif;
-}
-
-/* Reduce default focus ring noise on buttons/links if needed */
-:focus-visible {
-  outline: 2px solid hsl(var(--primary));
-  outline-offset: 2px;
+/* Dark mode variables */
+.dark {
+  --brand-primary: 34, 197, 94; /* Lighter green for dark mode */
+  --brand-secondary: 59, 130, 246; /* Lighter blue for dark mode */
+  --brand-accent: 251, 146, 60; /* Lighter orange for dark mode */
 }
 
 @layer base {
   html {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
       Roboto, "Helvetica Neue", sans-serif;
+    scroll-behavior: smooth;
   }
 
   body {
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased;
+    transition: background-color var(--transition-slow) ease-in-out;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-semibold tracking-tight;
+  /* Enhanced Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+    font-family: 'Lexend', 'Inter', sans-serif;
   }
 
   h1 {
-    @apply text-2xl sm:text-3xl leading-[1.2];
+    @apply text-3xl sm:text-4xl lg:text-5xl leading-[1.1];
   }
 
   h2 {
-    @apply text-xl sm:text-2xl leading-[1.2];
+    @apply text-2xl sm:text-3xl lg:text-4xl leading-[1.2];
   }
 
   h3 {
-    @apply text-lg sm:text-xl leading-[1.3];
+    @apply text-xl sm:text-2xl lg:text-3xl leading-[1.3];
+  }
+
+  h4 {
+    @apply text-lg sm:text-xl lg:text-2xl leading-[1.4];
+  }
+
+  /* Better focus states */
+  :focus-visible {
+    outline: 2px solid rgb(var(--brand-primary));
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  /* Smooth transitions for interactive elements */
+  button, a, input, select, textarea {
+    transition: all var(--transition-base) ease-in-out;
   }
 }
 
 @layer components {
+  /* Card Styles */
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-brand shadow-card hover:shadow-card-hover;
+    @apply border border-gray-100 dark:border-gray-700;
+    @apply transition-all duration-200;
+  }
+
+  .card-header {
+    @apply px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700;
+  }
+
+  .card-body {
+    @apply px-4 sm:px-6 py-4;
+  }
+
+  /* Brand Gradient Text */
+  .brand-gradient {
+    @apply bg-gradient-to-r from-primary-600 to-secondary-600;
+    @apply dark:from-primary-400 dark:to-secondary-400;
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Brand Button Base (legacy support) */
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900;
+    @apply px-4 py-2 rounded-brand font-medium;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply dark:focus:ring-offset-gray-900;
+    @apply transform hover:scale-[1.02] active:scale-[0.98];
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-700 dark:hover:bg-primary-600 focus:ring-primary-500 dark:focus:ring-primary-400;
+    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+    @apply hover:from-primary-700 hover:to-primary-800;
+    @apply dark:from-primary-600 dark:to-primary-700;
+    @apply dark:hover:from-primary-500 dark:hover:to-primary-600;
+    @apply text-white shadow-brand hover:shadow-brand-lg;
+    @apply focus:ring-primary-500 dark:focus:ring-primary-400;
   }
 
   .btn-secondary {
-    @apply bg-secondary-600 text-white hover:bg-secondary-700 dark:bg-secondary-700 dark:hover:bg-secondary-600 focus:ring-secondary-500 dark:focus:ring-secondary-400;
+    @apply bg-gradient-to-r from-secondary-600 to-secondary-700;
+    @apply hover:from-secondary-700 hover:to-secondary-800;
+    @apply dark:from-secondary-600 dark:to-secondary-700;
+    @apply dark:hover:from-secondary-500 dark:hover:to-secondary-600;
+    @apply text-white shadow-brand hover:shadow-brand-lg;
+    @apply focus:ring-secondary-500 dark:focus:ring-secondary-400;
   }
 
   .btn-outline {
-    @apply border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-primary-500 dark:focus:ring-primary-400;
+    @apply border-2 border-gray-300 dark:border-gray-600;
+    @apply bg-white dark:bg-gray-800;
+    @apply text-gray-700 dark:text-gray-200;
+    @apply hover:bg-gray-50 dark:hover:bg-gray-750;
+    @apply hover:border-gray-400 dark:hover:border-gray-500;
+    @apply shadow-sm hover:shadow-md;
   }
 
-  .input {
-    @apply block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200;
+  /* Form Inputs with Brand Styling */
+  .input-brand {
+    @apply w-full px-3 py-2 rounded-brand;
+    @apply border border-gray-300 dark:border-gray-600;
+    @apply bg-white dark:bg-gray-800;
+    @apply text-gray-900 dark:text-gray-100;
+    @apply placeholder-gray-400 dark:placeholder-gray-500;
+    @apply focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400;
+    @apply focus:border-primary-500 dark:focus:border-primary-400;
+    @apply transition-all duration-200;
   }
 
-  .select {
-    @apply block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200;
+  .input-brand:hover {
+    @apply border-gray-400 dark:border-gray-500;
   }
 
-  .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-card hover:shadow-card-hover transition-shadow duration-300 overflow-hidden;
+  /* Badge Styles */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full;
+    @apply text-xs font-medium;
   }
 
-  .form-group {
-    @apply mb-4;
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800;
+    @apply dark:bg-primary-900/30 dark:text-primary-300;
   }
 
-  .form-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+  .badge-secondary {
+    @apply bg-secondary-100 text-secondary-800;
+    @apply dark:bg-secondary-900/30 dark:text-secondary-300;
   }
 
-  .form-error {
-    @apply text-error-500 dark:text-error-400 text-sm mt-1;
+  .badge-success {
+    @apply bg-success-100 text-success-800;
+    @apply dark:bg-success-900/30 dark:text-success-300;
   }
 
-  .container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  .badge-warning {
+    @apply bg-warning-100 text-warning-800;
+    @apply dark:bg-warning-900/30 dark:text-warning-300;
   }
-}
 
-/* Animations */
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.slide-up {
-  animation: slideUp 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
+  .badge-danger {
+    @apply bg-error-100 text-error-800;
+    @apply dark:bg-error-900/30 dark:text-error-300;
   }
 }
 
-/* Horizontal scroll indicator */
-.scroll-indicator {
-  position: relative;
-  overflow-x: auto;
-}
-
-.scroll-indicator::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 24px;
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.05), transparent);
-  pointer-events: none;
-}
-
-.dark .scroll-indicator::after {
-  background: linear-gradient(to left, rgba(255, 255, 255, 0.05), transparent);
-}
-
-/* Add left indicator as well for when scrolled right */
-.scroll-indicator::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 24px;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.05), transparent);
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-}
-
-.dark .scroll-indicator::before {
-  background: linear-gradient(to right, rgba(255, 255, 255, 0.05), transparent);
-}
-
-/* Show left indicator when scrolled */
-.scroll-indicator.scrolled-right::before {
-  opacity: 1;
-}
-/* Material Selector Dropdown Scrollbar Styles */
-.material-selector-dropdown::-webkit-scrollbar {
-  width: 6px;
-}
-
-.material-selector-dropdown::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  border-radius: 3px;
-}
-
-.material-selector-dropdown::-webkit-scrollbar-thumb {
-  background: #9ca3af;
-  border-radius: 3px;
-}
-
-.material-selector-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-/* Dark mode scrollbar */
-.dark .material-selector-dropdown::-webkit-scrollbar-track {
-  background: #374151;
-}
-
-.dark .material-selector-dropdown::-webkit-scrollbar-thumb {
-  background: #4b5563;
-}
-
-.dark .material-selector-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
-}
-
-/* Firefox scrollbar */
-.material-selector-dropdown {
-  scrollbar-width: thin;
-  scrollbar-color: #9ca3af #f3f4f6;
-}
-
-.dark .material-selector-dropdown {
-  scrollbar-color: #4b5563 #374151;
-}
-
-/* Smooth transitions for material items */
-.material-selector-dropdown button {
-  transition: background-color 0.15s ease-in-out;
-}
-
-/* Optional: Add animation for dropdown */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+@layer utilities {
+  /* Custom Animation Delays */
+  .animation-delay-100 {
+    animation-delay: 100ms;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  /* Glassmorphism Effect */
+  .glass {
+    @apply bg-white/70 dark:bg-gray-800/70;
+    @apply backdrop-blur-lg backdrop-saturate-150;
+    @apply border border-white/20 dark:border-gray-700/20;
+  }
+
+  /* Brand Scrollbar Styling */
+  .scrollbar-brand::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-brand::-webkit-scrollbar-track {
+    @apply bg-gray-100 dark:bg-gray-800 rounded-full;
+  }
+
+  .scrollbar-brand::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 dark:bg-gray-600 rounded-full;
+    @apply hover:bg-gray-500 dark:hover:bg-gray-500;
+  }
+
+  /* Text Selection Styling */
+  ::selection {
+    background-color: rgb(var(--brand-primary) / 0.2);
+    color: rgb(var(--brand-primary));
+  }
+
+  .dark ::selection {
+    background-color: rgb(var(--brand-primary) / 0.3);
+    color: rgb(var(--brand-primary));
   }
 }
 
-.material-selector-dropdown {
-  animation: slideDown 0.2s ease-out;
+/* Custom Toastify Styling to Match Brand */
+.Toastify__toast {
+  @apply rounded-brand font-medium shadow-brand !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.Toastify__toast--success {
+  @apply bg-gradient-to-r from-success-500 to-success-600 text-white !important;
+}
+
+.Toastify__toast--error {
+  @apply bg-gradient-to-r from-error-500 to-error-600 text-white !important;
+}
+
+.Toastify__toast--warning {
+  @apply bg-gradient-to-r from-warning-500 to-warning-600 text-white !important;
+}
+
+.Toastify__toast--info {
+  @apply bg-gradient-to-r from-secondary-500 to-secondary-600 text-white !important;
+}
+
+.Toastify__progress-bar {
+  @apply bg-white/30 !important;
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(var(--brand-primary), 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
