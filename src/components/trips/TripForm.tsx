@@ -293,7 +293,6 @@ const TripForm: React.FC<TripFormProps> = ({
         }
 
         // Call the analyze route API
-        const analysis = await analyzeRoute(warehouse, selectedDestinationObjects);
         const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
         setRouteAnalysis(analysis);
         
