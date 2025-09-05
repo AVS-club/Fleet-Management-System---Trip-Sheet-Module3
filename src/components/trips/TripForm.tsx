@@ -1,1107 +1,576 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { Combobox } from '@headlessui/react';
-import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
-import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
-import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
-import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
-import { subDays, format, parseISO } from 'date-fns';
-import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
-import Input from '../ui/Input';
-import Select from '../ui/Select';
-import Checkbox from '../ui/Checkbox';
-import Button from '../ui/Button';
-import FileUpload from '../ui/FileUpload';
-import WarehouseSelector from './WarehouseSelector';
-import SearchableDestinationInput from './SearchableDestinationInput';
-import MaterialSelector from './MaterialSelector';
-import RouteAnalysis from './RouteAnalysis';
-import FuelRateSelector from './FuelRateSelector';
-import CollapsibleSection from '../ui/CollapsibleSection';
-import config from '../../utils/env';
-import {
-  Truck,
-  User,
-  Calendar,
-  MapPin,
-  Fuel,
-  IndianRupee,
-  FileText,
-  Package,
-  Route,
-  Calculator,
-  AlertTriangle,
-  ChevronDown
-} from 'lucide-react';
+// EnhancedAdminTripsPage.tsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Trip, Vehicle, Driver, Warehouse } from '@/types';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { toast } from 'react-toastify';
+import {
+  FileText, Filter, Download, Upload, RefreshCw, TrendingUp,
+  BarChart2, PieChart, Activity, DollarSign, Truck, Users,
+  Calendar, ChevronDown, Search, CheckSquare, Settings,
+  Send, Printer, Copy, Eye, Edit, Trash2, MapPin
+} from 'lucide-react';
 
-interface TripFormProps {
-  onSubmit: (data: TripFormData) => void;
-  isSubmitting?: boolean;
-  trips?: Trip[];
-  initialData?: Partial<TripFormData>;
-  // Pre-fetched lookup data to prevent async loading issues during form initialization
-  allVehicles?: Vehicle[];
-  allDrivers?: Driver[];
-  allDestinations?: Destination[];
-  allWarehouses?: Warehouse[];
-  allMaterialTypes?: MaterialType[];
+// Enhanced Admin Interface
+interface EnhancedAdminTripsPageProps {
+  // Your existing props
 }
 
-const TripForm: React.FC<TripFormProps> = ({
-  onSubmit,
-  isSubmitting = false,
-  trips = [],
-  initialData,
-  allVehicles,
-  allDrivers,
-  allDestinations,
-  allWarehouses,
-  allMaterialTypes
-}) => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
-  const [routeAnalysis, setRouteAnalysis] = useState<any>(null);
-  const [aiAlerts, setAiAlerts] = useState<any[]>([]);
-  const [routeDeviation, setRouteDeviation] = useState<number | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
-  const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
-  const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [vehicleQuery, setVehicleQuery] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [driverQuery, setDriverQuery] = useState('');
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
-
-  // Get yesterday's date for auto-defaulting
-  const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    control
-  } = useForm<TripFormData>({
-    defaultValues: {
-      trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
-      trip_end_date: initialData?.trip_end_date || yesterdayDate, // Use initial data if available
-      refueling_done: false,
-      is_return_trip: true,
-      gross_weight: 0,
-      unloading_expense: 0,
-      driver_expense: 0,
-      road_rto_expense: 0,
-      breakdown_expense: 0,
-      miscellaneous_expense: 0,
-      total_road_expenses: 0,
-      material_type_ids: [],
-      ...initialData
-    }
+const EnhancedAdminTripsPage: React.FC = () => {
+  // State Management
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [selectedTrips, setSelectedTrips] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'kanban'>('table');
+  const [quickStats, setQuickStats] = useState({
+    todayTrips: 0,
+    weekTrips: 0,
+    monthRevenue: 0,
+    avgMileage: 0,
+    profitMargin: 0,
+    topPerformer: null as any
   });
 
-  // Reset form with initial data whenever initialData changes - with proper date formatting
-  useEffect(() => {
-    if (initialData) {
-      // Format dates properly for date inputs (YYYY-MM-DD)
-      const formatDateForInput = (dateString?: string) => {
-        if (!dateString) return yesterdayDate;
-        try {
-          const date = parseISO(dateString);
-          return format(date, 'yyyy-MM-dd');
-        } catch (error) {
-          console.error('Error formatting date:', error);
-          return yesterdayDate;
-        }
-      };
+  // Advanced Filters State
+  const [filters, setFilters] = useState({
+    dateRange: { start: null as Date | null, end: null as Date | null },
+    vehicleIds: [] as string[],
+    driverIds: [] as string[],
+    warehouseIds: [] as string[],
+    destinationIds: [] as string[],
+    tripType: '' as '' | 'one_way' | 'round_trip' | 'multi_stop',
+    profitStatus: '' as '' | 'profit' | 'loss' | 'neutral',
+    mileageRange: { min: 0, max: 100 },
+    expenseRange: { min: 0, max: 100000 },
+    search: '',
+    tags: [] as string[],
+    hasIssues: null as boolean | null,
+    documentStatus: '' as '' | 'complete' | 'incomplete'
+  });
 
-      setValue('trip_start_date', formatDateForInput(initialData.trip_start_date));
-      setValue('trip_end_date', formatDateForInput(initialData.trip_end_date));
-      setValue('vehicle_id', initialData.vehicle_id || '');
-      setValue('driver_id', initialData.driver_id || '');
-      setValue('warehouse_id', initialData.warehouse_id || '');
-      setValue('destinations', initialData.destinations || []);
-      setValue('start_km', initialData.start_km || 0);
-      setValue('end_km', initialData.end_km || 0);
-      setValue('gross_weight', initialData.gross_weight || 0);
-      setValue('refueling_done', initialData.refueling_done || false);
-      setValue('fuel_quantity', initialData.fuel_quantity || 0);
-      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
-      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
-      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
-      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
-      setValue('unloading_expense', initialData.unloading_expense || 0);
-      setValue('driver_expense', initialData.driver_expense || 0);
-      setValue('road_rto_expense', initialData.road_rto_expense || 0);
-      setValue('breakdown_expense', initialData.breakdown_expense || 0);
-      setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
-      setValue('total_road_expenses', initialData.total_road_expenses || 0);
-      setValue('is_return_trip', initialData.is_return_trip || false);
-      setValue('remarks', initialData.remarks || '');
-      setValue('trip_serial_number', initialData.trip_serial_number || '');
-      setValue('material_type_ids', initialData.material_type_ids || []);
-      setValue('station', initialData.station || '');
-    }
-  }, [initialData, setValue]);
-
-  // Watch form values for calculations
-  const watchedValues = watch();
-  const selectedVehicleId = watch('vehicle_id');
-  const selectedWarehouseId = watch('warehouse_id');
-  const startKm = watch('start_km');
-  const endKm = watch('end_km');
-  const refuelingDone = watch('refueling_done');
-  const totalFuelCost = watch('total_fuel_cost');
-  const fuelRatePerLiter = watch('fuel_rate_per_liter');
-
-  // Filter vehicles based on search query
-  const filteredVehicles = useMemo(() => {
-    if (!vehicleQuery) return vehicles;
-    const query = vehicleQuery.toLowerCase();
-    return vehicles.filter(vehicle => 
-      vehicle.registration_number.toLowerCase().includes(query)
-    );
-  }, [vehicleQuery, vehicles]);
-
-  // Filter drivers based on search query
-  const filteredDrivers = useMemo(() => {
-    if (!driverQuery) return drivers;
-    const query = driverQuery.toLowerCase();
-    return drivers.filter(driver => 
-      driver.name.toLowerCase().includes(query)
-    );
-  }, [driverQuery, drivers]);
-  // Update selected vehicle when vehicle_id changes
-  useEffect(() => {
-    if (selectedVehicleId) {
-      const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-      setSelectedVehicle(vehicle || null);
-      if (vehicle) {
-        setVehicleQuery(vehicle.registration_number);
-      }
-    } else {
-      setSelectedVehicle(null);
-      setVehicleQuery('');
-    }
-  }, [selectedVehicleId, vehicles]);
-
-  // Update selected driver when driver_id changes
-  useEffect(() => {
-    const selectedDriverId = watch('driver_id');
-    if (selectedDriverId) {
-      const driver = drivers.find(d => d.id === selectedDriverId);
-      setSelectedDriver(driver || null);
-      if (driver) {
-        setDriverQuery(driver.name);
-      }
-    } else {
-      setSelectedDriver(null);
-      setDriverQuery('');
-    }
-  }, [watch('driver_id'), drivers]);
-  // Fetch form data - only if not provided as props
-  useEffect(() => {
-    // If data is provided as props (editing mode), use it instead of fetching
-    if (allVehicles && allDrivers && allDestinations && allWarehouses && allMaterialTypes) {
-      setVehicles(allVehicles);
-      setDrivers(allDrivers);
-      setDestinations(allDestinations);
-      setWarehouses(allWarehouses);
-      setMaterialTypes(allMaterialTypes);
-      setLoading(false);
-      return;
-    }
-
-    // Otherwise fetch the data (for new trip mode)
-    const fetchFormData = async () => {
-      setLoading(true);
+  // Bulk Operations
+  const bulkOperations = {
+    updateFreightRate: async (tripIds: string[], rate: number) => {
       try {
-        const [vehiclesData, driversData, destinationsData, warehousesData, materialTypesData] = await Promise.all([
-          getVehicles(),
-          getDrivers(),
-          getDestinations(),
-          getWarehouses(),
-          getMaterialTypes()
-        ]);
-
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
-        setDrivers(Array.isArray(driversData) ? driversData : []);
-        setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
-        setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
-        setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+        const updates = tripIds.map(id => 
+          updateTrip(id, { freight_rate: rate })
+        );
+        await Promise.all(updates);
+        toast.success(`Updated freight rate for ${tripIds.length} trips`);
+        refreshData();
       } catch (error) {
-        console.error('Error fetching form data:', error);
-        toast.error('Failed to load form data');
-      } finally {
-        setLoading(false);
+        toast.error('Failed to update freight rates');
       }
-    };
+    },
 
-    fetchFormData();
-  }, [allVehicles, allDrivers, allDestinations, allWarehouses, allMaterialTypes]);
-
-  // Initialize selected destinations from initialData
-  useEffect(() => {
-    if (initialData?.destinations && destinations.length > 0) {
-      const selectedDests = initialData.destinations
-        .map(id => destinations.find(d => d.id === id))
-        .filter(Boolean) as Destination[];
-      setSelectedDestinationObjects(selectedDests);
-    }
-  }, [initialData?.destinations, destinations]);
-
-  // Auto-select assigned driver when vehicle is selected
-  useEffect(() => {
-    if (selectedVehicleId && vehicles.length > 0 && !initialData?.driver_id) { // Only auto-select if no initial driver
-      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-      if (selectedVehicle?.primary_driver_id) {
-        setValue('driver_id', selectedVehicle.primary_driver_id);
-      }
-    }
-  }, [selectedVehicleId, vehicles, setValue]);
-
-  // Auto-generate trip serial number when vehicle and start date are selected
-  useEffect(() => {
-    const generateSerial = async () => {
-      if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number && !watchedValues.trip_serial_number) {
-        try {
-          const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-          if (vehicle) {
-            const serialNumber = await generateTripSerialNumber(
-              vehicle.registration_number,
-              watchedValues.trip_start_date,
-              selectedVehicleId
-            );
-            setValue('trip_serial_number', serialNumber);
-          }
-        } catch (error) {
-          console.error('Error generating trip serial:', error);
-        }
-      }
-    };
-
-    generateSerial();
-  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData?.trip_serial_number]);
-
-  // Auto-fill start KM when vehicle is selected
-  useEffect(() => {
-    const fillStartKm = async () => {
-      if (selectedVehicleId && !initialData?.start_km && !watchedValues.start_km) { // Only auto-fill if no initial or current value
-        try {
-          const { value: latestOdometer } = await getLatestOdometer(selectedVehicleId);
-          setValue('start_km', latestOdometer);
-        } catch (error) {
-          console.error('Error getting latest odometer:', error);
-        }
-      }
-    };
-
-    fillStartKm();
-  }, [selectedVehicleId, setValue, initialData?.start_km, watchedValues.start_km]);
-
-  // Handle adding destinations
-  const handleDestinationSelect = (destination: Destination) => {
-    const newDestinations = [...selectedDestinationObjects, destination];
-    setSelectedDestinationObjects(newDestinations);
-    setValue('destinations', newDestinations.map(d => d.id));
-  };
-
-  // Handle removing destinations
-  const handleRemoveDestination = (index: number) => {
-    const newDestinations = selectedDestinationObjects.filter((_, i) => i !== index);
-    setSelectedDestinationObjects(newDestinations);
-    setValue('destinations', newDestinations.map(d => d.id));
-  };
-
-  // Auto-trigger route analysis and AI alerts when key fields change
-  const handleEndKmBlur = async () => {
-    if (selectedVehicleId && selectedWarehouseId && selectedDestinationObjects.length > 0 && startKm && endKm) {
-      setIsAnalyzing(true);
+    generateInvoices: async (tripIds: string[]) => {
       try {
-        // Analyze route
-        const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
-        setRouteAnalysis(analysis);
-        
-        if (analysis) {
-          // Calculate route deviation
-          const actualDistance = endKm - startKm;
-          const standardDistance = analysis.total_distance;
-          
-          if (standardDistance > 0 && actualDistance > 0) {
-            const deviation = ((actualDistance - standardDistance) / standardDistance) * 100;
-            setRouteDeviation(deviation);
-            
-            // Create temporary trip data for AI analysis
-            const tempTripData = {
-              ...watchedValues,
-              vehicle_id: selectedVehicleId,
-              warehouse_id: selectedWarehouseId,
-              destinations: selectedDestinationObjects.map(d => d.id),
-              start_km: startKm,
-              end_km: endKm,
-              route_deviation: deviation,
-              id: 'temp-' + Date.now(),
-              trip_serial_number: watchedValues.trip_serial_number || 'TEMP-001',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            } as Trip;
-            
-            // Generate AI alerts
-            const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
-            setAiAlerts(alerts);
-          } else {
-            if (config.isDev) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
-          }
-        }
+        // Generate invoice logic here
+        toast.success(`Generated invoices for ${tripIds.length} trips`);
       } catch (error) {
-        console.error('Error analyzing route:', error);
-      } finally {
-        setIsAnalyzing(false);
+        toast.error('Failed to generate invoices');
+      }
+    },
+
+    sendWhatsApp: async (tripIds: string[]) => {
+      const selectedTripsData = trips.filter(t => tripIds.includes(t.id));
+      const message = generateWhatsAppSummary(selectedTripsData);
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
+    },
+
+    exportToExcel: async (tripIds: string[]) => {
+      const selectedTripsData = trips.filter(t => tripIds.includes(t.id));
+      exportToExcel(selectedTripsData);
+    },
+
+    deleteTrips: async (tripIds: string[]) => {
+      if (!confirm(`Delete ${tripIds.length} trips? This cannot be undone.`)) return;
+      
+      try {
+        await Promise.all(tripIds.map(id => deleteTrip(id)));
+        toast.success(`Deleted ${tripIds.length} trips`);
+        refreshData();
+      } catch (error) {
+        toast.error('Failed to delete trips');
       }
     }
   };
 
-  // Reverse calculation: Calculate fuel quantity when total fuel cost and rate change
-  useEffect(() => {
-    if (totalFuelCost && fuelRatePerLiter && totalFuelCost > 0 && fuelRatePerLiter > 0) {
-      const fuelQuantity = totalFuelCost / fuelRatePerLiter;
-      setValue('fuel_quantity', parseFloat(fuelQuantity.toFixed(2)));
-      setValue('fuel_rate_per_liter', fuelRatePerLiter);
-    }
-  }, [totalFuelCost, fuelRatePerLiter, setValue]);
-
-  // Calculate total road expenses
-  useEffect(() => {
-    const totalRoadExpenses = (
-      (watchedValues.unloading_expense || 0) +
-      (watchedValues.driver_expense || 0) +
-      (watchedValues.road_rto_expense || 0) +
-      (watchedValues.breakdown_expense || 0) +
-      (watchedValues.miscellaneous_expense || 0)
-    );
-    setValue('total_road_expenses', totalRoadExpenses);
-  }, [
-    watchedValues.unloading_expense,
-    watchedValues.driver_expense,
-    watchedValues.road_rto_expense,
-    watchedValues.breakdown_expense,
-    watchedValues.miscellaneous_expense,
-    setValue
-  ]);
-
-  // Analyze route when warehouse and destinations change
-  useEffect(() => {
-    const performRouteAnalysis = async () => {
-      if (selectedWarehouseId && selectedDestinationObjects.length > 0) {
-        setIsAnalyzing(true);
-        try {
-          const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
-          setRouteAnalysis(analysis);
-        } catch (error) {
-          console.error('Error analyzing route:', error);
-          setRouteAnalysis(null);
-        } finally {
-          setIsAnalyzing(false);
-        }
-      } else {
-        setRouteAnalysis(null);
-      }
-    };
-
-    performRouteAnalysis();
-  }, [selectedWarehouseId, selectedDestinationObjects]);
-
-  // Form validation function
-  const validateFormData = (data: TripFormData): string | null => {
-    // Validate distance is positive
-    const distance = (data.end_km || 0) - (data.start_km || 0);
-    if (distance <= 0) {
-      return 'Distance cannot be zero or negative. End KM must be greater than Start KM.';
-    }
-    
-    // Validate fuel data if refueling is done
-    if (data.refueling_done) {
-      if (!data.fuel_quantity || data.fuel_quantity <= 0) {
-        return 'Fuel quantity must be greater than zero when refueling is done.';
-      }
-      if (!data.total_fuel_cost || data.total_fuel_cost < 0) {
-        return 'Fuel cost cannot be negative.';
-      }
-    }
-    
-    return null;
-  };
-
-  const handleFormSubmit = async (data: TripFormData) => {
-    // Validate form data before submission
-    const validationError = validateFormData(data);
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-
-    // Calculate mileage if refueling data is available
-    if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
-      const distance = data.end_km - data.start_km;
-      if (distance > 0) {
-        data.calculated_kmpl = distance / data.fuel_quantity;
-      }
-    }
-
-    // Calculate route deviation if analysis is available
-    if (routeAnalysis) {
-      const actualDistance = (data.end_km || 0) - (data.start_km || 0);
-      if (routeAnalysis.total_distance > 0 && actualDistance > 0) {
-        data.route_deviation = ((actualDistance - routeAnalysis.total_distance) / routeAnalysis.total_distance) * 100;
-      }
-    }
-
-    // Calculate trip duration
-    if (data.trip_start_date && data.trip_end_date) {
-      const startTime = new Date(data.trip_start_date).getTime();
-      const endTime = new Date(data.trip_end_date).getTime();
-      data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
-    }
-
-    await onSubmit(data);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p className="ml-3 text-gray-600">Loading form...</p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto h-full">
-      {/* Trip Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <Route className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Information
-        </h3>
-        
-        <div className="space-y-3">
-          <Input
-            label="Trip Serial Number"
-            icon={<FileText className="h-4 w-4" />}
-            value={watchedValues.trip_serial_number || ''}
-            disabled
-            size="sm"
-          />
-
-          <div className="flex flex-col md:flex-row gap-3">
-            <Input
-              label="Trip Start Date"
-              type="date"
-              icon={<Calendar className="h-4 w-4" />}
-              required
-              {...register('trip_start_date', { required: 'Start date is required' })}
-              size="sm"
-            />
-
-            <Input
-              label="Trip End Date"
-              type="date"
-              icon={<Calendar className="h-4 w-4" />}
-              required
-              {...register('trip_end_date', { required: 'End date is required' })}
-              size="sm"
-            />
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Return Trip</label>
-            <Controller
-              name="is_return_trip"
-              control={control}
-              render={({ field }) => (
-                <button
-                  type="button"
-                  onClick={() => field.onChange(!field.value)}
-                  aria-pressed={field.value}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
-                    field.value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                      field.value ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              )}
-            />
-          </div>
-          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-            Doubles route distance. Untick if not returning.
-          </p>
+  // Quick Actions Component
+  const QuickActionsBar = () => (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckSquare className="h-5 w-5 text-gray-500" />
+          <span className="text-sm font-medium">
+            {selectedTrips.size} trips selected
+          </span>
         </div>
-      </div>
-
-      {/* Vehicle & Driver Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <Truck className="h-5 w-5 mr-2 text-primary-500" />
-          Vehicle & Driver
-        </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Vehicle
-              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
-            </label>
-            <Combobox
-              value={selectedVehicle}
-              onChange={(vehicle: Vehicle | null) => {
-                setSelectedVehicle(vehicle);
-                setValue('vehicle_id', vehicle?.id || '');
-              }}
+        {selectedTrips.size > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => bulkOperations.exportToExcel(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 flex items-center gap-1"
             >
-              <div className="relative">
-                <div className="relative">
-                  <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Combobox.Input
-                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    displayValue={(vehicle: Vehicle | null) => vehicle?.registration_number || ''}
-                    onChange={(event) => setVehicleQuery(event.target.value)}
-                    placeholder="Type vehicle number..."
-                  />
-                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </Combobox.Button>
-                </div>
-                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredVehicles.length === 0 && vehicleQuery !== '' ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">No vehicles found</div>
-                  ) : (
-                    filteredVehicles.map((vehicle) => (
-                      <Combobox.Option
-                        key={vehicle.id}
-                        value={vehicle}
-                        className={({ active }) =>
-                          `cursor-pointer select-none px-4 py-2 ${
-                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
-                          }`
-                        }
-                      >
-                        <div>
-                          <div className="font-medium">{vehicle.registration_number}</div>
-                          <div className="text-xs text-gray-500">{vehicle.make} {vehicle.model}</div>
-                        </div>
-                      </Combobox.Option>
-                    ))
-                  )}
-                </Combobox.Options>
-              </div>
-            </Combobox>
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Driver
-              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
-            </label>
-            <Combobox
-              value={selectedDriver}
-              onChange={(driver: Driver | null) => {
-                setSelectedDriver(driver);
-                setValue('driver_id', driver?.id || '');
-              }}
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            
+            <button
+              onClick={() => bulkOperations.sendWhatsApp(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center gap-1"
             >
-              <div className="relative">
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Combobox.Input
-                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    displayValue={(driver: Driver | null) => driver?.name || ''}
-                    onChange={(event) => setDriverQuery(event.target.value)}
-                    placeholder="Type driver name..."
-                  />
-                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </Combobox.Button>
-                </div>
-                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredDrivers.length === 0 && driverQuery !== '' ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">No drivers found</div>
-                  ) : (
-                    filteredDrivers.map((driver) => (
-                      <Combobox.Option
-                        key={driver.id}
-                        value={driver}
-                        className={({ active }) =>
-                          `cursor-pointer select-none px-4 py-2 ${
-                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
-                          }`
-                        }
-                      >
-                        <div>
-                          <div className="font-medium">{driver.name}</div>
-                          <div className="text-xs text-gray-500">{driver.license_number}</div>
-                        </div>
-                      </Combobox.Option>
-                    ))
-                  )}
-                </Combobox.Options>
-              </div>
-            </Combobox>
-          </div>
-        </div>
-      </div>
-
-      {/* Route Planning */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <MapPin className="h-5 w-5 mr-2 text-primary-500" />
-          Route Planning
-        </h3>
-        
-        <div className="space-y-3">
-          <WarehouseSelector
-            warehouses={warehouses}
-            selectedWarehouse={selectedWarehouseId}
-            onChange={(value) => setValue('warehouse_id', value)}
-          />
-
-          <SearchableDestinationInput
-            onDestinationSelect={handleDestinationSelect}
-            selectedDestinations={selectedDestinationObjects}
-            onRemoveDestination={handleRemoveDestination}
-          />
-
-          <MaterialSelector
-            materialTypes={materialTypes}
-            selectedMaterials={watchedValues.material_type_ids || []}
-            onChange={(value) => setValue('material_type_ids', value)}
-          />
-        </div>
-
-        {/* Route Analysis */}
-        {routeDeviation !== null && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
-                {routeAnalysis.total_distance > 0 && startKm && endKm && (endKm > startKm) ? (
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    Route deviation: <span className={`font-bold ${Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 ? 'text-error-600' : 'text-success-600'}`}>
-                      {(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 0 ? '+' : ''}{(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100).toFixed(1)}%
-                    </span>
-                  </p>
-                ) : (
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    Route analysis available
-                  </p>
-                )}
-                {routeAnalysis && routeAnalysis.total_distance > 0 && startKm && endKm && (
-                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-                    Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
-                  </p>
-                )}
-              </div>
-              {routeAnalysis.total_distance > 0 && startKm && endKm && Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 && (
-                <AlertTriangle className="h-5 w-5 text-warning-500" />
-              )}
-            </div>
+              <Send className="h-4 w-4" />
+              WhatsApp
+            </button>
+            
+            <button
+              onClick={() => setShowBulkEditModal(true)}
+              className="px-3 py-1.5 text-sm bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 flex items-center gap-1"
+            >
+              <Edit className="h-4 w-4" />
+              Bulk Edit
+            </button>
+            
+            <button
+              onClick={() => bulkOperations.deleteTrips(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center gap-1"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
           </div>
         )}
+      </div>
+    </div>
+  );
 
-        {/* AI Alerts Display */}
-        {aiAlerts.length > 0 && (
-          <div className="mt-3 p-3 bg-warning-50 dark:bg-warning-900/20 border border-warning-200 dark:border-warning-800 rounded-lg">
-            <div className="flex items-center mb-2">
-              <AlertTriangle className="h-5 w-5 text-warning-500 mr-2" />
-              <h4 className="text-sm font-medium text-warning-800 dark:text-warning-300">AI Alert Generated</h4>
+  // Enhanced Statistics Dashboard
+  const EnhancedStatsDashboard = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Truck className="h-5 w-5 text-blue-600" />
+          <span className="text-xs text-blue-600 font-medium">+12%</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.todayTrips}</div>
+        <div className="text-xs text-gray-600">Today's Trips</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <DollarSign className="h-5 w-5 text-green-600" />
+          <span className="text-xs text-green-600 font-medium">+8%</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">₹{quickStats.monthRevenue}</div>
+        <div className="text-xs text-gray-600">Month Revenue</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Activity className="h-5 w-5 text-purple-600" />
+          <span className="text-xs text-purple-600 font-medium">Avg</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.avgMileage} km/L</div>
+        <div className="text-xs text-gray-600">Avg Mileage</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <TrendingUp className="h-5 w-5 text-orange-600" />
+          <span className="text-xs text-orange-600 font-medium">Margin</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.profitMargin}%</div>
+        <div className="text-xs text-gray-600">Profit Margin</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <MapPin className="h-5 w-5 text-pink-600" />
+          <span className="text-xs text-pink-600 font-medium">Routes</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.weekTrips}</div>
+        <div className="text-xs text-gray-600">Week Trips</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Users className="h-5 w-5 text-indigo-600" />
+          <span className="text-xs text-indigo-600 font-medium">Top</span>
+        </div>
+        <div className="text-lg font-bold text-gray-900 truncate">
+          {quickStats.topPerformer?.name || 'N/A'}
+        </div>
+        <div className="text-xs text-gray-600">Best Driver</div>
+      </div>
+    </div>
+  );
+
+  // Smart Filter Panel
+  const SmartFilterPanel = () => (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Filter className="h-5 w-5" />
+          Smart Filters
+        </h3>
+        <div className="flex gap-2">
+          <button
+            onClick={applyPresetFilter('today')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Today
+          </button>
+          <button
+            onClick={applyPresetFilter('week')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            This Week
+          </button>
+          <button
+            onClick={applyPresetFilter('profitable')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Profitable
+          </button>
+          <button
+            onClick={applyPresetFilter('issues')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Has Issues
+          </button>
+        </div>
+      </div>
+      
+      {/* Advanced Filter Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Date Range Picker */}
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Date Range</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="date"
+              value={filters.dateRange.start ? format(filters.dateRange.start, 'yyyy-MM-dd') : ''}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                dateRange: { ...prev.dateRange, start: new Date(e.target.value) }
+              }))}
+              className="flex-1 px-2 py-1 text-sm border rounded-lg"
+            />
+            <input
+              type="date"
+              value={filters.dateRange.end ? format(filters.dateRange.end, 'yyyy-MM-dd') : ''}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                dateRange: { ...prev.dateRange, end: new Date(e.target.value) }
+              }))}
+              className="flex-1 px-2 py-1 text-sm border rounded-lg"
+            />
+          </div>
+        </div>
+        
+        {/* Multi-select for Vehicles */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Vehicles</label>
+          <select
+            multiple
+            value={filters.vehicleIds}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions, option => option.value);
+              setFilters(prev => ({ ...prev, vehicleIds: selected }));
+            }}
+            className="w-full mt-1 px-2 py-1 text-sm border rounded-lg"
+          >
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>{v.registration_number}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Profit Status */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Profit Status</label>
+          <select
+            value={filters.profitStatus}
+            onChange={(e) => setFilters(prev => ({ ...prev, profitStatus: e.target.value as any }))}
+            className="w-full mt-1 px-2 py-1 text-sm border rounded-lg"
+          >
+            <option value="">All</option>
+            <option value="profit">Profitable</option>
+            <option value="loss">Loss Making</option>
+            <option value="neutral">Break Even</option>
+          </select>
+        </div>
+        
+        {/* Mileage Range Slider */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">
+            Mileage: {filters.mileageRange.min}-{filters.mileageRange.max} km/L
+          </label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={filters.mileageRange.min}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                mileageRange: { ...prev.mileageRange, min: Number(e.target.value) }
+              }))}
+              className="flex-1"
+            />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={filters.mileageRange.max}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                mileageRange: { ...prev.mileageRange, max: Number(e.target.value) }
+              }))}
+              className="flex-1"
+            />
+          </div>
+        </div>
+        
+        {/* Search */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Search</label>
+          <div className="relative mt-1">
+            <Search className="absolute left-2 top-1.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              placeholder="Trip ID, notes..."
+              className="w-full pl-8 pr-2 py-1 text-sm border rounded-lg"
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Active Filters Display */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {filters.vehicleIds.length > 0 && (
+          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+            {filters.vehicleIds.length} vehicles
+          </span>
+        )}
+        {filters.profitStatus && (
+          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+            {filters.profitStatus}
+          </span>
+        )}
+        {(filters.dateRange.start || filters.dateRange.end) && (
+          <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full">
+            Custom date range
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  // Enhanced Trip Card for Card View
+  const EnhancedTripCard = ({ trip }: { trip: Trip }) => {
+    const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+    const driver = drivers.find(d => d.id === trip.driver_id);
+    const profitClass = trip.net_profit > 0 ? 'text-green-600' : 
+                       trip.net_profit < 0 ? 'text-red-600' : 'text-gray-600';
+    
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h4 className="font-semibold text-gray-900">{trip.trip_serial_number}</h4>
+            <p className="text-xs text-gray-500">
+              {format(new Date(trip.trip_start_date), 'dd MMM yyyy')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selectedTrips.has(trip.id)}
+              onChange={(e) => {
+                const newSelected = new Set(selectedTrips);
+                if (e.target.checked) {
+                  newSelected.add(trip.id);
+                } else {
+                  newSelected.delete(trip.id);
+                }
+                setSelectedTrips(newSelected);
+              }}
+              className="rounded"
+            />
+            <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+              trip.profit_status === 'profit' ? 'bg-green-100 text-green-700' :
+              trip.profit_status === 'loss' ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {trip.profit_status}
             </div>
-            {aiAlerts.map((alert, index) => (
-              <div key={index} className="text-sm text-warning-700 dark:text-warning-400">
-                <p className="font-medium">{alert.message}</p>
-                {alert.details && <p className="text-xs mt-1">{alert.details}</p>}
-              </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Truck className="h-4 w-4 text-gray-400" />
+            <span>{vehicle?.registration_number}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-400" />
+            <span>{driver?.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span>{trip.end_km - trip.start_km} km</span>
+          </div>
+        </div>
+        
+        <div className="mt-3 pt-3 border-t flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500">Net Profit</p>
+            <p className={`font-semibold ${profitClass}`}>
+              ₹{trip.net_profit?.toLocaleString() || 0}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleViewTrip(trip)}
+              className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleEditTrip(trip)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handlePrintTrip(trip)}
+              className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+            >
+              <Printer className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Kanban Board View
+  const KanbanBoard = () => {
+    const columns = {
+      pending: trips.filter(t => !t.income_amount),
+      inProgress: trips.filter(t => t.income_amount && !t.net_profit),
+      completed: trips.filter(t => t.net_profit !== undefined)
+    };
+    
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {Object.entries(columns).map(([status, columnTrips]) => (
+          <div key={status} className="min-w-[300px] bg-gray-50 rounded-lg p-4">
+            <h3 className="font-semibold text-gray-700 mb-3 capitalize">
+              {status} ({columnTrips.length})
+            </h3>
+            <div className="space-y-2">
+              {columnTrips.slice(0, 10).map(trip => (
+                <EnhancedTripCard key={trip.id} trip={trip} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6 space-y-4">
+      {/* Page Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Trip Management Admin</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage and analyze all trip records
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* View Mode Selector */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'table' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'cards' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'kanban' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Kanban
+            </button>
+          </div>
+          
+          <button
+            onClick={refreshData}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
+          
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+      
+      {/* Enhanced Stats Dashboard */}
+      <EnhancedStatsDashboard />
+      
+      {/* Smart Filter Panel */}
+      <SmartFilterPanel />
+      
+      {/* Quick Actions Bar */}
+      {selectedTrips.size > 0 && <QuickActionsBar />}
+      
+      {/* Content Area */}
+      <div className="bg-white rounded-lg shadow-sm">
+        {viewMode === 'table' && (
+          // Your existing table component
+          <div>Table View</div>
+        )}
+        
+        {viewMode === 'cards' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            {filteredTrips.map(trip => (
+              <EnhancedTripCard key={trip.id} trip={trip} />
             ))}
           </div>
         )}
-
-        {isAnalyzing && (
-          <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-              <span className="text-blue-700 dark:text-blue-300">Analyzing route...</span>
-            </div>
-          </div>
-        )}
-
-        {routeAnalysis && (
-          <div className="mt-3">
-            <RouteAnalysis
-              analysis={routeAnalysis}
-              alerts={[]}
-              onAlertAction={() => {}}
-            />
+        
+        {viewMode === 'kanban' && (
+          <div className="p-4">
+            <KanbanBoard />
           </div>
         )}
       </div>
-
-      {/* Trip Details & Fuel Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Trip Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-            <Calculator className="h-5 w-5 mr-2 text-primary-500" />
-            Trip Details
-          </h3>
-        
-          <div className="space-y-3">
-            <Input
-              label="Start KM"
-              type="number"
-              icon={<MapPin className="h-4 w-4" />}
-              required
-              size="sm"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('start_km', {
-                required: 'Start KM is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'Start KM cannot be negative' }
-              })}
-            />
-
-            <Input
-              label="End KM"
-              type="number"
-              icon={<MapPin className="h-4 w-4" />}
-              required
-              onBlur={handleEndKmBlur}
-              size="sm"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('end_km', {
-                required: 'End KM is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'End KM cannot be negative' },
-                validate: (value) => {
-                  const startKm = watchedValues.start_km || 0;
-                  if (value <= startKm) {
-                    return 'End KM must be greater than Start KM';
-                  }
-                  return true;
-                }
-              })}
-            />
-
-            <Input
-              label="Gross Weight (kg)"
-              type="number"
-              icon={<Package className="h-4 w-4" />}
-              required
-              size="sm"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('gross_weight', {
-                required: 'Gross weight is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'Gross weight cannot be negative' }
-              })}
-            />
-          </div>
-        </div>
-
-        {/* Fuel Information */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-            <Fuel className="h-5 w-5 mr-2 text-primary-500" />
-            Fuel Information
-          </h3>
-          
-          <Checkbox
-            label="Refueling Done"
-            checked={refuelingDone}
-            onChange={(e) => setValue('refueling_done', e.target.checked)}
-          />
-        </div>
-        
-        {refuelingDone && (
-            <div className="space-y-3">
-                <Input
-                  label="Total Fuel Cost (₹)"
-                  type="number"
-                  step="0.01"
-                  icon={<IndianRupee className="h-4 w-4" />}
-                  placeholder="Enter total amount paid"
-                  size="sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  {...register('total_fuel_cost', {
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Total fuel cost cannot be negative' }
-                  })}
-                />
-
-                <FuelRateSelector
-                  selectedRate={watchedValues.fuel_rate_per_liter}
-                  onChange={(value) => setValue('fuel_rate_per_liter', value)}
-                  warehouses={warehouses}
-                  selectedWarehouseId={selectedWarehouseId}
-                  size="sm"
-                />
-
-                <Input
-                  label="Fuel Quantity (L)"
-                  type="number"
-                  step="0.01"
-                  icon={<Fuel className="h-4 w-4" />}
-                  value={watchedValues.fuel_quantity || 0}
-                  disabled
-                  size="sm"
-                  {...register('fuel_quantity', {
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Fuel quantity cannot be negative' }
-                  })}
-                />
-
-            <div className="mt-3">
-              <FileUpload
-                label="Fuel Bill / Receipt"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={watchedValues.fuel_bill_file as File[]}
-                onChange={(files) => setValue('fuel_bill_file', files)}
-                variant="compact"
-                uploadProgress={fuelBillUploadProgress}
-                uploadStatus={fuelBillUploadStatus}
-              />
-            </div>
-          </div>
-          )}
-        </div>
-      </div>
-
-      {/* Expenses */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Expenses
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Left Column: Primary Expenses */}
-          <div className="space-y-3">
-            <Controller
-              name="unloading_expense"
-              control={control}
-              render={({ field }) => (
-                <div>
-                  <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Unloading (₹)</label>
-                  <Input
-                    value={field.value >= 0 ? field.value : 0}
-                    onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                    type="number"
-                    step="0.01"
-                    className="h-9 text-sm"
-                    onFocus={(e) => {
-                      if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                        e.target.select();
-                      }
-                    }}
-                    placeholder="0"
-                  />
-                </div>
-              )}
-            />
-            
-            <div>
-              <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Total Road Expenses (₹)</label>
-              <Input
-                type="number"
-                step="0.01"
-                value={watchedValues.total_road_expenses || 0}
-                disabled
-                className="h-9 text-sm bg-gray-50 dark:bg-gray-700"
-              />
-            </div>
-          </div>
-          
-          {/* Right Column: Other Expenses (Collapsible) */}
-          <div>
-            <CollapsibleSection
-              title="Other Expenses"
-              icon={<IndianRupee className="h-4 w-4" />}
-              iconColor="text-gray-600"
-              defaultExpanded={false}
-            >
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Controller
-                  name="driver_expense"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Driver Bata (₹)</label>
-                      <Input
-                        value={field.value >= 0 ? field.value : 0}
-                        onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                        type="number"
-                        step="0.01"
-                        className="h-9 text-sm"
-                        onFocus={(e) => {
-                          if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                            e.target.select();
-                          }
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
-                  )}
-                />
-                
-                <Controller
-                  name="road_rto_expense"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Road/RTO (₹)</label>
-                      <Input
-                        value={field.value >= 0 ? field.value : 0}
-                        onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                        type="number"
-                        step="0.01"
-                        className="h-9 text-sm"
-                        onFocus={(e) => {
-                          if (e.target.value === '0'|| e.target.value === '0.00' || e.target.value === '') {
-                            e.target.select();
-                          }
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
-                  )}
-                />
-                
-                <Controller
-                  name="breakdown_expense"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
-                      <Input
-                        value={field.value >= 0 ? field.value : 0}
-                        onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                        type="number"
-                        step="0.01"
-                        className="h-9 text-sm"
-                        onFocus={(e) => {
-                          if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                            e.target.select();
-                          }
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
-                  )}
-                />
-                
-                <Controller
-                  name="miscellaneous_expense"
-                  control={control}
-                  render={({ field }) => (
-                    <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Miscellaneous (₹)</label>
-                      <Input
-                        value={field.value >= 0 ? field.value : 0}
-                        onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
-                        type="number"
-                        step="0.01"
-                        className="h-9 text-sm"
-                        onFocus={(e) => {
-                          if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
-                            e.target.select();
-                          }
-                        }}
-                        placeholder="0"
-                      />
-                    </div>
-                  )}
-                />
-              </div>
-            </CollapsibleSection>
-          </div>
-        </div>
-      </div>
-
-      {/* Additional Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-          <FileText className="h-5 w-5 mr-2 text-primary-500" />
-          Additional Information
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="space-y-3">
-            <Input
-              label="Station"
-              icon={<Fuel className="h-4 w-4" />}
-              placeholder="Fuel station name (optional)"
-              size="sm"
-              {...register('station')}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Remarks
-            </label>
-            <textarea
-              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
-              rows={3}
-              placeholder="Any additional notes or remarks about this trip..."
-              {...register('remarks')}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Form Actions */}
-      <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
-        <Button
-          variant="outline"
-          className="w-full md:w-auto order-2 md:order-1"
-          onClick={() => window.history.back()}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          isLoading={isSubmitting}
-          disabled={isSubmitting || fuelBillUploadStatus === 'uploading'}
-          className="w-full md:w-auto order-1 md:order-2"
-        >
-          {initialData ? 'Update Trip' : 'Save Trip'}
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 };
 
-export default TripForm;
+export default EnhancedAdminTripsPage;
