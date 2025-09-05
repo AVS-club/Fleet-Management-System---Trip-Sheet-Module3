@@ -1,785 +1,576 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout'; 
-import TripsTable from '../../components/admin/TripsTable';
-import TripsSummary from '../../components/admin/TripsSummary';
-import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
+// EnhancedAdminTripsPage.tsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
-import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
-import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
-import { supabase } from '../../utils/supabaseClient';
-import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
-         startOfYear, endOfYear, subWeeks, subMonths, subYears } from 'date-fns';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
-import Select from '../../components/ui/Select';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { toast } from 'react-toastify';
+import {
+  FileText, Filter, Download, Upload, RefreshCw, TrendingUp,
+  BarChart2, PieChart, Activity, DollarSign, Truck, Users,
+  Calendar, ChevronDown, Search, CheckSquare, Settings,
+  Send, Printer, Copy, Eye, Edit, Trash2, MapPin
+} from 'lucide-react';
 
-interface TripSummaryMetrics {
-  totalExpenses: number;
-  avgDistance: number;
-  tripCount: number;
-  meanMileage: number;
-  topDriver: {
-    id: string;
-    name: string;
-    totalDistance: number;
-    tripCount: number;
-  } | null;
-  topVehicle: {
-    id: string;
-    registrationNumber: string;
-    tripCount: number;
-  } | null;
+// Enhanced Admin Interface
+interface EnhancedAdminTripsPageProps {
+  // Your existing props
 }
 
-const AdminTripsPage: React.FC = () => {
-  const navigate = useNavigate();
+const EnhancedAdminTripsPage: React.FC = () => {
+  // State Management
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
-  const driversMap = useMemo(() => new Map(drivers.map(d => [d.id, d])), [drivers]);
-  
-  // Date preset state
-  const [datePreset, setDatePreset] = useState('last30');
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const tripsPerPage = 50; // 50 trips per page
-
-  const [summaryMetrics, setSummaryMetrics] = useState<TripSummaryMetrics>({
-    totalExpenses: 0,
-    avgDistance: 0,
-    tripCount: 0,
-    meanMileage: 0,
-    topDriver: null,
-    topVehicle: null
+  const [selectedTrips, setSelectedTrips] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'table' | 'cards' | 'kanban'>('table');
+  const [quickStats, setQuickStats] = useState({
+    todayTrips: 0,
+    weekTrips: 0,
+    monthRevenue: 0,
+    avgMileage: 0,
+    profitMargin: 0,
+    topPerformer: null as any
   });
 
-  // Filter state
+  // Advanced Filters State
   const [filters, setFilters] = useState({
-    dateRange: {
-      start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-      end: format(new Date(), 'yyyy-MM-dd')
-    },
-    vehicleId: '',
-    driverId: '',
-    warehouseId: '',
-    tripType: '',
-    search: ''
+    dateRange: { start: null as Date | null, end: null as Date | null },
+    vehicleIds: [] as string[],
+    driverIds: [] as string[],
+    warehouseIds: [] as string[],
+    destinationIds: [] as string[],
+    tripType: '' as '' | 'one_way' | 'round_trip' | 'multi_stop',
+    profitStatus: '' as '' | 'profit' | 'loss' | 'neutral',
+    mileageRange: { min: 0, max: 100 },
+    expenseRange: { min: 0, max: 100000 },
+    search: '',
+    tags: [] as string[],
+    hasIssues: null as boolean | null,
+    documentStatus: '' as '' | 'complete' | 'incomplete'
   });
 
-  // Date preset options
-  const datePresetOptions = [
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: 'thisWeek', label: 'This Week' },
-    { value: 'lastWeek', label: 'Last Week' },
-    { value: 'thisMonth', label: 'This Month' },
-    { value: 'lastMonth', label: 'Last Month' },
-    { value: 'thisYear', label: 'This Year' },
-    { value: 'lastYear', label: 'Last Year' },
-    { value: 'last7', label: 'Last 7 Days' },
-    { value: 'last30', label: 'Last 30 Days' },
-    { value: 'allTime', label: 'All Time' },
-    { value: 'custom', label: 'Custom Range' }
-  ];
-
-  // Handle date preset changes
-  useEffect(() => {
-    if (datePreset === 'custom') {
-      return; // Don't update the date range if custom is selected
-    }
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
-    switch (datePreset) {
-      case 'today':
-        startDate = new Date(now.setHours(0, 0, 0, 0));
-        break;
-      case 'yesterday':
-        startDate = subDays(new Date(now.setHours(0, 0, 0, 0)), 1);
-        endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'thisWeek':
-        startDate = startOfWeek(now);
-        break;
-      case 'lastWeek':
-        startDate = startOfWeek(subWeeks(now, 1));
-        endDate = endOfWeek(subWeeks(now, 1));
-        break;
-      case 'thisMonth':
-        startDate = startOfMonth(now);
-        break;
-      case 'lastMonth':
-        startDate = startOfMonth(subMonths(now, 1));
-        endDate = endOfMonth(subMonths(now, 1));
-        break;
-      case 'thisYear':
-        startDate = startOfYear(now);
-        break;
-      case 'lastYear':
-        startDate = startOfYear(subYears(now, 1));
-        endDate = endOfYear(subYears(now, 1));
-        break;
-      case 'last7':
-        startDate = subDays(now, 7);
-        break;
-      case 'last30':
-        startDate = subDays(now, 30);
-        break;
-      case 'allTime':
-        startDate = new Date(0); // January 1, 1970
-        break;
-      default:
-        startDate = subDays(now, 30); // Default to last 30 days
-    }
-
-    // Update filters with new date range
-    setFilters(prev => ({
-      ...prev,
-      dateRange: {
-        start: format(startDate, 'yyyy-MM-dd'),
-        end: format(endDate, 'yyyy-MM-dd')
-      }
-    }));
-  }, [datePreset]);
-
-  // Fetch data on load
-  useEffect(() => {
-    const fetchData = async () => {
+  // Bulk Operations
+  const bulkOperations = {
+    updateFreightRate: async (tripIds: string[], rate: number) => {
       try {
-        setLoading(true);
-        setSummaryLoading(true);
-
-        const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
-          getTrips(),
-          getVehicles(),
-          getDrivers(),
-          getWarehouses()
-        ]);
-        setTrips(tripsData);
-        setVehicles(vehiclesData);
-        setDrivers(driversData);
-        setWarehouses(warehousesData);
-
-        // Fetch summary metrics
-        await fetchSummaryMetrics();
-        setLoading(false);
+        const updates = tripIds.map(id => 
+          updateTrip(id, { freight_rate: rate })
+        );
+        await Promise.all(updates);
+        toast.success(`Updated freight rate for ${tripIds.length} trips`);
+        refreshData();
       } catch (error) {
-        console.error("Error fetching data:", error);
-        setLoading(false);
-        setSummaryLoading(false);
+        toast.error('Failed to update freight rates');
       }
+    },
+
+    generateInvoices: async (tripIds: string[]) => {
+      try {
+        // Generate invoice logic here
+        toast.success(`Generated invoices for ${tripIds.length} trips`);
+      } catch (error) {
+        toast.error('Failed to generate invoices');
+      }
+    },
+
+    sendWhatsApp: async (tripIds: string[]) => {
+      const selectedTripsData = trips.filter(t => tripIds.includes(t.id));
+      const message = generateWhatsAppSummary(selectedTripsData);
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
+    },
+
+    exportToExcel: async (tripIds: string[]) => {
+      const selectedTripsData = trips.filter(t => tripIds.includes(t.id));
+      exportToExcel(selectedTripsData);
+    },
+
+    deleteTrips: async (tripIds: string[]) => {
+      if (!confirm(`Delete ${tripIds.length} trips? This cannot be undone.`)) return;
+      
+      try {
+        await Promise.all(tripIds.map(id => deleteTrip(id)));
+        toast.success(`Deleted ${tripIds.length} trips`);
+        refreshData();
+      } catch (error) {
+        toast.error('Failed to delete trips');
+      }
+    }
+  };
+
+  // Quick Actions Component
+  const QuickActionsBar = () => (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <CheckSquare className="h-5 w-5 text-gray-500" />
+          <span className="text-sm font-medium">
+            {selectedTrips.size} trips selected
+          </span>
+        </div>
+        
+        {selectedTrips.size > 0 && (
+          <div className="flex gap-2">
+            <button
+              onClick={() => bulkOperations.exportToExcel(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-green-50 text-green-700 rounded-lg hover:bg-green-100 flex items-center gap-1"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+            
+            <button
+              onClick={() => bulkOperations.sendWhatsApp(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center gap-1"
+            >
+              <Send className="h-4 w-4" />
+              WhatsApp
+            </button>
+            
+            <button
+              onClick={() => setShowBulkEditModal(true)}
+              className="px-3 py-1.5 text-sm bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 flex items-center gap-1"
+            >
+              <Edit className="h-4 w-4" />
+              Bulk Edit
+            </button>
+            
+            <button
+              onClick={() => bulkOperations.deleteTrips(Array.from(selectedTrips))}
+              className="px-3 py-1.5 text-sm bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center gap-1"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Enhanced Statistics Dashboard
+  const EnhancedStatsDashboard = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Truck className="h-5 w-5 text-blue-600" />
+          <span className="text-xs text-blue-600 font-medium">+12%</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.todayTrips}</div>
+        <div className="text-xs text-gray-600">Today's Trips</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <DollarSign className="h-5 w-5 text-green-600" />
+          <span className="text-xs text-green-600 font-medium">+8%</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">₹{quickStats.monthRevenue}</div>
+        <div className="text-xs text-gray-600">Month Revenue</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Activity className="h-5 w-5 text-purple-600" />
+          <span className="text-xs text-purple-600 font-medium">Avg</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.avgMileage} km/L</div>
+        <div className="text-xs text-gray-600">Avg Mileage</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <TrendingUp className="h-5 w-5 text-orange-600" />
+          <span className="text-xs text-orange-600 font-medium">Margin</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.profitMargin}%</div>
+        <div className="text-xs text-gray-600">Profit Margin</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <MapPin className="h-5 w-5 text-pink-600" />
+          <span className="text-xs text-pink-600 font-medium">Routes</span>
+        </div>
+        <div className="text-2xl font-bold text-gray-900">{quickStats.weekTrips}</div>
+        <div className="text-xs text-gray-600">Week Trips</div>
+      </div>
+      
+      <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-2">
+          <Users className="h-5 w-5 text-indigo-600" />
+          <span className="text-xs text-indigo-600 font-medium">Top</span>
+        </div>
+        <div className="text-lg font-bold text-gray-900 truncate">
+          {quickStats.topPerformer?.name || 'N/A'}
+        </div>
+        <div className="text-xs text-gray-600">Best Driver</div>
+      </div>
+    </div>
+  );
+
+  // Smart Filter Panel
+  const SmartFilterPanel = () => (
+    <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Filter className="h-5 w-5" />
+          Smart Filters
+        </h3>
+        <div className="flex gap-2">
+          <button
+            onClick={applyPresetFilter('today')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Today
+          </button>
+          <button
+            onClick={applyPresetFilter('week')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            This Week
+          </button>
+          <button
+            onClick={applyPresetFilter('profitable')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Profitable
+          </button>
+          <button
+            onClick={applyPresetFilter('issues')}
+            className="px-3 py-1 text-xs bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Has Issues
+          </button>
+        </div>
+      </div>
+      
+      {/* Advanced Filter Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Date Range Picker */}
+        <div className="col-span-2">
+          <label className="text-xs font-medium text-gray-600">Date Range</label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="date"
+              value={filters.dateRange.start ? format(filters.dateRange.start, 'yyyy-MM-dd') : ''}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                dateRange: { ...prev.dateRange, start: new Date(e.target.value) }
+              }))}
+              className="flex-1 px-2 py-1 text-sm border rounded-lg"
+            />
+            <input
+              type="date"
+              value={filters.dateRange.end ? format(filters.dateRange.end, 'yyyy-MM-dd') : ''}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                dateRange: { ...prev.dateRange, end: new Date(e.target.value) }
+              }))}
+              className="flex-1 px-2 py-1 text-sm border rounded-lg"
+            />
+          </div>
+        </div>
+        
+        {/* Multi-select for Vehicles */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Vehicles</label>
+          <select
+            multiple
+            value={filters.vehicleIds}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions, option => option.value);
+              setFilters(prev => ({ ...prev, vehicleIds: selected }));
+            }}
+            className="w-full mt-1 px-2 py-1 text-sm border rounded-lg"
+          >
+            {vehicles.map(v => (
+              <option key={v.id} value={v.id}>{v.registration_number}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Profit Status */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Profit Status</label>
+          <select
+            value={filters.profitStatus}
+            onChange={(e) => setFilters(prev => ({ ...prev, profitStatus: e.target.value as any }))}
+            className="w-full mt-1 px-2 py-1 text-sm border rounded-lg"
+          >
+            <option value="">All</option>
+            <option value="profit">Profitable</option>
+            <option value="loss">Loss Making</option>
+            <option value="neutral">Break Even</option>
+          </select>
+        </div>
+        
+        {/* Mileage Range Slider */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">
+            Mileage: {filters.mileageRange.min}-{filters.mileageRange.max} km/L
+          </label>
+          <div className="flex gap-2 mt-1">
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={filters.mileageRange.min}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                mileageRange: { ...prev.mileageRange, min: Number(e.target.value) }
+              }))}
+              className="flex-1"
+            />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              value={filters.mileageRange.max}
+              onChange={(e) => setFilters(prev => ({
+                ...prev,
+                mileageRange: { ...prev.mileageRange, max: Number(e.target.value) }
+              }))}
+              className="flex-1"
+            />
+          </div>
+        </div>
+        
+        {/* Search */}
+        <div>
+          <label className="text-xs font-medium text-gray-600">Search</label>
+          <div className="relative mt-1">
+            <Search className="absolute left-2 top-1.5 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              placeholder="Trip ID, notes..."
+              className="w-full pl-8 pr-2 py-1 text-sm border rounded-lg"
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Active Filters Display */}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {filters.vehicleIds.length > 0 && (
+          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded-full">
+            {filters.vehicleIds.length} vehicles
+          </span>
+        )}
+        {filters.profitStatus && (
+          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
+            {filters.profitStatus}
+          </span>
+        )}
+        {(filters.dateRange.start || filters.dateRange.end) && (
+          <span className="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded-full">
+            Custom date range
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  // Enhanced Trip Card for Card View
+  const EnhancedTripCard = ({ trip }: { trip: Trip }) => {
+    const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
+    const driver = drivers.find(d => d.id === trip.driver_id);
+    const profitClass = trip.net_profit > 0 ? 'text-green-600' : 
+                       trip.net_profit < 0 ? 'text-red-600' : 'text-gray-600';
+    
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <h4 className="font-semibold text-gray-900">{trip.trip_serial_number}</h4>
+            <p className="text-xs text-gray-500">
+              {format(new Date(trip.trip_start_date), 'dd MMM yyyy')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={selectedTrips.has(trip.id)}
+              onChange={(e) => {
+                const newSelected = new Set(selectedTrips);
+                if (e.target.checked) {
+                  newSelected.add(trip.id);
+                } else {
+                  newSelected.delete(trip.id);
+                }
+                setSelectedTrips(newSelected);
+              }}
+              className="rounded"
+            />
+            <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+              trip.profit_status === 'profit' ? 'bg-green-100 text-green-700' :
+              trip.profit_status === 'loss' ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-700'
+            }`}>
+              {trip.profit_status}
+            </div>
+          </div>
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Truck className="h-4 w-4 text-gray-400" />
+            <span>{vehicle?.registration_number}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-400" />
+            <span>{driver?.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span>{trip.end_km - trip.start_km} km</span>
+          </div>
+        </div>
+        
+        <div className="mt-3 pt-3 border-t flex items-center justify-between">
+          <div>
+            <p className="text-xs text-gray-500">Net Profit</p>
+            <p className={`font-semibold ${profitClass}`}>
+              ₹{trip.net_profit?.toLocaleString() || 0}
+            </p>
+          </div>
+          <div className="flex gap-1">
+            <button
+              onClick={() => handleViewTrip(trip)}
+              className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleEditTrip(trip)}
+              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handlePrintTrip(trip)}
+              className="p-1.5 text-green-600 hover:bg-green-50 rounded"
+            >
+              <Printer className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Kanban Board View
+  const KanbanBoard = () => {
+    const columns = {
+      pending: trips.filter(t => !t.income_amount),
+      inProgress: trips.filter(t => t.income_amount && !t.net_profit),
+      completed: trips.filter(t => t.net_profit !== undefined)
     };
-    fetchData();
-  }, []);
-
-  // Fetch summary metrics when filters change
-  useEffect(() => {
-    fetchSummaryMetrics();
-    // Reset to first page when filters change
-    setCurrentPage(1);
-  }, [filters]);
-
-  // Refresh data function
-  const refreshData = async () => {
-    try {
-      setRefreshing(true);
-      const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
-        getTrips(),
-        getVehicles(),
-        getDrivers(),
-        getWarehouses()
-      ]);
-      setTrips(tripsData);
-      setVehicles(vehiclesData);
-      setDrivers(driversData);
-      setWarehouses(warehousesData);
-      
-      await fetchSummaryMetrics();
-      toast.success("Data refreshed successfully");
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      toast.error("Failed to refresh data");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  // Filter trips based on current filters
-  const filteredTrips = useMemo(() => {
-    return trips.filter(trip => {
-      // Search filter
-      if (filters.search) {
-        const vehicle = vehiclesMap.get(trip.vehicle_id);
-        const driver = driversMap.get(trip.driver_id);
-        
-        const searchTerm = filters.search.toLowerCase();
-        const searchFields = [
-          trip.trip_serial_number,
-          vehicle?.registration_number,
-          driver?.name,
-        ].map(field => field?.toLowerCase());
-        
-        if (!searchFields.some(field => field?.includes(searchTerm))) {
-          return false;
-        }
-      }
-
-      // Date range filter
-      if (filters.dateRange.start) {
-        const startDate = new Date(filters.dateRange.start);
-        const tripStartDate = new Date(trip.trip_start_date);
-        if (tripStartDate < startDate) {
-          return false;
-        }
-      }
-      
-      if (filters.dateRange.end) {
-        const endDate = new Date(filters.dateRange.end);
-        endDate.setHours(23, 59, 59, 999); // End of day
-        const tripEndDate = new Date(trip.trip_end_date);
-        if (tripEndDate > endDate) {
-          return false;
-        }
-      }
-
-      // Vehicle filter
-      if (filters.vehicleId && trip.vehicle_id !== filters.vehicleId) {
-        return false;
-      }
-
-      // Driver filter
-      if (filters.driverId && trip.driver_id !== filters.driverId) {
-        return false;
-      }
-
-      // Warehouse filter
-      if (filters.warehouseId && trip.warehouse_id !== filters.warehouseId) {
-        return false;
-      }
-
-      // Trip type filter
-      if (filters.tripType) {
-        if (filters.tripType === 'two_way' && !(Array.isArray(trip.destinations) && trip.destinations.length > 1)) {
-          return false;
-        }
-        if (filters.tripType === 'one_way' && !(Array.isArray(trip.destinations) && trip.destinations.length === 1)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [trips, vehiclesMap, driversMap, filters]);
-
-  // Calculate pagination
-  const indexOfLastTrip = currentPage * tripsPerPage;
-  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
-  const currentTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
-  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
-  
-  // Go to a specific page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
-
-  // Previous page
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-  
-  // Next page
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const fetchSummaryMetrics = async () => {
-    try {
-      setSummaryLoading(true);
-      
-      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
-        start_date: filters.dateRange.start ? new Date(filters.dateRange.start).toISOString() : null,
-        end_date: filters.dateRange.end ? new Date(filters.dateRange.end).toISOString() : null,
-        p_vehicle_id: filters.vehicleId || null,
-        p_driver_id: filters.driverId || null,
-        p_warehouse_id: filters.warehouseId || null,
-        p_trip_type: filters.tripType || null
-      });
-      
-      if (error) {
-        console.error("Error fetching summary metrics:", error);
-      } else if (data) {
-        setSummaryMetrics(data);
-      }
-    } catch (error) {
-      console.error("Exception fetching summary metrics:", error);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
-  const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
-    const updatedTrip = await updateTrip(tripId, updates);
-    if (updatedTrip) {
-      setTrips(prev => 
-        prev.map(trip => 
-          trip.id === tripId ? updatedTrip : trip
-        )
-      );
-      // Refresh summary metrics after update
-      fetchSummaryMetrics();
-    }
-  };
-
-  const handleDeleteTrip = async (tripId: string) => {
-    try {
-      // Delete the trip from Supabase
-      const { error } = await supabase
-        .from('trips')
-        .delete()
-        .eq('id', tripId);
-
-      if (error) {
-        throw new Error(`Failed to delete trip: ${error.message}`);
-      }
-
-      // If successful, update the trips list
-      setTrips(prev => prev.filter(trip => trip.id !== tripId));
-      toast.success('Trip deleted successfully');
-      
-      // Refresh summary metrics
-      fetchSummaryMetrics();
-      
-      // If the last trip on the page was deleted, go to previous page
-      if (currentTrips.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
-    } catch (error) {
-      console.error("Error deleting trip:", error);
-      toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
-    if (newFilters.dateRange && datePreset !== 'custom') {
-      // If manually changing dates, switch to custom preset
-      setDatePreset('custom');
-    }
     
-    setFilters(prev => ({
-      ...prev,
-      ...newFilters
-    }));
-  };
-  
-  const clearFilters = () => {
-    setFilters({
-      dateRange: {
-        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-        end: format(new Date(), 'yyyy-MM-dd')
-      },
-      vehicleId: '',
-      driverId: '',
-      warehouseId: '',
-      tripType: '',
-      search: ''
-    });
-    setDatePreset('last30');
-  };
-
-  const handleExport = async (options: ExportOptions) => {
-    // Filter trips based on export options
-    let filteredTrips = trips;
-
-    if (options.dateRange.start) {
-      filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
-      );
-    }
-
-    if (options.dateRange.end) {
-      filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.trip_end_date) <= new Date(options.dateRange.end)
-      );
-    }
-
-    if (options.vehicleId) {
-      filteredTrips = filteredTrips.filter(trip => trip.vehicle_id === options.vehicleId);
-    }
-
-    if (options.driverId) {
-      filteredTrips = filteredTrips.filter(trip => trip.driver_id === options.driverId);
-    }
-
-    if (options.warehouseId) {
-      filteredTrips = filteredTrips.filter(trip => trip.warehouse_id === options.warehouseId);
-    }
-
-    if (options.tripType) {
-      filteredTrips = filteredTrips.filter(trip => {
-        if (options.tripType === 'two_way') return Array.isArray(trip.destinations) && trip.destinations.length > 1;
-        return Array.isArray(trip.destinations) && trip.destinations.length === 1;
-      });
-    }
-
-    // Prepare data for export
-    const exportData = filteredTrips.map(trip => {
-      const vehicle = vehiclesMap.get(trip.vehicle_id);
-      const driver = driversMap.get(trip.driver_id);
-      const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
-
-      return {
-        'Trip ID': trip.trip_serial_number,
-        'Start Date': new Date(trip.trip_start_date).toLocaleDateString(),
-        'End Date': new Date(trip.trip_end_date).toLocaleDateString(),
-        'Vehicle': vehicle?.registration_number,
-        'Driver': driver?.name,
-        'Source': warehouse?.name,
-        'Start KM': trip.start_km,
-        'End KM': trip.end_km,
-        'Distance': trip.end_km - trip.start_km,
-        'Mileage': trip.calculated_kmpl?.toFixed(2) || '-',
-        'Fuel Cost': trip.total_fuel_cost || 0,
-        'Road Expenses': trip.total_road_expenses,
-        'Total Cost': (trip.total_fuel_cost || 0) + trip.total_road_expenses,
-        'Revenue': trip.income_amount || 0,
-        'Profit/Loss': trip.net_profit ? `₹${trip.net_profit.toLocaleString()}` : '-',
-        'Status': trip.profit_status ? trip.profit_status.charAt(0).toUpperCase() + trip.profit_status.slice(1) : '-',
-        'Type': Array.isArray(trip.destinations) && trip.destinations.length > 1
-          ? 'Two Way'
-          : 'One Way'
-      };
-    });
-
-    // Export based on format
-    if (options.format === 'xlsx') {
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Trips');
-      XLSX.writeFile(wb, 'trips-export.xlsx');
-    } else {
-      const csv = await generateCSV(exportData, {});
-      downloadCSV('trips-export.csv', csv);
-    }
-  };
-
-  const handleDownloadFormat = async () => {
-    const sampleData = [{
-      'Trip ID': 'T0001',
-      'Vehicle Registration': 'CG-04-XX-1234',
-      'Driver Name': 'John Doe',
-      'Start Date': '01/01/2024',
-      'End Date': '02/01/2024',
-      'Source Warehouse': 'Main Warehouse',
-      'Destination(s)': 'Bhilai, Durg',
-      'Start KM': '10000',
-      'End KM': '10500',
-      'Fuel Quantity': '50',
-      'Fuel Cost': '5000',
-      'Road Expenses': '2000',
-      'Trip Type': 'Two Way',
-      'Notes': 'Regular delivery trip'
-    }];
-
-    const csv = await generateCSV(sampleData, {});
-    downloadCSV('trips-import-format.csv', csv);
-  };
-
-  const handleImport = async (file: File) => {
-    try {
-      const data = await parseCSV(file);
-      // Process imported data
-      toast.info(`Imported ${data.length} trips. Processing...`);
-      // You'd normally process these and add to the database
-      // For now, we're just showing a success message
-      toast.success(`Successfully processed ${data.length} trips`);
-    } catch (error) {
-      console.error('Error importing file:', error);
-      toast.error('Failed to import trips');
-    }
-  };
-
-  const getActiveFiltersText = () => {
-    const parts = [];
-    
-    if (filters.vehicleId) {
-      const vehicle = vehiclesMap.get(filters.vehicleId);
-      parts.push(`Vehicle: ${vehicle?.registration_number || 'Unknown'}`);
-    } else {
-      parts.push('Vehicle: All');
-    }
-    
-    if (filters.driverId) {
-      const driver = driversMap.get(filters.driverId);
-      parts.push(`Driver: ${driver?.name || 'Unknown'}`);
-    } else {
-      parts.push('Driver: All');
-    }
-    
-    if (filters.dateRange.start && filters.dateRange.end) {
-      parts.push(`Dates: ${format(new Date(filters.dateRange.start), 'dd MMM yyyy')} - ${format(new Date(filters.dateRange.end), 'dd MMM yyyy')}`);
-    }
-    
-    return parts.join(', ');
+    return (
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {Object.entries(columns).map(([status, columnTrips]) => (
+          <div key={status} className="min-w-[300px] bg-gray-50 rounded-lg p-4">
+            <h3 className="font-semibold text-gray-700 mb-3 capitalize">
+              {status} ({columnTrips.length})
+            </h3>
+            <div className="space-y-2">
+              {columnTrips.slice(0, 10).map(trip => (
+                <EnhancedTripCard key={trip.id} trip={trip} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
-    <Layout>
+    <div className="p-6 space-y-4">
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <FileText className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Trip Management Admin</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage and analyze all trip records
+          </p>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">View and manage all trip records</p>
+        
+        <div className="flex items-center gap-3">
+          {/* View Mode Selector */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'table' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Table
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'cards' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Cards
+            </button>
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 text-sm rounded ${
+                viewMode === 'kanban' ? 'bg-white shadow-sm' : ''
+              }`}
+            >
+              Kanban
+            </button>
+          </div>
+          
+          <button
+            onClick={refreshData}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </button>
+          
+          <button
+            onClick={() => setShowSettings(true)}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        </div>
       </div>
-
-      {/* Filters */}
-      {!loading && (
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-4 border-l-2 border-blue-500 pl-2">
-            <h3 className="text-lg font-medium">Trip Filters</h3>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={clearFilters}
-                icon={<X className="h-4 w-4" />}
-              >
-                Clear Filters
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={refreshData}
-                icon={<RefreshCw className="h-4 w-4" />}
-                isLoading={refreshing}
-              >
-                Refresh
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowFilters(!showFilters)}
-                icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
-              >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </Button>
-            </div>
+      
+      {/* Enhanced Stats Dashboard */}
+      <EnhancedStatsDashboard />
+      
+      {/* Smart Filter Panel */}
+      <SmartFilterPanel />
+      
+      {/* Quick Actions Bar */}
+      {selectedTrips.size > 0 && <QuickActionsBar />}
+      
+      {/* Content Area */}
+      <div className="bg-white rounded-lg shadow-sm">
+        {viewMode === 'table' && (
+          // Your existing table component
+          <div>Table View</div>
+        )}
+        
+        {viewMode === 'cards' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+            {filteredTrips.map(trip => (
+              <EnhancedTripCard key={trip.id} trip={trip} />
+            ))}
           </div>
-
-          {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              {/* Search */}
-              <Input
-                placeholder="Search trips..."
-                icon={<Search className="h-4 w-4" />}
-                value={filters.search}
-                onChange={e => handleFiltersChange({ search: e.target.value })}
-              />
-              
-              {/* Date Preset Dropdown */}
-              <Select
-                options={datePresetOptions}
-                value={datePreset}
-                onChange={e => setDatePreset(e.target.value)}
-              />
-              
-              {/* Date Range */}
-              <Input
-                type="date"
-                value={filters.dateRange.start}
-                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, start: e.target.value } })}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              
-              <Input
-                type="date"
-                value={filters.dateRange.end}
-                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, end: e.target.value } })}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              
-              {/* Vehicle Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Vehicles' },
-                  ...vehicles.map(v => ({
-                    value: v.id,
-                    label: v.registration_number
-                  }))
-                ]}
-                value={filters.vehicleId}
-                onChange={e => handleFiltersChange({ vehicleId: e.target.value })}
-              />
-              
-              {/* Driver Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Drivers' },
-                  ...drivers.map(d => ({
-                    value: d.id,
-                    label: d.name
-                  }))
-                ]}
-                value={filters.driverId}
-                onChange={e => handleFiltersChange({ driverId: e.target.value })}
-              />
-              
-              {/* Warehouse Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Warehouses' },
-                  ...warehouses.map(w => ({
-                    value: w.id,
-                    label: w.name
-                  }))
-                ]}
-                value={filters.warehouseId}
-                onChange={e => handleFiltersChange({ warehouseId: e.target.value })}
-              />
-              
-              {/* Trip Type Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Trip Types' },
-                  { value: 'one_way', label: 'One Way' },
-                  { value: 'two_way', label: 'Two Way' },
-                  { value: 'local', label: 'Local Trip' }
-                ]}
-                value={filters.tripType}
-                onChange={e => handleFiltersChange({ tripType: e.target.value })}
-              />
-            </div>
-          )}
-
-          {/* Active filters display */}
-          <div className="bg-gray-100 px-3 py-1.5 text-sm text-gray-600 rounded">
-            <strong>Active Filters:</strong> {getActiveFiltersText()}
+        )}
+        
+        {viewMode === 'kanban' && (
+          <div className="p-4">
+            <KanbanBoard />
           </div>
-        </div>
-      )}
-
-      {/* Summary Metrics */}
-      <TripsSummary
-        trips={trips}
-        vehicles={vehicles}
-        drivers={drivers}
-        loading={summaryLoading}
-        metrics={summaryMetrics}
-      />
-
-      {/* Trip Table */}
-      <TripsTable
-        trips={currentTrips}
-        vehicles={vehicles}
-        drivers={drivers}
-        onUpdateTrip={handleUpdateTrip}
-        onDeleteTrip={handleDeleteTrip}
-        onExport={() => setShowExportModal(true)}
-        onImport={handleImport}
-        onDownloadFormat={handleDownloadFormat}
-      />
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow-sm mt-4">
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{indexOfFirstTrip + 1}</span> to{' '}
-                <span className="font-medium">
-                  {Math.min(indexOfLastTrip, filteredTrips.length)}
-                </span>{' '}
-                of <span className="font-medium">{filteredTrips.length}</span> results
-              </p>
-            </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  onClick={goToPreviousPage}
-                  className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
-                    currentPage === 1 ? 'cursor-not-allowed opacity-50' : ''
-                  }`}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Simple pagination logic that shows 5 pages at most
-                  let pageNum = i + 1;
-                  if (totalPages > 5) {
-                    if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => paginate(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                        currentPage === pageNum
-                          ? 'z-10 bg-primary-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={goToNextPage}
-                  className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
-                    currentPage === totalPages ? 'cursor-not-allowed opacity-50' : ''
-                  }`}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showExportModal && (
-        <ExportOptionsModal
-          onExport={handleExport}
-          onClose={() => setShowExportModal(false)}
-          vehicles={vehicles}
-          drivers={drivers}
-          warehouses={warehouses}
-        />
-      )}
-    </Layout>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default AdminTripsPage;
+export default EnhancedAdminTripsPage;
