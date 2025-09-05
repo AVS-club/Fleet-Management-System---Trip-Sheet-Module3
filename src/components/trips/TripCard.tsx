@@ -54,7 +54,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             const destinations = await Promise.all(
               trip.destinations.map(async (id) => {
                 try {
-                  return await getDestination(id);
+                  return await getDestinationByAnyId(id);
                 } catch (error) {
                   if (config.isDev) console.warn(`Destination ${id} not found or error fetching:`, error);
                   return null;
