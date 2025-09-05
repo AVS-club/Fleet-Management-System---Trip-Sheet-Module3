@@ -2,7 +2,6 @@ import { getWarehouse, getDestination, getDestinationByAnyId } from '../../utils
 import { Trip, Vehicle, Driver } from '@/types';
 import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit, Camera, RefreshCw } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
-import { getWarehouse, getDestination } from '../../utils/storage';
 import { truncateString } from '../../utils/format';
 import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
 import { toast } from 'react-toastify';
