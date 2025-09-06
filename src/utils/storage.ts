@@ -8,7 +8,7 @@ import { getTrips } from './api/trips';
 export * from './api';
 export { getTrips };
 
-export async function getUserData() {
+async function getUserData() {
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
     
@@ -353,7 +353,7 @@ export const findOrCreateDestinationByPlaceId = async (
 };
 // Vehicle stats
 
-export interface VehicleStats {
+interface VehicleStats {
   totalTrips: number;
   totalDistance: number;
   averageKmpl?: number;

@@ -2,7 +2,7 @@ import React from 'react';
 import { MessageSquare } from 'lucide-react';
 import Button from '../ui/Button';
 
-export interface WhatsAppButtonProps {
+interface WhatsAppButtonProps {
   /** Message to share. Used when no custom onClick is provided */
   message?: string;
   /** Custom handler for click events */

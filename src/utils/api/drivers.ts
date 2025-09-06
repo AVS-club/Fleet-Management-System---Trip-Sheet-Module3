@@ -5,7 +5,7 @@ import { getCurrentUserId, withOwner } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';
 
 // Define allowed columns for drivers table
-export const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at,license_expiry_date';
+const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at,license_expiry_date';
 
 export const getDrivers = async (): Promise<Driver[]> => {
   try {
@@ -166,7 +166,7 @@ export const updateDriver = async (id: string, updates: Partial<Driver>): Promis
   }
 };
 
-export const deleteDriver = async (id: string): Promise<boolean> => {
+const deleteDriver = async (id: string): Promise<boolean> => {
   const { error } = await supabase
     .from('drivers')
     .delete()

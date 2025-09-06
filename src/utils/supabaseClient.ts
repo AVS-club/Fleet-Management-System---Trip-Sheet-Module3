@@ -169,7 +169,7 @@ export const isNetworkError = (error: any): boolean => {
 };
 
 // Helper function to handle network errors gracefully
-export const handleNetworkError = (error: any, fallbackData: any = null) => {
+const handleNetworkError = (error: any, fallbackData: any = null) => {
   if (isNetworkError(error)) {
     if (config.isDev) console.warn('Network connectivity issue detected. Using fallback data or retrying...');
     return { data: fallbackData, error: null };

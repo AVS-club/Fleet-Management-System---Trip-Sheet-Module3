@@ -2,7 +2,7 @@ import { MaintenanceTask, MAINTENANCE_ITEMS } from '@/types/maintenance';
 import { Vehicle } from '@/types';
 import { format, differenceInDays, differenceInMonths } from 'date-fns';
 
-export interface PartDefinition {
+interface PartDefinition {
   id: string;
   name: string;
   category: string;
@@ -43,7 +43,7 @@ export interface PartHealthMetrics {
 }
 
 // Comprehensive part definitions for fleet vehicles
-export const PART_DEFINITIONS: PartDefinition[] = [
+const PART_DEFINITIONS: PartDefinition[] = [
   {
     id: 'tyres_front',
     name: 'Tyres (Front)',

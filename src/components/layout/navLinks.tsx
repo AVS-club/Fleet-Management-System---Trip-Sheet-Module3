@@ -9,7 +9,7 @@ import {
   ShieldCheck 
 } from 'lucide-react';
 
-export type NavLink = {
+type NavLink = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;

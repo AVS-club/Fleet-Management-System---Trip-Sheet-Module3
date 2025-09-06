@@ -22,7 +22,7 @@ export interface VehicleActivityLog {
  * @param notes Optional notes about the action
  * @returns The created log entry or null if there was an error
  */
-export const logVehicleActivity = async (
+const logVehicleActivity = async (
   vehicleId: string, 
   actionType: VehicleActivityLog['action_type'], 
   actionBy: string, 

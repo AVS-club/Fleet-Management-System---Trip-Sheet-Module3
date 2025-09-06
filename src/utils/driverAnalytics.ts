@@ -4,7 +4,7 @@ import { format, parseISO, isValid, isWithinInterval, differenceInDays, startOfM
 
 // --- Interfaces ---
 
-export interface DriverPerformanceMetrics {
+interface DriverPerformanceMetrics {
   driverId: string;
   name: string;
   totalTrips: number;

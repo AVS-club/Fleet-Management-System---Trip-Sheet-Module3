@@ -25,14 +25,14 @@ if (!parsed.success) {
 const data = parsed.data;
 const isDev = data.MODE === 'development' || data.DEV === true || data.DEV === 'true';
 
-export const config = {
+const config = {
   supabaseUrl: data.VITE_SUPABASE_URL,
   supabaseAnonKey: data.VITE_SUPABASE_ANON_KEY,
   googleMapsApiKey: data.VITE_GOOGLE_MAPS_API_KEY,
   isDev,
 };
 
-export const isValidUrl = (url: string | undefined): boolean => {
+const isValidUrl = (url: string | undefined): boolean => {
   if (!url) return false;
   try {
     new URL(url);

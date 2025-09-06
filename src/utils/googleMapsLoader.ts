@@ -22,4 +22,4 @@ export const loadGoogleMaps = (): Promise<typeof google> => {
   return loadPromise;
 };
 
-export { loader };
+;

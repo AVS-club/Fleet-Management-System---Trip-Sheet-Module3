@@ -9,7 +9,7 @@ interface TripEntry {
   driver_id?: string;
 }
 
-export function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefined {
+function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefined {
   // If the current trip doesn't have refueling or fuel quantity is missing/invalid, we can't calculate
   if (!currentTrip.refueling_done || !currentTrip.fuel_quantity || currentTrip.fuel_quantity <= 0) {
     return undefined;

@@ -9,7 +9,7 @@ import { handleSupabaseError } from "./errors";
  * @param onProgress Callback for progress updates (0-100)
  * @returns Promise<string> The file path
  */
-export const uploadFileWithProgress = async (
+const uploadFileWithProgress = async (
   bucketName: string,
   filePath: string,
   file: File,

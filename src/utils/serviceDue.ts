@@ -1,11 +1,11 @@
 import { addDays } from 'date-fns';
 
-export interface NextDueCalculation {
+interface NextDueCalculation {
   nextDueOdo?: number;
   nextDueDate?: string;
 }
 
-export interface DueStatusResult {
+interface DueStatusResult {
   status: 'ok' | 'due_soon' | 'overdue';
   kmToDue?: number;
   daysToDue?: number;

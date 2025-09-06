@@ -1,4 +1,4 @@
-export interface RCDetails {
+interface RCDetails {
   registrationNumber?: string;
   chassisNumber?: string;
   engineNumber?: string;
@@ -17,7 +17,7 @@ export interface RCDetails {
   rawText?: string;
 }
 
-export interface InsuranceDetails {
+interface InsuranceDetails {
   policyNumber?: string;
   insurerName?: string;
   validFrom?: string;
