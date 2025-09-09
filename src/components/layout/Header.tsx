@@ -35,7 +35,7 @@ const Header: React.FC = () => {
             {/* Logo with fallback */}
             <div className="relative flex items-center justify-center h-9 w-9 bg-gradient-to-br from-primary-500 to-primary-600 rounded-brand shadow-brand group-hover:shadow-brand-lg transition-all duration-200">
               <img 
-                src="/assets/AVS LOGO 512x512.png"
+                src="/assets/AVS-LOGO-512x512.png"
                 alt="AVS" 
                 className="h-8 w-8 object-contain"
                 onError={(e) => {
