@@ -34,6 +34,8 @@ export interface Trip {
   trip_serial_number?: string;
   manual_trip_id?: string;
   destinations: string[];
+  destination_names?: string[]; // Store destination names for direct display
+  destination_display?: string; // Single string for display like "Raipur → Bacheli"
   trip_start_date: string;
   trip_end_date: string;
   start_km: number;

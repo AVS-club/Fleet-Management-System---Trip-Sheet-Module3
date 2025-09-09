@@ -1,0 +1,28 @@
+I’ve uploaded a PDF containing screenshots of my Add Trip page and Trips Dashboard from my Auto Vital Solution (AVS) web app. Please analyze and provide detailed feedback on both UI structure and functionality.
+🔍 1. Add Trip Form – Key Issues:
+* Validate the field layout and toggle behavior (return trip, refueling).
+* Note if you see field alignment bugs – e.g., placeholder icons like ₹, 📍, etc., not clearing even after filling values.
+* These placeholder icons/icons must not persist after data is entered – they’re currently eating up space and sometimes even overlap with text.
+* Can the Google Maps trip preview be resized or optimized?
+   * It currently takes too much space.
+   * Suggest UI layout where “Route Analysis” stays left, and “Map” is on right (both in one row).
+* Validate if trip details, fuel info, expenses, remarks, etc. are well grouped and usable.
+* Check if anything important is missing or inefficiently structured.
+📊 2. Trips Dashboard (Main Page):
+* There’s an issue where destination location doesn’t show on trip cards.
+   * The origin is fixed (warehouse), but destination is user-entered via Google Places API.
+   * However, on display, it shows “loading…” or “no location found”, and on edit, the destination is gone.
+   * I suspect it's because we’re saving only the place ID or full object and trying to fetch it again — but that wastes API tokens and is breaking the UI.
+   * Please suggest a better approach — I want the final destination text string (e.g., “Raipur, CG”) to be saved in a separate Supabase column so it can be directly reused.
+✅ Also Check:
+* If my layout or database usage seems mismatched or overcomplicated.
+* If any UX bugs, missing info, or inefficient design stand out — especially around:
+   * Odometer pre-fill
+   * Driver auto-selection
+   * Multi-destination trips
+   * Fastag/Fuel/Trip Slip uploads
+* Match against my Supabase schema (uploaded as two .txt files) and flag anything not aligning.
+Please go section by section and give me detailed feedback + action steps to fix or improve.
+
+i couldve missed to higlight some issue, but you can scan your own way.
+
