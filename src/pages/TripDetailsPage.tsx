@@ -160,6 +160,53 @@ const TripDetailsPage: React.FC = () => {
     }
   };
   
+  const handleCloneTrip = () => {
+    if (!trip) return;
+    
+    // Prepare cloned trip data according to requirements
+    const clonedTripData = {
+      vehicle_id: trip.vehicle_id,
+      driver_id: trip.driver_id,
+      warehouse_id: trip.warehouse_id,
+      // Copy expense fields
+      unloading_expense: trip.unloading_expense,
+      driver_expense: trip.driver_expense,
+      road_rto_expense: trip.road_rto_expense,
+      breakdown_expense: trip.breakdown_expense,
+      // Set start_km to the end_km of this trip
+      start_km: trip.end_km,
+      // Leave all other fields empty for manual entry
+      destinations: [],
+      trip_start_date: '',
+      trip_end_date: '',
+      gross_weight: null,
+      fuel_quantity: null,
+      end_km: null,
+      miscellaneous_expense: null,
+      material_type_ids: [],
+      is_return_trip: false,
+      refueling_done: false
+    };
+    
+    // Navigate to trips page with clone data
+    navigate('/trips', { 
+      state: { 
+        openAddForm: true, 
+        clonedTripData: clonedTripData 
+      } 
+    });
+  };
+  
+  const handleReturnTrip = () => {
+    // Placeholder for return trip functionality
+    console.log('Return trip functionality not yet implemented');
+  };
+  
+  const handleRefuelingTrip = () => {
+    // Placeholder for refueling trip functionality
+    console.log('Refueling trip functionality not yet implemented');
+  };
+  
   const handleUpdate = async (data: TripFormData) => {
     if (!trip) return;
     
@@ -317,6 +364,9 @@ const TripDetailsPage: React.FC = () => {
             onBack={handleBack}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onCloneTrip={handleCloneTrip}
+            onReturnTrip={handleReturnTrip}
+            onRefuelingTrip={handleRefuelingTrip}
           />
           
           {/* Route Overview Section */}

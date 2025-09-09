@@ -60,13 +60,14 @@ const TripsPage: React.FC = () => {
   useEffect(() => {
     if (location.state?.clonedTripData) {
       setClonedTripData(location.state.clonedTripData);
-      
-      // Auto-start adding trip if shouldStartAdding is true
-      if (location.state.shouldStartAdding) {
-        setIsAddingTrip(true);
-      }
+      setEditingTrip(null); // Clear any editing trip
+      setIsAddingTrip(true); // Open the add form
       
       // Clear the location state to prevent re-applying cloned data
+      window.history.replaceState({}, document.title);
+    } else if (location.state?.openAddForm) {
+      // Handle opening add form without clone data
+      setIsAddingTrip(true);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -224,6 +225,7 @@ const TripsPage: React.FC = () => {
         setTrips(prev => Array.isArray(prev) ? [...prev, newTrip] : [newTrip]);
         setIsAddingTrip(false);
         setEditingTrip(null);
+        setClonedTripData(null); // Clear cloned data after successful submission
         
         // Redirect to the trip details page
         navigate(`/trips/${newTrip.id}`);
@@ -325,6 +327,7 @@ const TripsPage: React.FC = () => {
               onClick={() => {
                 setIsAddingTrip(false);
                 setEditingTrip(null);
+                setClonedTripData(null); // Clear cloned data on cancel
               }}
             >
               Cancel
