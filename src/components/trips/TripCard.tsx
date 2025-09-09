@@ -250,7 +250,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
               <span className="truncate max-w-[100px]">{warehouseData.name}</span>
               <ArrowRight className="h-3 w-3 flex-shrink-0" />
               <span className="truncate max-w-[100px]">
-                {truncateString(destinationData[0]?.name, 4)}
+                {destinationData[0]?.name}
               </span>
               {destinationData.length > 1 && (
                 <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
