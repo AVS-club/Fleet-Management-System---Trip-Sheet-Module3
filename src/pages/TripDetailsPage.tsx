@@ -105,21 +105,32 @@ const TripDetailsPage: React.FC = () => {
             
             if (Array.isArray(tripData.destinations) && tripData.destinations.length > 0) {
               try {
-                // Query destinations table using place_id field for Google Place IDs, include place_name
+                // First try querying by UUID (the primary storage method)
                 const { data: destinationData, error: destError } = await supabase
                   .from('destinations')
                   .select('id, name, latitude, longitude, type, state, active, place_id, formatted_address')
-                  .in('place_id', tripData.destinations)
+                  .in('id', tripData.destinations)
                   .eq('created_by', user.id);
 
-                if (!destError && destinationData) {
+                if (!destError && destinationData && destinationData.length > 0) {
                   setDestinations(destinationData);
                 } else {
-                  // Fallback: try querying by UUID in case destinations are stored as UUIDs
-                  const destinationPromises = tripData.destinations.map(destId => getDestinationByAnyId(destId));
-                  const destinationResults = await Promise.all(destinationPromises);
-                  const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
-                  setDestinations(validDestinations);
+                  // Fallback: try querying by place_id in case destinations are stored as place_ids
+                  const { data: placeIdData, error: placeIdError } = await supabase
+                    .from('destinations')
+                    .select('id, name, latitude, longitude, type, state, active, place_id, formatted_address')
+                    .in('place_id', tripData.destinations)
+                    .eq('created_by', user.id);
+                  
+                  if (!placeIdError && placeIdData && placeIdData.length > 0) {
+                    setDestinations(placeIdData);
+                  } else {
+                    // Final fallback: try using getDestinationByAnyId for mixed formats
+                    const destinationPromises = tripData.destinations.map(destId => getDestinationByAnyId(destId));
+                    const destinationResults = await Promise.all(destinationPromises);
+                    const validDestinations = destinationResults.filter((d): d is Destination => d !== null);
+                    setDestinations(validDestinations);
+                  }
                 }
               } catch (error) {
                 console.error('Error fetching destinations:', error);
