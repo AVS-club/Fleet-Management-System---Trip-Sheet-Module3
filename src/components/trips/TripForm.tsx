@@ -469,6 +469,15 @@ const TripForm: React.FC<TripFormProps> = ({
       data.trip_duration = Math.round((endTime - startTime) / (1000 * 60 * 60)); // hours
     }
 
+    // Add destination names for direct display (no need to fetch later)
+    if (selectedDestinationObjects.length > 0) {
+      data.destination_names = selectedDestinationObjects.map(d => d.name);
+      // Create display string like "Raipur → Bacheli"
+      const warehouseName = warehouses.find(w => w.id === data.warehouse_id)?.name || '';
+      const destNames = selectedDestinationObjects.map(d => d.name).join(' → ');
+      data.destination_display = warehouseName ? `${warehouseName} → ${destNames}` : destNames;
+    }
+
     await onSubmit(data);
   };
 

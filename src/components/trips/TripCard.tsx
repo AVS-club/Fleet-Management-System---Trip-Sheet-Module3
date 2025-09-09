@@ -238,12 +238,19 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
           </div>
         </div>
 
-        {loadingError ? (
+        {/* Route - Use saved destination_display for efficiency */}
+        {trip.destination_display ? (
+          <div className="flex items-center gap-2 text-sm">
+            <MapPin className="h-4 w-4 text-gray-400" />
+            <span className="text-gray-600 truncate">{trip.destination_display}</span>
+          </div>
+        ) : loadingError ? (
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-gray-400" />
             <span className="text-gray-500 italic">{loadingError}</span>
           </div>
         ) : warehouseData && destinationData.length > 0 ? (
+          // Fallback for older trips without destination_display
           <div className="flex items-center gap-2 text-sm">
             <MapPin className="h-4 w-4 text-gray-400" />
             <div className="flex items-center gap-1 text-gray-600 overflow-hidden">
