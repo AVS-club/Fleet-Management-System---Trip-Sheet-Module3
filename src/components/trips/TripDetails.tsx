@@ -23,7 +23,9 @@ import {
   X,
   Download,
   Settings,
-  Info
+  Info,
+  Copy,
+  RotateCcw
 } from 'lucide-react';
 
 interface TripDetailsProps {
@@ -37,6 +39,9 @@ interface TripDetailsProps {
   onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onCloneTrip?: () => void;
+  onReturnTrip?: () => void;
+  onRefuelingTrip?: () => void;
 }
 
 const TripDetails: React.FC<TripDetailsProps> = ({ 
@@ -49,7 +54,10 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   aiAlerts,
   onBack, 
   onEdit,
-  onDelete
+  onDelete,
+  onCloneTrip,
+  onReturnTrip,
+  onRefuelingTrip
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -181,6 +189,37 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             Trip {trip.trip_serial_number}
           </h2>
           <div className="flex flex-wrap gap-2">
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              {onCloneTrip && (
+                <button
+                  onClick={onCloneTrip}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-colors"
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  Clone
+                </button>
+              )}
+              {onReturnTrip && (
+                <button
+                  onClick={onReturnTrip}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Return Trip
+                </button>
+              )}
+              {onRefuelingTrip && (
+                <button
+                  onClick={onRefuelingTrip}
+                  className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 transition-colors"
+                >
+                  <Fuel className="h-3 w-3 mr-1" />
+                  Refueling Trip
+                </button>
+              )}
+            </div>
+            {/* Status Badges */}
             {trip.is_return_trip && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
                 Return Trip
