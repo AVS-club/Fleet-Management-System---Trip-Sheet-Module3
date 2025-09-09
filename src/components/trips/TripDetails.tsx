@@ -41,7 +41,6 @@ interface TripDetailsProps {
   onDelete: () => void;
   onCloneTrip?: () => void;
   onReturnTrip?: () => void;
-  onRefuelingTrip?: () => void;
 }
 
 const TripDetails: React.FC<TripDetailsProps> = ({ 
@@ -56,8 +55,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onEdit,
   onDelete,
   onCloneTrip,
-  onReturnTrip,
-  onRefuelingTrip
+  onReturnTrip
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -207,15 +205,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 >
                   <RotateCcw className="h-3 w-3 mr-1" />
                   Return Trip
-                </button>
-              )}
-              {onRefuelingTrip && (
-                <button
-                  onClick={onRefuelingTrip}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-300 transition-colors"
-                >
-                  <Fuel className="h-3 w-3 mr-1" />
-                  Refueling Trip
                 </button>
               )}
             </div>

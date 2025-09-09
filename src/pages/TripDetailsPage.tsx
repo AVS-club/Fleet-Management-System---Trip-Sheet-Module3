@@ -202,10 +202,6 @@ const TripDetailsPage: React.FC = () => {
     console.log('Return trip functionality not yet implemented');
   };
   
-  const handleRefuelingTrip = () => {
-    // Placeholder for refueling trip functionality
-    console.log('Refueling trip functionality not yet implemented');
-  };
   
   const handleUpdate = async (data: TripFormData) => {
     if (!trip) return;
@@ -366,7 +362,6 @@ const TripDetailsPage: React.FC = () => {
             onDelete={handleDelete}
             onCloneTrip={handleCloneTrip}
             onReturnTrip={handleReturnTrip}
-            onRefuelingTrip={handleRefuelingTrip}
           />
           
           {/* Route Overview Section */}
