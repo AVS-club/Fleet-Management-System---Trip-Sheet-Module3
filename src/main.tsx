@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
     },
     mutations: {
       // Add shorter retry delays for mobile connections
-      retry: (failureCount, error) => {
+      retry: (failureCount, _error) => {
         if (failureCount > 3) return false;
         return true;
       },
