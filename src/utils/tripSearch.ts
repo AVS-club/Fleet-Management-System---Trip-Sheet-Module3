@@ -80,12 +80,7 @@ export async function searchTripsDatabase(
     // Search filter with fuzzy matching
     if (filters.search && filters.search.trim()) {
       const searchTerm = filters.search.trim();
-      query = query.or(`
-        trip_serial_number.ilike.%${searchTerm}%,
-        manual_trip_id.ilike.%${searchTerm}%,
-        vehicles.registration_number.ilike.%${searchTerm}%,
-        drivers.name.ilike.%${searchTerm}%
-      `);
+      query = query.or(`trip_serial_number.ilike.%${searchTerm}%,manual_trip_id.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
     }
 
     // Vehicle filter

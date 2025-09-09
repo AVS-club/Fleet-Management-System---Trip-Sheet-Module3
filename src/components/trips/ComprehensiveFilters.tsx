@@ -90,13 +90,13 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   return (
     <div className={`bg-white rounded-lg shadow-sm border ${className}`}>
       {/* Filter Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           {/* Left side - Title and Stats */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-primary-600" />
-              <h3 className="font-semibold text-gray-900">Trip Filters</h3>
+              <Filter className="h-4 w-4 text-primary-500" />
+              <h3 className="text-sm font-medium text-gray-700">Trip Filters</h3>
               {activeFilterCount > 0 && (
                 <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs font-medium">
                   {activeFilterCount}
@@ -105,7 +105,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             </div>
             
             {statistics && (
-              <div className="text-sm text-gray-600 hidden sm:block">
+              <div className="text-xs text-gray-500 hidden lg:block">
                 {formatNumber(statistics.totalTrips)} trips • {formatNumber(statistics.totalDistance)} km • {formatCurrency(statistics.totalExpenses)}
               </div>
             )}
@@ -134,25 +134,43 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
           </div>
         </div>
 
-        {/* Search Bar - Always Visible */}
-        <div className="mt-3 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search trips by serial, vehicle, or driver..."
-            value={filters.search || ''}
-            onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-10 pr-4"
-            disabled={isSearching}
-          />
-          {isSearching && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-            </div>
-          )}
+        {/* Search Bar and Sort - Always Visible */}
+        <div className="mt-2 flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search trips by serial, vehicle, or driver..."
+              value={filters.search || ''}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="pl-10 pr-4 h-9 text-sm"
+              disabled={isSearching}
+            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+              </div>
+            )}
+          </div>
+          
+          <div className="sm:w-40">
+            <Select
+              options={[
+                { value: 'date-desc', label: 'Newest First' },
+                { value: 'date-asc', label: 'Oldest First' },
+                { value: 'distance-desc', label: 'Longest' },
+                { value: 'distance-asc', label: 'Shortest' },
+                { value: 'cost-desc', label: 'Highest Cost' },
+                { value: 'cost-asc', label: 'Lowest Cost' }
+              ]}
+              value={filters.sortBy || 'date-desc'}
+              onChange={(e) => updateFilter('sortBy', e.target.value)}
+              className="h-9 text-sm"
+            />
+          </div>
         </div>
 
         {/* Quick Filters */}
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1">
           <Button
             variant={filters.dateRange === 'today' ? 'primary' : 'outline'}
             size="sm"
@@ -193,9 +211,9 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
 
       {/* Expandable Filters */}
       {isExpanded && (
-        <div className="p-4 space-y-4 animate-in slide-in-from-top duration-200">
+        <div className="p-3 space-y-3 animate-in slide-in-from-top duration-200">
           {/* Row 1: Vehicle, Driver, Warehouse */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
               <Select
@@ -245,8 +263,8 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Date Range */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Row 2: Date Range and Refueling */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
               <Input
@@ -270,26 +288,6 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <Select
-                options={[
-                  { value: 'date-desc', label: 'Newest First' },
-                  { value: 'date-asc', label: 'Oldest First' },
-                  { value: 'distance-desc', label: 'Longest Distance' },
-                  { value: 'distance-asc', label: 'Shortest Distance' },
-                  { value: 'cost-desc', label: 'Highest Cost' },
-                  { value: 'cost-asc', label: 'Lowest Cost' }
-                ]}
-                value={filters.sortBy || 'date-desc'}
-                onChange={(e) => updateFilter('sortBy', e.target.value)}
-                size="sm"
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Materials and Options */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Refueling Status</label>
               <Select
                 options={[
@@ -302,7 +300,10 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 size="sm"
               />
             </div>
-            
+          </div>
+
+          {/* Row 3: Materials and Options */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Material Types</label>
               <MultiSelect
