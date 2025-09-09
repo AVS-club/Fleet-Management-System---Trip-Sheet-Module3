@@ -4,7 +4,7 @@ import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
-import { generateTripSerialNumber } from '../../utils/tripSerialGenerator';
+import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import Input from '../ui/Input';
@@ -271,7 +271,8 @@ const TripForm: React.FC<TripFormProps> = ({
         try {
           const vehicle = vehicles.find(v => v.id === selectedVehicleId);
           if (vehicle) {
-            const serialNumber = await generateTripSerialNumber(
+            // Use ensureUniqueTripSerial which handles retries and guarantees uniqueness
+            const serialNumber = await ensureUniqueTripSerial(
               vehicle.registration_number,
               watchedValues.trip_start_date,
               selectedVehicleId
@@ -280,6 +281,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           console.error('Error generating trip serial:', error);
+          toast.error('Could not generate unique trip serial. Please try again or enter manually.');
         }
       }
     };
