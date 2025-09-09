@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import TripList from '../components/trips/TripList';
 import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
+import ComprehensiveFilters from '../components/trips/ComprehensiveFilters';
 import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
-import Select from '../components/ui/Select';
-import MultiSelect from '../components/ui/MultiSelect';
-import Checkbox from '../components/ui/Checkbox';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getDrivers, createTrip, getWarehouses } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
-import { PlusCircle, FileText, BarChart2, Route, Calendar, MapPin, Package, AlertTriangle, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { searchTrips, TripFilters, useDebounce } from '../utils/tripSearch';
+import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { parseISO, isValid, isWithinInterval } from 'date-fns';
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,19 +36,22 @@ const TripsPage: React.FC = () => {
   const [tripsPerPage] = useState(10);
   const [showLoadMore, setShowLoadMore] = useState(false);
   
-  // Enhanced filter state
-  const [filters, setFilters] = useState({
+  // Enhanced filter state with new comprehensive filters
+  const [filters, setFilters] = useState<TripFilters>({
     search: '',
     vehicle: '',
     driver: '',
-    refueling: '',
+    warehouse: '',
+    refueling: 'all',
+    dateRange: 'all',
     startDate: '',
     endDate: '',
-    warehouse: '',
-    materials: [] as string[],
-    routeDeviation: false
+    materials: [],
+    routeDeviation: false,
+    sortBy: 'date-desc'
   });
-  const [showFilters, setShowFilters] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState<any>(null);
   
   // Handle cloned trip data from location state
   const [clonedTripData, setClonedTripData] = useState<Partial<TripFormData> | null>(null);
@@ -99,97 +99,47 @@ const TripsPage: React.FC = () => {
     fetchData();
   }, []);
   
-  // Filter trips based on all filter criteria
-  const filteredTrips = React.useMemo(() => {
-    return Array.isArray(trips) ? trips.filter(trip => {
-      // Search filter
-      if (filters.search) {
-        const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
-        const driver = drivers.find(d => d.id === trip.driver_id);
-        
-        const searchLower = filters.search.toLowerCase();
-        const serialMatch = trip.trip_serial_number?.toLowerCase().includes(searchLower);
-        const vehicleMatch = vehicle?.registration_number?.toLowerCase().includes(searchLower);
-        const driverMatch = driver?.name?.toLowerCase().includes(searchLower);
-        if (!(serialMatch || vehicleMatch || driverMatch)) {
-          return false;
-        }
-      }
-      
-      // Vehicle filter
-      if (filters.vehicle && trip.vehicle_id !== filters.vehicle) {
-        return false;
-      }
-      
-      // Driver filter
-      if (filters.driver && trip.driver_id !== filters.driver) {
-        return false;
-      }
-      
-      // Refueling filter
-      if (filters.refueling === 'refueling' && !trip.refueling_done) {
-        return false;
-      } else if (filters.refueling === 'no-refueling' && trip.refueling_done) {
-        return false;
-      }
-      
-      // Date range filter
-      if (filters.startDate || filters.endDate) {
-        const tripDate = parseISO(trip.trip_start_date);
-        if (!isValid(tripDate)) return false;
-        
-        if (filters.startDate) {
-          const startDate = parseISO(filters.startDate);
-          if (isValid(startDate) && tripDate < startDate) return false;
-        }
-        
-        if (filters.endDate) {
-          const endDate = parseISO(filters.endDate);
-          if (isValid(endDate) && tripDate > endDate) return false;
-        }
-      }
-      
-      // Warehouse filter
-      if (filters.warehouse && trip.warehouse_id !== filters.warehouse) {
-        return false;
-      }
-      
-      // Material filter
-      if (filters.materials.length > 0) {
-        if (!trip.material_type_ids || trip.material_type_ids.length === 0) {
-          return false;
-        }
-        const hasMatchingMaterial = filters.materials.some(materialId => 
-          trip.material_type_ids?.includes(materialId)
-        );
-        if (!hasMatchingMaterial) return false;
-      }
-      
-      // Route deviation filter
-      if (filters.routeDeviation) {
-        if (!trip.route_deviation || Math.abs(trip.route_deviation) <= 8) {
-          return false;
-        }
-      }
-      
-      return true;
-    })
-    .sort((a, b) =>
-      new Date(b.trip_start_date || 0).getTime() -
-      new Date(a.trip_start_date || 0).getTime()
-    ) : [];
-  }, [trips, filters, vehicles, drivers]);
+  // Debounced search to reduce API calls
+  const debouncedFilters = useDebounce(filters, 300);
   
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
-  const indexOfLastTrip = currentPage * tripsPerPage;
-  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
-  const currentTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
+  // Perform search using the comprehensive search system
+  const performSearch = useCallback(async () => {
+    setIsSearching(true);
+    try {
+      const result = await searchTrips(
+        trips,
+        vehicles,
+        drivers,
+        warehouses,
+        debouncedFilters,
+        { page: currentPage, limit: tripsPerPage }
+      );
+      setSearchResult(result);
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [trips, vehicles, drivers, warehouses, debouncedFilters, currentPage, tripsPerPage]);
+  
+  // Perform search when dependencies change
+  useEffect(() => {
+    if (trips.length > 0 && vehicles.length > 0 && drivers.length > 0) {
+      performSearch();
+    }
+  }, [performSearch, trips.length, vehicles.length, drivers.length]);
+  
+  // Get current display data
+  const currentTrips = searchResult?.trips || [];
+  const totalTrips = searchResult?.totalCount || 0;
+  const statistics = searchResult?.statistics;
+  const totalPages = Math.ceil(totalTrips / tripsPerPage);
   
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [debouncedFilters]);
   
   // Handle pagination
   const handlePageChange = (pageNumber: number) => {
@@ -199,25 +149,13 @@ const TripsPage: React.FC = () => {
   
   // Handle load more
   const handleLoadMore = () => {
-    const nextPageTrips = filteredTrips.slice(indexOfLastTrip, indexOfLastTrip + tripsPerPage);
     setCurrentPage(prev => prev + 1);
   };
   
-  // Clear all filters
-  const clearFilters = () => {
-    setFilters({
-      search: '',
-      vehicle: '',
-      driver: '',
-      refueling: '',
-      startDate: '',
-      endDate: '',
-      warehouse: '',
-      materials: [],
-      routeDeviation: false
-    });
-    setCurrentPage(1);
-  };
+  // Handle filter changes
+  const handleFiltersChange = useCallback((newFilters: TripFilters) => {
+    setFilters(newFilters);
+  }, []);
   
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
@@ -435,143 +373,17 @@ const TripsPage: React.FC = () => {
             />
           )}
           
-          {/* Enhanced Filters */}
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <Filter className="h-5 w-5 mr-2 text-primary-500" />
-                Trip Filters
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearFilters}
-                  disabled={Object.values(filters).every(v => !v || (Array.isArray(v) && v.length === 0))}
-                >
-                  Clear All
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  {showFilters ? 'Hide' : 'Show'} Filters
-                </Button>
-              </div>
-            </div>
-            
-            {showFilters && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Search */}
-                <Input
-                  placeholder="Search trips..."
-                  value={filters.search}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  size="sm"
-                />
-                
-                {/* Vehicle Filter */}
-                <Select
-                  options={[
-                    { value: '', label: 'All Vehicles' },
-                    ...vehicles.map(vehicle => ({
-                      value: vehicle.id,
-                      label: vehicle.registration_number
-                    }))
-                  ]}
-                  value={filters.vehicle}
-                  onChange={e => setFilters(prev => ({ ...prev, vehicle: e.target.value }))}
-                  size="sm"
-                />
-                
-                {/* Driver Filter */}
-                <Select
-                  options={[
-                    { value: '', label: 'All Drivers' },
-                    ...drivers.map(driver => ({
-                      value: driver.id,
-                      label: driver.name
-                    }))
-                  ]}
-                  value={filters.driver}
-                  onChange={e => setFilters(prev => ({ ...prev, driver: e.target.value }))}
-                  size="sm"
-                />
-                
-                {/* Refueling Status */}
-                <Select
-                  options={[
-                    { value: '', label: 'All Trips' },
-                    { value: 'refueling', label: 'Refueling Trips' },
-                    { value: 'no-refueling', label: 'No Refueling' }
-                  ]}
-                  value={filters.refueling}
-                  onChange={e => setFilters(prev => ({ ...prev, refueling: e.target.value }))}
-                  size="sm"
-                />
-                
-                {/* Date Range */}
-                <Input
-                  type="date"
-                  placeholder="Start Date"
-                  value={filters.startDate}
-                  onChange={e => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
-                  size="sm"
-                  icon={<Calendar className="h-4 w-4" />}
-                />
-                
-                <Input
-                  type="date"
-                  placeholder="End Date"
-                  value={filters.endDate}
-                  onChange={e => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
-                  size="sm"
-                  icon={<Calendar className="h-4 w-4" />}
-                />
-                
-                {/* Warehouse Filter */}
-                <Select
-                  options={[
-                    { value: '', label: 'All Warehouses' },
-                    ...warehouses.map(warehouse => ({
-                      value: warehouse.id,
-                      label: warehouse.name
-                    }))
-                  ]}
-                  value={filters.warehouse}
-                  onChange={e => setFilters(prev => ({ ...prev, warehouse: e.target.value }))}
-                  size="sm"
-                />
-                
-                {/* Material Types Filter */}
-                <MultiSelect
-                  options={materialTypes.map(material => ({
-                    value: material.id,
-                    label: material.name
-                  }))}
-                  value={filters.materials}
-                  onChange={materials => setFilters(prev => ({ ...prev, materials }))}
-                  size="sm"
-                />
-                
-                {/* Route Deviation Toggle */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    label="Route Deviation > 8%"
-                    checked={filters.routeDeviation}
-                    onChange={e => setFilters(prev => ({ ...prev, routeDeviation: e.target.checked }))}
-                  />
-                </div>
-              </div>
-            )}
-            
-            {/* Filter Summary */}
-            <div className="mt-3 text-sm text-gray-600">
-              Showing {currentTrips.length} of {filteredTrips.length} trips
-              {filteredTrips.length !== trips.length && ` (filtered from ${trips.length} total)`}
-            </div>
-          </div>
+          {/* Comprehensive Filters */}
+          <ComprehensiveFilters
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            vehicles={vehicles}
+            drivers={drivers}
+            warehouses={warehouses}
+            materialTypes={materialTypes}
+            statistics={statistics}
+            isSearching={isSearching}
+          />
           
           {/* Loading State */}
           {loading ? (
@@ -596,7 +408,7 @@ const TripsPage: React.FC = () => {
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     {/* Page Info */}
                     <div className="text-sm text-gray-600">
-                      Page {currentPage} of {totalPages} • {filteredTrips.length} total trips
+                      Page {currentPage} of {totalPages} • {totalTrips} total trips
                     </div>
                     
                     {/* Pagination Buttons */}
@@ -656,11 +468,16 @@ const TripsPage: React.FC = () => {
                     
                     {/* Load More Option */}
                     <div className="flex items-center gap-2">
-                      <Checkbox
-                        label="Load More Style"
+                      <input 
+                        type="checkbox"
+                        id="load-more-style"
                         checked={showLoadMore}
-                        onChange={e => setShowLoadMore(e.target.checked)}
+                        onChange={(e) => setShowLoadMore(e.target.checked)}
+                        className="mr-2"
                       />
+                      <label htmlFor="load-more-style" className="text-sm text-gray-600">
+                        Load More Style
+                      </label>
                       {showLoadMore && currentPage < totalPages && (
                         <Button
                           variant="outline"
