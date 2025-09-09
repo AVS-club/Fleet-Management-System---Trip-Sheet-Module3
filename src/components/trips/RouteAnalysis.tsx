@@ -29,58 +29,63 @@ const RouteAnalysis: React.FC<RouteAnalysisProps> = ({
           Route Analysis
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center text-sm text-gray-500 mb-1">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              Actual Distance
-            </div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {analysis.total_distance > 0 ? `${analysis.total_distance.toFixed(1)} km` : '—'}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">
-              Standard: {analysis.standard_distance > 0 ? `${analysis.standard_distance.toFixed(1)} km` : '—'}
-            </div>
-          </div>
-
-          {analysis.deviation !== undefined && (
+        {/* Optimized Layout: Route Analysis left, Map right in single row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left: Route Analysis Stats */}
+          <div className="space-y-4">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center text-sm text-gray-500 mb-1">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                Route Deviation
+                <TrendingUp className="h-4 w-4 mr-1" />
+                Actual Distance
               </div>
-              <div className={`text-2xl font-semibold ${
-                Math.abs(analysis.deviation) > 10
-                  ? 'text-error-600'
-                  : 'text-success-600'
-              }`}>
-                {analysis.standard_distance > 0 ? `${analysis.deviation.toFixed(1)}%` : '—'}
+              <div className="text-2xl font-semibold text-gray-900">
+                {analysis.total_distance > 0 ? `${analysis.total_distance.toFixed(1)} km` : '—'}
               </div>
               <div className="text-sm text-gray-500 mt-1">
-                From standard route
+                Standard: {analysis.standard_distance > 0 ? `${analysis.standard_distance.toFixed(1)} km` : '—'}
               </div>
             </div>
-          )}
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center text-sm text-gray-500 mb-1">
-              <Clock className="h-4 w-4 mr-1" />
-              Estimated Time
-            </div>
-            <div className="text-2xl font-semibold text-gray-900">
-              {analysis.estimated_time && analysis.estimated_time !== '—' ? analysis.estimated_time : '—'}
-            </div>
-            <div className="text-sm text-gray-500 mt-1">
-              Based on standard route
+            {analysis.deviation !== undefined && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center text-sm text-gray-500 mb-1">
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Route Deviation
+                </div>
+                <div className={`text-2xl font-semibold ${
+                  Math.abs(analysis.deviation) > 10
+                    ? 'text-error-600'
+                    : 'text-success-600'
+                }`}>
+                  {analysis.standard_distance > 0 ? `${analysis.deviation.toFixed(1)}%` : '—'}
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  From standard route
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center text-sm text-gray-500 mb-1">
+                <Clock className="h-4 w-4 mr-1" />
+                Estimated Time
+              </div>
+              <div className="text-2xl font-semibold text-gray-900">
+                {analysis.estimated_time && analysis.estimated_time !== '—' ? analysis.estimated_time : '—'}
+              </div>
+              <div className="text-sm text-gray-500 mt-1">
+                Based on standard route
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="mt-6 rounded-lg overflow-hidden border border-gray-200">
-          <GoogleMap 
-            waypoints={analysis.waypoints}
-            className="h-[400px] w-full"
-          />
+          {/* Right: Map */}
+          <div className="rounded-lg overflow-hidden border border-gray-200">
+            <GoogleMap 
+              waypoints={analysis.waypoints}
+              className="h-[350px] lg:h-full min-h-[350px] w-full"
+            />
+          </div>
         </div>
       </div>
 
