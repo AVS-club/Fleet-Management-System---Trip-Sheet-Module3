@@ -5,43 +5,54 @@ import { handleSupabaseError } from './errors';
  * Generates a trip serial number in the format TYY-####-XXXX
  * @param vehicleRegistration - Vehicle registration number (e.g., "CG04AB1234")
  * @param tripStartDate - Trip start date (YYYY-MM-DD format)
- * @param vehicleId - Vehicle ID (not directly used for uniqueness, but kept for context)
+ * @param vehicleId - Vehicle ID for uniqueness tracking
  * @returns Promise<string> - Generated trip serial number
  */
 export const generateTripSerialNumber = async (
   vehicleRegistration: string,
   tripStartDate: string,
-  vehicleId: string // Keep for function signature, but won't use for uniqueness logic
+  vehicleId: string
 ): Promise<string> => {
   try {
+    // Get current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      throw new Error('User not authenticated');
+    }
+
     // Extract YY (last 2 digits of year)
     const year = new Date(tripStartDate).getFullYear();
     const yy = year.toString().slice(-2);
     
     // Extract #### (last 4 digits from vehicle registration)
-    // This part is for readability/association, not global uniqueness
     const vehicleDigits = vehicleRegistration.replace(/[^0-9]/g, '');
     const last4Digits = vehicleDigits.slice(-4).padStart(4, '0');
     
-    // Query Supabase to find the highest XXXX sequence from *any* trip serial number globally
-    // This ensures global uniqueness of the XXXX part
-    const { data: latestTrip, error } = await supabase
+    // Build the prefix for this vehicle and year
+    const prefix = `T${yy}-${last4Digits}`;
+    
+    // Query to find the highest sequence number for THIS specific vehicle and year combination
+    // Only within the current user's trips for consistent scope
+    const { data: existingTrips, error } = await supabase
       .from('trips')
       .select('trip_serial_number')
-      .order('trip_serial_number', { ascending: false }) // Order to get the highest serial number
-      .limit(1) // Only need the single highest one
-      .maybeSingle(); // Use maybeSingle to get null if no rows
+      .eq('added_by', user.id)  // Only check within user's trips for consistency
+      .eq('vehicle_id', vehicleId)  // Filter by specific vehicle
+      .ilike('trip_serial_number', `${prefix}-%`)  // Match the prefix pattern
+      .order('trip_serial_number', { ascending: false })
+      .limit(1);
 
     if (error) {
       handleSupabaseError('fetch latest trip serial for generation', error);
       throw error;
     }
 
-    // Find the maximum sequence number (XXXX) for this vehicle-year combination
+    // Find the maximum sequence number for this vehicle-year combination
     let maxSequence = 0;
-    if (latestTrip && latestTrip.trip_serial_number) {
-      const parts = latestTrip.trip_serial_number.split('-');
-      const sequencePart = parts.pop(); // Get the XXXX part
+    if (existingTrips && existingTrips.length > 0) {
+      const latestSerial = existingTrips[0].trip_serial_number;
+      const parts = latestSerial.split('-');
+      const sequencePart = parts[2]; // Get the XXXX part (third segment)
       if (sequencePart) {
         const parsedSequence = parseInt(sequencePart, 10);
         if (!isNaN(parsedSequence)) {
@@ -54,7 +65,9 @@ export const generateTripSerialNumber = async (
     const nextSequence = (maxSequence + 1).toString().padStart(4, '0');
     
     // Construct the final trip serial number
-    const tripSerialNumber = `T${yy}-${last4Digits}-${nextSequence}`;
+    const tripSerialNumber = `${prefix}-${nextSequence}`;
+    
+    console.log(`Generated trip serial: ${tripSerialNumber} for vehicle ${vehicleId} (${vehicleRegistration})`);
     
     return tripSerialNumber;
   } catch (error) {
@@ -64,7 +77,7 @@ export const generateTripSerialNumber = async (
 };
 
 /**
- * Validates if a trip serial number is unique
+ * Validates if a trip serial number is unique within the user's trips
  * @param tripSerialNumber - The trip serial number to validate
  * @param excludeTripId - Optional trip ID to exclude from the check (for updates)
  * @returns Promise<boolean> - True if unique, false if already exists
@@ -82,8 +95,8 @@ export const validateTripSerialUniqueness = async (
 
     let query = supabase
       .from('trips')
-      .select('id')
-      .eq('added_by', user.id)
+      .select('id, trip_serial_number')
+      .eq('added_by', user.id)  // Check within user's trips (same scope as generation)
       .eq('trip_serial_number', tripSerialNumber);
     
     // Exclude the current trip if updating
@@ -91,11 +104,16 @@ export const validateTripSerialUniqueness = async (
       query = query.neq('id', excludeTripId);
     }
     
-    const { data, error } = await query.limit(1);
+    const { data, error } = await query;
 
     if (error) {
       handleSupabaseError('validate trip serial uniqueness', error);
       throw error;
+    }
+
+    // Log for debugging
+    if (data && data.length > 0) {
+      console.log(`Trip serial ${tripSerialNumber} already exists:`, data);
     }
 
     // Return true if no existing trip found (unique)
@@ -104,4 +122,38 @@ export const validateTripSerialUniqueness = async (
     console.error('Error validating trip serial uniqueness:', error);
     throw error;
   }
+};
+
+/**
+ * Regenerates a trip serial number if the current one is not unique
+ * This is a helper function to ensure we always get a unique serial
+ */
+export const ensureUniqueTripSerial = async (
+  vehicleRegistration: string,
+  tripStartDate: string,
+  vehicleId: string,
+  maxAttempts: number = 5
+): Promise<string> => {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const serialNumber = await generateTripSerialNumber(
+      vehicleRegistration,
+      tripStartDate,
+      vehicleId
+    );
+    
+    const isUnique = await validateTripSerialUniqueness(serialNumber);
+    
+    if (isUnique) {
+      return serialNumber;
+    }
+    
+    console.warn(`Serial ${serialNumber} not unique, attempt ${attempt}/${maxAttempts}`);
+    
+    // Add a small delay before retrying to avoid race conditions
+    if (attempt < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  throw new Error(`Could not generate unique trip serial after ${maxAttempts} attempts`);
 };
