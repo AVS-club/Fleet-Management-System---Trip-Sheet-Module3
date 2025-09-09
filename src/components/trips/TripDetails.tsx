@@ -24,8 +24,7 @@ import {
   Download,
   Settings,
   Info,
-  Copy,
-  RotateCcw
+  Copy
 } from 'lucide-react';
 
 interface TripDetailsProps {
@@ -40,7 +39,6 @@ interface TripDetailsProps {
   onEdit: () => void;
   onDelete: () => void;
   onCloneTrip?: () => void;
-  onReturnTrip?: () => void;
 }
 
 const TripDetails: React.FC<TripDetailsProps> = ({ 
@@ -54,8 +52,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onBack, 
   onEdit,
   onDelete,
-  onCloneTrip,
-  onReturnTrip
+  onCloneTrip
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -196,15 +193,6 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 >
                   <Copy className="h-3 w-3 mr-1" />
                   Clone
-                </button>
-              )}
-              {onReturnTrip && (
-                <button
-                  onClick={onReturnTrip}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
-                >
-                  <RotateCcw className="h-3 w-3 mr-1" />
-                  Return Trip
                 </button>
               )}
             </div>

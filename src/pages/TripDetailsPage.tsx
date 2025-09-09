@@ -197,11 +197,6 @@ const TripDetailsPage: React.FC = () => {
     });
   };
   
-  const handleReturnTrip = () => {
-    // Placeholder for return trip functionality
-    console.log('Return trip functionality not yet implemented');
-  };
-  
   
   const handleUpdate = async (data: TripFormData) => {
     if (!trip) return;
@@ -361,7 +356,6 @@ const TripDetailsPage: React.FC = () => {
             onEdit={handleEdit}
             onDelete={handleDelete}
             onCloneTrip={handleCloneTrip}
-            onReturnTrip={handleReturnTrip}
           />
           
           {/* Route Overview Section */}
