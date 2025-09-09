@@ -21,7 +21,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
           
           <div className="relative bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-brand-lg">
             <img
-              src="/assets/AVS-LOGO-512x512.png"
+              src="/assets/AVS-LOGO-512x512-new.png"
               alt="Auto Vital Solution"
               className="h-20 w-20 object-contain animate-spin-slow"
               onError={(e) => {
