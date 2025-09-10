@@ -1098,9 +1098,17 @@ const TripForm: React.FC<TripFormProps> = ({
       {/* Form Actions */}
       <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
         <Button
+          type="button"
           variant="outline"
           className="w-full md:w-auto order-2 md:order-1"
-          onClick={() => window.history.back()}
+          onClick={(e) => {
+            e.preventDefault();
+            if (onCancel) {
+              onCancel();
+            } else {
+              window.history.back();
+            }
+          }}
         >
           Cancel
         </Button>
