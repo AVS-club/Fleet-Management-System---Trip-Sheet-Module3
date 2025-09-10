@@ -244,11 +244,11 @@ export const uploadFuelBill = async (
 
   // Upload the file with progress if callback provided
   if (onProgress) {
-    await uploadFileWithProgress("fuel-bills", filePath, file, onProgress);
+    await uploadFileWithProgress("trip-docs", filePath, file, onProgress);
   } else {
     // Fallback to regular upload without progress
     const { error: uploadError } = await supabase.storage
-      .from("fuel-bills")
+      .from("trip-docs")
       .upload(filePath, file, {
         upsert: true,
         contentType: file.type,
@@ -261,7 +261,7 @@ export const uploadFuelBill = async (
   }
   
   // Get public URL for the uploaded file
-  const { data } = supabase.storage.from("fuel-bills").getPublicUrl(filePath);
+  const { data } = supabase.storage.from("trip-docs").getPublicUrl(filePath);
   return data.publicUrl;
 };
 
