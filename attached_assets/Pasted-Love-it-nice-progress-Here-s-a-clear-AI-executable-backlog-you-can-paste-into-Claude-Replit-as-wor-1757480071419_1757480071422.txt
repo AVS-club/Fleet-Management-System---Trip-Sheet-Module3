@@ -1,0 +1,412 @@
+Love it—nice progress. Here’s a clear, AI-executable backlog you can paste into Claude/Replit as work orders. I’ve grouped by module, and for each item I’ve written (a) goal, (b) dev tasks (what to code), and (c) acceptance tests. This lets an AI pick items one-by-one and ship.
+
+TRIPS
+1) FASTag / Toll expense (replace “Breakdown”)
+
+Goal: Show a dedicated FASTag/Toll field in Add Trip, prefill from your estimated toll logic, include in totals.
+
+Dev Tasks
+
+In Add Trip form:
+
+Rename breakdown_expense → “FASTag / Toll” (use your existing “other expenses” slot if that’s cleaner).
+
+Bind UI to estimated_toll_cost column and keep miscellaneous_expense separate.
+
+Prefill estimated_toll_cost with your current “estimated toll” output; keep it editable.
+
+In trip totals:
+
+Ensure total_expense = unloading_expense + driver_expense + road_rto_expense + estimated_toll_cost + breakdown_expense + miscellaneous_expense (include only non-null).
+
+Recompute on any change (debounced).
+
+Persistence:
+
+On submit, write estimated_toll_cost and updated total_expense.
+
+Acceptance Tests
+
+Open Add Trip → FASTag field visible, prefilled, editable.
+
+Changing FASTag updates total_expense.
+
+Saved trip shows the same amount in list/detail and analytics.
+
+2) Route deviation indicator (surface + pipe to Alerts)
+
+Goal: Light-weight banner under Destinations when deviation > threshold; no action in form; send to AI Alerts.
+
+Dev Tasks
+
+On destination selection:
+
+Compute standard route distance (your existing Maps logic).
+
+Compare with actual odometer distance (end_km – start_km).
+
+If deviation > ~8%, show small, non-blocking badge: “Route deviation detected”.
+
+Prepare a payload {trip_id, vehicle_id, deviation_pct, standard_km, actual_km, destinations[]} and post to AI Alerts (status: “open”).
+
+Respect Return Trip toggle (origin back to warehouse).
+
+Acceptance Tests
+
+Enter trip with large variance → badge appears; submit creates an alert record.
+
+Toggle Return Trip → standard distance recalculates, badge logic consistent.
+
+3) Trip Serial Number (deterministic, collision-safe)
+
+Goal: Generate trip_serial_number with predictable prefix + daily counter, no collisions.
+
+Dev Tasks
+
+On create, run a server RPC or single SQL UPSERT to:
+
+Prefix: TR-YYYYMMDD-<shortVehicleOrWarehouseCode>-NNN.
+
+Use a “counters” table or select max(...) where date=... wrapped in a transaction.
+
+Render the new ID everywhere list/detail/printables.
+
+Acceptance Tests
+
+Simulate 5 parallel creates → IDs unique and sequential.
+
+New day → counter resets.
+
+4) Multi-destination ordering (strictly user order)
+
+Goal: Preserve user order (not Google reorder) across form → save → view → analytics.
+
+Dev Tasks
+
+Store destinations[] in the precise order entered.
+
+Ensure the map polyline respects this order.
+
+Route distance computation uses the same order.
+
+Acceptance Tests
+
+Enter Raipur → Durg → Bhilai → saved order matches in DB, map, analytics.
+
+AI ALERTS
+5) Accept / Reject / Ignore (full lifecycle)
+
+Goal: Manage alert lifecycle from AI Alerts panel.
+
+Dev Tasks
+
+Add 3 tiny buttons on each alert row: Accept / Reject / Ignore.
+
+Update alert row status + updated_at.
+
+Optional: record a small audit note and who clicked.
+
+Acceptance Tests
+
+State changes persist and survive reload.
+
+Resolved/ignored alerts don’t re-popup on main dashboard.
+
+6) Segment average mileage by vehicle tags / type
+
+Goal: Mileage benchmarks per segment instead of fleet-wide average.
+
+Dev Tasks
+
+Compute avg_kmpl_by_tag and avg_kmpl_by_vehicle_type.
+
+In AI Alerts generation, pick benchmark based on (a) tags if present, else (b) vehicle_type, else (c) fleet average.
+
+Acceptance Tests
+
+Same trip produces different “expected” mileage if vehicle tags change.
+
+Benchmarks displayed alongside deviation numbers.
+
+DASHBOARDS & ANALYTICS
+7) “Fuel consumption by vehicle (12m)” missing vehicles
+
+Goal: Fix series mapping so all vehicles render.
+
+Dev Tasks
+
+Inspect data join: ensure vehicle IDs used in chart are in the query result.
+
+Normalize empty months to zero.
+
+Defensive null checks before chart render.
+
+Acceptance Tests
+
+Previously missing (e.g., GJ vehicles) now visible.
+
+No console errors; tooltip shows all series.
+
+8) “Average miles per vehicle” widget
+
+Goal: Correct calculation and rendering.
+
+Dev Tasks
+
+Recompute per vehicle: sum(distance)/trip_count or your canonical def.
+
+Handle vehicles with no trips (exclude or show “—”).
+
+Unit labels clear (km vs mi).
+
+Acceptance Tests
+
+Random sample manual calc matches widget.
+
+No divide-by-zero; no NaN.
+
+9) Main dashboard popups on load
+
+Goal: Fire configured popups on app load (once per frequency rule).
+
+Dev Tasks
+
+Add a small loader that checks alert_settings.show_popup_modal_on_load and popup_display_frequency.
+
+Respect “already seen today/this session” using localStorage + server flag.
+
+Acceptance Tests
+
+With setting ON → popup shows once per rule.
+
+With setting OFF → never shows.
+
+MAINTENANCE
+10) Vendor & Task dropdowns (UI overflow)
+
+Goal: Make the dropdown usable on small viewports.
+
+Dev Tasks
+
+Use a Portal (e.g., Radix/Headless UI portal) for the popover.
+
+max-height: 320px; overflow: auto; and a high z-index.
+
+Keyboard navigation (↑/↓/Enter/Escape).
+
+Acceptance Tests
+
+Dropdown fully visible in small viewport.
+
+Keyboard select works; scrolls as expected.
+
+11) Replace “Service Location” with “Service Vendor”
+
+Goal: Avoid duplication and confusion.
+
+Dev Tasks
+
+Remove Service Location field from form and model binding (or hide and ignore on submit).
+
+Ensure Service Vendor is the single source of truth.
+
+Acceptance Tests
+
+Only one vendor selector remains; saved tasks show correct vendor.
+
+12) Status & Priority controls (buttons, not selects)
+
+Goal: Faster input with clear visual states.
+
+Dev Tasks
+
+Status: 4 small buttons (In-Progress, Resolved, Escalated, Rework).
+
+Priority: 3 colored toggles (Low/Med/High).
+
+Persist on click; keep keyboard focus order.
+
+Acceptance Tests
+
+Click toggles update state instantly and persist on save.
+
+Colors consistent with your theme.
+
+13) Export CSV/PDF
+
+Goal: Make the existing buttons work.
+
+Dev Tasks
+
+CSV: client-side generate from visible table rows and filters.
+
+PDF: simple serverless render (or print-to-PDF style with a dedicated route).
+
+Include date range and filter badges in header.
+
+Acceptance Tests
+
+CSV opens in Excel with correct columns.
+
+PDF looks like the table view and includes charts if intended.
+
+14) “Km gap between visits” → add metrics
+
+Goal: Enrich with distance and visit rating.
+
+Dev Tasks
+
+Compute distance since last maintenance for the same vehicle.
+
+Add per-visit health rating (e.g., 1–5) based on delay vs recommended interval.
+
+Show small badge (Good / Late / Critical).
+
+Acceptance Tests
+
+Three random vehicles show sensible gaps and ratings.
+
+Export includes these fields.
+
+VEHICLES & DRIVERS
+15) Vehicles page — extra summaries
+
+Goal: Quick top KPIs.
+
+Dev Tasks
+
+Tiles for: Docs expiring soon, Vehicles with 0 trips last 90d, Best/Worst by cost/km (last 30d), Under maintenance.
+
+Each tile links to filtered list.
+
+Acceptance Tests
+
+Numbers match filtered lists on click.
+
+Tiles don’t flicker while loading.
+
+16) Driver Analytics panel
+
+Goal: Cross-driver insights with filters.
+
+Dev Tasks
+
+“Driver Analytics” button → modal/panel with:
+
+Filters: Date range, Driver, Vehicle type/tag.
+
+KPIs: Trips completed, Avg km/trip, Avg mileage, Cost/km, Route deviations, Breakdowns flagged.
+
+Top 5 / Bottom 5 drivers by cost/km and mileage.
+
+Acceptance Tests
+
+Filters actually update aggregates.
+
+Export CSV of the current view.
+
+SETTINGS & INTEGRATIONS
+17) WhatsApp share number (configurable)
+
+Goal: Make the WhatsApp target number a setting.
+
+Dev Tasks
+
+Add Settings → “Default WhatsApp Number” field (with validation).
+
+Share modal reads from setting; allow per-share override.
+
+Acceptance Tests
+
+Changing setting updates modal default.
+
+Per-share override doesn’t change the saved default.
+
+18) Google Calendar + Drive hooks (light MVP)
+
+Goal: Prove out reminders and doc storage.
+
+Dev Tasks
+
+On saving a maintenance with next_due_date → create a calendar event (MVP: show a CTA button “Create Calendar Reminder” that calls your endpoint).
+
+On uploading Trip Slip → push file to Drive folder and store link.
+
+Acceptance Tests
+
+Button creates calendar event; link is visible.
+
+Drive link opens the uploaded file.
+
+DATA SEEDING
+19) Phase-3/4 realistic data
+
+Goal: Populate the app so dashboards/alerts become meaningful.
+
+Dev Tasks
+
+Trips: ~10 per vehicle across 8 vehicles; respect refueling logic, realistic odometer, mix of one-way/return, expenses filled (incl. FASTag).
+
+Maintenance: Interspersed in gaps; 4 types (General/Accidental/Repair/Replacement/Others); vendors from your list; invoices realistic.
+
+Ensure date distributions produce meaningful monthly charts.
+
+Acceptance Tests
+
+Dashboards light up with non-empty charts.
+
+Random audits across 10 trips/3 vehicles look consistent.
+
+REPO / BUILD / CLEANUP
+20) Fix missing export build break
+
+Goal: Ensure CI passes.
+
+Dev Tasks
+
+src/utils/storage.ts export getVehicle (or remove the import from maintenanceStorage.ts).
+
+Add a pnpm run typecheck && pnpm run build pre-push hook.
+
+Acceptance Tests
+
+Local build passes; Netlify/Vercel green.
+
+21) Dead code & address debris cleanup
+
+Goal: Smaller bundle, fewer traps.
+
+Dev Tasks
+
+Run code search for deprecated address flows; remove unused components and hooks.
+
+ESLint rule for no-unused-vars; TS strict.
+
+Tree-shake icons/lib imports.
+
+Acceptance Tests
+
+Bundle size drops; no unused warnings.
+
+No regressions in Trips/Maintenance pages.
+
+COPY-PASTE PROMPTS FOR CLAUDE / REPLIT
+
+You can assign these one-by-one. Example for item #1:
+
+Task: Implement FASTag/Toll expense (replace Breakdown) in Add Trip.
+Context: Trips table has estimated_toll_cost (numeric). Our current form shows unloading/driver/road-RTO/other expenses. We want a dedicated FASTag field bound to estimated_toll_cost, prefilled from our estimated-toll computation, editable by the user, and included in total_expense.
+Do:
+
+In AddTrip form, render a new currency input labeled “FASTag / Toll”. Bind to estimated_toll_cost.
+
+Pre-fill the field with the output of our existing estimated-toll function (keep editable).
+
+Update total calculation: sum all expenses including FASTag.
+
+Persist on submit.
+
+Unit test the reducer that computes totals.
+Done when: Field is visible, prefilled, editable; total updates live; persisted value visible in trip detail/list.
+
+Repeat the same structure for each item above.
