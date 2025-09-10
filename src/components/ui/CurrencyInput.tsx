@@ -2,17 +2,17 @@ import React, { forwardRef } from "react";
 import Input from "./Input";
 
 interface CurrencyInputProps
-  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type" | "size"> {
   label?: string;
   helperText?: string;
   error?: string;
   fullWidth?: boolean;
   iconPosition?: "left" | "right";
-  size?: "sm" | "md" | "lg";
+  inputSize?: "sm" | "md" | "lg";
 }
 
 const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ iconPosition = "left", ...props }, ref) => (
+  ({ iconPosition = "left", inputSize, ...props }, ref) => (
     <Input
       {...props}
       ref={ref}
@@ -20,6 +20,7 @@ const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
       step="0.01"
       icon={<span>₹</span>}
       iconPosition={iconPosition}
+      inputSize={inputSize}
     />
   )
 );

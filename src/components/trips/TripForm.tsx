@@ -505,7 +505,7 @@ const TripForm: React.FC<TripFormProps> = ({
             icon={<FileText className="h-4 w-4" />}
             value={watchedValues.trip_serial_number || ''}
             disabled
-            size="sm"
+            inputSize="sm"
           />
 
           <div className="flex flex-col md:flex-row gap-3">
@@ -515,7 +515,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<Calendar className="h-4 w-4" />}
               required
               {...register('trip_start_date', { required: 'Start date is required' })}
-              size="sm"
+              inputSize="sm"
             />
 
             <Input
@@ -524,7 +524,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<Calendar className="h-4 w-4" />}
               required
               {...register('trip_end_date', { required: 'End date is required' })}
-              size="sm"
+              inputSize="sm"
             />
           </div>
           
@@ -777,7 +777,7 @@ const TripForm: React.FC<TripFormProps> = ({
               type="number"
               icon={<MapPin className="h-4 w-4" />}
               required
-              size="sm"
+              inputSize="sm"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -796,7 +796,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<MapPin className="h-4 w-4" />}
               required
               onBlur={handleEndKmBlur}
-              size="sm"
+              inputSize="sm"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -821,7 +821,7 @@ const TripForm: React.FC<TripFormProps> = ({
               type="number"
               icon={<Package className="h-4 w-4" />}
               required
-              size="sm"
+              inputSize="sm"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -859,7 +859,7 @@ const TripForm: React.FC<TripFormProps> = ({
                   step="0.01"
                   icon={<IndianRupee className="h-4 w-4" />}
                   placeholder="Enter total amount paid"
-                  size="sm"
+                  inputSize="sm"
                   onFocus={(e) => {
                     if (e.target.value === '0' || e.target.value === '') {
                       e.target.select();
@@ -876,7 +876,7 @@ const TripForm: React.FC<TripFormProps> = ({
                   onChange={(value) => setValue('fuel_rate_per_liter', value)}
                   warehouses={warehouses}
                   selectedWarehouseId={selectedWarehouseId}
-                  size="sm"
+                  inputSize="sm"
                 />
 
                 <Input
@@ -886,7 +886,7 @@ const TripForm: React.FC<TripFormProps> = ({
                   icon={<Fuel className="h-4 w-4" />}
                   value={watchedValues.fuel_quantity || 0}
                   disabled
-                  size="sm"
+                  inputSize="sm"
                   {...register('fuel_quantity', {
                     valueAsNumber: true,
                     min: { value: 0, message: 'Fuel quantity cannot be negative' }
@@ -1074,7 +1074,7 @@ const TripForm: React.FC<TripFormProps> = ({
               label="Station"
               icon={<Fuel className="h-4 w-4" />}
               placeholder="Fuel station name (optional)"
-              size="sm"
+              inputSize="sm"
               {...register('station')}
             />
           </div>
