@@ -33,8 +33,7 @@ const TripsPage: React.FC = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [tripsPerPage] = useState(10);
-  const [showLoadMore, setShowLoadMore] = useState(false);
+  const [tripsPerPage, setTripsPerPage] = useState(25);
   
   // Enhanced filter state with new comprehensive filters
   const [filters, setFilters] = useState<TripFilters>({
@@ -148,9 +147,10 @@ const TripsPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
   
-  // Handle load more
-  const handleLoadMore = () => {
-    setCurrentPage(prev => prev + 1);
+  // Handle page size change
+  const handlePageSizeChange = (newSize: number) => {
+    setTripsPerPage(newSize);
+    setCurrentPage(1); // Reset to first page when changing page size
   };
   
   // Handle filter changes
@@ -469,27 +469,19 @@ const TripsPage: React.FC = () => {
                       </Button>
                     </div>
                     
-                    {/* Load More Option */}
+                    {/* Page Size Selector */}
                     <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox"
-                        id="load-more-style"
-                        checked={showLoadMore}
-                        onChange={(e) => setShowLoadMore(e.target.checked)}
-                        className="mr-2"
-                      />
-                      <label htmlFor="load-more-style" className="text-sm text-gray-600">
-                        Load More Style
-                      </label>
-                      {showLoadMore && currentPage < totalPages && (
-                        <Button
-                          variant="outline"
-                          inputSize="sm"
-                          onClick={handleLoadMore}
-                        >
-                          Load More
-                        </Button>
-                      )}
+                      <label className="text-sm text-gray-600">Trips per page:</label>
+                      <select
+                        value={tripsPerPage}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
                     </div>
                   </div>
                 </div>
