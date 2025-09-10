@@ -31,36 +31,32 @@ const QuickAddTrip: React.FC = () => {
     setIsDropdownOpen(false);
   };
 
-  const isTripsPage = location.pathname === '/trips';
-  const isMaintenancePage = location.pathname === '/maintenance';
 
   return (
     <>
-      {/* Desktop Dropdown - Integrated with Trips nav item */}
-      <div className="hidden md:block relative" ref={dropdownRef}>
-        {isTripsPage && (
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={cn(
-              "inline-flex items-center gap-1 px-2 py-1.5 rounded-md",
-              "text-xs font-medium text-primary-700 bg-primary-100",
-              "hover:bg-primary-200 transition-colors",
-              "border border-primary-200"
-            )}
-            aria-label="Quick add options"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Quick Add</span>
-            <ChevronDown className={cn(
-              "h-3 w-3 transition-transform",
-              isDropdownOpen && "rotate-180"
-            )} />
-          </button>
-        )}
+      {/* Desktop FAB - Always visible in bottom-right */}
+      <div className="hidden md:block fixed bottom-6 right-6 z-40" ref={dropdownRef}>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className={cn(
+            "flex items-center justify-center gap-2",
+            "h-12 px-4 rounded-full",
+            "bg-primary-600 text-white shadow-lg",
+            "hover:bg-primary-700 active:scale-95",
+            "transition-all duration-200"
+          )}
+          aria-label="Quick add options"
+        >
+          <Plus className={cn(
+            "h-5 w-5 transition-transform",
+            isDropdownOpen && "rotate-45"
+          )} />
+          <span className="font-medium">Quick Add</span>
+        </button>
 
         {/* Dropdown Menu */}
         {isDropdownOpen && (
-          <div className="absolute top-full mt-1 right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+          <div className="absolute bottom-full mb-2 right-0 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
             <button
               onClick={handleQuickAddTrip}
               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-lg"
