@@ -335,8 +335,13 @@ const TripForm: React.FC<TripFormProps> = ({
           const actualDistance = endKm - startKm;
           const standardDistance = analysis.total_distance;
           
-          if (standardDistance > 0 && actualDistance > 0) {
-            const deviation = ((actualDistance - standardDistance) / standardDistance) * 100;
+          // For return trips, double the standard distance since it's a round trip
+          const effectiveStandardDistance = watchedValues.is_return_trip 
+            ? standardDistance * 2 
+            : standardDistance;
+          
+          if (effectiveStandardDistance > 0 && actualDistance > 0) {
+            const deviation = ((actualDistance - effectiveStandardDistance) / effectiveStandardDistance) * 100;
             setRouteDeviation(deviation);
             
             // Create temporary trip data for AI analysis
@@ -459,8 +464,14 @@ const TripForm: React.FC<TripFormProps> = ({
     // Calculate route deviation if analysis is available
     if (routeAnalysis) {
       const actualDistance = (data.end_km || 0) - (data.start_km || 0);
-      if (routeAnalysis.total_distance > 0 && actualDistance > 0) {
-        data.route_deviation = ((actualDistance - routeAnalysis.total_distance) / routeAnalysis.total_distance) * 100;
+      
+      // For return trips, double the standard distance since it's a round trip
+      const effectiveStandardDistance = data.is_return_trip 
+        ? routeAnalysis.total_distance * 2 
+        : routeAnalysis.total_distance;
+      
+      if (effectiveStandardDistance > 0 && actualDistance > 0) {
+        data.route_deviation = ((actualDistance - effectiveStandardDistance) / effectiveStandardDistance) * 100;
       }
     }
 
