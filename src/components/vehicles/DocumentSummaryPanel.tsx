@@ -379,20 +379,53 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       }
     };
 
-    // Simulating document expenses (in a real app, this would come from the database)
-    const monthlyExpense = (
-      filteredVehicles.reduce((sum, vehicle) => {
-        return sum + 
-          (vehicle.insurance_premium_amount || 0) / 12 + 
-          (vehicle.fitness_cost || 0) / 12 + 
-          (vehicle.permit_cost || 0) / 12 + 
-          (vehicle.puc_cost || 0) / 12 +
-          (vehicle.tax_amount || 0) / 12;
-      }, 0)
-    );
+    // Calculate actual monthly expenses based on renewal dates
+    const currentMonth = new Date();
+    const currentMonthStart = startOfMonth(currentMonth);
+    const currentMonthEnd = endOfMonth(currentMonth);
+    const yearStart = startOfYear(currentMonth);
+    
+    let monthlyExpense = 0;
+    let yearlyExpense = 0;
+    
+    filteredVehicles.forEach(vehicle => {
+      // Calculate monthly expense for documents expiring this month
+      if (vehicle.insurance_expiry_date && isWithinInterval(new Date(vehicle.insurance_expiry_date), { start: currentMonthStart, end: currentMonthEnd })) {
+        monthlyExpense += vehicle.insurance_premium_amount || 0;
+      }
+      if (vehicle.fitness_expiry_date && isWithinInterval(new Date(vehicle.fitness_expiry_date), { start: currentMonthStart, end: currentMonthEnd })) {
+        monthlyExpense += vehicle.fitness_cost || 0;
+      }
+      if (vehicle.permit_expiry_date && isWithinInterval(new Date(vehicle.permit_expiry_date), { start: currentMonthStart, end: currentMonthEnd })) {
+        monthlyExpense += vehicle.permit_cost || 0;
+      }
+      if (vehicle.puc_expiry_date && isWithinInterval(new Date(vehicle.puc_expiry_date), { start: currentMonthStart, end: currentMonthEnd })) {
+        monthlyExpense += vehicle.puc_cost || 0;
+      }
+      if (vehicle.tax_paid_upto && isWithinInterval(new Date(vehicle.tax_paid_upto), { start: currentMonthStart, end: currentMonthEnd })) {
+        monthlyExpense += vehicle.tax_amount || 0;
+      }
+      
+      // Calculate yearly expense (actual renewals within this year)
+      if (vehicle.insurance_expiry_date && isWithinInterval(new Date(vehicle.insurance_expiry_date), { start: yearStart, end: currentMonth })) {
+        yearlyExpense += vehicle.insurance_premium_amount || 0;
+      }
+      if (vehicle.fitness_expiry_date && isWithinInterval(new Date(vehicle.fitness_expiry_date), { start: yearStart, end: currentMonth })) {
+        yearlyExpense += vehicle.fitness_cost || 0;
+      }
+      if (vehicle.permit_expiry_date && isWithinInterval(new Date(vehicle.permit_expiry_date), { start: yearStart, end: currentMonth })) {
+        yearlyExpense += vehicle.permit_cost || 0;
+      }
+      if (vehicle.puc_expiry_date && isWithinInterval(new Date(vehicle.puc_expiry_date), { start: yearStart, end: currentMonth })) {
+        yearlyExpense += vehicle.puc_cost || 0;
+      }
+      if (vehicle.tax_paid_upto && isWithinInterval(new Date(vehicle.tax_paid_upto), { start: yearStart, end: currentMonth })) {
+        yearlyExpense += vehicle.tax_amount || 0;
+      }
+    });
     
     result.thisMonth.totalExpense = monthlyExpense;
-    result.thisYear.totalExpense = monthlyExpense * 12;
+    result.thisYear.totalExpense = yearlyExpense;
 
     // Calculate expected expense for filtered vehicles within date range
     const today = new Date();
