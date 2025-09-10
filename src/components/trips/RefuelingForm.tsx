@@ -3,7 +3,7 @@ import { Refueling } from '@/types';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import FuelRateSelector from './FuelRateSelector';
-import { Fuel, MapPin, Plus, Trash2, Calculator } from 'lucide-react';
+import { Fuel, MapPin, Plus, Trash2, Calculator, Upload, FileText } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface RefuelingFormProps {
@@ -65,27 +65,27 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Header with Add button */}
+      {/* Header with Add button - matching Trip Details style */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-          <Fuel className="h-4 w-4 text-primary-500" />
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
+          <Fuel className="h-5 w-5 mr-2 text-primary-500" />
           Refueling Details
           {totals.quantity > 0 && (
-            <span className="text-xs text-gray-500">
+            <span className="text-sm font-normal text-gray-500 ml-2">
               (Total: {totals.quantity}L • ₹{totals.cost.toFixed(2)})
             </span>
           )}
-        </h4>
+        </h3>
         <Button
           type="button"
           onClick={addRefueling}
           disabled={disabled}
           variant="outline"
           size="sm"
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 px-2 py-1"
         >
-          <Plus className="h-3.5 w-3.5" />
-          Add Refueling
+          <Plus className="h-3 w-3" />
+          <span className="text-xs">Add Refueling</span>
         </Button>
       </div>
 
@@ -167,6 +167,50 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                     className="bg-gray-100 dark:bg-gray-900"
                     placeholder="Auto-calculated"
                   />
+                </div>
+
+                {/* Fuel Bill Upload - Compact Design */}
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Fuel Bill / Receipt
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      id={`fuel-bill-${index}`}
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      disabled={disabled}
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // Handle file upload to Supabase storage
+                          console.log('File selected:', file.name);
+                          // TODO: Upload to Supabase storage
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`fuel-bill-${index}`}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                        "bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
+                        "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
+                        "text-sm text-gray-700 dark:text-gray-300",
+                        disabled && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      <span>Upload</span>
+                    </label>
+                    {/* Show uploaded file indicator if exists */}
+                    {false && ( // Replace with actual check for uploaded file
+                      <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                        <FileText className="h-3.5 w-3.5" />
+                        <span>Uploaded</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Location (display only if available) */}
