@@ -1,124 +1,53 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, ChevronUp, Fuel } from 'lucide-react';
-import { Trip, Warehouse } from '@/types';
+import React, { useState, useRef, useEffect } from 'react';
+import { IndianRupee, ChevronDown, MapPin } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
-interface FuelRateSelectorProps {
-  selectedRate?: number;
-  onChange: (rate: number) => void;
-  warehouses: Warehouse[];
-  selectedWarehouseId?: string;
-  error?: string;
-  size?: 'sm' | 'md' | 'lg';
+interface FuelRateOption {
+  id: string;
+  rate: number;
+  location: string;
+  usageCount: number;
+  lastUsed: string;
 }
 
-// Define warehouse colors for consistent UI
-const WAREHOUSE_COLORS = [
-  { bg: 'bg-green-100', text: 'text-green-800', dot: 'bg-green-500' },
-  { bg: 'bg-blue-100', text: 'text-blue-800', dot: 'bg-blue-500' },
-  { bg: 'bg-orange-100', text: 'text-orange-800', dot: 'bg-orange-500' },
-  { bg: 'bg-purple-100', text: 'text-purple-800', dot: 'bg-purple-500' },
-  { bg: 'bg-pink-100', text: 'text-pink-800', dot: 'bg-pink-500' },
-  { bg: 'bg-indigo-100', text: 'text-indigo-800', dot: 'bg-indigo-500' },
-];
-
-// Get consistent color for warehouse based on its name
-const getWarehouseColor = (warehouseName: string) => {
-  const hash = warehouseName.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  return WAREHOUSE_COLORS[Math.abs(hash) % WAREHOUSE_COLORS.length];
-};
+interface FuelRateSelectorProps {
+  value?: number;
+  onChange: (rate: number, location?: string) => void;
+  disabled?: boolean;
+  inputSize?: 'sm' | 'md' | 'lg';
+}
 
 const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
-  selectedRate,
+  value,
   onChange,
-  warehouses,
-  selectedWarehouseId,
-  error,
-  size = 'md'
+  disabled = false,
+  inputSize = 'sm'
 }) => {
+  const [rates, setRates] = useState<FuelRateOption[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [customRate, setCustomRate] = useState('');
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [searchValue, setSearchValue] = useState('');
+  const [locationInput, setLocationInput] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch trips data on component mount
+  // Load rates from localStorage on mount
   useEffect(() => {
-    const fetchTrips = async () => {
+    const storedRates = localStorage.getItem('fuelRates');
+    if (storedRates) {
       try {
-        const { getTrips } = await import('../../utils/storage');
-        const tripsData = await getTrips();
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-      } catch (error) {
-        console.error('Error fetching trips:', error);
-        setTrips([]);
-      }
-    };
-    
-    fetchTrips();
-  }, []);
-
-  // Get past fuel rates from trips
-  const { pastRates, frequentRates } = useMemo(() => {
-    const rateMap = new Map<number, { count: number; warehouseNames: Set<string> }>();
-    
-    (trips ?? []).forEach(trip => {
-      if (trip.refueling_done && trip.fuel_rate_per_liter && trip.fuel_rate_per_liter > 0) {
-        const rate = Math.round(trip.fuel_rate_per_liter * 100) / 100; // Round to 2 decimal places
-        
-        if (!rateMap.has(rate)) {
-          rateMap.set(rate, { count: 0, warehouseNames: new Set() });
-        }
-        
-        const rateData = rateMap.get(rate)!;
-        rateData.count++;
-        
-        // Try to find warehouse name for this trip
-        if (trip.warehouse_id) {
-          const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
-          if (warehouse) {
-            rateData.warehouseNames.add(warehouse.name);
+        const parsed = JSON.parse(storedRates);
+        // Sort by usage count and last used
+        const sorted = parsed.sort((a: FuelRateOption, b: FuelRateOption) => {
+          if (b.usageCount !== a.usageCount) {
+            return b.usageCount - a.usageCount;
           }
-        }
+          return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
+        });
+        setRates(sorted);
+      } catch (error) {
+        console.error('Error loading fuel rates:', error);
       }
-    });
-
-    // Convert to array and sort by frequency (most used first)
-    const allRates = Array.from(rateMap.entries())
-      .map(([rate, data]) => ({
-        rate,
-        count: data.count,
-        warehouseNames: Array.from(data.warehouseNames).slice(0, 2), // Limit to 2 warehouse names
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Limit to top 10 rates
-    
-    // Get top 4 for frequent rates display
-    const topFrequentRates = allRates.slice(0, 4);
-    
-    return {
-      pastRates: allRates,
-      frequentRates: topFrequentRates
-    };
-  }, [trips, warehouses]);
-
-  const sizeClasses = {
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-3 py-2 text-sm', 
-    lg: 'px-4 py-3 text-base'
-  };
-
-  // Filter rates based on search term
-  const filteredRates = pastRates.filter(rateData => 
-    rateData.rate.toString().includes(searchTerm) ||
-    rateData.warehouseNames.some(name => 
-      name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+    }
+  }, []);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -132,180 +61,264 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle rate selection
-  const handleRateSelect = (rate: number) => {
-    onChange(rate);
-    setIsOpen(false);
-    setCustomRate('');
+  const saveRate = (rate: number, location: string) => {
+    const existingIndex = rates.findIndex(r => 
+      Math.abs(r.rate - rate) < 0.01 && r.location.toLowerCase() === location.toLowerCase()
+    );
+
+    let updatedRates: FuelRateOption[];
+    
+    if (existingIndex >= 0) {
+      // Update existing rate
+      updatedRates = [...rates];
+      updatedRates[existingIndex] = {
+        ...updatedRates[existingIndex],
+        usageCount: updatedRates[existingIndex].usageCount + 1,
+        lastUsed: new Date().toISOString()
+      };
+    } else {
+      // Add new rate
+      const newRate: FuelRateOption = {
+        id: `rate-${Date.now()}`,
+        rate,
+        location,
+        usageCount: 1,
+        lastUsed: new Date().toISOString()
+      };
+      updatedRates = [newRate, ...rates];
+    }
+
+    // Sort and save
+    const sorted = updatedRates.sort((a, b) => {
+      if (b.usageCount !== a.usageCount) {
+        return b.usageCount - a.usageCount;
+      }
+      return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
+    });
+
+    setRates(sorted);
+    localStorage.setItem('fuelRates', JSON.stringify(sorted));
   };
 
-  // Handle custom rate input
-  const handleCustomRateSubmit = () => {
-    const rate = parseFloat(customRate);
-    if (!isNaN(rate) && rate > 0) {
-      onChange(rate);
+  const handleRateSelect = (rateOption: FuelRateOption) => {
+    onChange(rateOption.rate, rateOption.location);
+    saveRate(rateOption.rate, rateOption.location);
+    setIsOpen(false);
+    setSearchValue('');
+    setLocationInput('');
+  };
+
+  const handleNewRate = () => {
+    const rateValue = parseFloat(searchValue);
+    if (rateValue && rateValue > 0 && locationInput.trim()) {
+      onChange(rateValue, locationInput);
+      saveRate(rateValue, locationInput);
       setIsOpen(false);
-      setCustomRate('');
+      setSearchValue('');
+      setLocationInput('');
     }
   };
 
-  // Handle frequent rate chip click
-  const handleFrequentRateClick = (rate: number) => {
-    onChange(rate);
-  };
+  // Get top frequently used rates for quick access
+  const topRates = rates.slice(0, 4);
 
-  const displayValue = selectedRate ? `₹${selectedRate.toFixed(2)}` : '';
+  // Filter rates for dropdown search
+  const filteredRates = rates.filter(rate => {
+    const searchLower = searchValue.toLowerCase();
+    return rate.rate.toString().includes(searchValue) || 
+           rate.location.toLowerCase().includes(searchLower);
+  });
+
+  const sizeClasses = {
+    sm: 'text-sm h-9',
+    md: 'text-base h-10',
+    lg: 'text-lg h-12'
+  };
 
   return (
     <div className="space-y-2">
-      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-        Fuel Rate per Liter (₹)
-        <span className="text-error-500 ml-1">*</span>
-      </label>
+      {/* Frequently Used Rates - Quick Access Tags */}
+      {topRates.length > 0 && (
+        <div className="space-y-1">
+          <span className="text-xs text-gray-500 dark:text-gray-400">Frequently used at:</span>
+          <div className="flex flex-wrap gap-1.5">
+            {topRates.map(rate => (
+              <button
+                key={rate.id}
+                type="button"
+                onClick={() => handleRateSelect(rate)}
+                disabled={disabled}
+                className={cn(
+                  "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs",
+                  "bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300",
+                  "hover:bg-primary-200 dark:hover:bg-primary-800/30 transition-colors",
+                  "border border-primary-200 dark:border-primary-800",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <IndianRupee className="h-3 w-3" />
+                <span className="font-medium">{rate.rate.toFixed(2)}</span>
+                <span className="text-gray-600 dark:text-gray-400">
+                  — {rate.location}
+                </span>
+                {rate.usageCount > 1 && (
+                  <span className="text-xs text-gray-500 dark:text-gray-500">
+                    ({rate.usageCount} times)
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
+      {/* Dropdown Input */}
       <div className="relative" ref={dropdownRef}>
-        <div
-          className={cn(
-            "flex items-center justify-between border rounded-md bg-white dark:bg-gray-800 cursor-pointer",
-            error ? "border-error-500" : "border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400",
-            "focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-200",
-            sizeClasses[size]
-          )}
-          onClick={() => setIsOpen(true)}
-        >
-          <span className={selectedRate ? "text-gray-900 dark:text-gray-100" : "text-gray-500 dark:text-gray-400"}>
-            {displayValue || 'Select or enter fuel rate'}
-          </span>
-          {isOpen ? (
-            <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-          )}
+        <div className="relative">
+          <input
+            type="text"
+            value={value ? `₹${value.toFixed(2)}` : searchValue}
+            onClick={() => !disabled && setIsOpen(true)}
+            onChange={(e) => {
+              const val = e.target.value.replace('₹', '').trim();
+              setSearchValue(val);
+              if (!isOpen) setIsOpen(true);
+            }}
+            placeholder="Search rates or enter new rate"
+            disabled={disabled}
+            className={cn(
+              "w-full px-10 rounded-lg border",
+              "bg-white dark:bg-gray-800",
+              "border-gray-300 dark:border-gray-600",
+              "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500",
+              "disabled:bg-gray-100 dark:disabled:bg-gray-900",
+              "disabled:cursor-not-allowed",
+              sizeClasses[inputSize]
+            )}
+          />
+          <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <ChevronDown 
+            className={cn(
+              "absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 transition-transform",
+              isOpen && "rotate-180"
+            )}
+          />
         </div>
 
-        {/* Frequent Rates Quick Chips - Always visible below input */}
-        {frequentRates.length > 0 && (
-          <div className="mt-2 space-y-2">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Frequently used at:</p>
-            <div className="flex flex-wrap gap-2">
-              {frequentRates.map((rateData) => {
-                const warehouseName = rateData.warehouseNames[0] || 'Unknown';
-                const color = getWarehouseColor(warehouseName);
-                
-                return (
+        {/* Dropdown Menu */}
+        {isOpen && !disabled && (
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-64 overflow-y-auto">
+            {/* New Rate Entry */}
+            {searchValue && (
+              <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={locationInput}
+                      onChange={(e) => setLocationInput(e.target.value)}
+                      placeholder="Enter location (e.g., HP Petrol Pump, Raipur)"
+                      className={cn(
+                        "w-full pl-8 pr-3 py-2 rounded border",
+                        "bg-gray-50 dark:bg-gray-900",
+                        "border-gray-300 dark:border-gray-600",
+                        "focus:outline-none focus:ring-2 focus:ring-primary-500",
+                        "text-sm"
+                      )}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleNewRate();
+                        }
+                      }}
+                    />
+                    <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                  </div>
                   <button
-                    key={rateData.rate}
                     type="button"
-                    onClick={() => handleFrequentRateClick(rateData.rate)}
+                    onClick={handleNewRate}
+                    disabled={!searchValue || !locationInput.trim()}
                     className={cn(
-                      "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:shadow-sm",
-                      color.bg, color.text, "border-current hover:opacity-90"
+                      "w-full px-3 py-2 rounded",
+                      "bg-primary-500 text-white",
+                      "hover:bg-primary-600",
+                      "disabled:bg-gray-300 dark:disabled:bg-gray-700",
+                      "disabled:cursor-not-allowed",
+                      "text-sm font-medium transition-colors"
                     )}
                   >
-                    <span className={cn("w-2 h-2 rounded-full mr-2", color.dot)}></span>
-                    ₹{rateData.rate.toFixed(2)} — {warehouseName}
+                    Add New Rate: ₹{searchValue} at {locationInput || '...'}
                   </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        
-        {/* No past rates fallback */}
-        {frequentRates.length === 0 && !isOpen && (
-          <div className="mt-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400">No past fuel rates available.</p>
-          </div>
-        )}
-
-        {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-            {/* Search/Custom Input */}
-            <div className="p-2 border-b border-gray-200 dark:border-gray-600">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className="w-full pl-8 pr-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                  placeholder="Search rates or enter new rate..."
-                  value={searchTerm || customRate}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (!isNaN(parseFloat(value)) || value === '') {
-                      setCustomRate(value);
-                      setSearchTerm('');
-                    } else {
-                      setSearchTerm(value);
-                      setCustomRate('');
-                    }
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && customRate) {
-                      handleCustomRateSubmit();
-                    }
-                  }}
-                  autoFocus
-                />
+                </div>
               </div>
-              {customRate && (
-                <button
-                  type="button"
-                  className="mt-1 w-full text-left px-2 py-1 text-sm text-primary-600 hover:bg-primary-50 rounded"
-                  onClick={handleCustomRateSubmit}
-                >
-                  Use ₹{customRate} per liter
-                </button>
-              )}
-            </div>
+            )}
 
-            {/* Past Rates */}
-            <div className="max-h-40 overflow-y-auto">
-              {filteredRates.length > 0 ? (
-                filteredRates.map((rateData) => (
-                  <div
-                    key={rateData.rate}
-                    className="px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
-                    onClick={() => handleRateSelect(rateData.rate)}
+            {/* Existing Rates */}
+            {!searchValue && filteredRates.length > 0 ? (
+              <div className="py-1">
+                {filteredRates.map(rate => (
+                  <button
+                    key={rate.id}
+                    type="button"
+                    onClick={() => handleRateSelect(rate)}
+                    className={cn(
+                      "w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700",
+                      "flex items-center justify-between group transition-colors"
+                    )}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-gray-100">₹{rateData.rate.toFixed(2)}</span>
-                        {rateData.warehouseNames.length > 0 && (
-                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
-                            ({rateData.warehouseNames.join(', ')})
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-400 dark:text-gray-500">
-                        Used {rateData.count} time{rateData.count !== 1 ? 's' : ''}
+                    <div className="flex items-center gap-2">
+                      <IndianRupee className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="font-medium text-sm">₹{rate.rate.toFixed(2)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        — {rate.location}
                       </span>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                  {searchTerm ? 'No rates found' : 'No past fuel rates available'}
+                    <span className="text-xs text-gray-400">
+                      {rate.usageCount} {rate.usageCount === 1 ? 'time' : 'times'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              !searchValue && (
+                <div className="p-3 text-center text-gray-500 dark:text-gray-400 text-sm">
+                  No saved rates yet. Enter a new rate above.
                 </div>
-              )}
-            </div>
+              )
+            )}
 
-            {/* Current Warehouse Suggestion */}
-            {selectedWarehouseId && (
-              <div className="p-2 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  💡 Tip: Rates at {warehouses.find(w => w.id === selectedWarehouseId)?.name || 'this location'} 
-                  typically range ₹95-₹97
+            {/* Search Results */}
+            {searchValue && filteredRates.length > 0 && (
+              <div className="py-1 border-t border-gray-200 dark:border-gray-700">
+                <div className="px-3 py-1 text-xs text-gray-500 dark:text-gray-400">
+                  Or select from existing rates:
                 </div>
+                {filteredRates.slice(0, 5).map(rate => (
+                  <button
+                    key={rate.id}
+                    type="button"
+                    onClick={() => handleRateSelect(rate)}
+                    className={cn(
+                      "w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700",
+                      "flex items-center justify-between group transition-colors"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <IndianRupee className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="font-medium text-sm">₹{rate.rate.toFixed(2)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        — {rate.location}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-400">
+                      {rate.usageCount} {rate.usageCount === 1 ? 'time' : 'times'}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
           </div>
         )}
       </div>
-
-      {error && (
-        <p className="text-error-500 dark:text-error-400 text-sm mt-1">{error}</p>
-      )}
     </div>
   );
 };

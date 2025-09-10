@@ -2,7 +2,8 @@ import React from 'react';
 import { Refueling } from '@/types';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import { Fuel, MapPin, IndianRupee, Plus, Trash2, Calculator } from 'lucide-react';
+import FuelRateSelector from './FuelRateSelector';
+import { Fuel, MapPin, Plus, Trash2, Calculator } from 'lucide-react';
 import { cn } from '../../utils/cn';
 
 interface RefuelingFormProps {
@@ -31,12 +32,17 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
     onChange(updated);
   };
 
-  const updateRefueling = (index: number, field: keyof Refueling, value: any) => {
+  const updateRefueling = (index: number, field: keyof Refueling, value: any, location?: string) => {
     const updated = [...refuelings];
     updated[index] = {
       ...updated[index],
       [field]: value
     };
+
+    // Store location with the refueling if provided
+    if (location && field === 'fuel_rate_per_liter') {
+      updated[index].location = location;
+    }
 
     // Auto-calculate fuel quantity when total cost or rate changes
     if (field === 'total_fuel_cost' || field === 'fuel_rate_per_liter') {
@@ -114,51 +120,44 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
               </div>
 
               {/* Form fields in compact grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-                {/* Location */}
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 gap-3 mt-6">
+                {/* Total Cost (primary input - at the top) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Total Fuel Cost (₹) *
+                  </label>
                   <Input
-                    label="Refueling Location"
-                    placeholder="e.g., HP Petrol Pump, Raipur"
-                    icon={<MapPin className="h-4 w-4" />}
-                    value={refueling.location}
-                    onChange={(e) => updateRefueling(index, 'location', e.target.value)}
+                    type="number"
+                    step="0.01"
+                    icon={<Calculator className="h-4 w-4" />}
+                    value={refueling.total_fuel_cost || ''}
+                    onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
                     disabled={disabled}
                     inputSize="sm"
+                    placeholder="Enter total amount paid"
                     required
                   />
                 </div>
 
-                {/* Total Cost (primary input) */}
-                <Input
-                  label="Total Fuel Cost (₹)"
-                  type="number"
-                  step="0.01"
-                  icon={<Calculator className="h-4 w-4" />}
-                  value={refueling.total_fuel_cost || ''}
-                  onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
-                  disabled={disabled}
-                  inputSize="sm"
-                  required
-                />
-
-                {/* Fuel Rate */}
-                <Input
-                  label="Rate per Liter (₹)"
-                  type="number"
-                  step="0.01"
-                  icon={<IndianRupee className="h-4 w-4" />}
-                  value={refueling.fuel_rate_per_liter || ''}
-                  onChange={(e) => updateRefueling(index, 'fuel_rate_per_liter', parseFloat(e.target.value) || 0)}
-                  disabled={disabled}
-                  inputSize="sm"
-                  required
-                />
+                {/* Fuel Rate Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Fuel Rate per Liter (₹) *
+                  </label>
+                  <FuelRateSelector
+                    value={refueling.fuel_rate_per_liter}
+                    onChange={(rate, location) => updateRefueling(index, 'fuel_rate_per_liter', rate, location)}
+                    disabled={disabled}
+                    inputSize="sm"
+                  />
+                </div>
 
                 {/* Fuel Quantity (auto-calculated) */}
-                <div className="md:col-span-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Fuel Quantity (L)
+                  </label>
                   <Input
-                    label="Fuel Quantity (L) - Auto-calculated"
                     type="number"
                     step="0.01"
                     icon={<Fuel className="h-4 w-4" />}
@@ -166,8 +165,17 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                     disabled
                     inputSize="sm"
                     className="bg-gray-100 dark:bg-gray-900"
+                    placeholder="Auto-calculated"
                   />
                 </div>
+
+                {/* Location (display only if available) */}
+                {refueling.location && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                    <MapPin className="h-3.5 w-3.5" />
+                    <span>Refueling at: {refueling.location}</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}
