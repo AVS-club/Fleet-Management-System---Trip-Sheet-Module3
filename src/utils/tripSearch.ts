@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { supabase } from './supabaseClient';
-import { format, parseISO, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, parse, isValid } from 'date-fns';
 
 export interface TripFilters {
   search?: string;
@@ -56,6 +56,95 @@ export const QUICK_FILTERS = {
   })
 };
 
+// Helper function to parse date from various formats
+function parseDateSearch(searchTerm: string): { isDate: boolean; date?: Date; startDate?: string; endDate?: string } {
+  const term = searchTerm.trim();
+  
+  // Try various date formats
+  const dateFormats = [
+    'dd/MM/yyyy', // 20/08/2025
+    'dd-MM-yyyy', // 20-08-2025
+    'yyyy-MM-dd', // 2025-08-20
+    'dd MMM yyyy', // 20 Aug 2025
+    'dd MMMM yyyy', // 20 August 2025
+    'MMM dd yyyy', // Aug 20 2025
+    'MMMM dd yyyy', // August 20 2025
+    'd/M/yyyy', // 5/8/2025
+    'd-M-yyyy', // 5-8-2025
+  ];
+  
+  for (const formatStr of dateFormats) {
+    try {
+      const parsedDate = parse(term, formatStr, new Date());
+      if (isValid(parsedDate)) {
+        const dateStr = format(parsedDate, 'yyyy-MM-dd');
+        return {
+          isDate: true,
+          date: parsedDate,
+          startDate: dateStr,
+          endDate: dateStr
+        };
+      }
+    } catch (e) {
+      // Continue trying other formats
+    }
+  }
+  
+  // Check for natural language dates
+  const lowerTerm = term.toLowerCase();
+  if (lowerTerm.includes('today')) {
+    const today = new Date();
+    const dateStr = format(today, 'yyyy-MM-dd');
+    return {
+      isDate: true,
+      date: today,
+      startDate: dateStr,
+      endDate: dateStr
+    };
+  }
+  
+  if (lowerTerm.includes('yesterday')) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateStr = format(yesterday, 'yyyy-MM-dd');
+    return {
+      isDate: true,
+      date: yesterday,
+      startDate: dateStr,
+      endDate: dateStr
+    };
+  }
+  
+  // Check for partial date matches like "20th August" or "August 20"
+  const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
+                      'july', 'august', 'september', 'october', 'november', 'december'];
+  const monthAbbr = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 
+                     'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  
+  for (let i = 0; i < monthNames.length; i++) {
+    if (lowerTerm.includes(monthNames[i]) || lowerTerm.includes(monthAbbr[i])) {
+      // Extract day if present
+      const dayMatch = term.match(/\b(\d{1,2})(?:st|nd|rd|th)?\b/);
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1]);
+        const currentYear = new Date().getFullYear();
+        const parsedDate = new Date(currentYear, i, day);
+        if (isValid(parsedDate)) {
+          const dateStr = format(parsedDate, 'yyyy-MM-dd');
+          return {
+            isDate: true,
+            date: parsedDate,
+            startDate: dateStr,
+            endDate: dateStr
+          };
+        }
+      }
+    }
+  }
+  
+  return { isDate: false };
+}
+
 // Database-powered search function
 export async function searchTripsDatabase(
   filters: TripFilters,
@@ -77,10 +166,19 @@ export async function searchTripsDatabase(
       query = query.eq('created_by', userId);
     }
 
-    // Search filter with fuzzy matching
+    // Search filter with fuzzy matching and date support
     if (filters.search && filters.search.trim()) {
       const searchTerm = filters.search.trim();
-      query = query.or(`trip_serial_number.ilike.%${searchTerm}%,manual_trip_id.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
+      
+      // Check if search term is a date
+      const dateSearch = parseDateSearch(searchTerm);
+      if (dateSearch.isDate && dateSearch.startDate) {
+        // Search by date
+        query = query.eq('trip_start_date', dateSearch.startDate);
+      } else {
+        // Regular text search
+        query = query.or(`trip_serial_number.ilike.%${searchTerm}%,manual_trip_id.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
+      }
     }
 
     // Vehicle filter
@@ -192,20 +290,34 @@ export function searchTripsClientSide(
   const driversMap = new Map(drivers.map(d => [d.id, d]));
   const warehousesMap = new Map(warehouses.map(w => [w.id, w]));
 
-  // Search filter
+  // Search filter with date support
   if (filters.search && filters.search.trim()) {
     const searchTerm = filters.search.toLowerCase().trim();
-    filteredTrips = filteredTrips.filter(trip => {
-      const vehicle = vehiclesMap.get(trip.vehicle_id);
-      const driver = driversMap.get(trip.driver_id);
-      
-      return [
-        trip.trip_serial_number,
-        trip.manual_trip_id,
-        vehicle?.registration_number,
-        driver?.name
-      ].some(field => field?.toLowerCase().includes(searchTerm));
-    });
+    
+    // Check if search term is a date
+    const dateSearch = parseDateSearch(filters.search);
+    
+    if (dateSearch.isDate && dateSearch.startDate) {
+      // Filter by date
+      filteredTrips = filteredTrips.filter(trip => {
+        if (!trip.trip_start_date) return false;
+        const tripDateStr = trip.trip_start_date.split('T')[0]; // Get just the date part
+        return tripDateStr === dateSearch.startDate;
+      });
+    } else {
+      // Regular text search
+      filteredTrips = filteredTrips.filter(trip => {
+        const vehicle = vehiclesMap.get(trip.vehicle_id);
+        const driver = driversMap.get(trip.driver_id);
+        
+        return [
+          trip.trip_serial_number,
+          trip.manual_trip_id,
+          vehicle?.registration_number,
+          driver?.name
+        ].some(field => field?.toLowerCase().includes(searchTerm));
+      });
+    }
   }
 
   // Vehicle filter
