@@ -10,7 +10,7 @@ import TripPnlModal from '../components/trips/TripPnlModal';
 import ComprehensiveFilters, { ViewMode } from '../components/trips/ComprehensiveFilters';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '@/types';
-import { getTrips, getVehicles, getDrivers, createTrip, getWarehouses } from '../utils/storage';
+import { getTrips, getVehicles, getDrivers, createTrip, updateTrip, getWarehouses, getDestinations } from '../utils/storage';
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
@@ -25,6 +25,7 @@ const TripsPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [destinations, setDestinations] = useState<any[]>([]);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [isAddingTrip, setIsAddingTrip] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,17 +82,19 @@ const TripsPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tripsData, vehiclesData, driversData, warehousesData, materialTypesData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
           getTrips(),
           getVehicles(),
           getDrivers(),
           getWarehouses(),
+          getDestinations(),
           getMaterialTypes()
         ]);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setDrivers(Array.isArray(driversData) ? driversData : []);
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
+        setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -219,24 +222,43 @@ const TripsPage: React.FC = () => {
       // Create trip without the file object (replaced with URL)
       const { fuel_bill_file, ...tripData } = data;
 
-      // Add trip to storage
-      const newTrip = await createTrip({
-        ...tripData,
-        fuel_bill_url: fuelBillUrl
-      });
-      
-      if (newTrip) {
-        // Update state
-        setTrips(prev => Array.isArray(prev) ? [...prev, newTrip] : [newTrip]);
-        setIsAddingTrip(false);
-        setEditingTrip(null);
-        setClonedTripData(null); // Clear cloned data after successful submission
+      // Add or update trip in storage
+      if (editingTrip?.id) {
+        // Update existing trip
+        const updatedTrip = await updateTrip(editingTrip.id, {
+          ...tripData,
+          fuel_bill_url: fuelBillUrl || editingTrip.fuel_bill_url
+        });
         
-        // Redirect to the trip details page
-        navigate(`/trips/${newTrip.id}`);
-        toast.success('Trip added successfully');
+        if (updatedTrip) {
+          // Update state
+          setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
+          setIsAddingTrip(false);
+          setEditingTrip(null);
+          toast.success('Trip updated successfully');
+        } else {
+          throw new Error('Failed to update trip');
+        }
       } else {
-        throw new Error('Failed to add trip');
+        // Add new trip
+        const newTrip = await createTrip({
+          ...tripData,
+          fuel_bill_url: fuelBillUrl
+        });
+        
+        if (newTrip) {
+          // Update state
+          setTrips(prev => Array.isArray(prev) ? [...prev, newTrip] : [newTrip]);
+          setIsAddingTrip(false);
+          setEditingTrip(null);
+          setClonedTripData(null); // Clear cloned data after successful submission
+          
+          // Redirect to the trip details page
+          navigate(`/trips/${newTrip.id}`);
+          toast.success('Trip added successfully');
+        } else {
+          throw new Error('Failed to add trip');
+        }
       }
     } catch (error) {
       console.error('Error adding trip:', error);
@@ -341,9 +363,15 @@ const TripsPage: React.FC = () => {
           
           <TripForm
             onSubmit={handleAddTrip}
+            onCancel={() => {
+              setIsAddingTrip(false);
+              setEditingTrip(null);
+              setClonedTripData(null);
+            }}
             isSubmitting={isSubmitting}
             trips={trips}
             initialData={clonedTripData || (editingTrip ? {
+              id: editingTrip.id,
               vehicle_id: editingTrip.vehicle_id,
               driver_id: editingTrip.driver_id,
               warehouse_id: editingTrip.warehouse_id,
@@ -355,6 +383,7 @@ const TripsPage: React.FC = () => {
               gross_weight: editingTrip.gross_weight,
               refueling_done: editingTrip.refueling_done,
               fuel_quantity: editingTrip.fuel_quantity,
+              fuel_rate_per_liter: editingTrip.fuel_rate_per_liter,
               fuel_cost: editingTrip.fuel_cost,
               total_fuel_cost: editingTrip.total_fuel_cost,
               unloading_expense: editingTrip.unloading_expense,
@@ -367,8 +396,14 @@ const TripsPage: React.FC = () => {
               material_type_ids: editingTrip.material_type_ids,
               trip_serial_number: editingTrip.trip_serial_number,
               manual_trip_id: editingTrip.manual_trip_id,
-              is_return_trip: editingTrip.is_return_trip
+              is_return_trip: editingTrip.is_return_trip,
+              station: editingTrip.station
             } : undefined)}
+            allVehicles={vehicles}
+            allDrivers={drivers}
+            allDestinations={destinations}
+            allWarehouses={warehouses}
+            allMaterialTypes={materialTypes}
           />
         </div>
       ) : (

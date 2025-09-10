@@ -37,6 +37,7 @@ import { toast } from 'react-toastify';
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
+  onCancel?: () => void;
   isSubmitting?: boolean;
   trips?: Trip[];
   initialData?: Partial<TripFormData>;
@@ -50,6 +51,7 @@ interface TripFormProps {
 
 const TripForm: React.FC<TripFormProps> = ({
   onSubmit,
+  onCancel,
   isSubmitting = false,
   trips = [],
   initialData,
