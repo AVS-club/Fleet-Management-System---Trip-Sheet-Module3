@@ -81,27 +81,8 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
       </div>
 
       {/* Refueling entries */}
-      {refuelings.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
-          <Fuel className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No refueling recorded for this trip
-          </p>
-          <Button
-            type="button"
-            onClick={addRefueling}
-            disabled={disabled}
-            variant="ghost"
-            size="sm"
-            className="mt-2"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            Add First Refueling
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {refuelings.map((refueling, index) => (
+      <div className="space-y-3">
+        {refuelings.map((refueling, index) => (
             <div
               key={index}
               className={cn(
@@ -110,8 +91,8 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 "transition-all duration-200"
               )}
             >
-              {/* Remove button */}
-              {refuelings.length > 1 && (
+              {/* Remove button - only show if not the first entry */}
+              {index > 0 && (
                 <button
                   type="button"
                   onClick={() => removeRefueling(index)}
@@ -187,25 +168,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Add more button at bottom if entries exist */}
-      {refuelings.length > 0 && refuelings.length < 10 && (
-        <div className="flex justify-center pt-2">
-          <Button
-            type="button"
-            onClick={addRefueling}
-            disabled={disabled}
-            variant="ghost"
-            size="sm"
-            className="text-xs"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Another Refueling
-          </Button>
-        </div>
-      )}
+      </div>
     </div>
   );
 };

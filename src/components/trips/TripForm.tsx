@@ -89,7 +89,12 @@ const TripForm: React.FC<TripFormProps> = ({
     defaultValues: {
       trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
       trip_end_date: initialData?.trip_end_date || yesterdayDate, // Use initial data if available
-      refuelings: [],
+      refuelings: [{
+        location: '',
+        fuel_quantity: 0,
+        fuel_rate_per_liter: 0,
+        total_fuel_cost: 0
+      }],
       is_return_trip: true,
       gross_weight: 0,
       unloading_expense: 0,
@@ -127,7 +132,16 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('start_km', initialData.start_km || 0);
       setValue('end_km', initialData.end_km || 0);
       setValue('gross_weight', initialData.gross_weight || 0);
-      setValue('refuelings', initialData.refuelings || []);
+      // Ensure at least one refueling entry exists
+      const refuelings = initialData.refuelings && initialData.refuelings.length > 0 
+        ? initialData.refuelings 
+        : [{
+            location: '',
+            fuel_quantity: 0,
+            fuel_rate_per_liter: 0,
+            total_fuel_cost: 0
+          }];
+      setValue('refuelings', refuelings);
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
       setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
       setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
