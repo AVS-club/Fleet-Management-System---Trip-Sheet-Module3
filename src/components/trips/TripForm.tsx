@@ -331,6 +331,14 @@ const TripForm: React.FC<TripFormProps> = ({
         setRouteAnalysis(analysis);
         
         if (analysis) {
+          // Auto-fill toll expense if available
+          if (analysis.estimated_toll) {
+            const tollAmount = watchedValues.is_return_trip 
+              ? analysis.estimated_toll * 2  // Double toll for return trip
+              : analysis.estimated_toll;
+            setValue('toll_expense', tollAmount);
+          }
+          
           // Calculate route deviation
           const actualDistance = endKm - startKm;
           const standardDistance = analysis.total_distance;
@@ -411,6 +419,14 @@ const TripForm: React.FC<TripFormProps> = ({
         try {
           const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
           setRouteAnalysis(analysis);
+          
+          // Auto-fill toll expense when route is analyzed
+          if (analysis?.estimated_toll) {
+            const tollAmount = watchedValues.is_return_trip 
+              ? analysis.estimated_toll * 2  // Double toll for return trip
+              : analysis.estimated_toll;
+            setValue('toll_expense', tollAmount);
+          }
         } catch (error) {
           console.error('Error analyzing route:', error);
           setRouteAnalysis(null);
@@ -423,7 +439,7 @@ const TripForm: React.FC<TripFormProps> = ({
     };
 
     performRouteAnalysis();
-  }, [selectedWarehouseId, selectedDestinationObjects]);
+  }, [selectedWarehouseId, selectedDestinationObjects, watchedValues.is_return_trip, setValue]);
 
   // Form validation function
   const validateFormData = (data: TripFormData): string | null => {
@@ -522,7 +538,7 @@ const TripForm: React.FC<TripFormProps> = ({
             inputSize="sm"
           />
 
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
             <Input
               label="Trip Start Date"
               type="date"
@@ -531,7 +547,6 @@ const TripForm: React.FC<TripFormProps> = ({
               {...register('trip_start_date', { required: 'Start date is required' })}
               inputSize="sm"
             />
-
             <Input
               label="Trip End Date"
               type="date"
@@ -540,34 +555,36 @@ const TripForm: React.FC<TripFormProps> = ({
               {...register('trip_end_date', { required: 'End date is required' })}
               inputSize="sm"
             />
+            <div className="flex items-center gap-2 pb-1">
+              <Controller
+                name="is_return_trip"
+                control={control}
+                render={({ field }) => (
+                  <button
+                    type="button"
+                    onClick={() => field.onChange(!field.value)}
+                    aria-pressed={field.value}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                      field.value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
+                    } focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2`}
+                    title={field.value ? "Return trip enabled" : "One-way trip"}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition ${
+                        field.value ? 'translate-x-5' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                )}
+              />
+              <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                Return Trip
+                <span className="text-[10px] text-gray-500 ml-1">
+                  {watchedValues.is_return_trip ? '(Round Trip)' : '(One Way)'}
+                </span>
+              </label>
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Return Trip</label>
-            <Controller
-              name="is_return_trip"
-              control={control}
-              render={({ field }) => (
-                <button
-                  type="button"
-                  onClick={() => field.onChange(!field.value)}
-                  aria-pressed={field.value}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${
-                    field.value ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-700'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                      field.value ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              )}
-            />
-          </div>
-          <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-            Doubles route distance. Untick if not returning.
-          </p>
         </div>
       </div>
 

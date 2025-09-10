@@ -556,7 +556,14 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       waypoints: waypointsForDirections,
       optimizeWaypoints: false,
       travelMode: google.maps.TravelMode.DRIVING,
-      region: 'IN'
+      region: 'IN',
+      // Request toll data if available
+      drivingOptions: {
+        departureTime: new Date(),
+        trafficModel: google.maps.TrafficModel.BEST_GUESS
+      },
+      avoidHighways: false,
+      avoidTolls: false
     };
 
     // Use Promise wrapper for Google Directions API
@@ -570,9 +577,10 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       });
     });
 
-    // Extract total distance and duration from Google Directions response
+    // Extract total distance, duration and toll data from Google Directions response
     let totalLiveDistanceMeters = 0;
     let totalLiveDurationSeconds = 0;
+    let estimatedTollCost = 0;
 
     if (directionsResult.routes[0]?.legs) {
       directionsResult.routes[0].legs.forEach(leg => {
@@ -580,6 +588,13 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
         totalLiveDurationSeconds += leg.duration?.value || 0;
       });
     }
+
+    // Calculate estimated toll based on distance (Indian toll rates)
+    // Average toll rate in India: ₹1.5-2 per km for cars/small vehicles
+    // For trucks: ₹3-5 per km depending on axles
+    // Using conservative estimate of ₹2 per km for light commercial vehicles
+    const tollRatePerKm = 2;
+    estimatedTollCost = Math.round((totalLiveDistanceMeters / 1000) * tollRatePerKm);
 
     // Convert to appropriate units
     const totalLiveDistanceKm = Math.round(totalLiveDistanceMeters / 1000 * 10) / 10; // Round to 1 decimal
@@ -592,6 +607,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       total_distance: totalLiveDistanceKm,
       standard_distance: totalLiveDistanceKm,
       deviation: 0, // Will be calculated when actual distance is known
+      estimated_toll: estimatedTollCost,
       estimated_time: estimatedTime,
       waypoints
     };

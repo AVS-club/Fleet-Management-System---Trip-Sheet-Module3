@@ -87,6 +87,7 @@ export interface RouteAnalysis {
   standard_distance: number;
   deviation: number;
   estimated_time: string;
+  estimated_toll?: number;
   waypoints: Array<{
     lat: number;
     lng: number;
