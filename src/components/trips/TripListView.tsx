@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Trip, Vehicle, Driver } from '@/types';
 import { format, parseISO, isValid } from 'date-fns';
-import { Fuel, Edit2, DollarSign, MapPin, User, Truck, Calendar } from 'lucide-react';
+import { Fuel, Edit2, DollarSign, MapPin, User, Truck, Calendar, Camera, RefreshCw } from 'lucide-react';
+import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
+import { toast } from 'react-toastify';
 
 interface TripListViewProps {
   trips: Trip[];
@@ -46,11 +48,11 @@ const TripListView: React.FC<TripListViewProps> = ({
           const formattedDate = tripDate && isValid(tripDate) 
             ? format(tripDate, 'dd MMM yyyy')
             : '-';
-          const distance = trip.end_odometer && trip.start_odometer 
-            ? trip.end_odometer - trip.start_odometer
+          const distance = trip.end_km && trip.start_km 
+            ? trip.end_km - trip.start_km
             : 0;
-          const mileage = distance && trip.refueling_liters 
-            ? (distance / trip.refueling_liters).toFixed(2) 
+          const mileage = distance && trip.fuel_quantity 
+            ? (distance / trip.fuel_quantity).toFixed(2) 
             : '-';
           
           // Extract trip serial number parts for compact display
@@ -58,6 +60,42 @@ const TripListView: React.FC<TripListViewProps> = ({
           const compactSerial = serialParts.length > 1 
             ? `${serialParts[0]}-${serialParts[serialParts.length - 1]}` 
             : trip.trip_serial_number;
+          
+          // Component state for upload
+          const fileInputRef = useRef<HTMLInputElement>(null);
+          const [isUploading, setIsUploading] = useState(false);
+          
+          const handleCameraClick = () => {
+            fileInputRef.current?.click();
+          };
+          
+          const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0];
+            if (!file || !trip.id) return;
+            
+            setIsUploading(true);
+            try {
+              const uploadedUrls = await uploadFilesAndGetPublicUrls(
+                'trip-docs',
+                `${trip.id}/attachments`,
+                [file]
+              );
+              
+              if (uploadedUrls.length > 0) {
+                toast.success('Image uploaded successfully');
+              } else {
+                throw new Error('No URLs returned from upload');
+              }
+            } catch (error) {
+              console.error('Error uploading image:', error);
+              toast.error('Failed to upload image');
+            } finally {
+              setIsUploading(false);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+              }
+            }
+          };
           
           return (
             <div 
@@ -92,6 +130,21 @@ const TripListView: React.FC<TripListViewProps> = ({
                         <DollarSign className="h-4 w-4" />
                       </button>
                     )}
+                    <button 
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors disabled:opacity-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCameraClick();
+                      }}
+                      title="Upload Image"
+                      disabled={isUploading}
+                    >
+                      {isUploading ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </button>
                     {onEditTrip && (
                       <button 
                         className="p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
@@ -104,6 +157,15 @@ const TripListView: React.FC<TripListViewProps> = ({
                         <Edit2 className="h-4 w-4" />
                       </button>
                     )}
+                    
+                    {/* Hidden File Input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
                   </div>
                   
                   {/* Date */}

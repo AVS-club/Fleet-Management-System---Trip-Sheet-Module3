@@ -1,7 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Trip, Vehicle, Driver } from '@/types';
 import { format, parseISO, isValid } from 'date-fns';
-import { Fuel, Edit2, DollarSign, MoreVertical } from 'lucide-react';
+import { Fuel, Edit2, DollarSign, Camera, RefreshCw } from 'lucide-react';
+import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
+import { toast } from 'react-toastify';
 
 interface TripTableProps {
   trips: Trip[];
@@ -77,8 +79,11 @@ const TripTable: React.FC<TripTableProps> = ({
                 const formattedDate = tripDate && isValid(tripDate) 
                   ? format(tripDate, 'dd MMM yyyy')
                   : '-';
-                const mileage = trip.start_odometer && trip.end_odometer && trip.refueling_liters 
-                  ? ((trip.end_odometer - trip.start_odometer) / trip.refueling_liters).toFixed(2) 
+                const distance = trip.end_km && trip.start_km 
+                  ? trip.end_km - trip.start_km
+                  : 0;
+                const mileage = distance && trip.fuel_quantity 
+                  ? (distance / trip.fuel_quantity).toFixed(2) 
                   : '-';
                 
                 // Extract trip serial number parts for compact display
@@ -86,6 +91,42 @@ const TripTable: React.FC<TripTableProps> = ({
                 const compactSerial = serialParts.length > 1 
                   ? `${serialParts[0]}-${serialParts[serialParts.length - 1]}` 
                   : trip.trip_serial_number;
+                
+                // Component state for upload
+                const fileInputRef = useRef<HTMLInputElement>(null);
+                const [isUploading, setIsUploading] = useState(false);
+                
+                const handleCameraClick = () => {
+                  fileInputRef.current?.click();
+                };
+                
+                const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !trip.id) return;
+                  
+                  setIsUploading(true);
+                  try {
+                    const uploadedUrls = await uploadFilesAndGetPublicUrls(
+                      'trip-docs',
+                      `${trip.id}/attachments`,
+                      [file]
+                    );
+                    
+                    if (uploadedUrls.length > 0) {
+                      toast.success('Image uploaded successfully');
+                    } else {
+                      throw new Error('No URLs returned from upload');
+                    }
+                  } catch (error) {
+                    console.error('Error uploading image:', error);
+                    toast.error('Failed to upload image');
+                  } finally {
+                    setIsUploading(false);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }
+                };
                 
                 return (
                   <tr 
@@ -117,6 +158,21 @@ const TripTable: React.FC<TripTableProps> = ({
                             <DollarSign className="h-3.5 w-3.5" />
                           </button>
                         )}
+                        <button 
+                          className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors disabled:opacity-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCameraClick();
+                          }}
+                          title="Upload Image"
+                          disabled={isUploading}
+                        >
+                          {isUploading ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Camera className="h-3.5 w-3.5" />
+                          )}
+                        </button>
                         {onEditTrip && (
                           <button 
                             className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
@@ -129,6 +185,15 @@ const TripTable: React.FC<TripTableProps> = ({
                             <Edit2 className="h-3.5 w-3.5" />
                           </button>
                         )}
+                        
+                        {/* Hidden File Input */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
@@ -141,9 +206,7 @@ const TripTable: React.FC<TripTableProps> = ({
                       {driver?.name || '-'}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {trip.end_odometer && trip.start_odometer 
-                        ? `${(trip.end_odometer - trip.start_odometer).toFixed(1)} km`
-                        : '-'}
+                      {distance > 0 ? `${distance.toFixed(1)} km` : '-'}
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
                       {mileage !== '-' ? `${mileage} km/L` : '-'}
