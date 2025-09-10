@@ -13,14 +13,15 @@ type NavLink = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  hasQuickAdd?: boolean;
 };
 
 export const navLinks: NavLink[] = [
-  { to: '/vehicles',        label: 'Vehicles',      icon: Truck },
-  { to: '/drivers',         label: 'Drivers',       icon: Users },
-  { to: '/trips',           label: 'Trips',         icon: Route },
+  { to: '/vehicles',        label: 'Vehicles',      icon: Truck,      hasQuickAdd: true },
+  { to: '/drivers',         label: 'Drivers',       icon: Users,      hasQuickAdd: true },
+  { to: '/trips',           label: 'Trips',         icon: Route,      hasQuickAdd: true },
   { to: '/trip-pnl-reports', label: 'Trip P&L',     icon: BarChart3 },
-  { to: '/maintenance',     label: 'Maintenance',   icon: Wrench },
+  { to: '/maintenance',     label: 'Maintenance',   icon: Wrench,     hasQuickAdd: true },
   { to: '/notifications',   label: 'Notifications', icon: Bell },
   { to: '/admin',           label: 'Admin',         icon: ShieldCheck },
 ];

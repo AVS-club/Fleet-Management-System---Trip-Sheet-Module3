@@ -505,7 +505,7 @@ const TripForm: React.FC<TripFormProps> = ({
       // Create display string like "Raipur → Bacheli"
       const warehouseName = warehouses.find(w => w.id === data.warehouse_id)?.name || '';
       const destNames = selectedDestinationObjects.map(d => d.name).join(' → ');
-      data.destination_display = warehouseName ? `${warehouseName} → ${destNames}` : destNames;
+      // destination_display removed - not in database schema
     }
 
     await onSubmit(data);
