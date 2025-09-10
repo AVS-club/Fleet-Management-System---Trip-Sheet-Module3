@@ -8,9 +8,7 @@ import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import Input from '../ui/Input';
-import Select from '../ui/Select';
 import Button from '../ui/Button';
-import FileUpload from '../ui/FileUpload';
 import WarehouseSelector from './WarehouseSelector';
 import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
@@ -809,7 +807,7 @@ const TripForm: React.FC<TripFormProps> = ({
               analysis={routeAnalysis}
               alerts={[]}
               onAlertAction={() => {}}
-              isAnalyzing={isAnalyzingRoute}
+              isAnalyzing={isAnalyzing}
               vehicleId={selectedVehicleId}
               destinations={destinations.map(d => d.name)}
             />
