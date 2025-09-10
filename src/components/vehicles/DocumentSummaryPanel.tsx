@@ -664,7 +664,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={handlePrintClick}
               icon={<Print className="h-4 w-4" />}
               title="Print Report"
@@ -672,7 +672,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             />
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={handleDownload}
               icon={<Download className="h-4 w-4" />}
               title="Export Data"
@@ -824,7 +824,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-60"
-                      size="sm"
+                      inputSize="sm"
                     />
                     <Select
                       options={[
@@ -839,7 +839,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                       value={documentTypeFilter}
                       onChange={(e) => setDocumentTypeFilter(e.target.value)}
                       className="w-40"
-                      size="sm"
+                      inputSize="sm"
                     />
                   </div>
                 </div>

@@ -268,7 +268,7 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                     <span className="text-xs text-gray-500 font-mono">Trip ID: {alert.metadata.trip_id}</span>
                     <button 
                       onClick={copyTripId}
-                      size="sm" 
+                      inputSize="sm" 
                       className="text-xs py-1 px-2"
                       title="Copy to clipboard"
                     >

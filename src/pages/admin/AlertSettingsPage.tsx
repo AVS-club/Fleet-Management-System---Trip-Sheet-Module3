@@ -20,7 +20,7 @@ const AlertSettingsPage: React.FC = () => {
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             variant="outline"
-            size="sm"
+            inputSize="sm"
             onClick={() => navigate('/admin')}
             icon={<ChevronLeft className="h-4 w-4" />}
           >

@@ -210,7 +210,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
           <div className="flex items-end">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={handleRefresh}
               icon={<RefreshCw className="h-4 w-4" />}
               isLoading={loading}

@@ -476,7 +476,7 @@ const VehiclesPage: React.FC = () => {
               variant="outline"
               onClick={() => setShowDocumentPanel(true)}
               icon={<FileText className="h-4 w-4" />}
-              size="sm"
+              inputSize="sm"
               title="Vehicle Document Summary"
             >
               Document Summary
@@ -486,7 +486,7 @@ const VehiclesPage: React.FC = () => {
               variant="outline"
               onClick={() => setShowArchived(!showArchived)}
               icon={<Archive className="h-4 w-4" />}
-              size="sm"
+              inputSize="sm"
               title={
                 showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"
               }

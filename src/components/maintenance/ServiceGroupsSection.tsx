@@ -47,7 +47,7 @@ const ServiceGroupsSection: React.FC = () => {
         <Button
           type="button"
           variant="outline"
-          size="sm"
+          inputSize="sm"
           onClick={() =>
             append({
               vendor_id: "",

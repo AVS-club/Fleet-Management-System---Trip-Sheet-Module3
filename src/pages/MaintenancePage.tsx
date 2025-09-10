@@ -114,7 +114,7 @@ const MaintenancePage = () => {
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
-            size="sm"
+            inputSize="sm"
           >
             New Task
           </Button>
@@ -122,7 +122,7 @@ const MaintenancePage = () => {
             onClick={() => navigate('/parts-health')}
             icon={<BarChart3 className="h-4 w-4" />}
             variant="outline"
-            size="sm"
+            inputSize="sm"
           >
             Parts Health & Analytics
           </Button>

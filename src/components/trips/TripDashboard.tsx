@@ -217,7 +217,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
                   className="w-auto"
-                  size="sm"
+                  inputSize="sm"
                 />
                 <span className="text-gray-500">-</span>
                 <Input
@@ -225,7 +225,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
                   className="w-auto"
-                  size="sm"
+                  inputSize="sm"
                 />
               </div>
             )}

@@ -369,7 +369,7 @@ const MaintenanceTaskPage: React.FC = () => {
           <div className="mb-6">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={() => navigate("/maintenance")}
               icon={<ChevronLeft className="h-4 w-4" />}
             >

@@ -281,7 +281,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                         ]}
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        size="sm"
+                        inputSize="sm"
                       />
                     </div>
                     
@@ -296,7 +296,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                         ]}
                         value={selectedStatus}
                         onChange={(e) => setSelectedStatus(e.target.value)}
-                        size="sm"
+                        inputSize="sm"
                       />
                     </div>
                   </div>
@@ -304,7 +304,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="sm"
+                      inputSize="sm"
                       icon={<Download className="h-4 w-4" />}
                       onClick={() => toast.info('Export functionality coming soon!')}
                     >

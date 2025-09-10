@@ -490,7 +490,7 @@ const AIAlertsPage: React.FC = () => {
                   onClick={handleRunAICheck}
                   isLoading={runningCheck}
                   icon={<RefreshCw className="h-4 w-4" />}
-                  size="sm"
+                  inputSize="sm"
                   className="w-full xs:w-auto"
                 >
                   Run AI Check

@@ -337,7 +337,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
               </div>
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<Filter className="h-4 w-4" />}
               >
@@ -348,7 +348,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={exportPDF}
                 icon={<Download className="h-4 w-4" />}
               >
@@ -356,7 +356,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={exportExcel}
                 icon={<Download className="h-4 w-4" />}
               >
@@ -608,7 +608,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                       <Button
                         variant="outline"
-                        size="sm"
+                        inputSize="sm"
                         onClick={() => navigate(`/maintenance/${task.id}`)}
                         icon={<Eye className="h-4 w-4" />}
                       >

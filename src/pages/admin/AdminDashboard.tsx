@@ -305,7 +305,7 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-xs sm:text-sm text-gray-500">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
-                      <Button size="sm" className="w-full sm:w-auto">View All Trips</Button>
+                      <Button inputSize="sm" className="w-full sm:w-auto">View All Trips</Button>
                     </Link>
                   </div>
                 </div>

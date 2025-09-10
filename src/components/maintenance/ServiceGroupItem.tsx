@@ -108,7 +108,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                   <Switch
                     checked={value}
                     onChange={(e) => onChange(e.target.checked)}
-                    size="sm"
+                    inputSize="sm"
                   />
                 )}
               />
@@ -120,7 +120,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                     <Input
                       label="Battery Serial Number"
                       placeholder="Enter serial number"
-                      size="sm"
+                      inputSize="sm"
                       {...register(
                         `service_groups.${index}.battery_serial` as const
                       )}
@@ -154,7 +154,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                         value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
                         placeholder="Select or search brand"
-                        size="sm"
+                        inputSize="sm"
                       />
                     )}
                   />
@@ -168,7 +168,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       <Input
                         type="date"
                         placeholder="Warranty Expiry"
-                        size="sm"
+                        inputSize="sm"
                         {...field}
                       />
                     )}
@@ -194,7 +194,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                   <Switch
                     checked={value}
                     onChange={(e) => onChange(e.target.checked)}
-                    size="sm"
+                    inputSize="sm"
                   />
                 )}
               />
@@ -271,7 +271,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                         value={field.value || ""}
                         onChange={(value) => field.onChange(value)}
                         placeholder="Select or search brand"
-                        size="sm"
+                        inputSize="sm"
                       />
                     )}
                   />
@@ -279,7 +279,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                     <Input
                       label="Tyre Serial Numbers"
                       placeholder="Comma separated"
-                      size="sm"
+                      inputSize="sm"
                       {...register(
                         `service_groups.${index}.tyre_serials` as const
                       )}
@@ -297,7 +297,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                         <Input
                           type="date"
                           placeholder="Warranty Expiry"
-                          size="sm"
+                          inputSize="sm"
                           {...field}
                         />
                       )}

@@ -160,7 +160,7 @@ const DataTable: React.FC<DataTableProps> = ({
               onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
               disabled={currentPage === 1}
               variant="outline"
-              size="sm"
+              inputSize="sm"
             >
               Previous
             </Button>
@@ -168,7 +168,7 @@ const DataTable: React.FC<DataTableProps> = ({
               onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
               disabled={currentPage === totalPages}
               variant="outline"
-              size="sm"
+              inputSize="sm"
             >
               Next
             </Button>

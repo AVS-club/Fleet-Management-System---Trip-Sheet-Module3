@@ -220,7 +220,7 @@ const TripLocationsPage: React.FC = () => {
             <div className="p-4">
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={() => setIsManagingMaterialTypes(true)}
                 icon={<Settings className="h-4 w-4" />}
               >

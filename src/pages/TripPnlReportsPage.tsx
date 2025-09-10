@@ -592,7 +592,7 @@ const TripPnlReportsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={clearFilters}
                 icon={<X className="h-4 w-4" />}
               >
@@ -600,7 +600,7 @@ const TripPnlReportsPage: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />}
               >

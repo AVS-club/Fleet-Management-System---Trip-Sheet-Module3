@@ -674,7 +674,7 @@ const DriverPage: React.FC = () => {
                       </p>
                     </div>
                     {driver.license_doc_url && (
-                      <Button variant="outline" size="sm">
+                      <Button variant="outline" inputSize="sm">
                         View
                       </Button>
                     )}
@@ -703,7 +703,7 @@ const DriverPage: React.FC = () => {
                               </p>
                             </div>
                             {doc.file_path && (
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" inputSize="sm">
                                 View
                               </Button>
                             )}

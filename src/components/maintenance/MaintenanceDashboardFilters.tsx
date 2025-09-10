@@ -38,7 +38,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
               ]}
               value={dateRangeFilter}
               onChange={(e) => onDateRangeFilterChange(e.target.value)}
-              size="sm"
+              inputSize="sm"
             />
           </div>
 
@@ -53,7 +53,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                     ...customDateRange, 
                     start: e.target.value 
                   })}
-                  size="sm"
+                  inputSize="sm"
                   placeholder="Start Date"
                 />
               </div>
@@ -68,7 +68,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                     ...customDateRange, 
                     end: e.target.value 
                   })}
-                  size="sm"
+                  inputSize="sm"
                   placeholder="End Date"
                 />
               </div>
@@ -82,7 +82,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
           <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={onExportCSV}
               icon={<Download className="h-4 w-4" />}
               title="Export CSV"
@@ -92,7 +92,7 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={onExportPDF}
               icon={<Download className="h-4 w-4" />}
               title="Export PDF"

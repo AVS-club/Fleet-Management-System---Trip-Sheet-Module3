@@ -386,7 +386,7 @@ const TripDetailsPage: React.FC = () => {
               <div className="mt-4 flex justify-end">
                 <Button
                   variant="outline"
-                  size="sm"
+                  inputSize="sm"
                   onClick={() => setShowMapModal(true)}
                 >
                   Expand Full Map

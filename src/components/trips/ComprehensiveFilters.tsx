@@ -115,7 +115,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={clearFilters}
               disabled={activeFilterCount === 0}
               icon={<X className="h-4 w-4" />}
@@ -125,7 +125,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={() => setIsExpanded(!isExpanded)}
               icon={isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             >
@@ -173,21 +173,21 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
         <div className="mt-2 flex flex-wrap gap-1">
           <Button
             variant={filters.dateRange === 'today' ? 'primary' : 'outline'}
-            size="sm"
+            inputSize="sm"
             onClick={() => applyQuickFilter(QUICK_FILTERS.today)}
           >
             Today
           </Button>
           <Button
             variant={filters.dateRange === 'week' ? 'primary' : 'outline'}
-            size="sm"
+            inputSize="sm"
             onClick={() => applyQuickFilter(QUICK_FILTERS.week)}
           >
             This Week
           </Button>
           <Button
             variant={filters.dateRange === 'month' ? 'primary' : 'outline'}
-            size="sm"
+            inputSize="sm"
             onClick={() => applyQuickFilter(QUICK_FILTERS.month)}
           >
             This Month
@@ -226,7 +226,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 ]}
                 value={filters.vehicle || ''}
                 onChange={(e) => updateFilter('vehicle', e.target.value)}
-                size="sm"
+                inputSize="sm"
               />
             </div>
             
@@ -242,7 +242,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 ]}
                 value={filters.driver || ''}
                 onChange={(e) => updateFilter('driver', e.target.value)}
-                size="sm"
+                inputSize="sm"
               />
             </div>
             
@@ -258,7 +258,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 ]}
                 value={filters.warehouse || ''}
                 onChange={(e) => updateFilter('warehouse', e.target.value)}
-                size="sm"
+                inputSize="sm"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => updateFilter('startDate', e.target.value)}
-                size="sm"
+                inputSize="sm"
                 icon={<Calendar className="h-4 w-4" />}
               />
             </div>
@@ -282,7 +282,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => updateFilter('endDate', e.target.value)}
-                size="sm"
+                inputSize="sm"
                 icon={<Calendar className="h-4 w-4" />}
               />
             </div>
@@ -297,7 +297,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 ]}
                 value={filters.refueling || 'all'}
                 onChange={(e) => updateFilter('refueling', e.target.value)}
-                size="sm"
+                inputSize="sm"
               />
             </div>
           </div>
@@ -313,7 +313,7 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
                 }))}
                 value={filters.materials || []}
                 onChange={(materials) => updateFilter('materials', materials)}
-                size="sm"
+                inputSize="sm"
               />
             </div>
             

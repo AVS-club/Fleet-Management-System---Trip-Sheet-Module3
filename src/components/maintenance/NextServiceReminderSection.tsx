@@ -29,7 +29,7 @@ const NextServiceReminderSection: React.FC<Props> = ({
           checked={reminder}
           onChange={(e) => onToggle(e.target.checked)}
           label="Set Reminder"
-          size="sm"
+          inputSize="sm"
         />
       </div>
       {reminder && (

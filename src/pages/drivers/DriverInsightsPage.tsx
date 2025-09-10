@@ -532,7 +532,7 @@ const DriverInsightsPage: React.FC = () => {
 
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={() => setShowFilters(!showFilters)}
               >
                 {showFilters ? "Hide Filters" : "Show Filters"}
@@ -594,7 +594,7 @@ const DriverInsightsPage: React.FC = () => {
 
               <Button
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={() => {
                   setDateRange("allTime");
                   setSelectedDriver("all");
@@ -735,14 +735,14 @@ const DriverInsightsPage: React.FC = () => {
                             <div className="flex justify-center space-x-2">
                               <Button
                                 variant="outline"
-                                size="sm"
+                                inputSize="sm"
                                 onClick={() => navigate(`/drivers/${driver.driverId}`)}
                               >
                                 View Profile
                               </Button>
                               <Button
                                 variant="outline"
-                                size="sm"
+                                inputSize="sm"
                                 onClick={() => handleViewDriverDetails(driver.driverId)}
                               >
                                 View Details

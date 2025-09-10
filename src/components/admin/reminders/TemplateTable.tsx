@@ -190,13 +190,13 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
-                  size="sm"
+                  inputSize="sm"
                   onClick={handleCancelEdit}
                 >
                   Cancel
                 </Button>
                 <Button
-                  size="sm"
+                  inputSize="sm"
                   onClick={handleSave}
                   isLoading={isSubmitting}
                 >

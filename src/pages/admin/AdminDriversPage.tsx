@@ -355,7 +355,7 @@ const AdminDriversPage: React.FC = () => {
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                size="sm" 
+                inputSize="sm" 
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<Filter className="h-4 w-4" />}
               >
@@ -364,7 +364,7 @@ const AdminDriversPage: React.FC = () => {
               
               <Button
                 variant="outline" 
-                size="sm"
+                inputSize="sm"
                 icon={<RefreshCw className="h-4 w-4" />}
               >
                 Refresh

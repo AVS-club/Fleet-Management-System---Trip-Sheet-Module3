@@ -105,7 +105,7 @@ const DocumentModalBase = <T extends DocumentItemBase>(
           <div className="space-x-2">
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={selectAll}
               disabled={!anyDocumentsAvailable}
             >
@@ -113,7 +113,7 @@ const DocumentModalBase = <T extends DocumentItemBase>(
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={deselectAll}
               disabled={!anyDocumentsAvailable}
             >

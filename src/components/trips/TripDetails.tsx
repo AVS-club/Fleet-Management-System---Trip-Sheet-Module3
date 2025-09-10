@@ -147,7 +147,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Button
           variant="outline"
-          size="sm"
+          inputSize="sm"
           icon={<ChevronLeft className="h-4 w-4" />}
           onClick={onBack}
           className="w-full sm:w-auto"
@@ -158,7 +158,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <Button
             variant="outline"
-            size="sm"
+            inputSize="sm"
             icon={<Edit className="h-4 w-4" />}
             onClick={onEdit}
             className="w-full sm:w-auto"
@@ -167,7 +167,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           </Button>
           <Button
             variant="danger"
-            size="sm"
+            inputSize="sm"
             icon={<Trash2 className="h-4 w-4" />}
             onClick={onDelete}
             className="w-full sm:w-auto"

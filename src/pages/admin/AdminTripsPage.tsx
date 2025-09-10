@@ -559,7 +559,7 @@ const AdminTripsPage: React.FC = () => {
             <div className="flex gap-2">
               <Button 
                 variant="outline"
-                size="sm"
+                inputSize="sm"
                 onClick={clearFilters}
                 icon={<X className="h-4 w-4" />}
               >
@@ -568,7 +568,7 @@ const AdminTripsPage: React.FC = () => {
               
               <Button 
                 variant="outline" 
-                size="sm" 
+                inputSize="sm" 
                 onClick={refreshData}
                 icon={<RefreshCw className="h-4 w-4" />}
                 isLoading={refreshing}
@@ -578,7 +578,7 @@ const AdminTripsPage: React.FC = () => {
               
               <Button 
                 variant="outline" 
-                size="sm" 
+                inputSize="sm" 
                 onClick={() => setShowFilters(!showFilters)}
                 icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
               >

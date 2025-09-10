@@ -90,7 +90,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         disabled={loading}
         fullWidth
         isLoading={loading}
-        size="md"
+        inputSize="md"
         className="py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-md transition-all"
       >
         {loading ? "Signing in..." : "Sign In"}

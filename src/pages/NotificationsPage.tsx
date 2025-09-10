@@ -215,7 +215,7 @@ const NotificationsPage: React.FC = () => {
                         <div className="flex-shrink-0">
                           <Button
                             variant="outline"
-                            size="sm"
+                            inputSize="sm"
                             className="text-xs"
                             icon={<ExternalLink className="h-3 w-3" />}
                             onClick={(e) => {

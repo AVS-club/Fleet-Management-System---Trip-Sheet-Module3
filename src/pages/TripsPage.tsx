@@ -418,7 +418,7 @@ const TripsPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        size="sm"
+                        inputSize="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                         icon={<ChevronLeft className="h-4 w-4" />}
@@ -460,7 +460,7 @@ const TripsPage: React.FC = () => {
                       
                       <Button
                         variant="outline"
-                        size="sm"
+                        inputSize="sm"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         icon={<ChevronRight className="h-4 w-4" />}
@@ -484,7 +484,7 @@ const TripsPage: React.FC = () => {
                       {showLoadMore && currentPage < totalPages && (
                         <Button
                           variant="outline"
-                          size="sm"
+                          inputSize="sm"
                           onClick={handleLoadMore}
                         >
                           Load More

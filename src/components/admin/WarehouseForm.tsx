@@ -226,7 +226,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={toggleManualEntry}
             >
               Enter Details Manually
@@ -326,7 +326,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              inputSize="sm"
               onClick={toggleManualEntry}
             >
               Use Google Maps Search
