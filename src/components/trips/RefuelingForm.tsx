@@ -38,11 +38,14 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
       [field]: value
     };
 
-    // Auto-calculate total cost when quantity or rate changes
-    if (field === 'fuel_quantity' || field === 'fuel_rate_per_liter') {
-      const quantity = field === 'fuel_quantity' ? value : updated[index].fuel_quantity;
+    // Auto-calculate fuel quantity when total cost or rate changes
+    if (field === 'total_fuel_cost' || field === 'fuel_rate_per_liter') {
+      const totalCost = field === 'total_fuel_cost' ? value : updated[index].total_fuel_cost;
       const rate = field === 'fuel_rate_per_liter' ? value : updated[index].fuel_rate_per_liter;
-      updated[index].total_fuel_cost = quantity * rate;
+      
+      if (totalCost && rate && rate > 0) {
+        updated[index].fuel_quantity = parseFloat((totalCost / rate).toFixed(2));
+      }
     }
 
     onChange(updated);
@@ -126,14 +129,14 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                   />
                 </div>
 
-                {/* Fuel Quantity */}
+                {/* Total Cost (primary input) */}
                 <Input
-                  label="Fuel Quantity (L)"
+                  label="Total Fuel Cost (₹)"
                   type="number"
                   step="0.01"
-                  icon={<Fuel className="h-4 w-4" />}
-                  value={refueling.fuel_quantity || ''}
-                  onChange={(e) => updateRefueling(index, 'fuel_quantity', parseFloat(e.target.value) || 0)}
+                  icon={<Calculator className="h-4 w-4" />}
+                  value={refueling.total_fuel_cost || ''}
+                  onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
                   disabled={disabled}
                   inputSize="sm"
                   required
@@ -152,14 +155,14 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                   required
                 />
 
-                {/* Total Cost (auto-calculated) */}
+                {/* Fuel Quantity (auto-calculated) */}
                 <div className="md:col-span-2">
                   <Input
-                    label="Total Fuel Cost (₹)"
+                    label="Fuel Quantity (L) - Auto-calculated"
                     type="number"
                     step="0.01"
-                    icon={<Calculator className="h-4 w-4" />}
-                    value={refueling.total_fuel_cost || ''}
+                    icon={<Fuel className="h-4 w-4" />}
+                    value={refueling.fuel_quantity || ''}
                     disabled
                     inputSize="sm"
                     className="bg-gray-100 dark:bg-gray-900"
