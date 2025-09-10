@@ -28,6 +28,12 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - Enhanced ErrorBoundary with recovery strategies and error tracking
   - Improved destination display to store names directly in trips table
   - Optimized RouteAnalysis layout with side-by-side map view
+  - Added Indian-specific validation for license, mobile, Aadhar
+  - Implemented document expiry monitoring system
+  - Created RC details auto-fetch functionality
+  - Added intelligent retry logic with exponential backoff
+  - Enhanced driver experience display (now shows years and months)
+  - Aligned vehicle assignment with vehicle categories
   
 - **2025-09-09**: Initial Replit setup completed
   - Configured Vite for Replit proxy environment
