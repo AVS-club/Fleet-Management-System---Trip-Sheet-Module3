@@ -61,8 +61,12 @@ const TripsPage: React.FC = () => {
   // Handle cloned trip data from location state
   const [clonedTripData, setClonedTripData] = useState<Partial<TripFormData> | null>(null);
 
-  // Check for cloned trip data on component mount
+  // Check for cloned trip data or action query parameter
   useEffect(() => {
+    // Check query parameters
+    const searchParams = new URLSearchParams(location.search);
+    const action = searchParams.get('action');
+    
     if (location.state?.clonedTripData) {
       setClonedTripData(location.state.clonedTripData);
       setEditingTrip(null); // Clear any editing trip
@@ -70,12 +74,19 @@ const TripsPage: React.FC = () => {
       
       // Clear the location state to prevent re-applying cloned data
       window.history.replaceState({}, document.title);
-    } else if (location.state?.openAddForm) {
+    } else if (location.state?.openAddForm || action === 'new') {
       // Handle opening add form without clone data
       setIsAddingTrip(true);
-      window.history.replaceState({}, document.title);
+      
+      // Clear query params and state
+      if (action === 'new') {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      } else {
+        window.history.replaceState({}, document.title);
+      }
     }
-  }, [location.state]);
+  }, [location.state, location.search]);
 
   // Load data
   useEffect(() => {

@@ -63,22 +63,10 @@ const Header: React.FC = () => {
             </div>
           </button>
 
-          {/* Navigation - Center */}
-          <nav className="hidden md:flex flex-1 justify-center px-6">
+          {/* Navigation - Always visible, centered */}
+          <nav className="flex flex-1 justify-center px-2 sm:px-4 md:px-6">
             <AppNav />
           </nav>
-
-          {/* Mobile Navigation Toggle (if needed) */}
-          <div className="flex md:hidden">
-            <button
-              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-              aria-label="Open navigation"
-            >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
@@ -110,10 +98,6 @@ const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu (can be expanded) */}
-        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-2">
-          <AppNav />
-        </div>
       </div>
     </header>
   );
