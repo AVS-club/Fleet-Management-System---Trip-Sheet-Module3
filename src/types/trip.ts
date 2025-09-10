@@ -1,3 +1,11 @@
+export interface Refueling {
+  id?: string;
+  location: string;
+  fuel_quantity: number;
+  fuel_rate_per_liter: number;
+  total_fuel_cost: number;
+}
+
 export interface AIAlert {
   id: string;
   alert_type:
@@ -80,6 +88,7 @@ export interface TripFormData extends Omit<
   toll_expense?: number;
   breakdown_expense?: number; // Keep for backward compatibility
   miscellaneous_expense?: number;
+  refuelings?: Refueling[]; // Multiple refuelings support
 }
 
 export interface RouteAnalysis {
