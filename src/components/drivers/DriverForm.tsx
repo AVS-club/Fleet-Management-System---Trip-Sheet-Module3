@@ -21,12 +21,26 @@ import {
   Database,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
+  Shield,
 } from "lucide-react";
 import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
 import { format, differenceInYears } from "date-fns";
+import { 
+  validateIndianLicense, 
+  validateIndianMobile, 
+  validateAadhar,
+  parseLicenseNumber,
+  formatIndianMobile,
+  formatAadhar,
+  LICENSE_TYPES,
+  canDriveVehicleType,
+  VEHICLE_AUTHORIZATION
+} from "../../utils/indianValidation";
+import { checkDriverLicenseExpiry, getExpiryStatusColor } from "../../utils/documentExpiry";
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -266,13 +280,19 @@ const DriverForm: React.FC<DriverFormProps> = ({
           <div className="w-full md:w-2/5 mb-2 md:mb-0">
             <Input
               label="License Number"
-              placeholder="CG0419900078925"
+              placeholder="MH12 20080001234"
               icon={<FileText className="h-4 w-4" />}
               error={errors.license_number?.message}
               required
               disabled={isFetching || isSubmitting}
               {...register("license_number", {
                 required: "License number is required",
+                validate: (value) => {
+                  if (!validateIndianLicense(value)) {
+                    return "Please enter a valid Indian driving license number (e.g., MH12 20080001234)";
+                  }
+                  return true;
+                }
               })}
             />
           </div>
@@ -453,11 +473,23 @@ const DriverForm: React.FC<DriverFormProps> = ({
           <Input
             label="Contact Number"
             icon={<Phone className="h-4 w-4" />}
+            placeholder="e.g., 9876543210"
             error={errors.contact_number?.message}
             required
             disabled={fieldsDisabled || isSubmitting}
             {...register("contact_number", {
               required: "Contact number is required",
+              validate: (value) => {
+                if (!validateIndianMobile(value)) {
+                  return "Please enter a valid 10-digit Indian mobile number";
+                }
+                return true;
+              },
+              onChange: (e) => {
+                // Auto-format the mobile number
+                const formatted = formatIndianMobile(e.target.value);
+                e.target.value = formatted;
+              }
             })}
           />
 
@@ -475,12 +507,17 @@ const DriverForm: React.FC<DriverFormProps> = ({
             name="vehicle_class"
             render={({ field }) => (
               <MultiSelect
-                label="Vehicle Class"
+                label="Vehicle Class / License Types"
                 options={[
+                  { value: "MCWG", label: "MCWG - Motorcycle Without Gear" },
+                  { value: "MCW/G", label: "MCW/G - Motorcycle With Gear" },
                   { value: "LMV", label: "LMV - Light Motor Vehicle" },
                   { value: "HMV", label: "HMV - Heavy Motor Vehicle" },
-                  { value: "TRANS", label: "TRANS - Transport" },
-                  { value: "MCWG", label: "MCWG - Motorcycle with Gear" },
+                  { value: "HGMV", label: "HGMV - Heavy Goods Motor Vehicle" },
+                  { value: "HTV", label: "HTV - Heavy Transport Vehicle" },
+                  { value: "HPMV", label: "HPMV - Heavy Passenger Motor Vehicle" },
+                  { value: "PSV", label: "PSV - Public Service Vehicle" },
+                  { value: "TRANS", label: "TRANS - Transport Vehicle" },
                 ]}
                 value={field.value || []}
                 onChange={field.onChange}
