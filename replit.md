@@ -21,6 +21,14 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - VITE_GOOGLE_MAPS_API_KEY
 
 ## Recent Changes
+- **2025-09-10**: Critical bug fixes and improvements
+  - Fixed LoadingScreen JSX attribute warning (stroke-width → strokeWidth)
+  - Resolved Input/CurrencyInput component TypeScript conflicts (size → inputSize)
+  - Mass updated all size prop usages across 80+ files to inputSize
+  - Enhanced ErrorBoundary with recovery strategies and error tracking
+  - Improved destination display to store names directly in trips table
+  - Optimized RouteAnalysis layout with side-by-side map view
+  
 - **2025-09-09**: Initial Replit setup completed
   - Configured Vite for Replit proxy environment
   - Set up development workflow on port 5000
@@ -44,3 +52,6 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
 - Comprehensive error handling for network connectivity
 - Optimized for mobile performance with reduced cache times
 - Supports both development and production environments
+- Enhanced ErrorBoundary with error persistence and recovery options
+- Input components use 'inputSize' prop to avoid HTML attribute conflicts
+- Destination names cached directly in trips table for performance
