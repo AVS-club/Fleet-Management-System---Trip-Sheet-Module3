@@ -1046,7 +1046,14 @@ const TripForm: React.FC<TripFormProps> = ({
                   control={control}
                   render={({ field }) => (
                     <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">FASTag / Toll (₹)</label>
+                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">
+                        FASTag / Toll (₹)
+                        {routeAnalysis?.estimated_toll && (
+                          <span className="text-[11px] text-gray-500 ml-1">
+                            (Est: ₹{watchedValues.is_return_trip ? routeAnalysis.estimated_toll * 2 : routeAnalysis.estimated_toll})
+                          </span>
+                        )}
+                      </label>
                       <Input
                         value={field.value >= 0 ? field.value : 0}
                         onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
