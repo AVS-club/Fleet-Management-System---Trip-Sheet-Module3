@@ -70,19 +70,21 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
         </p>
       </div>
 
-      <style jsx>{`
-        @keyframes slideRight {
-          0% {
-            transform: translateX(-100%);
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes slideRight {
+            0% {
+              transform: translateX(-100%);
+            }
+            50% {
+              transform: translateX(100%);
+            }
+            100% {
+              transform: translateX(-100%);
+            }
           }
-          50% {
-            transform: translateX(100%);
-          }
-          100% {
-            transform: translateX(-100%);
-          }
-        }
-      `}</style>
+        `
+      }} />
     </div>
   );
 };

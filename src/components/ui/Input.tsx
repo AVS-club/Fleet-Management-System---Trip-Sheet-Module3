@@ -1,14 +1,14 @@
 import React, { forwardRef, useId } from 'react';
 import { cn } from '../../utils/cn';
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
   helperText?: string;
   error?: string;
   fullWidth?: boolean;
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
-  size?: 'sm' | 'md' | 'lg';
+  inputSize?: 'sm' | 'md' | 'lg';
   isPrefilledByTemplate?: boolean;
 }
 
@@ -21,7 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     className, 
     icon, 
     iconPosition = 'left',
-    size = 'md',
+    inputSize = 'md',
     required,
     id,
     type,
@@ -80,10 +80,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                shouldShowIcon && iconPosition === 'left' && iconSizeClasses[size], // Apply pl-9 for sm size
+                shouldShowIcon && iconPosition === 'left' && iconSizeClasses[inputSize], // Apply pl-9 for sm size
                 shouldShowIcon && iconPosition === 'right' && "pr-14",
                 needsRightPadding && "pr-14", // Increased right padding for browser controls
-                sizeClasses[size],
+                sizeClasses[inputSize],
                 className
             )}
             {...props}
