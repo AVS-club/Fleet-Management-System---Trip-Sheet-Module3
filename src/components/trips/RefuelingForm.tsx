@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Refueling } from '@/types';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import FuelRateSelector from './FuelRateSelector';
-import { Fuel, MapPin, Plus, Trash2, Calculator, Upload, FileText } from 'lucide-react';
+import { uploadFuelBill } from '../../utils/supabaseStorage';
+import { Fuel, MapPin, Plus, Trash2, Calculator, Upload, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { toast } from 'react-toastify';
 
 interface RefuelingFormProps {
   refuelings: Refueling[];
@@ -17,6 +19,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
   onChange,
   disabled = false
 }) => {
+  const [uploadStates, setUploadStates] = useState<{ [key: number]: { uploading: boolean; uploaded: boolean; fileName?: string; url?: string } }>({});
   const addRefueling = () => {
     const newRefueling: Refueling = {
       location: '',
@@ -179,36 +182,99 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                       type="file"
                       id={`fuel-bill-${index}`}
                       accept=".jpg,.jpeg,.png,.pdf"
-                      disabled={disabled}
+                      disabled={disabled || uploadStates[index]?.uploading}
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          // Handle file upload to Supabase storage
-                          console.log('File selected:', file.name);
-                          // TODO: Upload to Supabase storage
+                          // Update upload state to show loading
+                          setUploadStates(prev => ({
+                            ...prev,
+                            [index]: { uploading: true, uploaded: false, fileName: file.name }
+                          }));
+                          
+                          try {
+                            // Generate a temporary trip ID if not available
+                            const tripId = `temp_${Date.now()}`;
+                            
+                            // Upload to Supabase storage
+                            const url = await uploadFuelBill(
+                              file,
+                              tripId,
+                              index,
+                              (progress) => {
+                                // You could update progress here if needed
+                                console.log(`Upload progress: ${progress}%`);
+                              }
+                            );
+                            
+                            // Update state with success
+                            setUploadStates(prev => ({
+                              ...prev,
+                              [index]: { uploading: false, uploaded: true, fileName: file.name, url }
+                            }));
+                            
+                            // Note: The URL is stored in uploadStates for display purposes
+                            // If you need to persist the URL, you would store it separately
+                            // or extend the Refueling type to include fuel_bill_url
+                            
+                            // Show success message
+                            toast.success(`Fuel bill uploaded successfully!`);
+                          } catch (error) {
+                            console.error('Error uploading fuel bill:', error);
+                            
+                            // Update state with error
+                            setUploadStates(prev => ({
+                              ...prev,
+                              [index]: { uploading: false, uploaded: false }
+                            }));
+                            
+                            // Show error message
+                            toast.error('Failed to upload fuel bill. Please try again.');
+                          }
                         }
                       }}
                     />
-                    <label
-                      htmlFor={`fuel-bill-${index}`}
-                      className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
-                        "bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
-                        "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
-                        "text-sm text-gray-700 dark:text-gray-300",
-                        disabled && "opacity-50 cursor-not-allowed"
-                      )}
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      <span>Upload</span>
-                    </label>
-                    {/* Show uploaded file indicator if exists */}
-                    {false && ( // Replace with actual check for uploaded file
-                      <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-                        <FileText className="h-3.5 w-3.5" />
-                        <span>Uploaded</span>
+                    
+                    {/* Upload button or status */}
+                    {uploadStates[index]?.uploading ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Uploading...</span>
                       </div>
+                    ) : uploadStates[index]?.uploaded ? (
+                      <div className="flex items-center gap-2">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Uploaded</span>
+                        </div>
+                        <label
+                          htmlFor={`fuel-bill-${index}`}
+                          className={cn(
+                            "inline-flex items-center gap-1 px-2 py-1 rounded",
+                            "text-xs text-gray-600 dark:text-gray-400",
+                            "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
+                            disabled && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Upload className="h-3 w-3" />
+                          <span>Replace</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor={`fuel-bill-${index}`}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                          "bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
+                          "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
+                          "text-sm text-gray-700 dark:text-gray-300",
+                          disabled && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>Upload</span>
+                      </label>
                     )}
                   </div>
                 </div>
