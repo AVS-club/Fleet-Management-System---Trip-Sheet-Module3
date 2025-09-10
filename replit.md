@@ -34,6 +34,11 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - Added intelligent retry logic with exponential backoff
   - Enhanced driver experience display (now shows years and months)
   - Aligned vehicle assignment with vehicle categories
+  - Fixed trip edit form data persistence including destinations and odometer readings
+  - Fixed cancel button behavior to properly discard changes
+  - Added date search capability supporting multiple formats (DD/MM/YYYY, natural language)
+  - Replaced "Breakdown" expense with "FASTag/Toll" expense field
+  - Fixed route deviation calculation for return trips (now doubles standard distance for round trips)
   
 - **2025-09-09**: Initial Replit setup completed
   - Configured Vite for Replit proxy environment
