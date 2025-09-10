@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import TripList from '../components/trips/TripList';
+import TripListView from '../components/trips/TripListView';
 import TripTable from '../components/trips/TripTable';
 import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
@@ -405,6 +406,15 @@ const TripsPage: React.FC = () => {
               {/* Render different views based on viewMode */}
               {viewMode === 'table' ? (
                 <TripTable
+                  trips={currentTrips}
+                  vehicles={vehicles}
+                  drivers={drivers}
+                  onSelectTrip={handleTripSelect}
+                  onPnlClick={handlePnlClick}
+                  onEditTrip={handleEditTrip}
+                />
+              ) : viewMode === 'list' ? (
+                <TripListView
                   trips={currentTrips}
                   vehicles={vehicles}
                   drivers={drivers}
