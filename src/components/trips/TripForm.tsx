@@ -98,7 +98,7 @@ const TripForm: React.FC<TripFormProps> = ({
       unloading_expense: 0,
       driver_expense: 0,
       road_rto_expense: 0,
-      breakdown_expense: 0,
+      toll_expense: 0,
       miscellaneous_expense: 0,
       total_road_expenses: 0,
       material_type_ids: [],
@@ -139,7 +139,7 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('unloading_expense', initialData.unloading_expense || 0);
       setValue('driver_expense', initialData.driver_expense || 0);
       setValue('road_rto_expense', initialData.road_rto_expense || 0);
-      setValue('breakdown_expense', initialData.breakdown_expense || 0);
+      setValue('toll_expense', initialData.toll_expense || initialData.breakdown_expense || 0);
       setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
       setValue('total_road_expenses', initialData.total_road_expenses || 0);
       setValue('is_return_trip', initialData.is_return_trip || false);
@@ -384,7 +384,7 @@ const TripForm: React.FC<TripFormProps> = ({
       (watchedValues.unloading_expense || 0) +
       (watchedValues.driver_expense || 0) +
       (watchedValues.road_rto_expense || 0) +
-      (watchedValues.breakdown_expense || 0) +
+      (watchedValues.toll_expense || 0) +
       (watchedValues.miscellaneous_expense || 0)
     );
     setValue('total_road_expenses', totalRoadExpenses);
@@ -392,7 +392,7 @@ const TripForm: React.FC<TripFormProps> = ({
     watchedValues.unloading_expense,
     watchedValues.driver_expense,
     watchedValues.road_rto_expense,
-    watchedValues.breakdown_expense,
+    watchedValues.toll_expense,
     watchedValues.miscellaneous_expense,
     setValue
   ]);
@@ -1013,11 +1013,11 @@ const TripForm: React.FC<TripFormProps> = ({
                 />
                 
                 <Controller
-                  name="breakdown_expense"
+                  name="toll_expense"
                   control={control}
                   render={({ field }) => (
                     <div>
-                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
+                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">FASTag / Toll (₹)</label>
                       <Input
                         value={field.value >= 0 ? field.value : 0}
                         onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}

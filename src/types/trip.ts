@@ -77,7 +77,8 @@ export interface TripFormData extends Omit<
   is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;
-  breakdown_expense?: number;
+  toll_expense?: number;
+  breakdown_expense?: number; // Keep for backward compatibility
   miscellaneous_expense?: number;
 }
 

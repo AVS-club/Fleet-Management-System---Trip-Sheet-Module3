@@ -389,7 +389,8 @@ const TripsPage: React.FC = () => {
               unloading_expense: editingTrip.unloading_expense,
               driver_expense: editingTrip.driver_expense,
               road_rto_expense: editingTrip.road_rto_expense,
-              breakdown_expense: editingTrip.breakdown_expense,
+              toll_expense: editingTrip.toll_expense || editingTrip.breakdown_expense,
+              breakdown_expense: editingTrip.breakdown_expense, // Keep for backward compatibility
               miscellaneous_expense: editingTrip.miscellaneous_expense,
               total_road_expenses: editingTrip.total_road_expenses,
               remarks: editingTrip.remarks,
