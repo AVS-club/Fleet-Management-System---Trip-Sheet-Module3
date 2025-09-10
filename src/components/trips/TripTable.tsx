@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Trip, Vehicle, Driver } from '@/types';
-import { formatDate } from '../../utils/dateHelpers';
+import { format, parseISO, isValid } from 'date-fns';
 import { Fuel, Edit2, DollarSign, MoreVertical } from 'lucide-react';
 
 interface TripTableProps {
@@ -72,7 +72,11 @@ const TripTable: React.FC<TripTableProps> = ({
               displayTrips.map(trip => {
                 const vehicle = vehiclesMap.get(trip.vehicle_id);
                 const driver = driversMap.get(trip.driver_id);
-                const formattedDate = formatDate(trip.trip_end_date || trip.created_at);
+                const dateString = trip.trip_end_date || trip.trip_start_date || trip.created_at;
+                const tripDate = dateString ? parseISO(dateString) : null;
+                const formattedDate = tripDate && isValid(tripDate) 
+                  ? format(tripDate, 'dd MMM yyyy')
+                  : '-';
                 const mileage = trip.start_odometer && trip.end_odometer && trip.refueling_liters 
                   ? ((trip.end_odometer - trip.start_odometer) / trip.refueling_liters).toFixed(2) 
                   : '-';
