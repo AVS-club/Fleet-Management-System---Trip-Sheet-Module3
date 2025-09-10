@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
-import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
+import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling } from '@/types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
@@ -15,7 +15,8 @@ import FileUpload from '../ui/FileUpload';
 import WarehouseSelector from './WarehouseSelector';
 import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
-import RouteAnalysis from './RouteAnalysis';
+import CollapsibleRouteAnalysis from './CollapsibleRouteAnalysis';
+import RefuelingForm from './RefuelingForm';
 import FuelRateSelector from './FuelRateSelector';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import config from '../../utils/env';
@@ -92,7 +93,7 @@ const TripForm: React.FC<TripFormProps> = ({
     defaultValues: {
       trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
       trip_end_date: initialData?.trip_end_date || yesterdayDate, // Use initial data if available
-      refueling_done: false,
+      refuelings: [],
       is_return_trip: true,
       gross_weight: 0,
       unloading_expense: 0,
@@ -130,7 +131,7 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('start_km', initialData.start_km || 0);
       setValue('end_km', initialData.end_km || 0);
       setValue('gross_weight', initialData.gross_weight || 0);
-      setValue('refueling_done', initialData.refueling_done || false);
+      setValue('refuelings', initialData.refuelings || []);
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
       setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
       setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
@@ -156,7 +157,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const selectedWarehouseId = watch('warehouse_id');
   const startKm = watch('start_km');
   const endKm = watch('end_km');
-  const refuelingDone = watch('refueling_done');
+  const refuelings = watch('refuelings') || [];
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
 
@@ -471,11 +472,24 @@ const TripForm: React.FC<TripFormProps> = ({
     }
 
     // Calculate mileage if refueling data is available
-    if (data.refueling_done && data.fuel_quantity && data.start_km && data.end_km) {
+    const totalFuel = (data.refuelings || []).reduce((sum, r) => sum + (r.fuel_quantity || 0), 0);
+    if (totalFuel > 0 && data.start_km && data.end_km) {
       const distance = data.end_km - data.start_km;
       if (distance > 0) {
-        data.calculated_kmpl = distance / data.fuel_quantity;
+        data.calculated_kmpl = distance / totalFuel;
       }
+    }
+    
+    // For backward compatibility, convert refuelings to old format if there's one refueling
+    if (data.refuelings && data.refuelings.length > 0) {
+      data.refueling_done = true;
+      data.fuel_quantity = totalFuel;
+      data.total_fuel_cost = data.refuelings.reduce((sum, r) => sum + (r.total_fuel_cost || 0), 0);
+      if (data.refuelings.length === 1) {
+        data.fuel_rate_per_liter = data.refuelings[0].fuel_rate_per_liter;
+      }
+    } else {
+      data.refueling_done = false;
     }
 
     // Calculate route deviation if analysis is available
