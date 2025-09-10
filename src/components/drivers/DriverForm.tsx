@@ -28,7 +28,7 @@ import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
-import { format, differenceInYears } from "date-fns";
+import { format, differenceInYears, differenceInMonths } from "date-fns";
 import { 
   validateIndianLicense, 
   validateIndianMobile, 
@@ -63,6 +63,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
     "idle" | "fetching" | "success" | "error"
   >("idle");
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
+  const [experienceDisplay, setExperienceDisplay] = useState<string>('0 years, 0 months');
 
   const {
     register,
@@ -94,7 +95,19 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
   // Enable fields if initialData is present (for edit mode)
   useEffect(() => {
-    if (initialData?.id) setFieldsDisabled(false);
+    if (initialData?.id) {
+      setFieldsDisabled(false);
+      
+      // Calculate experience display for existing data
+      if (initialData.join_date) {
+        const joinDate = new Date(initialData.join_date);
+        const today = new Date();
+        const totalMonths = differenceInMonths(today, joinDate);
+        const years = Math.floor(totalMonths / 12);
+        const months = totalMonths % 12;
+        setExperienceDisplay(`${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`);
+      }
+    }
   }, [initialData]);
   // Field array for other documents
   const { fields, append, remove } = useFieldArray({
@@ -236,11 +249,24 @@ const DriverForm: React.FC<DriverFormProps> = ({
     }
   };
 
-  // Auto-calculate experience_years based on join_date
+  // Auto-calculate experience based on join_date
   useEffect(() => {
     if (watch('join_date')) {
-      const years = differenceInYears(new Date(), new Date(watch('join_date')));
-      setValue('experience_years', years);
+      const joinDate = new Date(watch('join_date'));
+      const today = new Date();
+      const totalMonths = differenceInMonths(today, joinDate);
+      const years = Math.floor(totalMonths / 12);
+      const months = totalMonths % 12;
+      
+      // Store the decimal representation for database
+      const decimalYears = parseFloat((totalMonths / 12).toFixed(2));
+      setValue('experience_years', decimalYears);
+      
+      // Set display string
+      setExperienceDisplay(`${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`);
+    } else {
+      setValue('experience_years', 0);
+      setExperienceDisplay('0 years, 0 months');
     }
   }, [watch('join_date'), setValue]);
 
@@ -608,36 +634,55 @@ const DriverForm: React.FC<DriverFormProps> = ({
             {...register("join_date", { required: "Join date is required" })}
           />
 
-          <Input
-            label="Experience (Years)"
-            type="number"
-            error={errors.experience_years?.message}
-            required
-            disabled={isSubmitting}
-            {...register("experience_years", {
-              required: "Experience is required",
-              valueAsNumber: true,
-              min: { value: 0, message: "Experience must be positive" },
-            })}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Experience
+            </label>
+            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
+              <span className="text-sm text-gray-700">{experienceDisplay}</span>
+            </div>
+            <input
+              type="hidden"
+              {...register("experience_years", {
+                valueAsNumber: true,
+                min: { value: 0, message: "Experience must be positive" },
+              })}
+            />
+          </div>
 
           <Controller
             control={control}
             name="primary_vehicle_id"
-            render={({ field }) => (
-              <Select
-                label="Assigned Vehicle"
-                options={[
-                  { value: "", label: "Select Vehicle" },
-                  ...vehicles.map((vehicle) => ({
+            render={({ field }) => {
+              // Group vehicles by type
+              const vehiclesByType = vehicles.reduce((acc, vehicle) => {
+                const type = vehicle.type || 'other';
+                if (!acc[type]) acc[type] = [];
+                acc[type].push(vehicle);
+                return acc;
+              }, {} as Record<string, typeof vehicles>);
+              
+              // Create options with category headers
+              const vehicleOptions = [
+                { value: "", label: "Select Vehicle" },
+                ...Object.entries(vehiclesByType).flatMap(([type, vehicleList]) => [
+                  { value: `__header_${type}`, label: `--- ${type.charAt(0).toUpperCase() + type.slice(1)} ---`, disabled: true },
+                  ...vehicleList.map((vehicle) => ({
                     value: vehicle.id,
                     label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`,
                   })),
-                ]}
-                disabled={isSubmitting}
-                {...field}
-              />
-            )}
+                ])
+              ];
+              
+              return (
+                <Select
+                  label="Assigned Vehicle (by Category)"
+                  options={vehicleOptions}
+                  disabled={isSubmitting}
+                  {...field}
+                />
+              );
+            }}
           />
         </div>
 
