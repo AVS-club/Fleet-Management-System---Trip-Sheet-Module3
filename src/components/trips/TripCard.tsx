@@ -309,17 +309,28 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {trip.route_deviation && (
-            <div className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
-              Math.abs(trip.route_deviation) > 15
-                ? 'bg-error-50 text-error-700'
-                : Math.abs(trip.route_deviation) > 5
-                ? 'bg-warning-50 text-warning-700'
-                : 'bg-success-50 text-success-700'
-            }`}>
-              <span>Deviation: {trip.route_deviation > 0 ? '+' : ''}{trip.route_deviation}%</span>
-            </div>
-          )}
+          {trip.route_deviation && (() => {
+            // Recalculate deviation for return trips with wrong values
+            let displayDeviation = trip.route_deviation;
+            if (trip.is_return_trip && Math.abs(trip.route_deviation) > 100 && trip.start_km && trip.end_km) {
+              const actualDistance = trip.end_km - trip.start_km;
+              const impliedStandardDistance = actualDistance / (1 + trip.route_deviation / 100);
+              const correctStandardDistance = impliedStandardDistance * 2;
+              displayDeviation = ((actualDistance - correctStandardDistance) / correctStandardDistance) * 100;
+            }
+            
+            return (
+              <div className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
+                Math.abs(displayDeviation) > 15
+                  ? 'bg-error-50 text-error-700'
+                  : Math.abs(displayDeviation) > 5
+                  ? 'bg-warning-50 text-warning-700'
+                  : 'bg-success-50 text-success-700'
+              }`}>
+                <span>Deviation: {displayDeviation > 0 ? '+' : ''}{displayDeviation.toFixed(1)}%</span>
+              </div>
+            );
+          })()}
           
           {/* P&L Status Badge */}
           {trip.profit_status && (

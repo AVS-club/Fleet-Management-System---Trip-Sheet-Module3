@@ -114,10 +114,32 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                            (trip.miscellaneous_expense || 0);
   const totalExpenses = totalFuelCost + totalRoadExpenses;
 
+  // Recalculate route deviation for return trips (fixes old data)
+  const getCorrectRouteDeviation = () => {
+    if (!trip.route_deviation || !trip.start_km || !trip.end_km) return trip.route_deviation;
+    
+    // If it's a return trip and deviation seems wrong (> 100%), recalculate
+    if (trip.is_return_trip && Math.abs(trip.route_deviation) > 100) {
+      const actualDistance = trip.end_km - trip.start_km;
+      // Assume the stored deviation was calculated with single distance
+      // Reverse engineer the standard distance: actualDistance = standardDistance * (1 + deviation/100)
+      const impliedStandardDistance = actualDistance / (1 + trip.route_deviation / 100);
+      // For return trip, double the standard distance
+      const correctStandardDistance = impliedStandardDistance * 2;
+      // Recalculate the correct deviation
+      const correctDeviation = ((actualDistance - correctStandardDistance) / correctStandardDistance) * 100;
+      return correctDeviation;
+    }
+    
+    return trip.route_deviation;
+  };
+  
+  const displayedDeviation = getCorrectRouteDeviation();
+  
   // Get route deviation color
   const getRouteDeviationColor = () => {
-    if (!trip.route_deviation) return 'text-gray-600';
-    const deviation = Math.abs(trip.route_deviation);
+    if (!displayedDeviation) return 'text-gray-600';
+    const deviation = Math.abs(displayedDeviation);
     if (deviation > 20) return 'text-error-600';
     if (deviation > 10) return 'text-warning-600';
     return 'text-success-600';
@@ -385,12 +407,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             </div>
           </div>
 
-          {trip.route_deviation && typeof trip.route_deviation === 'number' && !isNaN(trip.route_deviation) && (
+          {displayedDeviation && typeof displayedDeviation === 'number' && !isNaN(displayedDeviation) && (
             <div>
               <p className="text-sm text-gray-500">Route Deviation</p>
               <div className="flex items-center gap-2">
                 <p className={`text-xl font-semibold ${getRouteDeviationColor()}`}>
-                  {trip.route_deviation > 0 ? '+' : ''}{trip.route_deviation.toFixed(1)}%
+                  {displayedDeviation > 0 ? '+' : ''}{displayedDeviation.toFixed(1)}%
                 </p>
                 {hasRouteDeviationAlert && (
                   <div className="relative group">
