@@ -508,7 +508,14 @@ const TripForm: React.FC<TripFormProps> = ({
       // destination_display removed - not in database schema
     }
 
-    await onSubmit(data);
+    // Map toll_expense to breakdown_expense for database compatibility
+    const submitData: any = { ...data };
+    if ('toll_expense' in submitData) {
+      submitData.breakdown_expense = submitData.toll_expense;
+      delete submitData.toll_expense;
+    }
+
+    await onSubmit(submitData);
   };
 
   if (loading) {
