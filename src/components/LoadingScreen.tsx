@@ -19,7 +19,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
             <div className="h-32 w-32 bg-gradient-to-br from-primary-400/20 to-secondary-400/20 rounded-full blur-3xl animate-pulse-slow"></div>
           </div>
           
-          <div className="relative bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-brand-lg">
+          <div className="relative bg-white p-4 rounded-2xl shadow-lg border border-gray-200">
             <img
               src="/assets/AVS-LOGO-512x512-new.png"
               alt="Auto Vital Solution"
@@ -30,7 +30,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
                 e.currentTarget.nextElementSibling?.classList.remove('hidden');
               }}
             />
-            <Truck className="hidden h-20 w-20 text-primary-600 dark:text-primary-400" />
+            <Truck className="hidden h-20 w-20 text-primary-600" />
           </div>
         </div>
 

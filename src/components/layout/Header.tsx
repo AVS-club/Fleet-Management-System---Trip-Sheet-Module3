@@ -32,23 +32,23 @@ const Header: React.FC = () => {
             aria-label="Go to Dashboard"
             title="Auto Vital Solution - Fleet Management System"
           >
-            {/* Logo with fallback */}
-            <div className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-200">
+            {/* Logo with white background */}
+            <div className="relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 bg-white rounded-lg shadow-md border border-gray-200 dark:border-gray-700 group-hover:shadow-lg transition-all duration-200">
               <img 
                 src="/assets/AVS-LOGO-512x512-new.png"
-                alt="AVS" 
-                className="h-8 w-8 sm:h-9 sm:w-9 object-contain p-0.5"
+                alt="Auto Vital Solution" 
+                className="h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5"
                 onError={(e) => {
                   // Fallback if logo doesn't load
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
-              <Truck className="hidden h-6 w-6 text-white" />
+              <Truck className="hidden h-7 w-7 text-primary-600" />
             </div>
             
-            {/* Brand Text - Improved Layout */}
-            <div className="hidden sm:flex flex-col justify-center">
+            {/* Brand Text - Show only on larger screens since logo has text */}
+            <div className="hidden md:flex flex-col justify-center">
               <div className="flex items-baseline gap-2">
                 <h1 className="text-base lg:text-lg font-bold text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
                   Auto Vital
@@ -58,7 +58,7 @@ const Header: React.FC = () => {
                 </span>
               </div>
               <p className="text-[11px] lg:text-xs text-gray-500 dark:text-gray-400 -mt-0.5 tracking-wide uppercase">
-                Fleet Management System
+                Intelligent Fleet Management
               </p>
             </div>
           </button>
