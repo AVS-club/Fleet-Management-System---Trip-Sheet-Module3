@@ -353,6 +353,7 @@ const TripForm: React.FC<TripFormProps> = ({
               start_km: startKm,
               end_km: endKm,
               route_deviation: deviation,
+              is_return_trip: watchedValues.is_return_trip,
               id: 'temp-' + Date.now(),
               trip_serial_number: watchedValues.trip_serial_number || 'TEMP-001',
               created_at: new Date().toISOString(),
