@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout'; 
 import { MaintenanceTask, Vehicle } from '@/types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 
 const MaintenancePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [dateRangeFilter, setDateRangeFilter] = useState('allTime');
   const [customDateRange, setCustomDateRange] = useState({
     start: '',
@@ -39,14 +40,26 @@ const MaintenancePage = () => {
     }
   });
 
-  // Initialize custom date range values
+  // Initialize custom date range values and handle action=new
   useEffect(() => {
     const today = new Date();
     setCustomDateRange({
       start: '2020-01-01',
       end: today.toISOString().split('T')[0]
     });
-  }, []);
+    
+    // Check query parameters for action=new
+    const searchParams = new URLSearchParams(location.search);
+    const action = searchParams.get('action');
+    
+    if (action === 'new') {
+      // Navigate to new maintenance task page
+      navigate('/maintenance/new');
+      // Clear query params
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [location.search, navigate]);
 
   // Use React Query to fetch tasks
   const { data: tasks, isLoading: tasksLoading } = useQuery({
