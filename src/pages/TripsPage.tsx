@@ -5,7 +5,7 @@ import TripList from '../components/trips/TripList';
 import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
-import ComprehensiveFilters from '../components/trips/ComprehensiveFilters';
+import ComprehensiveFilters, { ViewMode } from '../components/trips/ComprehensiveFilters';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getDrivers, createTrip, getWarehouses } from '../utils/storage';
@@ -34,6 +34,9 @@ const TripsPage: React.FC = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [tripsPerPage, setTripsPerPage] = useState(25);
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   
   // Enhanced filter state with new comprehensive filters
   const [filters, setFilters] = useState<TripFilters>({
@@ -386,6 +389,8 @@ const TripsPage: React.FC = () => {
             materialTypes={materialTypes}
             statistics={statistics}
             isSearching={isSearching}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
           
           {/* Loading State */}

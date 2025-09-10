@@ -247,45 +247,6 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             <option value="cost-asc">Lowest Cost</option>
           </select>
         </div>
-
-        {/* Quick Filters */}
-        <div className="mt-2 flex flex-wrap gap-1">
-          <Button
-            variant={filters.dateRange === 'today' ? 'primary' : 'outline'}
-            inputSize="sm"
-            onClick={() => applyQuickFilter(QUICK_FILTERS.today)}
-          >
-            Today
-          </Button>
-          <Button
-            variant={filters.dateRange === 'week' ? 'primary' : 'outline'}
-            inputSize="sm"
-            onClick={() => applyQuickFilter(QUICK_FILTERS.week)}
-          >
-            This Week
-          </Button>
-          <Button
-            variant={filters.dateRange === 'month' ? 'primary' : 'outline'}
-            inputSize="sm"
-            onClick={() => applyQuickFilter(QUICK_FILTERS.month)}
-          >
-            This Month
-          </Button>
-        </div>
-
-        {/* Mobile Statistics */}
-        {statistics && (
-          <div className="mt-3 text-sm text-gray-600 sm:hidden">
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1">
-                <BarChart3 className="h-4 w-4" />
-                {formatNumber(statistics.totalTrips)} trips
-              </span>
-              <span>{formatNumber(statistics.totalDistance)} km</span>
-              <span>{formatCurrency(statistics.totalExpenses)}</span>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Expandable Filters */}
