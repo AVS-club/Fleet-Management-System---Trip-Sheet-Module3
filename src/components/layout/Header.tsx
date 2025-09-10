@@ -27,32 +27,37 @@ const Header: React.FC = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Brand Section */}
           <button
-            className="flex items-center gap-3 group transition-all duration-200 hover:scale-105"
+            className="flex items-center gap-2 sm:gap-3 group transition-all duration-200"
             onClick={() => navigate("/")}
             aria-label="Go to Dashboard"
-            title="Auto Vital Solution"
+            title="Auto Vital Solution - Fleet Management System"
           >
             {/* Logo with fallback */}
-            <div className="relative flex items-center justify-center h-9 w-9 bg-gradient-to-br from-primary-500 to-primary-600 rounded-brand shadow-brand group-hover:shadow-brand-lg transition-all duration-200">
+            <div className="relative flex items-center justify-center h-10 w-10 sm:h-11 sm:w-11 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-200">
               <img 
                 src="/assets/AVS-LOGO-512x512-new.png"
                 alt="AVS" 
-                className="h-8 w-8 object-contain"
+                className="h-8 w-8 sm:h-9 sm:w-9 object-contain p-0.5"
                 onError={(e) => {
                   // Fallback if logo doesn't load
                   e.currentTarget.style.display = 'none';
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
-              <Truck className="hidden h-5 w-5 text-white" />
+              <Truck className="hidden h-6 w-6 text-white" />
             </div>
             
-            {/* Brand Text - Hidden on mobile, visible on tablet+ */}
-            <div className="hidden sm:block">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
-                Auto Vital Solution
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 -mt-0.5">
+            {/* Brand Text - Improved Layout */}
+            <div className="hidden sm:flex flex-col justify-center">
+              <div className="flex items-baseline gap-2">
+                <h1 className="text-base lg:text-lg font-bold text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
+                  Auto Vital
+                </h1>
+                <span className="text-base lg:text-lg font-semibold text-primary-600 dark:text-primary-400">
+                  Solution
+                </span>
+              </div>
+              <p className="text-[11px] lg:text-xs text-gray-500 dark:text-gray-400 -mt-0.5 tracking-wide uppercase">
                 Fleet Management System
               </p>
             </div>
