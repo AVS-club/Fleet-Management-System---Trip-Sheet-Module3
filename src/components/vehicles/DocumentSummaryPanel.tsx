@@ -6,8 +6,8 @@ import { getVehicles } from '../../utils/storage';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, differenceInMonths } from 'date-fns';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, Legend } from 'recharts';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useReactToPrint } from 'react-to-print';
@@ -491,40 +491,79 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     return result;
   }, [filteredVehicles, effectiveDateRange]);
 
-  // Generate monthly expenditure data for filtered vehicles
+  // Generate monthly expenditure data for filtered vehicles based on actual renewal dates
   const monthlyExpenditure = useMemo((): MonthlyExpenditure[] => {
-    // In a real app, this data would come from the database with actual costs
-    // For now, we'll generate data based on filtered vehicles
-    
     const today = new Date();
     const months: MonthlyExpenditure[] = [];
     
-    // Generate data for the last 8 months
-    for (let i = 7; i >= 0; i--) {
+    // Generate data for the last 12 months for better visibility
+    for (let i = 11; i >= 0; i--) {
       const month = subMonths(today, i);
       const monthName = format(month, 'MMM');
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
       
-      // Simulate costs for this month based on filtered vehicles
-      const baseMultiplier = filteredVehicles.length / Math.max(vehicles.length, 1);
-      const randomFactor = 0.7 + Math.random() * 0.6; // Between 0.7 and 1.3
-      
-      // Create monthly data with randomized but realistic values for each document type
+      // Initialize monthly costs
       const monthData: MonthlyExpenditure = {
         month: monthName,
-        rc: Math.floor((Math.random() * 5000) + 1000) * baseMultiplier * randomFactor, 
-        insurance: Math.floor((Math.random() * 30000) + 30000) * baseMultiplier * randomFactor,
-        fitness: Math.floor((Math.random() * 5000) + 4000) * baseMultiplier * randomFactor,
-        permit: Math.floor((Math.random() * 10000) + 5000) * baseMultiplier * randomFactor,
-        puc: Math.floor((Math.random() * 2000) + 1000) * baseMultiplier * randomFactor,
-        tax: Math.floor((Math.random() * 8000) + 2000) * baseMultiplier * randomFactor,
-        other: Math.floor((Math.random() * 5000) + 1000) * baseMultiplier * randomFactor
+        rc: 0,
+        insurance: 0,
+        fitness: 0,
+        permit: 0,
+        puc: 0,
+        tax: 0,
+        other: 0
       };
+      
+      // Calculate actual costs based on document expiry dates
+      filteredVehicles.forEach(vehicle => {
+        // Check RC renewal
+        if (vehicle.rc_expiry_date && isWithinInterval(new Date(vehicle.rc_expiry_date), { start: monthStart, end: monthEnd })) {
+          monthData.rc += getLastRenewalCost(vehicle, 'rc');
+        }
+        
+        // Check Insurance renewal
+        if (vehicle.insurance_expiry_date && isWithinInterval(new Date(vehicle.insurance_expiry_date), { start: monthStart, end: monthEnd })) {
+          monthData.insurance += vehicle.insurance_premium_amount || getFleetAverageCost('insurance', vehicles);
+        }
+        
+        // Check Fitness renewal
+        if (vehicle.fitness_expiry_date && isWithinInterval(new Date(vehicle.fitness_expiry_date), { start: monthStart, end: monthEnd })) {
+          monthData.fitness += vehicle.fitness_cost || getFleetAverageCost('fitness', vehicles);
+        }
+        
+        // Check Permit renewal
+        if (vehicle.permit_expiry_date && isWithinInterval(new Date(vehicle.permit_expiry_date), { start: monthStart, end: monthEnd })) {
+          monthData.permit += vehicle.permit_cost || getFleetAverageCost('permit', vehicles);
+        }
+        
+        // Check PUC renewal (PUC is typically renewed every 6 months)
+        if (vehicle.puc_expiry_date && isWithinInterval(new Date(vehicle.puc_expiry_date), { start: monthStart, end: monthEnd })) {
+          monthData.puc += vehicle.puc_cost || getFleetAverageCost('puc', vehicles);
+        }
+        
+        // Check Tax payment
+        if (vehicle.tax_paid_upto && isWithinInterval(new Date(vehicle.tax_paid_upto), { start: monthStart, end: monthEnd })) {
+          monthData.tax += vehicle.tax_amount || getFleetAverageCost('tax', vehicles);
+        }
+      });
+      
+      // Apply inflation adjustments for future months
+      if (month > today) {
+        const monthsInFuture = differenceInMonths(month, today);
+        Object.keys(monthData).forEach(key => {
+          if (key !== 'month') {
+            const inflationRate = getInflationRateForDocType(key);
+            monthData[key as keyof MonthlyExpenditure] *= Math.pow(1 + inflationRate/12, monthsInFuture);
+          }
+        });
+      }
       
       months.push(monthData);
     }
     
     return months;
-  }, [filteredVehicles, vehicles.length]);
+  }, [filteredVehicles, vehicles]);
 
   // Generate vehicle expenditure data for filtered vehicles
   const vehicleExpenditure = useMemo((): VehicleExpenditure[] => {
@@ -947,9 +986,9 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               </div>
               
               {/* Expenditure Over Time Chart */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 border-l-2 border-blue-500 pl-2">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium text-gray-700">Documentation Expenditure Over Time</h3>
+                  <h3 className="font-semibold text-gray-900 text-lg">Documentation Expenditure Over Time</h3>
                   <div className="flex items-center space-x-2 no-print">
                     <button 
                       onClick={() => setChartView('monthly')}
@@ -984,108 +1023,100 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                 
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
+                    <BarChart
                       data={monthlyExpenditure}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 30 }}
+                      margin={{ top: 20, right: 30, left: 50, bottom: 40 }}
                     >
-                      <defs>
-                        <linearGradient id="rcGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.rc} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.rc} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="insuranceGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.insurance} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.insurance} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="fitnessGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.fitness} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.fitness} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="permitGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.permit} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.permit} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="pucGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.puc} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.puc} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="taxGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.tax} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.tax} stopOpacity={0.2}/>
-                        </linearGradient>
-                        <linearGradient id="otherGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={DOC_TYPE_COLORS.other} stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor={DOC_TYPE_COLORS.other} stopOpacity={0.2}/>
-                        </linearGradient>
-                      </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
                       <XAxis 
                         dataKey="month" 
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 11 }}
                         tickLine={false}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                       />
                       <YAxis 
-                        tickFormatter={(value) => `₹${value/1000}k`} 
-                        tick={{ fontSize: 10 }}
+                        tickFormatter={(value) => {
+                          if (value === 0) return '₹0';
+                          if (value >= 100000) return `₹${(value/100000).toFixed(1)}L`;
+                          if (value >= 1000) return `₹${(value/1000).toFixed(0)}k`;
+                          return `₹${value}`;
+                        }} 
+                        tick={{ fontSize: 11 }}
+                        axisLine={false}
+                        tickLine={false}
                       />
                       <Tooltip 
-                        formatter={(value: any, name: string) => [`₹${value.toLocaleString('en-IN')}`, name]}
+                        formatter={(value: any, name: string) => {
+                          const formattedValue = Number(value).toLocaleString('en-IN', { 
+                            style: 'currency', 
+                            currency: 'INR',
+                            maximumFractionDigits: 0 
+                          });
+                          return [formattedValue, name];
+                        }}
                         labelFormatter={(label) => `Month: ${label}`}
                         contentStyle={{ 
                           backgroundColor: 'white', 
                           borderRadius: '0.5rem',
                           border: '1px solid #e5e7eb',
-                          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                         }}
                       />
-                      <Area type="monotone" dataKey="rc" stackId="1" stroke={DOC_TYPE_COLORS.rc} fill="url(#rcGradient)" name="RC" />
-                      <Area type="monotone" dataKey="insurance" stackId="1" stroke={DOC_TYPE_COLORS.insurance} fill="url(#insuranceGradient)" name="Insurance" />
-                      <Area type="monotone" dataKey="fitness" stackId="1" stroke={DOC_TYPE_COLORS.fitness} fill="url(#fitnessGradient)" name="Fitness" />
-                      <Area type="monotone" dataKey="permit" stackId="1" stroke={DOC_TYPE_COLORS.permit} fill="url(#permitGradient)" name="Permit" />
-                      <Area type="monotone" dataKey="puc" stackId="1" stroke={DOC_TYPE_COLORS.puc} fill="url(#pucGradient)" name="PUC" />
-                      <Area type="monotone" dataKey="tax" stackId="1" stroke={DOC_TYPE_COLORS.tax} fill="url(#taxGradient)" name="Tax" />
-                      <Area type="monotone" dataKey="other" stackId="1" stroke={DOC_TYPE_COLORS.other} fill="url(#otherGradient)" name="Other" />
-                    </AreaChart>
+                      <Legend 
+                        wrapperStyle={{ paddingTop: '20px' }}
+                        iconType="rect"
+                      />
+                      <Bar dataKey="rc" stackId="a" fill={DOC_TYPE_COLORS.rc} name="RC" />
+                      <Bar dataKey="insurance" stackId="a" fill={DOC_TYPE_COLORS.insurance} name="Insurance" />
+                      <Bar dataKey="fitness" stackId="a" fill={DOC_TYPE_COLORS.fitness} name="Fitness" />
+                      <Bar dataKey="permit" stackId="a" fill={DOC_TYPE_COLORS.permit} name="Permit" />
+                      <Bar dataKey="puc" stackId="a" fill={DOC_TYPE_COLORS.puc} name="PUC" />
+                      <Bar dataKey="tax" stackId="a" fill={DOC_TYPE_COLORS.tax} name="Tax" />
+                      <Bar dataKey="other" stackId="a" fill={DOC_TYPE_COLORS.other} name="Other" />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
                 
-                {/* Legend for document types */}
-                <div className="mt-4 flex flex-wrap justify-center gap-3">
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.rc }}></span>
-                    <span className="text-xs">RC</span>
+                {/* Summary Stats for the Chart */}
+                <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-xs text-gray-500">Total (12 months)</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      ₹{monthlyExpenditure.reduce((sum, month) => 
+                        sum + month.rc + month.insurance + month.fitness + month.permit + month.puc + month.tax + month.other, 0
+                      ).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </p>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.insurance }}></span>
-                    <span className="text-xs">Insurance</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Average/Month</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      ₹{(monthlyExpenditure.reduce((sum, month) => 
+                        sum + month.rc + month.insurance + month.fitness + month.permit + month.puc + month.tax + month.other, 0
+                      ) / 12).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                    </p>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.fitness }}></span>
-                    <span className="text-xs">Fitness</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.permit }}></span>
-                    <span className="text-xs">Permit</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.puc }}></span>
-                    <span className="text-xs">PUC</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.tax }}></span>
-                    <span className="text-xs">Tax</span>
-                  </div>
-                  <div className="flex items-center">
-                    <span className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: DOC_TYPE_COLORS.other }}></span>
-                    <span className="text-xs">Other</span>
+                  <div>
+                    <p className="text-xs text-gray-500">Peak Month</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {(() => {
+                        const maxMonth = monthlyExpenditure.reduce((max, month) => {
+                          const monthTotal = month.rc + month.insurance + month.fitness + month.permit + month.puc + month.tax + month.other;
+                          const maxTotal = max.rc + max.insurance + max.fitness + max.permit + max.puc + max.tax + max.other;
+                          return monthTotal > maxTotal ? month : max;
+                        });
+                        return maxMonth.month;
+                      })()}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Expenditure by Vehicle Chart */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 border-l-2 border-blue-500 pl-2">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-medium text-gray-700">Expenditure by Vehicle</h3>
+                  <h3 className="font-semibold text-gray-900 text-lg">Documentation Cost by Vehicle</h3>
                 </div>
                 
                 <div className="h-80">
