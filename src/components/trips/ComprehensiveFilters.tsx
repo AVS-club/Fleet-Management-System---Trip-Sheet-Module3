@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ChevronDown, ChevronUp, Filter, X, Calendar, Search, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, X, Calendar, Search, BarChart3, List, Grid3X3, TableProperties, LayoutGrid } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -8,6 +8,8 @@ import Checkbox from '../ui/Checkbox';
 import { TripFilters, QUICK_FILTERS, TripStatistics } from '../../utils/tripSearch';
 import { Vehicle, Driver, Warehouse } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
+
+export type ViewMode = 'list' | 'cards' | 'table';
 
 interface ComprehensiveFiltersProps {
   filters: TripFilters;
@@ -19,6 +21,8 @@ interface ComprehensiveFiltersProps {
   statistics?: TripStatistics;
   isSearching?: boolean;
   className?: string;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
 const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
@@ -30,7 +34,9 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   materialTypes,
   statistics,
   isSearching = false,
-  className = ''
+  className = '',
+  viewMode = 'cards',
+  onViewModeChange
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -88,61 +94,102 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow-sm border ${className}`}>
-      {/* Filter Header */}
-      <div className="p-3 border-b border-gray-100">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          {/* Left side - Title and Stats */}
+    <div className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 ${className}`}>
+      {/* Compact Filter Bar */}
+      <div className="p-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          {/* Left side - Stats Badge */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-primary-500" />
-              <h3 className="text-sm font-medium text-gray-700">Trip Filters</h3>
-              {activeFilterCount > 0 && (
-                <span className="bg-primary-100 text-primary-700 px-2 py-1 rounded-full text-xs font-medium">
-                  {activeFilterCount}
-                </span>
-              )}
+            <div className="bg-primary-50 p-2 rounded-xl">
+              <Filter className="h-5 w-5 text-primary-600" />
             </div>
-            
             {statistics && (
-              <div className="text-xs text-gray-500 hidden lg:block">
-                {formatNumber(statistics.totalTrips)} trips • {formatNumber(statistics.totalDistance)} km • {formatCurrency(statistics.totalExpenses)}
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col">
+                  <span className="text-2xl font-semibold text-gray-900">{formatNumber(statistics.totalTrips)}</span>
+                  <span className="text-xs text-gray-500">trips</span>
+                </div>
+                <div className="h-8 w-px bg-gray-200" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-gray-700">{formatNumber(statistics.totalDistance)} km</span>
+                  <span className="text-xs text-gray-500">• {formatCurrency(statistics.totalExpenses)}</span>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Right side - Actions */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              inputSize="sm"
-              onClick={clearFilters}
-              disabled={activeFilterCount === 0}
-              icon={<X className="h-4 w-4" />}
-            >
-              Clear All
-            </Button>
+          {/* Right side - View Selector and Actions */}
+          <div className="flex items-center gap-3">
+            {activeFilterCount > 0 && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <X className="h-3.5 w-3.5" />
+                Clear All
+              </button>
+            )}
             
-            <Button
-              variant="outline"
-              inputSize="sm"
+            {/* View Mode Selector */}
+            {onViewModeChange && (
+              <div className="flex items-center bg-gray-100 rounded-xl p-1">
+                <button
+                  onClick={() => onViewModeChange('list')}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'list' 
+                      ? 'bg-white text-primary-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="List View"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onViewModeChange('cards')}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'cards' 
+                      ? 'bg-white text-primary-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => onViewModeChange('table')}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === 'table' 
+                      ? 'bg-white text-primary-600 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Table View"
+                >
+                  <TableProperties className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            
+            <button
               onClick={() => setIsExpanded(!isExpanded)}
-              icon={isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
+              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
               {isExpanded ? 'Hide' : 'Show'} Filters
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Search Bar and Sort - Always Visible */}
-        <div className="mt-2 flex flex-col sm:flex-row gap-2">
-          <div className="flex-1 relative">
+        {/* Compact Filter Row */}
+        <div className="mt-4 flex flex-col lg:flex-row gap-3">
+          {/* Search Bar */}
+          <div className="flex-1 lg:max-w-md relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
+            <input
+              type="text"
               placeholder="Search trips by serial, vehicle, or driver..."
               value={filters.search || ''}
               onChange={(e) => updateFilter('search', e.target.value)}
-              className="pl-10 pr-4 h-9 text-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
               disabled={isSearching}
             />
             {isSearching && (
@@ -151,22 +198,54 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
               </div>
             )}
           </div>
-          
-          <div className="sm:w-40">
-            <Select
-              options={[
-                { value: 'date-desc', label: 'Newest First' },
-                { value: 'date-asc', label: 'Oldest First' },
-                { value: 'distance-desc', label: 'Longest' },
-                { value: 'distance-asc', label: 'Shortest' },
-                { value: 'cost-desc', label: 'Highest Cost' },
-                { value: 'cost-asc', label: 'Lowest Cost' }
-              ]}
-              value={filters.sortBy || 'date-desc'}
-              onChange={(e) => updateFilter('sortBy', e.target.value)}
-              className="h-9 text-sm"
-            />
+
+          {/* Quick Date Filters */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => applyQuickFilter(QUICK_FILTERS.today)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                filters.dateRange === 'today' 
+                  ? 'bg-primary-100 text-primary-700' 
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => applyQuickFilter(QUICK_FILTERS.thisWeek)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                filters.dateRange === 'week' 
+                  ? 'bg-primary-100 text-primary-700' 
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              This Week
+            </button>
+            <button
+              onClick={() => applyQuickFilter(QUICK_FILTERS.thisMonth)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                filters.dateRange === 'month' 
+                  ? 'bg-primary-100 text-primary-700' 
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              This Month
+            </button>
           </div>
+          
+          {/* Sort Dropdown */}
+          <select
+            value={filters.sortBy || 'date-desc'}
+            onChange={(e) => updateFilter('sortBy', e.target.value)}
+            className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+          >
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="distance-desc">Longest Distance</option>
+            <option value="distance-asc">Shortest Distance</option>
+            <option value="cost-desc">Highest Cost</option>
+            <option value="cost-asc">Lowest Cost</option>
+          </select>
         </div>
 
         {/* Quick Filters */}
