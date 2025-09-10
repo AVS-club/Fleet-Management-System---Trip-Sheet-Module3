@@ -39,6 +39,12 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - Added date search capability supporting multiple formats (DD/MM/YYYY, natural language)
   - Replaced "Breakdown" expense with "FASTag/Toll" expense field
   - Fixed route deviation calculation for return trips (now doubles standard distance for round trips)
+  - Redesigned return trip toggle to be compact and positioned beside date fields
+  - Implemented automatic toll calculation using Google Maps (₹2/km estimate for Indian highways)
+  - Auto-fills FASTag/Toll expense when route is analyzed (doubles for return trips)
+  - Fixed mobile navigation to always show icons instead of hamburger menu
+  - Added Quick Add Trip feature with FAB on mobile and dropdown on desktop
+  - Improved mobile responsiveness across all pages
   
 - **2025-09-09**: Initial Replit setup completed
   - Configured Vite for Replit proxy environment
