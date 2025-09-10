@@ -9,7 +9,6 @@ import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import Checkbox from '../ui/Checkbox';
 import Button from '../ui/Button';
 import FileUpload from '../ui/FileUpload';
 import WarehouseSelector from './WarehouseSelector';
@@ -17,7 +16,6 @@ import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
 import CollapsibleRouteAnalysis from './CollapsibleRouteAnalysis';
 import RefuelingForm from './RefuelingForm';
-import FuelRateSelector from './FuelRateSelector';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import config from '../../utils/env';
 import {
@@ -451,12 +449,14 @@ const TripForm: React.FC<TripFormProps> = ({
     }
     
     // Validate fuel data if refueling is done
-    if (data.refueling_done) {
-      if (!data.fuel_quantity || data.fuel_quantity <= 0) {
-        return 'Fuel quantity must be greater than zero when refueling is done.';
-      }
-      if (!data.total_fuel_cost || data.total_fuel_cost < 0) {
-        return 'Fuel cost cannot be negative.';
+    if (data.refuelings && data.refuelings.length > 0) {
+      for (const refueling of data.refuelings) {
+        if (!refueling.fuel_quantity || refueling.fuel_quantity <= 0) {
+          return 'Fuel quantity must be greater than zero for all refuelings.';
+        }
+        if (!refueling.total_fuel_cost || refueling.total_fuel_cost < 0) {
+          return 'Fuel cost cannot be negative for any refueling.';
+        }
       }
     }
     
@@ -805,10 +805,13 @@ const TripForm: React.FC<TripFormProps> = ({
 
         {routeAnalysis && (
           <div className="mt-3">
-            <RouteAnalysis
+            <CollapsibleRouteAnalysis
               analysis={routeAnalysis}
               alerts={[]}
               onAlertAction={() => {}}
+              isAnalyzing={isAnalyzingRoute}
+              vehicleId={selectedVehicleId}
+              destinations={destinations.map(d => d.name)}
             />
           </div>
         )}
@@ -888,77 +891,13 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
 
-        {/* Fuel Information */}
+        {/* Multiple Refuelings */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-            <Fuel className="h-5 w-5 mr-2 text-primary-500" />
-            Fuel Information
-          </h3>
-          
-          <Checkbox
-            label="Refueling Done"
-            checked={refuelingDone}
-            onChange={(e) => setValue('refueling_done', e.target.checked)}
+          <RefuelingForm
+            refuelings={refuelings}
+            onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
+            disabled={isSubmitting}
           />
-        </div>
-        
-        {refuelingDone && (
-            <div className="space-y-3">
-                <Input
-                  label="Total Fuel Cost (₹)"
-                  type="number"
-                  step="0.01"
-                  icon={<IndianRupee className="h-4 w-4" />}
-                  placeholder="Enter total amount paid"
-                  inputSize="sm"
-                  onFocus={(e) => {
-                    if (e.target.value === '0' || e.target.value === '') {
-                      e.target.select();
-                    }
-                  }}
-                  {...register('total_fuel_cost', {
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Total fuel cost cannot be negative' }
-                  })}
-                />
-
-                <FuelRateSelector
-                  selectedRate={watchedValues.fuel_rate_per_liter}
-                  onChange={(value) => setValue('fuel_rate_per_liter', value)}
-                  warehouses={warehouses}
-                  selectedWarehouseId={selectedWarehouseId}
-                  inputSize="sm"
-                />
-
-                <Input
-                  label="Fuel Quantity (L)"
-                  type="number"
-                  step="0.01"
-                  icon={<Fuel className="h-4 w-4" />}
-                  value={watchedValues.fuel_quantity || 0}
-                  disabled
-                  inputSize="sm"
-                  {...register('fuel_quantity', {
-                    valueAsNumber: true,
-                    min: { value: 0, message: 'Fuel quantity cannot be negative' }
-                  })}
-                />
-
-            <div className="mt-3">
-              <FileUpload
-                label="Fuel Bill / Receipt"
-                accept=".jpg,.jpeg,.png,.pdf"
-                multiple={true}
-                value={watchedValues.fuel_bill_file as File[]}
-                onChange={(files) => setValue('fuel_bill_file', files)}
-                variant="compact"
-                uploadProgress={fuelBillUploadProgress}
-                uploadStatus={fuelBillUploadStatus}
-              />
-            </div>
-          </div>
-          )}
         </div>
       </div>
 

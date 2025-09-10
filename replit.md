@@ -21,7 +21,23 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - VITE_GOOGLE_MAPS_API_KEY
 
 ## Recent Changes
-- **2025-09-10**: Critical bug fixes and improvements
+- **2025-09-10**: Major enhancements and multiple refuelings support
+  - **Multiple Refuelings Feature**: Implemented support for unlimited refueling entries per trip
+    - Created RefuelingForm component with dynamic add/remove refueling functionality
+    - Each refueling tracks location, quantity, rate, and total cost
+    - Auto-calculates fuel quantity based on total cost and rate
+    - Backward compatible with existing single refueling data
+  - **Collapsible Route Analysis**: Created CollapsibleRouteAnalysis component
+    - Starts collapsed by default to prevent automatic Google Maps API calls
+    - Shows historical trip comparisons (same vehicle, same route)
+    - Displays average fuel consumption and expenses from similar trips
+    - Visual indicators for deviation from historical averages
+  - **File Upload Progress**: Enhanced FileUpload component with real-time progress tracking
+    - Shows percentage upload progress with visual progress bars
+    - Provides upload status indicators (uploading, success, error)
+  - **Navigation Improvements**: Removed floating Quick Add button, replaced with icon badges
+    - Compact icon-based navigation with plus badges for quick add functionality
+    - Better mobile experience without floating action buttons
   - Fixed LoadingScreen JSX attribute warning (stroke-width → strokeWidth)
   - Resolved Input/CurrencyInput component TypeScript conflicts (size → inputSize)
   - Mass updated all size prop usages across 80+ files to inputSize
@@ -43,7 +59,6 @@ A comprehensive React + TypeScript fleet management application using Vite, Supa
   - Implemented automatic toll calculation using Google Maps (₹2/km estimate for Indian highways)
   - Auto-fills FASTag/Toll expense when route is analyzed (doubles for return trips)
   - Fixed mobile navigation to always show icons instead of hamburger menu
-  - Added Quick Add Trip feature with FAB on mobile and dropdown on desktop
   - Improved mobile responsiveness across all pages
   
 - **2025-09-09**: Initial Replit setup completed
