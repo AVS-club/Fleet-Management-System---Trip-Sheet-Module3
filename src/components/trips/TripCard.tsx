@@ -162,7 +162,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
             </div>
           )}
           <div>
-            <h3 className="text-gray-900 font-medium">{trip.trip_serial_number}</h3>
+            <p className="text-base text-gray-900 font-medium">{trip.trip_serial_number}</p>
             <p className="text-sm text-gray-500">{formattedDate}</p>
           </div>
         </div>
