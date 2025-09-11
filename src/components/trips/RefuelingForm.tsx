@@ -37,6 +37,8 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
 
   const updateRefueling = (index: number, field: keyof Refueling, value: any, location?: string) => {
     const updated = [...refuelings];
+    
+    // Store the new value
     updated[index] = {
       ...updated[index],
       [field]: value
@@ -49,11 +51,24 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
 
     // Auto-calculate fuel quantity when total cost or rate changes
     if (field === 'total_fuel_cost' || field === 'fuel_rate_per_liter') {
-      const totalCost = field === 'total_fuel_cost' ? value : updated[index].total_fuel_cost;
-      const rate = field === 'fuel_rate_per_liter' ? value : updated[index].fuel_rate_per_liter;
+      // Get the current values (including the newly updated one)
+      const totalCost = updated[index].total_fuel_cost || 0;
+      const rate = updated[index].fuel_rate_per_liter || 0;
       
-      if (totalCost && rate && rate > 0) {
+      // Only calculate if both values are present and valid
+      if (totalCost > 0 && rate > 0) {
         updated[index].fuel_quantity = parseFloat((totalCost / rate).toFixed(2));
+      } else {
+        // Reset fuel quantity if either value is missing or zero
+        updated[index].fuel_quantity = 0;
+      }
+    }
+
+    // Auto-calculate total cost when fuel quantity or rate changes manually
+    if (field === 'fuel_quantity' && value > 0) {
+      const rate = updated[index].fuel_rate_per_liter || 0;
+      if (rate > 0) {
+        updated[index].total_fuel_cost = parseFloat((value * rate).toFixed(2));
       }
     }
 
