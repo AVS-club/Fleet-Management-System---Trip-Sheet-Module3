@@ -127,7 +127,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         </span>
         {/* Dropdown */}
         {open && (
-          <div className="absolute z-10 left-0 top-full mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-[9999] left-0 top-full mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-auto">
             {options.length === 0 && (
               <div className="p-2 text-gray-400 text-sm">No options</div>
             )}

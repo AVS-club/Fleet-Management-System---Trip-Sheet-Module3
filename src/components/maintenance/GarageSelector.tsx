@@ -119,7 +119,7 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
         {isOpen && (
           <div 
             ref={dropdownMenuRef}
-            className={`absolute z-50 w-full bg-white border rounded-lg shadow-lg ${
+            className={`absolute z-[9999] w-full bg-white border rounded-lg shadow-lg ${
               isMenuAbove ? 'bottom-full mb-1' : 'top-full mt-1'
             }`}
             style={{ maxHeight: '300px', overflowY: 'auto' }}

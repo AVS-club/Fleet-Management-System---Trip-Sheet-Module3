@@ -124,10 +124,10 @@ const VendorSelector: React.FC<VendorSelectorProps> = ({
               borderRadius: "0.5rem",
               boxShadow:
                 "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-              zIndex: 50,
+              zIndex: 9999,
               border: "1px solid #e5e7eb",
             }}
-            className="z-50 w-full bg-white border rounded-lg shadow-lg"
+            className="z-[9999] w-full bg-white border rounded-lg shadow-lg"
           >
             <div className="p-2 border-b sticky top-0 bg-white z-10">
               <input
