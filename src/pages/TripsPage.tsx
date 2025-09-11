@@ -230,15 +230,16 @@ const TripsPage: React.FC = () => {
           fuelBillUrl = uploadedUrls[0]; // Take the first uploaded file URL
       }
       
-      // Create trip without the file object and refuelings array (replaced with URL and individual fuel fields)
-      const { fuel_bill_file, refuelings, ...tripData } = data;
+      // Create trip without the file object but keep refuelings array for the new multiple refuelings feature
+      const { fuel_bill_file, ...tripData } = data;
 
       // Add or update trip in storage
       if (editingTrip?.id) {
         // Update existing trip
         const updatedTrip = await updateTrip(editingTrip.id, {
           ...tripData,
-          fuel_bill_url: fuelBillUrl || editingTrip.fuel_bill_url
+          fuel_bill_url: fuelBillUrl || editingTrip.fuel_bill_url,
+          refuelings: data.refuelings // Keep the refuelings array with fuel_bill_urls
         });
         
         if (updatedTrip) {
@@ -254,7 +255,8 @@ const TripsPage: React.FC = () => {
         // Add new trip
         const newTrip = await createTrip({
           ...tripData,
-          fuel_bill_url: fuelBillUrl
+          fuel_bill_url: fuelBillUrl,
+          refuelings: data.refuelings // Keep the refuelings array with fuel_bill_urls
         });
         
         if (newTrip) {
