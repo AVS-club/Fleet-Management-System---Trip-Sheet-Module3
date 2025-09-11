@@ -19,7 +19,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
   onChange,
   disabled = false
 }) => {
-  const [uploadStates, setUploadStates] = useState<{ [key: number]: { uploading: boolean; uploaded: boolean; fileName?: string; url?: string } }>({});
+  const [uploadStates, setUploadStates] = useState<{ [key: number]: { uploading: boolean } }>({});
   const addRefueling = () => {
     const newRefueling: Refueling = {
       location: '',
@@ -190,7 +190,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                           // Update upload state to show loading
                           setUploadStates(prev => ({
                             ...prev,
-                            [index]: { uploading: true, uploaded: false, fileName: file.name }
+                            [index]: { uploading: true }
                           }));
                           
                           try {
@@ -208,15 +208,14 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                               }
                             );
                             
-                            // Update state with success
+                            // Update the refueling data with the URL
+                            updateRefueling(index, 'fuel_bill_url', url);
+                            
+                            // Clear upload state
                             setUploadStates(prev => ({
                               ...prev,
-                              [index]: { uploading: false, uploaded: true, fileName: file.name, url }
+                              [index]: { uploading: false }
                             }));
-                            
-                            // Note: The URL is stored in uploadStates for display purposes
-                            // If you need to persist the URL, you would store it separately
-                            // or extend the Refueling type to include fuel_bill_url
                             
                             // Show success message
                             toast.success(`Fuel bill uploaded successfully!`);
@@ -226,7 +225,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                             // Update state with error
                             setUploadStates(prev => ({
                               ...prev,
-                              [index]: { uploading: false, uploaded: false }
+                              [index]: { uploading: false }
                             }));
                             
                             // Show error message
@@ -242,7 +241,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         <span>Uploading...</span>
                       </div>
-                    ) : uploadStates[index]?.uploaded ? (
+                    ) : refueling.fuel_bill_url ? (
                       <div className="flex items-center gap-2">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
                           <CheckCircle className="h-3.5 w-3.5" />

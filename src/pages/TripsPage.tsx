@@ -397,6 +397,22 @@ const TripsPage: React.FC = () => {
               fuel_rate_per_liter: editingTrip.fuel_rate_per_liter,
               fuel_cost: editingTrip.fuel_cost,
               total_fuel_cost: editingTrip.total_fuel_cost,
+              // Convert old single refueling data to new format if refuelings array doesn't exist
+              refuelings: editingTrip.refuelings && editingTrip.refuelings.length > 0 
+                ? editingTrip.refuelings
+                : editingTrip.total_fuel_cost || editingTrip.fuel_quantity
+                  ? [{
+                      location: editingTrip.station || '',
+                      fuel_quantity: editingTrip.fuel_quantity || 0,
+                      fuel_rate_per_liter: editingTrip.fuel_rate_per_liter || 0,
+                      total_fuel_cost: editingTrip.total_fuel_cost || 0
+                    }]
+                  : [{
+                      location: '',
+                      fuel_quantity: 0,
+                      fuel_rate_per_liter: 0,
+                      total_fuel_cost: 0
+                    }],
               unloading_expense: editingTrip.unloading_expense,
               driver_expense: editingTrip.driver_expense,
               road_rto_expense: editingTrip.road_rto_expense,

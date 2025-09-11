@@ -4,6 +4,7 @@ export interface Refueling {
   fuel_quantity: number;
   fuel_rate_per_liter: number;
   total_fuel_cost: number;
+  fuel_bill_url?: string;
 }
 
 export interface AIAlert {
