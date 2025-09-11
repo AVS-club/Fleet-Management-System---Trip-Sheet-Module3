@@ -59,7 +59,7 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
     return type ? type.replace('_', ' ').toUpperCase() : '';
   };
 
-  const getTypeColor = (type: MaintenanceGarage['type']) => {
+  const getTypeColor = (type?: MaintenanceGarage['type']) => {
     switch (type) {
       case 'authorized':
         return 'bg-success-100 text-success-700';
@@ -95,8 +95,8 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
                   <span className="font-medium text-gray-900">{selectedGarageDetails.name}</span>
                 </div>
                 {selectedGarageDetails.type && (
-                  <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(selectedGarageDetails.type)}`}>
-                    {formatGarageType(selectedGarageDetails.type)}
+                  <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(selectedGarageDetails.type as MaintenanceGarage['type'])}`}>
+                    {formatGarageType(selectedGarageDetails.type as MaintenanceGarage['type'])}
                   </span>
                 )}
               </div>
@@ -154,8 +154,8 @@ const GarageSelector: React.FC<GarageSelectorProps> = ({
                       <span className="font-medium text-gray-900">{garage.name}</span>
                     </div>
                     {garage.type && (
-                      <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(garage.type)}`}>
-                        {formatGarageType(garage.type)}
+                      <span className={`px-2 py-1 text-xs rounded-full ${getTypeColor(garage.type as MaintenanceGarage['type'])}`}>
+                        {formatGarageType(garage.type as MaintenanceGarage['type'])}
                       </span>
                     )}
                   </div>

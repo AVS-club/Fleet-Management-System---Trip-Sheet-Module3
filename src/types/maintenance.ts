@@ -155,6 +155,15 @@ export interface MaintenanceVendor {
   active: boolean;
 }
 
+export interface MaintenanceGarage {
+  id: string;
+  name: string;
+  contact?: string;
+  address?: string;
+  active: boolean;
+  type?: 'authorized' | 'independent' | 'company_owned';
+}
+
 export interface MaintenanceStats {
   total_expenditure: number;
   record_count: number;
