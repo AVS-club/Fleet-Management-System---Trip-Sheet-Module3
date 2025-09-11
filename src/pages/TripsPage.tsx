@@ -230,8 +230,8 @@ const TripsPage: React.FC = () => {
           fuelBillUrl = uploadedUrls[0]; // Take the first uploaded file URL
       }
       
-      // Create trip without the file object (replaced with URL)
-      const { fuel_bill_file, ...tripData } = data;
+      // Create trip without the file object and refuelings array (replaced with URL and individual fuel fields)
+      const { fuel_bill_file, refuelings, ...tripData } = data;
 
       // Add or update trip in storage
       if (editingTrip?.id) {
