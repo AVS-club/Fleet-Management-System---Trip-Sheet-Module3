@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, AlertTriangle, Bell, FileText, Calendar, FileCheck, BarChart2, Database, MessageSquare, Activity, ShieldCheck } from 'lucide-react'; 
+import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '@/types';
@@ -8,6 +8,7 @@ import DataTable from '../../components/shared/DataTable';
 import Button from '../../components/ui/Button';
 import VehicleProfileModal from '../../components/admin/VehicleProfileModal';
 import DriverProfileModal from '../../components/admin/DriverProfileModal';
+import SequenceMonitorDashboard from '../../components/admin/SequenceMonitorDashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -17,8 +18,13 @@ const AdminDashboard: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
   useEffect(() => {
-    setVehicles(getVehicles());
-    setDrivers(getDrivers());
+    const loadData = async () => {
+      const vehiclesData = await getVehicles();
+      const driversData = await getDrivers();
+      setVehicles(vehiclesData);
+      setDrivers(driversData);
+    };
+    loadData();
   }, []);
 
   const tabs = [
@@ -27,6 +33,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'vehicles', label: 'Vehicles', icon: <Truck className="h-5 w-5" /> },
     { id: 'drivers', label: 'Drivers', icon: <Users className="h-5 w-5" /> },
     { id: 'maintenance', label: 'Maintenance', icon: <Tool className="h-5 w-5" /> },
+    { id: 'sequence', label: 'Serial Monitor', icon: <BarChart2 className="h-5 w-5" /> },
     { id: 'alerts', label: 'Alert Settings', icon: <Bell className="h-5 w-5" /> }
   ];
 
@@ -305,7 +312,7 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-xs sm:text-sm text-gray-500">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
-                      <Button inputSize="sm" className="w-full sm:w-auto">View All Trips</Button>
+                      <Button size="sm" className="w-full sm:w-auto">View All Trips</Button>
                     </Link>
                   </div>
                 </div>
@@ -381,6 +388,10 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {activeTab === 'sequence' && (
+                <SequenceMonitorDashboard className="max-w-7xl" />
               )}
 
               {activeTab === 'alerts' && (
