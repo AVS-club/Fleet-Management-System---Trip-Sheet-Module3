@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { AuditTrailLogger } from './auditTrailLogger';
 
 export interface EdgeCaseDetection {
   case_id: string;
@@ -220,6 +221,18 @@ export class EdgeCaseHandler {
         if (detection) {
           detections.push(detection);
         }
+      }
+
+      // Log edge case detection operations
+      for (const detection of detections) {
+        await AuditTrailLogger.logEdgeCaseDetection(
+          detection.case_type,
+          detection.trip_id || tripId,
+          detection.patterns_detected,
+          detection.confidence_score,
+          detection.severity,
+          detection.recommendations
+        );
       }
 
       return detections;

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { AuditTrailLogger } from './auditTrailLogger';
 
 export interface SerialSequenceIssue {
   type: 'gap' | 'duplicate';
@@ -84,7 +85,7 @@ export class SerialSequenceMonitor {
       const gapIssues = this.detectSequenceGaps(tripList, vehicleData.registration_number, vehicleId);
       issues.push(...gapIssues);
 
-      return {
+      const analysis = {
         vehicle_id: vehicleId,
         vehicle_registration: vehicleData.registration_number,
         total_trips: tripList.length,
@@ -95,6 +96,11 @@ export class SerialSequenceMonitor {
         latest_serial: serialNumbers[serialNumbers.length - 1] || '',
         issues
       };
+
+      // Log sequence monitoring operation
+      await AuditTrailLogger.logSequenceMonitoring(vehicleId, issues, analysis);
+
+      return analysis;
     } catch (error) {
       console.error('Error analyzing vehicle sequence:', error);
       return null;

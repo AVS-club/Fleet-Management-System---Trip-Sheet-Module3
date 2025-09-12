@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { AuditTrailLogger } from './auditTrailLogger';
 
 export interface ReturnTripIssue {
   type: 'distance_mismatch' | 'fuel_inconsistency' | 'time_gap' | 'missing_return' | 'orphaned_return';
@@ -133,6 +134,10 @@ export class ReturnTripValidator {
       }
 
       analysis.issues = issues;
+
+      // Log return trip validation operation
+      await AuditTrailLogger.logReturnTripValidation(tripId, analysis, issues);
+
       return analysis;
     } catch (error) {
       console.error('Error validating return trip:', error);

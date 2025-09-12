@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { AuditTrailLogger } from './auditTrailLogger';
 
 export interface FuelEfficiencyBaseline {
   vehicle_id: string;
@@ -177,6 +178,9 @@ export class FuelEfficiencyBaselineManager {
         }
       };
 
+      // Log baseline calculation operation
+      await AuditTrailLogger.logBaselineOperation(vehicleId, 'establish', baseline, confidenceScore);
+
       return baseline;
     } catch (error) {
       console.error('Error calculating baseline:', error);
@@ -218,6 +222,17 @@ export class FuelEfficiencyBaselineManager {
       }
 
       if (existing) {
+        // Get existing baseline for before/after comparison
+        const { data: existingBaseline, error: fetchError } = await supabase
+          .from('fuel_efficiency_baselines')
+          .select('*')
+          .eq('vehicle_id', baseline.vehicle_id)
+          .single();
+
+        if (fetchError) {
+          console.error('Error fetching existing baseline for audit:', fetchError);
+        }
+
         // Update existing baseline
         const { error } = await supabase
           .from('fuel_efficiency_baselines')
@@ -237,6 +252,37 @@ export class FuelEfficiencyBaselineManager {
           console.error('RLS UPDATE ERROR - User permissions or authentication issue:', error);
           return { success: false, error: `Update failed: ${error.message}. Check user permissions.` };
         }
+
+        // Log baseline update operation with detailed before/after values
+        await AuditTrailLogger.logDataCorrection(
+          'fuel_efficiency_baseline',
+          baseline.vehicle_id,
+          {
+            baseline_kmpl: existingBaseline?.baseline_kmpl || null,
+            confidence_score: existingBaseline?.confidence_score || null,
+            sample_size: existingBaseline?.sample_size || null,
+            last_updated: existingBaseline?.last_updated || null,
+            data_range: existingBaseline?.data_range || null
+          },
+          {
+            baseline_kmpl: baseline.baseline_kmpl,
+            confidence_score: baseline.confidence_score,
+            sample_size: baseline.sample_size,
+            last_updated: baseline.last_updated,
+            data_range: baseline.data_range
+          },
+          `Baseline updated for vehicle ${baseline.vehicle_registration}`,
+          []
+        );
+
+        // Log baseline operation for operational tracking
+        await AuditTrailLogger.logBaselineOperation(
+          baseline.vehicle_id, 
+          'update', 
+          baseline, 
+          baseline.confidence_score
+        );
+
       } else {
         // Insert new baseline
         const { error } = await supabase
@@ -259,6 +305,39 @@ export class FuelEfficiencyBaselineManager {
           console.error('RLS INSERT ERROR - User permissions or authentication issue:', error);
           return { success: false, error: `Insert failed: ${error.message}. Check user permissions and authentication.` };
         }
+
+        // Log new baseline creation operation
+        await AuditTrailLogger.logOperation(
+          'baseline_creation',
+          'fuel_data',
+          'fuel_efficiency_baseline',
+          baseline.vehicle_id,
+          'created',
+          {
+            entityDescription: `New fuel efficiency baseline created for vehicle ${baseline.vehicle_registration}`,
+            changesMade: {
+              baseline_kmpl: baseline.baseline_kmpl,
+              confidence_score: baseline.confidence_score,
+              sample_size: baseline.sample_size,
+              data_range: baseline.data_range,
+              tolerance_upper_percent: baseline.tolerance_upper_percent,
+              tolerance_lower_percent: baseline.tolerance_lower_percent
+            },
+            severityLevel: 'info',
+            confidenceScore: baseline.confidence_score,
+            tags: ['fuel_efficiency', 'baseline_creation', 'analytics'],
+            businessContext: `New baseline established: ${baseline.baseline_kmpl}km/l with ${baseline.sample_size} trip samples`,
+            dataQualityScore: baseline.confidence_score
+          }
+        );
+
+        // Log baseline operation for operational tracking
+        await AuditTrailLogger.logBaselineOperation(
+          baseline.vehicle_id, 
+          'establish', 
+          baseline, 
+          baseline.confidence_score
+        );
       }
 
       return { success: true };

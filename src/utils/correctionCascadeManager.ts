@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { AuditTrailLogger } from './auditTrailLogger';
 
 interface CascadeCorrection {
   tripId: string;
@@ -25,6 +26,19 @@ export class CorrectionCascadeManager {
     reason: string
   ): Promise<CascadeResult> {
     try {
+      // Get original trip data BEFORE making any changes for accurate audit logging
+      const { data: originalTrip, error: tripError } = await supabase
+        .from('trips')
+        .select('end_km, trip_serial_number, start_km')
+        .eq('id', tripId)
+        .single();
+      
+      if (tripError || !originalTrip) {
+        throw new Error(`Failed to get original trip data: ${tripError?.message || 'Trip not found'}`);
+      }
+
+      const originalEndKm = originalTrip.end_km;
+
       // Use atomic RPC function for proper transaction handling
       const { data: affectedTrips, error } = await supabase
         .rpc('cascade_odometer_correction_atomic', {
@@ -35,7 +49,7 @@ export class CorrectionCascadeManager {
       
       if (error) throw error;
       
-      return {
+      const result = {
         success: true,
         affectedTrips: (affectedTrips || []).map((trip: any) => ({
           trip_id: trip.affected_trip_id,
@@ -43,6 +57,49 @@ export class CorrectionCascadeManager {
           new_value: `${trip.new_start_km}-${trip.new_end_km}`
         }))
       };
+
+      // Log cascade correction operation with actual before/after values
+      await AuditTrailLogger.logDataCorrection(
+        'trip',
+        tripId,
+        { 
+          end_km: originalEndKm,
+          trip_serial_number: originalTrip.trip_serial_number,
+          start_km: originalTrip.start_km
+        },
+        { 
+          end_km: newEndKm,
+          trip_serial_number: originalTrip.trip_serial_number,
+          start_km: originalTrip.start_km
+        },
+        reason,
+        result.affectedTrips.map(t => t.trip_id)
+      );
+
+      // Log detailed changes for each affected trip in the cascade
+      for (const affectedTrip of result.affectedTrips) {
+        const [oldStart, oldEnd] = affectedTrip.old_value.split('-').map(Number);
+        const [newStart, newEnd] = affectedTrip.new_value.split('-').map(Number);
+        
+        await AuditTrailLogger.logDataCorrection(
+          'trip',
+          affectedTrip.trip_id,
+          { 
+            start_km: oldStart,
+            end_km: oldEnd,
+            cascade_source: tripId
+          },
+          { 
+            start_km: newStart,
+            end_km: newEnd,
+            cascade_source: tripId
+          },
+          `Cascade correction from trip ${originalTrip.trip_serial_number}: ${reason}`,
+          []
+        );
+      }
+
+      return result;
     } catch (error) {
       console.error('Cascade correction failed:', error);
       return {

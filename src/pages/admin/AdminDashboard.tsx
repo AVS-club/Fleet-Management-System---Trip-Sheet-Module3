@@ -12,6 +12,7 @@ import SequenceMonitorDashboard from '../../components/admin/SequenceMonitorDash
 import ReturnTripValidationDashboard from '../../components/admin/ReturnTripValidationDashboard';
 import FuelBaselineDashboard from '../../components/admin/FuelBaselineDashboard';
 import EdgeCaseDashboard from '../../components/admin/EdgeCaseDashboard';
+import AuditTrailDashboard from '../../components/admin/AuditTrailDashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -40,6 +41,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'return-trips', label: 'Return Trips', icon: <Activity className="h-5 w-5" /> },
     { id: 'fuel-baselines', label: 'Fuel Baselines', icon: <Fuel className="h-5 w-5" /> },
     { id: 'edge-cases', label: 'Edge Cases', icon: <Shield className="h-5 w-5" /> },
+    { id: 'audit-trail', label: 'Audit Trail', icon: <FileText className="h-5 w-5" /> },
     { id: 'alerts', label: 'Alert Settings', icon: <Bell className="h-5 w-5" /> }
   ];
 
@@ -410,6 +412,10 @@ const AdminDashboard: React.FC = () => {
 
               {activeTab === 'edge-cases' && (
                 <EdgeCaseDashboard className="max-w-7xl" />
+              )}
+
+              {activeTab === 'audit-trail' && (
+                <AuditTrailDashboard className="max-w-7xl" />
               )}
 
               {activeTab === 'alerts' && (
