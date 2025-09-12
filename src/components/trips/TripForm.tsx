@@ -7,6 +7,7 @@ import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
+import { CorrectionCascadeManager } from '../../utils/correctionCascadeManager';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import WarehouseSelector from './WarehouseSelector';
@@ -15,6 +16,7 @@ import MaterialSelector from './MaterialSelector';
 import CollapsibleRouteAnalysis from './CollapsibleRouteAnalysis';
 import RefuelingForm from './RefuelingForm';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import { CascadePreviewModal } from './CascadePreviewModal';
 import config from '../../utils/env';
 import {
   Truck,
@@ -68,6 +70,21 @@ const TripForm: React.FC<TripFormProps> = ({
   const [routeDeviation, setRouteDeviation] = useState<number | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [cascadePreview, setCascadePreview] = useState<{
+    isOpen: boolean;
+    affectedTrips: Array<{
+      trip_serial_number: string;
+      current_start_km: number;
+      new_start_km: number;
+    }>;
+    newEndKm: number;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    affectedTrips: [],
+    newEndKm: 0,
+    loading: false
+  });
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
   const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -332,8 +349,14 @@ const TripForm: React.FC<TripFormProps> = ({
     setValue('destinations', newDestinations.map(d => d.id));
   };
 
-  // Auto-trigger route analysis and AI alerts when key fields change
+  // Enhanced End KM blur handler with cascade preview and route analysis
   const handleEndKmBlur = async () => {
+    // Check for cascade impact first (only for editing existing trips)
+    if (initialData?.id && endKm && endKm !== initialData.end_km) {
+      await handleEndKmChange(endKm);
+    }
+
+    // Original route analysis logic
     if (selectedVehicleId && selectedWarehouseId && selectedDestinationObjects.length > 0 && startKm && endKm) {
       setIsAnalyzing(true);
       try {
@@ -543,6 +566,85 @@ const TripForm: React.FC<TripFormProps> = ({
 
     await onSubmit(submitData);
   };
+
+  // Cascade handlers for data correction
+  const handleEndKmChange = async (newEndKm: number) => {
+    // Only show cascade preview if we're editing an existing trip and End KM has changed
+    if (!initialData?.id || !newEndKm || newEndKm === initialData.end_km) {
+      return;
+    }
+
+    try {
+      const affectedTrips = await CorrectionCascadeManager.previewCascadeImpact(
+        initialData.id,
+        newEndKm
+      );
+
+      if (affectedTrips.length > 0) {
+        setCascadePreview({
+          isOpen: true,
+          affectedTrips,
+          newEndKm,
+          loading: false
+        });
+      }
+    } catch (error) {
+      console.error('Error previewing cascade impact:', error);
+      toast.error('Could not preview cascade impact');
+    }
+  };
+
+  const handleApplyCascade = async () => {
+    if (!initialData?.id) return;
+
+    setCascadePreview(prev => ({ ...prev, loading: true }));
+
+    try {
+      const result = await CorrectionCascadeManager.cascadeOdometerCorrection(
+        initialData.id,
+        cascadePreview.newEndKm,
+        'Odometer correction from trip edit'
+      );
+
+      if (result.success) {
+        // Update form's end_km to reflect the correction
+        setValue('end_km', cascadePreview.newEndKm);
+        
+        toast.success(`Successfully updated ${result.affectedTrips.length} subsequent trips`);
+        // Close modal
+        setCascadePreview({
+          isOpen: false,
+          affectedTrips: [],
+          newEndKm: 0,
+          loading: false
+        });
+        
+        // Trigger route analysis refresh with new end KM
+        if (selectedVehicleId && selectedWarehouseId && selectedDestinationObjects.length > 0 && startKm) {
+          setTimeout(() => {
+            handleEndKmBlur();
+          }, 100); // Small delay to ensure state is updated
+        }
+      } else {
+        toast.error(result.error || 'Failed to apply cascade corrections');
+      }
+    } catch (error) {
+      console.error('Error applying cascade:', error);
+      toast.error('Failed to apply cascade corrections');
+    } finally {
+      setCascadePreview(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleCloseCascadePreview = () => {
+    setCascadePreview({
+      isOpen: false,
+      affectedTrips: [],
+      newEndKm: 0,
+      loading: false
+    });
+  };
+
 
   if (loading) {
     return (
@@ -1129,6 +1231,15 @@ const TripForm: React.FC<TripFormProps> = ({
           {initialData ? 'Update Trip' : 'Save Trip'}
         </Button>
       </div>
+
+      {/* Cascade Preview Modal */}
+      <CascadePreviewModal
+        isOpen={cascadePreview.isOpen}
+        onClose={handleCloseCascadePreview}
+        onApply={handleApplyCascade}
+        affectedTrips={cascadePreview.affectedTrips}
+        loading={cascadePreview.loading}
+      />
     </form>
   );
 };
