@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck } from 'lucide-react'; 
+import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '@/types';
@@ -11,6 +11,7 @@ import DriverProfileModal from '../../components/admin/DriverProfileModal';
 import SequenceMonitorDashboard from '../../components/admin/SequenceMonitorDashboard';
 import ReturnTripValidationDashboard from '../../components/admin/ReturnTripValidationDashboard';
 import FuelBaselineDashboard from '../../components/admin/FuelBaselineDashboard';
+import EdgeCaseDashboard from '../../components/admin/EdgeCaseDashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -38,6 +39,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'sequence', label: 'Serial Monitor', icon: <BarChart2 className="h-5 w-5" /> },
     { id: 'return-trips', label: 'Return Trips', icon: <Activity className="h-5 w-5" /> },
     { id: 'fuel-baselines', label: 'Fuel Baselines', icon: <Fuel className="h-5 w-5" /> },
+    { id: 'edge-cases', label: 'Edge Cases', icon: <Shield className="h-5 w-5" /> },
     { id: 'alerts', label: 'Alert Settings', icon: <Bell className="h-5 w-5" /> }
   ];
 
@@ -404,6 +406,10 @@ const AdminDashboard: React.FC = () => {
 
               {activeTab === 'fuel-baselines' && (
                 <FuelBaselineDashboard className="max-w-7xl" />
+              )}
+
+              {activeTab === 'edge-cases' && (
+                <EdgeCaseDashboard className="max-w-7xl" />
               )}
 
               {activeTab === 'alerts' && (
