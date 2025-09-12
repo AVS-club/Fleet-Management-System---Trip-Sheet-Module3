@@ -23,7 +23,7 @@ const createSupabaseClient = () => {
 
   try {
     // Create the client with standard configuration
-    const client = createClient(supabaseUrl, supabaseAnonKey, {
+    const client = createClient(supabaseUrl!, supabaseAnonKey!, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
