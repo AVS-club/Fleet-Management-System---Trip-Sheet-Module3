@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import VehicleProfileModal from '../../components/admin/VehicleProfileModal';
 import DriverProfileModal from '../../components/admin/DriverProfileModal';
 import SequenceMonitorDashboard from '../../components/admin/SequenceMonitorDashboard';
+import ReturnTripValidationDashboard from '../../components/admin/ReturnTripValidationDashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -34,6 +35,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'drivers', label: 'Drivers', icon: <Users className="h-5 w-5" /> },
     { id: 'maintenance', label: 'Maintenance', icon: <Tool className="h-5 w-5" /> },
     { id: 'sequence', label: 'Serial Monitor', icon: <BarChart2 className="h-5 w-5" /> },
+    { id: 'return-trips', label: 'Return Trips', icon: <Activity className="h-5 w-5" /> },
     { id: 'alerts', label: 'Alert Settings', icon: <Bell className="h-5 w-5" /> }
   ];
 
@@ -392,6 +394,10 @@ const AdminDashboard: React.FC = () => {
 
               {activeTab === 'sequence' && (
                 <SequenceMonitorDashboard className="max-w-7xl" />
+              )}
+
+              {activeTab === 'return-trips' && (
+                <ReturnTripValidationDashboard className="max-w-7xl" />
               )}
 
               {activeTab === 'alerts' && (
