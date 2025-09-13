@@ -87,6 +87,8 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       ...sanitizedTripData,
       station: sanitizedTripData.station ?? null,
       fuel_station_id: sanitizedTripData.fuel_station_id ?? null,
+      fuel_expense: sanitizedTripData.fuel_expense || sanitizedTripData.fuel_cost || 0,
+      fuel_cost: sanitizedTripData.fuel_cost || sanitizedTripData.fuel_expense || 0,
     }, userId);
 
     const { data, error } = await supabase
@@ -141,4 +143,3 @@ export const deleteTrip = async (id: string): Promise<boolean> => {
 
   return true;
 };
-
