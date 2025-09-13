@@ -177,7 +177,7 @@ export async function searchTripsDatabase(
         query = query.eq('trip_start_date', dateSearch.startDate);
       } else {
         // Regular text search
-        query = query.or(`trip_serial_number.ilike.%${searchTerm}%,manual_trip_id.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
+        query = query.or(`trip_serial_number.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
       }
     }
 
