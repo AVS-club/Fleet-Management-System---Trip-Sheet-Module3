@@ -40,6 +40,8 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
    - Add these URLs to allowed origins:
      - http://localhost:5173
      - https://localhost:5173
+     - http://localhost:5000
+     - https://localhost:5000
    - Save the changes and wait 1-2 minutes for them to take effect
 
    **Important**: If you're experiencing CORS errors with Edge Functions, ensure that:

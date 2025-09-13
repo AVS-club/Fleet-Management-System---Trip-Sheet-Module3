@@ -113,6 +113,8 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
    - ${window.location.origin}
    - http://localhost:5173
    - https://localhost:5173
+   - http://localhost:5000
+   - https://localhost:5000
 5. Save the changes and wait 1-2 minutes for them to take effect
 6. Reload this page
 
@@ -138,6 +140,7 @@ Please configure CORS in your Supabase project:
 2. Select your project
 3. Navigate to Settings → API → CORS
 4. Add ${window.location.origin} to allowed origins
+   Also add: http://localhost:5000, https://localhost:5000
 5. Save and reload this page
 
 If the issue persists, check:
