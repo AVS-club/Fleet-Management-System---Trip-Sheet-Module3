@@ -101,6 +101,7 @@ export class AuditTrailLogger {
         }
 
         // Call the database function to log the audit trail
+                // Call the database function to log the audit trail
         const { data, error } = await supabase.rpc('log_audit_trail', {
           p_operation_type: operationType,
           p_operation_category: operationCategory,
@@ -116,7 +117,8 @@ export class AuditTrailLogger {
           p_business_context: options.businessContext || null,
           p_data_quality_score: options.dataQualityScore || null,
           p_operation_duration_ms: options.operationDurationMs || (Date.now() - startTime),
-          p_user_type: userType
+          p_user_type: userType,
+          p_user_id: user?.id || null  // ADD THIS LINE
         });
 
         if (error) {
