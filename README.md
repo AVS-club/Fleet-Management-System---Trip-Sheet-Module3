@@ -33,23 +33,25 @@ A comprehensive fleet management solution for tracking vehicles, drivers, trips,
    cp .env.example .env
    ```
    Then edit `.env` with your actual Supabase project URL and anon key
-4. Configure CORS in your Supabase project:
+4. **IMPORTANT**: Configure CORS in your Supabase project:
    - Go to your Supabase Dashboard: https://supabase.com/dashboard
    - Select your project
    - Navigate to Settings → API → CORS
    - Add these URLs to allowed origins:
-     - http://localhost:5173
-     - https://localhost:5173
      - http://localhost:5000
      - https://localhost:5000
+     - http://localhost:5173
+     - https://localhost:5173
    - Save the changes and wait 1-2 minutes for them to take effect
 
-   **Important**: If you're experiencing CORS errors with Edge Functions, ensure that:
+   **Critical**: If you're experiencing CORS errors:
    - Your Supabase project has the correct CORS configuration
-   - The Edge Function `fetch-vehicle-details` exists in your Supabase project
    - Your network allows connections to Supabase Edge Functions
-   - If issues persist, the VAHAN fetch feature will be temporarily disabled with a fallback to manual entry
-4. Start the development server:
+   - Wait 1-2 minutes after saving CORS settings
+   - Clear browser cache and reload the page
+   - If issues persist, the app will run in offline mode with limited functionality
+
+5. Start the development server:
    ```
    npm run dev
    ```
