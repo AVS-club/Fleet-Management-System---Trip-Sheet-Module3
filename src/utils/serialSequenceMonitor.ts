@@ -38,7 +38,7 @@ export class SerialSequenceMonitor {
    */
   static async analyzeVehicleSequence(vehicleId: string): Promise<SequenceAnalysis | null> {
     try {
-      // Get vehicle info and all trips
+      // Get vehicle info
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
         .select('registration_number')
