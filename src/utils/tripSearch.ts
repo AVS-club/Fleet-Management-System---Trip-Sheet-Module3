@@ -152,6 +152,12 @@ export async function searchTripsDatabase(
   userId?: string
 ): Promise<TripSearchResult> {
   try {
+    // Test Supabase connection first
+    const { error: connectionError } = await supabase.auth.getSession();
+    if (connectionError) {
+      throw new Error(`Supabase connection failed: ${connectionError.message}`);
+    }
+
     let query = supabase
       .from('trips')
       .select(`
@@ -269,7 +275,14 @@ export async function searchTripsDatabase(
       statistics
     };
   } catch (error) {
-    console.error('Search trips database error:', error);
+    console.warn('Database search failed, will fallback to client-side search:', error);
+    
+    // Check if it's a network/CORS error
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('NETWORK_ERROR: Unable to connect to database. Please check your internet connection and Supabase CORS configuration.');
+    }
+    
+    // Re-throw other errors
     throw error;
   }
 }
@@ -428,12 +441,30 @@ export async function searchTrips(
   pagination: PaginationOptions = { page: 1, limit: 20 },
   userId?: string
 ): Promise<TripSearchResult> {
-  // Try database search first
+  // Try database search first, but gracefully fallback on any error
   try {
     return await searchTripsDatabase(filters, pagination, userId);
   } catch (error) {
-    console.warn('Database search failed, falling back to client-side search:', error);
-    // Fallback to client-side search
+    console.warn('Database search unavailable, using client-side search:', error);
+    
+    // Show user-friendly message for network errors
+    if (error instanceof Error && error.message.includes('NETWORK_ERROR')) {
+      console.error('CORS Configuration Required:', `
+Please configure CORS in your Supabase project:
+1. Go to https://supabase.com/dashboard
+2. Select your project  
+3. Navigate to Settings → API → CORS
+4. Add these URLs to allowed origins:
+   - http://localhost:5000
+   - https://localhost:5000
+   - http://localhost:5173
+   - https://localhost:5173
+5. Save and wait 1-2 minutes for changes to take effect
+
+Falling back to client-side search for now...`);
+    }
+    
+    // Always fallback to client-side search regardless of error type
     return searchTripsClientSide(allTrips, vehicles, drivers, warehouses, filters, pagination);
   }
 }
