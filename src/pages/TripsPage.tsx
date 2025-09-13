@@ -256,7 +256,7 @@ const TripsPage: React.FC = () => {
         const newTrip = await createTrip({
           ...tripData,
           fuel_bill_url: fuelBillUrl,
-          refuelings: data.refuelings // Keep the refuelings array with fuel_bill_urls
+          refuelings: data.refuelings || [] // Keep the refuelings array with fuel_bill_urls
         });
         
         if (newTrip) {
