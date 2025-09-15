@@ -10,7 +10,7 @@ import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
 import { getDestinations, createDestination, hardDeleteDestination } from '../../utils/storage';
-import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse } from '../../utils/warehouseService';
+import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, hardDeleteWarehouse, archiveWarehouse, restoreWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '@/types'; // Added Warehouse and Destination imports
 import Checkbox from '../../components/ui/Checkbox'; // Import Checkbox
