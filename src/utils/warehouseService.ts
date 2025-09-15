@@ -65,18 +65,18 @@ export async function updateWarehouse(id: string, payload: Partial<Warehouse>) {
   return data;
 }
 
-async function archiveWarehouse(id: string) {
+export async function archiveWarehouse(id: string) {
   const { error } = await supabase.from("warehouses").update({ is_active: false }).eq("id", id);
   if (error) throw error;
 }
 
-async function restoreWarehouse(id: string) {
+export async function restoreWarehouse(id: string) {
   const { error } = await supabase.from("warehouses").update({ is_active: true }).eq("id", id);
   if (error) throw error;
 }
 
 /** Use only for admin maintenance; FK constraints may block this. */
-async function hardDeleteWarehouse(id: string) {
+export async function hardDeleteWarehouse(id: string) {
   const { error } = await supabase.from("warehouses").delete().eq("id", id);
   if (error) throw error;
 }
