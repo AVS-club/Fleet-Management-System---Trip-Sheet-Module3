@@ -110,7 +110,7 @@ const TripForm: React.FC<TripFormProps> = ({
         location: '',
         fuel_quantity: 0,
         fuel_rate_per_liter: 0,
-        total_fuel_cost: 0
+        fuel_cost: 0
       }],
       is_return_trip: true,
       gross_weight: 0,
@@ -156,7 +156,7 @@ const TripForm: React.FC<TripFormProps> = ({
             location: '',
             fuel_quantity: 0,
             fuel_rate_per_liter: 0,
-            total_fuel_cost: 0
+            fuel_cost: 0
           }];
       setValue('refuelings', refuelings);
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
@@ -489,7 +489,7 @@ const TripForm: React.FC<TripFormProps> = ({
         if (!refueling.fuel_quantity || refueling.fuel_quantity <= 0) {
           return 'Fuel quantity must be greater than zero for all refuelings.';
         }
-        if (!refueling.total_fuel_cost || refueling.total_fuel_cost < 0) {
+        if (!refueling.fuel_cost || refueling.fuel_cost < 0) {
           return 'Fuel cost cannot be negative for any refueling.';
         }
       }
@@ -519,7 +519,7 @@ const TripForm: React.FC<TripFormProps> = ({
     if (data.refuelings && data.refuelings.length > 0) {
       data.refueling_done = true;
       data.fuel_quantity = totalFuel;
-      data.total_fuel_cost = data.refuelings.reduce((sum, r) => sum + (r.total_fuel_cost || 0), 0);
+      data.total_fuel_cost = data.refuelings.reduce((sum, r) => sum + (r.fuel_cost || 0), 0);
       if (data.refuelings.length === 1) {
         data.fuel_rate_per_liter = data.refuelings[0].fuel_rate_per_liter;
       }
