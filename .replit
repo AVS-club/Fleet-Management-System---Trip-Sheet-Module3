@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
+modules = ["nodejs-20", "web"]
 [agent]
 expertMode = true
 
@@ -38,10 +38,14 @@ localPort = 5001
 externalPort = 3000
 
 [[ports]]
+localPort = 32791
+externalPort = 3002
+
+[[ports]]
 localPort = 42883
 externalPort = 3001
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npx", "serve", "-s", "dist", "-l", "$PORT"]
-build = ["bash", "-c", "npm ci && npm run build"]
+run = ["serve", "-s", "dist", "-l", "5000"]
+build = ["npm", "run", "build"]
