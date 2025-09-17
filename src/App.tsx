@@ -40,6 +40,7 @@ import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import { isNetworkError } from "./utils/supabaseClient";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -101,31 +102,31 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" replace />} />
           <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/" replace />} />
-          <Route path="/" element={session ? <DashboardPage /> : <Navigate to="/login" replace />} />
-          <Route path="/vehicles" element={session ? <VehiclesPage /> : <Navigate to="/login" replace />} />
-          <Route path="/vehicles/:id" element={session ? <VehiclePage /> : <Navigate to="/login" replace />} />
-          <Route path="/drivers" element={session ? <DriversPage /> : <Navigate to="/login" replace />} />
-          <Route path="/drivers/:id" element={session ? <DriverPage /> : <Navigate to="/login" replace />} />
-          <Route path="/trips" element={session ? <TripsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/trips/:id" element={session ? <TripDetailsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/trip-pnl-reports" element={session ? <TripPnlReportsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/maintenance" element={session ? <MaintenancePage /> : <Navigate to="/login" replace />} />
-          <Route path="/maintenance/:id" element={session ? <MaintenanceTaskPage /> : <Navigate to="/login" replace />} />
-          <Route path="/notifications" element={session ? <NotificationsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/alerts" element={session ? <AIAlertsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/drivers/insights" element={session ? <DriverInsightsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/parts-health" element={session ? <PartsHealthAnalyticsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin" element={session ? <AdminDashboard /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/reminders" element={session ? <RemindersPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/alert-settings" element={session ? <AlertSettingsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/trip-locations" element={session ? <TripLocationsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/trips" element={session ? <AdminTripsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/vehicle-management" element={session ? <VehicleManagementPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/driver-management" element={session ? <AdminDriversPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/activity-logs" element={session ? <ActivityLogPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/driver-ranking-settings" element={session ? <DriverRankingSettingsPage /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/maintenance-tasks" element={session ? <MaintenanceTasksAdmin /> : <Navigate to="/login" replace />} />
-          <Route path="/admin/message-templates" element={session ? <MessageTemplatesPage /> : <Navigate to="/login" replace />} />
+          <Route path="/" element={<ProtectedRoute session={session} loading={loading}><DashboardPage /></ProtectedRoute>} />
+          <Route path="/vehicles" element={<ProtectedRoute session={session} loading={loading}><VehiclesPage /></ProtectedRoute>} />
+          <Route path="/vehicles/:id" element={<ProtectedRoute session={session} loading={loading}><VehiclePage /></ProtectedRoute>} />
+          <Route path="/drivers" element={<ProtectedRoute session={session} loading={loading}><DriversPage /></ProtectedRoute>} />
+          <Route path="/drivers/:id" element={<ProtectedRoute session={session} loading={loading}><DriverPage /></ProtectedRoute>} />
+          <Route path="/trips" element={<ProtectedRoute session={session} loading={loading}><TripsPage /></ProtectedRoute>} />
+          <Route path="/trips/:id" element={<ProtectedRoute session={session} loading={loading}><TripDetailsPage /></ProtectedRoute>} />
+          <Route path="/trip-pnl-reports" element={<ProtectedRoute session={session} loading={loading}><TripPnlReportsPage /></ProtectedRoute>} />
+          <Route path="/maintenance" element={<ProtectedRoute session={session} loading={loading}><MaintenancePage /></ProtectedRoute>} />
+          <Route path="/maintenance/:id" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTaskPage /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute session={session} loading={loading}><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute session={session} loading={loading}><AIAlertsPage /></ProtectedRoute>} />
+          <Route path="/drivers/insights" element={<ProtectedRoute session={session} loading={loading}><DriverInsightsPage /></ProtectedRoute>} />
+          <Route path="/parts-health" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute session={session} loading={loading}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/reminders" element={<ProtectedRoute session={session} loading={loading}><RemindersPage /></ProtectedRoute>} />
+          <Route path="/admin/alert-settings" element={<ProtectedRoute session={session} loading={loading}><AlertSettingsPage /></ProtectedRoute>} />
+          <Route path="/admin/trip-locations" element={<ProtectedRoute session={session} loading={loading}><TripLocationsPage /></ProtectedRoute>} />
+          <Route path="/admin/trips" element={<ProtectedRoute session={session} loading={loading}><AdminTripsPage /></ProtectedRoute>} />
+          <Route path="/admin/vehicle-management" element={<ProtectedRoute session={session} loading={loading}><VehicleManagementPage /></ProtectedRoute>} />
+          <Route path="/admin/driver-management" element={<ProtectedRoute session={session} loading={loading}><AdminDriversPage /></ProtectedRoute>} />
+          <Route path="/admin/activity-logs" element={<ProtectedRoute session={session} loading={loading}><ActivityLogPage /></ProtectedRoute>} />
+          <Route path="/admin/driver-ranking-settings" element={<ProtectedRoute session={session} loading={loading}><DriverRankingSettingsPage /></ProtectedRoute>} />
+          <Route path="/admin/maintenance-tasks" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTasksAdmin /></ProtectedRoute>} />
+          <Route path="/admin/message-templates" element={<ProtectedRoute session={session} loading={loading}><MessageTemplatesPage /></ProtectedRoute>} />
         </Routes>
       </Suspense>
       <ToastContainer 

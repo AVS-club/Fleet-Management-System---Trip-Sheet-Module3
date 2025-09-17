@@ -1,7 +1,7 @@
 import { getWarehouse, getDestination, getDestinationByAnyId } from '../../utils/storage';
 import { Trip, Vehicle, Driver } from '@/types';
 import { Truck, User, Calendar, LocateFixed, Fuel, MapPin, IndianRupee, ArrowRight, Edit, Camera, RefreshCw } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { parseISO, isValid, format } from 'date-fns';
 import { truncateString } from '../../utils/format';
 import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
@@ -17,7 +17,7 @@ interface TripCardProps {
   onEditClick?: (trip: Trip) => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
+const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
@@ -352,6 +352,16 @@ const TripCard: React.FC<TripCardProps> = ({ trip, vehicle, driver, onClick, onP
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for memo
+  return (
+    prevProps.trip.id === nextProps.trip.id &&
+    prevProps.trip.updated_at === nextProps.trip.updated_at &&
+    prevProps.vehicle?.id === nextProps.vehicle?.id &&
+    prevProps.driver?.id === nextProps.driver?.id
+  );
+});
+
+TripCard.displayName = 'TripCard';
 
 export default TripCard;

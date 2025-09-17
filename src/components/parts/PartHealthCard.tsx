@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { PartHealthMetrics } from '../../utils/partsAnalytics';
 import { AlertTriangle, Calendar, IndianRupee, Gauge, Shield, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
@@ -8,7 +8,7 @@ interface PartHealthCardProps {
   onClick?: () => void;
 }
 
-const PartHealthCard: React.FC<PartHealthCardProps> = ({ part, onClick }) => {
+const PartHealthCard: React.FC<PartHealthCardProps> = memo(({ part, onClick }) => {
   // Get status color and styling
   const getStatusStyling = () => {
     switch (part.status) {
@@ -199,6 +199,16 @@ const PartHealthCard: React.FC<PartHealthCardProps> = ({ part, onClick }) => {
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for memo
+  return (
+    prevProps.part.partName === nextProps.part.partName &&
+    prevProps.part.status === nextProps.part.status &&
+    prevProps.part.lifeRemainingPercentage === nextProps.part.lifeRemainingPercentage &&
+    prevProps.part.alerts.length === nextProps.part.alerts.length
+  );
+});
+
+PartHealthCard.displayName = 'PartHealthCard';
 
 export default PartHealthCard;
