@@ -11,133 +11,158 @@ import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
 import DashboardTip from '../components/dashboard/DashboardTip';
 import EmptyState from '../components/dashboard/EmptyState';
-import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard } from 'lucide-react';
+import RealTimeAnalytics from '../components/analytics/RealTimeAnalytics';
+import PredictiveMaintenance from '../components/analytics/PredictiveMaintenance';
+import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard, Activity, Wrench } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
+import { useQuery } from '@tanstack/react-query';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const [trips, setTrips] = useState<Trip[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'maintenance'>('overview');
   
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [tripsData, vehiclesData, driversData] = await Promise.all([
-          getTrips(),
-          getVehicles(),
-          getDrivers()
-        ]);
-        setTrips(Array.isArray(tripsData) ? tripsData : []);
-        setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
-        setDrivers(Array.isArray(driversData) ? driversData : []);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        // Initialize with empty arrays if fetch fails
-        setTrips([]);
-        setVehicles([]);
-        setDrivers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
-  
-  // Calculate stats
-  const stats = useMemo(() => {
-    // Use all trips for calculations
-    const regularTrips = Array.isArray(trips) ? trips : [];
-    
-    // Total distance
-    const totalDistance = regularTrips.reduce(
-      (sum, trip) => sum + (trip.end_km - trip.start_km), 
-      0
-    );
-    
-    // Total fuel
-    const totalFuel = regularTrips
-      .reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
-    
-    // Average mileage
-    const tripsWithKmpl = regularTrips.filter(trip => trip.calculated_kmpl);
-    const avgMileage = tripsWithKmpl.length > 0
-      ? tripsWithKmpl.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithKmpl.length
-      : 0;
-    
-    // Activity this month
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    const tripsThisMonth = Array.isArray(trips) ? trips.filter(trip => {
-      const tripDate = new Date(trip.trip_start_date);
-      return tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear;
-    }) : [];
-    
-    // Get mileage insights
-    const mileageInsights = getMileageInsights(trips);
-    
-    // Calculate date range for summary
-    const tripDates = Array.isArray(trips) && trips.length > 0 
-      ? trips.map(t => new Date(t.trip_start_date || new Date()).getTime())
-      : [];
-    
-    const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
-    const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
-    
-    return {
-      totalTrips: trips.length,
-      totalDistance,
-      totalFuel,
-      avgMileage,
-      tripsThisMonth: tripsThisMonth.length,
-      lastTripDate: trips.length > 0 
-        ? new Date(Math.max(...trips.map(t => new Date(t.trip_start_date || new Date()).getTime())))
-        : undefined,
-      bestVehicle: null,
-      bestVehicleMileage: mileageInsights.bestVehicleMileage,
-      bestDriver: null,
-      bestDriverMileage: mileageInsights.bestDriverMileage,
-      estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
-      earliestTripDate,
-      latestTripDate
-    };
-  }, [trips]);
+  // Use React Query for better caching and performance
+  const { data: trips = [], isLoading: tripsLoading, error: tripsError } = useQuery({
+    queryKey: ['trips'],
+    queryFn: getTrips,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+  });
 
-  // Fetch best vehicle and driver data
-  const [bestVehicle, setBestVehicle] = useState<Vehicle | null>(null);
-  const [bestDriver, setBestDriver] = useState<Driver | null>(null);
+  const { data: vehicles = [], isLoading: vehiclesLoading, error: vehiclesError } = useQuery({
+    queryKey: ['vehicles'],
+    queryFn: getVehicles,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
+  const { data: drivers = [], isLoading: driversLoading, error: driversError } = useQuery({
+    queryKey: ['drivers'],
+    queryFn: getDrivers,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
+  const loading = tripsLoading || vehiclesLoading || driversLoading;
   
-  useEffect(() => {
-    const fetchBestPerformers = async () => {
-      const insights = getMileageInsights(trips);
+  // Calculate stats with error handling and performance optimization
+  const stats = useMemo(() => {
+    if (!Array.isArray(trips) || trips.length === 0) {
+      return {
+        totalTrips: 0,
+        totalDistance: 0,
+        totalFuel: 0,
+        avgMileage: 0,
+        tripsThisMonth: 0,
+        lastTripDate: undefined,
+        bestVehicle: null,
+        bestVehicleMileage: 0,
+        bestDriver: null,
+        bestDriverMileage: 0,
+        estimatedFuelSaved: 0,
+        earliestTripDate: undefined,
+        latestTripDate: undefined
+      };
+    }
+
+    try {
+      // Pre-calculate values to avoid repeated calculations
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
       
-      if (insights.bestVehicle) {
-        try {
-          const vehicle = await getVehicle(insights.bestVehicle);
-          setBestVehicle(vehicle);
-        } catch (error) {
-          console.error('Error fetching best vehicle:', error);
+      let totalDistance = 0;
+      let totalFuel = 0;
+      let tripsWithKmpl = 0;
+      let totalKmpl = 0;
+      let tripsThisMonth = 0;
+      const tripDates: number[] = [];
+      
+      // Single pass through trips for better performance
+      for (const trip of trips) {
+        // Distance calculation
+        const distance = trip.end_km - trip.start_km;
+        totalDistance += distance;
+        
+        // Fuel calculation
+        totalFuel += trip.fuel_quantity || 0;
+        
+        // Mileage calculation
+        if (trip.calculated_kmpl && trip.calculated_kmpl > 0) {
+          tripsWithKmpl++;
+          totalKmpl += trip.calculated_kmpl;
         }
+        
+        // Monthly trips
+        const tripDate = new Date(trip.trip_start_date);
+        if (tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear) {
+          tripsThisMonth++;
+        }
+        
+        // Date tracking
+        tripDates.push(tripDate.getTime());
       }
       
-      if (insights.bestDriver) {
-        try {
-          const driver = await getDriver(insights.bestDriver);
-          setBestDriver(driver);
-        } catch (error) {
-          console.error('Error fetching best driver:', error);
-        }
-      }
-    };
-    
-    if (Array.isArray(trips) && trips.length > 0) {
-      fetchBestPerformers();
+      const avgMileage = tripsWithKmpl > 0 ? totalKmpl / tripsWithKmpl : 0;
+      const mileageInsights = getMileageInsights(trips);
+      
+      const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
+      const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
+      
+      return {
+        totalTrips: trips.length,
+        totalDistance,
+        totalFuel,
+        avgMileage,
+        tripsThisMonth,
+        lastTripDate: tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined,
+        bestVehicle: null,
+        bestVehicleMileage: mileageInsights.bestVehicleMileage,
+        bestDriver: null,
+        bestDriverMileage: mileageInsights.bestDriverMileage,
+        estimatedFuelSaved: mileageInsights.estimatedFuelSaved,
+        earliestTripDate,
+        latestTripDate
+      };
+    } catch (error) {
+      console.error('Error calculating dashboard stats:', error);
+      return {
+        totalTrips: 0,
+        totalDistance: 0,
+        totalFuel: 0,
+        avgMileage: 0,
+        tripsThisMonth: 0,
+        lastTripDate: undefined,
+        bestVehicle: null,
+        bestVehicleMileage: 0,
+        bestDriver: null,
+        bestDriverMileage: 0,
+        estimatedFuelSaved: 0,
+        earliestTripDate: undefined,
+        latestTripDate: undefined
+      };
     }
   }, [trips]);
+
+  // Get best performers with React Query for better caching
+  const mileageInsights = useMemo(() => getMileageInsights(trips), [trips]);
+  
+  const { data: bestVehicle } = useQuery({
+    queryKey: ['vehicle', mileageInsights.bestVehicle],
+    queryFn: () => getVehicle(mileageInsights.bestVehicle!),
+    enabled: !!mileageInsights.bestVehicle,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
+
+  const { data: bestDriver } = useQuery({
+    queryKey: ['driver', mileageInsights.bestDriver],
+    queryFn: () => getDriver(mileageInsights.bestDriver!),
+    enabled: !!mileageInsights.bestDriver,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  });
   
   const handleSelectTrip = (trip: Trip) => {
     navigate(`/trips/${trip.id}`);
@@ -151,19 +176,65 @@ const DashboardPage: React.FC = () => {
   const hasEnoughData = Array.isArray(trips) && trips.length > 0;
   const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
   
+  // Handle errors
+  const hasError = tripsError || vehiclesError || driversError;
+  
+  if (hasError) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="text-red-500 text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+            <h3 className="text-lg font-semibold">Error Loading Dashboard</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              There was an error loading your dashboard data. Please try refreshing the page.
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+  
   return (
     <Layout>
       {loading ? (
-        <div className="flex justify-center items-center h-64">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Loading dashboard data...</p>
         </div>
       ) : (
       <div className="space-y-4">
         {/* Page Header */}
         <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-          <div className="flex items-center group">
-            <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center group">
+              <LayoutDashboard className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+              <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Dashboard</h1>
+            </div>
+            <div className="flex space-x-2">
+              {(['overview', 'analytics', 'maintenance'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === tab
+                      ? 'bg-primary-100 text-primary-800'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab === 'overview' && <LayoutDashboard className="h-4 w-4 mr-2 inline" />}
+                  {tab === 'analytics' && <Activity className="h-4 w-4 mr-2 inline" />}
+                  {tab === 'maintenance' && <Wrench className="h-4 w-4 mr-2 inline" />}
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">
             <span>Last updated: {format(new Date(), 'MMMM dd, yyyy HH:mm')}</span>
@@ -176,13 +247,14 @@ const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Date Range Summary */}
-
-        {/* Key Metrics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
-          <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
-          Key Metrics
-        </h2>
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Key Metrics Section */}
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+              <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
+              Key Metrics
+            </h2>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -373,15 +445,25 @@ const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Empty Dashboard State */}
-        {!hasEnoughData && (
-          <div className="mt-6">
-            <EmptyState 
-              type="generic"
-              message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
-              showAction={true}
-            />
-          </div>
+            {/* Empty Dashboard State */}
+            {!hasEnoughData && (
+              <div className="mt-6">
+                <EmptyState 
+                  type="generic"
+                  message="Start by adding vehicles and recording trips to unlock insights and analytics on your fleet performance."
+                  showAction={true}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'analytics' && (
+          <RealTimeAnalytics />
+        )}
+
+        {activeTab === 'maintenance' && (
+          <PredictiveMaintenance />
         )}
       </div>
       )}

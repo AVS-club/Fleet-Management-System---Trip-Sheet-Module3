@@ -13,6 +13,7 @@ import ReturnTripValidationDashboard from '../../components/admin/ReturnTripVali
 import FuelBaselineDashboard from '../../components/admin/FuelBaselineDashboard';
 import EdgeCaseDashboard from '../../components/admin/EdgeCaseDashboard';
 import AuditTrailDashboard from '../../components/admin/AuditTrailDashboard';
+import DataIntegrityDashboard from '../../components/admin/DataIntegrityDashboard';
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -37,6 +38,7 @@ const AdminDashboard: React.FC = () => {
     { id: 'vehicles', label: 'Vehicles', icon: <Truck className="h-5 w-5" /> },
     { id: 'drivers', label: 'Drivers', icon: <Users className="h-5 w-5" /> },
     { id: 'maintenance', label: 'Maintenance', icon: <Tool className="h-5 w-5" /> },
+    { id: 'data-integrity', label: 'Data Integrity', icon: <ShieldCheck className="h-5 w-5" /> },
     { id: 'sequence', label: 'Serial Monitor', icon: <BarChart2 className="h-5 w-5" /> },
     { id: 'return-trips', label: 'Return Trips', icon: <Activity className="h-5 w-5" /> },
     { id: 'fuel-baselines', label: 'Fuel Baselines', icon: <Fuel className="h-5 w-5" /> },
@@ -408,6 +410,10 @@ const AdminDashboard: React.FC = () => {
 
               {activeTab === 'fuel-baselines' && (
                 <FuelBaselineDashboard className="max-w-7xl" />
+              )}
+
+              {activeTab === 'data-integrity' && (
+                <DataIntegrityDashboard />
               )}
 
               {activeTab === 'edge-cases' && (
