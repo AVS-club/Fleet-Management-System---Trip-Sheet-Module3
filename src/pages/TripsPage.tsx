@@ -16,6 +16,7 @@ import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { searchTrips, TripFilters, useDebounce } from '../utils/tripSearch';
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
+import { fixAllExistingMileage } from '../utils/fixExistingMileage';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -34,6 +35,7 @@ const TripsPage: React.FC = () => {
   const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(false);
+  const [fixingMileage, setFixingMileage] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -177,6 +179,77 @@ const TripsPage: React.FC = () => {
   const handleFiltersChange = useCallback((newFilters: TripFilters) => {
     setFilters(newFilters);
   }, []);
+
+  const handleFixMileage = async () => {
+    const confirmed = window.confirm(
+      'This will recalculate mileage for all existing trips using the tank-to-tank method. ' +
+      'This may take a few minutes. Do you want to continue?'
+    );
+    
+    if (!confirmed) return;
+
+    setFixingMileage(true);
+    try {
+      // Get all trips
+      const allTrips = await getTrips();
+      
+      // Group trips by vehicle
+      const tripsByVehicle = allTrips.reduce((acc, trip) => {
+        if (!acc[trip.vehicle_id]) {
+          acc[trip.vehicle_id] = [];
+        }
+        acc[trip.vehicle_id].push(trip);
+        return acc;
+      }, {} as Record<string, Trip[]>);
+
+      let totalUpdated = 0;
+      
+      // Process each vehicle's trips
+      for (const [vehicleId, vehicleTrips] of Object.entries(tripsByVehicle)) {
+        // Recalculate mileage for this vehicle's trips
+        const fixedTrips = recalculateAllMileageForVehicle(vehicleId, allTrips);
+        
+        // Update trips that have changed
+        for (const fixedTrip of fixedTrips) {
+          const originalTrip = vehicleTrips.find(t => t.id === fixedTrip.id);
+          
+          if (originalTrip && originalTrip.calculated_kmpl !== fixedTrip.calculated_kmpl) {
+            try {
+              await updateTrip(fixedTrip.id, { calculated_kmpl: fixedTrip.calculated_kmpl });
+              totalUpdated++;
+              console.log(`Updated trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl || 'N/A'} → ${fixedTrip.calculated_kmpl || 'N/A'} km/L`);
+            } catch (error) {
+              console.error(`Error updating trip ${fixedTrip.trip_serial_number}:`, error);
+            }
+          }
+        }
+      }
+
+      toast.success(`Successfully updated mileage for ${totalUpdated} trips`);
+      
+      // Refresh the data to show updated mileage
+      const [tripsData, vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
+        getTrips(),
+        getVehicles(),
+        getDrivers(),
+        getWarehouses(),
+        getDestinations(),
+        getMaterialTypes()
+      ]);
+      setTrips(Array.isArray(tripsData) ? tripsData : []);
+      setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+      setDrivers(Array.isArray(driversData) ? driversData : []);
+      setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
+      setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
+      setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
+      
+    } catch (error) {
+      console.error('Error fixing mileage:', error);
+      toast.error('Failed to fix mileage calculations');
+    } finally {
+      setFixingMileage(false);
+    }
+  };
   
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
@@ -388,6 +461,15 @@ const TripsPage: React.FC = () => {
               icon={<PlusCircle className="h-4 w-4" />}
             >
               Add New Trip
+            </Button>
+            <Button
+              onClick={handleFixMileage}
+              icon={<Route className="h-4 w-4" />}
+              isLoading={fixingMileage}
+              variant="outline"
+              className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+            >
+              Fix Mileage
             </Button>
           </div>
         ) : (

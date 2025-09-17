@@ -16,6 +16,7 @@ import Select from '../../components/ui/Select';
 import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
+import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
 
 interface TripSummaryMetrics {
   totalExpenses: number;
@@ -46,6 +47,7 @@ const AdminTripsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fixingMileage, setFixingMileage] = useState(false);
 
   const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
   const driversMap = useMemo(() => new Map(drivers.map(d => [d.id, d])), [drivers]);
@@ -217,6 +219,33 @@ const AdminTripsPage: React.FC = () => {
       toast.error("Failed to refresh data");
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  // Fix mileage calculations for all trips
+  const handleFixMileage = async () => {
+    const confirmed = window.confirm(
+      'This will recalculate mileage for all existing trips using the tank-to-tank method. ' +
+      'This may take a few minutes. Do you want to continue?'
+    );
+    
+    if (!confirmed) return;
+
+    setFixingMileage(true);
+    try {
+      const result = await fixAllExistingMileage();
+      if (result.success) {
+        toast.success(result.message);
+        // Refresh the data to show updated mileage
+        await refreshData();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error fixing mileage:', error);
+      toast.error('Failed to fix mileage calculations');
+    } finally {
+      setFixingMileage(false);
     }
   };
 
@@ -566,7 +595,7 @@ const AdminTripsPage: React.FC = () => {
                 Clear Filters
               </Button>
               
-              <Button 
+              <Button
                 variant="outline" 
                 inputSize="sm" 
                 onClick={refreshData}
@@ -574,6 +603,17 @@ const AdminTripsPage: React.FC = () => {
                 isLoading={refreshing}
               >
                 Refresh
+              </Button>
+              
+              <Button
+                variant="outline" 
+                inputSize="sm" 
+                onClick={handleFixMileage}
+                icon={<RefreshCw className="h-4 w-4" />}
+                isLoading={fixingMileage}
+                className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+              >
+                Fix Mileage
               </Button>
               
               <Button 
