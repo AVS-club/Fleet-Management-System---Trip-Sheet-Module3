@@ -61,7 +61,7 @@ export const createMockClient = () => {
         data: { subscription: { unsubscribe: () => {} } },
       }),
       getUser: () => Promise.resolve({ data: { user: null }, error: mockError }),
-      getSession: () => Promise.resolve({ data: { session: null }, error: mockError }),
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       refreshSession: () => Promise.resolve({ data: { session: null }, error: mockError }),
       updateUser: () => Promise.resolve({ data: null, error: mockError }),
       setSession: () => Promise.resolve({ data: { session: null }, error: mockError }),

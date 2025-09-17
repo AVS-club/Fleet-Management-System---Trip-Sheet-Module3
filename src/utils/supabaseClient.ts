@@ -28,7 +28,7 @@ const createSupabaseClient = () => {
 
   try {
     // Create the client with standard configuration
-    const client = createClient(supabaseUrl!, supabaseAnonKey!, {
+    const client = createClient(supabaseUrl as string, supabaseAnonKey as string, {
       auth: {
         autoRefreshToken: true,
         persistSession: true,
@@ -48,7 +48,7 @@ const createSupabaseClient = () => {
     });
 
     // Add global error handler for auth failures
-    client.auth.onAuthStateChange((event, session) => {
+    client.auth.onAuthStateChange((event, _session) => {
       if (event === 'SIGNED_OUT' && connectionStatus === 'failed') {
         // Don't show multiple error messages
         return;
@@ -75,8 +75,8 @@ const performConnectionTest = async (): Promise<boolean> => {
     const response = await fetch(`${supabaseUrl}/rest/v1/`, {
       method: 'HEAD',
       headers: {
-        'apikey': supabaseAnonKey!,
-        'Authorization': `Bearer ${supabaseAnonKey!}`
+        'apikey': supabaseAnonKey as string,
+        'Authorization': `Bearer ${supabaseAnonKey as string}`
       },
       signal: controller.signal
     });
