@@ -15,7 +15,7 @@ import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { searchTrips, TripFilters, useDebounce } from '../utils/tripSearch';
-import { recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
+import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -177,61 +177,7 @@ const TripsPage: React.FC = () => {
   const handleFiltersChange = useCallback((newFilters: TripFilters) => {
     setFilters(newFilters);
   }, []);
-
-  const syncVehicleMileage = async (vehicleId: string, vehicleTripSnapshot: Trip[]) => {
-    if (!vehicleId) {
-      return;
-    }
-
-    const recalculatedTrips = recalculateAllMileageForVehicle(vehicleId, vehicleTripSnapshot);
-    const originalTripMap = new Map(vehicleTripSnapshot.map(trip => [trip.id, trip]));
-    const tripsNeedingUpdate = recalculatedTrips.filter(trip => {
-      const original = originalTripMap.get(trip.id);
-      const originalValue = original?.calculated_kmpl ?? null;
-      const newValue = trip.calculated_kmpl ?? null;
-      return originalValue !== newValue;
-    });
-
-    const refreshedTrips = new Map<string, Trip>();
-
-    if (tripsNeedingUpdate.length > 0) {
-      await Promise.all(
-        tripsNeedingUpdate.map(async trip => {
-          try {
-            const response = await updateTrip(trip.id, { calculated_kmpl: trip.calculated_kmpl ?? null });
-            if (response) {
-              refreshedTrips.set(response.id, response);
-            } else {
-              refreshedTrips.set(trip.id, trip);
-            }
-          } catch (error) {
-            console.error('Error syncing recalculated mileage:', error);
-          }
-        })
-      );
-    }
-
-    const finalTrips = recalculatedTrips.map(trip => refreshedTrips.get(trip.id) ?? trip);
-    const finalTripMap = new Map(finalTrips.map(trip => [trip.id, trip]));
-
-    setTrips(prev => {
-      const prevList = Array.isArray(prev) ? prev : [];
-      const prevIds = new Set(prevList.map(trip => trip.id));
-      const merged = prevList.map(trip => finalTripMap.get(trip.id) ?? trip);
-
-      finalTrips.forEach(trip => {
-        if (!prevIds.has(trip.id)) {
-          merged.push(trip);
-        }
-      });
-
-      merged.sort((a, b) => new Date(b.trip_end_date).getTime() - new Date(a.trip_end_date).getTime());
-      return merged;
-    });
-
-    return finalTrips;
-  };
-
+  
   const handleAddTrip = async (data: TripFormData) => {
     setIsSubmitting(true);
     
@@ -298,17 +244,32 @@ const TripsPage: React.FC = () => {
         });
         
         if (updatedTrip) {
-          try {
-            const currentTrips = Array.isArray(trips) ? trips : [];
-            const vehicleTripsSnapshot = currentTrips
-              .map(trip => trip.id === updatedTrip.id ? updatedTrip : trip)
-              .filter(trip => trip.vehicle_id === updatedTrip.vehicle_id);
-
-            await syncVehicleMileage(updatedTrip.vehicle_id, vehicleTripsSnapshot);
-          } catch (error) {
-            console.error('Error recalculating mileage chain after update:', error);
+          // If this is a refueling trip, update related trips with the same mileage
+          if (updatedTrip.refueling_done && updatedTrip.calculated_kmpl) {
+            const { affectedTrips } = recalculateMileageForRefuelingTrip(updatedTrip, trips);
+            
+            // Update all affected trips in the database
+            for (const affectedTrip of affectedTrips) {
+              try {
+                await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
+              } catch (error) {
+                console.error('Error updating related trip mileage:', error);
+              }
+            }
+            
+            // Update state with all affected trips
+            setTrips(prev => prev.map(t => {
+              const affectedTrip = affectedTrips.find(at => at.id === t.id);
+              if (affectedTrip) {
+                return affectedTrip;
+              }
+              return t.id === updatedTrip.id ? updatedTrip : t;
+            }));
+          } else {
+            // Update state normally for non-refueling trips
+            setTrips(prev => prev.map(t => t.id === updatedTrip.id ? updatedTrip : t));
           }
-
+          
           setIsAddingTrip(false);
           setEditingTrip(null);
           toast.success('Trip updated successfully');
@@ -324,26 +285,40 @@ const TripsPage: React.FC = () => {
         });
         
         if (newTrip) {
-          try {
-            const currentTrips = Array.isArray(trips) ? trips : [];
-            const vehicleTripsSnapshot = [
-              ...currentTrips.filter(trip => trip.vehicle_id === newTrip.vehicle_id),
-              newTrip
-            ];
-
-            await syncVehicleMileage(newTrip.vehicle_id, vehicleTripsSnapshot);
-          } catch (error) {
-            console.error('Error recalculating mileage chain after creation:', error);
+          // If this is a refueling trip, update related trips with the same mileage
+          if (newTrip.refueling_done && newTrip.calculated_kmpl) {
+            const { affectedTrips } = recalculateMileageForRefuelingTrip(newTrip, trips);
+            
+            // Update all affected trips in the database
+            for (const affectedTrip of affectedTrips) {
+              try {
+                await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
+              } catch (error) {
+                console.error('Error updating related trip mileage:', error);
+              }
+            }
+            
+            // Update state with all affected trips
             setTrips(prev => {
-              const prevList = Array.isArray(prev) ? [...prev] : [];
-              return [...prevList, newTrip];
+              const updatedTrips = Array.isArray(prev) ? [...prev] : [];
+              // Add the new trip
+              updatedTrips.push(newTrip);
+              // Update affected trips
+              return updatedTrips.map(t => {
+                const affectedTrip = affectedTrips.find(at => at.id === t.id);
+                return affectedTrip || t;
+              });
             });
+          } else {
+            // Update state normally for non-refueling trips
+            setTrips(prev => Array.isArray(prev) ? [...prev, newTrip] : [newTrip]);
           }
-
+          
           setIsAddingTrip(false);
           setEditingTrip(null);
-          setClonedTripData(null);
+          setClonedTripData(null); // Clear cloned data after successful submission
           
+          // Redirect to the trip details page
           navigate(`/trips/${newTrip.id}`);
           toast.success('Trip added successfully');
         } else {

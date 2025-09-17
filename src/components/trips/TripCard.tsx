@@ -96,18 +96,12 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
     ? format(tripStartDate, 'dd MMM yyyy')
     : 'Invalid Date';
 
-  const fuelCost = trip.total_fuel_cost ?? trip.fuel_cost ?? 0;
-  const aggregatedRoadExpenses = typeof trip.total_road_expenses === 'number'
-    ? trip.total_road_expenses
-    : (trip.unloading_expense || 0) +
-      (trip.driver_expense || 0) +
-      (trip.road_rto_expense || 0) +
-      (trip.miscellaneous_expense || 0);
-  const computedTotalExpense = fuelCost + aggregatedRoadExpenses;
-  const totalExpenses = typeof trip.total_expense === 'number' && trip.total_expense > 0
-    ? trip.total_expense
-    : computedTotalExpense;
-  const nonFuelExpenses = Math.max(totalExpenses - fuelCost, 0);
+  // Calculate total expenses consistently with other parts of the system
+  const totalExpenses = (trip.total_fuel_cost || 0) + 
+                       (trip.unloading_expense || 0) + 
+                       (trip.driver_expense || 0) + 
+                       (trip.road_rto_expense || 0) + 
+                       (trip.miscellaneous_expense || 0);
   
   // Determine profit status color
   const getProfitStatusColor = () => {
@@ -314,13 +308,8 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
           <div>
             <span className="text-gray-500 block">Expenses</span>
             <span className="font-medium text-gray-900">
-              ?{totalExpenses.toLocaleString('en-IN')}
+              ₹{totalExpenses.toLocaleString()}
             </span>
-            {(fuelCost > 0 || nonFuelExpenses > 0) && (
-              <span className="text-xs text-gray-500">
-                Fuel ?{fuelCost.toLocaleString('en-IN')} / Other ?{nonFuelExpenses.toLocaleString('en-IN')}
-              </span>
-            )}
           </div>
         </div>
 
