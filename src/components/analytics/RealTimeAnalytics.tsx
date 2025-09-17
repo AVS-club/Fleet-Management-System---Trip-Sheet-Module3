@@ -43,6 +43,11 @@ interface PredictiveInsight {
   timeframe: string;
 }
 
+interface DuplicateRouteSummary {
+  route: string;
+  count: number;
+}
+
 const RealTimeAnalytics: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '6h' | '24h' | '7d'>('24h');
@@ -264,19 +269,19 @@ const RealTimeAnalytics: React.FC = () => {
     return insights;
   }, [trips, vehicles]);
 
-  const findDuplicateRoutes = (trips: Trip[]): any[] => {
-    // Simplified duplicate route detection
-    const routeMap = new Map();
+  function findDuplicateRoutes(trips: Trip[]): DuplicateRouteSummary[] {
+    const routeMap = new Map<string, DuplicateRouteSummary>();
     trips.forEach(trip => {
       const key = `${trip.destination}-${trip.warehouse_id}`;
-      if (routeMap.has(key)) {
-        routeMap.get(key).count++;
+      const existing = routeMap.get(key);
+      if (existing) {
+        existing.count += 1;
       } else {
         routeMap.set(key, { route: key, count: 1 });
       }
     });
     return Array.from(routeMap.values()).filter(route => route.count > 1);
-  };
+  }
 
   const getInsightIcon = (type: string) => {
     switch (type) {
