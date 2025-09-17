@@ -89,6 +89,8 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       fuel_station_id: sanitizedTripData.fuel_station_id ?? null,
       fuel_expense: sanitizedTripData.fuel_expense || sanitizedTripData.fuel_cost || 0,
       fuel_cost: sanitizedTripData.fuel_cost || sanitizedTripData.fuel_expense || 0,
+      // Ensure total_fuel_cost is properly handled
+      total_fuel_cost: sanitizedTripData.total_fuel_cost || 0,
     }, userId);
 
     const { data, error } = await supabase

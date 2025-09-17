@@ -758,12 +758,24 @@ const TripForm: React.FC<TripFormProps> = ({
       // destination_display removed - not in database schema
     }
 
-    // Map toll_expense to breakdown_expense for database compatibility
-    const submitData: any = { ...data };
-    if ('toll_expense' in submitData) {
-      submitData.breakdown_expense = submitData.toll_expense;
-      delete submitData.toll_expense;
-    }
+    // Map toll_expense to breakdown_expense for database compatibility and ensure required fields
+    const submitData: any = { 
+      ...data,
+      // Ensure destinations is an array of destination IDs (required by database)
+      destinations: selectedDestinationObjects.map(d => d.id),
+      // Ensure required fields are present
+      trip_duration: data.trip_duration || 1,
+      gross_weight: data.gross_weight || 0,
+      // Map breakdown_expense properly
+      breakdown_expense: data.breakdown_expense || 0
+    };
+
+    // Remove fields that don't exist in database schema
+    delete submitData.destination_names;
+    delete submitData.destination_display;
+    delete submitData.toll_expense; // Database uses breakdown_expense instead
+
+    console.log('Submitting trip data:', submitData); // Debug log
 
     await onSubmit(submitData);
   };
