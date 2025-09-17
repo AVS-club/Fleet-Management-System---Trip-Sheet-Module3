@@ -9,6 +9,7 @@ import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
 import { analyzeTripAndGenerateAlerts } from '../../utils/aiAnalytics';
 import { CorrectionCascadeManager } from '../../utils/correctionCascadeManager';
+import { recalculateMileageForRefuelingTrip } from '../../utils/mileageRecalculation';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import WarehouseSelector from './WarehouseSelector';
@@ -125,7 +126,7 @@ const TripForm: React.FC<TripFormProps> = ({
         location: '',
         fuel_quantity: 0,
         fuel_rate_per_liter: 0,
-        fuel_cost: 0
+        total_fuel_cost: 0
       }],
       is_return_trip: true,
       gross_weight: 0,
@@ -171,7 +172,7 @@ const TripForm: React.FC<TripFormProps> = ({
             location: '',
             fuel_quantity: 0,
             fuel_rate_per_liter: 0,
-            fuel_cost: 0
+            total_fuel_cost: 0
           }];
       setValue('refuelings', refuelings);
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
@@ -657,7 +658,7 @@ const TripForm: React.FC<TripFormProps> = ({
               errors.push('Fuel quantity must be greater than zero for all refuelings.');
               break;
             }
-            if (refueling.fuel_cost && refueling.fuel_cost < 0) {
+            if (refueling.total_fuel_cost && refueling.total_fuel_cost < 0) {
               errors.push('Fuel cost cannot be negative for any refueling.');
               break;
             }
@@ -707,20 +708,28 @@ const TripForm: React.FC<TripFormProps> = ({
       return;
     }
 
-    // Calculate mileage if refueling data is available
+    // Calculate mileage using tank-to-tank method if refueling data is available
     const totalFuel = (data.refuelings || []).reduce((sum, r) => sum + (r.fuel_quantity || 0), 0);
     if (totalFuel > 0 && data.start_km && data.end_km) {
-      const distance = data.end_km - data.start_km;
-      if (distance > 0) {
-        data.calculated_kmpl = distance / totalFuel;
-      }
+      // Create a temporary trip object for mileage calculation
+      const tempTrip: Trip = {
+        ...data,
+        id: data.id || 'temp',
+        refueling_done: true,
+        fuel_quantity: totalFuel,
+        trip_end_date: data.trip_end_date || new Date().toISOString()
+      } as Trip;
+
+      // Use the utility function to calculate mileage
+      const { updatedTrip } = recalculateMileageForRefuelingTrip(tempTrip, trips);
+      data.calculated_kmpl = updatedTrip.calculated_kmpl;
     }
     
     // For backward compatibility, convert refuelings to old format if there's one refueling
     if (data.refuelings && data.refuelings.length > 0) {
       data.refueling_done = true;
       data.fuel_quantity = totalFuel;
-      data.total_fuel_cost = data.refuelings.reduce((sum, r) => sum + (r.fuel_cost || 0), 0);
+      data.total_fuel_cost = data.refuelings.reduce((sum, r) => sum + (r.total_fuel_cost || 0), 0);
       if (data.refuelings.length === 1) {
         data.fuel_rate_per_liter = data.refuelings[0].fuel_rate_per_liter;
       }

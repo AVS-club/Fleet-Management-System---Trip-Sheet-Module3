@@ -83,6 +83,13 @@ export interface TripFormData extends Omit<
   Trip,
   "id" | "created_at" | "updated_at" | "trip_serial_number" | "manual_trip_id"
 > {
+  id?: string; // Allow id for editing
+  trip_serial_number?: string; // Allow trip serial number for form
+  material_type_ids?: string[]; // Material type IDs
+  station?: string; // Station field
+  trip_start_time?: string; // Trip start time
+  trip_end_time?: string; // Trip end time
+  trip_duration?: number; // Trip duration in hours
   is_return_trip?: boolean;
   alert_accepted?: boolean;
   alert_notes?: string;
@@ -90,6 +97,7 @@ export interface TripFormData extends Omit<
   breakdown_expense?: number; // Keep for backward compatibility
   miscellaneous_expense?: number;
   refuelings?: Refueling[]; // Multiple refuelings support
+  fuel_bill_file?: File[]; // File upload for fuel bill
 }
 
 export interface RouteAnalysis {

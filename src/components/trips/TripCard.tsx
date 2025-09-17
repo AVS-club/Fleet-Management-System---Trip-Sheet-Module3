@@ -96,7 +96,12 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
     ? format(tripStartDate, 'dd MMM yyyy')
     : 'Invalid Date';
 
-  const totalExpenses = (trip.total_road_expenses || 0) + (trip.total_fuel_cost || 0);
+  // Calculate total expenses consistently with other parts of the system
+  const totalExpenses = (trip.total_fuel_cost || 0) + 
+                       (trip.unloading_expense || 0) + 
+                       (trip.driver_expense || 0) + 
+                       (trip.road_rto_expense || 0) + 
+                       (trip.miscellaneous_expense || 0);
   
   // Determine profit status color
   const getProfitStatusColor = () => {
