@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling } from '@/types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
+import { supabase } from '../../utils/supabaseClient';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
@@ -30,7 +31,8 @@ import {
   Route,
   Calculator,
   AlertTriangle,
-  ChevronDown
+  ChevronDown,
+  Info
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -92,6 +94,13 @@ const TripForm: React.FC<TripFormProps> = ({
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [driverQuery, setDriverQuery] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+
+  // Smart trip form state management
+  const [isRefuelingTrip, setIsRefuelingTrip] = useState<boolean>(false);
+  const [showRefuelingInfo, setShowRefuelingInfo] = useState<boolean>(false);
+  const [lastTripData, setLastTripData] = useState<{ end_km: number; end_time: string } | null>(null);
+  const [previousRefuelTrip, setPreviousRefuelTrip] = useState<{ end_km: number; end_time: string } | null>(null);
+  const [odometerWarning, setOdometerWarning] = useState<string | null>(null);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -475,7 +484,103 @@ const TripForm: React.FC<TripFormProps> = ({
     performRouteAnalysis();
   }, [selectedWarehouseId, selectedDestinationObjects, watchedValues.is_return_trip, setValue]);
 
-  // Form validation function
+  // Smart auto-detection logic for refueling vs non-refueling trips
+  useEffect(() => {
+    // Smart refueling detection based on fuel data
+    const hasFuelData = 
+      (watchedValues.total_fuel_cost && watchedValues.total_fuel_cost > 0) ||
+      (watchedValues.fuel_quantity && watchedValues.fuel_quantity > 0) ||
+      (watchedValues.refuelings && watchedValues.refuelings.length > 0 && 
+       watchedValues.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
+
+    if (hasFuelData && !isRefuelingTrip) {
+      setIsRefuelingTrip(true);
+      setShowRefuelingInfo(true);
+      setValue('refueling_done', true);
+    } else if (!hasFuelData && isRefuelingTrip && showRefuelingInfo) {
+      // Only auto-uncheck if user hasn't manually toggled
+      setIsRefuelingTrip(false);
+      setShowRefuelingInfo(false);
+      setValue('refueling_done', false);
+      setValue('refuelings', []);
+      setValue('total_fuel_cost', 0);
+      setValue('fuel_quantity', 0);
+      setValue('fuel_rate_per_liter', 0);
+    }
+  }, [watchedValues.total_fuel_cost, watchedValues.fuel_quantity, watchedValues.refuelings, isRefuelingTrip, showRefuelingInfo, setValue]);
+
+  // Initialize refueling state based on initial data
+  useEffect(() => {
+    if (initialData?.refueling_done) {
+      setIsRefuelingTrip(true);
+      setShowRefuelingInfo(true);
+    }
+  }, [initialData]);
+
+  // Smart vehicle selection with odometer suggestion
+  const handleVehicleSelection = async (vehicleId: string) => {
+    if (!vehicleId) return;
+    
+    try {
+      // Get last trip for this vehicle
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: lastTrip, error } = await supabase
+        .from('trips')
+        .select('end_km, trip_end_date')
+        .eq('vehicle_id', vehicleId)
+        .eq('added_by', user.id)
+        .order('trip_end_date', { ascending: false })
+        .limit(1);
+
+      if (!error && lastTrip && lastTrip.length > 0) {
+        setLastTripData(lastTrip[0]);
+        setValue('start_km', lastTrip[0].end_km);
+        
+        // Get previous refueling trip for mileage window calculation
+        const { data: prevRefuelTrip } = await supabase
+          .from('trips')
+          .select('end_km, trip_end_date')
+          .eq('vehicle_id', vehicleId)
+          .eq('added_by', user.id)
+          .or('fuel_quantity.gt.0,total_fuel_cost.gt.0')
+          .order('trip_end_date', { ascending: false })
+          .limit(1);
+
+        if (prevRefuelTrip && prevRefuelTrip.length > 0) {
+          setPreviousRefuelTrip(prevRefuelTrip[0]);
+        }
+      } else {
+        // No previous trips, use vehicle's current odometer
+        const vehicle = vehicles.find(v => v.id === vehicleId);
+        if (vehicle) {
+          setValue('start_km', vehicle.current_odometer || 0);
+          setLastTripData({ end_km: vehicle.current_odometer || 0, end_time: new Date().toISOString() });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching last trip data:', error);
+    }
+  };
+
+  // Smart odometer warning system
+  const checkOdometerAnomaly = (startKm: number, endKm: number) => {
+    if (!lastTripData) return;
+    
+    const expectedStart = lastTripData.end_km;
+    const deviation = Math.abs(startKm - expectedStart);
+    
+    if (deviation > 100) { // Configurable threshold
+      setOdometerWarning(
+        `Warning: Start odometer (${startKm}) differs significantly from expected value (${expectedStart}). Deviation: ${deviation} km.`
+      );
+    } else {
+      setOdometerWarning(null);
+    }
+  };
+
+  // Enhanced form validation with smart refueling logic
   const validateFormData = (data: TripFormData): string | null => {
     // Validate distance is positive
     const distance = (data.end_km || 0) - (data.start_km || 0);
@@ -483,16 +588,56 @@ const TripForm: React.FC<TripFormProps> = ({
       return 'Distance cannot be zero or negative. End KM must be greater than Start KM.';
     }
     
-    // Validate fuel data if refueling is done
-    if (data.refuelings && data.refuelings.length > 0) {
-      for (const refueling of data.refuelings) {
-        if (!refueling.fuel_quantity || refueling.fuel_quantity <= 0) {
-          return 'Fuel quantity must be greater than zero for all refuelings.';
-        }
-        if (!refueling.fuel_cost || refueling.fuel_cost < 0) {
-          return 'Fuel cost cannot be negative for any refueling.';
+    // Validate time consistency
+    if (data.trip_start_date && data.trip_end_date) {
+      const startDateTime = new Date(`${data.trip_start_date}T${data.trip_start_time || '00:00'}`);
+      const endDateTime = new Date(`${data.trip_end_date}T${data.trip_end_time || '00:00'}`);
+      
+      if (endDateTime <= startDateTime) {
+        return 'End date/time must be after start date/time.';
+      }
+    }
+    
+    // Smart refueling validation
+    const isRefuel = (data.refueling_done) || 
+      (data.fuel_quantity && data.fuel_quantity > 0) || 
+      (data.total_fuel_cost && data.total_fuel_cost > 0) ||
+      (data.refuelings && data.refuelings.length > 0 && 
+       data.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
+
+    if (isRefuel) {
+      // For refueling trips, ensure we have fuel data
+      const hasValidFuelData = 
+        (data.fuel_quantity && data.fuel_quantity > 0) ||
+        (data.total_fuel_cost && data.total_fuel_cost > 0) ||
+        (data.refuelings && data.refuelings.length > 0 && 
+         data.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
+
+      if (!hasValidFuelData) {
+        return 'Please enter fuel data for refueling trips or uncheck the refueling option.';
+      }
+
+      // Validate refueling details
+      if (data.refuelings && data.refuelings.length > 0) {
+        for (const refueling of data.refuelings) {
+          if (!refueling.fuel_quantity || refueling.fuel_quantity <= 0) {
+            return 'Fuel quantity must be greater than zero for all refuelings.';
+          }
+          if (!refueling.fuel_cost || refueling.fuel_cost < 0) {
+            return 'Fuel cost cannot be negative for any refueling.';
+          }
         }
       }
+      
+      // Set refueling flag
+      data.refueling_done = true;
+    } else {
+      // For non-refueling trips, clear fuel data
+      data.refueling_done = false;
+      data.refuelings = [];
+      data.total_fuel_cost = 0;
+      data.fuel_quantity = 0;
+      data.fuel_rate_per_liter = 0;
     }
     
     return null;
@@ -741,6 +886,9 @@ const TripForm: React.FC<TripFormProps> = ({
               onChange={(vehicle: Vehicle | null) => {
                 setSelectedVehicle(vehicle);
                 setValue('vehicle_id', vehicle?.id || '');
+                if (vehicle?.id) {
+                  handleVehicleSelection(vehicle.id);
+                }
               }}
             >
               <div className="relative">
@@ -931,6 +1079,142 @@ const TripForm: React.FC<TripFormProps> = ({
         )}
       </div>
 
+      {/* Smart Trip Type Toggle */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Fuel className="h-5 w-5 text-primary-600" />
+            <div>
+              <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Trip Type</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Choose whether this trip includes refueling</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`text-sm font-medium ${!isRefuelingTrip ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+              Non-Refueling
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const newState = !isRefuelingTrip;
+                setIsRefuelingTrip(newState);
+                setShowRefuelingInfo(newState);
+                setValue('refueling_done', newState);
+                
+                if (!newState) {
+                  // Clear fuel data when switching to non-refueling
+                  setValue('refuelings', []);
+                  setValue('total_fuel_cost', 0);
+                  setValue('fuel_quantity', 0);
+                  setValue('fuel_rate_per_liter', 0);
+                }
+              }}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+              style={{ backgroundColor: isRefuelingTrip ? '#3B82F6' : '#D1D5DB' }}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isRefuelingTrip ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className={`text-sm font-medium ${isRefuelingTrip ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+              Refueling
+            </span>
+          </div>
+        </div>
+
+        {/* Trip Type Info */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-blue-800 dark:text-blue-300">
+              <p className="font-medium mb-1">
+                {isRefuelingTrip ? 'Refueling Trip' : 'Non-Refueling Trip'}
+              </p>
+              <p>
+                {isRefuelingTrip 
+                  ? 'This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one (tank-to-tank method).'
+                  : 'This trip does not include fuel purchase. It will contribute to the total distance for the next refueling trip calculation.'
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Smart Odometer Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+          <Calculator className="h-5 w-5 text-primary-600" />
+          Odometer Readings
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <Input
+              label="Start KM"
+              type="number"
+              icon={<Calculator className="h-4 w-4" />}
+              required
+              {...register('start_km', { 
+                required: 'Start KM is required',
+                min: { value: 0, message: 'Start KM cannot be negative' },
+                onChange: (e) => {
+                  const startKm = parseInt(e.target.value);
+                  const endKm = parseInt(watchedValues.end_km || '0');
+                  if (startKm && endKm) {
+                    checkOdometerAnomaly(startKm, endKm);
+                  }
+                }
+              })}
+              error={errors.start_km?.message}
+              inputSize="sm"
+              placeholder="0"
+            />
+            {lastTripData && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Suggested from last trip: {lastTripData.end_km} km
+              </p>
+            )}
+            {odometerWarning && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {odometerWarning}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Input
+              label="End KM"
+              type="number"
+              icon={<Calculator className="h-4 w-4" />}
+              required
+              {...register('end_km', { 
+                required: 'End KM is required',
+                min: { value: 0, message: 'End KM cannot be negative' },
+                onChange: (e) => {
+                  const startKm = parseInt(watchedValues.start_km || '0');
+                  const endKm = parseInt(e.target.value);
+                  if (startKm && endKm) {
+                    checkOdometerAnomaly(startKm, endKm);
+                  }
+                }
+              })}
+              error={errors.end_km?.message}
+              inputSize="sm"
+              placeholder="0"
+            />
+            {watchedValues.start_km && watchedValues.end_km && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Distance: {watchedValues.end_km - watchedValues.start_km} km
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Trip Details & Fuel Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Trip Details */}
@@ -1005,14 +1289,20 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
 
-        {/* Multiple Refuelings */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <RefuelingForm
-            refuelings={refuelings}
-            onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
-            disabled={isSubmitting}
-          />
-        </div>
+        {/* Smart Refueling Section - Only show if refueling trip */}
+        {isRefuelingTrip && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <Fuel className="h-5 w-5 text-primary-600" />
+              Refueling Information
+            </h3>
+            <RefuelingForm
+              refuelings={refuelings}
+              onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
+              disabled={isSubmitting}
+            />
+          </div>
+        )}
       </div>
 
       {/* Expenses */}
