@@ -32,7 +32,9 @@ import {
   Calculator,
   AlertTriangle,
   ChevronDown,
-  Info
+  Info,
+  Plus,
+  X
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -101,6 +103,9 @@ const TripForm: React.FC<TripFormProps> = ({
   const [lastTripData, setLastTripData] = useState<{ end_km: number; end_time: string } | null>(null);
   const [previousRefuelTrip, setPreviousRefuelTrip] = useState<{ end_km: number; end_time: string } | null>(null);
   const [odometerWarning, setOdometerWarning] = useState<string | null>(null);
+  const [manualToggle, setManualToggle] = useState<boolean>(false);
+  const [showRefuelingDetails, setShowRefuelingDetails] = useState<boolean>(false);
+  const [formValidationErrors, setFormValidationErrors] = useState<string[]>([]);
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -487,34 +492,38 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Smart auto-detection logic for refueling vs non-refueling trips
   useEffect(() => {
-    // Smart refueling detection based on fuel data
     const hasFuelData = 
       (watchedValues.total_fuel_cost && watchedValues.total_fuel_cost > 0) ||
       (watchedValues.fuel_quantity && watchedValues.fuel_quantity > 0) ||
       (watchedValues.refuelings && watchedValues.refuelings.length > 0 && 
        watchedValues.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
 
-    if (hasFuelData && !isRefuelingTrip) {
+    // Auto-detect refueling when fuel data is entered (unless manually toggled)
+    if (hasFuelData && !isRefuelingTrip && !manualToggle) {
       setIsRefuelingTrip(true);
       setShowRefuelingInfo(true);
+      setShowRefuelingDetails(true);
       setValue('refueling_done', true);
-    } else if (!hasFuelData && isRefuelingTrip && showRefuelingInfo) {
-      // Only auto-uncheck if user hasn't manually toggled
+    } 
+    // Auto-detect non-refueling when fuel data is cleared (unless manually toggled)
+    else if (!hasFuelData && isRefuelingTrip && showRefuelingInfo && !manualToggle) {
       setIsRefuelingTrip(false);
       setShowRefuelingInfo(false);
+      setShowRefuelingDetails(false);
       setValue('refueling_done', false);
       setValue('refuelings', []);
       setValue('total_fuel_cost', 0);
       setValue('fuel_quantity', 0);
       setValue('fuel_rate_per_liter', 0);
     }
-  }, [watchedValues.total_fuel_cost, watchedValues.fuel_quantity, watchedValues.refuelings, isRefuelingTrip, showRefuelingInfo, setValue]);
+  }, [watchedValues.total_fuel_cost, watchedValues.fuel_quantity, watchedValues.refuelings, isRefuelingTrip, showRefuelingInfo, manualToggle, setValue]);
 
   // Initialize refueling state based on initial data
   useEffect(() => {
     if (initialData?.refueling_done) {
       setIsRefuelingTrip(true);
       setShowRefuelingInfo(true);
+      setShowRefuelingDetails(true);
     }
   }, [initialData]);
 
@@ -583,31 +592,47 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Enhanced form validation with smart refueling logic
   const validateFormData = (data: TripFormData): string | null => {
-    // Validate distance is positive
+    const errors: string[] = [];
+    
+    // 1. Distance validation
     const distance = (data.end_km || 0) - (data.start_km || 0);
     if (distance <= 0) {
-      return 'Distance cannot be zero or negative. End KM must be greater than Start KM.';
+      errors.push('Distance cannot be zero or negative. End KM must be greater than Start KM.');
     }
     
-    // Validate time consistency
+    // 2. Time consistency validation
     if (data.trip_start_date && data.trip_end_date) {
       const startDateTime = new Date(`${data.trip_start_date}T${data.trip_start_time || '00:00'}`);
       const endDateTime = new Date(`${data.trip_end_date}T${data.trip_end_time || '00:00'}`);
       
       if (endDateTime <= startDateTime) {
-        return 'End date/time must be after start date/time.';
+        errors.push('End date/time must be after start date/time.');
+      }
+      
+      // Check for future dates
+      const now = new Date();
+      if (startDateTime > now) {
+        errors.push('Trip start date cannot be in the future.');
       }
     }
     
-    // Smart refueling validation
-    const isRefuel = (data.refueling_done) || 
+    // 3. Odometer validation
+    if (data.start_km < 0) {
+      errors.push('Start KM cannot be negative.');
+    }
+    if (data.end_km < 0) {
+      errors.push('End KM cannot be negative.');
+    }
+    
+    // 4. Fuel validation (only if refueling)
+    const isRefuel = showRefuelingDetails || 
+      (data.refueling_done) || 
       (data.fuel_quantity && data.fuel_quantity > 0) || 
       (data.total_fuel_cost && data.total_fuel_cost > 0) ||
       (data.refuelings && data.refuelings.length > 0 && 
        data.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
 
     if (isRefuel) {
-      // For refueling trips, ensure we have fuel data
       const hasValidFuelData = 
         (data.fuel_quantity && data.fuel_quantity > 0) ||
         (data.total_fuel_cost && data.total_fuel_cost > 0) ||
@@ -615,22 +640,31 @@ const TripForm: React.FC<TripFormProps> = ({
          data.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
 
       if (!hasValidFuelData) {
-        return 'Please enter fuel data for refueling trips or uncheck the refueling option.';
-      }
-
-      // Validate refueling details
-      if (data.refuelings && data.refuelings.length > 0) {
-        for (const refueling of data.refuelings) {
-          if (!refueling.fuel_quantity || refueling.fuel_quantity <= 0) {
-            return 'Fuel quantity must be greater than zero for all refuelings.';
-          }
-          if (!refueling.fuel_cost || refueling.fuel_cost < 0) {
-            return 'Fuel cost cannot be negative for any refueling.';
+        errors.push('Please enter fuel data for refueling trips or remove refueling section.');
+      } else {
+        // Validate fuel amounts
+        if (data.fuel_quantity && data.fuel_quantity <= 0) {
+          errors.push('Fuel quantity must be greater than zero.');
+        }
+        if (data.total_fuel_cost && data.total_fuel_cost <= 0) {
+          errors.push('Fuel cost must be greater than zero.');
+        }
+        
+        // Validate refueling details
+        if (data.refuelings && data.refuelings.length > 0) {
+          for (const refueling of data.refuelings) {
+            if (refueling.fuel_quantity && refueling.fuel_quantity <= 0) {
+              errors.push('Fuel quantity must be greater than zero for all refuelings.');
+              break;
+            }
+            if (refueling.fuel_cost && refueling.fuel_cost < 0) {
+              errors.push('Fuel cost cannot be negative for any refueling.');
+              break;
+            }
           }
         }
       }
       
-      // Set refueling flag
       data.refueling_done = true;
     } else {
       // For non-refueling trips, clear fuel data
@@ -641,11 +675,32 @@ const TripForm: React.FC<TripFormProps> = ({
       data.fuel_rate_per_liter = 0;
     }
     
-    return null;
+    // 5. Weight validation
+    if (data.gross_weight && data.gross_weight < 0) {
+      errors.push('Gross weight cannot be negative.');
+    }
+    
+    // 6. Expense validation
+    const expenses = [
+      { field: data.unloading_expense, name: 'Unloading expense' },
+      { field: data.driver_expense, name: 'Driver expense' },
+      { field: data.road_rto_expense, name: 'Road RTO expense' },
+      { field: data.toll_expense || data.breakdown_expense, name: 'Toll expense' },
+      { field: data.miscellaneous_expense, name: 'Miscellaneous expense' }
+    ];
+    
+    expenses.forEach(({ field, name }) => {
+      if (field && field < 0) {
+        errors.push(`${name} cannot be negative.`);
+      }
+    });
+    
+    setFormValidationErrors(errors);
+    return errors.length > 0 ? errors[0] : null;
   };
 
   const handleFormSubmit = async (data: TripFormData) => {
-    // Validate form data before submission
+    // Validate form data with enhanced validation
     const validationError = validateFormData(data);
     if (validationError) {
       toast.error(validationError);
@@ -803,6 +858,26 @@ const TripForm: React.FC<TripFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto h-full">
+      {/* Form Validation Errors */}
+      {formValidationErrors.length > 0 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h4 className="text-sm font-medium text-red-800 dark:text-red-300 mb-2">Please fix the following errors:</h4>
+              <ul className="text-sm text-red-700 dark:text-red-400 space-y-1">
+                {formValidationErrors.map((error, index) => (
+                  <li key={index} className="flex items-start gap-1">
+                    <span className="text-red-500">•</span>
+                    <span>{error}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Trip Information */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
         <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
@@ -1100,6 +1175,8 @@ const TripForm: React.FC<TripFormProps> = ({
                 const newState = !isRefuelingTrip;
                 setIsRefuelingTrip(newState);
                 setShowRefuelingInfo(newState);
+                setShowRefuelingDetails(newState);
+                setManualToggle(true); // Mark as manually toggled
                 setValue('refueling_done', newState);
                 
                 if (!newState) {
@@ -1129,7 +1206,7 @@ const TripForm: React.FC<TripFormProps> = ({
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800 dark:text-blue-300">
+            <div className="text-xs text-blue-800 dark:text-blue-300">
               <p className="font-medium mb-1">
                 {isRefuelingTrip ? 'Refueling Trip' : 'Non-Refueling Trip'}
               </p>
@@ -1290,20 +1367,84 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
 
-        {/* Smart Refueling Section - Only show if refueling trip */}
-        {isRefuelingTrip && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+        {/* Smart Refueling Details Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Fuel className="h-5 w-5 text-primary-600" />
-              Refueling Information
+              Refueling Details
+              {showRefuelingDetails && (watchedValues.fuel_quantity || watchedValues.total_fuel_cost) && (
+                <span className="ml-2 text-sm text-gray-500">
+                  (Total: {watchedValues.fuel_quantity || 0}L • ₹{watchedValues.total_fuel_cost || 0})
+                </span>
+              )}
             </h3>
-            <RefuelingForm
-              refuelings={refuelings}
-              onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
-              disabled={isSubmitting}
-            />
+            
+            {!showRefuelingDetails ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRefuelingDetails(true);
+                  setIsRefuelingTrip(true);
+                  setShowRefuelingInfo(true);
+                  setManualToggle(true);
+                  setValue('refueling_done', true);
+                }}
+                className="inline-flex items-center px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
+                disabled={isSubmitting}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add Refueling
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRefuelingDetails(false);
+                  setIsRefuelingTrip(false);
+                  setShowRefuelingInfo(false);
+                  setManualToggle(true);
+                  setValue('refueling_done', false);
+                  setValue('refuelings', []);
+                  setValue('total_fuel_cost', 0);
+                  setValue('fuel_quantity', 0);
+                  setValue('fuel_rate_per_liter', 0);
+                }}
+                className="text-sm text-red-600 hover:text-red-700 transition-colors"
+                disabled={isSubmitting}
+              >
+                <X className="h-4 w-4 mr-1 inline" />
+                Remove
+              </button>
+            )}
           </div>
-        )}
+          
+          {showRefuelingDetails && (
+            <div className="space-y-3 mt-4 border-t pt-4">
+              <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium mb-1">Refueling Trip Information</p>
+                    <p>This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one using the tank-to-tank method.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <RefuelingForm
+                refuelings={refuelings}
+                onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+          
+          {!showRefuelingDetails && (
+            <div className="text-xs text-gray-600 dark:text-gray-400 italic">
+              No refueling details added. This will be treated as a non-refueling trip.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Expenses */}
