@@ -110,7 +110,8 @@ const TripForm: React.FC<TripFormProps> = ({
     handleSubmit,
     watch,
     setValue,
-    control
+    control,
+    formState: { errors }
   } = useForm<TripFormData>({
     defaultValues: {
       trip_start_date: initialData?.trip_start_date || yesterdayDate, // Use initial data if available
