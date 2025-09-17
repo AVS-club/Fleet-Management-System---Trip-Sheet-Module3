@@ -47,6 +47,43 @@ const RealTimeAnalytics: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1h' | '6h' | '24h' | '7d'>('24h');
 
+  // Helper functions - moved before their usage to avoid hoisting issues
+  const getTimeframeMs = (timeframe: string): number => {
+    switch (timeframe) {
+      case '1h': return 60 * 60 * 1000;
+      case '6h': return 6 * 60 * 60 * 1000;
+      case '24h': return 24 * 60 * 60 * 1000;
+      case '7d': return 7 * 24 * 60 * 60 * 1000;
+      default: return 24 * 60 * 60 * 1000;
+    }
+  };
+
+  const getTimeframePeriods = (timeframe: string) => {
+    const now = new Date();
+    switch (timeframe) {
+      case '1h':
+        return [
+          { label: 'Now', offset: 0, duration: 10 * 60 * 1000 },
+          { label: '10m ago', offset: 10 * 60 * 1000, duration: 10 * 60 * 1000 },
+          { label: '20m ago', offset: 20 * 60 * 1000, duration: 10 * 60 * 1000 },
+          { label: '30m ago', offset: 30 * 60 * 1000, duration: 10 * 60 * 1000 },
+          { label: '40m ago', offset: 40 * 60 * 1000, duration: 10 * 60 * 1000 },
+          { label: '50m ago', offset: 50 * 60 * 1000, duration: 10 * 60 * 1000 }
+        ];
+      case '6h':
+        return [
+          { label: 'Now', offset: 0, duration: 60 * 60 * 1000 },
+          { label: '1h ago', offset: 60 * 60 * 1000, duration: 60 * 60 * 1000 },
+          { label: '2h ago', offset: 2 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
+          { label: '3h ago', offset: 3 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
+          { label: '4h ago', offset: 4 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
+          { label: '5h ago', offset: 5 * 60 * 60 * 1000, duration: 60 * 60 * 1000 }
+        ];
+      default:
+        return [];
+    }
+  };
+
   // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => {
@@ -226,42 +263,6 @@ const RealTimeAnalytics: React.FC = () => {
 
     return insights;
   }, [trips, vehicles]);
-
-  const getTimeframeMs = (timeframe: string): number => {
-    switch (timeframe) {
-      case '1h': return 60 * 60 * 1000;
-      case '6h': return 6 * 60 * 60 * 1000;
-      case '24h': return 24 * 60 * 60 * 1000;
-      case '7d': return 7 * 24 * 60 * 60 * 1000;
-      default: return 24 * 60 * 60 * 1000;
-    }
-  };
-
-  const getTimeframePeriods = (timeframe: string) => {
-    const now = new Date();
-    switch (timeframe) {
-      case '1h':
-        return [
-          { label: 'Now', offset: 0, duration: 10 * 60 * 1000 },
-          { label: '10m ago', offset: 10 * 60 * 1000, duration: 10 * 60 * 1000 },
-          { label: '20m ago', offset: 20 * 60 * 1000, duration: 10 * 60 * 1000 },
-          { label: '30m ago', offset: 30 * 60 * 1000, duration: 10 * 60 * 1000 },
-          { label: '40m ago', offset: 40 * 60 * 1000, duration: 10 * 60 * 1000 },
-          { label: '50m ago', offset: 50 * 60 * 1000, duration: 10 * 60 * 1000 }
-        ];
-      case '6h':
-        return [
-          { label: 'Now', offset: 0, duration: 60 * 60 * 1000 },
-          { label: '1h ago', offset: 60 * 60 * 1000, duration: 60 * 60 * 1000 },
-          { label: '2h ago', offset: 2 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
-          { label: '3h ago', offset: 3 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
-          { label: '4h ago', offset: 4 * 60 * 60 * 1000, duration: 60 * 60 * 1000 },
-          { label: '5h ago', offset: 5 * 60 * 60 * 1000, duration: 60 * 60 * 1000 }
-        ];
-      default:
-        return [];
-    }
-  };
 
   const findDuplicateRoutes = (trips: Trip[]): any[] => {
     // Simplified duplicate route detection
