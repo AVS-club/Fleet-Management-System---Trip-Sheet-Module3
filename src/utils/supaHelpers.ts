@@ -5,7 +5,7 @@ import { supabase } from './supabaseClient';
 // Minimal helper to force created_by when inserting
 export function withOwner<T extends Record<string, any>>(payload: T, userId?: string | null): T {
   // If backend trigger fails for any reason, we still set it
-  return { created_by: userId ?? (payload as any).created_by, ...payload };
+  return { added_by: userId ?? (payload as any).added_by, ...payload };
 }
 
 // Helper to get current user ID
