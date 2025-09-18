@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getDestinations, findOrCreateDestinationByPlaceId } from '../../utils/storage';
+import { getMostUsedDestinations } from '../../utils/destinationAnalytics';
 import { Destination } from '@/types';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -17,7 +18,8 @@ interface FrequentDestination {
   id: string;
   name: string;
   type: string;
-  usageCount: number;
+  usage_count: number;
+  last_used?: string | null;
 }
 
 const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
@@ -50,23 +52,30 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       });
   }, []);
 
-  // Fetch most used destinations
+  // Fetch most used destinations with real analytics
   useEffect(() => {
     const fetchMostUsed = async () => {
       try {
-        const allDestinations = await getDestinations();
-        // Mock usage count for now - in real app, this would come from trip frequency
-        const frequent = allDestinations
-          .slice(0, 5)
-          .map((dest, index) => ({
-            id: dest.id,
-            name: dest.name,
-            type: dest.type,
-            usageCount: 10 - index // Mock usage count
-          }));
-        setMostUsedDestinations(frequent);
+        const frequentDestinations = await getMostUsedDestinations(5);
+        setMostUsedDestinations(frequentDestinations);
       } catch (error) {
-        console.error('Error fetching destinations:', error);
+        console.error('Error fetching most used destinations:', error);
+        // Fallback to basic destinations if analytics fail
+        try {
+          const allDestinations = await getDestinations();
+          const frequent = allDestinations
+            .slice(0, 5)
+            .map((dest) => ({
+              id: dest.id,
+              name: dest.name,
+              type: dest.type,
+              usage_count: 0,
+              last_used: null
+            }));
+          setMostUsedDestinations(frequent);
+        } catch (fallbackError) {
+          console.error('Error fetching fallback destinations:', fallbackError);
+        }
       }
     };
 
@@ -98,7 +107,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
     }
   };
 
-  // Handle place selection
+  // Handle place selection with improved error handling and fallback
   const handlePlaceSelect = async (prediction: google.maps.places.AutocompletePrediction) => {
     if (!placesService) return;
 
@@ -172,27 +181,79 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       setShowAddAnother(false);
     } catch (error) {
       console.error('Error selecting place:', error);
+      
+      // Fallback: Create a basic destination without Google API data
+      try {
+        const fallbackDestinationData: Omit<Destination, 'id'> = {
+          name: prediction.description.split(',')[0],
+          latitude: 0, // Will need manual entry
+          longitude: 0, // Will need manual entry
+          standard_distance: 0,
+          estimated_time: '0h 0m',
+          historical_deviation: 0,
+          type: 'city',
+          state: 'chhattisgarh',
+          place_id: prediction.place_id,
+          formatted_address: prediction.description,
+          active: true
+        };
+
+        const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, fallbackDestinationData);
+        
+        if (destinationId) {
+          const fallbackDestination: Destination = {
+            ...fallbackDestinationData,
+            id: destinationId
+          };
+
+          onDestinationSelect(fallbackDestination);
+          setShowAddAnother(false);
+          
+          // Show a warning toast about the fallback
+          const { toast } = await import('react-toastify');
+          toast.warning(`Destination "${prediction.description.split(',')[0]}" added with limited data. You may need to update coordinates manually.`);
+        } else {
+          throw new Error('Failed to create fallback destination');
+        }
+      } catch (fallbackError) {
+        console.error('Fallback destination creation failed:', fallbackError);
+        const { toast } = await import('react-toastify');
+        toast.error('Failed to create destination. Please try again or contact support.');
+      }
     }
   };
 
   // Handle frequent destination selection
   const handleFrequentDestinationSelect = async (destination: FrequentDestination) => {
-    // For frequent destinations, we already have the data
-    const destData: Destination = {
-      id: destination.id,
-      name: destination.name,
-      latitude: 0, // These would be fetched from the database
-      longitude: 0,
-      standard_distance: 0,
-      estimated_time: '0h 0m',
-      historical_deviation: 0,
-      type: destination.type as any,
-      state: 'chhattisgarh',
-      active: true
-    };
+    try {
+      // Fetch full destination data from database
+      const allDestinations = await getDestinations();
+      const fullDestination = allDestinations.find(d => d.id === destination.id);
+      
+      if (fullDestination) {
+        onDestinationSelect(fullDestination);
+        setShowAddAnother(false);
+      } else {
+        // Fallback if destination not found
+        const destData: Destination = {
+          id: destination.id,
+          name: destination.name,
+          latitude: 0,
+          longitude: 0,
+          standard_distance: 0,
+          estimated_time: '0h 0m',
+          historical_deviation: 0,
+          type: destination.type as any,
+          state: 'chhattisgarh',
+          active: true
+        };
 
-    onDestinationSelect(destData);
-    setShowAddAnother(false);
+        onDestinationSelect(destData);
+        setShowAddAnother(false);
+      }
+    } catch (error) {
+      console.error('Error selecting frequent destination:', error);
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -335,6 +396,11 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
                       <span className={`ml-2 px-1.5 py-0.5 rounded text-xs ${getTypeColor(destination.type)}`}>
                         {destination.type}
                       </span>
+                      {destination.usage_count > 0 && (
+                        <span className="ml-1 px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                          {destination.usage_count}×
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

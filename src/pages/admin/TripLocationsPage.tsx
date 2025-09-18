@@ -10,6 +10,7 @@ import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import { toast } from 'react-toastify';
 import MaterialTypeManager from '../../components/admin/MaterialTypeManager';
 import { getDestinations, createDestination, hardDeleteDestination } from '../../utils/storage';
+import { getDestinationsWithAnalytics, DestinationUsageStats, PaginatedDestinations, DestinationFilters } from '../../utils/destinationAnalytics';
 import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, hardDeleteWarehouse, archiveWarehouse, restoreWarehouse } from '../../utils/warehouseService';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '@/types'; // Added Warehouse and Destination imports
@@ -28,22 +29,35 @@ const TripLocationsPage: React.FC = () => {
   const [isManagingMaterialTypes, setIsManagingMaterialTypes] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [destinationsWithAnalytics, setDestinationsWithAnalytics] = useState<PaginatedDestinations | null>(null);
   const [materialTypes, setMaterialTypes] = useState<MaterialType[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false); // New state for showing inactive warehouses
+  
+  // Destination pagination and filtering
+  const [currentPage, setCurrentPage] = useState(1);
+  const [destinationsPerPage] = useState(25);
+  const [destinationFilters, setDestinationFilters] = useState<DestinationFilters>({
+    search: '',
+    sortBy: 'usage_count',
+    sortOrder: 'desc',
+    active: true
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [warehousesData, destinationsData, materialTypesData] = await Promise.all([
+        const [warehousesData, destinationsData, destinationsAnalyticsData, materialTypesData] = await Promise.all([
           listWarehouses({ includeInactive: showInactive }), // Use showInactive filter
           getDestinations(),
+          getDestinationsWithAnalytics(currentPage, destinationsPerPage, destinationFilters),
           getMaterialTypes()
         ]);
         
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
+        setDestinationsWithAnalytics(destinationsAnalyticsData);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
         console.error('Error fetching location data:', error);
@@ -54,7 +68,23 @@ const TripLocationsPage: React.FC = () => {
     };
     
     fetchData();
-  }, [showInactive]); // Add showInactive to dependencies
+  }, [showInactive, currentPage, destinationFilters]); // Add pagination and filter dependencies
+
+  // Separate effect for fetching destinations analytics when filters change
+  useEffect(() => {
+    const fetchDestinationsAnalytics = async () => {
+      if (activeTab === 'destinations') {
+        try {
+          const analyticsData = await getDestinationsWithAnalytics(currentPage, destinationsPerPage, destinationFilters);
+          setDestinationsWithAnalytics(analyticsData);
+        } catch (error) {
+          console.error('Error fetching destinations analytics:', error);
+        }
+      }
+    };
+    
+    fetchDestinationsAnalytics();
+  }, [activeTab, currentPage, destinationFilters, destinationsPerPage]);
 
   const handleAddWarehouse = async (data: any) => {
     setIsSubmitting(true);
@@ -387,52 +417,130 @@ const TripLocationsPage: React.FC = () => {
                         onCancel={() => setIsAddingDestination(false)}
                       />
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {destinations.length === 0 ? (
-                          <div className="col-span-3 text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-                            No destinations found. Add your first destination to get started.
-                          </div>
-                        ) : (
-                          destinations.map(destination => (
-                            <div
-                              key={destination.id}
-                              className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
+                      <>
+                        {/* Search and Filter Controls */}
+                        <div className="mb-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <input
+                              type="text"
+                              placeholder="Search destinations..."
+                              value={destinationFilters.search || ''}
+                              onChange={(e) => setDestinationFilters(prev => ({ ...prev, search: e.target.value }))}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                            <select
+                              value={destinationFilters.sortBy || 'usage_count'}
+                              onChange={(e) => setDestinationFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                              {/* Action buttons */}
-                              <div className="absolute top-2 right-2 flex space-x-1">
-                                <button
-                                  onClick={() => setDeletingDestination(destination)}
-                                  className="p-1 text-gray-400 hover:text-error-600 rounded"
-                                  title="Delete destination"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                              
-                              <div className="flex items-center space-x-3">
-                                <MapPin className="h-5 w-5 text-gray-400" />
-                                <div>
-                                  <h3 className="font-medium text-gray-900">{destination.name}</h3>
-                                  <div className="flex items-center space-x-2 text-sm text-gray-500">
-                                    <span>{destination.standard_distance} km</span>
-                                    <span>·</span>
-                                    <span>{destination.estimated_time}</span>
+                              <option value="name">Sort by Name</option>
+                              <option value="usage_count">Sort by Usage</option>
+                              <option value="last_used">Sort by Last Used</option>
+                              <option value="created_at">Sort by Created</option>
+                            </select>
+                            <select
+                              value={destinationFilters.sortOrder || 'desc'}
+                              onChange={(e) => setDestinationFilters(prev => ({ ...prev, sortOrder: e.target.value as any }))}
+                              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                              <option value="desc">Descending</option>
+                              <option value="asc">Ascending</option>
+                            </select>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {destinationsWithAnalytics ? (
+                              `Showing ${destinationsWithAnalytics.destinations.length} of ${destinationsWithAnalytics.totalCount} destinations`
+                            ) : (
+                              `Total: ${destinations.length} destinations`
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Destinations Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {destinationsWithAnalytics?.destinations.length === 0 ? (
+                            <div className="col-span-3 text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                              No destinations found. Add your first destination to get started.
+                            </div>
+                          ) : (
+                            destinationsWithAnalytics?.destinations.map(destination => (
+                              <div
+                                key={destination.id}
+                                className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow relative"
+                              >
+                                {/* Action buttons */}
+                                <div className="absolute top-2 right-2 flex space-x-1">
+                                  <button
+                                    onClick={() => setDeletingDestination(destination)}
+                                    className="p-1 text-gray-400 hover:text-error-600 rounded"
+                                    title="Delete destination"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                
+                                <div className="flex items-center space-x-3">
+                                  <MapPin className="h-5 w-5 text-gray-400" />
+                                  <div className="flex-1">
+                                    <h3 className="font-medium text-gray-900">{destination.name}</h3>
+                                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                      <span>{destination.standard_distance} km</span>
+                                      <span>·</span>
+                                      <span>{destination.estimated_time}</span>
+                                    </div>
+                                    {/* Usage Analytics */}
+                                    <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
+                                      <span className="flex items-center">
+                                        <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                                        Used {destination.usage_count} times
+                                      </span>
+                                      {destination.last_used && (
+                                        <span>
+                                          Last: {new Date(destination.last_used).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                                {typeof destination.latitude === 'number' && typeof destination.longitude === 'number' ? (
+                                  <div className="mt-3 text-sm text-gray-500">
+                                    Coordinates: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
+                                  </div>
+                                ) : destination.latitude !== undefined && destination.longitude !== undefined && (
+                                  <div className="mt-3 text-sm text-gray-500">
+                                    Coordinates: {destination.latitude}, {destination.longitude} (Invalid)
+                                  </div>
+                                )}
                               </div>
-                              {typeof destination.latitude === 'number' && typeof destination.longitude === 'number' ? (
-                                <div className="mt-3 text-sm text-gray-500">
-                                  Coordinates: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
-                                </div>
-                              ) : destination.latitude !== undefined && destination.longitude !== undefined && (
-                                <div className="mt-3 text-sm text-gray-500">
-                                  Coordinates: {destination.latitude}, {destination.longitude} (Invalid)
-                                </div>
-                              )}
+                            ))
+                          )}
+                        </div>
+
+                        {/* Pagination */}
+                        {destinationsWithAnalytics && destinationsWithAnalytics.totalPages > 1 && (
+                          <div className="mt-6 flex items-center justify-between">
+                            <div className="text-sm text-gray-500">
+                              Page {destinationsWithAnalytics.currentPage} of {destinationsWithAnalytics.totalPages}
                             </div>
-                          ))
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={!destinationsWithAnalytics.hasPreviousPage}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                              >
+                                Previous
+                              </button>
+                              <button
+                                onClick={() => setCurrentPage(prev => Math.min(destinationsWithAnalytics.totalPages, prev + 1))}
+                                disabled={!destinationsWithAnalytics.hasNextPage}
+                                className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                              >
+                                Next
+                              </button>
+                            </div>
+                          </div>
                         )}
-                      </div>
+                      </>
                     )}
                   </>
                 )}

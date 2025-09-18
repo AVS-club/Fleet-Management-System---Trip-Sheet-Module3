@@ -184,19 +184,27 @@ const TripDetailsPage: React.FC = () => {
       driver_expense: trip.driver_expense,
       road_rto_expense: trip.road_rto_expense,
       breakdown_expense: trip.breakdown_expense,
-      // Set start_km to the end_km of this trip
+      toll_expense: trip.breakdown_expense, // Map breakdown_expense to toll_expense for form
+      miscellaneous_expense: trip.miscellaneous_expense,
+      // Copy destinations
+      destinations: trip.destinations || [],
+      // Copy material types
+      material_type_ids: trip.material_type_ids || [],
+      // Preserve return trip toggle
+      is_return_trip: trip.is_return_trip,
+      // Set start_km to the end_km of this trip for sequential trips
       start_km: trip.end_km,
-      // Leave all other fields empty for manual entry
-      destinations: [],
+      // Leave date and other fields empty for manual entry
       trip_start_date: '',
       trip_end_date: '',
       gross_weight: null,
       fuel_quantity: null,
       end_km: null,
-      miscellaneous_expense: null,
-      material_type_ids: [],
-      is_return_trip: false,
-      refueling_done: false
+      refueling_done: false,
+      // Clear fuel data for new trip
+      total_fuel_cost: 0,
+      fuel_rate_per_liter: 0,
+      refuelings: []
     };
     
     // Navigate to trips page with clone data

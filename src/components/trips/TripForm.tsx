@@ -300,6 +300,18 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [initialData?.destinations, destinations]);
 
+  // Handle cloned trip data - set destinations when they become available
+  useEffect(() => {
+    if (initialData?.destinations && destinations.length > 0 && selectedDestinationObjects.length === 0) {
+      const selectedDests = initialData.destinations
+        .map(id => destinations.find(d => d.id === id))
+        .filter(Boolean) as Destination[];
+      if (selectedDests.length > 0) {
+        setSelectedDestinationObjects(selectedDests);
+      }
+    }
+  }, [initialData?.destinations, destinations, selectedDestinationObjects.length]);
+
   // Auto-select assigned driver when vehicle is selected
   useEffect(() => {
     if (selectedVehicleId && vehicles.length > 0 && !initialData?.driver_id) { // Only auto-select if no initial driver
