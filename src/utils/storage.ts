@@ -82,7 +82,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('warehouses') // ⚠️ Confirm field refactor here
       .select('*')
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -139,7 +139,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations') // ⚠️ Confirm field refactor here
       .select('*')
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .eq('active', true)
       .order('name');
 
@@ -188,7 +188,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
       .from('destinations')
       .select('*')
       .eq('id', id)
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .maybeSingle();
 
     if (error) {
@@ -238,7 +238,7 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
       .from('destinations')
       .select('*')
       .eq('place_id', id)
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .maybeSingle();
 
     if (error) {
@@ -315,7 +315,7 @@ export const findOrCreateDestinationByPlaceId = async (
       .from('destinations')
       .select('id')
       .eq('place_id', placeId)
-      .eq('created_by', userId)
+      .eq('added_by', userId)
       .maybeSingle();
 
     if (searchError) {
