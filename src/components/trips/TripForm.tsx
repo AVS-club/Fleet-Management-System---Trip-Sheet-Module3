@@ -554,7 +554,8 @@ const TripForm: React.FC<TripFormProps> = ({
         .select('end_km, trip_end_date')
         .eq('vehicle_id', vehicleId)
         .eq('added_by', user.id)
-        .order('trip_end_date', { ascending: false })
+        .order('trip_end_date', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false, nullsFirst: false })
         .limit(1);
 
       if (!error && lastTrip && lastTrip.length > 0) {
@@ -568,7 +569,8 @@ const TripForm: React.FC<TripFormProps> = ({
           .eq('vehicle_id', vehicleId)
           .eq('added_by', user.id)
           .or('fuel_quantity.gt.0,total_fuel_cost.gt.0')
-          .order('trip_end_date', { ascending: false })
+          .order('trip_end_date', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false, nullsFirst: false })
           .limit(1);
 
         if (prevRefuelTrip && prevRefuelTrip.length > 0) {

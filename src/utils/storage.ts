@@ -666,7 +666,8 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       .select('end_km')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId)
-      .order('trip_end_date', { ascending: false })
+      .order('trip_end_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false, nullsFirst: false })
       .limit(1);
 
     if (!tripsError && trips && trips.length > 0 && trips[0].end_km) {
