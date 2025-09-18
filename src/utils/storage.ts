@@ -6,7 +6,7 @@ import config from './env';
 import { getVehicle, deleteVehicle } from './api';
 import { getTrips } from './api/trips';
 export * from './api';
-export { getTrips };
+export { getTrips, getCurrentUserId };
 
 async function getUserData() {
   try {
