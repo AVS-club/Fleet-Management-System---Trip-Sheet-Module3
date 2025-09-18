@@ -25,7 +25,7 @@ export const getTrips = async (): Promise<Trip[]> => {
     const { data, error } = await supabase
       .from('trips')
       .select('*')
-      .eq('added_by', user.id)
+      .eq('created_by', user.id)
       .order('trip_start_date', { ascending: false });
 
     if (error) {

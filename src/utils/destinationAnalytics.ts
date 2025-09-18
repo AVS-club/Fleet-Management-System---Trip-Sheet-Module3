@@ -97,14 +97,14 @@ export const getDestinationsWithAnalytics = async (
           .from('trips')
           .select('*', { count: 'exact', head: true })
           .contains('destinations', [destination.id])
-          .eq('added_by', userId);
+          .eq('created_by', userId);
 
         // Get last used date
         const { data: lastTrip } = await supabase
           .from('trips')
           .select('trip_end_date')
           .contains('destinations', [destination.id])
-          .eq('added_by', userId)
+          .eq('created_by', userId)
           .order('trip_end_date', { ascending: false })
           .limit(1);
 
@@ -160,13 +160,13 @@ export const getMostUsedDestinations = async (limit: number = 10): Promise<Desti
           .from('trips')
           .select('*', { count: 'exact', head: true })
           .contains('destinations', [destination.id])
-          .eq('added_by', userId);
+          .eq('created_by', userId);
 
         const { data: lastTrip } = await supabase
           .from('trips')
           .select('trip_end_date')
           .contains('destinations', [destination.id])
-          .eq('added_by', userId)
+          .eq('created_by', userId)
           .order('trip_end_date', { ascending: false })
           .limit(1);
 

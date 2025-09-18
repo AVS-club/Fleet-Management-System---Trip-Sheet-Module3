@@ -38,7 +38,7 @@ export const generateTripSerialNumber = async (
     const { data: existingTrips, error } = await supabase
       .from('trips')
       .select('trip_serial_number')
-      .eq('added_by', user.id)  // Only check within user's trips
+      .eq('created_by', user.id)  // Only check within user's trips
       .eq('vehicle_id', vehicleId)  // Filter by specific vehicle
       .ilike('trip_serial_number', `${prefix}-%`)  // Match the prefix pattern
       .order('trip_serial_number', { ascending: false });
@@ -112,7 +112,7 @@ export const validateTripSerialUniqueness = async (
     let query = supabase
       .from('trips')
       .select('id, trip_serial_number')
-      .eq('added_by', user.id)  // Check within user's trips
+      .eq('created_by', user.id)  // Check within user's trips
       .eq('trip_serial_number', tripSerialNumber);
     
     // Exclude the current trip if updating
