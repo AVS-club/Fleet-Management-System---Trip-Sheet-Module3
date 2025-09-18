@@ -390,7 +390,7 @@ export const getAllVehicleStats = async (
       const { data, error } = await supabase
         .from('trips')
         .select('vehicle_id,start_km,end_km,calculated_kmpl')
-        .eq('added_by', user.id);
+        .eq('created_by', user.id);
 
       if (error) {
         handleSupabaseError('fetch vehicle trips', error);
@@ -469,7 +469,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     const { data: trips, error } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
       .select('start_km, end_km, calculated_kmpl')
-      .eq('added_by', user.id)
+      .eq('created_by', user.id)
       .eq('vehicle_id', vehicleId);
 
     if (error) {
@@ -664,7 +664,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     const { data: trips, error: tripsError } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
       .select('end_km, created_at, trip_end_date')
-      .eq('added_by', user.id)
+      .eq('created_by', user.id)
       .eq('vehicle_id', vehicleId)
       .not('end_km', 'is', null)
       .order('trip_end_date', { ascending: false, nullsFirst: false })
@@ -679,7 +679,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     const { data: maxOdometerTrip, error: maxTripError } = await supabase
       .from('trips')
       .select('end_km')
-      .eq('added_by', user.id)
+      .eq('created_by', user.id)
       .eq('vehicle_id', vehicleId)
       .not('end_km', 'is', null)
       .order('end_km', { ascending: false, nullsFirst: false })
