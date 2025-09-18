@@ -601,20 +601,17 @@ const TripForm: React.FC<TripFormProps> = ({
       errors.push('Distance cannot be zero or negative. End KM must be greater than Start KM.');
     }
     
-    // 2. Time consistency validation
+    // 2. Time consistency validation - Allow same day trips and back-dated trips
     if (data.trip_start_date && data.trip_end_date) {
       const startDateTime = new Date(`${data.trip_start_date}T${data.trip_start_time || '00:00'}`);
       const endDateTime = new Date(`${data.trip_end_date}T${data.trip_end_time || '00:00'}`);
       
-      if (endDateTime <= startDateTime) {
-        errors.push('End date/time must be after start date/time.');
+      // Only validate if end time is before start time on the same day
+      if (endDateTime < startDateTime) {
+        errors.push('End time must be after start time.');
       }
       
-      // Check for future dates
-      const now = new Date();
-      if (startDateTime > now) {
-        errors.push('Trip start date cannot be in the future.');
-      }
+      // Removed future date validation to allow back-dated trips
     }
     
     // 3. Odometer validation
