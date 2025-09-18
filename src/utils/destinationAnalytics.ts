@@ -54,10 +54,7 @@ export const getDestinationsWithAnalytics = async (
     // Build the query
     let query = supabase
       .from('destinations')
-      .select(`
-        *,
-        trip_destinations!inner(count)
-      `, { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('created_by', userId);
 
     // Apply filters
