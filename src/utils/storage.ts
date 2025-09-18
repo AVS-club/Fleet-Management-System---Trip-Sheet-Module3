@@ -660,18 +660,33 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       return { value: 0, fromTrip: false };
     }
 
-    // First try to get the latest trip end_km
+    // First try to get the latest completed trip using end_km and timestamps
     const { data: trips, error: tripsError } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
-      .select('end_km')
+      .select('end_km, created_at, trip_end_date')
       .eq('added_by', user.id)
       .eq('vehicle_id', vehicleId)
+      .not('end_km', 'is', null)
       .order('trip_end_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(1);
 
     if (!tripsError && trips && trips.length > 0 && trips[0].end_km) {
       return { value: trips[0].end_km, fromTrip: true };
+    }
+
+    // Fallback to the highest recorded odometer in trips if ordering fails
+    const { data: maxOdometerTrip, error: maxTripError } = await supabase
+      .from('trips')
+      .select('end_km')
+      .eq('added_by', user.id)
+      .eq('vehicle_id', vehicleId)
+      .not('end_km', 'is', null)
+      .order('end_km', { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    if (!maxTripError && maxOdometerTrip && maxOdometerTrip.length > 0 && maxOdometerTrip[0].end_km) {
+      return { value: maxOdometerTrip[0].end_km, fromTrip: true };
     }
 
     // Fallback to vehicle's current_odometer

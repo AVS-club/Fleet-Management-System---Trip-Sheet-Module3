@@ -551,37 +551,62 @@ const TripForm: React.FC<TripFormProps> = ({
 
       const { data: lastTrip, error } = await supabase
         .from('trips')
-        .select('end_km, trip_end_date')
+        .select('end_km, trip_end_date, created_at')
         .eq('vehicle_id', vehicleId)
         .eq('added_by', user.id)
+        .not('end_km', 'is', null)
         .order('trip_end_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false, nullsFirst: false })
         .limit(1);
 
-      if (!error && lastTrip && lastTrip.length > 0) {
-        setLastTripData(lastTrip[0]);
-        setValue('start_km', lastTrip[0].end_km);
+      if (!error && lastTrip && lastTrip.length > 0 && lastTrip[0].end_km !== null && lastTrip[0].end_km !== undefined) {
+        const latestTripRecord = lastTrip[0];
+        const normalizedLastTrip = {
+          end_km: latestTripRecord.end_km,
+          end_time: latestTripRecord.trip_end_date || latestTripRecord.created_at || new Date().toISOString()
+        };
+        setLastTripData(normalizedLastTrip);
+        setValue('start_km', latestTripRecord.end_km);
         
         // Get previous refueling trip for mileage window calculation
         const { data: prevRefuelTrip } = await supabase
           .from('trips')
-          .select('end_km, trip_end_date')
+          .select('end_km, trip_end_date, created_at')
           .eq('vehicle_id', vehicleId)
           .eq('added_by', user.id)
           .or('fuel_quantity.gt.0,total_fuel_cost.gt.0')
+          .not('end_km', 'is', null)
           .order('trip_end_date', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false, nullsFirst: false })
           .limit(1);
 
-        if (prevRefuelTrip && prevRefuelTrip.length > 0) {
-          setPreviousRefuelTrip(prevRefuelTrip[0]);
+        if (prevRefuelTrip && prevRefuelTrip.length > 0 && prevRefuelTrip[0].end_km !== null && prevRefuelTrip[0].end_km !== undefined) {
+          const refuelTripRecord = prevRefuelTrip[0];
+          setPreviousRefuelTrip({
+            end_km: refuelTripRecord.end_km,
+            end_time: refuelTripRecord.trip_end_date || refuelTripRecord.created_at || new Date().toISOString()
+          });
+        } else {
+          setPreviousRefuelTrip(null);
         }
       } else {
-        // No previous trips, use vehicle's current odometer
-        const vehicle = vehicles.find(v => v.id === vehicleId);
-        if (vehicle) {
-          setValue('start_km', vehicle.current_odometer || 0);
-          setLastTripData({ end_km: vehicle.current_odometer || 0, end_time: new Date().toISOString() });
+        const { value: odometerFromTrips, fromTrip } = await getLatestOdometer(vehicleId);
+
+        if (fromTrip && odometerFromTrips !== null && odometerFromTrips !== undefined) {
+          setValue('start_km', odometerFromTrips);
+          setLastTripData({ end_km: odometerFromTrips, end_time: new Date().toISOString() });
+          setPreviousRefuelTrip(null);
+        } else {
+          // No previous trips, use vehicle's current odometer
+          const vehicle = vehicles.find(v => v.id === vehicleId);
+          if (vehicle) {
+            const fallbackOdometer = vehicle.current_odometer || 0;
+            setValue('start_km', fallbackOdometer);
+            setLastTripData({ end_km: fallbackOdometer, end_time: new Date().toISOString() });
+          } else {
+            setLastTripData(null);
+          }
+          setPreviousRefuelTrip(null);
         }
       }
     } catch (error) {
