@@ -517,7 +517,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
 
     // Get destinations
     const destinations = await Promise.all(
-      destinationIds.map(id => getDestination(id))
+      destinationIds.map(id => getDestinationByAnyId(id))
     );
 
     const validDestinations = destinations.filter((d): d is Destination => d !== null);
