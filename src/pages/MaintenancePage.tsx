@@ -5,11 +5,12 @@ import { MaintenanceTask, Vehicle } from '@/types';
 import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
-import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3, Wrench } from 'lucide-react';
+import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3, Wrench, Calendar, Table } from 'lucide-react';
 import Button from '../components/ui/Button';
 import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
 import KPIPanel from '../components/maintenance/KPIPanel';
 import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
+import MaintenanceCalendar from '../components/maintenance/MaintenanceCalendar';
 import { useQuery } from '@tanstack/react-query';
 
 const MaintenancePage = () => {
@@ -20,6 +21,7 @@ const MaintenancePage = () => {
     start: '',
     end: ''
   });
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
   const [metrics, setMetrics] = useState<any>({
     totalTasks: 0,
     pendingTasks: 0,
@@ -139,6 +141,28 @@ const MaintenancePage = () => {
           >
             Parts Health & Analytics
           </Button>
+          
+          {/* View Toggle */}
+          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+            <Button
+              onClick={() => setViewMode('table')}
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              inputSize="sm"
+              icon={<Table className="h-4 w-4" />}
+              className="rounded-none border-0"
+            >
+              Table
+            </Button>
+            <Button
+              onClick={() => setViewMode('calendar')}
+              variant={viewMode === 'calendar' ? 'default' : 'outline'}
+              inputSize="sm"
+              icon={<Calendar className="h-4 w-4" />}
+              className="rounded-none border-0"
+            >
+              Calendar
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -170,11 +194,18 @@ const MaintenancePage = () => {
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
           
-          {/* Enhanced Maintenance Table */}
-          <EnhancedMaintenanceTable 
-            tasks={tasks || []}
-            vehicles={vehicles || []}
-          />
+          {/* Enhanced Maintenance Table or Calendar */}
+          {viewMode === 'table' ? (
+            <EnhancedMaintenanceTable 
+              tasks={tasks || []}
+              vehicles={vehicles || []}
+            />
+          ) : (
+            <MaintenanceCalendar 
+              tasks={tasks || []}
+              vehicles={vehicles || []}
+            />
+          )}
         </div>
       )}
     </Layout>

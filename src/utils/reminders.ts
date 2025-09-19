@@ -7,6 +7,8 @@ import { Trip } from "@/types";
 import { computeDueStatus } from "./serviceDue";
 import { getLatestOdometer } from "./storage";
 import { handleSupabaseError } from "./errors";
+import { syncRemindersWithTracking } from "./reminderTracking";
+import { getAlertThreshold, shouldTriggerAlert } from "./alertThresholds";
 
 // Define the reminder status types
 type ReminderStatus = "critical" | "warning" | "normal";
@@ -73,7 +75,7 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
     ]);
 
     // Combine all reminders and sort by dueDate first, then by daysLeft
-    return [
+    const allReminders = [
       ...vehicleReminders,
       ...driverReminders,
       ...maintenanceReminders,
@@ -85,6 +87,11 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
       }
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
+
+    // Sync reminders with tracking database
+    await syncRemindersWithTracking(allReminders);
+
+    return allReminders;
   } catch (error) {
     console.error("Error in getRemindersForAll:", error);
     return [];
@@ -238,36 +245,24 @@ const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
     const today = new Date();
 
     // Process each vehicle for reminders
-    vehicles.forEach((vehicle: Vehicle) => {
+    for (const vehicle of vehicles) {
       // Check RC expiry
       if (vehicle.rc_expiry_date) {
         const expiryDate = new Date(vehicle.rc_expiry_date);
-        if (isAfter(expiryDate, today)) {
-          const daysLeft = differenceInDays(expiryDate, today);
-          if (daysLeft <= 30) {
-            reminders.push({
-              id: `rc-${vehicle.id}-${vehicle.rc_expiry_date}`,
-              title: `RC Expiring in ${daysLeft} days`,
-              entityId: vehicle.id,
-              entityName: vehicle.registration_number,
-              dueDate: vehicle.rc_expiry_date,
-              daysLeft,
-              status: getStatusFromDays(daysLeft),
-              link: `/vehicles/${vehicle.id}`,
-              type: "rc_expiry",
-              module: "vehicles",
-            });
-          }
-        } else {
-          // Already expired
+        const daysLeft = isAfter(expiryDate, today) ? differenceInDays(expiryDate, today) : 0;
+        
+        // Get threshold configuration
+        const threshold = await getAlertThreshold('rc_expiry', 'vehicle');
+        
+        if (shouldTriggerAlert('rc_expiry', 'vehicle', daysLeft, undefined, threshold)) {
           reminders.push({
             id: `rc-${vehicle.id}-${vehicle.rc_expiry_date}`,
-            title: "RC Expired",
+            title: daysLeft > 0 ? `RC Expiring in ${daysLeft} days` : "RC Expired",
             entityId: vehicle.id,
             entityName: vehicle.registration_number,
             dueDate: vehicle.rc_expiry_date,
-            daysLeft: 0,
-            status: "critical",
+            daysLeft,
+            status: daysLeft > 0 ? (threshold?.priority || getStatusFromDays(daysLeft)) : "critical",
             link: `/vehicles/${vehicle.id}`,
             type: "rc_expiry",
             module: "vehicles",
@@ -440,7 +435,7 @@ const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
           module: "vehicles",
         });
       }
-    });
+    }
 
     // Sort reminders by dueDate first, then by daysLeft
     return reminders.sort((a, b) => {

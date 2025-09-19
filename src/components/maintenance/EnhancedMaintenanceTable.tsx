@@ -8,6 +8,8 @@ import {
   Filter,
   Download,
   Eye,
+  User,
+  Wrench,
 } from "lucide-react";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
@@ -79,6 +81,14 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
   const getVehicleRegistration = (vehicleId: string): string => {
     const vehicle = vehicles.find((v) => v.id === vehicleId);
     return vehicle ? vehicle.registration_number : "Unknown";
+  };
+
+  // Get user information by id (simplified - in real app you'd fetch from users table)
+  const getUserInfo = (userId: string): string => {
+    // For now, return a simplified version
+    // In a real app, you'd fetch from a users table or context
+    if (!userId) return "Unknown";
+    return `User ${userId.slice(0, 8)}...`;
   };
 
   // Get formatted task type
@@ -226,6 +236,10 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             aValue = a.actual_cost || a.estimated_cost || 0;
             bValue = b.actual_cost || b.estimated_cost || 0;
             break;
+          case "created_by":
+            aValue = getUserInfo(a.added_by || '');
+            bValue = getUserInfo(b.added_by || '');
+            break;
           default:
             aValue = a[sortConfig.key as keyof MaintenanceTask];
             bValue = b[sortConfig.key as keyof MaintenanceTask];
@@ -273,11 +287,12 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
       format(new Date(task.start_date), "dd/MM/yyyy"),
       `${task.downtime_days || 0}d`,
       `₹${(task.actual_cost || task.estimated_cost || 0).toLocaleString()}`,
+      getUserInfo(task.added_by || ''),
     ]);
 
     autoTable(doc, {
       head: [
-        ["Vehicle", "Type", "Status", "Priority", "Date", "Downtime", "Cost"],
+        ["Vehicle", "Type", "Status", "Priority", "Date", "Downtime", "Cost", "Created By"],
       ],
       body: tableData,
       styles: { fontSize: 8 },
@@ -301,6 +316,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
       Odometer: task.odometer_reading,
       Cost: task.actual_cost || task.estimated_cost || 0,
       Description: task.description || "",
+      "Created By": getUserInfo(task.added_by || ''),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(fileData);
@@ -366,7 +382,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
               <Select
                 label="Status"
                 options={[
@@ -454,8 +470,9 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
             </div>
           </div>
 
+          {/* Desktop Table View */}
           <div
-            className="overflow-x-auto scroll-indicator"
+            className="hidden lg:block overflow-x-auto scroll-indicator"
             ref={tableContainerRef}
           >
             <table className="min-w-full divide-y divide-gray-200">
@@ -559,6 +576,21 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
                         ))}
                     </div>
                   </th>
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort("created_by")}
+                  >
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 mr-1" />
+                      Created By
+                      {sortConfig?.key === "created_by" &&
+                        (sortConfig.direction === "asc" ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        ))}
+                    </div>
+                  </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -605,6 +637,12 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
                         0
                       ).toLocaleString()}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2 text-gray-400" />
+                        {getUserInfo(task.added_by || '')}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                       <Button
                         variant="outline"
@@ -621,7 +659,7 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
                 {filteredAndSortedTasks.length === 0 && (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="px-6 py-10 text-center text-gray-500"
                     >
                       No maintenance tasks match your filters
@@ -630,6 +668,118 @@ const EnhancedMaintenanceTable: React.FC<EnhancedMaintenanceTableProps> = ({
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {filteredAndSortedTasks.map((task) => (
+              <div
+                key={task.id}
+                className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-gray-900 text-sm">
+                      {getVehicleRegistration(task.vehicle_id)}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatTaskType(task.task_type)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    inputSize="sm"
+                    onClick={() => navigate(`/maintenance/${task.id}`)}
+                    icon={<Eye className="h-4 w-4" />}
+                  >
+                    View
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <span className="text-xs text-gray-500">Status</span>
+                    <div className="mt-1">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getStatusColor(
+                          task.status
+                        )}`}
+                      >
+                        {formatStatus(task.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Priority</span>
+                    <div className="mt-1">
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${getPriorityColor(
+                          task.priority
+                        )}`}
+                      >
+                        {task.priority.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <span className="text-xs text-gray-500">Start Date</span>
+                    <p className="text-sm text-gray-900">
+                      {format(new Date(task.start_date), "dd MMM yyyy")}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Downtime</span>
+                    <p className="text-sm text-gray-900">
+                      {task.downtime_days || 0}d
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <span className="text-xs text-gray-500">Cost</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      ₹{(task.actual_cost || task.estimated_cost || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Created By</span>
+                    <div className="flex items-center mt-1">
+                      <User className="h-3 w-3 mr-1 text-gray-400" />
+                      <p className="text-sm text-gray-900">
+                        {getUserInfo(task.added_by || '')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {task.description && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <span className="text-xs text-gray-500">Description</span>
+                    <p className="text-sm text-gray-700 mt-1 line-clamp-2">
+                      {task.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {filteredAndSortedTasks.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-500">
+                  <Wrench className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No maintenance tasks
+                  </h3>
+                  <p className="text-gray-600">
+                    No maintenance tasks match your filters
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

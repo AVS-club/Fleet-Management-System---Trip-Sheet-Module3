@@ -8,10 +8,59 @@ interface ServicePrediction {
   confidence: number;
 }
 
+// Cache for predictive maintenance calculations
+interface PredictionCache {
+  [key: string]: {
+    prediction: ServicePrediction;
+    timestamp: number;
+    vehicleId: string;
+    odometerReading: number;
+  };
+}
+
+const predictionCache: PredictionCache = {};
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Generate cache key
+const getCacheKey = (vehicleId: string, odometerReading: number): string => {
+  return `${vehicleId}-${Math.floor(odometerReading / 100) * 100}`; // Round to nearest 100km for cache efficiency
+};
+
+// Check if cache is valid
+const isCacheValid = (cacheEntry: any): boolean => {
+  const now = Date.now();
+  return (now - cacheEntry.timestamp) < CACHE_DURATION;
+};
+
+// Clear expired cache entries
+const clearExpiredCache = (): void => {
+  const now = Date.now();
+  Object.keys(predictionCache).forEach(key => {
+    if ((now - predictionCache[key].timestamp) >= CACHE_DURATION) {
+      delete predictionCache[key];
+    }
+  });
+};
+
 export const predictNextService = async (
   vehicleId: string,
   currentOdometer: number
 ): Promise<ServicePrediction | undefined> => {
+  // Clear expired cache entries first
+  clearExpiredCache();
+  
+  // Check cache first
+  const cacheKey = getCacheKey(vehicleId, currentOdometer);
+  const cachedEntry = predictionCache[cacheKey];
+  
+  if (cachedEntry && isCacheValid(cachedEntry)) {
+    // Check if odometer reading is close enough (within 50km)
+    const odometerDiff = Math.abs(cachedEntry.odometerReading - currentOdometer);
+    if (odometerDiff <= 50) {
+      return cachedEntry.prediction;
+    }
+  }
+
   const vehicle = await getVehicle(vehicleId);
   if (!vehicle) return undefined;
 
@@ -107,11 +156,21 @@ export const predictNextService = async (
     )
   );
 
-  return {
+  const prediction: ServicePrediction = {
     date: predictedDate.toISOString(),
     odometer: predictedOdometer,
     confidence
   };
+
+  // Cache the prediction
+  predictionCache[cacheKey] = {
+    prediction,
+    timestamp: Date.now(),
+    vehicleId,
+    odometerReading: currentOdometer
+  };
+
+  return prediction;
 };
 
 const isMaintenanceOverdue = async (
@@ -156,6 +215,30 @@ const isMaintenanceOverdue = async (
     is_overdue: isOverdue, 
     days_overdue: daysOverdue, 
     km_overdue: kmOverdue 
+  };
+};
+
+// Function to clear cache for a specific vehicle (call this when maintenance tasks are updated)
+export const clearVehiclePredictionCache = (vehicleId: string): void => {
+  Object.keys(predictionCache).forEach(key => {
+    if (predictionCache[key].vehicleId === vehicleId) {
+      delete predictionCache[key];
+    }
+  });
+};
+
+// Function to clear all prediction cache
+export const clearAllPredictionCache = (): void => {
+  Object.keys(predictionCache).forEach(key => {
+    delete predictionCache[key];
+  });
+};
+
+// Function to get cache statistics (useful for debugging)
+export const getCacheStats = (): { size: number; entries: string[] } => {
+  return {
+    size: Object.keys(predictionCache).length,
+    entries: Object.keys(predictionCache)
   };
 };
 

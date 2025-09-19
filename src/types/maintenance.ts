@@ -90,10 +90,10 @@ export interface MaintenanceTask {
   parts_required: MaintenancePart[];
   start_date: string;
   end_date?: string;
-  downtime_period?: string; // Added for downtime period selection
   downtime_days: number;
   odometer_reading: number;
   odometer_image?: string;
+  // Calculated fields (not stored in database)
   next_service_due?: {
     date: string;
     odometer: number;

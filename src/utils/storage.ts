@@ -159,7 +159,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
   }
 };
 
-export const getDestination = async (id: string): Promise<Destination | null> => {
+export const getDestination = async (id: string, ignoreOwnership: boolean = false): Promise<Destination | null> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
@@ -172,7 +172,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
       return null;
     }
     
-    if (!user) {
+    if (!user && !ignoreOwnership) {
       console.error('No user authenticated');
       return null;
     }
@@ -184,12 +184,16 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
       return null;
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('destinations')
       .select('*')
-      .eq('id', id)
-      .eq('added_by', user.id)
-      .maybeSingle();
+      .eq('id', id);
+
+    if (!ignoreOwnership && user) {
+      query = query.eq('added_by', user.id);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       handleSupabaseError('fetch destination', error);
@@ -207,7 +211,7 @@ export const getDestination = async (id: string): Promise<Destination | null> =>
   }
 };
 
-export const getDestinationByAnyId = async (id: string): Promise<Destination | null> => {
+export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean = false): Promise<Destination | null> => {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
@@ -220,7 +224,7 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
       return null;
     }
     
-    if (!user) {
+    if (!user && !ignoreOwnership) {
       console.error('No user authenticated');
       return null;
     }
@@ -230,16 +234,20 @@ export const getDestinationByAnyId = async (id: string): Promise<Destination | n
     
     if (uuidRegex.test(id)) {
       // It's a UUID, use the standard getDestination function
-      return await getDestination(id);
+      return await getDestination(id, ignoreOwnership);
     }
     
     // If not a UUID, try to find by place_id (Google Places ID)
-    const { data, error } = await supabase
+    let query = supabase
       .from('destinations')
       .select('*')
-      .eq('place_id', id)
-      .eq('added_by', user.id)
-      .maybeSingle();
+      .eq('place_id', id);
+
+    if (!ignoreOwnership && user) {
+      query = query.eq('added_by', user.id);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       handleSupabaseError('fetch destination by place_id', error);
@@ -517,7 +525,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
 
     // Get destinations
     const destinations = await Promise.all(
-      destinationIds.map(id => getDestinationByAnyId(id))
+      destinationIds.map(id => getDestinationByAnyId(id, true))
     );
 
     const validDestinations = destinations.filter((d): d is Destination => d !== null);

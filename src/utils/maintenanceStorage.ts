@@ -8,6 +8,7 @@ import { supabase } from "./supabaseClient";
 import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
+import { clearVehiclePredictionCache } from "./maintenancePredictor";
 
 // Tasks CRUD operations
 export const getTasks = async (): Promise<MaintenanceTask[]> => {
@@ -111,6 +112,12 @@ export const createTask = async (
   }
 
 
+  // Handle odometer image upload
+  let odometerImageUrl: string | null = null;
+  if (taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
+    odometerImageUrl = await uploadServiceBill(taskData.odometer_image[0], 'temp', 'odometer');
+  }
+
   // Insert the main task
   const { data, error } = await supabase
     .from("maintenance_tasks")
@@ -118,6 +125,7 @@ export const createTask = async (
       ...taskData,
       bills: taskData.bills || [],
       parts_required: taskData.parts_required || [],
+      odometer_image: odometerImageUrl,
     })
     .select()
     .single();
@@ -152,15 +160,54 @@ export const createTask = async (
       // Continue even if next due computation fails
     }
 
+    // Clear prediction cache for this vehicle since maintenance data has changed
+    clearVehiclePredictionCache(data.vehicle_id);
+
     // Insert service groups if any
     if (service_groups && service_groups.length > 0) {
       try {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
-          ...group,
-          maintenance_task_id: data.id,
-          // Remove bill_file as it's not for database storage
-          bill_file: undefined,
-        }));
+        const serviceGroupsWithTaskId = await Promise.all(
+          service_groups.map(async (group: any) => {
+            // Handle file uploads for bills
+            let bill_urls: string[] = [];
+            if (group.bill_file && Array.isArray(group.bill_file)) {
+              for (const file of group.bill_file) {
+                const url = await uploadServiceBill(file, data.id, group.id);
+                if (url) bill_urls.push(url);
+              }
+            }
+
+            // Handle battery warranty file uploads
+            let battery_warranty_urls: string[] = [];
+            if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
+              for (const file of group.battery_warranty_file) {
+                const url = await uploadServiceBill(file, data.id, `battery-${group.id}`);
+                if (url) battery_warranty_urls.push(url);
+              }
+            }
+
+            // Handle tyre warranty file uploads
+            let tyre_warranty_urls: string[] = [];
+            if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
+              for (const file of group.tyre_warranty_file) {
+                const url = await uploadServiceBill(file, data.id, `tyre-${group.id}`);
+                if (url) tyre_warranty_urls.push(url);
+              }
+            }
+
+            return {
+              ...group,
+              maintenance_task_id: data.id,
+              bill_url: bill_urls,
+              battery_warranty_url: battery_warranty_urls,
+              tyre_warranty_url: tyre_warranty_urls,
+              // Remove file objects as they're not for database storage
+              bill_file: undefined,
+              battery_warranty_file: undefined,
+              tyre_warranty_file: undefined,
+            };
+          })
+        );
 
         await supabase
           .from("maintenance_service_tasks")
@@ -227,11 +274,18 @@ export const updateTask = async (
     updateData.garage_id = oldTask.garage_id;
   }
 
+  // Handle odometer image upload for updates
+  let odometerImageUrl: string | null = null;
+  if (updateData.odometer_image && Array.isArray(updateData.odometer_image) && updateData.odometer_image.length > 0) {
+    odometerImageUrl = await uploadServiceBill(updateData.odometer_image[0], id, 'odometer');
+  }
+
   // Update the task
   const { data: updatedTask, error } = await supabase
     .from("maintenance_tasks")
     .update({
       ...updateData,
+      odometer_image: odometerImageUrl || updateData.odometer_image,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -281,6 +335,10 @@ export const updateTask = async (
     }
   }
 
+  // Clear prediction cache for this vehicle since maintenance data has changed
+  const vehicleId = updateData.vehicle_id || oldTask.vehicle_id;
+  clearVehiclePredictionCache(vehicleId);
+
   // Handle service groups update
   if (service_groups && updatedTask) {
     try {
@@ -292,12 +350,48 @@ export const updateTask = async (
 
       // Then insert the updated ones
       if (service_groups.length > 0) {
-        const serviceGroupsWithTaskId = service_groups.map((group: any) => ({
-          ...group,
-          maintenance_task_id: id,
-          // Remove bill_file as it's not for database storage
-          bill_file: undefined,
-        }));
+        const serviceGroupsWithTaskId = await Promise.all(
+          service_groups.map(async (group: any) => {
+            // Handle file uploads for bills
+            let bill_urls: string[] = [];
+            if (group.bill_file && Array.isArray(group.bill_file)) {
+              for (const file of group.bill_file) {
+                const url = await uploadServiceBill(file, id, group.id);
+                if (url) bill_urls.push(url);
+              }
+            }
+
+            // Handle battery warranty file uploads
+            let battery_warranty_urls: string[] = [];
+            if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
+              for (const file of group.battery_warranty_file) {
+                const url = await uploadServiceBill(file, id, `battery-${group.id}`);
+                if (url) battery_warranty_urls.push(url);
+              }
+            }
+
+            // Handle tyre warranty file uploads
+            let tyre_warranty_urls: string[] = [];
+            if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
+              for (const file of group.tyre_warranty_file) {
+                const url = await uploadServiceBill(file, id, `tyre-${group.id}`);
+                if (url) tyre_warranty_urls.push(url);
+              }
+            }
+
+            return {
+              ...group,
+              maintenance_task_id: id,
+              bill_url: bill_urls,
+              battery_warranty_url: battery_warranty_urls,
+              tyre_warranty_url: tyre_warranty_urls,
+              // Remove file objects as they're not for database storage
+              bill_file: undefined,
+              battery_warranty_file: undefined,
+              tyre_warranty_file: undefined,
+            };
+          })
+        );
 
         await supabase
           .from("maintenance_service_tasks")

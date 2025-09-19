@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useForm, FormProvider, Controller } from "react-hook-form";
 import { Vehicle } from "@/types";
 import { MaintenanceTask } from "@/types/maintenance";
-import { addDays, addHours, format } from "date-fns";
+import { addDays, format } from "date-fns";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import Button from "../ui/Button";
+import FileUpload from "../ui/FileUpload";
 import GarageSelector from "./GarageSelector";
 import MaintenanceAuditLog from "./MaintenanceAuditLog";
 import ServiceGroupsSection from "./ServiceGroupsSection";
@@ -59,7 +60,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       start_date: new Date().toISOString().split("T")[0],
       title: [],
       warranty_claimed: false,
-      downtime_period: "2hr", // Default to 2 hours
       service_groups:
         initialData?.service_groups && initialData.service_groups.length > 0
           ? initialData.service_groups
@@ -92,7 +92,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const taskType = watch("task_type");
   const title = watch("title");
   const serviceGroupsWatch = watch("service_groups");
-  const downtimePeriod = watch("downtime_period");
 
   // Get current values of the text areas for speech-to-text functionality
   const complaintDescription = watch("complaint_description") || "";
@@ -136,59 +135,30 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     fetchAuditLogs();
   }, [initialData?.id]);
 
-  // Calculate end date based on start date and downtime period
+  // Calculate end date based on start date and downtime days
   useEffect(() => {
-    if (startDate && downtimePeriod && downtimePeriod !== "custom") {
+    if (startDate && endDate) {
       try {
-        // Parse the start date
         const parsedStartDate = new Date(startDate);
-        if (isNaN(parsedStartDate.getTime())) {
-          console.error("Invalid start date");
+        const parsedEndDate = new Date(endDate);
+        
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
           return;
         }
-
-        let newEndDate: Date;
-
-        // Calculate end date based on downtime period
-        if (downtimePeriod.includes("hr")) {
-          // Extract hours from the period (e.g., "4hr" → 4)
-          const hours = parseInt(downtimePeriod.replace("hr", ""), 10);
-          newEndDate = addHours(parsedStartDate, hours);
-        } else if (downtimePeriod === "1day") {
-          newEndDate = addDays(parsedStartDate, 1);
-        } else if (downtimePeriod === "2days") {
-          newEndDate = addDays(parsedStartDate, 2);
-        } else if (downtimePeriod === "3days") {
-          newEndDate = addDays(parsedStartDate, 3);
-        } else if (downtimePeriod === "1week") {
-          newEndDate = addDays(parsedStartDate, 7);
-        } else {
-          // For any other case, don't modify the end date
-          return;
-        }
-
-        // Format the end date as YYYY-MM-DD
-        const formattedEndDate = format(newEndDate, "yyyy-MM-dd");
-        setValue("end_date", formattedEndDate);
 
         // Calculate downtime days
-        const downtimeDays =
-          downtimePeriod.includes("day") || downtimePeriod === "1week"
-            ? Math.round(
-                (newEndDate.getTime() - parsedStartDate.getTime()) /
-                  (1000 * 60 * 60 * 24)
-              )
-            : 0;
-        setValue("downtime_days", downtimeDays);
+        const downtimeDays = Math.round(
+          (parsedEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        
+        if (downtimeDays >= 0) {
+          setValue("downtime_days", downtimeDays);
+        }
       } catch (error) {
-        console.error("Error calculating end date:", error);
+        console.error("Error calculating downtime days:", error);
       }
-    } else if (downtimePeriod === "custom") {
-      // If custom is selected, clear the end date to let the user set it manually
-      setValue("end_date", "");
-      setValue("downtime_days", 0);
     }
-  }, [startDate, downtimePeriod, setValue]);
+  }, [startDate, endDate, setValue]);
 
   // Auto-fill odometer reading based on vehicle and start date
   useEffect(() => {
@@ -267,38 +237,97 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   }, [vehicleId, odometerReading, title]);
 
+  const validateFormData = (data: any): string | null => {
+    // Vehicle validation
+    if (!data.vehicle_id) {
+      return "Please select a vehicle";
+    }
+
+    // Date validation
+    if (!data.start_date) {
+      return "Please set a start date";
+    }
+
+    // Check if start date is not in the future (optional validation)
+    const startDate = new Date(data.start_date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    if (startDate > today) {
+      return "Start date cannot be in the future";
+    }
+
+    // Odometer validation
+    if (!data.odometer_reading || data.odometer_reading < 0) {
+      return "Please enter a valid odometer reading";
+    }
+
+    // Service groups validation
+    if (!Array.isArray(data.service_groups) || data.service_groups.length === 0) {
+      return "Please add at least one service group";
+    }
+
+    // Validate each service group
+    for (let i = 0; i < data.service_groups.length; i++) {
+      const group = data.service_groups[i];
+      
+      if (!group.vendor_id) {
+        return `Please select a vendor for service group ${i + 1}`;
+      }
+
+      if (!Array.isArray(group.tasks) || group.tasks.length === 0) {
+        return `Please select at least one task for service group ${i + 1}`;
+      }
+
+      if (!group.cost || group.cost < 0) {
+        return `Please enter a valid cost for service group ${i + 1}`;
+      }
+
+      // Battery tracking validation
+      if (group.battery_tracking) {
+        if (!group.battery_serial) {
+          return `Please enter battery serial number for service group ${i + 1}`;
+        }
+        if (!group.battery_brand) {
+          return `Please select battery brand for service group ${i + 1}`;
+        }
+        if (!group.battery_warranty_expiry_date) {
+          return `Please set battery warranty expiry date for service group ${i + 1}`;
+        }
+      }
+
+      // Tyre tracking validation
+      if (group.tyre_tracking) {
+        if (!Array.isArray(group.tyre_positions) || group.tyre_positions.length === 0) {
+          return `Please select at least one tyre position for service group ${i + 1}`;
+        }
+        if (!group.tyre_brand) {
+          return `Please select tyre brand for service group ${i + 1}`;
+        }
+        if (!group.tyre_warranty_expiry_date) {
+          return `Please set tyre warranty expiry date for service group ${i + 1}`;
+        }
+      }
+    }
+
+    // Priority validation
+    if (!data.priority) {
+      return "Please select a priority level";
+    }
+
+    // Status validation
+    if (!data.status) {
+      return "Please select a status";
+    }
+
+    return null; // No validation errors
+  };
+
   const handleFormSubmit = (data: any) => {
     try {
-
-      // Basic validation
-      if (!data.vehicle_id) {
-        toast.error("Please select a vehicle");
-        return;
-      }
-
-      // if (!data.garage_id) {
-      //   toast.error("Please select a garage");
-      //   return;
-      // }
-
-      if (!data.start_date) {
-        toast.error("Please set a start date");
-        return;
-      }
-
-      if (
-        (!Array.isArray(data.title) || data.title.length === 0) &&
-        (!Array.isArray(data.service_groups) ||
-          !data.service_groups.length ||
-          !data.service_groups[0].tasks ||
-          !data.service_groups[0].tasks.length)
-      ) {
-        toast.error("Please select at least one maintenance task");
-        return;
-      }
-
-      if (!data.service_groups?.[0]?.vendor_id) {
-        toast.error("Please select a vendor for the service");
+      // Comprehensive validation
+      const validationError = validateFormData(data);
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
 
@@ -326,7 +355,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             <Controller
               control={control}
               name="vehicle_id"
-              rules={{ required: "Vehicle is required" }}
+              rules={{ 
+                required: "Vehicle is required",
+                validate: (value) => value !== "" || "Please select a vehicle"
+              }}
               render={({ field }) => (
                 <Select
                   label="Vehicle"
@@ -425,43 +457,53 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               {...register("end_date")}
             />
 
+            <Input
+              label="Downtime (Days)"
+              type="number"
+              icon={<Clock className="h-4 w-4" />}
+              error={errors.downtime_days?.message}
+              {...register("downtime_days", {
+                valueAsNumber: true,
+                min: { value: 0, message: "Downtime must be positive" },
+              })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Input
+              label="Odometer Reading"
+              type="number"
+              icon={<PenToolIcon className="h-4 w-4" />}
+              error={errors.odometer_reading?.message}
+              required
+              {...register("odometer_reading", {
+                required: "Odometer reading is required",
+                valueAsNumber: true,
+                min: { value: 0, message: "Odometer reading must be positive" },
+                max: { value: 999999, message: "Odometer reading seems too high" },
+                validate: (value) => {
+                  if (isNaN(value)) return "Please enter a valid number";
+                  if (value < 0) return "Odometer reading cannot be negative";
+                  return true;
+                }
+              })}
+            />
+            
             <Controller
               control={control}
-              name="downtime_period"
-              defaultValue="2hr"
-              render={({ field }) => (
-                <Select
-                  label="Downtime Period"
-                  icon={<Clock className="h-4 w-4" />}
-                  options={[
-                    { value: "2hr", label: "2 Hours" },
-                    { value: "4hr", label: "4 Hours" },
-                    { value: "6hr", label: "6 Hours" },
-                    { value: "12hr", label: "12 Hours" },
-                    { value: "1day", label: "1 Day" },
-                    { value: "2days", label: "2 Days" },
-                    { value: "3days", label: "3 Days" },
-                    { value: "1week", label: "1 Week" },
-                    { value: "custom", label: "Custom" },
-                  ]}
-                  {...field}
+              name="odometer_image"
+              render={({ field: { value, onChange } }) => (
+                <FileUpload
+                  label="Odometer Photo"
+                  value={value as File[] | null}
+                  onChange={onChange}
+                  accept=".jpg,.jpeg,.png"
+                  helperText="Upload photo of odometer reading"
+                  icon={<PenToolIcon className="h-4 w-4" />}
                 />
               )}
             />
           </div>
-
-          <Input
-            label="Odometer Reading"
-            type="number"
-            icon={<PenToolIcon className="h-4 w-4" />}
-            error={errors.odometer_reading?.message}
-            required
-            {...register("odometer_reading", {
-              required: "Odometer reading is required",
-              valueAsNumber: true,
-              min: { value: 0, message: "Odometer reading must be positive" },
-            })}
-          />
 
           <Controller
             control={control}
