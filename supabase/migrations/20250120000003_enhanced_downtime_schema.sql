@@ -37,12 +37,46 @@ CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_downtime_end_time ON public.mai
 CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_downtime_category ON public.maintenance_tasks (downtime_category);
 CREATE INDEX IF NOT EXISTS idx_maintenance_tasks_downtime_impact ON public.maintenance_tasks (downtime_impact_level);
 
--- Add check constraints for data integrity
-ALTER TABLE public.maintenance_tasks 
-ADD CONSTRAINT check_downtime_days_positive CHECK (downtime_days >= 0),
-ADD CONSTRAINT check_downtime_hours_valid CHECK (downtime_hours >= 0 AND downtime_hours < 24),
-ADD CONSTRAINT check_downtime_category_valid CHECK (downtime_category IN ('maintenance', 'repair', 'inspection', 'accident', 'breakdown', 'scheduled', 'emergency')),
-ADD CONSTRAINT check_downtime_impact_valid CHECK (downtime_impact_level IN ('low', 'medium', 'high', 'critical'));
+-- Add check constraints for data integrity (only if they don't exist)
+DO $$ 
+BEGIN
+    -- Add constraint only if it doesn't exist
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_downtime_days_positive' 
+        AND conrelid = 'public.maintenance_tasks'::regclass
+    ) THEN
+        ALTER TABLE public.maintenance_tasks 
+        ADD CONSTRAINT check_downtime_days_positive CHECK (downtime_days >= 0);
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_downtime_hours_valid' 
+        AND conrelid = 'public.maintenance_tasks'::regclass
+    ) THEN
+        ALTER TABLE public.maintenance_tasks 
+        ADD CONSTRAINT check_downtime_hours_valid CHECK (downtime_hours >= 0 AND downtime_hours < 24);
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_downtime_category_valid' 
+        AND conrelid = 'public.maintenance_tasks'::regclass
+    ) THEN
+        ALTER TABLE public.maintenance_tasks 
+        ADD CONSTRAINT check_downtime_category_valid CHECK (downtime_category IN ('maintenance', 'repair', 'inspection', 'accident', 'breakdown', 'scheduled', 'emergency'));
+    END IF;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_downtime_impact_valid' 
+        AND conrelid = 'public.maintenance_tasks'::regclass
+    ) THEN
+        ALTER TABLE public.maintenance_tasks 
+        ADD CONSTRAINT check_downtime_impact_valid CHECK (downtime_impact_level IN ('low', 'medium', 'high', 'critical'));
+    END IF;
+END $$;
 
 -- Add computed column for total downtime in hours (for easier calculations)
 ALTER TABLE public.maintenance_tasks 
