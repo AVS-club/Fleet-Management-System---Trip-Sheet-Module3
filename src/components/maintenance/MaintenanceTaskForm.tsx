@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useForm, FormProvider, Controller } from "react-hook-form";
 import { Vehicle } from "@/types";
 import { MaintenanceTask } from "@/types/maintenance";
-import { addDays, format } from "date-fns";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import Button from "../ui/Button";
@@ -24,8 +23,20 @@ import {
 } from "lucide-react";
 import { predictNextService } from "../../utils/maintenancePredictor";
 import { getAuditLogs } from "../../utils/maintenanceStorage";
-import { supabase } from "../../utils/supabaseClient";
 import { toast } from "react-toastify";
+import { getLatestOdometer } from "../../utils/storage";
+import { cn } from "../../utils/cn";
+
+const DOWNTIME_PRESETS = [
+  { id: "2h", label: "2 h", value: 2 / 24 },
+  { id: "4h", label: "4 h", value: 4 / 24 },
+  { id: "6h", label: "6 h", value: 6 / 24 },
+  { id: "1d", label: "1 d", value: 1 },
+];
+
+const isClose = (a: number, b: number, tolerance = 0.01) =>
+  Math.abs(a - b) < tolerance;
+
 
 interface MaintenanceTaskFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -89,6 +100,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const endDate = watch("end_date");
   const vehicleId = watch("vehicle_id");
   const odometerReading = watch("odometer_reading");
+  const downtimeDays = watch("downtime_days");
   const taskType = watch("task_type");
   const title = watch("title");
   const serviceGroupsWatch = watch("service_groups");
@@ -111,6 +123,39 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       resolutionSummary ? `${resolutionSummary} ${text}` : text
     );
   };
+
+  const initialVehicleIdRef = useRef(initialData?.vehicle_id);
+  const skipInitialOdometerPrefillRef = useRef(true);
+
+  const selectedDowntimePreset = useMemo(() => {
+    if (typeof downtimeDays !== "number" || Number.isNaN(downtimeDays)) {
+      return "custom";
+    }
+
+    const presetMatch = DOWNTIME_PRESETS.find((preset) =>
+      isClose(downtimeDays, preset.value, 0.05)
+    );
+
+    return presetMatch?.id ?? "custom";
+  }, [downtimeDays]);
+
+  const downtimeSummary = useMemo(() => {
+    if (typeof downtimeDays !== "number" || downtimeDays <= 0) {
+      return "No downtime selected";
+    }
+
+    const hours = downtimeDays * 24;
+
+    if (hours < 24) {
+      return `${Math.round(hours)} hrs`;
+    }
+
+    if (Number.isInteger(downtimeDays)) {
+      return `${downtimeDays} day${downtimeDays === 1 ? "" : "s"}`;
+    }
+
+    return `${downtimeDays.toFixed(2)} days (~${Math.round(hours)} hrs)`;
+  }, [downtimeDays]);
 
   // Fetch audit logs asynchronously
   useEffect(() => {
@@ -135,78 +180,154 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     fetchAuditLogs();
   }, [initialData?.id]);
 
-  // Calculate end date based on start date and downtime days
+  // Keep downtime in sync with selected end date
   useEffect(() => {
-    if (startDate && endDate) {
-      try {
-        const parsedStartDate = new Date(startDate);
-        const parsedEndDate = new Date(endDate);
-        
-        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
-          return;
-        }
-
-        // Calculate downtime days
-        const downtimeDays = Math.round(
-          (parsedEndDate.getTime() - parsedStartDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        
-        if (downtimeDays >= 0) {
-          setValue("downtime_days", downtimeDays);
-        }
-      } catch (error) {
-        console.error("Error calculating downtime days:", error);
-      }
+    if (!startDate || !endDate) {
+      return;
     }
-  }, [startDate, endDate, setValue]);
 
-  // Auto-fill odometer reading based on vehicle and start date
-  useEffect(() => {
-    const fetchLastOdometer = async () => {
-      if (!vehicleId || !startDate) return;
+    try {
+      const parsedStartDate = new Date(startDate);
+      const parsedEndDate = new Date(endDate);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        console.error("Error fetching user data");
+      if (
+        Number.isNaN(parsedStartDate.getTime()) ||
+        Number.isNaN(parsedEndDate.getTime())
+      ) {
         return;
       }
 
-      try {
-        // Query the trips table to find the latest trip for this vehicle before the start date
-        const { data, error } = await supabase
-          .from("trips")
-          .select("end_km")
-          .eq("added_by", user.id)
-          .eq("vehicle_id", vehicleId)
-          .lt("trip_end_date", startDate)
-          .order("trip_end_date", { ascending: false })
-          .limit(1);
+      const diffMs = parsedEndDate.getTime() - parsedStartDate.getTime();
+      if (diffMs < 0) {
+        return;
+      }
 
-        if (error) {
-          console.error("Error fetching last odometer reading:", error);
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+      const normalized = parseFloat(diffDays.toFixed(4));
+
+      if (
+        typeof downtimeDays !== "number" ||
+        Number.isNaN(downtimeDays) ||
+        !isClose(downtimeDays, normalized, 0.01)
+      ) {
+        setValue("downtime_days", normalized, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error calculating downtime days:", error);
+    }
+  }, [startDate, endDate, downtimeDays, setValue]);
+
+  // Update end date when downtime selection changes
+  useEffect(() => {
+    if (!startDate) {
+      return;
+    }
+
+    if (typeof downtimeDays !== "number" || Number.isNaN(downtimeDays)) {
+      return;
+    }
+
+    try {
+      const parsedStartDate = new Date(startDate);
+      if (Number.isNaN(parsedStartDate.getTime())) {
+        return;
+      }
+
+      const milliseconds = Math.round(downtimeDays * 24 * 60 * 60 * 1000);
+      const calculatedEndDate = new Date(parsedStartDate.getTime() + milliseconds);
+      const formattedEndDate = calculatedEndDate.toISOString().split("T")[0];
+
+      if (formattedEndDate !== endDate) {
+        setValue("end_date", formattedEndDate, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+    } catch (error) {
+      console.error("Error updating end date from downtime:", error);
+    }
+  }, [startDate, downtimeDays, endDate, setValue]);
+
+  // Auto-fill odometer reading based on latest trip for the selected vehicle
+  useEffect(() => {
+    if (!vehicleId) return;
+
+    let isMounted = true;
+
+    const fetchLastOdometer = async () => {
+      if (skipInitialOdometerPrefillRef.current) {
+        skipInitialOdometerPrefillRef.current = false;
+
+        if (
+          initialData?.id &&
+          initialVehicleIdRef.current &&
+          initialVehicleIdRef.current === vehicleId &&
+          typeof initialData.odometer_reading === "number"
+        ) {
           return;
         }
+      }
 
-        if (data && data.length > 0 && data[0].end_km) {
-          // Set the odometer reading to the end_km of the last trip
-          setValue("odometer_reading", data[0].end_km);
-        } else {
-          // If no trips found, try to use the current_odometer from the vehicle
-          const vehicle = vehicles.find((v) => v.id === vehicleId);
-          if (vehicle && vehicle.current_odometer) {
-            setValue("odometer_reading", vehicle.current_odometer);
+      try {
+        const { value } = await getLatestOdometer(vehicleId);
+        const fallback = vehicles.find((v) => v.id === vehicleId)?.current_odometer;
+        const resolvedValue =
+          Number.isFinite(value) && value >= 0 ? value : fallback;
+
+        if (isMounted && typeof resolvedValue === "number") {
+          const currentReadingRaw = getValues("odometer_reading");
+          const currentReading =
+            typeof currentReadingRaw === "number"
+              ? currentReadingRaw
+              : parseFloat(String(currentReadingRaw));
+
+          if (
+            !Number.isFinite(currentReading) ||
+            Math.abs(currentReading - resolvedValue) > 0.5
+          ) {
+            setValue("odometer_reading", resolvedValue, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
           }
         }
       } catch (err) {
-        console.error("Failed to fetch last odometer reading:", err);
+        console.error("Failed to fetch latest odometer reading:", err);
+        const fallback = vehicles.find((v) => v.id === vehicleId)?.current_odometer;
+
+        if (isMounted && typeof fallback === "number") {
+          const currentReadingRaw = getValues("odometer_reading");
+          const currentReading =
+            typeof currentReadingRaw === "number"
+              ? currentReadingRaw
+              : parseFloat(String(currentReadingRaw));
+
+          if (
+            !Number.isFinite(currentReading) ||
+            Math.abs(currentReading - fallback) > 0.5
+          ) {
+            setValue("odometer_reading", fallback, {
+              shouldDirty: true,
+              shouldValidate: true,
+            });
+          }
+        }
+      }
+
+      if (isMounted) {
+        initialVehicleIdRef.current = vehicleId;
       }
     };
 
     fetchLastOdometer();
-  }, [vehicleId, startDate, setValue, vehicles]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [vehicleId, setValue, getValues, vehicles, initialData?.id, initialData?.odometer_reading]);
 
   // Calculate total cost from service groups
   useEffect(() => {
@@ -457,16 +578,76 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               {...register("end_date")}
             />
 
-            <Input
-              label="Downtime (Days)"
-              type="number"
-              icon={<Clock className="h-4 w-4" />}
-              error={errors.downtime_days?.message}
-              {...register("downtime_days", {
-                valueAsNumber: true,
-                min: { value: 0, message: "Downtime must be positive" },
-              })}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="block text-sm font-medium text-gray-700">Downtime</span>
+                <span className="text-xs text-gray-500">{downtimeSummary}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {DOWNTIME_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className={cn(
+                      "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
+                      selectedDowntimePreset === preset.id
+                        ? "bg-primary-50 border-primary-500 text-primary-600 shadow-sm"
+                        : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
+                    )}
+                    onClick={() => {
+                      const normalized = Number(preset.value.toFixed(4));
+                      setValue("downtime_days", normalized, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className={cn(
+                    "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
+                    selectedDowntimePreset === "custom"
+                      ? "bg-primary-50 border-primary-500 text-primary-600 shadow-sm"
+                      : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
+                  )}
+                  onClick={() => {
+                    const fallbackValue =
+                      typeof downtimeDays === "number" && downtimeDays > 0
+                        ? downtimeDays
+                        : 1;
+                    setValue("downtime_days", fallbackValue, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    if (typeof window !== "undefined") {
+                      window.requestAnimationFrame(() => {
+                        const input = document.getElementById("downtime-custom-days") as HTMLInputElement | null;
+                        input?.focus();
+                        input?.select();
+                      });
+                    }
+                  }}
+                >
+                  Days
+                </button>
+              </div>
+              <Input
+                id="downtime-custom-days"
+                label="Custom Duration (days)"
+                type="number"
+                step="0.1"
+                min="0"
+                icon={<Clock className="h-4 w-4" />}
+                error={errors.downtime_days?.message}
+                {...register("downtime_days", {
+                  valueAsNumber: true,
+                  min: { value: 0, message: "Downtime must be positive" },
+                })}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -597,3 +778,4 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 };
 
 export default MaintenanceTaskForm;
+
