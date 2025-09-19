@@ -114,11 +114,20 @@ export default {
         'brand': '0 4px 14px 0 rgb(0 0 0 / 0.10)',
         'brand-lg': '0 10px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10)',
       },
-      // Smooth animations
+      // Enhanced animations for maintenance form
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.4s ease-out',
         'slide-down': 'slideDown 0.4s ease-out',
+        'slide-left': 'slideLeft 0.3s ease-out',
+        'slide-right': 'slideRight 0.3s ease-out',
+        'expand-in': 'expandIn 0.3s ease-out',
+        'collapse-out': 'collapseOut 0.3s ease-in',
+        'shake': 'shake 0.4s ease-in-out',
+        'success-pulse': 'successPulse 0.6s ease-out',
+        'error-pulse': 'errorPulse 0.6s ease-out',
+        'scale-in': 'scaleIn 0.2s ease-out',
+        'stagger-in': 'staggerIn 0.3s ease-out',
         'bounce': 'bounce 1s infinite',
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'spin-slow': 'spin 2s linear infinite',
@@ -135,6 +144,45 @@ export default {
         slideDown: {
           '0%': { transform: 'translateY(-20px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideLeft: {
+          '0%': { transform: 'translateX(20px)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        slideRight: {
+          '0%': { transform: 'translateX(-20px)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        expandIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)', maxHeight: '0' },
+          '100%': { opacity: '1', transform: 'scale(1)', maxHeight: '800px' },
+        },
+        collapseOut: {
+          '0%': { opacity: '1', transform: 'scale(1)', maxHeight: '800px' },
+          '100%': { opacity: '0', transform: 'scale(0.95)', maxHeight: '0' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
+          '20%, 40%, 60%, 80%': { transform: 'translateX(2px)' },
+        },
+        successPulse: {
+          '0%': { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.4)' },
+          '70%': { boxShadow: '0 0 0 10px rgba(34, 197, 94, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)' },
+        },
+        errorPulse: {
+          '0%': { boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.4)' },
+          '70%': { boxShadow: '0 0 0 10px rgba(239, 68, 68, 0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(239, 68, 68, 0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.9)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        staggerIn: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         bounce: {
           '0%, 100%': {

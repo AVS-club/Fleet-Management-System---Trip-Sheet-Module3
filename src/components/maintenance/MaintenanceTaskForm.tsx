@@ -14,6 +14,7 @@ import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
+import EnhancedDowntimeSection from "./EnhancedDowntimeSection";
 import {
   PenTool as PenToolIcon,
   Calendar,
@@ -575,113 +576,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               {...register("end_date")}
             />
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="block text-sm font-medium text-gray-700">Downtime</span>
-                <span className="text-xs text-gray-500">{downtimeSummary}</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {DOWNTIME_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    className={cn(
-                      "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
-                      selectedDowntimePreset === preset.id
-                        ? "bg-primary-50 border-primary-500 text-primary-600 shadow-sm"
-                        : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
-                    )}
-                    onClick={() => {
-                      setValue("downtime_days", preset.days, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                      setValue("downtime_hours", preset.hours, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className={cn(
-                    "px-3 py-1.5 rounded-full border text-sm font-medium transition-colors",
-                    selectedDowntimePreset === "custom"
-                      ? "bg-primary-50 border-primary-500 text-primary-600 shadow-sm"
-                      : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
-                  )}
-                  onClick={() => {
-                    const fallbackDays = typeof downtimeDays === "number" && downtimeDays >= 0 ? downtimeDays : 0;
-                    const fallbackHours = typeof downtimeHours === "number" && downtimeHours >= 0 ? downtimeHours : 0;
-                    
-                    setValue("downtime_days", fallbackDays, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                    setValue("downtime_hours", fallbackHours, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    });
-                    
-                    if (typeof window !== "undefined") {
-                      window.requestAnimationFrame(() => {
-                        const input = document.getElementById("downtime-custom-days") as HTMLInputElement | null;
-                        input?.focus();
-                        input?.select();
-                      });
-                    }
-                  }}
-                >
-                  Days
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  id="downtime-custom-days"
-                  label="Days"
-                  type="number"
-                  step="1"
-                  min="0"
-                  icon={<Clock className="h-4 w-4" />}
-                  error={errors.downtime_days?.message}
-                  {...register("downtime_days", {
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Days must be positive" },
-                    validate: (value) => {
-                      if (isNaN(value)) return "Please enter a valid number";
-                      if (value < 0) return "Days cannot be negative";
-                      if (!Number.isInteger(value)) return "Please enter whole days only";
-                      return true;
-                    }
-                  })}
-                />
-                <Input
-                  id="downtime-custom-hours"
-                  label="Hours"
-                  type="number"
-                  step="1"
-                  min="0"
-                  max="23"
-                  icon={<Clock className="h-4 w-4" />}
-                  error={errors.downtime_hours?.message}
-                  {...register("downtime_hours", {
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Hours must be positive" },
-                    max: { value: 23, message: "Hours must be less than 24" },
-                    validate: (value) => {
-                      if (isNaN(value)) return "Please enter a valid number";
-                      if (value < 0) return "Hours cannot be negative";
-                      if (value >= 24) return "Hours must be less than 24";
-                      if (!Number.isInteger(value)) return "Please enter whole hours only";
-                      return true;
-                    }
-                  })}
-                />
-              </div>
-            </div>
+            <EnhancedDowntimeSection />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
