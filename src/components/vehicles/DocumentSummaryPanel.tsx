@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle } from 'lucide-react';
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
+import { updateVehicle } from '../../utils/api/vehicles';
+import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -11,6 +13,7 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tool
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useReactToPrint } from 'react-to-print';
+import { toast } from 'react-toastify';
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;
@@ -237,6 +240,141 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [chartView, setChartView] = useState<'monthly' | 'yearly'>('monthly');
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Refresh functionality state
+  const [isBulkRefreshing, setIsBulkRefreshing] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<{[key: string]: 'pending' | 'processing' | 'success' | 'error'}>({});
+
+  // Helper function for individual vehicle refresh
+  const refreshVehicleData = async (vehicle: Vehicle) => {
+    try {
+      // Set status to processing
+      setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'processing' }));
+
+      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
+        body: {
+          registration_number: vehicle.registration_number,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch details');
+      }
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to fetch vehicle details');
+      }
+
+      // Extract the RC data from the response
+      const rcData = result.data?.response || result.data || {};
+      
+      // Helper function to check if date is valid
+      const isValidDate = (dateStr: string | undefined): boolean => {
+        return dateStr !== undefined && dateStr !== '1900-01-01' && dateStr !== '';
+      };
+
+      // Prepare update payload with only the expiry dates
+      const updatePayload: Partial<Vehicle> = {
+        insurance_expiry_date: isValidDate(rcData.insurance_validity) ? rcData.insurance_validity : vehicle.insurance_expiry_date,
+        tax_paid_upto: rcData.tax_validity === 'LTT' ? '2099-12-31' : (isValidDate(rcData.tax_validity) ? rcData.tax_validity : vehicle.tax_paid_upto),
+        permit_expiry_date: isValidDate(rcData.permit_upto) ? rcData.permit_upto : vehicle.permit_expiry_date,
+        puc_expiry_date: isValidDate(rcData.puc_validity) ? rcData.puc_validity : vehicle.puc_expiry_date,
+        rc_expiry_date: isValidDate(rcData.registration_date) ? rcData.registration_date : vehicle.rc_expiry_date,
+        fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : vehicle.fitness_expiry_date,
+        vahan_last_fetched_at: new Date().toISOString(),
+      };
+
+      // Update the vehicle in the database
+      await updateVehicle(vehicle.id!, updatePayload);
+
+      // Set status to success
+      setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'success' }));
+      
+      return true;
+    } catch (error: any) {
+      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
+      setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'error' }));
+      return false;
+    }
+  };
+
+  // Bulk refresh handler
+  const handleBulkRefresh = async () => {
+    setIsBulkRefreshing(true);
+    setRefreshProgress({});
+    
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Initialize all vehicles as pending
+    const initialProgress = vehicles.reduce((acc, vehicle) => {
+      acc[vehicle.id!] = 'pending';
+      return acc;
+    }, {} as {[key: string]: 'pending' | 'processing' | 'success' | 'error'});
+    setRefreshProgress(initialProgress);
+
+    // Process vehicles one by one
+    for (const vehicle of vehicles) {
+      try {
+        // Add small delay between requests
+        if (successCount + failureCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        const success = await refreshVehicleData(vehicle);
+        if (success) {
+          successCount++;
+        } else {
+          failureCount++;
+        }
+      } catch (error) {
+        failureCount++;
+      }
+    }
+
+    setIsBulkRefreshing(false);
+    
+    // Show completion message
+    if (successCount > 0) {
+      toast.success(`✅ ${successCount} vehicles updated successfully${failureCount > 0 ? `, ${failureCount} failed` : ''}!`);
+    } else {
+      toast.error(`❌ All ${failureCount} vehicles failed to update`);
+    }
+
+    // Clear progress after 3 seconds
+    setTimeout(() => {
+      setRefreshProgress({});
+    }, 3000);
+
+    // Refresh the vehicle list
+    const refreshedVehicles = await getVehicles();
+    setVehicles(refreshedVehicles);
+  };
+
+  // Individual refresh handler for single vehicles
+  const handleIndividualRefresh = async (vehicle: Vehicle) => {
+    if (refreshProgress[vehicle.id!] === 'processing') return;
+
+    const success = await refreshVehicleData(vehicle);
+    
+    if (success) {
+      toast.success(`✅ ${vehicle.registration_number} updated successfully!`);
+      // Refresh the vehicle list to show updated data
+      const refreshedVehicles = await getVehicles();
+      setVehicles(refreshedVehicles);
+    } else {
+      toast.error(`❌ Failed to update ${vehicle.registration_number}`);
+    }
+
+    // Clear individual progress after 2 seconds
+    setTimeout(() => {
+      setRefreshProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[vehicle.id!];
+        return newProgress;
+      });
+    }, 2000);
+  };
 
   // Initialize date ranges
   useEffect(() => {
@@ -734,13 +872,29 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             Vehicle Document Summary
           </h2>
           <div className="flex items-center gap-3">
+            {/* Bulk Refresh Button - This is where your cursor pointed! */}
+            <Button
+              variant="outline"
+              inputSize="sm"
+              onClick={handleBulkRefresh}
+              disabled={isBulkRefreshing || vehicles.length === 0}
+              icon={<RefreshCw className={`h-4 w-4 ${isBulkRefreshing ? 'animate-spin' : ''}`} />}
+              title="Refresh all vehicle expiry data"
+            >
+              {isBulkRefreshing ? `Updating... ${Object.values(refreshProgress).filter(s => s === 'success' || s === 'error').length}/${vehicles.length}` : 'Refresh All Data'}
+              {vehicles.length > 0 && !isBulkRefreshing && (
+                <span className="ml-1 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">
+                  {vehicles.length}
+                </span>
+              )}
+            </Button>
             <Button
               variant="outline"
               inputSize="sm"
               onClick={handlePrintClick}
               icon={<Print className="h-4 w-4" />}
               title="Print Report"
-              disabled={loading}
+              disabled={loading || isBulkRefreshing}
             />
             <Button
               variant="outline"
@@ -748,7 +902,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               onClick={handleDownload}
               icon={<Download className="h-4 w-4" />}
               title="Export Data"
-              disabled={loading}
+              disabled={loading || isBulkRefreshing}
             />
             <button
               onClick={onClose}
@@ -759,6 +913,48 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             </button>
           </div>
         </div>
+
+        {/* Bulk Refresh Progress Indicator */}
+        {isBulkRefreshing && (
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mx-6 mt-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <RefreshCw className="h-5 w-5 text-blue-400 animate-spin" />
+              </div>
+              <div className="ml-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-blue-800">
+                    Refreshing Vehicle Data
+                  </h3>
+                  <div className="text-sm text-blue-600">
+                    {Object.values(refreshProgress).filter(s => s === 'success' || s === 'error').length} of {vehicles.length} processed
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-2 w-full bg-blue-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.round((Object.values(refreshProgress).filter(s => s === 'success' || s === 'error').length / vehicles.length) * 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                
+                <div className="mt-2 text-xs text-blue-700">
+                  ✅ {Object.values(refreshProgress).filter(s => s === 'success').length} successful • 
+                  ❌ {Object.values(refreshProgress).filter(s => s === 'error').length} failed • 
+                  🔄 {Object.values(refreshProgress).filter(s => s === 'processing').length} processing • 
+                  ⏳ {Object.values(refreshProgress).filter(s => s === 'pending').length} waiting
+                </div>
+                
+                <p className="mt-1 text-xs text-blue-600">
+                  You can close this panel and the refresh will continue in the background.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Panel Content */}
         <div className="flex-grow overflow-y-auto p-6 space-y-6" ref={contentRef} id="printable-content">
@@ -959,8 +1155,63 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                       {documentMatrix.length > 0 ? (
                         documentMatrix.map((vehicle) => (
                           <tr key={vehicle.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10 border-r border-gray-100">
-                              {vehicle.registration}
+                            {/* Enhanced Vehicle Number Cell with Refresh Button */}
+                            <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
+                              <div className="flex items-center justify-between group">
+                                {/* Vehicle Info */}
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {vehicle.registration}
+                                  </div>
+                                  {/* Show last updated info if available */}
+                                  {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
+                                    <div className="text-xs text-blue-600 mt-1">
+                                      Updated: {format(parseISO(vehicles.find(v => v.id === vehicle.id)!.vahan_last_fetched_at!), 'MMM d, HH:mm')}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Show refresh status */}
+                                  {refreshProgress[vehicle.id] && (
+                                    <div className={`text-xs mt-1 ${
+                                      refreshProgress[vehicle.id] === 'success' ? 'text-green-600' :
+                                      refreshProgress[vehicle.id] === 'error' ? 'text-red-600' :
+                                      refreshProgress[vehicle.id] === 'processing' ? 'text-blue-600' :
+                                      'text-gray-500'
+                                    }`}>
+                                      {refreshProgress[vehicle.id] === 'pending' && '⏳ Queued'}
+                                      {refreshProgress[vehicle.id] === 'processing' && '🔄 Updating...'}
+                                      {refreshProgress[vehicle.id] === 'success' && '✅ Updated'}
+                                      {refreshProgress[vehicle.id] === 'error' && '❌ Failed'}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Individual Refresh Button - This is where your cursor pointed! */}
+                                <button
+                                  onClick={() => handleIndividualRefresh(vehicles.find(v => v.id === vehicle.id)!)}
+                                  disabled={isBulkRefreshing || refreshProgress[vehicle.id] === 'processing'}
+                                  className={`
+                                    ml-2 p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
+                                    focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+                                    ${refreshProgress[vehicle.id] === 'processing' ? 'opacity-100' : ''}
+                                    ${refreshProgress[vehicle.id] === 'success' ? 'bg-green-50 text-green-600 opacity-100' :
+                                      refreshProgress[vehicle.id] === 'error' ? 'bg-red-50 text-red-600 opacity-100' :
+                                      'hover:bg-gray-100 text-gray-500 hover:text-blue-600'}
+                                    ${isBulkRefreshing || refreshProgress[vehicle.id] === 'processing' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                                  `}
+                                  title={`Refresh ${vehicle.registration} data`}
+                                >
+                                  {refreshProgress[vehicle.id] === 'processing' ? (
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                  ) : refreshProgress[vehicle.id] === 'success' ? (
+                                    <CheckCircle className="h-3 w-3" />
+                                  ) : refreshProgress[vehicle.id] === 'error' ? (
+                                    <AlertCircle className="h-3 w-3" />
+                                  ) : (
+                                    <RotateCcw className="h-3 w-3" />
+                                  )}
+                                </button>
+                              </div>
                             </td>
                             
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
