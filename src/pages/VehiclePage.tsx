@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { getVehicle, getVehicleStats, getTrips } from "../utils/storage";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
+import { updateVehicle } from "../utils/api/vehicles";
+import { supabase } from "../utils/supabaseClient";
 import {
   Truck,
   Calendar,
@@ -22,6 +24,7 @@ import {
   Database,
   IndianRupee,
   User,
+  RefreshCw,
 } from "lucide-react";
 import { Vehicle } from "@/types";
 import Button from "../components/ui/Button";
@@ -55,6 +58,7 @@ const VehiclePage: React.FC = () => {
   const [showDocumentViewerModal, setShowDocumentViewerModal] = useState(false);
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [stats, setStats] = useState<{
     totalTrips: number;
@@ -404,6 +408,63 @@ const VehiclePage: React.FC = () => {
     setShowShareModal(true);
   };
 
+  // Handle individual vehicle refresh
+  const handleVehicleRefresh = async () => {
+    if (!vehicle || isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
+        body: {
+          registration_number: vehicle.registration_number,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch details');
+      }
+
+      if (!result?.success) {
+        throw new Error(result?.message || 'Failed to fetch vehicle details');
+      }
+
+      // Extract the RC data from the response
+      const rcData = result.data?.response || result.data || {};
+      
+      // Helper function to check if date is valid
+      const isValidDate = (dateStr: string | undefined): boolean => {
+        return dateStr !== undefined && dateStr !== '1900-01-01' && dateStr !== '';
+      };
+
+      // Prepare update payload with only the expiry dates - FIXED FIELD MAPPINGS
+      const updatePayload: Partial<Vehicle> = {
+        insurance_expiry_date: isValidDate(rcData.insurance_expiry) ? rcData.insurance_expiry : vehicle.insurance_expiry_date,
+        tax_paid_upto: rcData.tax_upto === 'LTT' ? '2099-12-31' : (isValidDate(rcData.tax_upto) ? rcData.tax_upto : vehicle.tax_paid_upto),
+        permit_expiry_date: isValidDate(rcData.permit_valid_upto) ? rcData.permit_valid_upto : vehicle.permit_expiry_date,
+        puc_expiry_date: isValidDate(rcData.pucc_upto) ? rcData.pucc_upto : vehicle.puc_expiry_date,
+        rc_expiry_date: isValidDate(rcData.rc_expiry) ? rcData.rc_expiry : vehicle.rc_expiry_date,
+        fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : vehicle.fitness_expiry_date,
+        vahan_last_fetched_at: new Date().toISOString(),
+      };
+
+      // Update the vehicle in the database
+      const updatedVehicle = await updateVehicle(vehicle.id, updatePayload);
+
+      if (updatedVehicle) {
+        // Update local state
+        setVehicle(prevVehicle => ({ ...prevVehicle, ...updatePayload }));
+        toast.success(`✅ ${vehicle.registration_number} updated successfully!`);
+      } else {
+        toast.error(`❌ Failed to update ${vehicle.registration_number}`);
+      }
+    } catch (error: any) {
+      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
+      toast.error(`❌ Failed to refresh ${vehicle.registration_number}: ${error.message}`);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Layout
       title={`Vehicle: ${vehicle.registration_number}`}
@@ -416,6 +477,16 @@ const VehiclePage: React.FC = () => {
             icon={<ChevronLeft className="h-4 w-4" />}
           >
             Back
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={handleVehicleRefresh}
+            isLoading={isRefreshing}
+            icon={<RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
+            title="Refresh vehicle data from RC API"
+          >
+            Refresh Data
           </Button>
 
           <Button
@@ -473,7 +544,7 @@ const VehiclePage: React.FC = () => {
         <div className="space-y-6">
           {/* Main Content Grid - 3 Sections */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* SECTION 1: VEHICLE INFORMATION */}
+            {/* SECTION 1: VEHICLE INFORMATION - ENHANCED */}
             <div className="bg-white p-6 rounded-lg shadow-sm space-y-5">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -485,6 +556,14 @@ const VehiclePage: React.FC = () => {
                       <span className="inline-flex items-center">
                         <User className="h-3.5 w-3.5 mr-1 text-gray-400" />
                         Owned by {vehicle.owner_name}
+                      </span>
+                    </p>
+                  )}
+                  {vehicle.vahan_last_fetched_at && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      <span className="inline-flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Last updated: {formatDate(vehicle.vahan_last_fetched_at)}
                       </span>
                     </p>
                   )}
@@ -503,6 +582,7 @@ const VehiclePage: React.FC = () => {
               </div>
 
               <div className="space-y-3 divide-y divide-gray-100">
+                {/* Basic Information */}
                 <div className="grid grid-cols-2 gap-4 pb-3">
                   <div>
                     <p className="text-xs text-gray-500">Registration</p>
@@ -535,28 +615,106 @@ const VehiclePage: React.FC = () => {
                     </p>
                   </div>
                   <div>
+                    <p className="text-xs text-gray-500">Color</p>
+                    <p className="font-medium capitalize">
+                      {vehicle.color || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Technical Specifications */}
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
                     <p className="text-xs text-gray-500">Chassis Number</p>
                     <p className="font-medium font-mono text-sm">
                       {vehicle.chassis_number || "N/A"}
                     </p>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 py-3">
                   <div>
                     <p className="text-xs text-gray-500">Engine Number</p>
                     <p className="font-medium font-mono text-sm">
                       {vehicle.engine_number || "N/A"}
                     </p>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3">
                   <div>
-                    <p className="text-xs text-gray-500">Reg. Date</p>
+                    <p className="text-xs text-gray-500">Vehicle Class</p>
                     <p className="font-medium">
-                      {formatDate(vehicle.registration_date)}
+                      {vehicle.vehicle_class || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Cubic Capacity</p>
+                    <p className="font-medium">
+                      {vehicle.cubic_capacity ? `${vehicle.cubic_capacity} cc` : "N/A"}
                     </p>
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Seating Capacity</p>
+                    <p className="font-medium">
+                      {vehicle.seating_capacity || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Unladen Weight</p>
+                    <p className="font-medium">
+                      {vehicle.unladen_weight ? `${vehicle.unladen_weight} kg` : "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Cylinders</p>
+                    <p className="font-medium">
+                      {vehicle.cylinders || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Emission Norms</p>
+                    <p className="font-medium">
+                      {vehicle.emission_norms || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Registration & Ownership */}
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Registration Date</p>
+                    <p className="font-medium">
+                      {formatDate(vehicle.registration_date)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">RC Status</p>
+                    <p className="font-medium">
+                      {vehicle.rc_status || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 py-3">
+                  <div>
+                    <p className="text-xs text-gray-500">Financer</p>
+                    <p className="font-medium">
+                      {vehicle.financer || "N/A"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">NOC Details</p>
+                    <p className="font-medium">
+                      {vehicle.noc_details || "N/A"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Current Status */}
                 <div className="grid grid-cols-2 gap-4 py-3">
                   <div>
                     <p className="text-xs text-gray-500">Current Odometer</p>
@@ -576,7 +734,7 @@ const VehiclePage: React.FC = () => {
               </div>
             </div>
 
-            {/* SECTION 2: DOCUMENT STATUS */}
+            {/* SECTION 2: DOCUMENT STATUS - ENHANCED */}
             <div className="bg-white p-6 rounded-lg shadow-sm space-y-5">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-medium text-gray-900">
@@ -587,7 +745,6 @@ const VehiclePage: React.FC = () => {
 
               <div className="space-y-4">
                 {/* RC Document */}
-
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="flex flex-col">
                     <div className="flex items-center">
@@ -610,6 +767,206 @@ const VehiclePage: React.FC = () => {
                     signedDocUrls.rc.length > 0 && (
                       <div className="flex gap-2 flex-wrap">
                         {signedDocUrls.rc.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Insurance Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <Shield className="h-4 w-4 text-blue-400 mr-2" />
+                      <span className="text-sm font-medium">Insurance</span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs ${insuranceStatus.color}`}
+                      >
+                        {insuranceStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.insurance_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.insurance_expiry_date)}
+                      </p>
+                    )}
+                    {vehicle.insurer_name && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Insurer: {vehicle.insurer_name}
+                      </p>
+                    )}
+                  </div>
+                  {signedDocUrls.insurance &&
+                    Array.isArray(signedDocUrls.insurance) &&
+                    signedDocUrls.insurance.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {signedDocUrls.insurance.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Fitness Certificate */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-purple-400 mr-2" />
+                      <span className="text-sm font-medium">Fitness Certificate</span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs ${fitnessStatus.color}`}
+                      >
+                        {fitnessStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.fitness_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.fitness_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {signedDocUrls.fitness &&
+                    Array.isArray(signedDocUrls.fitness) &&
+                    signedDocUrls.fitness.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {signedDocUrls.fitness.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Permit Document */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-yellow-400 mr-2" />
+                      <span className="text-sm font-medium">Permit</span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs ${permitStatus.color}`}
+                      >
+                        {permitStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.permit_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.permit_expiry_date)}
+                      </p>
+                    )}
+                    {vehicle.permit_issuing_state && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Issuing State: {vehicle.permit_issuing_state}
+                      </p>
+                    )}
+                  </div>
+                  {signedDocUrls.permit &&
+                    Array.isArray(signedDocUrls.permit) &&
+                    signedDocUrls.permit.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {signedDocUrls.permit.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* PUC Certificate */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-red-400 mr-2" />
+                      <span className="text-sm font-medium">PUC Certificate</span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs ${pucStatus.color}`}
+                      >
+                        {pucStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.puc_expiry_date && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Expires: {formatDate(vehicle.puc_expiry_date)}
+                      </p>
+                    )}
+                  </div>
+                  {signedDocUrls.puc &&
+                    Array.isArray(signedDocUrls.puc) &&
+                    signedDocUrls.puc.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {signedDocUrls.puc.map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 text-sm font-medium text-primary-600 bg-primary-50 rounded hover:bg-primary-100 transition-colors"
+                          >
+                            View
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Tax Receipt */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <FileText className="h-4 w-4 text-green-400 mr-2" />
+                      <span className="text-sm font-medium">Tax Receipt</span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 rounded-full text-xs ${taxStatus.color}`}
+                      >
+                        {taxStatus.label}
+                      </span>
+                    </div>
+                    {vehicle.tax_paid_upto && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Paid Upto: {formatDate(vehicle.tax_paid_upto)}
+                      </p>
+                    )}
+                    {vehicle.tax_scope && (
+                      <p className="text-xs text-gray-500 mt-1 ml-6">
+                        Scope: {vehicle.tax_scope}
+                      </p>
+                    )}
+                  </div>
+                  {signedDocUrls.tax &&
+                    Array.isArray(signedDocUrls.tax) &&
+                    signedDocUrls.tax.length > 0 && (
+                      <div className="flex gap-2 flex-wrap">
+                        {signedDocUrls.tax.map((url, idx) => (
                           <a
                             key={idx}
                             href={url}

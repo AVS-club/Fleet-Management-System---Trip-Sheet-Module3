@@ -273,19 +273,28 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
         return dateStr !== undefined && dateStr !== '1900-01-01' && dateStr !== '';
       };
 
-      // Prepare update payload with only the expiry dates
+      // Prepare update payload with only the expiry dates - FIXED FIELD MAPPINGS
       const updatePayload: Partial<Vehicle> = {
-        insurance_expiry_date: isValidDate(rcData.insurance_validity) ? rcData.insurance_validity : vehicle.insurance_expiry_date,
-        tax_paid_upto: rcData.tax_validity === 'LTT' ? '2099-12-31' : (isValidDate(rcData.tax_validity) ? rcData.tax_validity : vehicle.tax_paid_upto),
-        permit_expiry_date: isValidDate(rcData.permit_upto) ? rcData.permit_upto : vehicle.permit_expiry_date,
-        puc_expiry_date: isValidDate(rcData.puc_validity) ? rcData.puc_validity : vehicle.puc_expiry_date,
-        rc_expiry_date: isValidDate(rcData.registration_date) ? rcData.registration_date : vehicle.rc_expiry_date,
+        insurance_expiry_date: isValidDate(rcData.insurance_expiry) ? rcData.insurance_expiry : vehicle.insurance_expiry_date,
+        tax_paid_upto: rcData.tax_upto === 'LTT' ? '2099-12-31' : (isValidDate(rcData.tax_upto) ? rcData.tax_upto : vehicle.tax_paid_upto),
+        permit_expiry_date: isValidDate(rcData.permit_valid_upto) ? rcData.permit_valid_upto : vehicle.permit_expiry_date,
+        puc_expiry_date: isValidDate(rcData.pucc_upto) ? rcData.pucc_upto : vehicle.puc_expiry_date,
+        rc_expiry_date: isValidDate(rcData.rc_expiry) ? rcData.rc_expiry : vehicle.rc_expiry_date,
         fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : vehicle.fitness_expiry_date,
         vahan_last_fetched_at: new Date().toISOString(),
       };
 
       // Update the vehicle in the database
-      await updateVehicle(vehicle.id!, updatePayload);
+      const updatedVehicle = await updateVehicle(vehicle.id!, updatePayload);
+
+      // Update local state immediately for UI refresh
+      if (updatedVehicle) {
+        setVehicles(prevVehicles => 
+          prevVehicles.map(v => 
+            v.id === vehicle.id ? { ...v, ...updatePayload } : v
+          )
+        );
+      }
 
       // Set status to success
       setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'success' }));
