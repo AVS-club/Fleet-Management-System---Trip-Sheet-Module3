@@ -35,7 +35,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
   const tyreTracking = watch(`service_groups.${index}.tyre_tracking`);
 
   return (
-    <div className="border rounded-lg relative overflow-hidden">
+    <div className="border rounded-lg relative overflow-visible">
       <div className="bg-gray-50 p-3 pr-10 border-b flex items-center justify-between">
         <h4 className="font-medium text-gray-800">Service Group {index + 1}</h4>
         {canRemove && (

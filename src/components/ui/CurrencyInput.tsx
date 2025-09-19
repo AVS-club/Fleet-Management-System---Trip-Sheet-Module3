@@ -12,15 +12,19 @@ interface CurrencyInputProps
 }
 
 const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
-  ({ iconPosition = "left", inputSize, ...props }, ref) => (
+  ({ iconPosition = "left", inputSize, onFocus, ...props }, ref) => (
     <Input
       {...props}
       ref={ref}
       type="number"
       step="0.01"
-      icon={<span>₹</span>}
+      icon={<span aria-hidden="true">{"\u20B9"}</span>}
       iconPosition={iconPosition}
       inputSize={inputSize}
+      onFocus={(event) => {
+        event.target.select();
+        onFocus?.(event);
+      }}
     />
   )
 );
