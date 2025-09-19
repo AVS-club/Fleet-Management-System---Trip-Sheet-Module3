@@ -121,8 +121,26 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       label="Battery Serial Number"
                       placeholder="Enter serial number"
                       inputSize="sm"
+                      error={errors.service_groups?.[index]?.battery_serial?.message}
                       {...register(
-                        `service_groups.${index}.battery_serial` as const
+                        `service_groups.${index}.battery_serial` as const,
+                        {
+                          required: batteryTracking ? "Battery serial number is required" : false,
+                          validate: (value) => {
+                            if (batteryTracking && value) {
+                              // Check if serial number contains only valid characters (alphanumeric, hyphens, underscores)
+                              const validSerialPattern = /^[A-Za-z0-9\-_]+$/;
+                              if (!validSerialPattern.test(value)) {
+                                return "Serial number can only contain letters, numbers, hyphens, and underscores";
+                              }
+                              // Check minimum length
+                              if (value.length < 3) {
+                                return "Serial number must be at least 3 characters long";
+                              }
+                            }
+                            return true;
+                          }
+                        }
                       )}
                     />
                   </div>
@@ -280,8 +298,32 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                       label="Tyre Serial Numbers"
                       placeholder="Comma separated"
                       inputSize="sm"
+                      error={errors.service_groups?.[index]?.tyre_serials?.message}
                       {...register(
-                        `service_groups.${index}.tyre_serials` as const
+                        `service_groups.${index}.tyre_serials` as const,
+                        {
+                          required: tyreTracking ? "Tyre serial numbers are required" : false,
+                          validate: (value) => {
+                            if (tyreTracking && value) {
+                              // Split by comma and validate each serial number
+                              const serials = value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+                              if (serials.length === 0) {
+                                return "Please enter at least one tyre serial number";
+                              }
+                              // Check each serial number format
+                              const validSerialPattern = /^[A-Za-z0-9\-_]+$/;
+                              for (const serial of serials) {
+                                if (!validSerialPattern.test(serial)) {
+                                  return "Serial numbers can only contain letters, numbers, hyphens, and underscores";
+                                }
+                                if (serial.length < 3) {
+                                  return "Each serial number must be at least 3 characters long";
+                                }
+                              }
+                            }
+                            return true;
+                          }
+                        }
                       )}
                     />
                     <Controller

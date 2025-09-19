@@ -91,6 +91,7 @@ export interface MaintenanceTask {
   start_date: string;
   end_date?: string;
   downtime_days: number;
+  downtime_hours: number;
   odometer_reading: number;
   odometer_image?: string;
   // Calculated fields (not stored in database)

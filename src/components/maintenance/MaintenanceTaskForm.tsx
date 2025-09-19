@@ -7,6 +7,8 @@ import Select from "../ui/Select";
 import Button from "../ui/Button";
 import FileUpload from "../ui/FileUpload";
 import GarageSelector from "./GarageSelector";
+import VehicleSelector from "./VehicleSelector";
+import TaskTypeSelector from "./TaskTypeSelector";
 import MaintenanceAuditLog from "./MaintenanceAuditLog";
 import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
@@ -28,10 +30,13 @@ import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 
 const DOWNTIME_PRESETS = [
-  { id: "2h", label: "2 h", value: 2 / 24 },
-  { id: "4h", label: "4 h", value: 4 / 24 },
-  { id: "6h", label: "6 h", value: 6 / 24 },
-  { id: "1d", label: "1 d", value: 1 },
+  { id: "2h", label: "2 h", days: 0, hours: 2 },
+  { id: "4h", label: "4 h", days: 0, hours: 4 },
+  { id: "6h", label: "6 h", days: 0, hours: 6 },
+  { id: "8h", label: "8 h", days: 0, hours: 8 },
+  { id: "1d", label: "1 d", days: 1, hours: 0 },
+  { id: "2d", label: "2 d", days: 2, hours: 0 },
+  { id: "3d", label: "3 d", days: 3, hours: 0 },
 ];
 
 const isClose = (a: number, b: number, tolerance = 0.01) =>
@@ -71,6 +76,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       start_date: new Date().toISOString().split("T")[0],
       title: [],
       warranty_claimed: false,
+      downtime_days: 0,
+      downtime_hours: 0,
       service_groups:
         initialData?.service_groups && initialData.service_groups.length > 0
           ? initialData.service_groups
@@ -102,6 +109,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const vehicleId = watch("vehicle_id");
   const odometerReading = watch("odometer_reading");
   const downtimeDays = watch("downtime_days");
+  const downtimeHours = watch("downtime_hours");
   const taskType = watch("task_type");
   const title = watch("title");
   const serviceGroupsWatch = watch("service_groups");
@@ -129,34 +137,41 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const skipInitialOdometerPrefillRef = useRef(true);
 
   const selectedDowntimePreset = useMemo(() => {
-    if (typeof downtimeDays !== "number" || Number.isNaN(downtimeDays)) {
+    if (typeof downtimeDays !== "number" || typeof downtimeHours !== "number" || 
+        Number.isNaN(downtimeDays) || Number.isNaN(downtimeHours)) {
       return "custom";
     }
 
     const presetMatch = DOWNTIME_PRESETS.find((preset) =>
-      isClose(downtimeDays, preset.value, 0.05)
+      preset.days === downtimeDays && preset.hours === downtimeHours
     );
 
     return presetMatch?.id ?? "custom";
-  }, [downtimeDays]);
+  }, [downtimeDays, downtimeHours]);
 
   const downtimeSummary = useMemo(() => {
-    if (typeof downtimeDays !== "number" || downtimeDays <= 0) {
+    if ((typeof downtimeDays !== "number" || downtimeDays <= 0) && 
+        (typeof downtimeHours !== "number" || downtimeHours <= 0)) {
       return "No downtime selected";
     }
 
-    const hours = downtimeDays * 24;
-
-    if (hours < 24) {
-      return `${Math.round(hours)} hrs`;
+    const totalHours = (downtimeDays || 0) * 24 + (downtimeHours || 0);
+    
+    if (totalHours < 24) {
+      return `${totalHours} hrs`;
     }
 
-    if (Number.isInteger(downtimeDays)) {
-      return `${downtimeDays} day${downtimeDays === 1 ? "" : "s"}`;
-    }
+    const days = Math.floor(totalHours / 24);
+    const remainingHours = totalHours % 24;
 
-    return `${downtimeDays.toFixed(2)} days (~${Math.round(hours)} hrs)`;
-  }, [downtimeDays]);
+    if (days > 0 && remainingHours > 0) {
+      return `${days} day${days === 1 ? "" : "s"} ${remainingHours} hr${remainingHours === 1 ? "" : "s"}`;
+    } else if (days > 0) {
+      return `${days} day${days === 1 ? "" : "s"}`;
+    } else {
+      return `${remainingHours} hr${remainingHours === 1 ? "" : "s"}`;
+    }
+  }, [downtimeDays, downtimeHours]);
 
   // Fetch audit logs asynchronously
   useEffect(() => {
@@ -482,16 +497,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 validate: (value) => value !== "" || "Please select a vehicle"
               }}
               render={({ field }) => (
-                <Select
-                  label="Vehicle"
-                  icon={<Truck className="h-4 w-4" />}
-                  options={vehicles.map((vehicle) => ({
-                    value: vehicle.id,
-                    label: `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}`,
-                  }))}
+                <VehicleSelector
+                  selectedVehicle={field.value}
+                  onChange={field.onChange}
+                  vehicles={vehicles}
                   error={errors.vehicle_id?.message}
-                  required
-                  {...field}
                 />
               )}
             />
@@ -501,24 +511,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               name="task_type"
               rules={{ required: "Task type is required" }}
               render={({ field }) => (
-                <Select
-                  label="Maintenance Type"
-                  icon={<PenToolIcon className="h-4 w-4" />}
-                  options={[
-                    {
-                      value: "general_scheduled_service",
-                      label: "General Scheduled Service",
-                    },
-                    {
-                      value: "wear_and_tear_replacement_repairs",
-                      label: "Wear and Tear / Replacement Repairs",
-                    },
-                    { value: "accidental", label: "Accidental" },
-                    { value: "others", label: "Others" },
-                  ]}
+                <TaskTypeSelector
+                  selectedTaskType={field.value}
+                  onChange={field.onChange}
                   error={errors.task_type?.message}
-                  required
-                  {...field}
                 />
               )}
             />
@@ -596,8 +592,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                         : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
                     )}
                     onClick={() => {
-                      const normalized = Number(preset.value.toFixed(4));
-                      setValue("downtime_days", normalized, {
+                      setValue("downtime_days", preset.days, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      setValue("downtime_hours", preset.hours, {
                         shouldDirty: true,
                         shouldValidate: true,
                       });
@@ -615,14 +614,18 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                       : "border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600"
                   )}
                   onClick={() => {
-                    const fallbackValue =
-                      typeof downtimeDays === "number" && downtimeDays > 0
-                        ? downtimeDays
-                        : 1;
-                    setValue("downtime_days", fallbackValue, {
+                    const fallbackDays = typeof downtimeDays === "number" && downtimeDays >= 0 ? downtimeDays : 0;
+                    const fallbackHours = typeof downtimeHours === "number" && downtimeHours >= 0 ? downtimeHours : 0;
+                    
+                    setValue("downtime_days", fallbackDays, {
                       shouldDirty: true,
                       shouldValidate: true,
                     });
+                    setValue("downtime_hours", fallbackHours, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    
                     if (typeof window !== "undefined") {
                       window.requestAnimationFrame(() => {
                         const input = document.getElementById("downtime-custom-days") as HTMLInputElement | null;
@@ -635,19 +638,49 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   Days
                 </button>
               </div>
-              <Input
-                id="downtime-custom-days"
-                label="Custom Duration (days)"
-                type="number"
-                step="0.1"
-                min="0"
-                icon={<Clock className="h-4 w-4" />}
-                error={errors.downtime_days?.message}
-                {...register("downtime_days", {
-                  valueAsNumber: true,
-                  min: { value: 0, message: "Downtime must be positive" },
-                })}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  id="downtime-custom-days"
+                  label="Days"
+                  type="number"
+                  step="1"
+                  min="0"
+                  icon={<Clock className="h-4 w-4" />}
+                  error={errors.downtime_days?.message}
+                  {...register("downtime_days", {
+                    valueAsNumber: true,
+                    min: { value: 0, message: "Days must be positive" },
+                    validate: (value) => {
+                      if (isNaN(value)) return "Please enter a valid number";
+                      if (value < 0) return "Days cannot be negative";
+                      if (!Number.isInteger(value)) return "Please enter whole days only";
+                      return true;
+                    }
+                  })}
+                />
+                <Input
+                  id="downtime-custom-hours"
+                  label="Hours"
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="23"
+                  icon={<Clock className="h-4 w-4" />}
+                  error={errors.downtime_hours?.message}
+                  {...register("downtime_hours", {
+                    valueAsNumber: true,
+                    min: { value: 0, message: "Hours must be positive" },
+                    max: { value: 23, message: "Hours must be less than 24" },
+                    validate: (value) => {
+                      if (isNaN(value)) return "Please enter a valid number";
+                      if (value < 0) return "Hours cannot be negative";
+                      if (value >= 24) return "Hours must be less than 24";
+                      if (!Number.isInteger(value)) return "Please enter whole hours only";
+                      return true;
+                    }
+                  })}
+                />
+              </div>
             </div>
           </div>
 
