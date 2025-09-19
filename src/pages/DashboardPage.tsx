@@ -168,6 +168,10 @@ const DashboardPage: React.FC = () => {
     navigate(`/trips/${trip.id}`);
   };
   
+  const handleDataPointClick = (tripId: string) => {
+    navigate(`/trips/${tripId}`);
+  };
+  
   const handleSelectVehicle = (vehicle: Vehicle) => {
     navigate(`/vehicles/${vehicle.id}`);
   };
@@ -401,14 +405,8 @@ const DashboardPage: React.FC = () => {
         </h2>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
-          <div
-            onClick={() => navigate("/trips")}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/trips")}
-            className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-          >
-            <MileageChart trips={trips} />
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <MileageChart trips={trips} onDataPointClick={handleDataPointClick} />
           </div>
           
           <div

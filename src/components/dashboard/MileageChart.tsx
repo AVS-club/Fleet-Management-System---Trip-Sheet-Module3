@@ -6,9 +6,10 @@ import EmptyState from './EmptyState';
 
 interface MileageChartProps {
   trips: Trip[] | null;
+  onDataPointClick?: (tripId: string) => void;
 }
 
-const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
+const MileageChart: React.FC<MileageChartProps> = ({ trips, onDataPointClick }) => {
   const chartData = useMemo(() => {
     // Filter trips with calculated KMPL
     const tripsWithKmpl = Array.isArray(trips) ? trips
@@ -37,6 +38,45 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
     const sum = tripsWithKmpl.reduce((acc, trip) => acc + (trip.calculated_kmpl || 0), 0);
     return sum / tripsWithKmpl.length;
   }, [trips]);
+  
+  // Custom Dot component for clickable data points
+  const CustomDot = (props: any) => {
+    const { cx, cy, payload } = props;
+    
+    if (!onDataPointClick || !payload?.tripId) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={3}
+          stroke="#4f46e5"
+          fill="white"
+          strokeWidth={2}
+        />
+      );
+    }
+    
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={3}
+        stroke="#4f46e5"
+        fill="white"
+        strokeWidth={2}
+        style={{ cursor: 'pointer' }}
+        onClick={() => onDataPointClick(payload.tripId)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.r = '5';
+          e.currentTarget.style.fill = '#4f46e5';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.r = '3';
+          e.currentTarget.style.fill = 'white';
+        }}
+      />
+    );
+  };
   
   if (chartData.length < 2) {
     return (
@@ -94,7 +134,7 @@ const MileageChart: React.FC<MileageChartProps> = ({ trips }) => {
               dataKey="kmpl" 
               stroke="#4f46e5"
               strokeWidth={2}
-              dot={{ r: 3, stroke: '#4f46e5', fill: 'white', strokeWidth: 2 }}
+              dot={<CustomDot />}
               activeDot={{ r: 5, stroke: '#4f46e5', fill: '#4f46e5', strokeWidth: 0 }}
             />
           </LineChart>

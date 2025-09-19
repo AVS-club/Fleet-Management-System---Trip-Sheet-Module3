@@ -17,6 +17,7 @@ type NavLink = {
 };
 
 export const navLinks: NavLink[] = [
+  { to: '/',                label: 'Dashboard',  icon: LayoutDashboard },
   { to: '/vehicles',        label: 'Vehicles',   icon: Truck,      hasQuickAdd: true },
   { to: '/drivers',         label: 'Drivers',    icon: Users,      hasQuickAdd: true },
   { to: '/trips',           label: 'Trips',      icon: Route,      hasQuickAdd: true },

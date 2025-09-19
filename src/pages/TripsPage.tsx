@@ -17,7 +17,7 @@ import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { searchTrips, TripFilters, useDebounce } from '../utils/tripSearch';
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
 import { fixAllExistingMileage } from '../utils/fixExistingMileage';
-import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TripsPage: React.FC = () => {
@@ -449,6 +449,13 @@ const TripsPage: React.FC = () => {
               icon={<BarChart2 className="h-4 w-4" />}
             >
               P&L Report
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              icon={<LayoutDashboard className="h-4 w-4" />}
+            >
+              Dashboard
             </Button>
             <Button
               variant="outline"
