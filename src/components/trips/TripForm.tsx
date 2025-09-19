@@ -12,6 +12,7 @@ import { CorrectionCascadeManager } from '../../utils/correctionCascadeManager';
 import { recalculateMileageForRefuelingTrip } from '../../utils/mileageRecalculation';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import EnhancedInput from '../ui/EnhancedInput';
 import WarehouseSelector from './WarehouseSelector';
 import SearchableDestinationInput from './SearchableDestinationInput';
 import MaterialSelector from './MaterialSelector';
@@ -1009,110 +1010,70 @@ const TripForm: React.FC<TripFormProps> = ({
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Vehicle
-              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
-            </label>
-            <Combobox
-              value={selectedVehicle}
-              onChange={(vehicle: Vehicle | null) => {
+          <EnhancedInput
+            label="Vehicle"
+            required
+            icon={Truck}
+            isVehicle
+            value={selectedVehicle?.registration_number || ''}
+            onChange={(value) => {
+              const vehicle = vehicles.find(v => v.registration_number === value);
+              setSelectedVehicle(vehicle || null);
+              setValue('vehicle_id', vehicle?.id || '');
+              if (vehicle?.id) {
+                handleVehicleSelection(vehicle.id);
+              }
+            }}
+            placeholder="Type vehicle number..."
+            isDropdown
+            dropdownOptions={filteredVehicles.map(vehicle => ({
+              id: vehicle.id,
+              label: vehicle.registration_number,
+              value: vehicle.registration_number,
+              subtitle: `${vehicle.make} ${vehicle.model}`,
+              status: vehicle.status as any
+            }))}
+            onDropdownSelect={(option) => {
+              const vehicle = vehicles.find(v => v.id === option.id);
+              if (vehicle) {
                 setSelectedVehicle(vehicle);
-                setValue('vehicle_id', vehicle?.id || '');
-                if (vehicle?.id) {
-                  handleVehicleSelection(vehicle.id);
-                }
-              }}
-            >
-              <div className="relative">
-                <div className="relative">
-                  <Truck className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Combobox.Input
-                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    displayValue={(vehicle: Vehicle | null) => vehicle?.registration_number || ''}
-                    onChange={(event) => setVehicleQuery(event.target.value)}
-                    placeholder="Type vehicle number..."
-                  />
-                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </Combobox.Button>
-                </div>
-                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredVehicles.length === 0 && vehicleQuery !== '' ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">No vehicles found</div>
-                  ) : (
-                    filteredVehicles.map((vehicle) => (
-                      <Combobox.Option
-                        key={vehicle.id}
-                        value={vehicle}
-                        className={({ active }) =>
-                          `cursor-pointer select-none px-4 py-2 ${
-                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
-                          }`
-                        }
-                      >
-                        <div>
-                          <div className="font-medium">{vehicle.registration_number}</div>
-                          <div className="text-xs text-gray-500">{vehicle.make} {vehicle.model}</div>
-                        </div>
-                      </Combobox.Option>
-                    ))
-                  )}
-                </Combobox.Options>
-              </div>
-            </Combobox>
-          </div>
+                setValue('vehicle_id', vehicle.id);
+                handleVehicleSelection(vehicle.id);
+              }
+            }}
+            dropdownSearchable
+            dropdownPlaceholder="Search vehicles..."
+          />
 
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Driver
-              <span className="text-error-500 dark:text-error-400 ml-1">*</span>
-            </label>
-            <Combobox
-              value={selectedDriver}
-              onChange={(driver: Driver | null) => {
+          <EnhancedInput
+            label="Driver"
+            required
+            icon={User}
+            value={selectedDriver?.name || ''}
+            onChange={(value) => {
+              const driver = drivers.find(d => d.name === value);
+              setSelectedDriver(driver || null);
+              setValue('driver_id', driver?.id || '');
+            }}
+            placeholder="Type driver name..."
+            isDropdown
+            dropdownOptions={filteredDrivers.map(driver => ({
+              id: driver.id,
+              label: driver.name,
+              value: driver.name,
+              subtitle: driver.license_number,
+              status: driver.status as any
+            }))}
+            onDropdownSelect={(option) => {
+              const driver = drivers.find(d => d.id === option.id);
+              if (driver) {
                 setSelectedDriver(driver);
-                setValue('driver_id', driver?.id || '');
-              }}
-            >
-              <div className="relative">
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Combobox.Input
-                    className="w-full pl-10 pr-10 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    displayValue={(driver: Driver | null) => driver?.name || ''}
-                    onChange={(event) => setDriverQuery(event.target.value)}
-                    placeholder="Type driver name..."
-                  />
-                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </Combobox.Button>
-                </div>
-                <Combobox.Options className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredDrivers.length === 0 && driverQuery !== '' ? (
-                    <div className="px-4 py-2 text-sm text-gray-500">No drivers found</div>
-                  ) : (
-                    filteredDrivers.map((driver) => (
-                      <Combobox.Option
-                        key={driver.id}
-                        value={driver}
-                        className={({ active }) =>
-                          `cursor-pointer select-none px-4 py-2 ${
-                            active ? 'bg-primary-50 text-primary-700' : 'text-gray-900 dark:text-gray-100'
-                          }`
-                        }
-                      >
-                        <div>
-                          <div className="font-medium">{driver.name}</div>
-                          <div className="text-xs text-gray-500">{driver.license_number}</div>
-                        </div>
-                      </Combobox.Option>
-                    ))
-                  )}
-                </Combobox.Options>
-              </div>
-            </Combobox>
-          </div>
+                setValue('driver_id', driver.id);
+              }
+            }}
+            dropdownSearchable
+            dropdownPlaceholder="Search drivers..."
+          />
         </div>
       </div>
 

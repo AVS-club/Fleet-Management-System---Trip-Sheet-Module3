@@ -158,6 +158,92 @@
     @apply border-gray-400 dark:border-gray-500;
   }
 
+  /* Enhanced Selection States System */
+  .input-enhanced {
+    @apply w-full px-3 py-2.5 pl-10 pr-10;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+    @apply border-2 rounded-lg transition-all duration-200 ease-out;
+    @apply outline-none text-sm;
+    @apply border-gray-300 dark:border-gray-600;
+  }
+
+  .input-enhanced:hover {
+    @apply border-gray-400 dark:border-gray-500;
+    @apply bg-gray-50 dark:bg-gray-800/70;
+    @apply shadow-[0_0_0_4px_rgba(71,85,105,0.1)] dark:shadow-[0_0_0_4px_rgba(71,85,105,0.1)];
+  }
+
+  .input-enhanced:focus {
+    @apply border-blue-500 dark:border-blue-400;
+    @apply shadow-[0_0_0_4px_rgba(59,130,246,0.15),0_0_0_1px_rgba(59,130,246,0.2)];
+    @apply -translate-y-px bg-white dark:bg-gray-800/80;
+  }
+
+  .input-enhanced.has-value:not(:focus) {
+    @apply border-green-500/60 dark:border-green-400/60;
+    @apply shadow-[0_0_0_1px_rgba(16,185,129,0.2),inset_0_0_0_1px_rgba(16,185,129,0.05)];
+    @apply bg-gradient-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-800/90;
+  }
+
+  /* Vehicle Number Special Styling */
+  .input-vehicle {
+    @apply font-semibold tracking-wider uppercase;
+  }
+
+  /* Left Border Indicator for Locked State */
+  .input-enhanced.has-value::before {
+    content: '';
+    @apply absolute left-0 top-0 w-0.5 h-full;
+    @apply bg-gradient-to-b from-green-400 to-green-600;
+    @apply rounded-l-lg animate-slideIn;
+  }
+
+  /* Icon States */
+  .input-icon {
+    @apply absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5;
+    @apply transition-all duration-200 text-gray-500 dark:text-gray-400;
+  }
+
+  .input-enhanced:focus .input-icon {
+    @apply text-blue-500 dark:text-blue-400 scale-110;
+  }
+
+  .input-enhanced.has-value .input-icon {
+    @apply text-green-500 dark:text-green-400 scale-110;
+  }
+
+  /* Check Mark for Confirmed Selections */
+  .input-check {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5;
+    @apply text-green-500 dark:text-green-400 animate-pulse;
+  }
+
+  /* Dropdown Enhanced Styling */
+  .dropdown-enhanced {
+    @apply absolute z-50 mt-2 w-full;
+    @apply bg-white dark:bg-gray-800 border-2 border-blue-500/50;
+    @apply rounded-lg shadow-2xl shadow-blue-500/10;
+    @apply overflow-hidden animate-slideDown;
+  }
+
+  .dropdown-item {
+    @apply px-4 py-3 cursor-pointer;
+    @apply border-l-4 border-transparent;
+    @apply transition-all duration-200;
+    @apply hover:bg-blue-500/10 hover:border-l-blue-400;
+  }
+
+  .dropdown-search {
+    @apply p-2 border-b border-gray-200 dark:border-gray-700;
+  }
+
+  .dropdown-search input {
+    @apply w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-900;
+    @apply text-gray-900 dark:text-gray-100 text-sm rounded;
+    @apply border border-gray-300 dark:border-gray-600;
+    @apply focus:border-blue-400 focus:outline-none;
+  }
+
   /* Badge Styles */
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full;
