@@ -3,7 +3,7 @@ import { useFormContext, useFieldArray } from "react-hook-form";
 import { MaintenanceTask } from "@/types/maintenance";
 import Button from "../ui/Button";
 import { Plus } from "lucide-react";
-import ServiceGroupItem from "./ServiceGroupItem";
+import SmartServiceGroupItem from "./SmartServiceGroupItem";
 
 const ServiceGroupsSection: React.FC = () => {
   const {
@@ -35,7 +35,7 @@ const ServiceGroupsSection: React.FC = () => {
 
       <div className="space-y-4">
         {fields.map((field, index) => (
-          <ServiceGroupItem
+          <SmartServiceGroupItem
             key={field.id}
             index={index}
             remove={remove}

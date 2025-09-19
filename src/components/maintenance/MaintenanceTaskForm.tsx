@@ -7,7 +7,7 @@ import Select from "../ui/Select";
 import Button from "../ui/Button";
 import FileUpload from "../ui/FileUpload";
 import GarageSelector from "./GarageSelector";
-import VehicleSelector from "./VehicleSelector";
+import RefactoredVehicleSelector from "./RefactoredVehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
 import MaintenanceAuditLog from "./MaintenanceAuditLog";
 import ServiceGroupsSection from "./ServiceGroupsSection";
@@ -497,7 +497,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 validate: (value) => value !== "" || "Please select a vehicle"
               }}
               render={({ field }) => (
-                <VehicleSelector
+                <RefactoredVehicleSelector
                   selectedVehicle={field.value}
                   onChange={field.onChange}
                   vehicles={vehicles}
