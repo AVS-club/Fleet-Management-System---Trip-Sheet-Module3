@@ -93,6 +93,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     watch,
     control,
     setValue,
+    getValues,
     formState: { errors },
   } = methods;
 
