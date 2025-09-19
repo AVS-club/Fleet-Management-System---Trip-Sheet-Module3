@@ -5,6 +5,7 @@ import { supabase, isNetworkError } from './supabaseClient';
 import config from './env';
 import { getVehicle, deleteVehicle } from './api';
 import { getTrips } from './api/trips';
+import { MaintenanceVendor, DEMO_VENDORS } from '@/types/maintenance';
 export * from './api';
 export { getTrips, getCurrentUserId };
 
@@ -711,3 +712,10 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
 
 // Export alias for compatibility
 export const hardDeleteVehicle = deleteVehicle;
+
+// Get vendors for maintenance services
+export const getVendors = async (): Promise<MaintenanceVendor[]> => {
+  // For now, return demo vendors
+  // This can be replaced with actual database queries when vendor management is implemented
+  return DEMO_VENDORS;
+};
