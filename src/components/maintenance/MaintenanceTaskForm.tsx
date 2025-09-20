@@ -30,6 +30,7 @@ import { getAuditLogs } from "../../utils/maintenanceStorage";
 import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
+import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
 
 const DOWNTIME_PRESETS = [
   { id: "2h", label: "2 h", days: 0, hours: 2 },
@@ -108,6 +109,10 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
   const startDate = watch("start_date");
   const endDate = watch("end_date");
+  
+  // Standardize dates to prevent crashes from invalid dates
+  const standardizedStartDate = startDate ? standardizeDate(startDate) : null;
+  const standardizedEndDate = endDate ? standardizeDate(endDate) : null;
   const vehicleId = watch("vehicle_id");
   const odometerReading = watch("odometer_reading");
   const downtimeDays = watch("downtime_days");
@@ -560,9 +565,26 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               {...register("start_date", {
                 required: "Start date is required",
                 validate: (value) => {
-                  if (endDate && new Date(value) > new Date(endDate)) {
-                    return "Start date should be before end date";
+                  // Standardize the date first
+                  const standardizedDate = standardizeDate(value);
+                  if (!standardizedDate) {
+                    return "Invalid date format";
                   }
+                  
+                  // Validate the date
+                  const dateValidation = validateDate(standardizedDate);
+                  if (!dateValidation.isValid) {
+                    return dateValidation.error;
+                  }
+                  
+                  // Validate date range with end date
+                  if (standardizedEndDate) {
+                    const rangeValidation = validateDateRange(standardizedDate, standardizedEndDate);
+                    if (!rangeValidation.isValid) {
+                      return rangeValidation.error;
+                    }
+                  }
+                  
                   return true;
                 }
               })}
@@ -575,9 +597,28 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               error={errors.end_date?.message}
               {...register("end_date", {
                 validate: (value) => {
-                  if (value && startDate && new Date(value) < new Date(startDate)) {
-                    return "End date should be after start date";
+                  if (!value) return true; // End date is optional
+                  
+                  // Standardize the date first
+                  const standardizedDate = standardizeDate(value);
+                  if (!standardizedDate) {
+                    return "Invalid date format";
                   }
+                  
+                  // Validate the date
+                  const dateValidation = validateDate(standardizedDate);
+                  if (!dateValidation.isValid) {
+                    return dateValidation.error;
+                  }
+                  
+                  // Validate date range with start date
+                  if (standardizedStartDate) {
+                    const rangeValidation = validateDateRange(standardizedStartDate, standardizedDate);
+                    if (!rangeValidation.isValid) {
+                      return rangeValidation.error;
+                    }
+                  }
+                  
                   return true;
                 }
               })}

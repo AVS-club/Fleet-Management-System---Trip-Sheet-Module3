@@ -4,6 +4,7 @@ import { MaintenanceTask } from "@/types/maintenance";
 import Input from "../ui/Input";
 import Switch from "../ui/Switch";
 import { Calendar, PenTool as PenToolIcon, Bell } from "lucide-react";
+import { standardizeDate, validateDate } from "@/utils/dateValidation";
 
 interface Props {
   reminder: boolean;
@@ -38,7 +39,23 @@ const NextServiceReminderSection: React.FC<Props> = ({
             label="Next Service Date"
             type="date"
             icon={<Calendar className="h-4 w-4" />}
-            {...register("next_service_due.date")}
+            {...register("next_service_due.date", {
+              validate: (value) => {
+                if (!value) return true; // Optional field
+                
+                const standardizedDate = standardizeDate(value);
+                if (!standardizedDate) {
+                  return "Invalid date format";
+                }
+                
+                const dateValidation = validateDate(standardizedDate);
+                if (!dateValidation.isValid) {
+                  return dateValidation.error;
+                }
+                
+                return true;
+              }
+            })}
           />
           <Input
             label="Next Service Odometer"

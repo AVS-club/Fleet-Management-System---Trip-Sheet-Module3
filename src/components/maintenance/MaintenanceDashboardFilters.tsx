@@ -3,6 +3,7 @@ import { Calendar, Download } from 'lucide-react';
 import Button from '../ui/Button';
 import Select from '../ui/Select';
 import Input from '../ui/Input';
+import { standardizeDate, validateDate } from '@/utils/dateValidation';
 
 interface MaintenanceDashboardFiltersProps {
   dateRangeFilter: string;
@@ -49,10 +50,13 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                 <Input
                   type="date"
                   value={customDateRange.start}
-                  onChange={(e) => onCustomDateRangeChange({ 
-                    ...customDateRange, 
-                    start: e.target.value 
-                  })}
+                  onChange={(e) => {
+                    const standardizedDate = standardizeDate(e.target.value);
+                    onCustomDateRangeChange({ 
+                      ...customDateRange, 
+                      start: standardizedDate || e.target.value
+                    });
+                  }}
                   inputSize="sm"
                   placeholder="Start Date"
                 />
@@ -64,10 +68,13 @@ const MaintenanceDashboardFilters: React.FC<MaintenanceDashboardFiltersProps> = 
                 <Input
                   type="date"
                   value={customDateRange.end}
-                  onChange={(e) => onCustomDateRangeChange({ 
-                    ...customDateRange, 
-                    end: e.target.value 
-                  })}
+                  onChange={(e) => {
+                    const standardizedDate = standardizeDate(e.target.value);
+                    onCustomDateRangeChange({ 
+                      ...customDateRange, 
+                      end: standardizedDate || e.target.value
+                    });
+                  }}
                   inputSize="sm"
                   placeholder="End Date"
                 />
