@@ -75,13 +75,9 @@ export const getAlertThreshold = async (
       .eq('user_id', user.id)
       .eq('alert_type', alertType)
       .eq('entity_type', entityType)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows found, return null
-        return null;
-      }
       handleSupabaseError('fetch alert threshold', error);
       return null;
     }
