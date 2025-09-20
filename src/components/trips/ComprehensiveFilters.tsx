@@ -6,6 +6,7 @@ import Select from '../ui/Select';
 import MultiSelect from '../ui/MultiSelect';
 import Checkbox from '../ui/Checkbox';
 import EnhancedSearchBar from './EnhancedSearchBar';
+import UltraSmartSearch from './UltraSmartSearch';
 import { TripFilters, QUICK_FILTERS, TripStatistics } from '../../utils/tripSearch';
 import { Vehicle, Driver, Warehouse } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
@@ -28,6 +29,7 @@ interface ComprehensiveFiltersProps {
     matchedFields?: string[];
     searchTime?: number;
   };
+  useUltraSmartSearch?: boolean;
 }
 
 const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
@@ -42,7 +44,8 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   className = '',
   viewMode = 'cards',
   onViewModeChange,
-  searchResult
+  searchResult,
+  useUltraSmartSearch = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -189,25 +192,47 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
         <div className="mt-4 flex flex-col lg:flex-row gap-3">
           {/* Enhanced Search Bar */}
           <div className="flex-1 lg:max-w-2xl">
-            <EnhancedSearchBar
-              value={filters.search || ''}
-              onChange={(value) => updateFilter('search', value)}
-              onHighlightMatches={(query) => {
-                // This will be handled by the parent component
-                console.log('Highlighting matches for:', query);
-              }}
-              isSearching={isSearching}
-              placeholder="Search by trip ID, vehicle, driver, location, date, distance, fuel, expenses..."
-              className="w-full"
-              disabled={isSearching}
-              searchHistory={[]} // TODO: Implement search history
-              onSaveSearch={(query, filters) => {
-                console.log('Saving search:', query, filters);
-              }}
-              onExportResults={(format) => {
-                console.log('Exporting results as:', format);
-              }}
-            />
+            {useUltraSmartSearch ? (
+              <UltraSmartSearch
+                value={filters.search || ''}
+                onChange={(value) => updateFilter('search', value)}
+                onHighlightMatches={(query) => {
+                  // This will be handled by the parent component
+                  console.log('Highlighting matches for:', query);
+                }}
+                isSearching={isSearching}
+                placeholder="Smart search across all trip data..."
+                className="w-full"
+                disabled={isSearching}
+                searchHistory={[]} // TODO: Implement search history
+                onSaveSearch={(query, filters) => {
+                  console.log('Saving search:', query, filters);
+                }}
+                onExportResults={(format) => {
+                  console.log('Exporting results as:', format);
+                }}
+              />
+            ) : (
+              <EnhancedSearchBar
+                value={filters.search || ''}
+                onChange={(value) => updateFilter('search', value)}
+                onHighlightMatches={(query) => {
+                  // This will be handled by the parent component
+                  console.log('Highlighting matches for:', query);
+                }}
+                isSearching={isSearching}
+                placeholder="Search by trip ID, vehicle, driver, location, date, distance, fuel, expenses..."
+                className="w-full"
+                disabled={isSearching}
+                searchHistory={[]} // TODO: Implement search history
+                onSaveSearch={(query, filters) => {
+                  console.log('Saving search:', query, filters);
+                }}
+                onExportResults={(format) => {
+                  console.log('Exporting results as:', format);
+                }}
+              />
+            )}
           </div>
 
           {/* Quick Date Filters */}

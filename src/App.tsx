@@ -39,6 +39,7 @@ import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
+import UltraSmartSearchDemoPage from "./pages/UltraSmartSearchDemoPage";
 import { isNetworkError } from "./utils/supabaseClient";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -113,6 +114,7 @@ const App: React.FC = () => {
           <Route path="/maintenance" element={<ProtectedRoute session={session} loading={loading}><MaintenancePage /></ProtectedRoute>} />
           <Route path="/maintenance/:id" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTaskPage /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute session={session} loading={loading}><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/ultra-smart-search" element={<ProtectedRoute session={session} loading={loading}><UltraSmartSearchDemoPage /></ProtectedRoute>} />
           <Route path="/alerts" element={<ProtectedRoute session={session} loading={loading}><AIAlertsPage /></ProtectedRoute>} />
           <Route path="/drivers/insights" element={<ProtectedRoute session={session} loading={loading}><DriverInsightsPage /></ProtectedRoute>} />
           <Route path="/parts-health" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />

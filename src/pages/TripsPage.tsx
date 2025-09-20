@@ -603,6 +603,7 @@ const TripsPage: React.FC = () => {
               matchedFields: searchResult.matchedFields,
               searchTime: searchResult.searchTime
             } : undefined}
+            useUltraSmartSearch={true}
           />
           
           {/* Loading State */}
