@@ -36,7 +36,8 @@ import {
   ChevronDown,
   Info,
   Plus,
-  X
+  X,
+  Hash
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -102,6 +103,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Smart trip form state management
   const [isRefuelingTrip, setIsRefuelingTrip] = useState<boolean>(false);
   const [showRefuelingInfo, setShowRefuelingInfo] = useState<boolean>(false);
+  const [showRefuelingHint, setShowRefuelingHint] = useState<boolean>(true);
   const [lastTripData, setLastTripData] = useState<{ end_km: number; end_time: string } | null>(null);
   const [previousRefuelTrip, setPreviousRefuelTrip] = useState<{ end_km: number; end_time: string } | null>(null);
   const [odometerWarning, setOdometerWarning] = useState<string | null>(null);
@@ -541,6 +543,16 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [initialData]);
 
+  // Auto-dismiss refueling hint after 5 seconds
+  useEffect(() => {
+    if (showRefuelingHint && watchedValues.refueling_done) {
+      const timer = setTimeout(() => {
+        setShowRefuelingHint(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [watchedValues.refueling_done, showRefuelingHint]);
+
   // Smart vehicle selection with odometer suggestion
   const handleVehicleSelection = async (vehicleId: string) => {
     if (!vehicleId) return;
@@ -946,10 +958,11 @@ const TripForm: React.FC<TripFormProps> = ({
         <div className="space-y-3">
           <Input
             label="Trip Serial Number"
-            icon={<FileText className="h-4 w-4" />}
+            icon={<Hash className="h-4 w-4" />}
             value={watchedValues.trip_serial_number || ''}
             disabled
             inputSize="sm"
+            className="pl-10"
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
@@ -1239,80 +1252,9 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </div>
 
-      {/* Smart Odometer Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-          <Calculator className="h-5 w-5 text-primary-600" />
-          Odometer Readings
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <Input
-              label="Start KM"
-              type="number"
-              icon={<Calculator className="h-4 w-4" />}
-              required
-              {...register('start_km', { 
-                required: 'Start KM is required',
-                min: { value: 0, message: 'Start KM cannot be negative' },
-                onChange: (e) => {
-                  const startKm = parseInt(e.target.value);
-                  const endKm = parseInt(watchedValues.end_km || '0');
-                  if (startKm && endKm) {
-                    checkOdometerAnomaly(startKm, endKm);
-                  }
-                }
-              })}
-              error={errors.start_km?.message}
-              inputSize="sm"
-              placeholder="0"
-            />
-            {lastTripData && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Suggested from last trip: {lastTripData.end_km} km
-              </p>
-            )}
-            {odometerWarning && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {odometerWarning}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Input
-              label="End KM"
-              type="number"
-              icon={<Calculator className="h-4 w-4" />}
-              required
-              {...register('end_km', { 
-                required: 'End KM is required',
-                min: { value: 0, message: 'End KM cannot be negative' },
-                onChange: (e) => {
-                  const startKm = parseInt(watchedValues.start_km || '0');
-                  const endKm = parseInt(e.target.value);
-                  if (startKm && endKm) {
-                    checkOdometerAnomaly(startKm, endKm);
-                  }
-                }
-              })}
-              error={errors.end_km?.message}
-              inputSize="sm"
-              placeholder="0"
-            />
-            {watchedValues.start_km && watchedValues.end_km && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Distance: {watchedValues.end_km - watchedValues.start_km} km
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Trip Details & Fuel Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Trip Details */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
           <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
@@ -1327,6 +1269,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<MapPin className="h-4 w-4" />}
               required
               inputSize="sm"
+              className="pl-10"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -1338,6 +1281,17 @@ const TripForm: React.FC<TripFormProps> = ({
                 min: { value: 0, message: 'Start KM cannot be negative' }
               })}
             />
+            {lastTripData && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Suggested from last trip: {lastTripData.end_km} km
+              </p>
+            )}
+            {odometerWarning && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {odometerWarning}
+              </p>
+            )}
 
             <Input
               label="End KM"
@@ -1346,6 +1300,7 @@ const TripForm: React.FC<TripFormProps> = ({
               required
               onBlur={handleEndKmBlur}
               inputSize="sm"
+              className="pl-10"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -1364,6 +1319,11 @@ const TripForm: React.FC<TripFormProps> = ({
                 }
               })}
             />
+            {watchedValues.start_km && watchedValues.end_km && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Distance: {watchedValues.end_km - watchedValues.start_km} km
+              </p>
+            )}
 
             <Input
               label="Gross Weight (kg)"
@@ -1371,6 +1331,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<Package className="h-4 w-4" />}
               required
               inputSize="sm"
+              className="pl-10"
               onFocus={(e) => {
                 if (e.target.value === '0' || e.target.value === '') {
                   e.target.select();
@@ -1439,15 +1400,21 @@ const TripForm: React.FC<TripFormProps> = ({
           
           {showRefuelingDetails && (
             <div className="space-y-3 mt-4 border-t pt-4">
-              <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="font-medium mb-1">Refueling Trip Information</p>
-                    <p>This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one using the tank-to-tank method.</p>
-                  </div>
+              {watchedValues.refueling_done && showRefuelingHint && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 relative fade-in">
+                  <button
+                    type="button"
+                    onClick={() => setShowRefuelingHint(false)}
+                    className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
+                    <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                    This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one using the tank-to-tank method.
+                  </p>
                 </div>
-              </div>
+              )}
               
               <RefuelingForm
                 refuelings={refuelings}
@@ -1637,6 +1604,7 @@ const TripForm: React.FC<TripFormProps> = ({
               icon={<Fuel className="h-4 w-4" />}
               placeholder="Fuel station name (optional)"
               inputSize="sm"
+              className="pl-10"
               {...register('station')}
             />
           </div>
