@@ -573,12 +573,12 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [initialData]);
 
-  // Auto-dismiss refueling hint after 5 seconds
+  // Auto-dismiss refueling hint after 2 seconds
   useEffect(() => {
     if (showRefuelingHint && watchedValues.refueling_done) {
       const timer = setTimeout(() => {
         setShowRefuelingHint(false);
-      }, 5000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [watchedValues.refueling_done, showRefuelingHint]);
