@@ -14,6 +14,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useReactToPrint } from 'react-to-print';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx';
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ interface DocumentInfo {
 interface VehicleDocuments {
   id: string;
   registration: string;
+  registrationDate: string | null;
   documents: {
     rc: DocumentInfo;
     insurance: DocumentInfo;
@@ -91,6 +93,14 @@ const getExpiryStatus = (expiryDate: string | null): 'expired' | 'expiring' | 'v
   if (diffDays < 0) return 'expired';
   if (diffDays <= 30) return 'expiring';
   return 'valid';
+};
+
+// Function to calculate RC Expiry (15 years from registration date)
+const calculateRCExpiry = (registrationDate: string | null): string | null => {
+  if (!registrationDate) return null;
+  const regDate = new Date(registrationDate);
+  regDate.setFullYear(regDate.getFullYear() + 15);
+  return regDate.toISOString().split('T')[0];
 };
 
 // Function to get color class based on document status
@@ -480,36 +490,40 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
 
   // Generate document matrix data from filtered vehicles
   const documentMatrix = useMemo((): VehicleDocuments[] => {
-    return filteredVehicles.map(vehicle => ({
-      id: vehicle.id,
-      registration: vehicle.registration_number,
-      documents: {
-        rc: {
-          date: vehicle.rc_expiry_date || null,
-          status: getExpiryStatus(vehicle.rc_expiry_date || null)
-        },
-        insurance: {
-          date: vehicle.insurance_expiry_date || null,
-          status: getExpiryStatus(vehicle.insurance_expiry_date || null)
-        },
-        fitness: {
-          date: vehicle.fitness_expiry_date || null,
-          status: getExpiryStatus(vehicle.fitness_expiry_date || null)
-        },
-        permit: {
-          date: vehicle.permit_expiry_date || null,
-          status: getExpiryStatus(vehicle.permit_expiry_date || null)
-        },
-        puc: {
-          date: vehicle.puc_expiry_date || null,
-          status: getExpiryStatus(vehicle.puc_expiry_date || null)
-        },
-        tax: {
-          date: vehicle.tax_paid_upto || null,
-          status: getExpiryStatus(vehicle.tax_paid_upto || null)
+    return filteredVehicles.map(vehicle => {
+      const calculatedRCExpiry = calculateRCExpiry(vehicle.registration_date);
+      return {
+        id: vehicle.id,
+        registration: vehicle.registration_number,
+        registrationDate: vehicle.registration_date,
+        documents: {
+          rc: {
+            date: calculatedRCExpiry,
+            status: getExpiryStatus(calculatedRCExpiry)
+          },
+          insurance: {
+            date: vehicle.insurance_expiry_date || null,
+            status: getExpiryStatus(vehicle.insurance_expiry_date || null)
+          },
+          fitness: {
+            date: vehicle.fitness_expiry_date || null,
+            status: getExpiryStatus(vehicle.fitness_expiry_date || null)
+          },
+          permit: {
+            date: vehicle.permit_expiry_date || null,
+            status: getExpiryStatus(vehicle.permit_expiry_date || null)
+          },
+          puc: {
+            date: vehicle.puc_expiry_date || null,
+            status: getExpiryStatus(vehicle.puc_expiry_date || null)
+          },
+          tax: {
+            date: vehicle.tax_paid_upto || null,
+            status: getExpiryStatus(vehicle.tax_paid_upto || null)
+          }
         }
-      }
-    }));
+      };
+    });
   }, [filteredVehicles]);
 
   // Generate metrics data based on filtered vehicles and date range
@@ -869,6 +883,95 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     }
   };
 
+  // Export to Excel with all data
+  const exportToExcel = () => {
+    if (loading) {
+      alert('Please wait for the data to load before exporting.');
+      return;
+    }
+
+    try {
+      const exportData = documentMatrix.map(vehicle => ({
+        'Vehicle Number': vehicle.registration,
+        'Registration Date': formatDate(vehicle.registrationDate),
+        'Insurance Status': vehicle.documents.insurance.status,
+        'Insurance Expiry': formatDate(vehicle.documents.insurance.date),
+        'Fitness Status': vehicle.documents.fitness.status,
+        'Fitness Expiry': formatDate(vehicle.documents.fitness.date),
+        'Permit Status': vehicle.documents.permit.status,
+        'Permit Expiry': formatDate(vehicle.documents.permit.date),
+        'PUC Status': vehicle.documents.puc.status,
+        'PUC Expiry': formatDate(vehicle.documents.puc.date),
+        'Tax Status': vehicle.documents.tax.status,
+        'Tax Expiry': formatDate(vehicle.documents.tax.date),
+        'RC Expiry': formatDate(vehicle.documents.rc.date),
+        'RC Status': vehicle.documents.rc.status
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Vehicle Documents');
+      
+      // Auto-size columns
+      const cols = Object.keys(exportData[0]).map(key => ({
+        wch: Math.max(key.length, ...exportData.map(row => String(row[key]).length)) + 2
+      }));
+      ws['!cols'] = cols;
+      
+      XLSX.writeFile(wb, `Vehicle_Documents_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success('Excel file exported successfully!');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export Excel file');
+    }
+  };
+
+  // Export to CSV
+  const exportToCSV = () => {
+    if (loading) {
+      alert('Please wait for the data to load before exporting.');
+      return;
+    }
+
+    try {
+      const headers = ['Vehicle Number', 'Registration Date', 'Insurance Status', 'Insurance Expiry', 
+                      'Fitness Status', 'Fitness Expiry', 'Permit Status', 'Permit Expiry',
+                      'PUC Status', 'PUC Expiry', 'Tax Status', 'Tax Expiry', 'RC Expiry', 'RC Status'];
+      
+      const rows = documentMatrix.map(vehicle => [
+        vehicle.registration,
+        formatDate(vehicle.registrationDate),
+        vehicle.documents.insurance.status,
+        formatDate(vehicle.documents.insurance.date),
+        vehicle.documents.fitness.status,
+        formatDate(vehicle.documents.fitness.date),
+        vehicle.documents.permit.status,
+        formatDate(vehicle.documents.permit.date),
+        vehicle.documents.puc.status,
+        formatDate(vehicle.documents.puc.date),
+        vehicle.documents.tax.status,
+        formatDate(vehicle.documents.tax.date),
+        formatDate(vehicle.documents.rc.date),
+        vehicle.documents.rc.status
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Vehicle_Documents_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast.success('CSV file exported successfully!');
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+      toast.error('Failed to export CSV file');
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -910,7 +1013,23 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               inputSize="sm"
               onClick={handleDownload}
               icon={<Download className="h-4 w-4" />}
-              title="Export Data"
+              title="Export as PDF"
+              disabled={loading || isBulkRefreshing}
+            />
+            <Button
+              variant="outline"
+              inputSize="sm"
+              onClick={exportToExcel}
+              icon={<Download className="h-4 w-4" />}
+              title="Export as Excel"
+              disabled={loading || isBulkRefreshing}
+            />
+            <Button
+              variant="outline"
+              inputSize="sm"
+              onClick={exportToCSV}
+              icon={<Download className="h-4 w-4" />}
+              title="Export as CSV"
               disabled={loading || isBulkRefreshing}
             />
             <button
@@ -1128,11 +1247,6 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
                           Vehicle Number
                         </th>
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            RC Expiry
-                          </th>
-                        )}
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Insurance
@@ -1156,6 +1270,11 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                         {(documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
                           <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
                             Tax
+                          </th>
+                        )}
+                        {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
+                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] bg-blue-50">
+                            RC Expiry
                           </th>
                         )}
                       </tr>
@@ -1223,13 +1342,6 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                               </div>
                             </td>
                             
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.rc.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.rc.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.rc.status}</div>
-                              </td>
-                            )}
-                            
                             {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
                               <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.insurance.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.insurance.date)}</div>
@@ -1262,6 +1374,18 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                               <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.tax.status)}`}>
                                 <div className="text-sm font-medium">{formatDate(vehicle.documents.tax.date)}</div>
                                 <div className="text-xs mt-1 capitalize">{vehicle.documents.tax.status}</div>
+                              </td>
+                            )}
+                            
+                            {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
+                              <td className={`px-3 py-2 text-center bg-blue-50 ${getStatusColorClass(vehicle.documents.rc.status)}`}>
+                                <div className="text-sm font-medium">{formatDate(vehicle.documents.rc.date)}</div>
+                                <div className="text-xs mt-1 capitalize">{vehicle.documents.rc.status}</div>
+                                {vehicle.registrationDate && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    (15 years from reg)
+                                  </div>
+                                )}
                               </td>
                             )}
                           </tr>
