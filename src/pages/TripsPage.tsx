@@ -487,10 +487,9 @@ const TripsPage: React.FC = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate('/')}
-              icon={<LayoutDashboard className="h-4 w-4" />}
+              onClick={() => setShowDashboard(!showDashboard)}
             >
-              Dashboard
+              {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
             </Button>
             <Button
               onClick={() => setIsAddingTrip(true)}
