@@ -493,12 +493,6 @@ const TripsPage: React.FC = () => {
               Dashboard
             </Button>
             <Button
-              variant="outline"
-              onClick={() => setShowDashboard(!showDashboard)}
-            >
-              {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
-            </Button>
-            <Button
               onClick={() => setIsAddingTrip(true)}
               icon={<PlusCircle className="h-4 w-4" />}
             >
