@@ -22,6 +22,8 @@ export interface TripSearchResult {
   totalCount: number;
   hasMore: boolean;
   statistics: TripStatistics;
+  matchedFields?: string[];
+  searchTime?: number;
 }
 
 export interface TripStatistics {
@@ -145,6 +147,168 @@ function parseDateSearch(searchTerm: string): { isDate: boolean; date?: Date; st
   return { isDate: false };
 }
 
+// Function to detect which fields were matched during search
+function detectMatchedFields(searchTerm: string): string[] {
+  const term = searchTerm.trim();
+  const lowerTerm = term.toLowerCase();
+  const matchedFields: string[] = [];
+  
+  // Check if search term is a date
+  const dateSearch = parseDateSearch(searchTerm);
+  if (dateSearch.isDate) {
+    matchedFields.push('date');
+  }
+  
+  // Trip ID patterns
+  if (/^t\d{2}-/i.test(term)) {
+    matchedFields.push('trip-id');
+  }
+  
+  // Vehicle registration patterns
+  if (/[a-z]{2}\d{2}[a-z]{1,2}\d{4}/i.test(term)) {
+    matchedFields.push('vehicle');
+  }
+  
+  // Distance patterns
+  if (/^\d+(\.\d+)?\s*km?$/i.test(term) || /^\d+$/.test(term)) {
+    matchedFields.push('distance');
+  }
+  
+  // Expense patterns
+  if (/₹|rs|rupee|\d+k?/i.test(term)) {
+    matchedFields.push('expenses');
+  }
+  
+  // Mileage patterns
+  if (/^\d+(\.\d+)?\s*km\/l?$/i.test(term)) {
+    matchedFields.push('mileage');
+  }
+  
+  // Fuel consumption patterns
+  if (/^\d+(\.\d+)?\s*l$/i.test(term)) {
+    matchedFields.push('fuel');
+  }
+  
+  // Deviation patterns
+  if (/%|deviation/i.test(term)) {
+    matchedFields.push('deviation');
+  }
+  
+  // Driver name patterns (text with spaces)
+  if (/[a-z\s]{3,}/i.test(term) && !matchedFields.length) {
+    matchedFields.push('driver', 'location');
+  }
+  
+  // If no specific patterns matched, assume all fields
+  if (matchedFields.length === 0) {
+    matchedFields.push('trip-id', 'vehicle', 'driver', 'date', 'location', 'distance', 'mileage', 'fuel', 'expenses', 'deviation');
+  }
+  
+  return matchedFields;
+}
+
+// Enhanced search function that detects search patterns and searches across all relevant fields
+function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
+  const term = searchTerm.trim();
+  const lowerTerm = term.toLowerCase();
+  
+  // Check if search term is a date
+  const dateSearch = parseDateSearch(searchTerm);
+  if (dateSearch.isDate && dateSearch.startDate) {
+    return query.eq('trip_start_date', dateSearch.startDate);
+  }
+  
+  // Build comprehensive search across all fields
+  const searchConditions = [];
+  
+  // Trip ID patterns (T25-xxxx-xxxx)
+  if (/^t\d{2}-/i.test(term)) {
+    searchConditions.push(`trip_serial_number.ilike.%${term}%`);
+    searchConditions.push(`manual_trip_id.ilike.%${term}%`);
+  }
+  
+  // Vehicle registration patterns (OD15S5980)
+  if (/[a-z]{2}\d{2}[a-z]{1,2}\d{4}/i.test(term)) {
+    searchConditions.push(`vehicles.registration_number.ilike.%${term}%`);
+  }
+  
+  // Distance patterns (112 km, 1888)
+  if (/^\d+(\.\d+)?\s*km?$/i.test(term) || /^\d+$/.test(term)) {
+    const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
+    if (!isNaN(numValue)) {
+      searchConditions.push(`total_distance.eq.${numValue}`);
+      searchConditions.push(`total_distance.gte.${numValue * 0.9}`);
+      searchConditions.push(`total_distance.lte.${numValue * 1.1}`);
+    }
+  }
+  
+  // Expense patterns (₹500, 500, 5k)
+  if (/₹|rs|rupee|\d+k?/i.test(term)) {
+    const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
+    if (!isNaN(numValue)) {
+      const multiplier = /k$/i.test(term) ? 1000 : 1;
+      const actualValue = numValue * multiplier;
+      searchConditions.push(`total_expenses.eq.${actualValue}`);
+      searchConditions.push(`total_expenses.gte.${actualValue * 0.9}`);
+      searchConditions.push(`total_expenses.lte.${actualValue * 1.1}`);
+    }
+  }
+  
+  // Mileage patterns (23.6 km/L)
+  if (/^\d+(\.\d+)?\s*km\/l?$/i.test(term)) {
+    const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
+    if (!isNaN(numValue)) {
+      searchConditions.push(`fuel_efficiency.eq.${numValue}`);
+      searchConditions.push(`fuel_efficiency.gte.${numValue * 0.9}`);
+      searchConditions.push(`fuel_efficiency.lte.${numValue * 1.1}`);
+    }
+  }
+  
+  // Fuel consumption patterns (225.01L)
+  if (/^\d+(\.\d+)?\s*l$/i.test(term)) {
+    const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
+    if (!isNaN(numValue)) {
+      searchConditions.push(`fuel_consumed.eq.${numValue}`);
+      searchConditions.push(`fuel_consumed.gte.${numValue * 0.9}`);
+      searchConditions.push(`fuel_consumed.lte.${numValue * 1.1}`);
+    }
+  }
+  
+  // Deviation patterns (15.9%, -15.9%)
+  if (/%|deviation/i.test(term)) {
+    const numValue = parseFloat(term.replace(/[^\d.-]/g, ''));
+    if (!isNaN(numValue)) {
+      searchConditions.push(`route_deviation.eq.${numValue}`);
+      searchConditions.push(`route_deviation.gte.${numValue * 0.9}`);
+      searchConditions.push(`route_deviation.lte.${numValue * 1.1}`);
+    }
+  }
+  
+  // General text search across all text fields
+  const textFields = [
+    'trip_serial_number.ilike.%' + term + '%',
+    'manual_trip_id.ilike.%' + term + '%',
+    'vehicles.registration_number.ilike.%' + term + '%',
+    'vehicles.make.ilike.%' + term + '%',
+    'vehicles.model.ilike.%' + term + '%',
+    'drivers.name.ilike.%' + term + '%',
+    'warehouses.name.ilike.%' + term + '%',
+    'source_location.ilike.%' + term + '%',
+    'destination_location.ilike.%' + term + '%',
+    'material_description.ilike.%' + term + '%',
+    'notes.ilike.%' + term + '%'
+  ];
+  
+  // Combine all search conditions
+  const allConditions = [...searchConditions, ...textFields];
+  
+  if (allConditions.length > 0) {
+    return query.or(allConditions.join(','));
+  }
+  
+  return query;
+}
+
 // Database-powered search function
 export async function searchTripsDatabase(
   filters: TripFilters,
@@ -172,19 +336,9 @@ export async function searchTripsDatabase(
       query = query.eq('created_by', userId);
     }
 
-    // Search filter with fuzzy matching and date support
+    // Enhanced search filter with comprehensive field matching
     if (filters.search && filters.search.trim()) {
-      const searchTerm = filters.search.trim();
-      
-      // Check if search term is a date
-      const dateSearch = parseDateSearch(searchTerm);
-      if (dateSearch.isDate && dateSearch.startDate) {
-        // Search by date
-        query = query.eq('trip_start_date', dateSearch.startDate);
-      } else {
-        // Regular text search
-        query = query.or(`trip_serial_number.ilike.%${searchTerm}%,vehicles.registration_number.ilike.%${searchTerm}%,drivers.name.ilike.%${searchTerm}%`);
-      }
+      query = buildComprehensiveSearchQuery(query, filters.search);
     }
 
     // Vehicle filter
@@ -267,12 +421,18 @@ export async function searchTripsDatabase(
 
     // Calculate statistics
     const statistics = calculateTripStatistics(trips);
+    
+    // Detect matched fields and calculate search time
+    const matchedFields = filters.search ? detectMatchedFields(filters.search) : [];
+    const searchTime = 0.1; // Simulate search time for database queries
 
     return {
       trips,
       totalCount,
       hasMore,
-      statistics
+      statistics,
+      matchedFields,
+      searchTime
     };
   } catch (error) {
     console.warn('Database search failed, will fallback to client-side search:', error);
@@ -303,9 +463,10 @@ export function searchTripsClientSide(
   const driversMap = new Map(drivers.map(d => [d.id, d]));
   const warehousesMap = new Map(warehouses.map(w => [w.id, w]));
 
-  // Search filter with date support
+  // Enhanced search filter with comprehensive field matching
   if (filters.search && filters.search.trim()) {
-    const searchTerm = filters.search.toLowerCase().trim();
+    const searchTerm = filters.search.trim();
+    const lowerTerm = searchTerm.toLowerCase();
     
     // Check if search term is a date
     const dateSearch = parseDateSearch(filters.search);
@@ -318,17 +479,86 @@ export function searchTripsClientSide(
         return tripDateStr === dateSearch.startDate;
       });
     } else {
-      // Regular text search
+      // Comprehensive text and numeric search
       filteredTrips = filteredTrips.filter(trip => {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
         const driver = driversMap.get(trip.driver_id);
+        const warehouse = warehousesMap.get(trip.warehouse_id);
         
-        return [
+        // Text fields to search
+        const textFields = [
           trip.trip_serial_number,
           trip.manual_trip_id,
           vehicle?.registration_number,
-          driver?.name
-        ].some(field => field?.toLowerCase().includes(searchTerm));
+          vehicle?.make,
+          vehicle?.model,
+          driver?.name,
+          warehouse?.name,
+          trip.source_location,
+          trip.destination_location,
+          trip.material_description,
+          trip.notes
+        ];
+        
+        // Check text matches
+        const textMatch = textFields.some(field => 
+          field?.toLowerCase().includes(lowerTerm)
+        );
+        
+        if (textMatch) return true;
+        
+        // Check numeric patterns
+        const numValue = parseFloat(searchTerm.replace(/[^\d.]/g, ''));
+        if (!isNaN(numValue)) {
+          // Distance search
+          if (/^\d+(\.\d+)?\s*km?$/i.test(searchTerm) || /^\d+$/.test(searchTerm)) {
+            const tolerance = numValue * 0.1; // 10% tolerance
+            if (trip.total_distance && 
+                Math.abs(trip.total_distance - numValue) <= tolerance) {
+              return true;
+            }
+          }
+          
+          // Expense search
+          if (/₹|rs|rupee|\d+k?/i.test(searchTerm)) {
+            const multiplier = /k$/i.test(searchTerm) ? 1000 : 1;
+            const actualValue = numValue * multiplier;
+            const tolerance = actualValue * 0.1; // 10% tolerance
+            if (trip.total_expenses && 
+                Math.abs(trip.total_expenses - actualValue) <= tolerance) {
+              return true;
+            }
+          }
+          
+          // Mileage search
+          if (/^\d+(\.\d+)?\s*km\/l?$/i.test(searchTerm)) {
+            const tolerance = numValue * 0.1; // 10% tolerance
+            if (trip.fuel_efficiency && 
+                Math.abs(trip.fuel_efficiency - numValue) <= tolerance) {
+              return true;
+            }
+          }
+          
+          // Fuel consumption search
+          if (/^\d+(\.\d+)?\s*l$/i.test(searchTerm)) {
+            const tolerance = numValue * 0.1; // 10% tolerance
+            if (trip.fuel_consumed && 
+                Math.abs(trip.fuel_consumed - numValue) <= tolerance) {
+              return true;
+            }
+          }
+          
+          // Deviation search
+          if (/%|deviation/i.test(searchTerm)) {
+            const tolerance = Math.abs(numValue) * 0.1; // 10% tolerance
+            if (trip.route_deviation !== null && trip.route_deviation !== undefined && 
+                Math.abs(trip.route_deviation - numValue) <= tolerance) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
       });
     }
   }
@@ -427,7 +657,9 @@ export function searchTripsClientSide(
     trips: paginatedTrips,
     totalCount,
     hasMore,
-    statistics
+    statistics,
+    matchedFields: filters.search ? detectMatchedFields(filters.search) : [],
+    searchTime: 0.05 // Simulate search time for client-side queries
   };
 }
 

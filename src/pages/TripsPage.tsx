@@ -599,6 +599,10 @@ const TripsPage: React.FC = () => {
             isSearching={isSearching}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            searchResult={searchResult ? {
+              matchedFields: searchResult.matchedFields,
+              searchTime: searchResult.searchTime
+            } : undefined}
           />
           
           {/* Loading State */}

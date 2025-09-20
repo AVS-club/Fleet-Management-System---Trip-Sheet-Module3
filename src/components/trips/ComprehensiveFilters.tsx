@@ -5,6 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import MultiSelect from '../ui/MultiSelect';
 import Checkbox from '../ui/Checkbox';
+import EnhancedSearchBar from './EnhancedSearchBar';
 import { TripFilters, QUICK_FILTERS, TripStatistics } from '../../utils/tripSearch';
 import { Vehicle, Driver, Warehouse } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
@@ -23,6 +24,10 @@ interface ComprehensiveFiltersProps {
   className?: string;
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
+  searchResult?: {
+    matchedFields?: string[];
+    searchTime?: number;
+  };
 }
 
 const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
@@ -36,7 +41,8 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   isSearching = false,
   className = '',
   viewMode = 'cards',
-  onViewModeChange
+  onViewModeChange,
+  searchResult
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -181,22 +187,16 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
 
         {/* Compact Filter Row */}
         <div className="mt-4 flex flex-col lg:flex-row gap-3">
-          {/* Search Bar */}
-          <div className="flex-1 lg:max-w-md relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search trips by serial, vehicle, or driver..."
+          {/* Enhanced Search Bar */}
+          <div className="flex-1 lg:max-w-2xl">
+            <EnhancedSearchBar
               value={filters.search || ''}
-              onChange={(e) => updateFilter('search', e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              onChange={(value) => updateFilter('search', value)}
+              isSearching={isSearching}
+              placeholder="Search by trip ID, vehicle, driver, location, date, distance, fuel, expenses..."
+              className="w-full"
               disabled={isSearching}
             />
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-              </div>
-            )}
           </div>
 
           {/* Quick Date Filters */}
