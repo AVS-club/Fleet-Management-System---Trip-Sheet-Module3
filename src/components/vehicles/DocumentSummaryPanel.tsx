@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon } from 'lucide-react';
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
 import { updateVehicle } from '../../utils/api/vehicles';
@@ -1012,7 +1012,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               variant="outline"
               inputSize="sm"
               onClick={handleDownload}
-              icon={<Download className="h-4 w-4" />}
+              icon={<FileTextIcon className="h-4 w-4" />}
               title="Export as PDF"
               disabled={loading || isBulkRefreshing}
             />
@@ -1020,7 +1020,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               variant="outline"
               inputSize="sm"
               onClick={exportToExcel}
-              icon={<Download className="h-4 w-4" />}
+              icon={<FileSpreadsheet className="h-4 w-4" />}
               title="Export as Excel"
               disabled={loading || isBulkRefreshing}
             />
@@ -1028,7 +1028,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
               variant="outline"
               inputSize="sm"
               onClick={exportToCSV}
-              icon={<Download className="h-4 w-4" />}
+              icon={<FileText className="h-4 w-4" />}
               title="Export as CSV"
               disabled={loading || isBulkRefreshing}
             />
