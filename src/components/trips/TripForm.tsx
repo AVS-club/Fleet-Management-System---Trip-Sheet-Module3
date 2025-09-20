@@ -195,7 +195,7 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('material_type_ids', initialData.material_type_ids || []);
       setValue('station', initialData.station || '');
     }
-  }, [initialData, setValue]);
+  }, [initialData, setValue, yesterdayDate]);
 
   // Watch form values for calculations
   const watchedValues = watch();
@@ -251,7 +251,7 @@ const TripForm: React.FC<TripFormProps> = ({
       setSelectedDriver(null);
       setDriverQuery('');
     }
-  }, [watch('driver_id'), drivers]);
+  }, [watch, drivers]);
   // Fetch form data - only if not provided as props
   useEffect(() => {
     // If data is provided as props (editing mode), use it instead of fetching
@@ -323,47 +323,63 @@ const TripForm: React.FC<TripFormProps> = ({
         setValue('driver_id', selectedVehicle.primary_driver_id);
       }
     }
-  }, [selectedVehicleId, vehicles, setValue]);
+  }, [selectedVehicleId, vehicles, setValue, initialData?.driver_id]);
 
   // Auto-generate trip serial number when vehicle and start date are selected
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const generateSerial = async () => {
       if (selectedVehicleId && watchedValues.trip_start_date && !initialData?.trip_serial_number && !watchedValues.trip_serial_number) {
         try {
           const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-          if (vehicle) {
+          if (vehicle && !abortController.signal.aborted) {
             // Use ensureUniqueTripSerial which handles retries and guarantees uniqueness
             const serialNumber = await ensureUniqueTripSerial(
               vehicle.registration_number,
               watchedValues.trip_start_date,
               selectedVehicleId
             );
-            setValue('trip_serial_number', serialNumber);
+            if (!abortController.signal.aborted) {
+              setValue('trip_serial_number', serialNumber);
+            }
           }
         } catch (error) {
-          console.error('Error generating trip serial:', error);
-          toast.error('Could not generate unique trip serial. Please try again or enter manually.');
+          if (error.name !== 'AbortError') {
+            console.error('Error generating trip serial:', error);
+            toast.error('Could not generate unique trip serial. Please try again or enter manually.');
+          }
         }
       }
     };
 
     generateSerial();
-  }, [selectedVehicleId, watchedValues.trip_start_date, vehicles, setValue, initialData?.trip_serial_number]);
+    
+    return () => abortController.abort();
+  }, [selectedVehicleId, watchedValues.trip_start_date, watchedValues.trip_serial_number, vehicles, setValue, initialData?.trip_serial_number]);
 
   // Auto-fill start KM when vehicle is selected
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const fillStartKm = async () => {
       if (selectedVehicleId && !initialData?.start_km && !watchedValues.start_km) { // Only auto-fill if no initial or current value
         try {
           const { value: latestOdometer } = await getLatestOdometer(selectedVehicleId);
-          setValue('start_km', latestOdometer);
+          if (!abortController.signal.aborted) {
+            setValue('start_km', latestOdometer);
+          }
         } catch (error) {
-          console.error('Error getting latest odometer:', error);
+          if (error.name !== 'AbortError') {
+            console.error('Error getting latest odometer:', error);
+          }
         }
       }
     };
 
     fillStartKm();
+    
+    return () => abortController.abort();
   }, [selectedVehicleId, setValue, initialData?.start_km, watchedValues.start_km]);
 
   // Handle adding destinations
@@ -478,32 +494,46 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Analyze route when warehouse and destinations change
   useEffect(() => {
+    const abortController = new AbortController();
+    
     const performRouteAnalysis = async () => {
       if (selectedWarehouseId && selectedDestinationObjects.length > 0) {
         setIsAnalyzing(true);
         try {
           const analysis = await analyzeRoute(selectedWarehouseId, selectedDestinationObjects.map(d => d.id));
-          setRouteAnalysis(analysis);
-          
-          // Auto-fill toll expense when route is analyzed
-          if (analysis?.estimated_toll) {
-            const tollAmount = watchedValues.is_return_trip 
-              ? analysis.estimated_toll * 2  // Double toll for return trip
-              : analysis.estimated_toll;
-            setValue('toll_expense', tollAmount);
+          if (!abortController.signal.aborted) {
+            setRouteAnalysis(analysis);
+            
+            // Auto-fill toll expense when route is analyzed
+            if (analysis?.estimated_toll) {
+              const tollAmount = watchedValues.is_return_trip 
+                ? analysis.estimated_toll * 2  // Double toll for return trip
+                : analysis.estimated_toll;
+              setValue('toll_expense', tollAmount);
+            }
           }
         } catch (error) {
-          console.error('Error analyzing route:', error);
-          setRouteAnalysis(null);
+          if (error.name !== 'AbortError') {
+            console.error('Error analyzing route:', error);
+            if (!abortController.signal.aborted) {
+              setRouteAnalysis(null);
+            }
+          }
         } finally {
-          setIsAnalyzing(false);
+          if (!abortController.signal.aborted) {
+            setIsAnalyzing(false);
+          }
         }
       } else {
-        setRouteAnalysis(null);
+        if (!abortController.signal.aborted) {
+          setRouteAnalysis(null);
+        }
       }
     };
 
     performRouteAnalysis();
+    
+    return () => abortController.abort();
   }, [selectedWarehouseId, selectedDestinationObjects, watchedValues.is_return_trip, setValue]);
 
   // Smart auto-detection logic for refueling vs non-refueling trips
@@ -1253,183 +1283,148 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
 
-      {/* Trip Details & Fuel Information */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        {/* Trip Details */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-            <Calculator className="h-5 w-5 mr-2 text-primary-500" />
-            Trip Details
-          </h3>
-        
-          <div className="space-y-3">
-            <Input
-              label="Start KM"
-              type="number"
-              icon={<MapPin className="h-4 w-4" />}
-              required
-              inputSize="sm"
-              className="pl-10"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('start_km', {
-                required: 'Start KM is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'Start KM cannot be negative' }
-              })}
-            />
-            {lastTripData && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Suggested from last trip: {lastTripData.end_km} km
-              </p>
-            )}
-            {odometerWarning && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                {odometerWarning}
-              </p>
-            )}
-
-            <Input
-              label="End KM"
-              type="number"
-              icon={<MapPin className="h-4 w-4" />}
-              required
-              onBlur={handleEndKmBlur}
-              inputSize="sm"
-              className="pl-10"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('end_km', {
-                required: 'End KM is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'End KM cannot be negative' },
-                validate: (value) => {
-                  const startKm = watchedValues.start_km || 0;
-                  if (value <= startKm) {
-                    return 'End KM must be greater than Start KM';
-                  }
-                  return true;
-                }
-              })}
-            />
-            {watchedValues.start_km && watchedValues.end_km && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Distance: {watchedValues.end_km - watchedValues.start_km} km
-              </p>
-            )}
-
-            <Input
-              label="Gross Weight (kg)"
-              type="number"
-              icon={<Package className="h-4 w-4" />}
-              required
-              inputSize="sm"
-              className="pl-10"
-              onFocus={(e) => {
-                if (e.target.value === '0' || e.target.value === '') {
-                  e.target.select();
-                }
-              }}
-              {...register('gross_weight', {
-                required: 'Gross weight is required',
-                valueAsNumber: true,
-                min: { value: 0, message: 'Gross weight cannot be negative' }
-              })}
-            />
-          </div>
-        </div>
-
-        {/* Smart Refueling Details Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Fuel className="h-5 w-5 text-primary-600" />
-              Refueling Details
-              {showRefuelingDetails && (watchedValues.fuel_quantity || watchedValues.total_fuel_cost) && (
-                <span className="ml-2 text-sm text-gray-500">
-                  (Total: {watchedValues.fuel_quantity || 0}L • ₹{watchedValues.total_fuel_cost || 0})
-                </span>
-              )}
-            </h3>
-            
-            {!showRefuelingDetails ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRefuelingDetails(true);
-                  setIsRefuelingTrip(true);
-                  setShowRefuelingInfo(true);
-                  setManualToggle(true);
-                  setValue('refueling_done', true);
-                }}
-                className="inline-flex items-center px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors"
-                disabled={isSubmitting}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add Refueling
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRefuelingDetails(false);
-                  setIsRefuelingTrip(false);
-                  setShowRefuelingInfo(false);
-                  setManualToggle(true);
-                  setValue('refueling_done', false);
-                  setValue('refuelings', []);
-                  setValue('total_fuel_cost', 0);
-                  setValue('fuel_quantity', 0);
-                  setValue('fuel_rate_per_liter', 0);
-                }}
-                className="text-sm text-red-600 hover:text-red-700 transition-colors"
-                disabled={isSubmitting}
-              >
-                <X className="h-4 w-4 mr-1 inline" />
-                Remove
-              </button>
-            )}
-          </div>
-          
-          {showRefuelingDetails && (
-            <div className="space-y-3 mt-4 border-t pt-4">
-              {watchedValues.refueling_done && showRefuelingHint && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 relative fade-in">
-                  <button
-                    type="button"
-                    onClick={() => setShowRefuelingHint(false)}
-                    className="absolute top-2 right-2 text-blue-400 hover:text-blue-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                    This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one using the tank-to-tank method.
-                  </p>
+      {/* Main Details Section - Grid Layout for Symmetry */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* Trip Details - Left Column */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full">
+          <CollapsibleSection
+            title="Trip Details"
+            icon={<FileText className="h-5 w-5" />}
+            iconColor="text-primary-600"
+            defaultExpanded={true}
+          >
+            <div className="space-y-4 p-4">
+              {/* Start KM */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Start KM <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="number"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    {...register('start_km', { required: 'Start KM is required' })}
+                  />
                 </div>
-              )}
-              
-              <RefuelingForm
-                refuelings={refuelings}
-                onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
-                disabled={isSubmitting}
-              />
+                {lastTripData && (
+                  <p className="text-xs text-gray-500 mt-1">Suggested from last trip: {lastTripData.end_km} km</p>
+                )}
+                {odometerWarning && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {odometerWarning}
+                  </p>
+                )}
+              </div>
+
+              {/* End KM */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  End KM <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="number"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    {...register('end_km', { required: 'End KM is required' })}
+                    onBlur={handleEndKmBlur}
+                  />
+                </div>
+                {watchedValues.start_km && watchedValues.end_km && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Distance: {watchedValues.end_km - watchedValues.start_km} km
+                  </p>
+                )}
+              </div>
+
+              {/* Distance */}
+              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Distance:</span>
+                  <span className="text-sm font-medium">{watchedValues.end_km - watchedValues.start_km} km</span>
+                </div>
+              </div>
+
+              {/* Gross Weight */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Gross Weight (kg) <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="number"
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                    {...register('gross_weight', { required: 'Gross weight is required' })}
+                  />
+                </div>
+              </div>
             </div>
-          )}
-          
-          {!showRefuelingDetails && (
-            <div className="text-xs text-gray-600 dark:text-gray-400 italic">
-              No refueling details added. This will be treated as a non-refueling trip.
-            </div>
-          )}
+          </CollapsibleSection>
         </div>
+
+        {/* Refueling Details - Right Column (Only show if refueling is selected) */}
+        {isRefuelingTrip && (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full">
+            <CollapsibleSection
+              title="Refueling Details"
+              icon={<Fuel className="h-5 w-5" />}
+              iconColor="text-green-600"
+              defaultExpanded={true}
+            >
+              <div className="space-y-4 p-4">
+                {/* Refueling Info Hint - with auto-dismiss */}
+                {showRefuelingHint && (
+                  <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg relative animate-fadeIn">
+                    <button
+                      type="button"
+                      onClick={() => setShowRefuelingHint(false)}
+                      className="absolute top-2 right-2 text-blue-500 hover:text-blue-700"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <p>This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one (tank-to-tank method).</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Refueling Form */}
+                <RefuelingForm
+                  refuelings={refuelings}
+                  onChange={(newRefuelings) => setValue('refuelings', newRefuelings)}
+                  disabled={isSubmitting}
+                />
+
+                {/* Add Refueling Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRefuelingDetails(true);
+                    setIsRefuelingTrip(true);
+                    setShowRefuelingInfo(true);
+                    setManualToggle(true);
+                    setValue('refueling_done', true);
+                  }}
+                  className="w-full py-2 px-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 transition-colors"
+                >
+                  <Plus className="h-4 w-4 inline mr-2" />
+                  Add Refueling
+                </button>
+              </div>
+            </CollapsibleSection>
+          </div>
+        )}
+
+        {/* If no refueling, show empty state or placeholder to maintain grid */}
+        {!isRefuelingTrip && (
+          <div className="lg:block hidden">
+            {/* Empty div to maintain grid structure */}
+          </div>
+        )}
       </div>
 
       {/* Expenses */}
@@ -1590,38 +1585,53 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </div>
 
-      {/* Additional Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
-          <FileText className="h-5 w-5 mr-2 text-primary-500" />
-          Additional Information
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="space-y-3">
-            <Input
-              label="Station"
-              icon={<Fuel className="h-4 w-4" />}
-              placeholder="Fuel station name (optional)"
-              inputSize="sm"
-              className="pl-10"
-              {...register('station')}
-            />
+      {/* Additional Information - Collapsible and Compact */}
+      <CollapsibleSection
+        title="Additional Information"
+        icon={<FileText className="h-5 w-5" />}
+        iconColor="text-gray-600"
+        defaultExpanded={false}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+      >
+        <div className="p-4 space-y-3">
+          {/* Station - Single Line */}
+          <div className="flex items-center gap-3">
+            <label className="text-xs font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap min-w-[80px]">
+              Station:
+            </label>
+            <div className="flex-1 relative">
+              <Fuel className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+              <input
+                type="text"
+                className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary-500"
+                placeholder="Fuel station name (optional)"
+                {...register('station')}
+              />
+            </div>
           </div>
 
+          {/* Remarks - Expandable Textarea */}
           <div>
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Remarks
+              Remarks:
             </label>
             <textarea
-              className="w-full px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 placeholder-gray-500 dark:placeholder-gray-400"
-              rows={3}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary-500 resize-none transition-all"
+              rows={2}
               placeholder="Any additional notes or remarks about this trip..."
+              onFocus={(e) => {
+                e.target.rows = 4; // Expand on focus
+              }}
+              onBlur={(e) => {
+                if (!e.target.value) {
+                  e.target.rows = 2; // Collapse if empty
+                }
+              }}
               {...register('remarks')}
             />
           </div>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Form Actions */}
       <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
