@@ -7,6 +7,7 @@ import MultiSelect from '../ui/MultiSelect';
 import Checkbox from '../ui/Checkbox';
 import EnhancedSearchBar from './EnhancedSearchBar';
 import UltraSmartSearch from './UltraSmartSearch';
+import SmartAdaptiveSearchBar from './SmartAdaptiveSearchBar';
 import { TripFilters, QUICK_FILTERS, TripStatistics } from '../../utils/tripSearch';
 import { Vehicle, Driver, Warehouse } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
@@ -28,8 +29,11 @@ interface ComprehensiveFiltersProps {
   searchResult?: {
     matchedFields?: string[];
     searchTime?: number;
+    totalResults?: number;
   };
   useUltraSmartSearch?: boolean;
+  useSmartAdaptiveSearch?: boolean;
+  onSmartSearch?: (searchTerm: string, activeFields: string[]) => void;
 }
 
 const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
@@ -45,7 +49,9 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   viewMode = 'cards',
   onViewModeChange,
   searchResult,
-  useUltraSmartSearch = false
+  useUltraSmartSearch = false,
+  useSmartAdaptiveSearch = true,
+  onSmartSearch
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -192,7 +198,22 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
         <div className="mt-4 flex flex-col lg:flex-row gap-3">
           {/* Enhanced Search Bar */}
           <div className="flex-1 lg:max-w-2xl">
-            {useUltraSmartSearch ? (
+            {useSmartAdaptiveSearch ? (
+              <SmartAdaptiveSearchBar
+                value={filters.search || ''}
+                onChange={(value) => updateFilter('search', value)}
+                onSearch={onSmartSearch || ((searchTerm, activeFields) => {
+                  // Fallback: trigger search with the search term and active fields
+                  console.log('Searching for:', searchTerm, 'in fields:', activeFields);
+                  // The actual search will be handled by the parent component
+                })}
+                isSearching={isSearching}
+                placeholder="Type and press Enter to search..."
+                className="w-full"
+                disabled={isSearching}
+                searchResult={searchResult}
+              />
+            ) : useUltraSmartSearch ? (
               <UltraSmartSearch
                 value={filters.search || ''}
                 onChange={(value) => updateFilter('search', value)}

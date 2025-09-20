@@ -180,6 +180,41 @@ const TripsPage: React.FC = () => {
     setFilters(newFilters);
   }, []);
 
+  // Handle smart search with field selection
+  const handleSmartSearch = useCallback(async (searchTerm: string, activeFields: string[]) => {
+    setIsSearching(true);
+    try {
+      // Create a modified filter with the search term
+      const searchFilters = {
+        ...filters,
+        search: searchTerm
+      };
+      
+      const result = await searchTrips(
+        trips,
+        vehicles,
+        drivers,
+        warehouses,
+        searchFilters,
+        { page: currentPage, limit: tripsPerPage }
+      );
+      
+      // Add field information to the result
+      const enhancedResult = {
+        ...result,
+        matchedFields: activeFields.length > 0 ? activeFields : result.matchedFields,
+        totalResults: result.totalCount
+      };
+      
+      setSearchResult(enhancedResult);
+    } catch (error) {
+      console.error('Smart search error:', error);
+      toast.error('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  }, [trips, vehicles, drivers, warehouses, filters, currentPage, tripsPerPage]);
+
   const handleFixMileage = async () => {
     const confirmed = window.confirm(
       'This will recalculate mileage for all existing trips using the tank-to-tank method. ' +
@@ -601,9 +636,11 @@ const TripsPage: React.FC = () => {
             onViewModeChange={setViewMode}
             searchResult={searchResult ? {
               matchedFields: searchResult.matchedFields,
-              searchTime: searchResult.searchTime
+              searchTime: searchResult.searchTime,
+              totalResults: searchResult.totalResults
             } : undefined}
-            useUltraSmartSearch={true}
+            useSmartAdaptiveSearch={true}
+            onSmartSearch={handleSmartSearch}
           />
           
           {/* Loading State */}

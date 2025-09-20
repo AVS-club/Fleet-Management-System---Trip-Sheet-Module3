@@ -2,6 +2,8 @@
 @import "react-toastify/dist/ReactToastify.css";
 /* Enhanced Animation Styles */
 @import "./styles/animations.css";
+/* Smart Search Styles */
+@import "./styles/smartSearch.css";
 /* Brand Font Import - Using Inter and Lexend for modern look */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lexend:wght@400;500;600;700&display=swap');
 
