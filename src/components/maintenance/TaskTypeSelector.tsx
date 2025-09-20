@@ -104,20 +104,38 @@ const TaskTypeSelector: React.FC<TaskTypeSelectorProps> = ({
       <div className="relative" ref={dropdownRef}>
         <div
           ref={inputContainerRef}
-          className={`min-h-[42px] p-2 border rounded-lg bg-white cursor-pointer hover:bg-gray-50 ${
+          className={`min-h-[42px] border rounded-lg bg-white ${
             error ? "border-error-500" : "border-gray-300"
-          }`}
-          onClick={() => setIsOpen(true)}
+          } ${isOpen ? "ring-2 ring-primary-500" : ""}`}
         >
-          {selectedTaskTypeDetails ? (
-            <div className="flex items-center gap-2">
-              <PenTool className="h-5 w-5 text-gray-400" />
-              <span className="font-medium text-gray-900">
-                {selectedTaskTypeDetails.label}
-              </span>
+          {isOpen ? (
+            <div className="p-2">
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="w-full p-2 border-0 focus:outline-none bg-transparent"
+                placeholder="Search maintenance types..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+              />
             </div>
           ) : (
-            <div className="text-gray-500">Select maintenance type</div>
+            <div 
+              className="p-2 cursor-pointer hover:bg-gray-50"
+              onClick={() => setIsOpen(true)}
+            >
+              {selectedTaskTypeDetails ? (
+                <div className="flex items-center gap-2">
+                  <PenTool className="h-5 w-5 text-gray-400" />
+                  <span className="font-medium text-gray-900">
+                    {selectedTaskTypeDetails.label}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-gray-500">Select maintenance type</div>
+              )}
+            </div>
           )}
         </div>
 
@@ -141,19 +159,6 @@ const TaskTypeSelector: React.FC<TaskTypeSelectorProps> = ({
             }}
             className="z-[9999] w-full bg-white border rounded-lg shadow-lg"
           >
-            <div className="p-2 border-b sticky top-0 bg-white z-10">
-              <input
-                ref={searchInputRef}
-                type="text"
-                className="w-full p-2 border rounded-md"
-                placeholder="Search maintenance types..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                autoFocus
-              />
-            </div>
-
             <div className="max-h-[200px] overflow-y-auto">
               {filteredTaskTypes.map((taskType) => (
                 <div

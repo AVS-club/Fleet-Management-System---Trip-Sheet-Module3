@@ -57,20 +57,32 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
 
   // Handle preset selection
   const handlePresetSelect = (preset: typeof DOWNTIME_PRESETS[0]) => {
-    setValue('downtime_days', preset.days);
-    setValue('downtime_hours', preset.hours);
-    setSelectedPreset(preset.id);
-    
-    // Add success animation
-    setTimeout(() => {
+    try {
+      setValue('downtime_days', preset.days);
+      setValue('downtime_hours', preset.hours);
+      setSelectedPreset(preset.id);
+      
+      // Add success animation with error handling
+      const timeoutId = setTimeout(() => {
+        setSelectedPreset(null);
+      }, 1000);
+      
+      // Cleanup timeout on unmount
+      return () => clearTimeout(timeoutId);
+    } catch (error) {
+      console.error('Error in handlePresetSelect:', error);
       setSelectedPreset(null);
-    }, 1000);
+    }
   };
 
   // Handle custom downtime input
   const handleCustomDowntimeChange = (field: 'downtime_days' | 'downtime_hours', value: number) => {
-    setValue(field, Math.max(0, value));
-    setSelectedPreset(null);
+    try {
+      setValue(field, Math.max(0, value));
+      setSelectedPreset(null);
+    } catch (error) {
+      console.error('Error in handleCustomDowntimeChange:', error);
+    }
   };
 
   // Auto-calculate downtime from start/end times

@@ -9,6 +9,7 @@ import FileUpload from "../ui/FileUpload";
 import GarageSelector from "./GarageSelector";
 import RefactoredVehicleSelector from "./RefactoredVehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
+import PriorityButtonSelector from "./PriorityButtonSelector";
 import MaintenanceAuditLog from "./MaintenanceAuditLog";
 import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
@@ -526,18 +527,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             name="priority"
             rules={{ required: "Priority is required" }}
             render={({ field }) => (
-              <Select
-                label="Priority"
-                icon={<AlertTriangle className="h-4 w-4" />}
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "critical", label: "Critical" },
-                ]}
+              <PriorityButtonSelector
+                value={field.value}
+                onChange={field.onChange}
                 error={errors.priority?.message}
                 required
-                {...field}
               />
             )}
           />
@@ -565,6 +559,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               required
               {...register("start_date", {
                 required: "Start date is required",
+                validate: (value) => {
+                  if (endDate && new Date(value) > new Date(endDate)) {
+                    return "Start date should be before end date";
+                  }
+                  return true;
+                }
               })}
             />
 
@@ -573,7 +573,14 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               type="date"
               icon={<Calendar className="h-4 w-4" />}
               error={errors.end_date?.message}
-              {...register("end_date")}
+              {...register("end_date", {
+                validate: (value) => {
+                  if (value && startDate && new Date(value) < new Date(startDate)) {
+                    return "End date should be after start date";
+                  }
+                  return true;
+                }
+              })}
             />
 
             <EnhancedDowntimeSection />
