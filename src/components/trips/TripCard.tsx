@@ -7,6 +7,7 @@ import { truncateString } from '../../utils/format';
 import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
 import { toast } from 'react-toastify';
 import config from '../../utils/env';
+import SearchHighlightedText from './SearchHighlightedText';
 
 interface TripCardProps {
   trip: Trip;
@@ -15,9 +16,10 @@ interface TripCardProps {
   onClick?: () => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditClick?: (trip: Trip) => void;
+  searchTerm?: string;
 }
 
-const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick, onPnlClick, onEditClick }) => {
+const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick, onPnlClick, onEditClick, searchTerm }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
@@ -167,7 +169,12 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
             </div>
           )}
           <div>
-            <p className="text-base text-gray-900 font-medium">{trip.trip_serial_number}</p>
+            <p className="text-base text-gray-900 font-medium">
+              <SearchHighlightedText 
+                text={trip.trip_serial_number} 
+                searchTerm={searchTerm || ''} 
+              />
+            </p>
             <p className="text-sm text-gray-500">{formattedDate}</p>
           </div>
         </div>
@@ -232,13 +239,19 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
           <div className="flex items-center gap-2">
             <Truck className="h-4 w-4 text-gray-400" />
             <span className="text-gray-600">
-              {vehicle ? vehicle.registration_number : 'Unknown Vehicle'}
+              <SearchHighlightedText 
+                text={vehicle ? vehicle.registration_number : 'Unknown Vehicle'} 
+                searchTerm={searchTerm || ''} 
+              />
             </span>
           </div>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
             <span className="text-gray-600">
-              {driver ? driver.name : 'Unknown Driver'}
+              <SearchHighlightedText 
+                text={driver ? driver.name : 'Unknown Driver'} 
+                searchTerm={searchTerm || ''} 
+              />
             </span>
           </div>
         </div>

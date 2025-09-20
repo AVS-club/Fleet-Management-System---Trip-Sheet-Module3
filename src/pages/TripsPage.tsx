@@ -640,6 +640,7 @@ const TripsPage: React.FC = () => {
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
+                  searchTerm={filters.search}
                 />
               )}
               

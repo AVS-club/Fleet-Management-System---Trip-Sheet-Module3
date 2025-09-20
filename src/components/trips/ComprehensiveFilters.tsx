@@ -192,10 +192,21 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
             <EnhancedSearchBar
               value={filters.search || ''}
               onChange={(value) => updateFilter('search', value)}
+              onHighlightMatches={(query) => {
+                // This will be handled by the parent component
+                console.log('Highlighting matches for:', query);
+              }}
               isSearching={isSearching}
               placeholder="Search by trip ID, vehicle, driver, location, date, distance, fuel, expenses..."
               className="w-full"
               disabled={isSearching}
+              searchHistory={[]} // TODO: Implement search history
+              onSaveSearch={(query, filters) => {
+                console.log('Saving search:', query, filters);
+              }}
+              onExportResults={(format) => {
+                console.log('Exporting results as:', format);
+              }}
             />
           </div>
 

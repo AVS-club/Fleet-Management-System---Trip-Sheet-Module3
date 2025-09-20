@@ -10,6 +10,7 @@ interface TripListProps {
   onSelectTrip: (trip: Trip) => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
+  searchTerm?: string;
 }
 
 const TripList: React.FC<TripListProps> = ({ 
@@ -18,7 +19,8 @@ const TripList: React.FC<TripListProps> = ({
   drivers, 
   onSelectTrip,
   onPnlClick,
-  onEditTrip
+  onEditTrip,
+  searchTerm
 }) => {
   
   const vehiclesMap = useMemo(() => {
@@ -49,6 +51,7 @@ const TripList: React.FC<TripListProps> = ({
               onClick={() => onSelectTrip(trip)}
               onPnlClick={onPnlClick}
               onEditClick={onEditTrip}
+              searchTerm={searchTerm}
             />
           ))}
         </div>
