@@ -17,6 +17,7 @@ import PredictiveMaintenance from '../components/analytics/PredictiveMaintenance
 import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard, Activity, Wrench } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 import { useQuery } from '@tanstack/react-query';
+import FleetIQScanner from '../components/FleetIQScanner';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -462,6 +463,9 @@ const DashboardPage: React.FC = () => {
         )}
       </div>
       )}
+      
+      {/* FleetIQ Scanner - Always visible */}
+      <FleetIQScanner />
     </Layout>
   );
 };
