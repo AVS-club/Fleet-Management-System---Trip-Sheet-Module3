@@ -219,8 +219,8 @@ const DashboardPage: React.FC = () => {
         <DashboardHeader vehicleCount={vehicles.filter(v => v.status !== 'archived').length} />
         
         {/* Tab Navigation */}
-        <div className="flex justify-center">
-          <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-1 mb-6">
+          <div className="flex space-x-2">
             {(['overview', 'analytics', 'maintenance'] as const).map((tab) => (
               <button
                 key={tab}
@@ -244,13 +244,14 @@ const DashboardPage: React.FC = () => {
         {activeTab === 'overview' && (
           <>
             {/* Key Metrics Section */}
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
-              <BarChart2 className="h-5 w-5 mr-2 text-primary-600" />
-              Key Metrics
-            </h2>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <BarChart2 className="h-5 w-5 text-primary-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Key Metrics</h2>
+              </div>
+              
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div
             onClick={() => navigate("/trips")}
             role="button"
@@ -336,17 +337,18 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
+              </div>
+            </div>
 
-        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+            <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
-        {/* Mileage Insights */}
-        {hasRefuelingData && (
-          <>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
-              <TrendingUp className="h-5 w-5 mr-2 text-success-600" />
-              Performance Highlights
-            </h2>
+            {/* Performance Highlights */}
+            {hasRefuelingData && (
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                <div className="flex items-center space-x-2 mb-6">
+                  <TrendingUp className="h-5 w-5 text-success-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">Performance Highlights</h2>
+                </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {bestVehicle && (
@@ -381,17 +383,18 @@ const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            </div>
-          </>
-        )}
-        
-        <hr className="my-6 border-gray-200 dark:border-gray-700" />
+              </div>
+              </div>
+            )}
+            
+            <hr className="my-6 border-gray-200 dark:border-gray-700" />
 
-        {/* Detailed Analytics Section */}
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
-          <BarChart className="h-5 w-5 mr-2 text-blue-600" />
-          Detailed Analytics
-        </h2>
+            {/* Detailed Analytics Section */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+              <div className="flex items-center space-x-2 mb-6">
+                <BarChart className="h-5 w-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Detailed Analytics</h2>
+              </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -429,7 +432,8 @@ const DashboardPage: React.FC = () => {
                 }}
               />
             </div>
-          </div>
+                </div>
+            </div>
         )}
 
             {/* Empty Dashboard State */}

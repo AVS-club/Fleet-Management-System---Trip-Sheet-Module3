@@ -37,6 +37,7 @@ const CompanySettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -98,19 +99,32 @@ const CompanySettings: React.FC = () => {
         return;
       }
 
-      const { data } = await supabase
+      console.log('Loading company data for user:', user.id);
+
+      const { data, error } = await supabase
         .from('organizations')
         .select('*')
         .eq('owner_id', user.id)
         .maybeSingle();
 
+      console.log('Company data query result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching organization:', error);
+        return;
+      }
+
       if (data) {
+        console.log('Setting company data:', data);
         setCompany(data);
         setIsEditMode(true);
         if (data.logo_url) {
           setExistingLogoUrl(data.logo_url);
           setPreviewUrl(data.logo_url);
         }
+      } else {
+        console.log('No company data found, setting up new company');
+        setIsEditMode(false);
       }
     } catch (error) {
       console.error('Error loading company data:', error);
@@ -336,6 +350,20 @@ const CompanySettings: React.FC = () => {
     }
   };
 
+  // Handle edit mode toggle
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+    if (!isEditing) {
+      // Reset any unsaved changes
+      setSelectedFile(null);
+      setPreviewUrl(existingLogoUrl || '');
+      setOldLogoToDelete('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -362,18 +390,32 @@ const CompanySettings: React.FC = () => {
               <Building2 className="h-8 w-8 text-primary-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {isEditMode ? 'Edit Company Profile' : 'Setup Company Profile'}
+                  {isEditMode ? (isEditing ? 'Edit Company Profile' : 'Company Profile') : 'Setup Company Profile'}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Manage your organization's profile and branding
+                  {isEditMode ? 'View and manage your organization profile' : 'Set up your organization profile and branding'}
                 </p>
               </div>
             </div>
-            {isEditMode && (
-              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                Profile Active
-              </span>
-            )}
+            <div className="flex items-center space-x-3">
+              {isEditMode && !isEditing && (
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  Profile Active
+                </span>
+              )}
+              {isEditMode && (
+                <button
+                  onClick={handleEditToggle}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isEditing 
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                  }`}
+                >
+                  {isEditing ? 'Cancel' : 'Edit Profile'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -409,9 +451,10 @@ const CompanySettings: React.FC = () => {
                     type="text"
                     value={company.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
+                    readOnly={!isEditing && isEditMode}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
                       errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    } ${!isEditing && isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                     placeholder="Enter company name"
                     maxLength={100}
                   />
@@ -713,32 +756,34 @@ const CompanySettings: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center rounded-b-lg">
-            <button
-              type="button"
-              onClick={() => navigate('/admin')}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  {isEditMode ? 'Update Company Profile' : 'Create Company Profile'}
-                </>
-              )}
-            </button>
-          </div>
+          {(isEditing || !isEditMode) && (
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center rounded-b-lg">
+              <button
+                type="button"
+                onClick={() => navigate('/admin')}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    {isEditMode ? 'Update Company Profile' : 'Create Company Profile'}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

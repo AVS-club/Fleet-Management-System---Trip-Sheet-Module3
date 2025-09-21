@@ -7,6 +7,7 @@ interface Organization {
   id: string;
   name: string;
   logo_url?: string;
+  tagline?: string;
   contact_email?: string;
   contact_phone?: string;
   address?: string;
@@ -52,19 +53,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       // Load organization
       const { data: org } = await supabase
         .from('organizations')
-        .select('name, logo_url, created_at')
+        .select('name, logo_url, created_at, tagline')
         .eq('owner_id', user.id)
         .maybeSingle();
       
       if (org) {
         setOrganization(org);
         setLogoError(false);
-        
-        // Calculate active days
-        if (org.created_at) {
-          const activeDays = differenceInDays(new Date(), new Date(org.created_at));
-          setMetrics(prev => ({ ...prev, activeDays }));
-        }
       }
 
       // Load fleet metrics
@@ -85,11 +80,31 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         .eq('created_by', user.id)
         .gte('created_at', today);
 
+      // Calculate active days from first trip
+      let activeDays = 0;
+      if (totalTrips && totalTrips > 0) {
+        const { data: firstTrip } = await supabase
+          .from('trips')
+          .select('created_at')
+          .eq('created_by', user.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+        
+        if (firstTrip) {
+          activeDays = differenceInDays(new Date(), new Date(firstTrip.created_at));
+        }
+      } else if (org?.created_at) {
+        // Fallback to organization creation date
+        activeDays = differenceInDays(new Date(), new Date(org.created_at));
+      }
+
       setMetrics(prev => ({
         ...prev,
         fleetSize: vehicleCount || 0,
         totalTrips: totalTrips || 0,
-        tripsToday: todayTrips || 0
+        tripsToday: todayTrips || 0,
+        activeDays: activeDays
       }));
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -115,58 +130,73 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
 
   return (
     <div className={`mb-6 ${className}`}>
-      {/* Compact header with company branding */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          {organization?.logo_url && !logoError && (
-            <img 
-              src={organization.logo_url} 
-              alt={organization.name}
-              className="h-8 w-8 rounded object-contain border border-gray-200"
-              onError={() => {
-                setLogoError(true);
-              }}
-            />
-          )}
-          <h1 className="text-xl font-bold text-gray-900">
-            {organization?.name || 'Dashboard'}
-          </h1>
-        </div>
-        
-        {/* Motivational metrics */}
-        <div className="hidden md:flex items-center space-x-6 text-sm">
-          <div className="flex items-center space-x-1">
-            <Truck className="h-4 w-4 text-primary-600" />
-            <span className="text-gray-600">Fleet:</span>
-            <span className="font-semibold">{metrics.fleetSize} vehicles</span>
+      {/* Company branding header */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            {organization?.logo_url && !logoError && (
+              <img 
+                src={organization.logo_url} 
+                alt={organization.name}
+                className="h-12 w-12 rounded-lg object-contain border border-gray-200"
+                onError={() => {
+                  setLogoError(true);
+                }}
+              />
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {organization?.name || 'Dashboard'}
+              </h1>
+              {organization?.tagline && (
+                <p className="text-sm text-gray-600 mt-1">{organization.tagline}</p>
+              )}
+            </div>
           </div>
-          <div className="flex items-center space-x-1">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-gray-600">Today:</span>
-            <span className="font-semibold">{metrics.tripsToday} trips</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-            <span className="text-gray-600">Total:</span>
-            <span className="font-semibold">{metrics.totalTrips.toLocaleString()} trips</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <Award className="h-4 w-4 text-yellow-600" />
-            <span className="text-gray-600">Active:</span>
-            <span className="font-semibold">{metrics.activeDays} days</span>
+          
+          {/* Motivational metrics */}
+          <div className="hidden md:flex items-center space-x-6 text-sm">
+            <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-3 py-2">
+              <Truck className="h-4 w-4 text-primary-600" />
+              <span className="text-gray-600">Fleet:</span>
+              <span className="font-semibold text-primary-700">{metrics.fleetSize} vehicles</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-3 py-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-gray-600">Today:</span>
+              <span className="font-semibold text-green-700">{metrics.tripsToday} trips</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-3 py-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <span className="text-gray-600">Total:</span>
+              <span className="font-semibold text-blue-700">{metrics.totalTrips.toLocaleString()} trips</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-3 py-2">
+              <Award className="h-4 w-4 text-yellow-600" />
+              <span className="text-gray-600">Active:</span>
+              <span className="font-semibold text-yellow-700">{metrics.activeDays} days</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Mobile metrics */}
-      <div className="md:hidden grid grid-cols-2 gap-2 text-sm">
-        <div className="flex items-center space-x-1 bg-gray-50 rounded px-2 py-1">
+      <div className="md:hidden grid grid-cols-2 gap-3 text-sm">
+        <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-3 py-2">
           <Truck className="h-4 w-4 text-primary-600" />
-          <span>{metrics.fleetSize} vehicles</span>
+          <span className="font-medium">{metrics.fleetSize} vehicles</span>
         </div>
-        <div className="flex items-center space-x-1 bg-gray-50 rounded px-2 py-1">
+        <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-3 py-2">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <span>{metrics.tripsToday} trips today</span>
+          <span className="font-medium">{metrics.tripsToday} trips today</span>
+        </div>
+        <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-3 py-2">
+          <TrendingUp className="h-4 w-4 text-blue-600" />
+          <span className="font-medium">{metrics.totalTrips.toLocaleString()} total trips</span>
+        </div>
+        <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-3 py-2">
+          <Award className="h-4 w-4 text-yellow-600" />
+          <span className="font-medium">{metrics.activeDays} active days</span>
         </div>
       </div>
     </div>
