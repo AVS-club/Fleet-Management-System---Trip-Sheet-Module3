@@ -113,11 +113,11 @@ CREATE OR REPLACE FUNCTION rpc_vehicle_expiries(
 )
 RETURNS TABLE(
   registration_number TEXT,
-  insurance_expiry_date DATE,
-  pollution_expiry_date DATE,
-  permit_expiry_date DATE,
-  fitness_expiry_date DATE,
-  registration_date DATE,
+  insurance_expiry DATE,
+  pollution_expiry DATE,
+  permit_expiry DATE,
+  fitness_expiry DATE,
+  created_at TIMESTAMPTZ,
   puc_expiry_date DATE
 )
 LANGUAGE plpgsql
@@ -127,12 +127,12 @@ BEGIN
   RETURN QUERY
   SELECT 
     v.registration_number,
-    v.insurance_expiry_date,
-    v.pollution_expiry_date,
-    v.permit_expiry_date,
-    v.fitness_expiry_date,
-    v.registration_date,
-    v.pollution_expiry_date as puc_expiry_date
+    v.insurance_expiry,
+    v.pollution_expiry,
+    v.permit_expiry,
+    v.fitness_expiry,
+    v.created_at,
+    v.pollution_expiry as puc_expiry_date
   FROM vehicles v
   WHERE v.registration_number = reg_no;
 END;
@@ -144,10 +144,10 @@ CREATE OR REPLACE FUNCTION rpc_expiring_documents(
 )
 RETURNS TABLE(
   registration_number TEXT,
-  insurance_expiry_date DATE,
-  pollution_expiry_date DATE,
-  permit_expiry_date DATE,
-  fitness_expiry_date DATE,
+  insurance_expiry DATE,
+  pollution_expiry DATE,
+  permit_expiry DATE,
+  fitness_expiry DATE,
   days_until_insurance INTEGER,
   days_until_pollution INTEGER,
   days_until_permit INTEGER,
@@ -164,43 +164,43 @@ BEGIN
   RETURN QUERY
   SELECT 
     v.registration_number,
-    v.insurance_expiry_date,
-    v.pollution_expiry_date,
-    v.permit_expiry_date,
-    v.fitness_expiry_date,
+    v.insurance_expiry,
+    v.pollution_expiry,
+    v.permit_expiry,
+    v.fitness_expiry,
     CASE 
-      WHEN v.insurance_expiry_date IS NOT NULL 
-      THEN (v.insurance_expiry_date - CURRENT_DATE)::INTEGER
+      WHEN v.insurance_expiry IS NOT NULL 
+      THEN (v.insurance_expiry - CURRENT_DATE)::INTEGER
       ELSE NULL 
     END as days_until_insurance,
     CASE 
-      WHEN v.pollution_expiry_date IS NOT NULL 
-      THEN (v.pollution_expiry_date - CURRENT_DATE)::INTEGER
+      WHEN v.pollution_expiry IS NOT NULL 
+      THEN (v.pollution_expiry - CURRENT_DATE)::INTEGER
       ELSE NULL 
     END as days_until_pollution,
     CASE 
-      WHEN v.permit_expiry_date IS NOT NULL 
-      THEN (v.permit_expiry_date - CURRENT_DATE)::INTEGER
+      WHEN v.permit_expiry IS NOT NULL 
+      THEN (v.permit_expiry - CURRENT_DATE)::INTEGER
       ELSE NULL 
     END as days_until_permit,
     CASE 
-      WHEN v.fitness_expiry_date IS NOT NULL 
-      THEN (v.fitness_expiry_date - CURRENT_DATE)::INTEGER
+      WHEN v.fitness_expiry IS NOT NULL 
+      THEN (v.fitness_expiry - CURRENT_DATE)::INTEGER
       ELSE NULL 
     END as days_until_fitness
   FROM vehicles v
   WHERE (
-    (v.insurance_expiry_date IS NOT NULL AND v.insurance_expiry_date <= cutoff_date) OR
-    (v.pollution_expiry_date IS NOT NULL AND v.pollution_expiry_date <= cutoff_date) OR
-    (v.permit_expiry_date IS NOT NULL AND v.permit_expiry_date <= cutoff_date) OR
-    (v.fitness_expiry_date IS NOT NULL AND v.fitness_expiry_date <= cutoff_date)
+    (v.insurance_expiry IS NOT NULL AND v.insurance_expiry <= cutoff_date) OR
+    (v.pollution_expiry IS NOT NULL AND v.pollution_expiry <= cutoff_date) OR
+    (v.permit_expiry IS NOT NULL AND v.permit_expiry <= cutoff_date) OR
+    (v.fitness_expiry IS NOT NULL AND v.fitness_expiry <= cutoff_date)
   )
   ORDER BY 
     LEAST(
-      COALESCE(v.insurance_expiry_date, '9999-12-31'::DATE),
-      COALESCE(v.pollution_expiry_date, '9999-12-31'::DATE),
-      COALESCE(v.permit_expiry_date, '9999-12-31'::DATE),
-      COALESCE(v.fitness_expiry_date, '9999-12-31'::DATE)
+      COALESCE(v.insurance_expiry, '9999-12-31'::DATE),
+      COALESCE(v.pollution_expiry, '9999-12-31'::DATE),
+      COALESCE(v.permit_expiry, '9999-12-31'::DATE),
+      COALESCE(v.fitness_expiry, '9999-12-31'::DATE)
     );
 END;
 $$;
@@ -212,7 +212,7 @@ CREATE OR REPLACE FUNCTION rpc_maintenance_status(
 RETURNS TABLE(
   maintenance_id UUID,
   vehicle_registration TEXT,
-  maintenance_type TEXT,
+  task_type TEXT,
   status TEXT,
   priority TEXT,
   created_at TIMESTAMP WITH TIME ZONE,
@@ -229,13 +229,13 @@ BEGIN
     SELECT 
       m.id as maintenance_id,
       v.registration_number as vehicle_registration,
-      m.maintenance_type,
+      m.task_type,
       m.status,
       m.priority,
       m.created_at,
       m.scheduled_date,
       m.description
-    FROM maintenance m
+    FROM maintenance_tasks m
     JOIN vehicles v ON m.vehicle_id = v.id
     WHERE v.registration_number = reg_no
       AND m.status IN ('pending', 'in_progress')
@@ -246,13 +246,13 @@ BEGIN
     SELECT 
       m.id as maintenance_id,
       v.registration_number as vehicle_registration,
-      m.maintenance_type,
+      m.task_type,
       m.status,
       m.priority,
       m.created_at,
       m.scheduled_date,
       m.description
-    FROM maintenance m
+    FROM maintenance_tasks m
     JOIN vehicles v ON m.vehicle_id = v.id
     WHERE m.status IN ('pending', 'in_progress')
     ORDER BY m.created_at DESC
@@ -364,5 +364,5 @@ GRANT EXECUTE ON FUNCTION rpc_search_vehicles(TEXT) TO authenticated;
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_trips_vehicle_date ON trips(vehicle_id, trip_start_date);
 CREATE INDEX IF NOT EXISTS idx_vehicles_registration ON vehicles(registration_number);
-CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance(status, created_at);
-CREATE INDEX IF NOT EXISTS idx_vehicles_expiry_dates ON vehicles(insurance_expiry_date, pollution_expiry_date, permit_expiry_date, fitness_expiry_date);
+CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance_tasks(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_vehicles_expiry_dates ON vehicles(insurance_expiry, pollution_expiry, permit_expiry, fitness_expiry);
