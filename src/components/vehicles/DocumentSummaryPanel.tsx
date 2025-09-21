@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle } from 'lucide-react';
-import { FixedSizeList } from 'react-window';
+// Import react-window with fallback
+let FixedSizeList: any = null;
+try {
+  const reactWindow = require('react-window');
+  FixedSizeList = reactWindow.FixedSizeList;
+} catch (error) {
+  console.warn('react-window not available, using fallback table rendering');
+}
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
 import { updateVehicle } from '../../utils/api/vehicles';
@@ -1302,7 +1309,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                 </div>
                 
                 <div className="overflow-x-auto">
-                  {documentMatrix.length > 50 ? (
+                  {documentMatrix.length > 50 && FixedSizeList ? (
                     // Virtual scrolling for large datasets
                     <div className="h-96">
                       <FixedSizeList
