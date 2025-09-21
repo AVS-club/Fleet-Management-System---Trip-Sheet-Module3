@@ -50,12 +50,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         return;
       }
 
-      // Load organization
+      // Load organization - there should be only one organization
       const { data: org } = await supabase
         .from('organizations')
         .select('name, logo_url, created_at, tagline')
-        .eq('owner_id', user.id)
-        .maybeSingle();
+        .single();
       
       if (org) {
         setOrganization(org);

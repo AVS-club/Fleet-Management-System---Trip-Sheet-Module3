@@ -106,8 +106,7 @@ const CompanySettings: React.FC = () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
-        .eq('owner_id', user.id)
-        .maybeSingle();
+        .single();
 
       if (import.meta.env.MODE === 'development') {
         console.log('Company data query result:', { data, error });
@@ -124,6 +123,7 @@ const CompanySettings: React.FC = () => {
         }
         setCompany(data);
         setIsEditMode(true);
+        setIsEditing(false); // Start in view mode when data exists
         if (data.logo_url) {
           setExistingLogoUrl(data.logo_url);
           setPreviewUrl(data.logo_url);
@@ -133,6 +133,7 @@ const CompanySettings: React.FC = () => {
           console.log('No company data found, setting up new company');
         }
         setIsEditMode(false);
+        setIsEditing(true); // Start in edit mode for new company
       }
     } catch (error) {
       console.error('Error loading company data:', error);
@@ -314,19 +315,29 @@ const CompanySettings: React.FC = () => {
       };
 
       // Save to database
-      if (isEditMode) {
+      if (isEditMode && company.id) {
+        // Update existing record
         const { error } = await supabase
           .from('organizations')
           .update(companyData)
-          .eq('owner_id', user.id);
+          .eq('id', company.id);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        // Insert new record
+        const { data: newData, error } = await supabase
           .from('organizations')
-          .insert([companyData]);
+          .insert([companyData])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        // Update local state with the new ID
+        if (newData) {
+          setCompany({ ...company, id: newData.id });
+        }
+        
         setIsEditMode(true);
       }
 
@@ -334,6 +345,7 @@ const CompanySettings: React.FC = () => {
       setExistingLogoUrl(finalLogoUrl || '');
       setSelectedFile(null);
       setOldLogoToDelete('');
+      setIsEditing(false); // Exit edit mode after successful save
       setSuccessMessage('Company information saved successfully!');
 
       // Clear success message after 3 seconds
@@ -766,12 +778,18 @@ const CompanySettings: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Show when editing or creating new */}
           {(isEditing || !isEditMode) && (
             <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center rounded-b-lg">
               <button
                 type="button"
-                onClick={() => navigate('/admin')}
+                onClick={() => {
+                  if (isEditing) {
+                    handleEditToggle(); // Cancel editing
+                  } else {
+                    navigate('/admin'); // Cancel creation
+                  }
+                }}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900"
               >
                 Cancel
