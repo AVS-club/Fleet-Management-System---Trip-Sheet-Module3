@@ -50,11 +50,15 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         return;
       }
 
-      // Load organization - there should be only one organization
-      const { data: org } = await supabase
+      // Load organization - get the most recent one for this user
+      const { data: orgData } = await supabase
         .from('organizations')
         .select('name, logo_url, created_at, tagline')
-        .single();
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const org = Array.isArray(orgData) && orgData.length > 0 ? orgData[0] : null;
       
       if (org) {
         setOrganization(org);

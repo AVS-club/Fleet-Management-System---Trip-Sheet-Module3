@@ -106,7 +106,9 @@ const CompanySettings: React.FC = () => {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
-        .single();
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (import.meta.env.MODE === 'development') {
         console.log('Company data query result:', { data, error });
@@ -117,16 +119,19 @@ const CompanySettings: React.FC = () => {
         return;
       }
 
-      if (data) {
+      // Handle the result as an array and take the first element
+      const companyData = Array.isArray(data) && data.length > 0 ? data[0] : null;
+
+      if (companyData) {
         if (import.meta.env.MODE === 'development') {
-          console.log('Setting company data:', data);
+          console.log('Setting company data:', companyData);
         }
-        setCompany(data);
+        setCompany(companyData);
         setIsEditMode(true);
         setIsEditing(false); // Start in view mode when data exists
-        if (data.logo_url) {
-          setExistingLogoUrl(data.logo_url);
-          setPreviewUrl(data.logo_url);
+        if (companyData.logo_url) {
+          setExistingLogoUrl(companyData.logo_url);
+          setPreviewUrl(companyData.logo_url);
         }
       } else {
         if (import.meta.env.MODE === 'development') {

@@ -297,28 +297,32 @@ const DashboardPage: React.FC = () => {
 
           {hasRefuelingData ? (
             <>
-              <StatCard
-                title="Average Mileage"
-                value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
-            className={
-              stats.avgMileage > 4.0
-                ? "bg-emerald-50"
-                : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
-                ? "bg-orange-50"
-                : stats.avgMileage < 3.0 && stats.avgMileage > 0
-                ? "bg-red-50"
-                : ""
-            }
-                subtitle="km/L"
-                icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-              />
+              <div>
+                <StatCard
+                  title="Average Mileage"
+                  value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+                  className={
+                    stats.avgMileage > 4.0
+                      ? "bg-emerald-50"
+                      : stats.avgMileage >= 3.0 && stats.avgMileage <= 4.0
+                      ? "bg-orange-50"
+                      : stats.avgMileage < 3.0 && stats.avgMileage > 0
+                      ? "bg-red-50"
+                      : ""
+                  }
+                  subtitle="km/L"
+                  icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+                />
+              </div>
               
-              <StatCard
-                title="Total Fuel Used"
-                value={stats.totalFuel.toLocaleString()}
-                subtitle="L"
-                icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-              />
+              <div>
+                <StatCard
+                  title="Total Fuel Used"
+                  value={stats.totalFuel.toLocaleString()}
+                  subtitle="L"
+                  icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
+                />
+              </div>
             </>
           ) : (
             <div
@@ -433,8 +437,8 @@ const DashboardPage: React.FC = () => {
               />
             </div>
                 </div>
+            )}
             </div>
-        )}
 
             {/* Empty Dashboard State */}
             {!hasEnoughData && (
