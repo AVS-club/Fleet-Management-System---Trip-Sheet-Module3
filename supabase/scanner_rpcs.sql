@@ -19,8 +19,8 @@ BEGIN
   FROM trips t
   JOIN vehicles v ON t.vehicle_id = v.id
   WHERE v.registration_number = reg_no
-    AND t.start_date >= date_from
-    AND t.start_date <= date_to;
+    AND t.trip_start_date >= date_from
+    AND t.trip_start_date <= date_to;
   
   RETURN COALESCE(trip_count, 0);
 END;
@@ -49,8 +49,8 @@ BEGIN
   FROM trips t
   JOIN vehicles v ON t.vehicle_id = v.id
   WHERE v.registration_number = reg_no
-    AND t.start_date >= date_from
-    AND t.start_date <= date_to
+    AND t.trip_start_date >= date_from
+    AND t.trip_start_date <= date_to
     AND t.fuel_amount IS NOT NULL
     AND t.fuel_amount > 0;
 END;
@@ -86,8 +86,8 @@ BEGIN
   FROM trips t
   JOIN vehicles v ON t.vehicle_id = v.id
   WHERE v.registration_number = reg_no
-    AND t.start_date >= date_from
-    AND t.start_date <= date_to
+    AND t.trip_start_date >= date_from
+    AND t.trip_start_date <= date_to
     AND t.end_km > t.start_km
     AND t.fuel_quantity > 0;
   
@@ -362,7 +362,7 @@ GRANT EXECUTE ON FUNCTION rpc_fleet_summary(DATE, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION rpc_search_vehicles(TEXT) TO authenticated;
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_trips_vehicle_date ON trips(vehicle_id, start_date);
+CREATE INDEX IF NOT EXISTS idx_trips_vehicle_date ON trips(vehicle_id, trip_start_date);
 CREATE INDEX IF NOT EXISTS idx_vehicles_registration ON vehicles(registration_number);
 CREATE INDEX IF NOT EXISTS idx_maintenance_status ON maintenance(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_vehicles_expiry_dates ON vehicles(insurance_expiry_date, pollution_expiry_date, permit_expiry_date, fitness_expiry_date);
