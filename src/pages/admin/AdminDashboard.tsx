@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel } from 'lucide-react'; 
+import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2 } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles, getDrivers } from '../../utils/storage';
 import { Vehicle, Driver } from '@/types';
@@ -269,6 +269,23 @@ const AdminDashboard: React.FC = () => {
                     <h3 className="text-base sm:text-lg font-medium text-gray-900">Activity Logs</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
                       View system activity and audit logs
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
+              <Link
+                to="/admin/company-settings"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <Building2 className="h-5 w-5 text-primary-600" />
+                  </div> 
+                  <div>
+                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Company Settings</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                      Manage company profile, GST details & banking
                     </p>
                   </div>
                 </div>
