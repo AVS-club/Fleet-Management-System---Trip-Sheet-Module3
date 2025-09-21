@@ -91,13 +91,13 @@ const CompanySettings: React.FC = () => {
     }));
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     // Validate file size (2MB limit)
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Logo file size must be less than 2MB');
+      toast.error('Logo size must be less than 2MB');
       return;
     }
 
@@ -107,57 +107,61 @@ const CompanySettings: React.FC = () => {
       return;
     }
 
-    setLogoFile(file);
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setLogoPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const removeLogo = () => {
-    setLogoFile(null);
-    setLogoPreview('');
-  };
-
-  const uploadLogo = async (): Promise<string | null> => {
-    if (!logoFile) return formData.logo_url || null;
-
     try {
       setUploading(true);
       
-      // Generate unique filename
-      const fileExt = logoFile.name.split('.').pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
+      const { data: { user } } = await supabase.auth.getUser();
       
+      if (!user) {
+        toast.error('Please login first');
+        return;
+      }
+
+      // Upload to storage with user-specific path
       const { data, error } = await supabase.storage
         .from('company-logos')
-        .upload(fileName, logoFile, {
+        .upload(`${user.id}/${fileName}`, file, {
           cacheControl: '3600',
           upsert: false
         });
 
       if (error) {
-        console.error('Error uploading logo:', error);
-        toast.error('Error uploading logo');
-        return null;
+        console.error('Upload error:', error);
+        toast.error('Error uploading logo: ' + error.message);
+        return;
       }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('company-logos')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
+        .getPublicUrl(`${user.id}/${fileName}`);
+      
+      // Update form data with the new logo URL
+      setFormData(prev => ({ ...prev, logo_url: publicUrl }));
+      setLogoPreview(publicUrl);
+      setLogoFile(null); // Clear the file since it's uploaded
+      
+      toast.success('Logo uploaded successfully!');
     } catch (error) {
-      console.error('Error uploading logo:', error);
-      toast.error('Error uploading logo');
-      return null;
+      console.error('Error:', error);
+      toast.error('Failed to upload logo');
     } finally {
       setUploading(false);
     }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview('');
+    setFormData(prev => ({ ...prev, logo_url: '' }));
+  };
+
+  const uploadLogo = async (): Promise<string | null> => {
+    // Logo upload is now handled directly in handleLogoUpload
+    // This function is kept for compatibility but returns the current logo URL
+    return formData.logo_url || null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -177,15 +181,8 @@ const CompanySettings: React.FC = () => {
         return;
       }
 
-      // Upload logo if new file selected
-      const logoUrl = await uploadLogo();
-      if (logoFile && !logoUrl) {
-        return; // Error already handled in uploadLogo
-      }
-
       const organizationData = {
         ...formData,
-        logo_url: logoUrl,
         owner_id: user.id
       };
 
