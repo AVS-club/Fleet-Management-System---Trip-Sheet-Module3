@@ -68,10 +68,19 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         .select('*', { count: 'exact', head: true })
         .eq('created_by', user.id);
 
-      const { count: totalTrips } = await supabase
+      // Get trip count and earliest trip date in a single query
+      const { data: tripStats } = await supabase
         .from('trips')
-        .select('*', { count: 'exact', head: true })
+        .select('created_at')
         .eq('created_by', user.id);
+
+      const totalTrips = tripStats?.length || 0;
+      const earliestTripDate = tripStats && tripStats.length > 0 
+        ? tripStats.reduce((earliest: string, trip: { created_at: string }) => 
+            new Date(trip.created_at) < new Date(earliest) ? trip.created_at : earliest, 
+            tripStats[0].created_at
+          )
+        : null;
 
       const today = new Date().toISOString().split('T')[0];
       const { count: todayTrips } = await supabase
@@ -82,18 +91,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
 
       // Calculate active days from first trip
       let activeDays = 0;
-      if (totalTrips && totalTrips > 0) {
-        const { data: firstTrip } = await supabase
-          .from('trips')
-          .select('created_at')
-          .eq('created_by', user.id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
-        
-        if (firstTrip) {
-          activeDays = differenceInDays(new Date(), new Date(firstTrip.created_at));
-        }
+      if (earliestTripDate) {
+        activeDays = differenceInDays(new Date(), new Date(earliestTripDate));
       } else if (org?.created_at) {
         // Fallback to organization creation date
         activeDays = differenceInDays(new Date(), new Date(org.created_at));

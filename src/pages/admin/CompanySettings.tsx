@@ -99,7 +99,9 @@ const CompanySettings: React.FC = () => {
         return;
       }
 
-      console.log('Loading company data for user:', user.id);
+      if (import.meta.env.MODE === 'development') {
+        console.log('Loading company data for user:', user.id);
+      }
 
       const { data, error } = await supabase
         .from('organizations')
@@ -107,7 +109,9 @@ const CompanySettings: React.FC = () => {
         .eq('owner_id', user.id)
         .maybeSingle();
 
-      console.log('Company data query result:', { data, error });
+      if (import.meta.env.MODE === 'development') {
+        console.log('Company data query result:', { data, error });
+      }
 
       if (error) {
         console.error('Error fetching organization:', error);
@@ -115,7 +119,9 @@ const CompanySettings: React.FC = () => {
       }
 
       if (data) {
-        console.log('Setting company data:', data);
+        if (import.meta.env.MODE === 'development') {
+          console.log('Setting company data:', data);
+        }
         setCompany(data);
         setIsEditMode(true);
         if (data.logo_url) {
@@ -123,7 +129,9 @@ const CompanySettings: React.FC = () => {
           setPreviewUrl(data.logo_url);
         }
       } else {
-        console.log('No company data found, setting up new company');
+        if (import.meta.env.MODE === 'development') {
+          console.log('No company data found, setting up new company');
+        }
         setIsEditMode(false);
       }
     } catch (error) {
@@ -471,7 +479,10 @@ const CompanySettings: React.FC = () => {
                     type="text"
                     value={company.tagline || ''}
                     onChange={(e) => handleInputChange('tagline', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    readOnly={!isEditing && isEditMode}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                      errors.tagline ? 'border-red-500' : 'border-gray-300'
+                    } ${!isEditing && isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
                     placeholder="Your company slogan"
                     maxLength={100}
                   />
