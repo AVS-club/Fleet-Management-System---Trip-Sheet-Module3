@@ -77,7 +77,15 @@ export const getDestinationsWithAnalytics = async (
     // Apply sorting
     const sortBy = filters.sortBy || 'usage_count';
     const sortOrder = filters.sortOrder || 'desc';
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+   
+   // Only apply database sorting for columns that exist in the database
+   if (sortBy !== 'usage_count' && sortBy !== 'last_used') {
+     query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+   } else {
+     // For computed fields, we'll sort after fetching the data
+     // Use a default database sort to ensure consistent pagination
+     query = query.order('name', { ascending: true });
+   }
 
     // Apply pagination
     query = query.range(offset, offset + limit - 1);
@@ -115,6 +123,22 @@ export const getDestinationsWithAnalytics = async (
         } as DestinationUsageStats;
       })
     );
+
+   // Apply client-side sorting for computed fields
+   if (sortBy === 'usage_count' || sortBy === 'last_used') {
+     destinationsWithStats.sort((a, b) => {
+       if (sortBy === 'usage_count') {
+         const aValue = a.usage_count;
+         const bValue = b.usage_count;
+         return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+       } else if (sortBy === 'last_used') {
+         const aValue = a.last_used ? new Date(a.last_used).getTime() : 0;
+         const bValue = b.last_used ? new Date(b.last_used).getTime() : 0;
+         return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+       }
+       return 0;
+     });
+   }
 
     const totalPages = Math.ceil((count || 0) / limit);
 
