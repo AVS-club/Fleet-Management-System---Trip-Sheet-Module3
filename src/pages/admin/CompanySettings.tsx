@@ -181,6 +181,11 @@ const CompanySettings: React.FC = () => {
     if (existingLogoUrl) {
       setOldLogoToDelete(existingLogoUrl);
     }
+
+    // Automatically enter edit mode when a new logo is selected
+    if (isEditMode && !isEditing) {
+      setIsEditing(true);
+    }
   };
 
   // Remove selected logo
