@@ -131,23 +131,23 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
   }
 
   return (
-    <div className={`mb-6 ${className}`}>
+    <div className={`mb-3 ${className}`}>
       {/* Company branding header */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {organization?.logo_url && !logoError && (
               <img 
                 src={organization.logo_url} 
                 alt={organization.name}
-                className="h-12 w-12 rounded-lg object-contain border border-gray-200"
+                className="h-10 w-10 rounded-lg object-contain border border-gray-200"
                 onError={() => {
                   setLogoError(true);
                 }}
               />
             )}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900">
                 {organization?.name || 'Dashboard'}
               </h1>
               {organization?.tagline && (
@@ -157,23 +157,23 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
           </div>
           
           {/* Motivational metrics */}
-          <div className="hidden md:flex items-center space-x-6 text-sm">
-            <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-3 py-2">
+          <div className="hidden md:flex items-center space-x-4 text-sm">
+            <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
               <Truck className="h-4 w-4 text-primary-600" />
               <span className="text-gray-600">Fleet:</span>
               <span className="font-semibold text-primary-700">{metrics.fleetSize} vehicles</span>
             </div>
-            <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-3 py-2">
+            <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-gray-600">Today:</span>
               <span className="font-semibold text-green-700">{metrics.tripsToday} trips</span>
             </div>
-            <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-3 py-2">
+            <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
               <TrendingUp className="h-4 w-4 text-blue-600" />
               <span className="text-gray-600">Total:</span>
               <span className="font-semibold text-blue-700">{metrics.totalTrips.toLocaleString()} trips</span>
             </div>
-            <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-3 py-2">
+            <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
               <Award className="h-4 w-4 text-yellow-600" />
               <span className="text-gray-600">Active:</span>
               <span className="font-semibold text-yellow-700">{metrics.activeDays} days</span>
@@ -183,20 +183,20 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       </div>
 
       {/* Mobile metrics */}
-      <div className="md:hidden grid grid-cols-2 gap-3 text-sm">
-        <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-3 py-2">
+      <div className="md:hidden grid grid-cols-2 gap-2 text-sm">
+        <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
           <Truck className="h-4 w-4 text-primary-600" />
           <span className="font-medium">{metrics.fleetSize} vehicles</span>
         </div>
-        <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-3 py-2">
+        <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <span className="font-medium">{metrics.tripsToday} trips today</span>
         </div>
-        <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-3 py-2">
+        <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
           <TrendingUp className="h-4 w-4 text-blue-600" />
           <span className="font-medium">{metrics.totalTrips.toLocaleString()} total trips</span>
         </div>
-        <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-3 py-2">
+        <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
           <Award className="h-4 w-4 text-yellow-600" />
           <span className="font-medium">{metrics.activeDays} active days</span>
         </div>
