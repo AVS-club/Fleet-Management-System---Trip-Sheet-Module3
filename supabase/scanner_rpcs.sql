@@ -43,7 +43,7 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT 
-    COALESCE(SUM(t.fuel_amount), 0) as total_fuel_amount,
+    COALESCE(SUM(t.total_fuel_cost), 0) as total_fuel_amount,
     COALESCE(SUM(t.fuel_quantity), 0) as total_liters,
     COUNT(*)::INTEGER as trips_covered
   FROM trips t
@@ -51,8 +51,8 @@ BEGIN
   WHERE v.registration_number = reg_no
     AND t.trip_start_date >= date_from
     AND t.trip_start_date <= date_to
-    AND t.fuel_amount IS NOT NULL
-    AND t.fuel_amount > 0;
+    AND t.total_fuel_cost IS NOT NULL
+    AND t.total_fuel_cost > 0;
 END;
 $$;
 
@@ -301,9 +301,9 @@ BEGIN
   SELECT 
     (SELECT COUNT(*)::INTEGER FROM vehicles WHERE status != 'archived') as total_vehicles,
     (SELECT COUNT(*)::INTEGER FROM vehicles WHERE status = 'active') as active_vehicles,
-    (SELECT COUNT(*)::INTEGER FROM trips WHERE start_date >= start_date AND start_date <= end_date) as total_trips,
-    (SELECT COALESCE(SUM(end_km - start_km), 0) FROM trips WHERE start_date >= start_date AND start_date <= end_date AND end_km > start_km) as total_distance,
-    (SELECT COALESCE(SUM(fuel_amount), 0) FROM trips WHERE start_date >= start_date AND start_date <= end_date AND fuel_amount IS NOT NULL) as total_fuel_cost,
+    (SELECT COUNT(*)::INTEGER FROM trips WHERE trip_start_date >= start_date AND trip_start_date <= end_date) as total_trips,
+    (SELECT COALESCE(SUM(end_km - start_km), 0) FROM trips WHERE trip_start_date >= start_date AND trip_start_date <= end_date AND end_km > start_km) as total_distance,
+    (SELECT COALESCE(SUM(total_fuel_cost), 0) FROM trips WHERE trip_start_date >= start_date AND trip_start_date <= end_date AND total_fuel_cost IS NOT NULL) as total_fuel_cost,
     (SELECT 
       CASE 
         WHEN SUM(fuel_quantity) > 0 
@@ -311,12 +311,12 @@ BEGIN
         ELSE 0 
       END
      FROM trips 
-     WHERE start_date >= start_date 
-       AND start_date <= end_date 
+     WHERE trip_start_date >= start_date 
+       AND trip_start_date <= end_date 
        AND end_km > start_km 
        AND fuel_quantity > 0
     ) as avg_mileage,
-    (SELECT COUNT(*)::INTEGER FROM trips WHERE start_date >= current_month_start) as trips_this_month;
+    (SELECT COUNT(*)::INTEGER FROM trips WHERE trip_start_date >= current_month_start) as trips_this_month;
 END;
 $$;
 

@@ -260,13 +260,13 @@ ${data === 0 ? '_No trips found for this period_' : ''}`,
         // Get fuel entries from trips table
         const { data: fuelData } = await supabase
           .from('trips')
-          .select('fuel_amount, fuel_quantity')
+          .select('total_fuel_cost, fuel_quantity')
           .eq('vehicle_id', vehicle.id)
-          .gte('start_date', from)
-          .lte('start_date', to)
-          .not('fuel_amount', 'is', null);
+          .gte('trip_start_date', from)
+          .lte('trip_start_date', to)
+          .not('total_fuel_cost', 'is', null);
 
-        const totalAmount = fuelData?.reduce((sum, t) => sum + (t.fuel_amount || 0), 0) || 0;
+        const totalAmount = fuelData?.reduce((sum, t) => sum + (t.total_fuel_cost || 0), 0) || 0;
         const totalLiters = fuelData?.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0) || 0;
         const avgPrice = totalLiters > 0 ? (totalAmount / totalLiters).toFixed(2) : '0';
 
