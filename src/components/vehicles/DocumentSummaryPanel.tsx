@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle } from 'lucide-react';
+import { FixedSizeList } from 'react-window';
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
 import { updateVehicle } from '../../utils/api/vehicles';
@@ -95,12 +96,46 @@ const getExpiryStatus = (expiryDate: string | null): 'expired' | 'expiring' | 'v
   return 'valid';
 };
 
-// Function to calculate RC Expiry (15 years from registration date)
-const calculateRCExpiry = (registrationDate: string | null): string | null => {
+// Smart caching for RC expiry calculation
+const getCachedRCExpiry = (vehicleId: string, registrationDate: string | null): string | null => {
   if (!registrationDate) return null;
+  
+  const cacheKey = `rc_expiry_${vehicleId}`;
+  const cached = localStorage.getItem(cacheKey);
+  
+  if (cached) {
+    try {
+      const cachedDate = new Date(cached);
+      if (!isNaN(cachedDate.getTime())) {
+        return cachedDate.toISOString().split('T')[0];
+      }
+    } catch (error) {
+      // Invalid cached data, recalculate
+    }
+  }
+  
   const regDate = new Date(registrationDate);
   regDate.setFullYear(regDate.getFullYear() + 15);
-  return regDate.toISOString().split('T')[0];
+  const expiryDate = regDate.toISOString().split('T')[0];
+  
+  // Cache the result
+  localStorage.setItem(cacheKey, expiryDate);
+  return expiryDate;
+};
+
+// Function to calculate RC Expiry (15 years from registration date) - now with caching
+const calculateRCExpiry = (vehicleId: string, registrationDate: string | null): string | null => {
+  return getCachedRCExpiry(vehicleId, registrationDate);
+};
+
+// Compact status icons
+const StatusIcon = ({ status }: { status: string }) => {
+  switch(status) {
+    case 'valid': return <CheckCircle className="w-3 h-3 text-green-500" />;
+    case 'expiring': return <AlertCircle className="w-3 h-3 text-yellow-500" />;
+    case 'expired': return <X className="w-3 h-3 text-red-500" />;
+    default: return <MinusCircle className="w-3 h-3 text-gray-400" />;
+  }
 };
 
 // Function to get color class based on document status
@@ -115,6 +150,34 @@ const getStatusColorClass = (status: string) => {
     default:
       return 'bg-gray-100 border-gray-200 text-gray-800';
   }
+};
+
+// Format short date for compact display
+const formatShortDate = (dateString: string | null) => {
+  if (!dateString) return '—';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit' });
+  } catch (error) {
+    return '—';
+  }
+};
+
+// Hook for responsive column visibility
+const useMediaQuery = (query: string) => {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    if (media.matches !== matches) {
+      setMatches(media.matches);
+    }
+    const listener = () => setMatches(media.matches);
+    window.addEventListener("resize", listener);
+    return () => window.removeEventListener("resize", listener);
+  }, [matches, query]);
+
+  return matches;
 };
 
 // Helper function to get the cost field name for a document type
@@ -254,6 +317,26 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   // Refresh functionality state
   const [isBulkRefreshing, setIsBulkRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState<{[key: string]: 'pending' | 'processing' | 'success' | 'error'}>({});
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState({
+    stats: true,
+    charts: true
+  });
+  
+  // Responsive column visibility
+  const isSmallScreen = useMediaQuery('(max-width: 1024px)');
+  const visibleColumns = isSmallScreen 
+    ? ['vehicle', 'insurance', 'puc', 'rc_expiry']
+    : ['vehicle', 'insurance', 'fitness', 'permit', 'puc', 'tax', 'rc_expiry'];
+  
+  // Toggle section visibility
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   // Helper function for individual vehicle refresh
   const refreshVehicleData = async (vehicle: Vehicle) => {
@@ -317,7 +400,28 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     }
   };
 
-  // Bulk refresh handler
+  // Batch refresh with rate limiting
+  const batchRefreshDocuments = async (vehicleIds: string[]) => {
+    const BATCH_SIZE = 5;
+    const results = [];
+    
+    for (let i = 0; i < vehicleIds.length; i += BATCH_SIZE) {
+      const batch = vehicleIds.slice(i, i + BATCH_SIZE);
+      const promises = batch.map(id => {
+        const vehicle = vehicles.find(v => v.id === id);
+        return vehicle ? refreshVehicleData(vehicle) : Promise.resolve(false);
+      });
+      results.push(...await Promise.all(promises));
+      
+      // Rate limit to avoid overload
+      if (i + BATCH_SIZE < vehicleIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    return results;
+  };
+
+  // Bulk refresh handler with improved batch processing
   const handleBulkRefresh = async () => {
     setIsBulkRefreshing(true);
     setRefreshProgress({});
@@ -332,24 +436,12 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     }, {} as {[key: string]: 'pending' | 'processing' | 'success' | 'error'});
     setRefreshProgress(initialProgress);
 
-    // Process vehicles one by one
-    for (const vehicle of vehicles) {
-      try {
-        // Add small delay between requests
-        if (successCount + failureCount > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
-
-        const success = await refreshVehicleData(vehicle);
-        if (success) {
-          successCount++;
-        } else {
-          failureCount++;
-        }
-      } catch (error) {
-        failureCount++;
-      }
-    }
+    // Process vehicles in batches
+    const vehicleIds = vehicles.map(v => v.id!);
+    const results = await batchRefreshDocuments(vehicleIds);
+    
+    successCount = results.filter(r => r === true).length;
+    failureCount = results.filter(r => r === false).length;
 
     setIsBulkRefreshing(false);
     
@@ -491,7 +583,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   // Generate document matrix data from filtered vehicles
   const documentMatrix = useMemo((): VehicleDocuments[] => {
     return filteredVehicles.map(vehicle => {
-      const calculatedRCExpiry = calculateRCExpiry(vehicle.registration_date);
+      const calculatedRCExpiry = calculateRCExpiry(vehicle.id!, vehicle.registration_date);
       return {
         id: vehicle.id,
         registration: vehicle.registration_number,
@@ -1147,65 +1239,34 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                 </div>
               </div>
 
-              {/* Metrics Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-500">Expected Doc Expense (Month)</p>
-                      <p className="mt-1 text-2xl font-semibold text-gray-900" title="Based on expiring documents this month and their last renewal cost (adjusted for inflation)">
-                        ₹{metrics.thisMonth.expectedExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Based on upcoming renewals with inflation
-                      </p>
-                    </div>
-                    <div className="bg-primary-50 p-2 rounded-md">
-                      <IndianRupee className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
+              {/* Compact Metrics Bar - Space Optimized */}
+              <div className="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm border border-gray-200">
+                <div className="flex gap-6 text-sm">
+                  <span className="flex items-center gap-1">
+                    <IndianRupee className="h-4 w-4 text-primary-600" />
+                    Monthly: <b>₹{metrics.thisMonth.expectedExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</b>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4 text-primary-600" />
+                    Yearly: <b>₹{metrics.thisYear.totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</b>
+                  </span>
+                  <span className="flex items-center gap-1 text-green-600">
+                    <FileCheck className="h-4 w-4" />
+                    Renewals: <b>{metrics.thisMonth.renewalsCount}</b>
+                  </span>
+                  <span className="flex items-center gap-1 text-red-600">
+                    <AlertCircle className="h-4 w-4" />
+                    Expired: <b>{metrics.thisMonth.lapsedCount}</b>
+                  </span>
                 </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-500">Total Doc Expense (Year)</p>
-                      <p className="mt-1 text-2xl font-semibold text-gray-900">
-                        ₹{metrics.thisYear.totalExpense.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <div className="bg-primary-50 p-2 rounded-md">
-                      <Calendar className="h-5 w-5 text-primary-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-500">Renewals This Month</p>
-                      <p className="mt-1 text-2xl font-semibold text-success-600">
-                        {metrics.thisMonth.renewalsCount}
-                      </p>
-                    </div>
-                    <div className="bg-success-50 p-2 rounded-md">
-                      <FileCheck className="h-5 w-5 text-success-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-500">Expired/Lapsed Docs</p>
-                      <p className="mt-1 text-2xl font-semibold text-error-600">
-                        {metrics.thisMonth.lapsedCount}
-                      </p>
-                    </div>
-                    <div className="bg-error-50 p-2 rounded-md">
-                      <AlertCircle className="h-5 w-5 text-error-600" />
-                    </div>
-                  </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleSection('stats')}
+                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    title={expandedSections.stats ? 'Hide stats' : 'Show stats'}
+                  >
+                    {expandedSections.stats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -1241,202 +1302,332 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                 </div>
                 
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
-                          Vehicle Number
-                        </th>
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            Insurance
-                          </th>
-                        )}
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            Fitness Certificate
-                          </th>
-                        )}
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            Permit
-                          </th>
-                        )}
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            PUC
-                          </th>
-                        )}
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px]">
-                            Tax
-                          </th>
-                        )}
-                        {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                          <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] bg-blue-50">
-                            RC Expiry
-                          </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {documentMatrix.length > 0 ? (
-                        documentMatrix.map((vehicle) => (
-                          <tr key={vehicle.id} className="hover:bg-gray-50">
-                            {/* Enhanced Vehicle Number Cell with Refresh Button */}
-                            <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
-                              <div className="flex items-center justify-between group">
-                                {/* Vehicle Info */}
-                                <div className="flex-1">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {vehicle.registration}
+                  {documentMatrix.length > 50 ? (
+                    // Virtual scrolling for large datasets
+                    <div className="h-96">
+                      <FixedSizeList
+                        height={384}
+                        itemCount={documentMatrix.length}
+                        itemSize={48}
+                        width="100%"
+                      >
+                        {({ index, style }) => {
+                          const vehicle = documentMatrix[index];
+                          return (
+                            <div style={style} className="flex items-center border-b border-gray-200 hover:bg-gray-50">
+                              <div className="px-3 py-2 w-40 flex-shrink-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {vehicle.registration}
+                                </div>
+                                {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
+                                  <div className="text-xs text-blue-600">
+                                    {format(parseISO(vehicles.find(v => v.id === vehicle.id)!.vahan_last_fetched_at!), 'MMM d, HH:mm')}
                                   </div>
-                                  {/* Show last updated info if available */}
-                                  {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
-                                    <div className="text-xs text-blue-600 mt-1">
-                                      Updated: {format(parseISO(vehicles.find(v => v.id === vehicle.id)!.vahan_last_fetched_at!), 'MMM d, HH:mm')}
-                                    </div>
-                                  )}
-                                  
-                                  {/* Show refresh status */}
-                                  {refreshProgress[vehicle.id] && (
-                                    <div className={`text-xs mt-1 ${
-                                      refreshProgress[vehicle.id] === 'success' ? 'text-green-600' :
-                                      refreshProgress[vehicle.id] === 'error' ? 'text-red-600' :
-                                      refreshProgress[vehicle.id] === 'processing' ? 'text-blue-600' :
-                                      'text-gray-500'
-                                    }`}>
-                                      {refreshProgress[vehicle.id] === 'pending' && '⏳ Queued'}
-                                      {refreshProgress[vehicle.id] === 'processing' && '🔄 Updating...'}
-                                      {refreshProgress[vehicle.id] === 'success' && '✅ Updated'}
-                                      {refreshProgress[vehicle.id] === 'error' && '❌ Failed'}
+                                )}
+                              </div>
+                              
+                              {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.insurance.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.insurance.date)}>
+                                      {formatShortDate(vehicle.documents.insurance.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.fitness.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.fitness.date)}>
+                                      {formatShortDate(vehicle.documents.fitness.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.permit.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.permit.date)}>
+                                      {formatShortDate(vehicle.documents.permit.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.puc.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.puc.date)}>
+                                      {formatShortDate(vehicle.documents.puc.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.tax.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.tax.date)}>
+                                      {formatShortDate(vehicle.documents.tax.date)}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
+                                <div className="px-2 py-2 w-24 flex-shrink-0 text-center bg-blue-50">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.rc.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.rc.date)}>
+                                      {formatShortDate(vehicle.documents.rc.date)}
+                                    </span>
+                                  </div>
+                                  {vehicle.registrationDate && (
+                                    <div className="text-xs text-gray-400">
+                                      (15y)
                                     </div>
                                   )}
                                 </div>
-
-                                {/* Individual Refresh Button - This is where your cursor pointed! */}
-                                <button
-                                  onClick={() => handleIndividualRefresh(vehicles.find(v => v.id === vehicle.id)!)}
-                                  disabled={isBulkRefreshing || refreshProgress[vehicle.id] === 'processing'}
-                                  className={`
-                                    ml-2 p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
-                                    focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-                                    ${refreshProgress[vehicle.id] === 'processing' ? 'opacity-100' : ''}
-                                    ${refreshProgress[vehicle.id] === 'success' ? 'bg-green-50 text-green-600 opacity-100' :
-                                      refreshProgress[vehicle.id] === 'error' ? 'bg-red-50 text-red-600 opacity-100' :
-                                      'hover:bg-gray-100 text-gray-500 hover:text-blue-600'}
-                                    ${isBulkRefreshing || refreshProgress[vehicle.id] === 'processing' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                                  `}
-                                  title={`Refresh ${vehicle.registration} data`}
-                                >
-                                  {refreshProgress[vehicle.id] === 'processing' ? (
-                                    <RefreshCw className="h-3 w-3 animate-spin" />
-                                  ) : refreshProgress[vehicle.id] === 'success' ? (
-                                    <CheckCircle className="h-3 w-3" />
-                                  ) : refreshProgress[vehicle.id] === 'error' ? (
-                                    <AlertCircle className="h-3 w-3" />
-                                  ) : (
-                                    <RotateCcw className="h-3 w-3" />
-                                  )}
-                                </button>
-                              </div>
-                            </td>
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.insurance.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.insurance.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.insurance.status}</div>
-                              </td>
-                            )}
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.fitness.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.fitness.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.fitness.status}</div>
-                              </td>
-                            )}
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.permit.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.permit.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.permit.status}</div>
-                              </td>
-                            )}
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.puc.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.puc.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.puc.status}</div>
-                              </td>
-                            )}
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
-                              <td className={`px-3 py-2 text-center ${getStatusColorClass(vehicle.documents.tax.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.tax.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.tax.status}</div>
-                              </td>
-                            )}
-                            
-                            {(documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                              <td className={`px-3 py-2 text-center bg-blue-50 ${getStatusColorClass(vehicle.documents.rc.status)}`}>
-                                <div className="text-sm font-medium">{formatDate(vehicle.documents.rc.date)}</div>
-                                <div className="text-xs mt-1 capitalize">{vehicle.documents.rc.status}</div>
-                                {vehicle.registrationDate && (
-                                  <div className="text-xs text-gray-400 mt-1">
-                                    (15 years from reg)
-                                  </div>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        ))
-                      ) : (
+                              )}
+                            </div>
+                          );
+                        }}
+                      </FixedSizeList>
+                    </div>
+                  ) : (
+                    // Regular table for smaller datasets
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
                         <tr>
-                          <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
-                            {searchTerm ? 'No vehicles found matching your search criteria' : 'No vehicle documents found'}
-                          </td>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
+                            Vehicle Number
+                          </th>
+                          {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                              Insurance
+                            </th>
+                          )}
+                          {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                              Fitness
+                            </th>
+                          )}
+                          {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                              Permit
+                            </th>
+                          )}
+                          {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                              PUC
+                            </th>
+                          )}
+                          {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                              Tax
+                            </th>
+                          )}
+                          {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-blue-50">
+                              RC Expiry
+                            </th>
+                          )}
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {documentMatrix.length > 0 ? (
+                          documentMatrix.map((vehicle) => (
+                            <tr key={vehicle.id} className="hover:bg-gray-50">
+                              {/* Enhanced Vehicle Number Cell with Refresh Button */}
+                              <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
+                                <div className="flex items-center justify-between group">
+                                  {/* Vehicle Info */}
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      {vehicle.registration}
+                                    </div>
+                                    {/* Show last updated info if available */}
+                                    {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
+                                      <div className="text-xs text-blue-600 mt-1">
+                                        Updated: {format(parseISO(vehicles.find(v => v.id === vehicle.id)!.vahan_last_fetched_at!), 'MMM d, HH:mm')}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Show refresh status */}
+                                    {refreshProgress[vehicle.id] && (
+                                      <div className={`text-xs mt-1 ${
+                                        refreshProgress[vehicle.id] === 'success' ? 'text-green-600' :
+                                        refreshProgress[vehicle.id] === 'error' ? 'text-red-600' :
+                                        refreshProgress[vehicle.id] === 'processing' ? 'text-blue-600' :
+                                        'text-gray-500'
+                                      }`}>
+                                        {refreshProgress[vehicle.id] === 'pending' && '⏳ Queued'}
+                                        {refreshProgress[vehicle.id] === 'processing' && '🔄 Updating...'}
+                                        {refreshProgress[vehicle.id] === 'success' && '✅ Updated'}
+                                        {refreshProgress[vehicle.id] === 'error' && '❌ Failed'}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Individual Refresh Button */}
+                                  <button
+                                    onClick={() => handleIndividualRefresh(vehicles.find(v => v.id === vehicle.id)!)}
+                                    disabled={isBulkRefreshing || refreshProgress[vehicle.id] === 'processing'}
+                                    className={`
+                                      ml-2 p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
+                                      focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+                                      ${refreshProgress[vehicle.id] === 'processing' ? 'opacity-100' : ''}
+                                      ${refreshProgress[vehicle.id] === 'success' ? 'bg-green-50 text-green-600 opacity-100' :
+                                        refreshProgress[vehicle.id] === 'error' ? 'bg-red-50 text-red-600 opacity-100' :
+                                        'hover:bg-gray-100 text-gray-500 hover:text-blue-600'}
+                                      ${isBulkRefreshing || refreshProgress[vehicle.id] === 'processing' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                                    `}
+                                    title={`Refresh ${vehicle.registration} data`}
+                                  >
+                                    {refreshProgress[vehicle.id] === 'processing' ? (
+                                      <RefreshCw className="h-3 w-3 animate-spin" />
+                                    ) : refreshProgress[vehicle.id] === 'success' ? (
+                                      <CheckCircle className="h-3 w-3" />
+                                    ) : refreshProgress[vehicle.id] === 'error' ? (
+                                      <AlertCircle className="h-3 w-3" />
+                                    ) : (
+                                      <RotateCcw className="h-3 w-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              </td>
+                              
+                              {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
+                                <td className="px-2 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.insurance.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.insurance.date)}>
+                                      {formatShortDate(vehicle.documents.insurance.date)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              
+                              {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
+                                <td className="px-2 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.fitness.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.fitness.date)}>
+                                      {formatShortDate(vehicle.documents.fitness.date)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              
+                              {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
+                                <td className="px-2 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.permit.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.permit.date)}>
+                                      {formatShortDate(vehicle.documents.permit.date)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              
+                              {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
+                                <td className="px-2 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.puc.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.puc.date)}>
+                                      {formatShortDate(vehicle.documents.puc.date)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              
+                              {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
+                                <td className="px-2 py-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.tax.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.tax.date)}>
+                                      {formatShortDate(vehicle.documents.tax.date)}
+                                    </span>
+                                  </div>
+                                </td>
+                              )}
+                              
+                              {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
+                                <td className="px-2 py-2 text-center bg-blue-50">
+                                  <div className="flex items-center justify-center gap-1">
+                                    <StatusIcon status={vehicle.documents.rc.status} />
+                                    <span className="text-xs" title={formatDate(vehicle.documents.rc.date)}>
+                                      {formatShortDate(vehicle.documents.rc.date)}
+                                    </span>
+                                  </div>
+                                  {vehicle.registrationDate && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      (15y)
+                                    </div>
+                                  )}
+                                </td>
+                              )}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
+                              {searchTerm ? 'No vehicles found matching your search criteria' : 'No vehicle documents found'}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
               
-              {/* Expenditure Over Time Chart */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                <div className="flex justify-between items-center mb-4">
+              {/* Expenditure Over Time Chart - Collapsible */}
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 text-lg">Documentation Expenditure Over Time</h3>
-                  <div className="flex items-center space-x-2 no-print">
-                    <button 
-                      onClick={() => setChartView('monthly')}
-                      className={`px-3 py-1 text-xs rounded-md ${
-                        chartView === 'monthly' 
-                          ? 'bg-primary-100 text-primary-700 font-medium' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                    <button 
-                      onClick={() => setChartView('yearly')}
-                      className={`px-3 py-1 text-xs rounded-md ${
-                        chartView === 'yearly' 
-                          ? 'bg-primary-100 text-primary-700 font-medium' 
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      Yearly
-                    </button>
-                    <div className="flex no-print">
-                      <button className="p-1 rounded-l border border-gray-300 text-gray-600 hover:bg-gray-100">
-                        <ArrowLeft className="h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center space-x-2 no-print">
+                      <button 
+                        onClick={() => setChartView('monthly')}
+                        className={`px-3 py-1 text-xs rounded-md ${
+                          chartView === 'monthly' 
+                            ? 'bg-primary-100 text-primary-700 font-medium' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Monthly
                       </button>
-                      <button className="p-1 rounded-r border-t border-r border-b border-gray-300 text-gray-600 hover:bg-gray-100">
-                        <ArrowRight className="h-4 w-4" />
+                      <button 
+                        onClick={() => setChartView('yearly')}
+                        className={`px-3 py-1 text-xs rounded-md ${
+                          chartView === 'yearly' 
+                            ? 'bg-primary-100 text-primary-700 font-medium' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Yearly
                       </button>
                     </div>
+                    <button
+                      onClick={() => toggleSection('charts')}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      title={expandedSections.charts ? 'Hide charts' : 'Show charts'}
+                    >
+                      {expandedSections.charts ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
+                
+                {expandedSections.charts && (
+                  <div className="p-6">
                 
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1528,6 +1719,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                     </p>
                   </div>
                 </div>
+                  </div>
+                )}
               </div>
 
               {/* Expenditure by Vehicle Chart */}
