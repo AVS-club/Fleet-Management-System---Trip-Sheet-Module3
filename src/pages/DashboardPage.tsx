@@ -437,8 +437,8 @@ const DashboardPage: React.FC = () => {
               />
             </div>
                 </div>
+            )}
             </div>
-        )}
 
             {/* Empty Dashboard State */}
             {!hasEnoughData && (
