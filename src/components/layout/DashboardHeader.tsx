@@ -26,6 +26,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ vehicleCount = 0, cla
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     const fetchOrganization = async () => {
@@ -46,6 +47,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ vehicleCount = 0, cla
           console.error('Error fetching organization:', error);
         } else if (data) {
           setOrganization(data);
+          setLogoError(false); // Reset logo error when organization changes
         }
       } catch (error) {
         console.error('Error fetching organization:', error);
@@ -83,14 +85,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ vehicleCount = 0, cla
   return (
     <div className={`rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6 ${className}`}>
       <div className="flex items-center space-x-3 mb-2">
-        {organization?.logo_url && (
+        {organization?.logo_url && !logoError && (
           <img 
             src={organization.logo_url} 
             alt={`${organization.name} logo`}
             className="h-10 w-10 rounded object-contain border border-gray-200"
-            onError={(e) => {
-              // Hide logo if it fails to load
-              e.currentTarget.style.display = 'none';
+            onError={() => {
+              // Hide logo if it fails to load using React state
+              setLogoError(true);
             }}
           />
         )}
