@@ -130,8 +130,7 @@ BEGIN
     v.puc_expiry_date,
     v.permit_expiry_date,
     v.fitness_expiry_date,
-    v.registration_date,
-    v.puc_expiry_date
+    v.registration_date
   FROM vehicles v
   WHERE v.registration_number = reg_no;
 END;
