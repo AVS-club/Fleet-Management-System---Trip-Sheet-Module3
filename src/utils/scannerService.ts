@@ -1,5 +1,9 @@
 import { supabase } from './supabaseClient';
 
+// FleetIQ Scanner Service - Optimized for RPC Functions
+// All database queries now use optimized RPC functions for better performance
+// Fallback queries have been removed since RPC functions are working correctly
+
 export interface ScannerResult {
   type: 'trips' | 'fuel' | 'mileage' | 'expiry' | 'maintenance' | 'help' | 'error';
   vehicleReg?: string;
@@ -164,40 +168,9 @@ export class ScannerService {
         });
 
       if (error) {
-        // Fallback to direct table query
-        const { data: vehicle } = await supabase
-          .from('vehicles')
-          .select('id')
-          .eq('registration_number', vehicleReg)
-          .single();
-
-        if (!vehicle) {
-          return {
-            type: 'error',
-            content: `❌ Vehicle ${vehicleReg} not found in database`
-          };
-        }
-
-        const { count, error: countError } = await supabase
-          .from('trips')
-          .select('*', { count: 'exact', head: true })
-          .eq('vehicle_id', vehicle.id)
-          .gte('start_date', from)
-          .lte('start_date', to);
-
         return {
-          type: 'trips',
-          vehicleReg,
-          period,
-          count: count || 0,
-          content: `📊 **Trip Summary**
-
-🚗 Vehicle: ${vehicleReg}
-📅 Period: ${period}
-✅ Total Trips: ${count || 0}
-
-${count === 0 ? '_No trips found for this period_' : ''}`,
-          exportable: true
+          type: 'error',
+          content: `❌ Error fetching trips: ${error.message}`
         };
       }
 
@@ -243,46 +216,9 @@ ${data === 0 ? '_No trips found for this period_' : ''}`,
         });
 
       if (error) {
-        // Fallback implementation
-        const { data: vehicle } = await supabase
-          .from('vehicles')
-          .select('id')
-          .eq('registration_number', vehicleReg)
-          .single();
-
-        if (!vehicle) {
-          return {
-            type: 'error',
-            content: `❌ Vehicle ${vehicleReg} not found`
-          };
-        }
-
-        // Get fuel entries from trips table
-        const { data: fuelData } = await supabase
-          .from('trips')
-          .select('total_fuel_cost, fuel_quantity')
-          .eq('vehicle_id', vehicle.id)
-          .gte('trip_start_date', from)
-          .lte('trip_start_date', to)
-          .not('total_fuel_cost', 'is', null);
-
-        const totalAmount = fuelData?.reduce((sum, t) => sum + (t.total_fuel_cost || 0), 0) || 0;
-        const totalLiters = fuelData?.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0) || 0;
-        const avgPrice = totalLiters > 0 ? (totalAmount / totalLiters).toFixed(2) : '0';
-
         return {
-          type: 'fuel',
-          vehicleReg,
-          period,
-          content: `⛽ **Fuel Summary**
-
-🚗 Vehicle: ${vehicleReg}
-📅 Period: ${period}
-💰 Total Cost: ₹${totalAmount.toLocaleString('en-IN')}
-🛢️ Total Fuel: ${totalLiters} liters
-📊 Entries: ${fuelData?.length || 0}
-📈 Avg Price: ₹${avgPrice}/liter`,
-          exportable: true
+          type: 'error',
+          content: `❌ Error fetching fuel summary: ${error.message}`
         };
       }
 
@@ -340,63 +276,9 @@ _Note: Calculated from daily entries_`,
         });
 
       if (error) {
-        // Fallback calculation
-        const { data: vehicle } = await supabase
-          .from('vehicles')
-          .select('id')
-          .eq('registration_number', vehicleReg)
-          .single();
-
-        if (!vehicle) {
-          return {
-            type: 'error',
-            content: `❌ Vehicle ${vehicleReg} not found`
-          };
-        }
-
-        const { data: trips } = await supabase
-          .from('trips')
-          .select('start_km, end_km, fuel_quantity, calculated_kmpl')
-          .eq('vehicle_id', vehicle.id)
-          .gte('start_date', from)
-          .lte('start_date', to);
-
-        if (!trips || trips.length === 0) {
-          return {
-            type: 'mileage',
-            vehicleReg,
-            period,
-            content: `📈 **Mileage Statistics**
-
-🚗 Vehicle: ${vehicleReg}
-📅 Period: ${period}
-🛣️ Distance: 0 km
-⛽ Fuel Consumed: 0 liters
-⚡ Average Mileage: N/A
-🔢 Trip Count: 0
-
-_No trip data for this period_`,
-            exportable: true
-          };
-        }
-
-        const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-        const totalFuel = trips.reduce((sum, trip) => sum + (trip.fuel_quantity || 0), 0);
-        const avgMileage = totalFuel > 0 ? (totalDistance / totalFuel).toFixed(2) : 'N/A';
-
         return {
-          type: 'mileage',
-          vehicleReg,
-          period,
-          content: `📈 **Mileage Statistics**
-
-🚗 Vehicle: ${vehicleReg}
-📅 Period: ${period}
-🛣️ Distance: ${totalDistance.toLocaleString('en-IN')} km
-⛽ Fuel Consumed: ${totalFuel} liters
-⚡ Average Mileage: ${avgMileage} km/liter
-🔢 Trip Count: ${trips.length}`,
-          exportable: true
+          type: 'error',
+          content: `❌ Error calculating mileage: ${error.message}`
         };
       }
 
@@ -479,21 +361,10 @@ ${stats.distance_km === 0 ? '_No trip data for this period_' : ''}`,
         .rpc('rpc_vehicle_expiries', { reg_no: vehicleReg });
 
       if (error) {
-        // Fallback
-        const { data: vehicle } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('registration_number', vehicleReg)
-          .single();
-
-        if (!vehicle) {
-          return {
-            type: 'error',
-            content: `❌ Vehicle ${vehicleReg} not found`
-          };
-        }
-
-        return this.formatExpiryResponse(vehicle);
+        return {
+          type: 'error',
+          content: `❌ Error fetching document expiries: ${error.message}`
+        };
       }
 
       const vehicle = data?.[0];
