@@ -182,9 +182,14 @@ const TripsPage: React.FC = () => {
 
   // Handle smart search with field selection
   const handleSmartSearch = useCallback(async (searchTerm: string, searchField?: string) => {
+    // Only search if called explicitly (no auto-search)
+    if (searchTerm.length < 3) {
+      toast.info('Please enter at least 3 characters to search');
+      return;
+    }
+    
     setIsSearching(true);
     try {
-      // Use the new comprehensive search function
       const result = await comprehensiveSearchTrips(
         searchTerm,
         searchField,
@@ -198,11 +203,12 @@ const TripsPage: React.FC = () => {
       
       setSearchResult(result);
       
-      // Show toast with search results
+      // Show appropriate message based on field
       if (result.totalCount === 0) {
-        toast.info('No trips found matching your search');
+        toast.info(`No trips found matching "${searchTerm}"${searchField ? ` in ${searchField}` : ''}`);
       } else {
-        toast.success(`Found ${result.totalCount} trips${result.matchedFields?.length ? ` in ${result.matchedFields.join(', ')}` : ''}`);
+        const fieldName = searchField ? ` in ${searchField}` : ' in all fields';
+        toast.success(`Found ${result.totalCount} trips${fieldName}`);
       }
     } catch (error) {
       console.error('Smart search error:', error);
