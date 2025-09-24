@@ -14,7 +14,7 @@ import { getTrips, getVehicles, getDrivers, createTrip, updateTrip, getWarehouse
 import { getMaterialTypes, MaterialType } from '../utils/materialTypes';
 import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
-import { searchTrips, TripFilters, useDebounce } from '../utils/tripSearch';
+import { searchTrips, TripFilters, useDebounce, comprehensiveSearchTrips } from '../utils/tripSearch';
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
 import { fixAllExistingMileage } from '../utils/fixExistingMileage';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
@@ -181,32 +181,29 @@ const TripsPage: React.FC = () => {
   }, []);
 
   // Handle smart search with field selection
-  const handleSmartSearch = useCallback(async (searchTerm: string, activeFields: string[]) => {
+  const handleSmartSearch = useCallback(async (searchTerm: string, searchField?: string) => {
     setIsSearching(true);
     try {
-      // Create a modified filter with the search term
-      const searchFilters = {
-        ...filters,
-        search: searchTerm
-      };
-      
-      const result = await searchTrips(
+      // Use the new comprehensive search function
+      const result = await comprehensiveSearchTrips(
+        searchTerm,
+        searchField,
         trips,
         vehicles,
         drivers,
         warehouses,
-        searchFilters,
+        filters,
         { page: currentPage, limit: tripsPerPage }
       );
       
-      // Add field information to the result
-      const enhancedResult = {
-        ...result,
-        matchedFields: activeFields.length > 0 ? activeFields : result.matchedFields,
-        totalResults: result.totalCount
-      };
+      setSearchResult(result);
       
-      setSearchResult(enhancedResult);
+      // Show toast with search results
+      if (result.totalCount === 0) {
+        toast.info('No trips found matching your search');
+      } else {
+        toast.success(`Found ${result.totalCount} trips${result.matchedFields?.length ? ` in ${result.matchedFields.join(', ')}` : ''}`);
+      }
     } catch (error) {
       console.error('Smart search error:', error);
       toast.error('Search failed. Please try again.');
@@ -630,9 +627,8 @@ const TripsPage: React.FC = () => {
             searchResult={searchResult ? {
               matchedFields: searchResult.matchedFields,
               searchTime: searchResult.searchTime,
-              totalResults: searchResult.totalResults
+              totalResults: searchResult.totalCount
             } : undefined}
-            useSmartAdaptiveSearch={true}
             onSmartSearch={handleSmartSearch}
           />
           

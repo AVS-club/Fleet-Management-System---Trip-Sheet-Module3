@@ -5,9 +5,7 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import MultiSelect from '../ui/MultiSelect';
 import Checkbox from '../ui/Checkbox';
-import EnhancedSearchBar from './EnhancedSearchBar';
-import UltraSmartSearch from './UltraSmartSearch';
-import SmartAdaptiveSearchBar from './SmartAdaptiveSearchBar';
+import UnifiedSearchBar from './UnifiedSearchBar';
 import { TripFilters, QUICK_FILTERS, TripStatistics } from '../../utils/tripSearch';
 import { Vehicle, Driver, Warehouse } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
@@ -30,10 +28,9 @@ interface ComprehensiveFiltersProps {
     matchedFields?: string[];
     searchTime?: number;
     totalResults?: number;
+    totalCount?: number;
   };
-  useUltraSmartSearch?: boolean;
-  useSmartAdaptiveSearch?: boolean;
-  onSmartSearch?: (searchTerm: string, activeFields: string[]) => void;
+  onSmartSearch?: (searchTerm: string, searchField?: string) => void;
 }
 
 const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
@@ -49,15 +46,13 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
   viewMode = 'cards',
   onViewModeChange,
   searchResult,
-  useUltraSmartSearch = false,
-  useSmartAdaptiveSearch = true,
   onSmartSearch
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Count active filters
   const activeFilterCount = Object.entries(filters).filter(([key, value]) => {
-    if (key === 'sortBy') return false; // Don't count sort as active filter
+    if (key === 'sortBy') return false;
     if (Array.isArray(value)) return value.length > 0;
     return value && value !== 'all';
   }).length;
@@ -95,335 +90,279 @@ const ComprehensiveFilters: React.FC<ComprehensiveFiltersProps> = ({
     });
   };
 
-  // Format statistics
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-IN').format(Math.round(num));
-  };
-
-  const formatCurrency = (num: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(num);
-  };
+  // Handle search
+  const handleSearch = useCallback((searchTerm: string, searchField?: string) => {
+    if (onSmartSearch) {
+      onSmartSearch(searchTerm, searchField);
+    } else {
+      updateFilter('search', searchTerm);
+    }
+  }, [onSmartSearch, updateFilter]);
 
   return (
-    <div className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 ${className}`}>
-      {/* Compact Filter Bar */}
-      <div className="p-4">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          {/* Left side - Stats Badge */}
-          <div className="flex items-center gap-3">
-            <div className="bg-primary-50 p-2 rounded-xl">
-              <Filter className="h-5 w-5 text-primary-600" />
-            </div>
-            {statistics && (
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                  <span className="text-2xl font-semibold text-gray-900">{formatNumber(statistics.totalTrips)}</span>
-                  <span className="text-xs text-gray-500">trips</span>
-                </div>
-                <div className="h-8 w-px bg-gray-200" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium text-gray-700">{formatNumber(statistics.totalDistance)} km</span>
-                  <span className="text-xs text-gray-500">• {formatCurrency(statistics.totalExpenses)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right side - View Selector and Actions */}
-          <div className="flex items-center gap-3">
-            {activeFilterCount > 0 && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-                Clear All
-              </button>
-            )}
-            
-            {/* View Mode Selector */}
-            {onViewModeChange && (
-              <div className="flex items-center bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => onViewModeChange('list')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'list' 
-                      ? 'bg-white text-primary-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="List View"
-                >
-                  <List className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onViewModeChange('cards')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'cards' 
-                      ? 'bg-white text-primary-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Card View"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onViewModeChange('table')}
-                  className={`p-2 rounded-lg transition-all ${
-                    viewMode === 'table' 
-                      ? 'bg-white text-primary-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                  title="Table View"
-                >
-                  <TableProperties className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-              {isExpanded ? 'Hide' : 'Show'} Filters
-            </button>
-          </div>
-        </div>
-
-        {/* Compact Filter Row */}
-        <div className="mt-4 flex flex-col lg:flex-row gap-3">
-          {/* Enhanced Search Bar */}
-          <div className="flex-1 lg:max-w-2xl">
-            {useSmartAdaptiveSearch ? (
-              <SmartAdaptiveSearchBar
-                value={filters.search || ''}
-                onChange={(value) => updateFilter('search', value)}
-                onSearch={onSmartSearch || ((searchTerm, activeFields) => {
-                  // Fallback: trigger search with the search term and active fields
-                  console.log('Searching for:', searchTerm, 'in fields:', activeFields);
-                  // The actual search will be handled by the parent component
-                })}
-                isSearching={isSearching}
-                placeholder="Type and press Enter to search..."
-                className="w-full"
-                disabled={isSearching}
-                searchResult={searchResult}
-              />
-            ) : useUltraSmartSearch ? (
-              <UltraSmartSearch
-                value={filters.search || ''}
-                onChange={(value) => updateFilter('search', value)}
-                onHighlightMatches={(query) => {
-                  // This will be handled by the parent component
-                  console.log('Highlighting matches for:', query);
-                }}
-                isSearching={isSearching}
-                placeholder="Smart search across all trip data..."
-                className="w-full"
-                disabled={isSearching}
-                searchHistory={[]} // TODO: Implement search history
-                onSaveSearch={(query, filters) => {
-                  console.log('Saving search:', query, filters);
-                }}
-                onExportResults={(format) => {
-                  console.log('Exporting results as:', format);
-                }}
-              />
-            ) : (
-              <EnhancedSearchBar
-                value={filters.search || ''}
-                onChange={(value) => updateFilter('search', value)}
-                onHighlightMatches={(query) => {
-                  // This will be handled by the parent component
-                  console.log('Highlighting matches for:', query);
-                }}
-                isSearching={isSearching}
-                placeholder="Search by trip ID, vehicle, driver, location, date, distance, fuel, expenses..."
-                className="w-full"
-                disabled={isSearching}
-                searchHistory={[]} // TODO: Implement search history
-                onSaveSearch={(query, filters) => {
-                  console.log('Saving search:', query, filters);
-                }}
-                onExportResults={(format) => {
-                  console.log('Exporting results as:', format);
-                }}
-              />
-            )}
-          </div>
-
-          {/* Quick Date Filters */}
+    <div className={`bg-gray-50 border-b border-gray-200 ${className}`}>
+      <div className="px-4 py-2">
+        {/* Top Control Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          {/* Left: Time Filters and Sorting */}
           <div className="flex items-center gap-2">
+            {/* Quick Date Filters */}
             <button
               onClick={() => applyQuickFilter(QUICK_FILTERS.today)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 filters.dateRange === 'today' 
                   ? 'bg-primary-100 text-primary-700' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               Today
             </button>
             <button
               onClick={() => applyQuickFilter(QUICK_FILTERS.thisWeek)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 filters.dateRange === 'week' 
                   ? 'bg-primary-100 text-primary-700' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               This Week
             </button>
             <button
               onClick={() => applyQuickFilter(QUICK_FILTERS.thisMonth)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 filters.dateRange === 'month' 
                   ? 'bg-primary-100 text-primary-700' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               This Month
             </button>
+            
+            {/* Sort Dropdown */}
+            <select
+              value={filters.sortBy || 'date-desc'}
+              onChange={(e) => updateFilter('sortBy', e.target.value)}
+              className="px-3 py-1 rounded-lg text-xs font-medium bg-white text-gray-600 border border-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="date-desc">Newest First</option>
+              <option value="date-asc">Oldest First</option>
+              <option value="distance-desc">Distance ↓</option>
+              <option value="distance-asc">Distance ↑</option>
+              <option value="cost-desc">Cost ↓</option>
+              <option value="cost-asc">Cost ↑</option>
+            </select>
           </div>
-          
-          {/* Sort Dropdown */}
-          <select
-            value={filters.sortBy || 'date-desc'}
-            onChange={(e) => updateFilter('sortBy', e.target.value)}
-            className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
-          >
-            <option value="date-desc">Newest First</option>
-            <option value="date-asc">Oldest First</option>
-            <option value="distance-desc">Longest Distance</option>
-            <option value="distance-asc">Shortest Distance</option>
-            <option value="cost-desc">Highest Cost</option>
-            <option value="cost-asc">Lowest Cost</option>
-          </select>
-        </div>
-      </div>
 
-      {/* Expandable Filters */}
-      {isExpanded && (
-        <div className="p-3 space-y-3 animate-in slide-in-from-top duration-200">
-          {/* Row 1: Vehicle, Driver, Warehouse */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+          {/* Right: View Modes and Filters Toggle */}
+          <div className="flex items-center gap-2">
+            {/* View Mode Selector */}
+            {onViewModeChange && (
+              <div className="flex items-center bg-white border border-gray-200 rounded-lg p-0.5">
+                <button
+                  onClick={() => onViewModeChange('list')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'list' 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="List View"
+                >
+                  <List className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => onViewModeChange('cards')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'cards' 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => onViewModeChange('table')}
+                  className={`p-1.5 rounded transition-all ${
+                    viewMode === 'table' 
+                      ? 'bg-primary-100 text-primary-700' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Table View"
+                >
+                  <TableProperties className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            
+            {/* Filters Toggle Button */}
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                activeFilterCount > 0 
+                  ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              <span>Show Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-orange-600 text-white text-xs rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar Row */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <UnifiedSearchBar
+              value={filters.search || ''}
+              onChange={(value) => updateFilter('search', value)}
+              onSearch={handleSearch}
+              isSearching={isSearching}
+              placeholder="Type and press Enter to search..."
+              className="w-full"
+              disabled={isSearching}
+              searchResult={{
+                totalCount: searchResult?.totalResults || searchResult?.totalCount,
+                searchTime: searchResult?.searchTime,
+                matchedFields: searchResult?.matchedFields
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Expanded Filters */}
+        {isExpanded && (
+          <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {/* Vehicle Filter */}
               <Select
+                label="Vehicle"
                 options={[
                   { value: '', label: 'All Vehicles' },
-                  ...vehicles.map(vehicle => ({
-                    value: vehicle.id,
-                    label: vehicle.registration_number
-                  }))
+                  ...vehicles
+                    .filter(v => v.status !== 'archived')
+                    .map(v => ({ value: v.id, label: v.registration_number }))
                 ]}
                 value={filters.vehicle || ''}
                 onChange={(e) => updateFilter('vehicle', e.target.value)}
-                inputSize="sm"
               />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Driver</label>
+
+              {/* Driver Filter */}
               <Select
+                label="Driver"
                 options={[
                   { value: '', label: 'All Drivers' },
-                  ...drivers.map(driver => ({
-                    value: driver.id,
-                    label: driver.name
-                  }))
+                  ...drivers
+                    .filter(d => d.status === 'active')
+                    .map(d => ({ value: d.id, label: d.name }))
                 ]}
                 value={filters.driver || ''}
                 onChange={(e) => updateFilter('driver', e.target.value)}
-                inputSize="sm"
               />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse</label>
+
+              {/* Warehouse Filter */}
               <Select
+                label="Warehouse"
                 options={[
                   { value: '', label: 'All Warehouses' },
-                  ...warehouses.map(warehouse => ({
-                    value: warehouse.id,
-                    label: warehouse.name
-                  }))
+                  ...warehouses.map(w => ({ value: w.id, label: w.name }))
                 ]}
                 value={filters.warehouse || ''}
                 onChange={(e) => updateFilter('warehouse', e.target.value)}
-                inputSize="sm"
               />
-            </div>
-          </div>
 
-          {/* Row 2: Date Range and Refueling */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <Input
-                type="date"
-                value={filters.startDate || ''}
-                onChange={(e) => updateFilter('startDate', e.target.value)}
-                inputSize="sm"
-                icon={<Calendar className="h-4 w-4" />}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <Input
-                type="date"
-                value={filters.endDate || ''}
-                onChange={(e) => updateFilter('endDate', e.target.value)}
-                inputSize="sm"
-                icon={<Calendar className="h-4 w-4" />}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Refueling Status</label>
+              {/* Refueling Status */}
               <Select
+                label="Refueling"
                 options={[
                   { value: 'all', label: 'All Trips' },
-                  { value: 'refueling', label: 'Refueling Trips' },
+                  { value: 'refueling', label: 'With Refueling' },
                   { value: 'no-refueling', label: 'No Refueling' }
                 ]}
                 value={filters.refueling || 'all'}
                 onChange={(e) => updateFilter('refueling', e.target.value)}
-                inputSize="sm"
               />
-            </div>
-          </div>
 
-          {/* Row 3: Materials and Options */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Material Types</label>
-              <MultiSelect
-                options={materialTypes.map(material => ({
-                  value: material.id,
-                  label: material.name
-                }))}
-                value={filters.materials || []}
-                onChange={(materials) => updateFilter('materials', materials)}
-                inputSize="sm"
-              />
+              {/* Material Types */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Materials
+                </label>
+                <MultiSelect
+                  options={materialTypes.map(m => ({ value: m.id, label: m.name }))}
+                  value={filters.materials || []}
+                  onChange={(selected) => updateFilter('materials', selected)}
+                  placeholder="Select materials"
+                />
+              </div>
+
+              {/* Route Deviation */}
+              <div className="flex items-end">
+                <Checkbox
+                  label="High Deviation Only"
+                  checked={filters.routeDeviation || false}
+                  onChange={(checked) => updateFilter('routeDeviation', checked)}
+                />
+              </div>
+
+              {/* Date Range */}
+              {filters.dateRange === 'custom' && (
+                <>
+                  <Input
+                    label="Start Date"
+                    type="date"
+                    value={filters.startDate || ''}
+                    onChange={(e) => updateFilter('startDate', e.target.value)}
+                  />
+                  <Input
+                    label="End Date"
+                    type="date"
+                    value={filters.endDate || ''}
+                    onChange={(e) => updateFilter('endDate', e.target.value)}
+                  />
+                </>
+              )}
             </div>
-            
-            <div className="flex items-end">
-              <Checkbox
-                label="Route Deviation > 8%"
-                checked={filters.routeDeviation || false}
-                onChange={(e) => updateFilter('routeDeviation', e.target.checked)}
-              />
-            </div>
+
+            {/* Clear Filters Button */}
+            {activeFilterCount > 0 && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                  Clear All Filters
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Statistics Bar */}
+        {statistics && (
+          <div className="mt-2 flex items-center gap-4 text-xs text-gray-600">
+            <span>
+              <strong>{statistics.totalTrips}</strong> trips
+            </span>
+            <span>
+              <strong>{statistics.totalDistance.toFixed(0)}</strong> km total
+            </span>
+            <span>
+              <strong>₹{statistics.totalExpenses.toFixed(0)}</strong> expenses
+            </span>
+            {statistics.avgMileage > 0 && (
+              <span>
+                <strong>{statistics.avgMileage.toFixed(1)}</strong> km/L avg
+              </span>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

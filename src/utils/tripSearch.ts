@@ -743,6 +743,374 @@ function calculateTripStatistics(trips: Trip[]): TripStatistics {
   };
 }
 
+// Comprehensive list of searchable trip fields
+export const SEARCHABLE_TRIP_FIELDS = [
+  // Trip identifiers
+  'id',
+  'trip_serial_number',
+  'trip_sheet_number',
+  
+  // Vehicle related
+  'vehicle_id',
+  'start_km',
+  'end_km',
+  'total_distance',
+  
+  // Driver related
+  'driver_id',
+  'driver_allowance',
+  'helper_bata',
+  
+  // Location fields
+  'trip_start_location',
+  'trip_end_location',
+  'destinations',
+  'warehouse_id',
+  
+  // Date fields
+  'trip_start_date',
+  'trip_end_date',
+  
+  // Financial fields
+  'total_expenses',
+  'toll_amount',
+  'customer_payment',
+  'total_fuel_cost',
+  'fuel_quantity',
+  'refueling_quantity',
+  'refueling_rate',
+  
+  // Material and customer
+  'customer_name',
+  'material_type_ids',
+  'material_descriptions',
+  
+  // Status and deviation
+  'route_deviation',
+  'deviation_reason',
+  'refueling_done',
+  
+  // Payment
+  'payment_mode',
+  
+  // Images/documents
+  'pod_image',
+  'signature_image',
+  
+  // Mileage
+  'calculated_kmpl',
+  'expected_kmpl'
+];
+
+// Enhanced search function with field-specific searching
+export async function comprehensiveSearchTrips(
+  searchTerm: string,
+  searchField: string | undefined,
+  trips: Trip[],
+  vehicles: Vehicle[],
+  drivers: Driver[],
+  warehouses: Warehouse[],
+  filters: TripFilters,
+  pagination: PaginationOptions = { page: 1, limit: 20 }
+): Promise<TripSearchResult> {
+  const startTime = performance.now();
+  let filteredTrips = [...trips];
+  const matchedFields: Set<string> = new Set();
+  
+  // Minimum 3 characters for search
+  if (searchTerm && searchTerm.length >= 3) {
+    const lowerSearchTerm = searchTerm.toLowerCase().trim();
+    
+    // Create lookup maps for related data
+    const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
+    const driverMap = new Map(drivers.map(d => [d.id, d]));
+    const warehouseMap = new Map(warehouses.map(w => [w.id, w]));
+    
+    filteredTrips = filteredTrips.filter(trip => {
+      // If specific field is selected, search only in that field
+      if (searchField) {
+        return searchInSpecificField(trip, searchField, lowerSearchTerm, vehicleMap, driverMap, warehouseMap, matchedFields);
+      }
+      
+      // Otherwise, search across all fields (quick search)
+      return searchAllFields(trip, lowerSearchTerm, vehicleMap, driverMap, warehouseMap, matchedFields);
+    });
+  }
+  
+  // Apply other filters (vehicle, driver, warehouse, etc.)
+  filteredTrips = applyAdditionalFilters(filteredTrips, filters);
+  
+  // Sort results
+  filteredTrips = sortTrips(filteredTrips, filters.sortBy || 'date-desc');
+  
+  // Calculate statistics
+  const statistics = calculateTripStatistics(filteredTrips);
+  
+  // Pagination
+  const totalCount = filteredTrips.length;
+  const offset = (pagination.page - 1) * pagination.limit;
+  const paginatedTrips = filteredTrips.slice(offset, offset + pagination.limit);
+  
+  const endTime = performance.now();
+  const searchTime = endTime - startTime;
+  
+  return {
+    trips: paginatedTrips,
+    totalCount,
+    hasMore: totalCount > offset + paginatedTrips.length,
+    statistics,
+    matchedFields: Array.from(matchedFields),
+    searchTime
+  };
+}
+
+// Search in a specific field
+function searchInSpecificField(
+  trip: Trip,
+  field: string,
+  searchTerm: string,
+  vehicleMap: Map<string, Vehicle>,
+  driverMap: Map<string, Driver>,
+  warehouseMap: Map<string, Warehouse>,
+  matchedFields: Set<string>
+): boolean {
+  // Handle related entity fields
+  if (field.includes('vehicle.')) {
+    const vehicle = vehicleMap.get(trip.vehicle_id);
+    if (vehicle && vehicle.registration_number.toLowerCase().includes(searchTerm)) {
+      matchedFields.add('vehicle');
+      return true;
+    }
+  }
+  
+  if (field.includes('driver.')) {
+    const driver = driverMap.get(trip.driver_id);
+    if (driver && driver.name.toLowerCase().includes(searchTerm)) {
+      matchedFields.add('driver');
+      return true;
+    }
+  }
+  
+  // Handle direct trip fields
+  const value = (trip as any)[field];
+  if (value !== null && value !== undefined) {
+    const stringValue = String(value).toLowerCase();
+    if (stringValue.includes(searchTerm)) {
+      matchedFields.add(field);
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+// Search across all fields
+function searchAllFields(
+  trip: Trip,
+  searchTerm: string,
+  vehicleMap: Map<string, Vehicle>,
+  driverMap: Map<string, Driver>,
+  warehouseMap: Map<string, Warehouse>,
+  matchedFields: Set<string>
+): boolean {
+  // Check trip ID and serial numbers (exact match for numbers)
+  if (trip.id?.toString() === searchTerm || 
+      trip.trip_serial_number?.toLowerCase().includes(searchTerm) ||
+      trip.trip_sheet_number?.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('trip');
+    return true;
+  }
+  
+  // Check vehicle registration
+  const vehicle = vehicleMap.get(trip.vehicle_id);
+  if (vehicle && vehicle.registration_number.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('vehicle');
+    return true;
+  }
+  
+  // Check driver name
+  const driver = driverMap.get(trip.driver_id);
+  if (driver && driver.name.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('driver');
+    return true;
+  }
+  
+  // Check warehouse
+  const warehouse = warehouseMap.get(trip.warehouse_id);
+  if (warehouse && warehouse.name.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('warehouse');
+    return true;
+  }
+  
+  // Check locations and destinations
+  if ((trip.trip_start_location?.toLowerCase().includes(searchTerm) ||
+       trip.trip_end_location?.toLowerCase().includes(searchTerm) ||
+       trip.destinations?.some(dest => 
+         typeof dest === 'string' ? dest.toLowerCase().includes(searchTerm) :
+         dest.name?.toLowerCase().includes(searchTerm)
+       ))) {
+    matchedFields.add('destination');
+    return true;
+  }
+  
+  // Check dates (flexible date matching)
+  if (trip.trip_start_date || trip.trip_end_date) {
+    // Helper function to safely parse and format dates
+    const safeFormatDate = (dateString: string, formatStr: string): string => {
+      try {
+        const parsedDate = parseISO(dateString);
+        if (isValid(parsedDate)) {
+          return format(parsedDate, formatStr);
+        }
+      } catch (error) {
+        // Log error for debugging but don't throw
+        console.warn(`Invalid date format: ${dateString}`, error);
+      }
+      return '';
+    };
+
+    const dateStrings = [
+      trip.trip_start_date ? safeFormatDate(trip.trip_start_date, 'dd-MM-yyyy') : '',
+      trip.trip_end_date ? safeFormatDate(trip.trip_end_date, 'dd-MM-yyyy') : '',
+      trip.trip_start_date ? safeFormatDate(trip.trip_start_date, 'yyyy-MM-dd') : '',
+      trip.trip_end_date ? safeFormatDate(trip.trip_end_date, 'yyyy-MM-dd') : ''
+    ].filter(date => date !== ''); // Remove empty strings from invalid dates
+    
+    if (dateStrings.some(date => date.includes(searchTerm))) {
+      matchedFields.add('date');
+      return true;
+    }
+  }
+  
+  // Check numeric fields (km, expenses, etc.)
+  const numericFields = [
+    { value: trip.start_km, field: 'vehicle' },
+    { value: trip.end_km, field: 'vehicle' },
+    { value: trip.total_distance, field: 'vehicle' },
+    { value: trip.total_expenses, field: 'financial' },
+    { value: trip.toll_amount, field: 'financial' },
+    { value: trip.customer_payment, field: 'financial' },
+    { value: trip.driver_allowance, field: 'driver' },
+    { value: trip.helper_bata, field: 'driver' }
+  ];
+  
+  for (const { value, field } of numericFields) {
+    if (value !== null && value !== undefined) {
+      if (value.toString() === searchTerm || value.toString().includes(searchTerm)) {
+        matchedFields.add(field);
+        return true;
+      }
+    }
+  }
+  
+  // Check customer name
+  if (trip.customer_name?.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('customer');
+    return true;
+  }
+  
+  // Check deviation reason
+  if (trip.deviation_reason?.toLowerCase().includes(searchTerm)) {
+    matchedFields.add('deviation');
+    return true;
+  }
+  
+  return false;
+}
+
+// Apply additional filters
+function applyAdditionalFilters(trips: Trip[], filters: TripFilters): Trip[] {
+  let filtered = [...trips];
+  
+  // Vehicle filter
+  if (filters.vehicle) {
+    filtered = filtered.filter(trip => trip.vehicle_id === filters.vehicle);
+  }
+  
+  // Driver filter
+  if (filters.driver) {
+    filtered = filtered.filter(trip => trip.driver_id === filters.driver);
+  }
+  
+  // Warehouse filter
+  if (filters.warehouse) {
+    filtered = filtered.filter(trip => trip.warehouse_id === filters.warehouse);
+  }
+  
+  // Refueling filter
+  if (filters.refueling === 'refueling') {
+    filtered = filtered.filter(trip => trip.refueling_done);
+  } else if (filters.refueling === 'no-refueling') {
+    filtered = filtered.filter(trip => !trip.refueling_done);
+  }
+  
+  // Date range filter
+  if (filters.startDate || filters.endDate) {
+    filtered = filtered.filter(trip => {
+      if (!trip.trip_start_date) return false;
+      
+      const tripDate = parseISO(trip.trip_start_date);
+      
+      if (filters.startDate) {
+        const startDate = parseISO(filters.startDate);
+        if (tripDate < startOfDay(startDate)) return false;
+      }
+      
+      if (filters.endDate) {
+        const endDate = parseISO(filters.endDate);
+        if (tripDate > endOfDay(endDate)) return false;
+      }
+      
+      return true;
+    });
+  }
+  
+  // Material filter
+  if (filters.materials && filters.materials.length > 0) {
+    filtered = filtered.filter(trip => {
+      if (!trip.material_type_ids || trip.material_type_ids.length === 0) {
+        return false;
+      }
+      return filters.materials!.some(materialId => 
+        trip.material_type_ids?.includes(materialId)
+      );
+    });
+  }
+  
+  // Route deviation filter
+  if (filters.routeDeviation) {
+    filtered = filtered.filter(trip => {
+      return trip.route_deviation && Math.abs(trip.route_deviation) > 8;
+    });
+  }
+  
+  return filtered;
+}
+
+// Sort trips
+function sortTrips(trips: Trip[], sortBy: string): Trip[] {
+  const sorted = [...trips];
+  
+  switch (sortBy) {
+    case 'date-asc':
+      return sorted.sort((a, b) => 
+        new Date(a.trip_start_date || 0).getTime() - new Date(b.trip_start_date || 0).getTime()
+      );
+    case 'distance-desc':
+      return sorted.sort((a, b) => (b.total_distance || 0) - (a.total_distance || 0));
+    case 'distance-asc':
+      return sorted.sort((a, b) => (a.total_distance || 0) - (b.total_distance || 0));
+    case 'cost-desc':
+      return sorted.sort((a, b) => (b.total_expenses || 0) - (a.total_expenses || 0));
+    case 'cost-asc':
+      return sorted.sort((a, b) => (a.total_expenses || 0) - (b.total_expenses || 0));
+    default: // 'date-desc'
+      return sorted.sort((a, b) => 
+        new Date(b.trip_start_date || 0).getTime() - new Date(a.trip_start_date || 0).getTime()
+      );
+  }
+}
+
 // Debounced search hook for React components
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
