@@ -235,7 +235,7 @@ function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
   // Distance patterns (112 km, 1888)
   if (/^\d+(\.\d+)?\s*km?$/i.test(term) || /^\d+$/.test(term)) {
     const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
-    if (!isNaN(numValue)) {
+    if (!isNaN(numValue) && isFinite(numValue)) {
       searchConditions.push(`total_distance.eq.${numValue}`);
       searchConditions.push(`total_distance.gte.${numValue * 0.9}`);
       searchConditions.push(`total_distance.lte.${numValue * 1.1}`);
@@ -245,19 +245,21 @@ function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
   // Expense patterns (₹500, 500, 5k)
   if (/₹|rs|rupee|\d+k?/i.test(term)) {
     const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
-    if (!isNaN(numValue)) {
+    if (!isNaN(numValue) && isFinite(numValue)) {
       const multiplier = /k$/i.test(term) ? 1000 : 1;
       const actualValue = numValue * multiplier;
-      searchConditions.push(`total_expenses.eq.${actualValue}`);
-      searchConditions.push(`total_expenses.gte.${actualValue * 0.9}`);
-      searchConditions.push(`total_expenses.lte.${actualValue * 1.1}`);
+      if (!isNaN(actualValue) && isFinite(actualValue)) {
+        searchConditions.push(`total_expenses.eq.${actualValue}`);
+        searchConditions.push(`total_expenses.gte.${actualValue * 0.9}`);
+        searchConditions.push(`total_expenses.lte.${actualValue * 1.1}`);
+      }
     }
   }
   
   // Mileage patterns (23.6 km/L)
   if (/^\d+(\.\d+)?\s*km\/l?$/i.test(term)) {
     const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
-    if (!isNaN(numValue)) {
+    if (!isNaN(numValue) && isFinite(numValue)) {
       searchConditions.push(`fuel_efficiency.eq.${numValue}`);
       searchConditions.push(`fuel_efficiency.gte.${numValue * 0.9}`);
       searchConditions.push(`fuel_efficiency.lte.${numValue * 1.1}`);
@@ -267,7 +269,7 @@ function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
   // Fuel consumption patterns (225.01L)
   if (/^\d+(\.\d+)?\s*l$/i.test(term)) {
     const numValue = parseFloat(term.replace(/[^\d.]/g, ''));
-    if (!isNaN(numValue)) {
+    if (!isNaN(numValue) && isFinite(numValue)) {
       searchConditions.push(`fuel_consumed.eq.${numValue}`);
       searchConditions.push(`fuel_consumed.gte.${numValue * 0.9}`);
       searchConditions.push(`fuel_consumed.lte.${numValue * 1.1}`);
@@ -277,7 +279,7 @@ function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
   // Deviation patterns (15.9%, -15.9%)
   if (/%|deviation/i.test(term)) {
     const numValue = parseFloat(term.replace(/[^\d.-]/g, ''));
-    if (!isNaN(numValue)) {
+    if (!isNaN(numValue) && isFinite(numValue)) {
       searchConditions.push(`route_deviation.eq.${numValue}`);
       searchConditions.push(`route_deviation.gte.${numValue * 0.9}`);
       searchConditions.push(`route_deviation.lte.${numValue * 1.1}`);
@@ -487,29 +489,29 @@ export function searchTripsClientSide(
         
         // Text fields to search
         const textFields = [
-          trip.trip_serial_number,
-          trip.manual_trip_id,
-          vehicle?.registration_number,
-          vehicle?.make,
-          vehicle?.model,
-          driver?.name,
-          warehouse?.name,
-          trip.source_location,
-          trip.destination_location,
-          trip.material_description,
-          trip.notes
+          String(trip.trip_serial_number || ''),
+          String(trip.manual_trip_id || ''),
+          String(vehicle?.registration_number || ''),
+          String(vehicle?.make || ''),
+          String(vehicle?.model || ''),
+          String(driver?.name || ''),
+          String(warehouse?.name || ''),
+          String(trip.source_location || ''),
+          String(trip.destination_location || ''),
+          String(trip.material_description || ''),
+          String(trip.notes || '')
         ];
         
         // Check text matches
         const textMatch = textFields.some(field => 
-          field?.toLowerCase().includes(lowerTerm)
+          field.toLowerCase().includes(lowerTerm)
         );
         
         if (textMatch) return true;
         
         // Check numeric patterns
         const numValue = parseFloat(searchTerm.replace(/[^\d.]/g, ''));
-        if (!isNaN(numValue)) {
+        if (!isNaN(numValue) && isFinite(numValue)) {
           // Distance search
           if (/^\d+(\.\d+)?\s*km?$/i.test(searchTerm) || /^\d+$/.test(searchTerm)) {
             const tolerance = numValue * 0.1; // 10% tolerance
@@ -523,10 +525,12 @@ export function searchTripsClientSide(
           if (/₹|rs|rupee|\d+k?/i.test(searchTerm)) {
             const multiplier = /k$/i.test(searchTerm) ? 1000 : 1;
             const actualValue = numValue * multiplier;
-            const tolerance = actualValue * 0.1; // 10% tolerance
+            if (!isNaN(actualValue) && isFinite(actualValue)) {
+              const tolerance = actualValue * 0.1; // 10% tolerance
             if (trip.total_expenses && 
                 Math.abs(trip.total_expenses - actualValue) <= tolerance) {
               return true;
+            }
             }
           }
           
