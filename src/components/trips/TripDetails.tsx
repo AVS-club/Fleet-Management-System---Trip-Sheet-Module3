@@ -547,29 +547,33 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           Attachments
         </h3>
 
-        {trip.fuel_bill_url ? (
+        {/* Check for fuel receipts in multiple places */}
+        {(trip.fuel_bill_url || (trip.refuelings && trip.refuelings.some(r => r.fuel_bill_url))) ? (
           <div className="space-y-3">
             <p className="text-sm text-gray-500 mb-3">Trip Slip / Fuel Bill</p>
-            <div className="relative inline-block">
-              {isImageAttachment(trip.fuel_bill_url) ? (
-                <div 
-                  className="relative group cursor-pointer"
-                  onClick={() => setSelectedImage(trip.fuel_bill_url!)}
-                >
-                  <img
-                    src={trip.fuel_bill_url}
-                    alt="Fuel Bill"
-                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 rounded-lg">
-                    <div className="text-white text-center">
-                      <Eye className="h-5 w-5 mx-auto mb-1" />
-                      <span className="text-xs">View Full</span>
+            
+            {/* Single fuel bill URL (legacy) */}
+            {trip.fuel_bill_url && (
+              <div className="relative inline-block">
+                {isImageAttachment(trip.fuel_bill_url) ? (
+                  <div 
+                    className="relative group cursor-pointer"
+                    onClick={() => setSelectedImage(trip.fuel_bill_url!)}
+                  >
+                    <img
+                      src={trip.fuel_bill_url}
+                      alt="Fuel Bill"
+                      className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 rounded-lg">
+                      <div className="text-white text-center">
+                        <Eye className="h-5 w-5 mx-auto mb-1" />
+                        <span className="text-xs">View Full</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                ) : (
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
                   <FileText className="h-8 w-8 text-red-500 mr-3 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">Fuel Bill Document</p>
@@ -586,6 +590,69 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 </div>
               )}
             </div>
+            )}
+            
+            {/* Multiple refueling receipts */}
+            {trip.refuelings && trip.refuelings.map((refueling, index) => (
+              refueling.fuel_bill_url && (
+                <div key={index} className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-medium text-gray-900">Refueling #{index + 1}</p>
+                    {refueling.location && (
+                      <p className="text-sm text-gray-500">{refueling.location}</p>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                    <div>
+                      <span className="text-gray-500">Cost:</span> 
+                      <span className="font-medium ml-1">₹{refueling.total_fuel_cost || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Quantity:</span> 
+                      <span className="font-medium ml-1">{refueling.fuel_quantity || 0}L</span>
+                    </div>
+                  </div>
+                  
+                  <div className="relative inline-block">
+                    {isImageAttachment(refueling.fuel_bill_url) ? (
+                      <div 
+                        className="relative group cursor-pointer"
+                        onClick={() => setSelectedImage(refueling.fuel_bill_url!)}
+                      >
+                        <img
+                          src={refueling.fuel_bill_url}
+                          alt={`Fuel Bill ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 rounded-lg">
+                          <div className="text-white text-center">
+                            <Eye className="h-4 w-4 mx-auto mb-1" />
+                            <span className="text-xs">View</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center p-2 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <FileText className="h-6 w-6 text-red-500 mr-2 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">Receipt Document</p>
+                          <p className="text-xs text-gray-500">PDF Document</p>
+                        </div>
+                        <a
+                          href={refueling.fuel_bill_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 p-1 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            ))}
           </div>
         ) : (
           <p className="text-gray-500 text-sm">No attachment available</p>

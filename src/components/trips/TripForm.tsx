@@ -176,21 +176,32 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('start_km', initialData.start_km || 0);
       setValue('end_km', initialData.end_km || 0);
       setValue('gross_weight', initialData.gross_weight || 0);
-      // Ensure at least one refueling entry exists
+      
+      // Handle refueling data properly
       const refuelings = initialData.refuelings && initialData.refuelings.length > 0 
         ? initialData.refuelings 
         : [{
             location: '',
             fuel_quantity: 0,
             fuel_rate_per_liter: 0,
-            total_fuel_cost: 0
+            total_fuel_cost: 0,
+            fuel_bill_url: ''
           }];
       setValue('refuelings', refuelings);
+      
+      // Set fuel-related fields
       setValue('fuel_quantity', initialData.fuel_quantity || 0);
       setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
       setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
-      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
-      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      setValue('refueling_done', initialData.refueling_done || false);
+      setValue('station', initialData.station || '');
+      
+      // Set refueling state based on data
+      if (initialData.refueling_done || (initialData.total_fuel_cost && initialData.total_fuel_cost > 0)) {
+        setIsRefuelingTrip(true);
+        setShowRefuelingDetails(true);
+      }
+      
       setValue('unloading_expense', initialData.unloading_expense || 0);
       setValue('driver_expense', initialData.driver_expense || 0);
       setValue('road_rto_expense', initialData.road_rto_expense || 0);
