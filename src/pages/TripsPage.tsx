@@ -509,19 +509,6 @@ const TripsPage: React.FC = () => {
               Fix Mileage
             </Button>
           </div>
-        ) : (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsAddingTrip(false);
-                setEditingTrip(null);
-                setClonedTripData(null);
-              }}
-            >
-              Cancel
-            </Button>
-          </div>
         )}
       </div>
 
