@@ -478,7 +478,7 @@ const TripsPage: React.FC = () => {
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
-        {!isAddingTrip ? (
+        {!isAddingTrip && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
