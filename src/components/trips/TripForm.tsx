@@ -975,15 +975,51 @@ const TripForm: React.FC<TripFormProps> = ({
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        <p className="ml-3 text-gray-600">Loading form...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+        <div className="max-w-5xl mx-auto space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4" />
+              <div className="space-y-3">
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 overflow-y-auto h-full">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 
+                    dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      {/* Compact Header */}
+      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+                      border-b border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 
+                         bg-clip-text text-transparent flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary-600" />
+            {initialData ? 'Edit Trip Sheet' : 'New Trip Sheet'}
+          </h1>
+          <span className="text-xs text-gray-500">
+            Trip #{watchedValues.trip_serial_number || 'Generating...'}
+          </span>
+        </div>
+      </div>
+
+      {/* Main Form Container with Professional Styling */}
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+          {/* Animated Form Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl 
+                          border border-gray-200 dark:border-gray-700
+                          ring-1 ring-gray-100 dark:ring-gray-900
+                          transform transition-all duration-300 hover:shadow-2xl">
+            
+            {/* Form Sections */}
+            <div className="p-6 space-y-6">
       {/* Form Validation Errors */}
       {formValidationErrors.length > 0 && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -1005,11 +1041,28 @@ const TripForm: React.FC<TripFormProps> = ({
       )}
 
       {/* Trip Information */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <Route className="h-5 w-5 mr-2 text-primary-500" />
-          Trip Information
-        </h3>
+      <div className="group bg-gradient-to-br from-slate-50 to-white dark:from-slate-900/20 dark:to-gray-800 
+                      rounded-xl border border-slate-200/60 dark:border-slate-700/40 p-4
+                      shadow-sm hover:shadow-md transition-all duration-200
+                      hover:border-slate-400 dark:hover:border-slate-600">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 
+                         flex items-center gap-2 group-hover:text-primary-600 
+                         transition-colors duration-200">
+            <div className="p-1.5 bg-slate-100 dark:bg-slate-900/30 rounded-lg
+                            group-hover:bg-slate-200 dark:group-hover:bg-slate-800/40
+                            transition-colors duration-200">
+              <Route className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            </div>
+            Trip Information
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-1 bg-green-100 text-green-700 
+                             dark:bg-green-900/30 dark:text-green-400 rounded-full">
+              Active
+            </span>
+          </div>
+        </div>
         
         <div className="space-y-3">
           <Input
@@ -1072,10 +1125,18 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Vehicle & Driver Selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
-            <Truck className="h-5 w-5 mr-2 text-primary-500" />
+      <div className="group bg-gradient-to-br from-blue-50/40 to-white dark:from-blue-900/10 dark:to-gray-800 
+                      rounded-xl border border-blue-200/50 dark:border-blue-800/30 p-4
+                      shadow-sm hover:shadow-md transition-all duration-200
+                      hover:border-blue-400 dark:hover:border-blue-600">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 
+                         flex items-center gap-2">
+            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg
+                            animate-pulse-subtle">
+              <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400
+                               group-hover:animate-bounce-subtle" />
+            </div>
             Vehicle & Driver
           </h3>
           <label className="flex items-center text-sm">
@@ -1083,7 +1144,7 @@ const TripForm: React.FC<TripFormProps> = ({
               type="checkbox"
               checked={autoTieDriver}
               onChange={(e) => setAutoTieDriver(e.target.checked)}
-              className="mr-2"
+              className="mr-2 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
             />
             Auto-assign driver
           </label>
@@ -1160,11 +1221,27 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Route Planning */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <MapPin className="h-5 w-5 mr-2 text-primary-500" />
-          Route Planning
-        </h3>
+      <div className="group bg-gradient-to-br from-emerald-50/40 to-white dark:from-emerald-900/10 dark:to-gray-800 
+                      rounded-xl border border-emerald-200/50 dark:border-emerald-800/30 p-4
+                      shadow-sm hover:shadow-md transition-all duration-200
+                      relative overflow-hidden">
+        {/* Subtle pattern background */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" 
+               style={{
+                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2310b981' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+               }}
+          />
+        </div>
+        
+        <div className="relative z-10">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 
+                         flex items-center gap-2 mb-4">
+            <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+              <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            Route Planning
+          </h3>
         
         <div className="space-y-3">
           <WarehouseSelector
@@ -1253,15 +1330,21 @@ const TripForm: React.FC<TripFormProps> = ({
             />
           </div>
         )}
+        </div>
       </div>
 
       {/* Smart Trip Type Toggle */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
+      <div className="group bg-gradient-to-br from-red-50/40 to-white dark:from-red-900/10 dark:to-gray-800 
+                      rounded-xl border border-red-200/50 dark:border-red-800/30 p-4
+                      shadow-sm hover:shadow-md transition-all duration-200
+                      hover:border-red-400 dark:hover:border-red-600">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <Fuel className="h-5 w-5 text-primary-600" />
+            <div className="p-1.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <Fuel className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
             <div>
-              <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">Trip Type</h3>
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Trip Type</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">Choose whether this trip includes refueling</p>
             </div>
           </div>
@@ -1467,9 +1550,14 @@ const TripForm: React.FC<TripFormProps> = ({
       </div>
 
       {/* Expenses */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
+      <div className="group bg-gradient-to-br from-amber-50/40 to-white dark:from-amber-900/10 dark:to-gray-800 
+                      rounded-xl border border-amber-200/50 dark:border-amber-800/30 p-4
+                      shadow-sm hover:shadow-md transition-all duration-200
+                      hover:border-amber-400 dark:hover:border-amber-600">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+          <div className="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+            <IndianRupee className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
           Trip Expenses
         </h3>
         
@@ -1722,31 +1810,72 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       )}
 
-      {/* Form Actions */}
-      <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full md:w-auto order-2 md:order-1"
-          onClick={(e) => {
-            e.preventDefault();
-            if (onCancel) {
-              onCancel();
-            } else {
-              window.history.back();
-            }
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          isLoading={isSubmitting}
-          disabled={isSubmitting || fuelBillUploadStatus === 'uploading'}
-          className="w-full md:w-auto order-1 md:order-2"
-        >
-          {initialData ? 'Update Trip' : 'Save Trip'}
-        </Button>
+            </div>
+          </div>
+        </form>
+
+        {/* Professional Action Buttons */}
+        <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+                        border-t border-gray-200 dark:border-gray-700 px-6 py-4 mt-6">
+          <div className="flex items-center justify-between max-w-5xl mx-auto">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onCancel) {
+                  onCancel();
+                } else {
+                  window.history.back();
+                }
+              }}
+              className="px-6 py-2.5 text-gray-700 dark:text-gray-300 
+                         bg-white dark:bg-gray-800 
+                         border border-gray-300 dark:border-gray-600
+                         rounded-xl font-medium
+                         hover:bg-gray-50 dark:hover:bg-gray-700
+                         hover:border-gray-400 dark:hover:border-gray-500
+                         focus:outline-none focus:ring-2 focus:ring-gray-500/20
+                         transition-all duration-200 hover-lift"
+            >
+              Cancel
+            </button>
+            
+            <button
+              type="submit"
+              disabled={isSubmitting || fuelBillUploadStatus === 'uploading'}
+              className="px-8 py-2.5 text-white 
+                         bg-gradient-to-r from-primary-600 to-primary-500
+                         hover:from-primary-700 hover:to-primary-600
+                         rounded-xl font-medium shadow-lg
+                         hover:shadow-xl hover:shadow-primary-500/25
+                         focus:outline-none focus:ring-2 focus:ring-primary-500/50
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         transition-all duration-200 hover-lift
+                         relative overflow-hidden group"
+              onClick={handleSubmit(handleFormSubmit)}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                {isSubmitting ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    {initialData ? 'Update Trip' : 'Save Trip'}
+                  </>
+                )}
+              </span>
+              
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-r 
+                              from-transparent via-white/20 to-transparent 
+                              transform translate-x-[-200%] group-hover:translate-x-[200%] 
+                              transition-transform duration-700" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Cascade Preview Modal */}
@@ -1757,7 +1886,7 @@ const TripForm: React.FC<TripFormProps> = ({
         affectedTrips={cascadePreview.affectedTrips}
         loading={cascadePreview.loading}
       />
-    </form>
+    </div>
   );
 };
 

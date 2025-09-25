@@ -16,8 +16,7 @@ import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { searchTrips, TripFilters, useDebounce, comprehensiveSearchTrips } from '../utils/tripSearch';
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
-import { fixAllExistingMileage } from '../utils/fixExistingMileage';
-import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const TripsPage: React.FC = () => {
@@ -652,6 +651,7 @@ const TripsPage: React.FC = () => {
                   trips={currentTrips}
                   vehicles={vehicles}
                   drivers={drivers}
+                  warehouses={warehouses}
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
@@ -661,6 +661,7 @@ const TripsPage: React.FC = () => {
                   trips={currentTrips}
                   vehicles={vehicles}
                   drivers={drivers}
+                  warehouses={warehouses}
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
@@ -690,7 +691,7 @@ const TripsPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
-                        inputSize="sm"
+                        size="sm"
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
                         icon={<ChevronLeft className="h-4 w-4" />}
@@ -732,7 +733,7 @@ const TripsPage: React.FC = () => {
                       
                       <Button
                         variant="outline"
-                        inputSize="sm"
+                        size="sm"
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
                         icon={<ChevronRight className="h-4 w-4" />}

@@ -19,7 +19,7 @@ interface UnifiedSearchBarProps {
   };
 }
 
-// Field configurations with icons and colors
+// Field configurations with proper labels
 const FIELD_INDICATORS = [
   { id: 'trip', icon: ClipboardList, label: 'Trip', color: 'text-blue-500', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
   { id: 'vehicle', icon: Truck, label: 'Vehicle', color: 'text-purple-500', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
@@ -29,11 +29,10 @@ const FIELD_INDICATORS = [
   { id: 'destination', icon: MapPin, label: 'Destination', color: 'text-cyan-500', bgColor: 'bg-cyan-50', borderColor: 'border-cyan-200' }
 ];
 
-// Searchable fields categorized
+// Full searchable fields
 const SEARCH_CATEGORIES = {
   trip: {
     label: 'Trip Information',
-    icon: ClipboardList,
     fields: [
       { id: 'trip_id', label: 'Trip ID', dbField: 'id' },
       { id: 'trip_serial_number', label: 'Trip Serial Number', dbField: 'trip_serial_number' },
@@ -42,7 +41,6 @@ const SEARCH_CATEGORIES = {
   },
   vehicle: {
     label: 'Vehicle Details',
-    icon: Truck,
     fields: [
       { id: 'vehicle_registration', label: 'Vehicle Registration', dbField: 'vehicle.registration_number' },
       { id: 'start_km', label: 'Start KM', dbField: 'start_km' },
@@ -52,45 +50,31 @@ const SEARCH_CATEGORIES = {
   },
   driver: {
     label: 'Driver Information',
-    icon: User,
     fields: [
       { id: 'driver_name', label: 'Driver Name', dbField: 'driver.name' },
       { id: 'driver_allowance', label: 'Driver Allowance', dbField: 'driver_allowance' },
       { id: 'helper_bata', label: 'Helper Bata', dbField: 'helper_bata' }
     ]
   },
-  location: {
+  destination: {
     label: 'Locations',
-    icon: MapPin,
     fields: [
       { id: 'trip_start_location', label: 'Start Location', dbField: 'trip_start_location' },
       { id: 'trip_end_location', label: 'End Location', dbField: 'trip_end_location' },
       { id: 'destinations', label: 'Destinations', dbField: 'destinations' }
     ]
   },
-  financial: {
-    label: 'Financial',
-    icon: ClipboardList,
+  warehouse: {
+    label: 'Warehouse',
     fields: [
-      { id: 'total_expenses', label: 'Total Expenses', dbField: 'total_expenses' },
-      { id: 'toll_amount', label: 'Toll Amount', dbField: 'toll_amount' },
-      { id: 'customer_payment', label: 'Customer Payment', dbField: 'customer_payment' },
-      { id: 'total_fuel_cost', label: 'Fuel Cost', dbField: 'total_fuel_cost' }
+      { id: 'warehouse_name', label: 'Warehouse Name', dbField: 'warehouse.name' }
     ]
   },
   date: {
     label: 'Dates',
-    icon: Calendar,
     fields: [
       { id: 'trip_start_date', label: 'Start Date', dbField: 'trip_start_date' },
       { id: 'trip_end_date', label: 'End Date', dbField: 'trip_end_date' }
-    ]
-  },
-  warehouse: {
-    label: 'Warehouse',
-    icon: Building2,
-    fields: [
-      { id: 'warehouse_name', label: 'Warehouse Name', dbField: 'warehouse.name' }
     ]
   }
 };
@@ -108,82 +92,85 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
   const [localValue, setLocalValue] = useState(value);
   const [showFieldSelector, setShowFieldSelector] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedField, setSelectedField] = useState<string | null>(null);
+  const [selectedField, setSelectedField] = useState<{ dbField: string, label: string } | null>(null);
   const [activeIndicator, setActiveIndicator] = useState<string | null>(null);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Handle input changes - NO AUTO SEARCH
+  // IMPORTANT: NO AUTO-SEARCH - Only update local state
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setLocalValue(newValue);
-    onChange(newValue);
+    // DO NOT CALL onChange HERE - only update local state
   };
 
-  // Handle search execution (Enter key or button click)
+  // Execute search ONLY on button click or Enter key
   const executeSearch = () => {
     if (localValue.length >= 3) {
-      // If a specific field indicator is active, use it
-      let searchField = selectedField;
+      // Update parent's value only when searching
+      onChange(localValue);
       
-      if (!searchField && activeIndicator) {
-        // If an indicator is clicked, search in that category
-        searchField = activeIndicator;
+      let searchField = selectedField?.dbField;
+      if (!searchField && selectedCategory) {
+        searchField = selectedCategory;  // Use the category label
       }
       
       onSearch(localValue, searchField || undefined);
     }
   };
 
-  // Handle Enter key - only way to search via keyboard
+  // Handle Enter key - ONLY way to search via keyboard
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && localValue.length >= 3) {
       e.preventDefault();
       executeSearch();
+      // Keep focus on input after search
+      inputRef.current?.focus();
     }
     
     if (e.key === 'Escape') {
       setShowFieldSelector(false);
-      setSelectedCategory(null);
-      setSelectedField(null);
-      setActiveIndicator(null);
+      // Don't clear selections on Escape, just hide dropdown
     }
   };
 
-  // Handle field indicator click - set active category for search
+  // Handle field indicator click
   const handleIndicatorClick = (fieldId: string) => {
+    const field = FIELD_INDICATORS.find(f => f.id === fieldId);
+    if (!field) return;
+    
     if (activeIndicator === fieldId) {
-      // Deselect if clicking the same indicator
       setActiveIndicator(null);
       setSelectedField(null);
+      setSelectedCategory(null);
     } else {
-      // Select this indicator
       setActiveIndicator(fieldId);
-      setSelectedField(fieldId);
+      setSelectedCategory(field.label);  // <-- SET THE LABEL
+      setSelectedField(null);  // Don't set a specific field, just the category
     }
-    inputRef.current?.focus();
+    
+    // Always keep focus on input
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // Handle magic search click - show field selector
+  // Handle magic search click
   const handleMagicSearchClick = () => {
     setShowFieldSelector(!showFieldSelector);
-    if (!showFieldSelector) {
-      inputRef.current?.focus();
-    }
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
-  // Handle field selection from dropdown
-  const handleFieldSelect = (field: any, category: string) => {
-    setSelectedField(field.dbField);
-    setSelectedCategory(category);
-    setActiveIndicator(category);
+  // Handle specific field selection from dropdown
+  const handleFieldSelect = (field: any, categoryKey: string) => {
+    const category = SEARCH_CATEGORIES[categoryKey as keyof typeof SEARCH_CATEGORIES];
+    
+    setSelectedField({ dbField: field.dbField, label: field.label });
+    setSelectedCategory(category.label);
+    setActiveIndicator(categoryKey);
     setShowFieldSelector(false);
     
     // Keep focus on input
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // Clear search
@@ -209,10 +196,11 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Sync with external value changes
+  // Sync with external value
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
+
 
   return (
     <div className={`relative ${className}`}>
@@ -229,7 +217,7 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
           </div>
 
           {/* Selected Field Badge */}
-          {selectedField && selectedCategory && (
+          {selectedCategory && (
             <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-medium mr-1">
               <span>{selectedCategory}:</span>
               <button
@@ -252,15 +240,17 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
             value={localValue}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder={selectedField ? `Search in ${selectedCategory}...` : placeholder}
+            placeholder={selectedCategory ? `Search in ${selectedCategory}...` : placeholder}
             disabled={disabled}
             className="flex-1 py-2 px-2 text-sm bg-transparent outline-none placeholder-gray-400"
+            autoComplete="off"
           />
 
           {/* Field Indicators Section */}
           <div className="flex items-center gap-1.5 px-2 border-l border-gray-200">
             {/* Magic Search Button */}
             <button
+              type="button"
               onClick={handleMagicSearchClick}
               className={`p-1.5 rounded-lg transition-all ${
                 showFieldSelector
@@ -283,6 +273,7 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
               return (
                 <button
                   key={field.id}
+                  type="button"
                   onClick={() => handleIndicatorClick(field.id)}
                   className={`p-1.5 rounded-lg transition-all ${
                     isActive
@@ -300,6 +291,7 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
           {/* Clear Button */}
           {localValue && (
             <button
+              type="button"
               onClick={handleClear}
               className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
@@ -310,6 +302,7 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
 
         {/* Search Button */}
         <button
+          type="button"
           onClick={executeSearch}
           disabled={disabled || localValue.length < 3}
           className={`ml-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm transition-all ${
@@ -322,9 +315,9 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
         </button>
 
         {/* Results Counter */}
-        {searchResult && !isSearching && (
+        {searchResult && !isSearching && searchResult.totalCount !== undefined && (
           <div className="ml-3 text-xs text-gray-500 whitespace-nowrap">
-            {searchResult.totalCount || 0} results in {searchResult.searchTime?.toFixed(1) || '0.0'}ms
+            {searchResult.totalCount} results in {searchResult.searchTime?.toFixed(1) || '0.0'}ms
           </div>
         )}
       </div>
@@ -337,11 +330,13 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
         >
           {/* Quick Search Option */}
           <button
+            type="button"
             onClick={() => {
               setShowFieldSelector(false);
               setSelectedField(null);
+              setSelectedCategory(null);
               setActiveIndicator(null);
-              inputRef.current?.focus();
+              setTimeout(() => inputRef.current?.focus(), 0);
             }}
             className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100"
           >
@@ -358,19 +353,20 @@ const UnifiedSearchBar: React.FC<UnifiedSearchBarProps> = ({
             </div>
             
             {Object.entries(SEARCH_CATEGORIES).map(([key, category]) => {
-              const Icon = category.icon;
               const indicator = FIELD_INDICATORS.find(f => f.id === key);
+              const Icon = indicator?.icon;
               
               return (
                 <div key={key} className="mt-2">
                   <div className="px-2 py-1 text-xs font-medium text-gray-700 flex items-center gap-2">
-                    {indicator && <Icon className={`h-4 w-4 ${indicator.color}`} />}
+                    {Icon && indicator && <Icon className={`h-4 w-4 ${indicator.color}`} />}
                     {category.label}
                   </div>
                   <div className="ml-2">
                     {category.fields.map((field) => (
                       <button
                         key={field.id}
+                        type="button"
                         onClick={() => handleFieldSelect(field, key)}
                         className="w-full text-left px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded transition-colors"
                       >

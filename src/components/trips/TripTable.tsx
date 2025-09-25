@@ -1,231 +1,562 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { Trip, Vehicle, Driver } from '@/types';
+import React, { useMemo, useState, useCallback } from 'react';
+import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { format, parseISO, isValid } from 'date-fns';
-import { Fuel, Edit2, DollarSign, Camera, RefreshCw } from 'lucide-react';
-import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
+import { 
+  ArrowUpDown, ArrowUp, ArrowDown, Filter, Download, 
+  Eye, Edit2, DollarSign, Copy, MoreVertical, Maximize2
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 
 interface TripTableProps {
   trips: Trip[];
   vehicles: Vehicle[];
   drivers: Driver[];
+  warehouses?: Warehouse[];
   onSelectTrip: (trip: Trip) => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
 }
 
+type SortField = 'serial' | 'date' | 'vehicle' | 'driver' | 'distance' | 'expense' | 'mileage';
+type SortOrder = 'asc' | 'desc';
+
 const TripTable: React.FC<TripTableProps> = ({ 
   trips, 
   vehicles, 
-  drivers, 
+  drivers,
+  warehouses = [],
   onSelectTrip,
   onPnlClick,
   onEditTrip
 }) => {
-  
-  const vehiclesMap = useMemo(() => {
-    return Array.isArray(vehicles)
-      ? new Map(vehicles.map(v => [v.id, v]))
-      : new Map<string, Vehicle>();
-  }, [vehicles]);
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
+    select: 40,
+    serial: 140,
+    date: 100,
+    vehicle: 120,
+    driver: 150,
+    start_km: 90,
+    end_km: 90,
+    distance: 90,
+    mileage: 90,
+    fuel: 80,
+    expense: 100,
+    destinations: 200,
+    warehouse: 120,
+    deviation: 90,
+    actions: 100
+  });
 
-  const driversMap = useMemo(() => {
-    return Array.isArray(drivers)
-      ? new Map(drivers.map(d => [d.id, d]))
-      : new Map<string, Driver>();
-  }, [drivers]);
+  // Create lookup maps
+  const vehiclesMap = useMemo(() => 
+    new Map(vehicles.map(v => [v.id, v])), [vehicles]);
   
-  const displayTrips = Array.isArray(trips) ? trips : [];
+  const driversMap = useMemo(() => 
+    new Map(drivers.map(d => [d.id, d])), [drivers]);
   
+  const warehousesMap = useMemo(() => 
+    new Map(warehouses.map(w => [w.id, w])), [warehouses]);
+
+  // Sort trips
+  const sortedTrips = useMemo(() => {
+    const sorted = [...trips].sort((a, b) => {
+      let aVal: any, bVal: any;
+      
+      switch (sortField) {
+        case 'serial':
+          aVal = a.trip_serial_number || '';
+          bVal = b.trip_serial_number || '';
+          break;
+        case 'date':
+          aVal = new Date(a.trip_start_date || 0).getTime();
+          bVal = new Date(b.trip_start_date || 0).getTime();
+          break;
+        case 'vehicle':
+          aVal = vehiclesMap.get(a.vehicle_id)?.registration_number || '';
+          bVal = vehiclesMap.get(b.vehicle_id)?.registration_number || '';
+          break;
+        case 'driver':
+          aVal = driversMap.get(a.driver_id)?.name || '';
+          bVal = driversMap.get(b.driver_id)?.name || '';
+          break;
+        case 'distance':
+          aVal = a.total_distance || 0;
+          bVal = b.total_distance || 0;
+          break;
+        case 'expense':
+          aVal = a.total_expenses || 0;
+          bVal = b.total_expenses || 0;
+          break;
+        case 'mileage':
+          aVal = a.calculated_kmpl || 0;
+          bVal = b.calculated_kmpl || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+      } else {
+        return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+      }
+    });
+    
+    return sorted;
+  }, [trips, sortField, sortOrder, vehiclesMap, driversMap]);
+
+  // Handle sorting
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  // Handle row selection
+  const handleSelectRow = (tripId: string, isShift: boolean = false) => {
+    const newSelection = new Set(selectedRows);
+    
+    if (isShift && selectedRows.size > 0) {
+      // Range selection
+      const lastSelected = Array.from(selectedRows).pop();
+      const lastIndex = sortedTrips.findIndex(t => t.id === lastSelected);
+      const currentIndex = sortedTrips.findIndex(t => t.id === tripId);
+      
+      const start = Math.min(lastIndex, currentIndex);
+      const end = Math.max(lastIndex, currentIndex);
+      
+      for (let i = start; i <= end; i++) {
+        newSelection.add(sortedTrips[i].id);
+      }
+    } else {
+      // Toggle selection
+      if (newSelection.has(tripId)) {
+        newSelection.delete(tripId);
+      } else {
+        newSelection.add(tripId);
+      }
+    }
+    
+    setSelectedRows(newSelection);
+  };
+
+  // Select all/none
+  const handleSelectAll = () => {
+    if (selectedRows.size === sortedTrips.length) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(new Set(sortedTrips.map(t => t.id)));
+    }
+  };
+
+  // Copy selected to clipboard
+  const handleCopySelected = () => {
+    const selected = sortedTrips.filter(t => selectedRows.has(t.id));
+    const data = selected.map(trip => {
+      const vehicle = vehiclesMap.get(trip.vehicle_id);
+      const driver = driversMap.get(trip.driver_id);
+      return {
+        'Serial': trip.trip_serial_number,
+        'Date': format(parseISO(trip.trip_start_date || ''), 'dd/MM/yyyy'),
+        'Vehicle': vehicle?.registration_number,
+        'Driver': driver?.name,
+        'Distance': trip.total_distance,
+        'Fuel': trip.fuel_quantity,
+        'Expenses': trip.total_expenses,
+        'Mileage': trip.calculated_kmpl
+      };
+    });
+    
+    const text = data.map(row => Object.values(row).join('\t')).join('\n');
+    navigator.clipboard.writeText(text);
+    toast.success(`Copied ${selected.length} rows to clipboard`);
+  };
+
+  // Export to Excel
+  const handleExportExcel = () => {
+    const data = sortedTrips.map(trip => {
+      const vehicle = vehiclesMap.get(trip.vehicle_id);
+      const driver = driversMap.get(trip.driver_id);
+      const warehouse = warehousesMap.get(trip.warehouse_id);
+      
+      return {
+        'Trip Serial': trip.trip_serial_number,
+        'Date': format(parseISO(trip.trip_start_date || ''), 'dd/MM/yyyy'),
+        'Vehicle': vehicle?.registration_number,
+        'Driver': driver?.name,
+        'Start KM': trip.start_km,
+        'End KM': trip.end_km,
+        'Distance': trip.total_distance,
+        'Fuel (L)': trip.fuel_quantity,
+        'Fuel Cost': trip.total_fuel_cost,
+        'Total Expenses': trip.total_expenses,
+        'Mileage (km/L)': trip.calculated_kmpl,
+        'Destinations': trip.destinations?.map((d: any) => 
+          typeof d === 'string' ? d : d.name
+        ).join(', '),
+        'Warehouse': warehouse?.name,
+        'Deviation %': trip.route_deviation
+      };
+    });
+    
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Trips');
+    XLSX.writeFile(wb, `trips_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
+    toast.success('Exported to Excel successfully');
+  };
+
+  // Sort icon
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-50" />;
+    return sortOrder === 'asc' ? 
+      <ArrowUp className="h-3 w-3 text-primary-600" /> : 
+      <ArrowDown className="h-3 w-3 text-primary-600" />;
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* Toolbar */}
+      <div className="px-4 py-2 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">
+            {selectedRows.size > 0 ? (
+              <span className="font-medium">{selectedRows.size} selected</span>
+            ) : (
+              <span>{sortedTrips.length} trips</span>
+            )}
+          </span>
+          
+          {selectedRows.size > 0 && (
+            <>
+              <button
+                onClick={handleCopySelected}
+                className="p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded transition-colors"
+                title="Copy selected"
+              >
+                <Copy className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setSelectedRows(new Set())}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Clear selection
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center gap-1"
+          >
+            <Download className="h-3 w-3" />
+            Export Excel
+          </button>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '600px' }}>
+        <table className="w-full text-xs">
+          <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
             <tr>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trip ID
+              {/* Select All */}
+              <th className="px-2 py-2 text-center" style={{ width: columnWidths.select }}>
+                <input
+                  type="checkbox"
+                  checked={selectedRows.size === sortedTrips.length && sortedTrips.length > 0}
+                  onChange={handleSelectAll}
+                  className="rounded border-gray-300"
+                />
               </th>
-              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+
+              {/* Serial */}
+              <th 
+                className="px-2 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.serial }}
+                onClick={() => handleSort('serial')}
+              >
+                <div className="flex items-center gap-1">
+                  Trip Serial
+                  <SortIcon field="serial" />
+                </div>
+              </th>
+
+              {/* Date */}
+              <th 
+                className="px-2 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.date }}
+                onClick={() => handleSort('date')}
+              >
+                <div className="flex items-center gap-1">
+                  Date
+                  <SortIcon field="date" />
+                </div>
+              </th>
+
+              {/* Vehicle */}
+              <th 
+                className="px-2 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.vehicle }}
+                onClick={() => handleSort('vehicle')}
+              >
+                <div className="flex items-center gap-1">
+                  Vehicle
+                  <SortIcon field="vehicle" />
+                </div>
+              </th>
+
+              {/* Driver */}
+              <th 
+                className="px-2 py-2 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.driver }}
+                onClick={() => handleSort('driver')}
+              >
+                <div className="flex items-center gap-1">
+                  Driver
+                  <SortIcon field="driver" />
+                </div>
+              </th>
+
+              {/* Start KM */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.start_km }}>
+                Start KM
+              </th>
+
+              {/* End KM */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.end_km }}>
+                End KM
+              </th>
+
+              {/* Distance */}
+              <th 
+                className="px-2 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.distance }}
+                onClick={() => handleSort('distance')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Distance
+                  <SortIcon field="distance" />
+                </div>
+              </th>
+
+              {/* Mileage */}
+              <th 
+                className="px-2 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.mileage }}
+                onClick={() => handleSort('mileage')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Mileage
+                  <SortIcon field="mileage" />
+                </div>
+              </th>
+
+              {/* Fuel */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.fuel }}>
+                Fuel (L)
+              </th>
+
+              {/* Expense */}
+              <th 
+                className="px-2 py-2 text-right font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
+                style={{ width: columnWidths.expense }}
+                onClick={() => handleSort('expense')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Expenses
+                  <SortIcon field="expense" />
+                </div>
+              </th>
+
+              {/* Destinations */}
+              <th className="px-2 py-2 text-left font-medium text-gray-700" style={{ width: columnWidths.destinations }}>
+                Destinations
+              </th>
+
+              {/* Warehouse */}
+              <th className="px-2 py-2 text-left font-medium text-gray-700" style={{ width: columnWidths.warehouse }}>
+                Warehouse
+              </th>
+
+              {/* Deviation */}
+              <th className="px-2 py-2 text-right font-medium text-gray-700" style={{ width: columnWidths.deviation }}>
+                Deviation
+              </th>
+
+              {/* Actions */}
+              <th className="px-2 py-2 text-center font-medium text-gray-700" style={{ width: columnWidths.actions }}>
                 Actions
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vehicle
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Driver
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Distance
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Mileage
-              </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Destination
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {displayTrips.length > 0 ? (
-              displayTrips.map(trip => {
-                const vehicle = vehiclesMap.get(trip.vehicle_id);
-                const driver = driversMap.get(trip.driver_id);
-                const dateString = trip.trip_end_date || trip.trip_start_date || trip.created_at;
-                const tripDate = dateString ? parseISO(dateString) : null;
-                const formattedDate = tripDate && isValid(tripDate) 
-                  ? format(tripDate, 'dd MMM yyyy')
-                  : '-';
-                const distance = trip.end_km && trip.start_km 
-                  ? trip.end_km - trip.start_km
-                  : 0;
-                const mileage = distance && trip.fuel_quantity 
-                  ? (distance / trip.fuel_quantity).toFixed(2) 
-                  : '-';
-                
-                // Extract trip serial number parts for compact display
-                const serialParts = trip.trip_serial_number?.split('-') || [];
-                const compactSerial = serialParts.length > 1 
-                  ? `${serialParts[0]}-${serialParts[serialParts.length - 1]}` 
-                  : trip.trip_serial_number;
-                
-                // Component state for upload
-                const fileInputRef = useRef<HTMLInputElement>(null);
-                const [isUploading, setIsUploading] = useState(false);
-                
-                const handleCameraClick = () => {
-                  fileInputRef.current?.click();
-                };
-                
-                const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const file = e.target.files?.[0];
-                  if (!file || !trip.id) return;
-                  
-                  setIsUploading(true);
-                  try {
-                    const uploadedUrls = await uploadFilesAndGetPublicUrls(
-                      'trip-docs',
-                      `${trip.id}/attachments`,
-                      [file]
-                    );
-                    
-                    if (uploadedUrls.length > 0) {
-                      toast.success('Image uploaded successfully');
-                    } else {
-                      throw new Error('No URLs returned from upload');
-                    }
-                  } catch (error) {
-                    console.error('Error uploading image:', error);
-                    toast.error('Failed to upload image');
-                  } finally {
-                    setIsUploading(false);
-                    if (fileInputRef.current) {
-                      fileInputRef.current.value = '';
-                    }
-                  }
-                };
-                
-                return (
-                  <tr 
-                    key={trip.id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => onSelectTrip(trip)}
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {trip.refueling_done && (
-                          <Fuel className="h-3.5 w-3.5 text-accent-600 mr-1" />
-                        )}
-                        <span className="text-xs font-medium text-gray-900" title={trip.trip_serial_number}>
-                          {compactSerial}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {onPnlClick && (
-                          <button 
-                            className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onPnlClick(e, trip);
-                            }}
-                            title="View P&L"
-                          >
-                            <DollarSign className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        <button 
-                          className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors disabled:opacity-50"
+
+          <tbody className="divide-y divide-gray-200">
+            {sortedTrips.map((trip) => {
+              const vehicle = vehiclesMap.get(trip.vehicle_id);
+              const driver = driversMap.get(trip.driver_id);
+              const warehouse = warehousesMap.get(trip.warehouse_id);
+              const isSelected = selectedRows.has(trip.id);
+              const isHovered = hoveredRow === trip.id;
+              
+              return (
+                <tr 
+                  key={trip.id}
+                  className={`
+                    ${isSelected ? 'bg-primary-50' : isHovered ? 'bg-gray-50' : 'bg-white'}
+                    hover:bg-gray-50 transition-colors cursor-pointer
+                  `}
+                  onMouseEnter={() => setHoveredRow(trip.id)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  onClick={() => onSelectTrip(trip)}
+                >
+                  <td className="px-2 py-1.5 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        handleSelectRow(trip.id, e.shiftKey);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="rounded border-gray-300"
+                    />
+                  </td>
+
+                  <td className="px-2 py-1.5 font-mono text-xs">
+                    {trip.trip_serial_number}
+                  </td>
+
+                  <td className="px-2 py-1.5">
+                    {trip.trip_start_date ? format(parseISO(trip.trip_start_date), 'dd/MM/yyyy') : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 font-medium">
+                    {vehicle?.registration_number || '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5">
+                    {driver?.name || '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.start_km?.toLocaleString() || '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.end_km?.toLocaleString() || '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.total_distance ? `${trip.total_distance.toFixed(1)}` : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.calculated_kmpl ? `${trip.calculated_kmpl.toFixed(2)}` : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.fuel_quantity ? trip.fuel_quantity.toFixed(1) : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-right font-mono">
+                    {trip.total_expenses ? `₹${trip.total_expenses.toLocaleString()}` : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5 text-xs truncate" title={trip.destinations?.join(', ')}>
+                    {trip.destinations?.map((d: any) => 
+                      typeof d === 'string' ? d : d.name
+                    ).join(', ') || '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5">
+                    {warehouse?.name || '-'}
+                  </td>
+
+                  <td className={`px-2 py-1.5 text-right font-mono ${
+                    trip.route_deviation && Math.abs(trip.route_deviation) > 8 ? 'text-red-600' : ''
+                  }`}>
+                    {trip.route_deviation ? `${trip.route_deviation > 0 ? '+' : ''}${trip.route_deviation.toFixed(1)}%` : '-'}
+                  </td>
+
+                  <td className="px-2 py-1.5">
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectTrip(trip);
+                        }}
+                        className="p-1 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      
+                      {onEditTrip && (
+                        <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleCameraClick();
+                            onEditTrip(trip);
                           }}
-                          title="Upload Image"
-                          disabled={isUploading}
+                          className="p-1 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                          title="Edit Trip"
                         >
-                          {isUploading ? (
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Camera className="h-3.5 w-3.5" />
-                          )}
+                          <Edit2 className="h-3.5 w-3.5" />
                         </button>
-                        {onEditTrip && (
-                          <button 
-                            className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEditTrip(trip);
-                            }}
-                            title="Edit Trip"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        
-                        {/* Hidden File Input */}
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {formattedDate}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {vehicle?.registration_number || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {driver?.name || '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {distance > 0 ? `${distance.toFixed(1)} km` : '-'}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-600">
-                      {mileage !== '-' ? `${mileage} km/L` : '-'}
-                    </td>
-                    <td className="px-3 py-2 text-xs text-gray-600">
-                      {trip.destination_names?.join(', ') || '-'}
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
+                      )}
+                      
+                      {onPnlClick && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPnlClick(e, trip);
+                          }}
+                          className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                          title="P&L Analysis"
+                        >
+                          <DollarSign className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            
+            {sortedTrips.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                <td colSpan={15} className="px-4 py-8 text-center text-gray-500">
                   No trips found
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Footer with stats */}
+      <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600">
+        <div className="flex items-center gap-4">
+          <span>Total Distance: <strong>{sortedTrips.reduce((sum, t) => sum + (t.total_distance || 0), 0).toFixed(1)} km</strong></span>
+          <span>Total Fuel: <strong>{sortedTrips.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0).toFixed(1)} L</strong></span>
+          <span>Total Expenses: <strong>₹{sortedTrips.reduce((sum, t) => sum + (t.total_expenses || 0), 0).toLocaleString()}</strong></span>
+        </div>
+        
+        <div>
+          Avg Mileage: <strong>
+            {(sortedTrips.reduce((sum, t) => sum + (t.calculated_kmpl || 0), 0) / sortedTrips.length || 0).toFixed(2)} km/L
+          </strong>
+        </div>
       </div>
     </div>
   );
