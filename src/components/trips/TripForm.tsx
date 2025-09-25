@@ -53,6 +53,8 @@ interface TripFormProps {
   allDestinations?: Destination[];
   allWarehouses?: Warehouse[];
   allMaterialTypes?: MaterialType[];
+  // Control whether to render the form's own header (for embedded usage)
+  showHeader?: boolean;
 }
 
 const TripForm: React.FC<TripFormProps> = ({
@@ -65,7 +67,8 @@ const TripForm: React.FC<TripFormProps> = ({
   allDrivers,
   allDestinations,
   allWarehouses,
-  allMaterialTypes
+  allMaterialTypes,
+  showHeader = true
 }) => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -992,34 +995,32 @@ const TripForm: React.FC<TripFormProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 
-                    dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Compact Header */}
-      <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
-                      border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 
-                         bg-clip-text text-transparent flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary-600" />
-            {initialData ? 'Edit Trip Sheet' : 'New Trip Sheet'}
-          </h1>
-          <span className="text-xs text-gray-500">
-            Trip #{watchedValues.trip_serial_number || 'Generating...'}
-          </span>
+    <div className={showHeader ? "min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900" : ""}>
+      {/* Compact Header - only show if showHeader is true */}
+      {showHeader && (
+        <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+                        border-b border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-500 
+                           bg-clip-text text-transparent flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary-600" />
+              {initialData ? 'Edit Trip Sheet' : 'New Trip Sheet'}
+            </h1>
+            <span className="text-xs text-gray-500">
+              Trip #{watchedValues.trip_serial_number || 'Generating...'}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Form Container with Professional Styling */}
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className={showHeader ? "max-w-5xl mx-auto p-4 sm:p-6 lg:p-8" : ""}>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
           {/* Animated Form Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl 
-                          border border-gray-200 dark:border-gray-700
-                          ring-1 ring-gray-100 dark:ring-gray-900
-                          transform transition-all duration-300 hover:shadow-2xl">
+          <div className={showHeader ? "bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 ring-1 ring-gray-100 dark:ring-gray-900 transform transition-all duration-300 hover:shadow-2xl" : ""}>
             
             {/* Form Sections */}
-            <div className="p-6 space-y-6">
+            <div className={showHeader ? "p-6 space-y-6" : "space-y-4"}>
       {/* Form Validation Errors */}
       {formValidationErrors.length > 0 && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -1814,9 +1815,10 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </form>
 
-        {/* Professional Action Buttons */}
-        <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
-                        border-t border-gray-200 dark:border-gray-700 px-6 py-4 mt-6">
+        {/* Professional Action Buttons - only show if showHeader is true */}
+        {showHeader && (
+          <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+                          border-t border-gray-200 dark:border-gray-700 px-6 py-4 mt-6">
           <div className="flex items-center justify-between max-w-5xl mx-auto">
             <button
               type="button"
@@ -1876,6 +1878,7 @@ const TripForm: React.FC<TripFormProps> = ({
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* Cascade Preview Modal */}

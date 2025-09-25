@@ -148,6 +148,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                     type="number"
                     step="0.01"
                     icon={<Calculator className="h-4 w-4" />}
+                    hideIconWhenFocused={true}
                     value={refueling.total_fuel_cost || ''}
                     onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
                     disabled={disabled}

@@ -605,6 +605,7 @@ const TripsPage: React.FC = () => {
             allDestinations={destinations}
             allWarehouses={warehouses}
             allMaterialTypes={materialTypes}
+            showHeader={false}
           />
         </div>
       ) : (
