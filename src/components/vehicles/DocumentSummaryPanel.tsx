@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle, AlertTriangle } from 'lucide-react';
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
@@ -16,6 +16,8 @@ import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import { useChallanInfo } from '../../hooks/useChallanInfo';
+import { ChallanInfoModal } from '../ChallanInfoModal';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, differenceInMonths } from 'date-fns';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, Legend } from 'recharts';
 import html2canvas from 'html2canvas';
@@ -325,6 +327,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   const [isBulkRefreshing, setIsBulkRefreshing] = useState(false);
   const [refreshProgress, setRefreshProgress] = useState<{[key: string]: 'pending' | 'processing' | 'success' | 'error'}>({});
   
+  // Challan functionality state
+  const { fetchChallanInfo, loading: challanLoading } = useChallanInfo();
+  const [showChallanModal, setShowChallanModal] = useState(false);
+  const [currentChallanData, setCurrentChallanData] = useState(null);
+  const [challanRefreshProgress, setChallanRefreshProgress] = useState(0);
+  const [isBulkChallanLoading, setIsBulkChallanLoading] = useState(false);
+  
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
     stats: true,
@@ -492,6 +501,59 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
         return newProgress;
       });
     }, 2000);
+  };
+
+  // Challan functionality
+  const handleChallanRefresh = async () => {
+    const vehiclesToCheck = vehicles.map(v => ({
+      registration_number: v.registration_number,
+      chassis_no: v.chassis_no,
+      engine_no: v.engine_no
+    }));
+    
+    setIsBulkChallanLoading(true);
+    setChallanRefreshProgress(0);
+    const results = [];
+    
+    for (let i = 0; i < vehiclesToCheck.length; i++) {
+      const result = await fetchChallanInfo(
+        vehiclesToCheck[i].registration_number,
+        vehiclesToCheck[i].chassis_no,
+        vehiclesToCheck[i].engine_no
+      );
+      
+      if (result) {
+        results.push(result);
+      }
+      
+      setChallanRefreshProgress(((i + 1) / vehiclesToCheck.length) * 100);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    
+    // Combine all challans
+    const allChallans = {
+      vehicleId: 'All Vehicles',
+      total: results.reduce((sum, r) => sum + r.total, 0),
+      challans: results.flatMap(r => r.challans)
+    };
+    
+    setCurrentChallanData(allChallans);
+    setShowChallanModal(true);
+    setIsBulkChallanLoading(false);
+    setChallanRefreshProgress(0);
+  };
+
+  const handleIndividualChallan = async (vehicle: Vehicle) => {
+    const result = await fetchChallanInfo(
+      vehicle.registration_number,
+      vehicle.chassis_no,
+      vehicle.engine_no
+    );
+    
+    if (result) {
+      setCurrentChallanData(result);
+      setShowChallanModal(true);
+    }
   };
 
   // Initialize date ranges
@@ -1083,6 +1145,22 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             Vehicle Document Summary
           </h2>
           <div className="flex items-center gap-3">
+            {/* Challan Check Button */}
+            <Button
+              variant="outline"
+              inputSize="sm"
+              onClick={handleChallanRefresh}
+              disabled={isBulkChallanLoading || vehicles.length === 0}
+              icon={<AlertTriangle className={`h-4 w-4 ${isBulkChallanLoading ? 'animate-spin' : ''}`} />}
+              title="Check challans for all vehicles"
+            >
+              {isBulkChallanLoading ? `Checking... ${Math.round(challanRefreshProgress)}%` : 'Check Challans'}
+              {vehicles.length > 0 && !isBulkChallanLoading && (
+                <span className="ml-1 bg-yellow-100 text-yellow-800 text-xs px-2 py-0.5 rounded-full">
+                  {vehicles.length}
+                </span>
+              )}
+            </Button>
             {/* Bulk Refresh Button - This is where your cursor pointed! */}
             <Button
               variant="outline"
@@ -1177,6 +1255,41 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                 
                 <p className="mt-1 text-xs text-blue-600">
                   You can close this panel and the refresh will continue in the background.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Challan Check Progress Indicator */}
+        {isBulkChallanLoading && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mx-6 mt-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 animate-spin" />
+              </div>
+              <div className="ml-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Checking Challans
+                  </h3>
+                  <div className="text-sm text-yellow-600">
+                    {Math.round(challanRefreshProgress)}% complete
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-2 w-full bg-yellow-200 rounded-full h-2">
+                  <div 
+                    className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${challanRefreshProgress}%` 
+                    }}
+                  ></div>
+                </div>
+                
+                <p className="mt-1 text-xs text-yellow-600">
+                  Checking challan information for all vehicles. This may take a few minutes.
                 </p>
               </div>
             </div>
@@ -1483,31 +1596,49 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                                     )}
                                   </div>
 
-                                  {/* Individual Refresh Button */}
-                                  <button
-                                    onClick={() => handleIndividualRefresh(vehicles.find(v => v.id === vehicle.id)!)}
-                                    disabled={isBulkRefreshing || refreshProgress[vehicle.id] === 'processing'}
-                                    className={`
-                                      ml-2 p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
-                                      focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
-                                      ${refreshProgress[vehicle.id] === 'processing' ? 'opacity-100' : ''}
-                                      ${refreshProgress[vehicle.id] === 'success' ? 'bg-green-50 text-green-600 opacity-100' :
-                                        refreshProgress[vehicle.id] === 'error' ? 'bg-red-50 text-red-600 opacity-100' :
-                                        'hover:bg-gray-100 text-gray-500 hover:text-blue-600'}
-                                      ${isBulkRefreshing || refreshProgress[vehicle.id] === 'processing' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
-                                    `}
-                                    title={`Refresh ${vehicle.registration} data`}
-                                  >
-                                    {refreshProgress[vehicle.id] === 'processing' ? (
-                                      <RefreshCw className="h-3 w-3 animate-spin" />
-                                    ) : refreshProgress[vehicle.id] === 'success' ? (
-                                      <CheckCircle className="h-3 w-3" />
-                                    ) : refreshProgress[vehicle.id] === 'error' ? (
-                                      <AlertCircle className="h-3 w-3" />
-                                    ) : (
-                                      <RotateCcw className="h-3 w-3" />
-                                    )}
-                                  </button>
+                                  {/* Action Buttons */}
+                                  <div className="flex gap-1">
+                                    {/* Individual Challan Check Button */}
+                                    <button
+                                      onClick={() => handleIndividualChallan(vehicles.find(v => v.id === vehicle.id)!)}
+                                      disabled={isBulkChallanLoading || challanLoading}
+                                      className="
+                                        p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
+                                        focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-1
+                                        hover:bg-yellow-50 text-gray-500 hover:text-yellow-600
+                                        disabled:cursor-not-allowed disabled:opacity-50
+                                      "
+                                      title={`Check challans for ${vehicle.registration}`}
+                                    >
+                                      <AlertTriangle className="h-3 w-3" />
+                                    </button>
+                                    
+                                    {/* Individual Refresh Button */}
+                                    <button
+                                      onClick={() => handleIndividualRefresh(vehicles.find(v => v.id === vehicle.id)!)}
+                                      disabled={isBulkRefreshing || refreshProgress[vehicle.id] === 'processing'}
+                                      className={`
+                                        p-1.5 rounded-md transition-all duration-200 opacity-0 group-hover:opacity-100
+                                        focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+                                        ${refreshProgress[vehicle.id] === 'processing' ? 'opacity-100' : ''}
+                                        ${refreshProgress[vehicle.id] === 'success' ? 'bg-green-50 text-green-600 opacity-100' :
+                                          refreshProgress[vehicle.id] === 'error' ? 'bg-red-50 text-red-600 opacity-100' :
+                                          'hover:bg-gray-100 text-gray-500 hover:text-blue-600'}
+                                        ${isBulkRefreshing || refreshProgress[vehicle.id] === 'processing' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+                                      `}
+                                      title={`Refresh ${vehicle.registration} data`}
+                                    >
+                                      {refreshProgress[vehicle.id] === 'processing' ? (
+                                        <RefreshCw className="h-3 w-3 animate-spin" />
+                                      ) : refreshProgress[vehicle.id] === 'success' ? (
+                                        <CheckCircle className="h-3 w-3" />
+                                      ) : refreshProgress[vehicle.id] === 'error' ? (
+                                        <AlertCircle className="h-3 w-3" />
+                                      ) : (
+                                        <RotateCcw className="h-3 w-3" />
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
                               </td>
                               
@@ -1796,6 +1927,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
           )}
         </div>
       </div>
+
+      {/* Challan Info Modal */}
+      <ChallanInfoModal
+        isOpen={showChallanModal}
+        onClose={() => setShowChallanModal(false)}
+        challanData={currentChallanData}
+      />
     </div>
   );
 };
