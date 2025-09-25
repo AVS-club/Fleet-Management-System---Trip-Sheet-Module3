@@ -68,6 +68,8 @@ serve(async (req) => {
     formData.append('chassis', chassis);        // Required field
     formData.append('engine_no', engine_no);    // Required field
 
+    console.log('Making API call with data:', { vehicleId, chassis, engine_no });
+    
     const response = await fetch('https://uat.apiclub.in/api/v1/challan_info_v2', {
       method: 'POST',
       headers: {
@@ -79,7 +81,14 @@ serve(async (req) => {
       body: formData.toString()
     });
 
-    const data = await response.json() as ChallanResponse;
+    console.log('API Response Status:', response.status);
+    const responseText = await response.text();
+    console.log('API Response Text:', responseText);
+    
+    const data = JSON.parse(responseText) as ChallanResponse;
+    
+    // Debug: Log the actual API response
+    console.log('Challan API Parsed Response:', data);
 
     // Store challan info in Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

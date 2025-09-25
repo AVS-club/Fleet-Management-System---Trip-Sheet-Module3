@@ -39,7 +39,11 @@ export const useChallanInfo = () => {
 
       if (error) throw error;
 
+      // Debug: Log the actual API response
+      console.log('Challan API Response:', data);
+      
       if (data.status === 'success' && data.response) {
+        console.log('Challan Data:', data.response);
         setChallans(data.response);
         
         // Update the vehicle record with challan info
@@ -51,6 +55,7 @@ export const useChallanInfo = () => {
         
         return data.response;
       } else {
+        console.log('API Error Response:', data);
         toast.error(data.message || 'Failed to fetch challan information');
         return null;
       }
