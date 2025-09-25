@@ -136,7 +136,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
       <div className="relative">
         {/* Icon */}
         {Icon && (
-          <Icon className={`input-icon ${getIconColor()}`} />
+          <Icon className={`input-icon ${getIconColor()} ${isFocused && isVehicle ? 'animate-bounce' : ''}`} />
         )}
 
         {/* Input Field */}
@@ -156,8 +156,9 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className={getInputClasses()}
-          data-has-value={hasValue}
+          className={`${getInputClasses()} ${hasValue ? 'has-value' : ''}`}
+          autoComplete="off"
+          spellCheck="false"
         />
 
         {/* Check Mark */}
