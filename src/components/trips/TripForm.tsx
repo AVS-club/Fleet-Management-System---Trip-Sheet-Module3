@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling } from '@/types';
@@ -110,6 +110,10 @@ const TripForm: React.FC<TripFormProps> = ({
   const [manualToggle, setManualToggle] = useState<boolean>(false);
   const [showRefuelingDetails, setShowRefuelingDetails] = useState<boolean>(false);
   const [formValidationErrors, setFormValidationErrors] = useState<string[]>([]);
+  const [autoTieDriver, setAutoTieDriver] = useState(true);
+  
+  // Debug mode for testing
+  const DEBUG_MODE = process.env.NODE_ENV === 'development';
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -137,6 +141,7 @@ const TripForm: React.FC<TripFormProps> = ({
       driver_expense: 0,
       road_rto_expense: 0,
       toll_expense: 0,
+      breakdown_expense: 0,
       miscellaneous_expense: 0,
       total_road_expenses: 0,
       material_type_ids: [],
@@ -186,7 +191,8 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('unloading_expense', initialData.unloading_expense || 0);
       setValue('driver_expense', initialData.driver_expense || 0);
       setValue('road_rto_expense', initialData.road_rto_expense || 0);
-      setValue('toll_expense', initialData.toll_expense || initialData.breakdown_expense || 0);
+      setValue('toll_expense', initialData.toll_expense || 0);
+      setValue('breakdown_expense', initialData.breakdown_expense || 0);
       setValue('miscellaneous_expense', initialData.miscellaneous_expense || 0);
       setValue('total_road_expenses', initialData.total_road_expenses || 0);
       setValue('is_return_trip', initialData.is_return_trip || false);
@@ -315,15 +321,32 @@ const TripForm: React.FC<TripFormProps> = ({
     }
   }, [initialData?.destinations, destinations, selectedDestinationObjects.length]);
 
-  // Auto-select assigned driver when vehicle is selected
+  // Add a ref to track vehicle changes
+  const vehicleJustChanged = useRef(false);
+
+  // Auto-select assigned driver when vehicle is selected (Fix A: Always Auto-Select Primary Driver)
   useEffect(() => {
-    if (selectedVehicleId && vehicles.length > 0 && !initialData?.driver_id) { // Only auto-select if no initial driver
+    if (autoTieDriver && selectedVehicleId && vehicles.length > 0) {
       const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
       if (selectedVehicle?.primary_driver_id) {
-        setValue('driver_id', selectedVehicle.primary_driver_id);
+        // Get current driver value
+        const currentDriverId = watch('driver_id');
+        
+        // Only auto-select if no driver is currently selected
+        // OR if user just changed the vehicle
+        if (!currentDriverId || vehicleJustChanged.current) {
+          setValue('driver_id', selectedVehicle.primary_driver_id);
+          
+          // Auto-select the driver object for display
+          const primaryDriver = drivers.find(d => d.id === selectedVehicle.primary_driver_id);
+          if (primaryDriver) {
+            setSelectedDriver(primaryDriver);
+          }
+        }
+        vehicleJustChanged.current = false;
       }
     }
-  }, [selectedVehicleId, vehicles, setValue, initialData?.driver_id]);
+  }, [autoTieDriver, selectedVehicleId, vehicles, drivers, setValue, watch]);
 
   // Auto-generate trip serial number when vehicle and start date are selected
   useEffect(() => {
@@ -480,7 +503,8 @@ const TripForm: React.FC<TripFormProps> = ({
       (watchedValues.driver_expense || 0) +
       (watchedValues.road_rto_expense || 0) +
       (watchedValues.toll_expense || 0) +
-      (watchedValues.miscellaneous_expense || 0)
+      (watchedValues.miscellaneous_expense || 0) +
+      (watchedValues.breakdown_expense || 0)
     );
     setValue('total_road_expenses', totalRoadExpenses);
   }, [
@@ -489,6 +513,7 @@ const TripForm: React.FC<TripFormProps> = ({
     watchedValues.road_rto_expense,
     watchedValues.toll_expense,
     watchedValues.miscellaneous_expense,
+    watchedValues.breakdown_expense,
     setValue
   ]);
 
@@ -765,7 +790,8 @@ const TripForm: React.FC<TripFormProps> = ({
       { field: data.unloading_expense, name: 'Unloading expense' },
       { field: data.driver_expense, name: 'Driver expense' },
       { field: data.road_rto_expense, name: 'Road RTO expense' },
-      { field: data.toll_expense || data.breakdown_expense, name: 'Toll expense' },
+      { field: data.toll_expense, name: 'Toll expense' },
+      { field: data.breakdown_expense, name: 'Breakdown expense' },
       { field: data.miscellaneous_expense, name: 'Miscellaneous expense' }
     ];
     
@@ -1047,10 +1073,21 @@ const TripForm: React.FC<TripFormProps> = ({
 
       {/* Vehicle & Driver Selection */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 md:p-4">
-        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-          <Truck className="h-5 w-5 mr-2 text-primary-500" />
-          Vehicle & Driver
-        </h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex items-center">
+            <Truck className="h-5 w-5 mr-2 text-primary-500" />
+            Vehicle & Driver
+          </h3>
+          <label className="flex items-center text-sm">
+            <input
+              type="checkbox"
+              checked={autoTieDriver}
+              onChange={(e) => setAutoTieDriver(e.target.checked)}
+              className="mr-2"
+            />
+            Auto-assign driver
+          </label>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <EnhancedInput
@@ -1064,6 +1101,7 @@ const TripForm: React.FC<TripFormProps> = ({
               setSelectedVehicle(vehicle || null);
               setValue('vehicle_id', vehicle?.id || '');
               if (vehicle?.id) {
+                vehicleJustChanged.current = true; // Mark that vehicle was just changed
                 handleVehicleSelection(vehicle.id);
               }
             }}
@@ -1081,6 +1119,7 @@ const TripForm: React.FC<TripFormProps> = ({
               if (vehicle) {
                 setSelectedVehicle(vehicle);
                 setValue('vehicle_id', vehicle.id);
+                vehicleJustChanged.current = true; // Mark that vehicle was just changed
                 handleVehicleSelection(vehicle.id);
               }
             }}
@@ -1579,6 +1618,29 @@ const TripForm: React.FC<TripFormProps> = ({
                     </div>
                   )}
                 />
+                
+                <Controller
+                  name="breakdown_expense"
+                  control={control}
+                  render={({ field }) => (
+                    <div>
+                      <label className="mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300">Breakdown (₹)</label>
+                      <Input
+                        value={field.value >= 0 ? field.value : 0}
+                        onChange={(e) => field.onChange(Math.max(0, parseFloat(e.target.value) || 0))}
+                        type="number"
+                        step="0.01"
+                        className="h-9 text-sm"
+                        onFocus={(e) => {
+                          if (e.target.value === '0' || e.target.value === '0.00' || e.target.value === '') {
+                            e.target.select();
+                          }
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                  )}
+                />
               </div>
             </CollapsibleSection>
           </div>
@@ -1632,6 +1694,33 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
       </CollapsibleSection>
+
+      {/* Debug Panel */}
+      {DEBUG_MODE && (
+        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs">
+          <h4 className="font-bold mb-2 text-gray-800 dark:text-gray-200">Debug Info:</h4>
+          <div className="grid grid-cols-2 gap-2 text-gray-700 dark:text-gray-300">
+            <p>Vehicle ID: {selectedVehicleId || 'None'}</p>
+            <p>Primary Driver ID: {vehicles.find(v => v.id === selectedVehicleId)?.primary_driver_id || 'None'}</p>
+            <p>Selected Driver ID: {watch('driver_id') || 'None'}</p>
+            <p>Auto-tie Active: {autoTieDriver ? 'Yes' : 'No'}</p>
+            <p>Refueling Mode: {isRefuelingTrip ? 'Yes' : 'No'}</p>
+            <p>Total Expenses: ₹{watchedValues.total_road_expenses || 0}</p>
+            <p>Start KM: {watchedValues.start_km || 0}</p>
+            <p>End KM: {watchedValues.end_km || 0}</p>
+            <p>Distance: {(watchedValues.end_km || 0) - (watchedValues.start_km || 0)} km</p>
+            <p>Gross Weight: {watchedValues.gross_weight || 0} kg</p>
+            <p>Return Trip: {watchedValues.is_return_trip ? 'Yes' : 'No'}</p>
+            <p>Vehicle Just Changed: {vehicleJustChanged.current ? 'Yes' : 'No'}</p>
+          </div>
+          <details className="mt-2">
+            <summary className="cursor-pointer font-medium text-gray-800 dark:text-gray-200">All Form Values</summary>
+            <pre className="mt-2 p-2 bg-gray-200 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
+              {JSON.stringify(watch(), null, 2)}
+            </pre>
+          </details>
+        </div>
+      )}
 
       {/* Form Actions */}
       <div className="sticky bottom-0 bg-white dark:bg-gray-800 p-4 shadow-md md:shadow-none md:static md:bg-transparent md:dark:bg-transparent md:p-0 flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 pt-4">

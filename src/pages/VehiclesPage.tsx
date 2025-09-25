@@ -18,6 +18,7 @@ import {
   getTrips,
   getDriverSummaries,
 } from "../utils/storage";
+import { getAllDriversIncludingInactive } from "../utils/api/drivers";
 import { supabase } from "../utils/supabaseClient";
 import config from "../utils/env";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
@@ -56,7 +57,7 @@ import ReactPaginate from "react-paginate";
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
-  const [drivers, setDrivers] = useState<DriverSummary[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,7 +76,7 @@ const VehiclesPage: React.FC = () => {
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
-    const map: Record<string, DriverSummary> = {};
+    const map: Record<string, Driver> = {};
     if (Array.isArray(drivers)) {
       drivers.forEach(driver => {
         if (driver.id) {
@@ -103,7 +104,7 @@ const VehiclesPage: React.FC = () => {
         // if (user) setUser(user);
         const [vehiclesData, driversData, tripsData] = await Promise.all([
           getVehicles(),
-          getDriverSummaries(), // TODO: Ensure this fetches ALL drivers including inactive/archived ones for proper driver assignment display
+          getAllDriversIncludingInactive(), // Fetch ALL drivers including inactive/archived ones for proper driver assignment display
           getTrips(),
         ]);
 

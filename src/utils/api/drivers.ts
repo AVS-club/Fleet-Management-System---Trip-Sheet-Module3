@@ -87,6 +87,46 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
   }
 };
 
+export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      if (isNetworkError(userError)) {
+        if (config.isDev) console.warn('Network error fetching user for all drivers, returning empty array');
+        return [];
+      }
+      handleSupabaseError('get user for all drivers', userError);
+      return [];
+    }
+
+    if (!user) {
+      console.error('No user authenticated');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('drivers')
+      .select(DRIVER_COLS)
+      .eq('added_by', user.id)
+      .order('name', { ascending: true });
+
+    if (error) {
+      handleSupabaseError('fetch all drivers', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    if (isNetworkError(error)) {
+      if (config.isDev) console.warn('Network error fetching user for all drivers, returning empty array');
+      return [];
+    }
+    handleSupabaseError('get user for all drivers', error);
+    return [];
+  }
+};
+
 export const getDriver = async (id: string): Promise<Driver | null> => {
   const { data, error } = await supabase
     .from('drivers')
