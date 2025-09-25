@@ -60,15 +60,14 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const hasValue = value.trim().length > 0;
   const filteredOptions = dropdownOptions.filter(option =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    option.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (option.subtitle && option.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
+    option.label.toLowerCase().includes(value.toLowerCase()) ||
+    option.value.toLowerCase().includes(value.toLowerCase()) ||
+    (option.subtitle && option.subtitle.toLowerCase().includes(value.toLowerCase()))
   );
 
   // Handle click outside to close dropdown
@@ -76,7 +75,6 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-        setSearchQuery('');
       }
     };
 
@@ -93,7 +91,6 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
     onChange(option.value);
     onDropdownSelect?.(option);
     setIsDropdownOpen(false);
-    setSearchQuery('');
   };
 
   const getInputClasses = () => {
@@ -191,18 +188,6 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
       {/* Dropdown */}
       {isDropdown && isDropdownOpen && (
         <div ref={dropdownRef} className="dropdown-enhanced">
-          {dropdownSearchable && (
-            <div className="dropdown-search">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={dropdownPlaceholder}
-                className="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm rounded border border-gray-300 dark:border-gray-600 focus:border-blue-400 focus:outline-none"
-              />
-            </div>
-          )}
-          
           <div className="max-h-60 overflow-y-auto">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => {
