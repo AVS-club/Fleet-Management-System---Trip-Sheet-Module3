@@ -505,28 +505,43 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
 
   // Challan functionality
   const handleChallanRefresh = async () => {
+    // Map vehicles with correct field names
     const vehiclesToCheck = vehicles.map(v => ({
       registration_number: v.registration_number,
-      chassis_no: v.chassis_no,
-      engine_no: v.engine_no
+      chassis_number: v.chassis_number,  // Changed from chassis_no
+      engine_number: v.engine_number      // Changed from engine_no
     }));
+    
+    // Filter out vehicles without required fields
+    const validVehicles = vehiclesToCheck.filter(v => 
+      v.registration_number && v.chassis_number && v.engine_number
+    );
+    
+    if (validVehicles.length === 0) {
+      toast.error('No vehicles have complete chassis and engine information for challan check');
+      return;
+    }
+    
+    if (validVehicles.length < vehiclesToCheck.length) {
+      toast.warning(`${vehiclesToCheck.length - validVehicles.length} vehicles skipped due to missing chassis/engine info`);
+    }
     
     setIsBulkChallanLoading(true);
     setChallanRefreshProgress(0);
     const results = [];
     
-    for (let i = 0; i < vehiclesToCheck.length; i++) {
+    for (let i = 0; i < validVehicles.length; i++) {
       const result = await fetchChallanInfo(
-        vehiclesToCheck[i].registration_number,
-        vehiclesToCheck[i].chassis_no,
-        vehiclesToCheck[i].engine_no
+        validVehicles[i].registration_number,
+        validVehicles[i].chassis_number,  // Use correct field
+        validVehicles[i].engine_number    // Use correct field
       );
       
       if (result) {
         results.push(result);
       }
       
-      setChallanRefreshProgress(((i + 1) / vehiclesToCheck.length) * 100);
+      setChallanRefreshProgress(((i + 1) / validVehicles.length) * 100);
       await new Promise(resolve => setTimeout(resolve, 1500));
     }
     
@@ -544,10 +559,16 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   };
 
   const handleIndividualChallan = async (vehicle: Vehicle) => {
+    // Check if vehicle has required fields
+    if (!vehicle.chassis_number || !vehicle.engine_number) {
+      toast.error(`Vehicle ${vehicle.registration_number} is missing chassis or engine number`);
+      return;
+    }
+
     const result = await fetchChallanInfo(
       vehicle.registration_number,
-      vehicle.chassis_no,
-      vehicle.engine_no
+      vehicle.chassis_number,  // Use correct field
+      vehicle.engine_number    // Use correct field
     );
     
     if (result) {

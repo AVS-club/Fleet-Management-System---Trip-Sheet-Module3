@@ -8,8 +8,8 @@ const corsHeaders = {
 
 interface ChallanRequest {
   vehicleId: string;
-  chassis?: string;
-  engine_no?: string;
+  chassis: string;    // Required field
+  engine_no: string;  // Required field
 }
 
 interface ChallanResponse {
@@ -44,9 +44,17 @@ serve(async (req) => {
   try {
     const { vehicleId, chassis, engine_no } = await req.json() as ChallanRequest;
 
-    if (!vehicleId) {
+    // Validate all three fields are present
+    if (!vehicleId || !chassis || !engine_no) {
       return new Response(
-        JSON.stringify({ error: 'Vehicle ID is required' }),
+        JSON.stringify({ 
+          error: 'Vehicle ID, Chassis Number, and Engine Number are all required',
+          details: {
+            vehicleId: !vehicleId ? 'missing' : 'provided',
+            chassis: !chassis ? 'missing' : 'provided',
+            engine_no: !engine_no ? 'missing' : 'provided'
+          }
+        }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -57,8 +65,8 @@ serve(async (req) => {
     // Call the Challan Information API
     const formData = new URLSearchParams();
     formData.append('vehicleId', vehicleId);
-    if (chassis) formData.append('chassis', chassis);
-    if (engine_no) formData.append('engine_no', engine_no);
+    formData.append('chassis', chassis);        // Required field
+    formData.append('engine_no', engine_no);    // Required field
 
     const response = await fetch('https://uat.apiclub.in/api/v1/challan_info_v2', {
       method: 'POST',

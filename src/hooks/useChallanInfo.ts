@@ -24,7 +24,13 @@ export const useChallanInfo = () => {
   const [loading, setLoading] = useState(false);
   const [challans, setChallans] = useState<ChallanInfo | null>(null);
 
-  const fetchChallanInfo = async (vehicleId: string, chassis?: string, engine_no?: string) => {
+  const fetchChallanInfo = async (vehicleId: string, chassis: string, engine_no: string) => {
+    // Validate before calling
+    if (!vehicleId || !chassis || !engine_no) {
+      toast.error('Vehicle ID, Chassis, and Engine Number are required for challan check');
+      return null;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-challan-info', {
@@ -59,16 +65,22 @@ export const useChallanInfo = () => {
 
   const fetchMultipleVehicleChallans = async (vehicles: Array<{ 
     registration_number: string; 
-    chassis_no?: string; 
-    engine_no?: string 
+    chassis_number: string;  // Changed from chassis_no
+    engine_number: string;   // Changed from engine_no
   }>) => {
     const results = [];
     
     for (const vehicle of vehicles) {
+      // Skip vehicles without required fields
+      if (!vehicle.chassis_number || !vehicle.engine_number) {
+        toast.warning(`Skipping ${vehicle.registration_number}: Missing chassis or engine number`);
+        continue;
+      }
+
       const result = await fetchChallanInfo(
         vehicle.registration_number,
-        vehicle.chassis_no,
-        vehicle.engine_no
+        vehicle.chassis_number,  // Use correct field name
+        vehicle.engine_number    // Use correct field name
       );
       
       if (result) {
