@@ -564,6 +564,24 @@ const TripForm: React.FC<TripFormProps> = ({
     return () => abortController.abort();
   }, [selectedWarehouseId, selectedDestinationObjects, watchedValues.is_return_trip, setValue]);
 
+  // Recalculate route deviation when return trip toggle changes
+  useEffect(() => {
+    if (routeAnalysis && startKm && endKm && (endKm > startKm)) {
+      const actualDistance = endKm - startKm;
+      const standardDistance = routeAnalysis.total_distance;
+      
+      // For return trips, double the standard distance since it's a round trip
+      const effectiveStandardDistance = watchedValues.is_return_trip 
+        ? standardDistance * 2 
+        : standardDistance;
+      
+      if (effectiveStandardDistance > 0 && actualDistance > 0) {
+        const deviation = ((actualDistance - effectiveStandardDistance) / effectiveStandardDistance) * 100;
+        setRouteDeviation(deviation);
+      }
+    }
+  }, [watchedValues.is_return_trip, routeAnalysis, startKm, endKm]);
+
   // Smart auto-detection logic for refueling vs non-refueling trips
   useEffect(() => {
     const hasFuelData = 
@@ -1272,8 +1290,8 @@ const TripForm: React.FC<TripFormProps> = ({
                 <h4 className="text-sm font-medium text-blue-800 dark:text-blue-300">Live Route Analysis</h4>
                 {routeAnalysis.total_distance > 0 && startKm && endKm && (endKm > startKm) ? (
                   <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    Route deviation: <span className={`font-bold ${Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 ? 'text-error-600' : 'text-success-600'}`}>
-                      {(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 0 ? '+' : ''}{(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100).toFixed(1)}%
+                    Route deviation: <span className={`font-bold ${Math.abs(routeDeviation) > 15 ? 'text-error-600' : 'text-success-600'}`}>
+                      {routeDeviation > 0 ? '+' : ''}{routeDeviation.toFixed(1)}%
                     </span>
                   </p>
                 ) : (
@@ -1283,11 +1301,11 @@ const TripForm: React.FC<TripFormProps> = ({
                 )}
                 {routeAnalysis && routeAnalysis.total_distance > 0 && startKm && endKm && (
                   <p className="text-xs text-blue-500 dark:text-blue-400 mt-1">
-                    Standard: {routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
+                    Standard: {watchedValues.is_return_trip ? (routeAnalysis.total_distance * 2).toFixed(1) : routeAnalysis.total_distance}km, Actual: {endKm - startKm}km
                   </p>
                 )}
               </div>
-              {routeAnalysis.total_distance > 0 && startKm && endKm && Math.abs(((endKm - startKm) - routeAnalysis.total_distance) / routeAnalysis.total_distance * 100) > 15 && (
+              {routeAnalysis.total_distance > 0 && startKm && endKm && Math.abs(routeDeviation) > 15 && (
                 <AlertTriangle className="h-5 w-5 text-warning-500" />
               )}
             </div>
