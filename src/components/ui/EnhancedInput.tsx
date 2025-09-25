@@ -60,13 +60,10 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const hasValue = value && value.trim().length > 0;
-  
-  // Filter options based on input value
+  const hasValue = value.trim().length > 0;
   const filteredOptions = dropdownOptions.filter(option =>
     option.label.toLowerCase().includes(value.toLowerCase()) ||
     option.value.toLowerCase().includes(value.toLowerCase()) ||
@@ -81,207 +78,165 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
       }
     };
 
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isDropdownOpen]);
-
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isDropdown || !isDropdownOpen) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev < filteredOptions.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setHighlightedIndex(prev => 
-          prev > 0 ? prev - 1 : filteredOptions.length - 1
-        );
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < filteredOptions.length) {
-          handleDropdownSelect(filteredOptions[highlightedIndex]);
-        }
-        break;
-      case 'Escape':
-        setIsDropdownOpen(false);
-        setHighlightedIndex(-1);
-        break;
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = isVehicle ? e.target.value.toUpperCase() : e.target.value;
     onChange(newValue);
-    
-    // Open dropdown when typing if there are options to show
-    if (isDropdown && !isDropdownOpen && newValue.length > 0 && filteredOptions.length > 0) {
-      setIsDropdownOpen(true);
-    }
   };
 
   const handleDropdownSelect = (option: DropdownOption) => {
     onChange(option.value);
     onDropdownSelect?.(option);
     setIsDropdownOpen(false);
-    setHighlightedIndex(-1);
-    // Focus back on input after selection
-    inputRef.current?.focus();
-  };
-
-  const handleInputFocus = () => {
-    setIsFocused(true);
-    // Open dropdown on focus if there are options
-    if (isDropdown && filteredOptions.length > 0) {
-      setIsDropdownOpen(true);
-    }
-  };
-
-  const handleInputBlur = () => {
-    setIsFocused(false);
   };
 
   const getInputClasses = () => {
     const baseClasses = 'input-enhanced';
     const vehicleClasses = isVehicle ? 'input-vehicle' : '';
     const errorClasses = error ? 'border-red-500 dark:border-red-400' : '';
-    const disabledClasses = disabled ? 'bg-gray-50 dark:bg-gray-800 cursor-not-allowed opacity-60' : 'bg-white dark:bg-gray-900';
-    const focusClasses = isFocused ? 'ring-2 ring-primary-500 border-primary-500' : 'border-gray-300 dark:border-gray-600';
+    const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
     
-    return `
-      ${baseClasses}
-      ${vehicleClasses}
-      ${errorClasses || focusClasses}
-      ${disabledClasses}
-      ${className}
-      w-full px-3 py-2 border rounded-lg transition-all duration-200
-      ${Icon ? 'pl-10' : 'pl-3'}
-      ${isDropdown ? 'pr-10' : showCheckmark && hasValue ? 'pr-10' : 'pr-3'}
-      focus:outline-none
-      ${isVehicle && hasValue ? 'font-semibold tracking-wider uppercase text-lg' : ''}
-    `.trim();
+    return `${baseClasses} ${vehicleClasses} ${errorClasses} ${disabledClasses} ${className}`.trim();
   };
 
-  const getStatusColor = (status?: string) => {
+  const getIconColor = () => {
+    if (error) return 'text-red-500 dark:text-red-400';
+    if (hasValue && !isFocused) return 'text-green-500 dark:text-green-400 scale-110';
+    if (isFocused) return 'text-blue-500 dark:text-blue-400 scale-110';
+    return 'text-gray-500 dark:text-gray-400';
+  };
+
+  const getStatusBadgeClasses = (status?: string) => {
     switch (status) {
       case 'active':
       case 'available':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'maintenance':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'on-trip':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-green-500/20 text-green-400';
       case 'inactive':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      case 'on-trip':
+        return 'bg-yellow-500/20 text-yellow-400';
+      case 'maintenance':
+        return 'bg-red-500/20 text-red-400';
       default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+        return 'bg-gray-500/20 text-gray-400';
     }
   };
 
   return (
-    <div className={`relative ${containerClassName}`} ref={dropdownRef}>
+    <div className={`relative ${containerClassName}`}>
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
           {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
+          {required && <span className="text-red-400 ml-1">*</span>}
         </label>
       )}
 
       <div className="relative">
-        {/* Animated Icon */}
+        {/* Icon */}
         {Icon && (
-          <Icon 
-            className={`
-              absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 dark:text-gray-500
-              ${isVehicle && isFocused ? 'animate-bounce' : ''}
-              transition-all duration-300
-            `}
-          />
+          <Icon className={`input-icon ${getIconColor()} ${isFocused && isVehicle ? 'animate-bounce' : ''}`} />
         )}
 
-        {/* Main Input Field - FIXED to accept typing */}
+        {/* Input Field */}
         <input
           ref={inputRef}
           type={type}
           value={value}
           onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          onBlur={handleInputBlur}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder || (isVehicle ? 'TYPE VEHICLE NUMBER...' : 'Type here...')}
+          onFocus={() => {
+            setIsFocused(true);
+            if (isDropdown) setIsDropdownOpen(true);
+          }}
+          onBlur={() => {
+            setIsFocused(false);
+            // Delay closing dropdown to allow for option selection
+            setTimeout(() => setIsDropdownOpen(false), 200);
+          }}
+          placeholder={placeholder}
           disabled={disabled}
-          autoComplete="off"
-          spellCheck={false}
           className={getInputClasses()}
+          data-has-value={hasValue}
         />
 
-        {/* Checkmark or Dropdown Arrow */}
-        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-          {showCheckmark && hasValue && !isDropdown && (
-            <Check className="h-5 w-5 text-green-500 animate-in fade-in zoom-in duration-200" />
-          )}
-          
-          {isDropdown && (
-            <ChevronDown 
-              className={`
-                h-5 w-5 text-gray-400 dark:text-gray-500 transition-transform duration-200
-                ${isDropdownOpen ? 'rotate-180' : ''}
-              `}
-            />
-          )}
-        </div>
+        {/* Check Mark */}
+        {hasValue && showCheckmark && !error && (
+          <Check className="input-check" />
+        )}
+
+        {/* Dropdown Arrow */}
+        {isDropdown && (
+          <ChevronDown 
+            className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isDropdownOpen ? 'rotate-180' : ''
+            }`} 
+          />
+        )}
+
+        {/* Left Border Indicator */}
+        {hasValue && !error && (
+          <div className="absolute left-0 top-0 w-0.5 h-full bg-gradient-to-b from-green-400 to-green-600 rounded-l-lg animate-slideIn" />
+        )}
+
+        {/* Error Indicator */}
+        {error && (
+          <div className="absolute left-0 top-0 w-0.5 h-full bg-gradient-to-b from-red-400 to-red-600 rounded-l-lg" />
+        )}
       </div>
+
+      {/* Dropdown */}
+      {isDropdown && isDropdownOpen && (
+        <div ref={dropdownRef} className="dropdown-enhanced">
+          <div className="max-h-60 overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((option) => {
+                const OptionIcon = option.icon;
+                return (
+                  <div
+                    key={option.id}
+                    onClick={() => handleDropdownSelect(option)}
+                    className="dropdown-item"
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        {OptionIcon && (
+                          <OptionIcon className="w-4 h-4 text-gray-400 mr-3" />
+                        )}
+                        <div>
+                          <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            {option.label}
+                          </div>
+                          {option.subtitle && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {option.subtitle}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {option.status && (
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusBadgeClasses(option.status)}`}>
+                          {option.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm">
+                No options found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
-        <p className="mt-1 text-sm text-red-500 dark:text-red-400">{error}</p>
-      )}
-
-      {/* Dropdown Options - Only show when open and has filtered options */}
-      {isDropdown && isDropdownOpen && filteredOptions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-64 overflow-auto">
-          {filteredOptions.map((option, index) => (
-            <div
-              key={option.id}
-              onClick={() => handleDropdownSelect(option)}
-              onMouseEnter={() => setHighlightedIndex(index)}
-              className={`
-                px-4 py-3 cursor-pointer transition-colors duration-150
-                ${highlightedIndex === index ? 'bg-primary-50 dark:bg-primary-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}
-                ${value === option.value ? 'bg-primary-100 dark:bg-primary-900/30' : ''}
-                border-b border-gray-100 dark:border-gray-700 last:border-b-0
-              `}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900 dark:text-gray-100">
-                    {option.label}
-                  </div>
-                  {option.subtitle && (
-                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                      {option.subtitle}
-                    </div>
-                  )}
-                </div>
-                {option.status && (
-                  <span className={`
-                    px-2 py-1 text-xs font-medium rounded-full ml-2
-                    ${getStatusColor(option.status)}
-                  `}>
-                    {option.status.toUpperCase()}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="mt-1 text-xs text-red-500 dark:text-red-400">
+          {error}
+        </p>
       )}
     </div>
   );
