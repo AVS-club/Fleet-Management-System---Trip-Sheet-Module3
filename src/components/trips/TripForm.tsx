@@ -241,12 +241,8 @@ const TripForm: React.FC<TripFormProps> = ({
     if (selectedVehicleId) {
       const vehicle = vehicles.find(v => v.id === selectedVehicleId);
       setSelectedVehicle(vehicle || null);
-      if (vehicle) {
-        setVehicleQuery(vehicle.registration_number);
-      }
     } else {
       setSelectedVehicle(null);
-      setVehicleQuery('');
     }
   }, [selectedVehicleId, vehicles]);
 
@@ -256,12 +252,8 @@ const TripForm: React.FC<TripFormProps> = ({
     if (selectedDriverId) {
       const driver = drivers.find(d => d.id === selectedDriverId);
       setSelectedDriver(driver || null);
-      if (driver) {
-        setDriverQuery(driver.name);
-      }
     } else {
       setSelectedDriver(null);
-      setDriverQuery('');
     }
   }, [watch, drivers]);
   // Fetch form data - only if not provided as props
