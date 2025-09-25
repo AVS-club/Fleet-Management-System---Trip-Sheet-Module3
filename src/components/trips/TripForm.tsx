@@ -1815,10 +1815,9 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </form>
 
-        {/* Professional Action Buttons - only show if showHeader is true */}
-        {showHeader && (
-          <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
-                          border-t border-gray-200 dark:border-gray-700 px-6 py-4 mt-6">
+        {/* Professional Action Buttons - always show */}
+        <div className="sticky bottom-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md 
+                        border-t border-gray-200 dark:border-gray-700 px-6 py-4 mt-6">
           <div className="flex items-center justify-between max-w-5xl mx-auto">
             <button
               type="button"
@@ -1878,7 +1877,6 @@ const TripForm: React.FC<TripFormProps> = ({
             </button>
           </div>
         </div>
-        )}
       </div>
 
       {/* Cascade Preview Modal */}
