@@ -67,7 +67,8 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
   const hasValue = value.trim().length > 0;
   const filteredOptions = dropdownOptions.filter(option =>
     option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    option.value.toLowerCase().includes(searchQuery.toLowerCase())
+    option.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (option.subtitle && option.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Handle click outside to close dropdown

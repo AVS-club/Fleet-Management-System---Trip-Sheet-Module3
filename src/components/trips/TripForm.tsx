@@ -98,9 +98,7 @@ const TripForm: React.FC<TripFormProps> = ({
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
   const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
-  const [vehicleQuery, setVehicleQuery] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [driverQuery, setDriverQuery] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
 
   // Smart trip form state management
@@ -227,23 +225,17 @@ const TripForm: React.FC<TripFormProps> = ({
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
 
-  // Filter vehicles based on search query
+  // Filter vehicles based on search query - now includes all vehicles for dropdown filtering
   const filteredVehicles = useMemo(() => {
-    if (!vehicleQuery) return vehicles;
-    const query = vehicleQuery.toLowerCase();
     return vehicles.filter(vehicle => 
-      vehicle.registration_number.toLowerCase().includes(query)
+      vehicle.status !== 'archived' // Only show non-archived vehicles
     );
-  }, [vehicleQuery, vehicles]);
+  }, [vehicles]);
 
-  // Filter drivers based on search query
+  // Filter drivers based on search query - now includes all drivers for dropdown filtering
   const filteredDrivers = useMemo(() => {
-    if (!driverQuery) return drivers;
-    const query = driverQuery.toLowerCase();
-    return drivers.filter(driver => 
-      driver.name.toLowerCase().includes(query)
-    );
-  }, [driverQuery, drivers]);
+    return drivers; // Show all drivers, let EnhancedInput handle the filtering
+  }, [drivers]);
   // Update selected vehicle when vehicle_id changes
   useEffect(() => {
     if (selectedVehicleId) {
