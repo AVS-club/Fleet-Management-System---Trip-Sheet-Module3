@@ -76,7 +76,8 @@ serve(async (req) => {
         'accept': 'application/json',
         'content-type': 'application/x-www-form-urlencoded',
         'x-api-key': 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50',
-        'X-Request-Id': crypto.randomUUID()
+        'X-Request-Id': crypto.randomUUID(),
+        'X-Environment': 'production'  // Try to force production mode
       },
       body: formData.toString()
     });
@@ -89,6 +90,25 @@ serve(async (req) => {
     
     // Debug: Log the actual API response
     console.log('Challan API Parsed Response:', data);
+    
+    // Check if response contains mock data
+    if (data.response?.challans) {
+      const hasMockData = data.response.challans.some(challan => 
+        challan.challan_no.includes('XXXX') || 
+        challan.accused_name.includes('DUMMY') ||
+        challan.date.includes('XXXX') ||
+        challan.offence.includes('Custom offence')
+      );
+      
+      if (hasMockData) {
+        console.warn('⚠️ API returned mock/sample data instead of real challan information');
+        console.warn('This might be due to:');
+        console.warn('1. UAT environment returning test data');
+        console.warn('2. API key not having access to real data');
+        console.warn('3. API in test/demo mode');
+        console.warn('4. Invalid vehicle data provided');
+      }
+    }
 
     // Store challan info in Supabase
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

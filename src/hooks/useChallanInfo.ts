@@ -44,11 +44,29 @@ export const useChallanInfo = () => {
       
       if (data.status === 'success' && data.response) {
         console.log('Challan Data:', data.response);
+        
+        // Check if response contains mock data
+        const hasMockData = data.response.challans?.some(challan => 
+          challan.challan_no.includes('XXXX') || 
+          challan.accused_name.includes('DUMMY') ||
+          challan.date.includes('XXXX') ||
+          challan.offence.includes('Custom offence')
+        );
+        
+        if (hasMockData) {
+          toast.warning('⚠️ API returned sample data. Check API configuration for real challan data.');
+          console.warn('Mock data detected in challan response');
+        }
+        
         setChallans(data.response);
         
         // Update the vehicle record with challan info
         if (data.response.total > 0) {
-          toast.warning(`Found ${data.response.total} challan(s) for vehicle ${vehicleId}`);
+          if (hasMockData) {
+            toast.warning(`Found ${data.response.total} sample challan(s) for vehicle ${vehicleId} (API in test mode)`);
+          } else {
+            toast.warning(`Found ${data.response.total} challan(s) for vehicle ${vehicleId}`);
+          }
         } else {
           toast.success(`No pending challans for vehicle ${vehicleId}`);
         }
