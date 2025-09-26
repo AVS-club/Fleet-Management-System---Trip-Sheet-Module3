@@ -167,7 +167,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                       step="0.01"
                       icon={<Fuel className="h-4 w-4" />}
                       value={refueling.fuel_quantity || ''}
-                      disabled={disabled}
+                      disabled={true}
                       inputSize="sm"
                       placeholder="Auto-calculated"
                     />
