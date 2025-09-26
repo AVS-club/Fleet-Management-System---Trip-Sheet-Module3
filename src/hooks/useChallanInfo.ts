@@ -7,11 +7,11 @@ export interface Challan {
   date: string;
   accused_name: string;
   challan_status: string;
-  amount: number;
+  amount: number | string;  // Can be empty string
   state: string;
   area: string;
   offence: string;
-  offence_list?: Array<{ offence_name: string }>;
+  offences?: Array<{ offence_name: string }>;  // Changed from offence_list
 }
 
 export interface ChallanInfo {
@@ -31,10 +31,17 @@ export const useChallanInfo = () => {
       return null;
     }
 
+    // Clean inputs (remove spaces and uppercase)
+    const cleanedData = {
+      vehicleId: vehicleId?.replace(/\s/g, '').toUpperCase(),
+      chassis: chassis?.replace(/\s/g, '').toUpperCase(),
+      engine_no: engine_no?.replace(/\s/g, '').toUpperCase()
+    };
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-challan-info', {
-        body: { vehicleId, chassis, engine_no }
+        body: cleanedData
       });
 
       if (error) throw error;
@@ -63,12 +70,12 @@ export const useChallanInfo = () => {
         // Update the vehicle record with challan info
         if (data.response.total > 0) {
           if (hasMockData) {
-            toast.warning(`Found ${data.response.total} sample challan(s) for vehicle ${vehicleId} (API in test mode)`);
+            toast.warning(`Found ${data.response.total} sample challan(s) for vehicle ${cleanedData.vehicleId} (API in test mode)`);
           } else {
-            toast.warning(`Found ${data.response.total} challan(s) for vehicle ${vehicleId}`);
+            toast.warning(`Found ${data.response.total} challan(s) for vehicle ${cleanedData.vehicleId}`);
           }
         } else {
-          toast.success(`No pending challans for vehicle ${vehicleId}`);
+          toast.success(`No pending challans for vehicle ${cleanedData.vehicleId}`);
         }
         
         return data.response;

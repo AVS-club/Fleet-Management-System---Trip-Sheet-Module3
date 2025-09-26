@@ -505,11 +505,11 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
 
   // Challan functionality
   const handleChallanRefresh = async () => {
-    // Map vehicles with correct field names
+    // Map vehicles with correct field names and clean data
     const vehiclesToCheck = vehicles.map(v => ({
-      registration_number: v.registration_number,
-      chassis_number: v.chassis_number,  // Changed from chassis_no
-      engine_number: v.engine_number      // Changed from engine_no
+      registration_number: v.registration_number?.replace(/\s/g, '').toUpperCase(),
+      chassis_number: v.chassis_number?.replace(/\s/g, '').toUpperCase(),
+      engine_number: v.engine_number?.replace(/\s/g, '').toUpperCase()
     }));
     
     // Filter out vehicles without required fields
@@ -533,8 +533,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     for (let i = 0; i < validVehicles.length; i++) {
       const result = await fetchChallanInfo(
         validVehicles[i].registration_number,
-        validVehicles[i].chassis_number,  // Use correct field
-        validVehicles[i].engine_number    // Use correct field
+        validVehicles[i].chassis_number,
+        validVehicles[i].engine_number
       );
       
       if (result) {
@@ -559,16 +559,22 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
   };
 
   const handleIndividualChallan = async (vehicle: Vehicle) => {
-    // Check if vehicle has required fields
-    if (!vehicle.chassis_number || !vehicle.engine_number) {
-      toast.error(`Vehicle ${vehicle.registration_number} is missing chassis or engine number`);
+    // Clean the data
+    const cleanedData = {
+      vehicleId: vehicle.registration_number?.replace(/\s/g, '').toUpperCase(),
+      chassis: vehicle.chassis_number?.replace(/\s/g, '').toUpperCase(),
+      engine: vehicle.engine_number?.replace(/\s/g, '').toUpperCase()
+    };
+
+    if (!cleanedData.chassis || !cleanedData.engine) {
+      toast.error(`Cannot check challans: Missing chassis or engine number for ${vehicle.registration_number}`);
       return;
     }
 
     const result = await fetchChallanInfo(
-      vehicle.registration_number,
-      vehicle.chassis_number,  // Use correct field
-      vehicle.engine_number    // Use correct field
+      cleanedData.vehicleId,
+      cleanedData.chassis,
+      cleanedData.engine
     );
     
     if (result) {

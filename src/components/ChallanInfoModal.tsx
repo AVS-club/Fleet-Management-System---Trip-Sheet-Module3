@@ -20,11 +20,17 @@ export const ChallanInfoModal: React.FC<ChallanInfoModalProps> = ({
 
   const totalPending = challanData.challans
     .filter(c => c.challan_status !== 'Paid')
-    .reduce((sum, c) => sum + c.amount, 0);
+    .reduce((sum, c) => {
+      const amount = typeof c.amount === 'string' ? parseFloat(c.amount) || 0 : c.amount;
+      return sum + amount;
+    }, 0);
 
   const totalPaid = challanData.challans
     .filter(c => c.challan_status === 'Paid')
-    .reduce((sum, c) => sum + c.amount, 0);
+    .reduce((sum, c) => {
+      const amount = typeof c.amount === 'string' ? parseFloat(c.amount) || 0 : c.amount;
+      return sum + amount;
+    }, 0);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/50 flex items-center justify-center p-4">
@@ -98,7 +104,7 @@ export const ChallanInfoModal: React.FC<ChallanInfoModalProps> = ({
                       </span>
                       <p className="text-lg font-bold mt-1">
                         <IndianRupee className="inline h-4 w-4" />
-                        {challan.amount}
+                        {challan.amount || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -121,9 +127,9 @@ export const ChallanInfoModal: React.FC<ChallanInfoModalProps> = ({
                     <p className="text-sm text-gray-600">Offence:</p>
                     <p className="text-sm font-medium">{challan.offence}</p>
                     
-                    {challan.offence_list && challan.offence_list.length > 0 && (
+                    {challan.offences && challan.offences.length > 0 && (
                       <ul className="mt-1 space-y-1">
-                        {challan.offence_list.map((off, idx) => (
+                        {challan.offences.map((off, idx) => (
                           <li key={idx} className="text-xs text-gray-500 pl-3">
                             • {off.offence_name}
                           </li>

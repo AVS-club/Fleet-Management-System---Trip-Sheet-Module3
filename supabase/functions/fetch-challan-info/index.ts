@@ -24,11 +24,11 @@ interface ChallanResponse {
       date: string;
       accused_name: string;
       challan_status: string;
-      amount: number;
+      amount: number | string;  // Can be number or empty string
       state: string;
       area: string;
       offence: string;
-      offence_list: Array<{
+      offences: Array<{  // Changed from offence_list to offences
         offence_name: string;
       }>;
     }>;
@@ -62,22 +62,30 @@ serve(async (req) => {
       )
     }
 
+    // Clean inputs (remove spaces and uppercase)
+    const cleanVehicleId = vehicleId?.replace(/\s/g, '').toUpperCase();
+    const cleanChassis = chassis?.replace(/\s/g, '').toUpperCase();
+    const cleanEngineNo = engine_no?.replace(/\s/g, '').toUpperCase();
+
     // Call the Challan Information API
     const formData = new URLSearchParams();
-    formData.append('vehicleId', vehicleId);
-    formData.append('chassis', chassis);        // Required field
-    formData.append('engine_no', engine_no);    // Required field
+    formData.append('vehicleId', cleanVehicleId);
+    formData.append('chassis', cleanChassis);        // Required field
+    formData.append('engine_no', cleanEngineNo);    // Required field
 
-    console.log('Making API call with data:', { vehicleId, chassis, engine_no });
+    console.log('Making API call with cleaned data:', { 
+      original: { vehicleId, chassis, engine_no },
+      cleaned: { cleanVehicleId, cleanChassis, cleanEngineNo }
+    });
     
-    const response = await fetch('https://uat.apiclub.in/api/v1/challan_info_v2', {
+    const response = await fetch('https://prod.apiclub.in/api/v1/challan_info_v2', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
         'content-type': 'application/x-www-form-urlencoded',
         'x-api-key': 'apclb_xZ7S4F2ngB8TUpH6vKNbGvL83a446d50',
         'X-Request-Id': crypto.randomUUID(),
-        'X-Environment': 'production'  // Try to force production mode
+        'X-Environment': 'production'  // Production environment
       },
       body: formData.toString()
     });
@@ -103,10 +111,10 @@ serve(async (req) => {
       if (hasMockData) {
         console.warn('⚠️ API returned mock/sample data instead of real challan information');
         console.warn('This might be due to:');
-        console.warn('1. UAT environment returning test data');
-        console.warn('2. API key not having access to real data');
-        console.warn('3. API in test/demo mode');
-        console.warn('4. Invalid vehicle data provided');
+        console.warn('1. API key not having access to real data');
+        console.warn('2. API in test/demo mode');
+        console.warn('3. Invalid vehicle data provided');
+        console.warn('4. Production API configuration issue');
       }
     }
 
@@ -124,14 +132,17 @@ serve(async (req) => {
           total_challans: data.response.total,
           pending_challan_amount: data.response.challans
             .filter(c => c.challan_status !== 'Paid')
-            .reduce((sum, c) => sum + c.amount, 0)
+            .reduce((sum, c) => {
+              const amount = typeof c.amount === 'string' ? parseFloat(c.amount) || 0 : c.amount;
+              return sum + amount;
+            }, 0)
         })
-        .eq('registration_number', vehicleId);
+        .eq('registration_number', cleanVehicleId);
 
       // Store challan details in separate table
       if (data.response.challans.length > 0) {
         const challansToInsert = data.response.challans.map(challan => ({
-          vehicle_id: vehicleId,
+          vehicle_id: cleanVehicleId,
           challan_no: challan.challan_no,
           date: challan.date,
           amount: challan.amount,
@@ -140,7 +151,7 @@ serve(async (req) => {
           state: challan.state,
           area: challan.area,
           accused_name: challan.accused_name,
-          offence_details: { offence_list: challan.offence_list }
+          offence_details: { offences: challan.offences }
         }));
 
         await supabase
