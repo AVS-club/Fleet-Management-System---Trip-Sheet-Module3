@@ -168,7 +168,7 @@ const TripTable: React.FC<TripTableProps> = ({
         'Date': format(parseISO(trip.trip_start_date || ''), 'dd/MM/yyyy'),
         'Vehicle': vehicle?.registration_number,
         'Driver': driver?.name,
-        'Distance': trip.total_distance,
+        'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
         'Fuel': trip.fuel_quantity,
         'Expenses': trip.total_expenses,
         'Mileage': trip.calculated_kmpl
@@ -194,7 +194,7 @@ const TripTable: React.FC<TripTableProps> = ({
         'Driver': driver?.name,
         'Start KM': trip.start_km,
         'End KM': trip.end_km,
-        'Distance': trip.total_distance,
+        'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
         'Fuel (L)': trip.fuel_quantity,
         'Fuel Cost': trip.total_fuel_cost,
         'Total Expenses': trip.total_expenses,
@@ -458,7 +458,10 @@ const TripTable: React.FC<TripTableProps> = ({
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">
-                    {trip.total_distance ? `${trip.total_distance.toFixed(1)}` : '-'}
+                    {(() => {
+                      const distance = trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance;
+                      return distance ? `${distance.toFixed(1)}` : '-';
+                    })()}
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">

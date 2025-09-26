@@ -235,6 +235,11 @@
     @apply hover:bg-blue-500/10 hover:border-l-blue-400;
   }
 
+  .dropdown-item-active {
+    @apply bg-blue-500/20 border-l-blue-500 text-blue-700;
+    @apply dark:bg-blue-500/20 dark:text-blue-200;
+  }
+
   .dropdown-search {
     @apply p-2 border-b border-gray-200 dark:border-gray-700;
   }

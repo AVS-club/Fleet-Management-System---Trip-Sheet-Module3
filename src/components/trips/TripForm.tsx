@@ -100,6 +100,8 @@ const TripForm: React.FC<TripFormProps> = ({
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
+  const [vehicleInputValue, setVehicleInputValue] = useState('');
+  const [driverInputValue, setDriverInputValue] = useState('');
 
   // Smart trip form state management
   const [isRefuelingTrip, setIsRefuelingTrip] = useState<boolean>(false);
@@ -218,6 +220,7 @@ const TripForm: React.FC<TripFormProps> = ({
   // Watch form values for calculations
   const watchedValues = watch();
   const selectedVehicleId = watch('vehicle_id');
+  const selectedDriverId = watch('driver_id');
   const selectedWarehouseId = watch('warehouse_id');
   const startKm = watch('start_km');
   const endKm = watch('end_km');
@@ -241,21 +244,24 @@ const TripForm: React.FC<TripFormProps> = ({
     if (selectedVehicleId) {
       const vehicle = vehicles.find(v => v.id === selectedVehicleId);
       setSelectedVehicle(vehicle || null);
+      setVehicleInputValue(vehicle?.registration_number ?? '');
     } else {
       setSelectedVehicle(null);
+      setVehicleInputValue('');
     }
   }, [selectedVehicleId, vehicles]);
 
   // Update selected driver when driver_id changes
   useEffect(() => {
-    const selectedDriverId = watch('driver_id');
     if (selectedDriverId) {
       const driver = drivers.find(d => d.id === selectedDriverId);
       setSelectedDriver(driver || null);
+      setDriverInputValue(driver?.name ?? '');
     } else {
       setSelectedDriver(null);
+      setDriverInputValue('');
     }
-  }, [watch, drivers]);
+  }, [selectedDriverId, drivers]);
   // Fetch form data - only if not provided as props
   useEffect(() => {
     // If data is provided as props (editing mode), use it instead of fetching
@@ -339,6 +345,7 @@ const TripForm: React.FC<TripFormProps> = ({
           const primaryDriver = drivers.find(d => d.id === selectedVehicle.primary_driver_id);
           if (primaryDriver) {
             setSelectedDriver(primaryDriver);
+            setDriverInputValue(primaryDriver.name);
           }
         }
         vehicleJustChanged.current = false;
@@ -1170,14 +1177,12 @@ const TripForm: React.FC<TripFormProps> = ({
             required
             icon={Truck}
             isVehicle
-            value={selectedVehicle?.registration_number || ''}
-            onChange={(value) => {
-              const vehicle = vehicles.find(v => v.registration_number === value);
-              setSelectedVehicle(vehicle || null);
-              setValue('vehicle_id', vehicle?.id || '');
-              if (vehicle?.id) {
-                vehicleJustChanged.current = true; // Mark that vehicle was just changed
-                handleVehicleSelection(vehicle.id);
+            value={vehicleInputValue}
+            onChange={(inputValue) => {
+              setVehicleInputValue(inputValue);
+              if (inputValue === '') {
+                setSelectedVehicle(null);
+                setValue('vehicle_id', '');
               }
             }}
             placeholder="Type vehicle number..."
@@ -1193,6 +1198,7 @@ const TripForm: React.FC<TripFormProps> = ({
               const vehicle = vehicles.find(v => v.id === option.id);
               if (vehicle) {
                 setSelectedVehicle(vehicle);
+                setVehicleInputValue(vehicle.registration_number);
                 setValue('vehicle_id', vehicle.id);
                 vehicleJustChanged.current = true; // Mark that vehicle was just changed
                 handleVehicleSelection(vehicle.id);
@@ -1206,11 +1212,13 @@ const TripForm: React.FC<TripFormProps> = ({
             label="Driver"
             required
             icon={User}
-            value={selectedDriver?.name || ''}
-            onChange={(value) => {
-              const driver = drivers.find(d => d.name === value);
-              setSelectedDriver(driver || null);
-              setValue('driver_id', driver?.id || '');
+            value={driverInputValue}
+            onChange={(inputValue) => {
+              setDriverInputValue(inputValue);
+              if (inputValue === '') {
+                setSelectedDriver(null);
+                setValue('driver_id', '');
+              }
             }}
             placeholder="Type driver name..."
             isDropdown
@@ -1225,6 +1233,7 @@ const TripForm: React.FC<TripFormProps> = ({
               const driver = drivers.find(d => d.id === option.id);
               if (driver) {
                 setSelectedDriver(driver);
+                setDriverInputValue(driver.name);
                 setValue('driver_id', driver.id);
               }
             }}

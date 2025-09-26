@@ -60,6 +60,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +70,21 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
     option.value.toLowerCase().includes(value.toLowerCase()) ||
     (option.subtitle && option.subtitle.toLowerCase().includes(value.toLowerCase()))
   );
+
+  useEffect(() => {
+    if (filteredOptions.length === 0) {
+      setHighlightedIndex(0);
+      return;
+    }
+
+    setHighlightedIndex(prev => Math.min(prev, filteredOptions.length - 1));
+  }, [filteredOptions.length]);
+
+  useEffect(() => {
+    if (isDropdownOpen) {
+      setHighlightedIndex(0);
+    }
+  }, [isDropdownOpen]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -85,12 +101,47 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = isVehicle ? e.target.value.toUpperCase() : e.target.value;
     onChange(newValue);
+
+    if (isDropdown) {
+      setIsDropdownOpen(true);
+      setHighlightedIndex(0);
+    }
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isDropdown) return;
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!isDropdownOpen) {
+        setIsDropdownOpen(true);
+        setHighlightedIndex(0);
+      } else if (filteredOptions.length > 0) {
+        setHighlightedIndex(prev => (prev + 1) % filteredOptions.length);
+      }
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (filteredOptions.length > 0) {
+        setHighlightedIndex(prev => (prev - 1 + filteredOptions.length) % filteredOptions.length);
+      }
+    } else if (event.key === 'Enter') {
+      if (isDropdownOpen && filteredOptions.length > 0) {
+        event.preventDefault();
+        handleDropdownSelect(filteredOptions[highlightedIndex]);
+      }
+    } else if (event.key === 'Escape') {
+      if (isDropdownOpen) {
+        event.preventDefault();
+        setIsDropdownOpen(false);
+      }
+    }
   };
 
   const handleDropdownSelect = (option: DropdownOption) => {
     onChange(option.value);
     onDropdownSelect?.(option);
     setIsDropdownOpen(false);
+    setHighlightedIndex(0);
   };
 
   const getInputClasses = () => {
@@ -145,6 +196,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
           type={type}
           value={value}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
           onFocus={() => {
             setIsFocused(true);
             if (isDropdown) setIsDropdownOpen(true);
@@ -190,13 +242,15 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
         <div ref={dropdownRef} className="dropdown-enhanced">
           <div className="max-h-60 overflow-y-auto">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((option) => {
+              filteredOptions.map((option, index) => {
                 const OptionIcon = option.icon;
+                const isHighlighted = index === highlightedIndex;
                 return (
                   <div
                     key={option.id}
                     onClick={() => handleDropdownSelect(option)}
-                    className="dropdown-item"
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    className={`dropdown-item ${isHighlighted ? 'dropdown-item-active' : ''}`}
                   >
                     <div className="flex justify-between items-center">
                       <div className="flex items-center">

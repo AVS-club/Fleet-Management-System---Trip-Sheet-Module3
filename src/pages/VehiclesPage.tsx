@@ -478,10 +478,11 @@ const VehiclesPage: React.FC = () => {
               onClick={() => setShowDocumentPanel(true)}
               icon={<FileText className="h-4 w-4" />}
               inputSize="sm"
-              title="Vehicle Document Summary"
+              title="Vehicle Document Summary (Legacy)"
             >
               Document Summary
             </Button>
+
 
             <Button
               variant="outline"
@@ -848,6 +849,7 @@ const VehiclesPage: React.FC = () => {
         isOpen={showDocumentPanel}
         onClose={() => setShowDocumentPanel(false)}
       />
+
 
       {/* WhatsApp Share Modal */}
       {showShareModal && selectedVehicleForShare && (

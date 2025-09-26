@@ -1,12 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 import { 
   MapPin, User, Truck, Calendar, Fuel, DollarSign, 
   Edit2, Eye, TrendingUp, AlertTriangle, Clock, 
   Building2, Package, Navigation, ChevronRight,
-  Activity, Target, IndianRupee
+  Activity, Target, IndianRupee, ArrowRight
 } from 'lucide-react';
+import { getWarehouse, getDestinationByAnyId } from '../../utils/storage';
 
 interface TripListViewProps {
   trips: Trip[];
@@ -17,6 +18,121 @@ interface TripListViewProps {
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
 }
+
+// Component to handle destination loading for individual trips
+const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
+  const [warehouseData, setWarehouseData] = useState<any>(null);
+  const [destinationData, setDestinationData] = useState<any[]>([]);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+
+  // Fetch warehouse and destinations data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoadingError(null);
+        
+        if (trip.warehouse_id) {
+          try {
+            const warehouse = await getWarehouse(trip.warehouse_id);
+            setWarehouseData(warehouse);
+          } catch (error) {
+            console.error('Error fetching warehouse:', error);
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+              setLoadingError('Unable to load warehouse data due to connection issues');
+            } else {
+              if (!warehouseData) {
+                setLoadingError('Unable to load warehouse data');
+              }
+            }
+          }
+        }
+        
+        if (Array.isArray(trip.destinations) && trip.destinations.length > 0) {
+          try {
+            const destinations = await Promise.all(
+              trip.destinations.map(async (id) => {
+                try {
+                  return await getDestinationByAnyId(id);
+                } catch (error) {
+                  console.warn(`Destination ${id} not found or error fetching:`, error);
+                  return null;
+                }
+              })
+            );
+            const validDestinations = destinations.filter(d => d !== null);
+            setDestinationData(validDestinations);
+            
+            if (validDestinations.length === 0) {
+              setLoadingError('Unable to load trip destinations');
+            }
+          } catch (error) {
+            console.error('Error fetching destinations:', error);
+            setLoadingError('Error loading trip destinations');
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+              setLoadingError('Unable to load some trip locations');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error in fetchData:', error);
+        setLoadingError('Failed to load trip details');
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          setLoadingError('Unable to load trip details');
+        }
+      }
+    };
+    
+    fetchData();
+  }, [trip.warehouse_id, trip.destinations]);
+
+  // Use saved destination_display for efficiency
+  if (trip.destination_display) {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <MapPin className="h-4 w-4 text-gray-400" />
+        <span className="text-gray-600 truncate">{trip.destination_display}</span>
+      </div>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <MapPin className="h-4 w-4 text-gray-400" />
+        <span className="text-gray-500 italic">{loadingError}</span>
+      </div>
+    );
+  }
+
+  if (warehouseData && destinationData.length > 0) {
+    // Fallback for older trips without destination_display
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <MapPin className="h-4 w-4 text-gray-400" />
+        <div className="flex items-center gap-1 text-gray-600 overflow-hidden">
+          <span className="truncate max-w-[100px]">{warehouseData.name}</span>
+          <ArrowRight className="h-3 w-3 flex-shrink-0" />
+          <span className="truncate max-w-[100px]">
+            {destinationData[0]?.name}
+          </span>
+          {destinationData.length > 1 && (
+            <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+              +{destinationData.length - 1}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state or fallback when data is not available
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <MapPin className="h-4 w-4 text-gray-400" />
+      <span className="text-gray-500 italic">No trip locations found</span>
+    </div>
+  );
+};
 
 const TripListView: React.FC<TripListViewProps> = ({ 
   trips, 
@@ -77,7 +193,7 @@ const TripListView: React.FC<TripListViewProps> = ({
             : '-';
           
           const daysAgo = tripDate ? differenceInDays(new Date(), tripDate) : null;
-          const distance = trip.total_distance || 0;
+          const distance = trip.end_km && trip.start_km ? trip.end_km - trip.start_km : 0;
           
           return (
             <div 
@@ -180,33 +296,7 @@ const TripListView: React.FC<TripListViewProps> = ({
                     </div>
                     
                     {/* Route Info */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {trip.trip_start_location && (
-                          <>
-                            <span className="text-gray-700">{trip.trip_start_location}</span>
-                            <ChevronRight className="h-3 w-3 text-gray-400" />
-                          </>
-                        )}
-                        {trip.destinations?.map((dest: any, idx: number) => (
-                          <React.Fragment key={idx}>
-                            <span className="text-gray-700">
-                              {typeof dest === 'string' ? dest : dest.name}
-                            </span>
-                            {idx < (trip.destinations?.length || 0) - 1 && (
-                              <ChevronRight className="h-3 w-3 text-gray-400" />
-                            )}
-                          </React.Fragment>
-                        ))}
-                        {trip.trip_end_location && trip.trip_end_location !== trip.trip_start_location && (
-                          <>
-                            <ChevronRight className="h-3 w-3 text-gray-400" />
-                            <span className="text-gray-700">{trip.trip_end_location}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                    <TripDestinationDisplay trip={trip} />
                   </div>
                   
                   {/* Right Section - Metrics & Actions */}
