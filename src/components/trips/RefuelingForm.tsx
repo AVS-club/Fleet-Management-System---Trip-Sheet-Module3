@@ -92,19 +92,6 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
             </span>
           )}
         </div>
-        <Button
-          type="button"
-          onClick={addRefueling}
-          disabled={disabled}
-          variant="success"
-          size="sm"
-          rounded="full"
-          className="h-9 w-9 p-0 flex items-center justify-center shadow-sm"
-          title="Add refueling"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="sr-only">Add refueling</span>
-        </Button>
       </div>
 
       {/* Refueling entries */}
@@ -118,7 +105,6 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 "transition-all duration-200"
               )}
             >
-              {/* Remove button - only show if not the first entry */}
               {index > 0 && (
                 <button
                   type="button"
@@ -131,173 +117,176 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 </button>
               )}
 
-              {/* Refueling number badge */}
               <div className="absolute top-3 left-3 flex items-center gap-1 text-xs text-gray-500">
                 <Fuel className="h-3 w-3" />
                 #{index + 1}
               </div>
 
-              {/* Form fields in compact grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-                {/* Total Cost (primary input - at the top) */}
-                <div className="md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <div className="space-y-3">
+                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">
                     Total Fuel Cost (₹) *
                   </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    icon={<Calculator className="h-4 w-4" />}
-                    hideIconWhenFocused={true}
-                    value={refueling.total_fuel_cost || ''}
-                    onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
-                    disabled={disabled}
-                    inputSize="sm"
-                    placeholder="Enter total amount paid"
-                    required
-                  />
-                </div>
-
-                {/* Fuel Rate Selector */}
-                <div className="md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Fuel Rate per Liter (₹) *
-                  </label>
-                  <FuelRateSelector
-                    value={refueling.fuel_rate_per_liter}
-                    onChange={(rate, location) => updateRefueling(index, 'fuel_rate_per_liter', rate, location)}
-                    disabled={disabled}
-                    inputSize="sm"
-                  />
-                </div>
-
-                {/* Fuel Quantity (auto-calculated) */}
-                <div className="md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Fuel Quantity (L)
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    icon={<Fuel className="h-4 w-4" />}
-                    value={refueling.fuel_quantity || ''}
-                    disabled
-                    inputSize="sm"
-                    placeholder="Auto-calculated"
-                  />
-                </div>
-
-                {/* Fuel Bill Upload - Compact Design */}
-                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Fuel Bill / Receipt
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      id={`fuel-bill-${index}`}
-                      accept=".jpg,.jpeg,.png,.pdf"
-                      disabled={disabled || uploadStates[index]?.uploading}
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // Update upload state to show loading
-                          setUploadStates(prev => ({
-                            ...prev,
-                            [index]: { uploading: true }
-                          }));
-                          
-                          try {
-                            // Generate a temporary trip ID if not available
-                            const tripId = `temp_${Date.now()}`;
-                            
-                            // Upload to Supabase storage
-                            const url = await uploadFuelBill(
-                              file,
-                              tripId,
-                              index,
-                              (progress) => {
-                                // You could update progress here if needed
-                                console.log(`Upload progress: ${progress}%`);
-                              }
-                            );
-                            
-                            // Update the refueling data with the URL
-                            updateRefueling(index, 'fuel_bill_url', url);
-                            
-                            // Clear upload state
-                            setUploadStates(prev => ({
-                              ...prev,
-                              [index]: { uploading: false }
-                            }));
-                            
-                            // Show success message
-                            toast.success(`Fuel bill uploaded successfully!`);
-                          } catch (error) {
-                            console.error('Error uploading fuel bill:', error);
-                            
-                            // Update state with error
-                            setUploadStates(prev => ({
-                              ...prev,
-                              [index]: { uploading: false }
-                            }));
-                            
-                            // Show error message
-                            toast.error('Failed to upload fuel bill. Please try again.');
-                          }
-                        }
-                      }}
+                  <div className="sm:max-w-xs">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      icon={<Calculator className="h-4 w-4" />}
+                      hideIconWhenFocused={true}
+                      value={refueling.total_fuel_cost || ''}
+                      onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}
+                      disabled={disabled}
+                      inputSize="sm"
+                      placeholder="Enter total amount paid"
+                      required
                     />
-                    
-                    {/* Upload button or status */}
-                    {uploadStates[index]?.uploading ? (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        <span>Uploading...</span>
-                      </div>
-                    ) : refueling.fuel_bill_url ? (
-                      <div className="flex items-center gap-2">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          <span>Uploaded</span>
-                        </div>
-                        <label
-                          htmlFor={`fuel-bill-${index}`}
-                          className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded",
-                            "text-xs text-gray-600 dark:text-gray-400",
-                            "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
-                            disabled && "opacity-50 cursor-not-allowed"
-                          )}
-                        >
-                          <Upload className="h-3 w-3" />
-                          <span>Replace</span>
-                        </label>
-                      </div>
-                    ) : (
-                      <label
-                        htmlFor={`fuel-bill-${index}`}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
-                          "bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
-                          "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
-                          "text-sm text-gray-700 dark:text-gray-300",
-                          disabled && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        <span>Upload</span>
-                      </label>
-                    )}
                   </div>
                 </div>
 
-                {/* Location (display only if available) */}
+                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">
+                    Fuel Rate per Liter (₹) *
+                  </label>
+                  <div className="sm:max-w-xs">
+                    <FuelRateSelector
+                      value={refueling.fuel_rate_per_liter}
+                      onChange={(rate, location) => updateRefueling(index, 'fuel_rate_per_liter', rate, location)}
+                      disabled={disabled}
+                      inputSize="sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">
+                    Fuel Quantity (L)
+                  </label>
+                  <div className="sm:max-w-xs">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      icon={<Fuel className="h-4 w-4" />}
+                      value={refueling.fuel_quantity || ''}
+                      disabled={disabled}
+                      inputSize="sm"
+                      placeholder="Auto-calculated"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-start">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">
+                    Fuel Bill / Receipt
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        id={`fuel-bill-${index}`}
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        disabled={disabled || uploadStates[index]?.uploading}
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setUploadStates(prev => ({
+                              ...prev,
+                              [index]: { uploading: true }
+                            }));
+
+                            try {
+                              const tripId = `temp_${Date.now()}`;
+                              const url = await uploadFuelBill(
+                                file,
+                                tripId,
+                                index,
+                                (progress) => {
+                                  console.log(`Upload progress: ${progress}%`);
+                                }
+                              );
+
+                              updateRefueling(index, 'fuel_bill_url', url);
+                              setUploadStates(prev => ({
+                                ...prev,
+                                [index]: { uploading: false }
+                              }));
+                              toast.success(`Fuel bill uploaded successfully!`);
+                            } catch (error) {
+                              console.error('Error uploading fuel bill:', error);
+                              setUploadStates(prev => ({
+                                ...prev,
+                                [index]: { uploading: false }
+                              }));
+                              toast.error('Failed to upload fuel bill. Please try again.');
+                            }
+                          }
+                        }}
+                      />
+                      {uploadStates[index]?.uploading ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          <span>Uploading...</span>
+                        </div>
+                      ) : refueling.fuel_bill_url ? (
+                        <div className="flex items-center gap-2">
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-sm text-green-700 dark:text-green-300">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            <span>Uploaded</span>
+                          </div>
+                          <label
+                            htmlFor={`fuel-bill-${index}`}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-1 rounded",
+                              "text-xs text-gray-600 dark:text-gray-400",
+                              "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
+                              disabled && "opacity-50 cursor-not-allowed"
+                            )}
+                          >
+                            <Upload className="h-3 w-3" />
+                            <span>Replace</span>
+                          </label>
+                        </div>
+                      ) : (
+                        <label
+                          htmlFor={`fuel-bill-${index}`}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                            "bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600",
+                            "hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors",
+                            "text-sm text-gray-700 dark:text-gray-300",
+                            disabled && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>Upload</span>
+                        </label>
+                      )}
+                      {index === refuelings.length - 1 && (
+                        <Button
+                          type="button"
+                          onClick={addRefueling}
+                          disabled={disabled}
+                          variant="success"
+                          size="sm"
+                          rounded="full"
+                          className="h-9 w-9 p-0 flex items-center justify-center shadow-sm"
+                          title="Add refueling"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span className="sr-only">Add refueling</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 {refueling.location && (
-                  <div className="md:col-span-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                    <MapPin className="h-3.5 w-3.5" />
-                    <span>Refueling at: {refueling.location}</span>
+                  <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">Location</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{refueling.location}</span>
+                    </div>
                   </div>
                 )}
               </div>
