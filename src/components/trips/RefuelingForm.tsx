@@ -82,11 +82,10 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
   }), { quantity: 0, cost: 0 });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-100/80 bg-emerald-50/70 px-3 py-2 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-700 dark:text-emerald-200">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-100/80 bg-emerald-50/70 px-3 py-2 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+        <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-200">
           <Fuel className="h-4 w-4" />
-          <span className="font-medium">Refueling Details</span>
           {totals.quantity > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold text-emerald-700 shadow-sm dark:bg-emerald-950/40">
               {totals.quantity}L · ₹{totals.cost.toFixed(2)}
@@ -100,15 +99,16 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
           variant="success"
           size="sm"
           rounded="full"
-          className="flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+          className="h-9 w-9 p-0 flex items-center justify-center shadow-sm"
+          title="Add refueling"
         >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="text-xs font-semibold">Add Refueling</span>
+          <Plus className="h-4 w-4" />
+          <span className="sr-only">Add refueling</span>
         </Button>
       </div>
 
       {/* Refueling entries */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {refuelings.map((refueling, index) => (
             <div
               key={index}
@@ -138,9 +138,9 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
               </div>
 
               {/* Form fields in compact grid */}
-              <div className="grid grid-cols-1 gap-3 mt-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
                 {/* Total Cost (primary input - at the top) */}
-                <div>
+                <div className="md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Total Fuel Cost (₹) *
                   </label>
@@ -159,7 +159,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 </div>
 
                 {/* Fuel Rate Selector */}
-                <div>
+                <div className="md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fuel Rate per Liter (₹) *
                   </label>
@@ -172,7 +172,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 </div>
 
                 {/* Fuel Quantity (auto-calculated) */}
-                <div>
+                <div className="md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Fuel Quantity (L)
                   </label>
@@ -183,13 +183,12 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                     value={refueling.fuel_quantity || ''}
                     disabled
                     inputSize="sm"
-                    className="bg-gray-100 dark:bg-gray-900"
                     placeholder="Auto-calculated"
                   />
                 </div>
 
                 {/* Fuel Bill Upload - Compact Design */}
-                <div className="flex items-center justify-between">
+                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Fuel Bill / Receipt
                   </label>
@@ -296,7 +295,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
 
                 {/* Location (display only if available) */}
                 {refueling.location && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="md:col-span-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                     <MapPin className="h-3.5 w-3.5" />
                     <span>Refueling at: {refueling.location}</span>
                   </div>

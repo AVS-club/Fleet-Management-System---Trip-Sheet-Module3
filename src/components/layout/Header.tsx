@@ -32,12 +32,15 @@ const Header: React.FC = () => {
             aria-label="Go to Dashboard"
             title="Auto Vital Solution - Fleet Management System"
           >
-            {/* Logo with white background */}
-            <div className="relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 bg-white rounded-lg shadow-md border border-gray-200 dark:border-gray-700 group-hover:shadow-lg transition-all duration-200">
+            {/* Logo with enhanced visual prominence */}
+            <div className="relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 bg-white rounded-lg shadow-lg border-2 border-primary-200 dark:border-primary-700 group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-2 ring-primary-100 dark:ring-primary-800">
+              {/* Background halo effect */}
+              <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-400/10 to-primary-600/10 group-hover:from-primary-400/20 group-hover:to-primary-600/20 transition-all duration-300"></div>
+              
               <img 
                 src="/assets/AVS-LOGO-512x512-new.png"
                 alt="Auto Vital Solution" 
-                className="h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5"
+                className="relative z-10 h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5 filter drop-shadow-sm"
                 onError={(e) => {
                   // Fallback if logo doesn't load
                   e.currentTarget.style.display = 'none';
