@@ -137,19 +137,30 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             {organization?.logo_url && !logoError && (
-              <img 
-                src={organization.logo_url} 
-                alt={organization.name}
-                className="h-10 w-10 rounded-lg object-contain border border-gray-200"
-                onError={() => {
-                  setLogoError(true);
-                }}
-              />
+              <div className="relative flex items-center justify-center h-14 w-14 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200">
+                <img 
+                  src={organization.logo_url} 
+                  alt={organization.name}
+                  className="h-13 w-13 object-contain p-0.5 filter drop-shadow-sm"
+                  onError={() => {
+                    setLogoError(true);
+                  }}
+                />
+                {/* Subtle client company indicator */}
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full border border-white shadow-sm"></div>
+              </div>
             )}
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {organization?.name || 'Dashboard'}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-gray-900">
+                  {organization?.name || 'Dashboard'}
+                </h1>
+                {/* Subtle "Powered by AVS" indicator */}
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 rounded-full border border-primary-200">
+                  <div className="h-1.5 w-1.5 bg-primary-500 rounded-full"></div>
+                  <span className="text-[10px] font-medium text-primary-700">Powered by AVS</span>
+                </div>
+              </div>
               {organization?.tagline && (
                 <p className="text-sm text-gray-600 mt-1">{organization.tagline}</p>
               )}
