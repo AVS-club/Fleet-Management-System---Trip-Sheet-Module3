@@ -110,9 +110,9 @@ const AdminDashboard: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <ShieldCheck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage system settings and configurations</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage system settings and configurations</p>
       </div>
 
       <div className="space-y-6">
@@ -128,8 +128,8 @@ const AdminDashboard: React.FC = () => {
                     <FileText className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Management</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Manage trip records and configurations
                     </p>
                   </div>
@@ -145,8 +145,8 @@ const AdminDashboard: React.FC = () => {
                     <MapPin className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Trip Locations</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Locations</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Manage warehouses and destinations
                     </p>
                   </div>
@@ -162,8 +162,8 @@ const AdminDashboard: React.FC = () => {
                     <Truck className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Vehicle Management</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Vehicle Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Advanced vehicle management and administration
                     </p>
                   </div>
@@ -179,8 +179,8 @@ const AdminDashboard: React.FC = () => {
                     <Users className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Management</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Management</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Manage drivers and assignments
                     </p>
                   </div>
@@ -196,8 +196,8 @@ const AdminDashboard: React.FC = () => {
                     <Tool className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Maintenance Tasks</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Maintenance Tasks</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Configure maintenance task types
                     </p>
                   </div>
@@ -213,8 +213,8 @@ const AdminDashboard: React.FC = () => {
                     <Bell className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Alert Settings</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Alert Settings</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Configure alert rules and notifications
                     </p>
                   </div>
@@ -230,8 +230,8 @@ const AdminDashboard: React.FC = () => {
                     <Calendar className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Reminders</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Reminders</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Configure reminder contacts and timing rules
                     </p>
                   </div>
@@ -248,8 +248,8 @@ const AdminDashboard: React.FC = () => {
                     <BarChart2 className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Driver Ranking</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Ranking</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Configure performance metrics for driver rankings
                     </p>
                   </div>
@@ -266,8 +266,8 @@ const AdminDashboard: React.FC = () => {
                     <Activity className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Activity Logs</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Activity Logs</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       View system activity and audit logs
                     </p>
                   </div>
@@ -283,8 +283,8 @@ const AdminDashboard: React.FC = () => {
                     <Building2 className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-900">Company Settings</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Company Settings</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
                       Manage company profile, GST details & banking
                     </p>
                   </div>
@@ -297,8 +297,8 @@ const AdminDashboard: React.FC = () => {
                     <Database className="h-5 w-5 text-gray-400" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-medium text-gray-400">Database Backup</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm text-gray-400">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-400">Database Backup</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-400">
                       Coming soon
                     </p>
                   </div>
@@ -316,7 +316,7 @@ const AdminDashboard: React.FC = () => {
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
-                    className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-sm ${
+                    className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-sm font-sans ${
                       activeTab === tab.id 
                         ? 'bg-primary-50 text-primary-700 font-medium'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -335,8 +335,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h2 className="text-base sm:text-lg font-medium text-gray-900">Trip Management</h2>
-                      <p className="text-xs sm:text-sm text-gray-500">View and manage all trip records</p>
+                      <h2 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Management</h2>
+                      <p className="text-xs sm:text-sm font-sans text-gray-500">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
                       <Button size="sm" className="w-full sm:w-auto">View All Trips</Button>
@@ -349,8 +349,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">Vehicle Management</h2>
-                      <p className="text-sm text-gray-500">Manage vehicle master data and configurations</p>
+                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">Vehicle Management</h2>
+                      <p className="text-sm font-sans text-gray-500">Manage vehicle master data and configurations</p>
                     </div>
                     <div className="flex space-x-3">
                       <Link to="/vehicles">
@@ -373,8 +373,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">Driver Management</h2>
-                      <p className="text-sm text-gray-500">Manage driver master data and configurations</p>
+                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Management</h2>
+                      <p className="text-sm font-sans text-gray-500">Manage driver master data and configurations</p>
                     </div>
                     <div className="flex space-x-3">
                       <Link to="/drivers">

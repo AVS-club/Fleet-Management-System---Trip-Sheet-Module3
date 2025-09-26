@@ -191,8 +191,8 @@ const DashboardPage: React.FC = () => {
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <div className="text-red-500 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
-            <h3 className="text-lg font-semibold">Error Loading Dashboard</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h3 className="text-lg font-display font-semibold tracking-tight-plus">Error Loading Dashboard</h3>
+            <p className="text-sm font-sans text-gray-600 dark:text-gray-400">
               There was an error loading your dashboard data. Please try refreshing the page.
             </p>
           </div>
@@ -212,7 +212,7 @@ const DashboardPage: React.FC = () => {
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Loading dashboard data...</p>
+          <p className="text-sm font-sans text-gray-600 dark:text-gray-400">Loading dashboard data...</p>
         </div>
       ) : (
       <div className="space-y-4">
@@ -226,7 +226,7 @@ const DashboardPage: React.FC = () => {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-lg text-sm font-sans font-medium transition-colors ${
                   activeTab === tab
                     ? 'bg-white text-primary-800 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -248,7 +248,7 @@ const DashboardPage: React.FC = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
               <div className="flex items-center space-x-2 mb-6">
                 <BarChart2 className="h-5 w-5 text-primary-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Key Metrics</h2>
+                <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Key Metrics</h2>
               </div>
               
               {/* Stats Cards */}
@@ -335,8 +335,8 @@ const DashboardPage: React.FC = () => {
             >
               <Fuel className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
               <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <h3 className="text-sm font-sans font-medium text-gray-700 dark:text-gray-300">Fuel Insights</h3>
+                <p className="text-xs font-sans text-gray-500 dark:text-gray-400 mt-1">
                   Mileage and fuel consumption insights will appear after trips with refueling are logged.
                 </p>
               </div>
@@ -352,20 +352,20 @@ const DashboardPage: React.FC = () => {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
                 <div className="flex items-center space-x-2 mb-6">
                   <TrendingUp className="h-5 w-5 text-success-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">Performance Highlights</h2>
+                  <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Performance Highlights</h2>
                 </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Vehicle</h3>
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Best Vehicle</h3>
                   <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
                 <div className="mt-3 sm:mt-4">
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
-                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                  <p className="text-xl sm:text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">{bestVehicle.registration_number}</p>
+                  <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">{bestVehicle.make} {bestVehicle.model}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-sans font-medium text-sm sm:text-base">
                     {stats.bestVehicleMileage?.toFixed(2)} km/L
                   </p>
                 </div>
@@ -375,13 +375,13 @@ const DashboardPage: React.FC = () => {
             {bestDriver && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Best Driver</h3>
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Best Driver</h3>
                   <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
                 <div className="mt-3 sm:mt-4">
-                  <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
-                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-medium text-sm sm:text-base">
+                  <p className="text-xl sm:text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
+                  <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-sans font-medium text-sm sm:text-base">
                     {stats.bestDriverMileage?.toFixed(2)} km/L
                   </p>
                 </div>
@@ -398,7 +398,7 @@ const DashboardPage: React.FC = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-center space-x-2 mb-6">
                 <BarChart className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Detailed Analytics</h2>
+                <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Detailed Analytics</h2>
               </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">          
@@ -422,7 +422,7 @@ const DashboardPage: React.FC = () => {
         {/* Tip Section */}
         {hasEnoughData && (
           <div className="max-w-4xl">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100 mb-3 flex items-center border-l-2 border-blue-500 pl-2">
               <Lightbulb className="h-5 w-5 mr-2 text-amber-500" />
               Quick Tip
             </h2>

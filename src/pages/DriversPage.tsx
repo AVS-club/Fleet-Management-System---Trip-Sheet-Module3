@@ -466,9 +466,9 @@ const DriversPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Drivers</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Drivers</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
         {!isAddingDriver && !editingDriver && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
@@ -491,7 +491,7 @@ const DriversPage: React.FC = () => {
       {isAddingDriver || editingDriver ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center">
               <User className="h-5 w-5 mr-2 text-primary-500" />
               {editingDriver ? "Edit Driver" : "New Driver"}
             </h2>
@@ -554,11 +554,11 @@ const DriversPage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading drivers...</p>
+              <p className="ml-3 font-sans text-gray-600">Loading drivers...</p>
             </div>
           ) : drivers.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
+              <p className="font-sans text-gray-500">
                 No drivers found. Add your first driver to get started.
               </p>
             </div>
@@ -618,17 +618,17 @@ const DriversPage: React.FC = () => {
 
                       <div className="flex-1">
                         {/* Driver Name & License */}
-                        <h3 className="text-lg font-medium text-gray-900 pr-8">
+                        <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 pr-8">
                           {driver.name}
                         </h3>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm font-sans text-gray-500">
                           {driver.license_number || "No license"}
                         </p>
 
                         {/* License Status & Experience */}
                         <div className="mt-2 flex gap-2 flex-wrap">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-sans font-medium ${
                               licenseStatus.status === "expired"
                                 ? "bg-error-100 text-error-800"
                                 : licenseStatus.status === "expiring"
@@ -639,7 +639,7 @@ const DriversPage: React.FC = () => {
                             {licenseStatus.label}
                           </span>
                           
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-sans font-medium bg-primary-100 text-primary-800">
                             <Calendar className="h-3 w-3 mr-1" /> {/* ⚠️ Confirm field refactor here */}
                             {driver.experience_years} years
                           </span>
@@ -649,7 +649,7 @@ const DriversPage: React.FC = () => {
                         {driver.contact_number && (
                           <div className="mt-2 flex items-center text-sm">
                             <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-gray-600">{driver.contact_number}</span>
+                            <span className="font-sans text-gray-600">{driver.contact_number}</span>
                           </div>
                         )}
                       </div>
@@ -660,26 +660,26 @@ const DriversPage: React.FC = () => {
                       <div className="grid grid-cols-3 gap-2">
                         <div className="text-center">
                           <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-sm font-sans text-gray-500 block">
                             Trips
                           </span>
-                          <p className="font-medium">{driverTrips.length}</p>
+                          <p className="font-display font-bold tracking-tight-plus">{driverTrips.length}</p>
                         </div>
                         <div className="text-center">
                           <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-sm font-sans text-gray-500 block">
                             Distance
                           </span>
-                          <p className="font-medium">
+                          <p className="font-display font-bold tracking-tight-plus">
                             {totalDistance.toLocaleString()}
                           </p>
                         </div>
                         <div className="text-center">
                           <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm text-gray-500 block">
+                          <span className="text-sm font-sans text-gray-500 block">
                             Vehicle
                           </span>
-                          <p className="font-medium">
+                          <p className="font-display font-bold tracking-tight-plus">
                             {driver.primary_vehicle_id ? "Assigned" : "-"}
                           </p>
                         </div>
@@ -693,7 +693,7 @@ const DriversPage: React.FC = () => {
                           e.stopPropagation();
                           navigate(`/drivers/${driver.id}`);
                         }}
-                        className="text-primary-600 hover:text-primary-800 text-sm font-medium"
+                        className="text-primary-600 hover:text-primary-800 text-sm font-sans font-medium"
                       >
                         View Details
                       </button>

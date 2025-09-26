@@ -2,8 +2,8 @@
 @import "react-toastify/dist/ReactToastify.css";
 /* Enhanced Animation Styles */
 @import "./styles/animations.css";
-/* Brand Font Import - Using Inter and Lexend for modern look */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lexend:wght@400;500;600;700&display=swap');
+/* Rich SaaS Typography - Plus Jakarta Sans + Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -27,6 +27,9 @@
   /* Brand shadows */
   --shadow-brand: 0 4px 14px 0 rgba(0, 0, 0, 0.10);
   --shadow-brand-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.10);
+  
+  /* Typography tracking */
+  --avs-heading-tracking: -0.015em; /* subtle luxury touch */
 }
 
 /* Dark mode variables */
@@ -48,10 +51,15 @@
     transition: background-color var(--transition-slow) ease-in-out;
   }
 
-  /* Enhanced Typography */
+  /* Rich SaaS Typography System */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight;
-    font-family: 'Lexend', 'Inter', sans-serif;
+    @apply font-display;
+    letter-spacing: var(--avs-heading-tracking);
+  }
+
+  /* Data tables and dense UI remain sans */
+  table, th, td, input, select, textarea, button, label {
+    @apply font-sans;
   }
 
   h1 {
@@ -81,6 +89,12 @@
   button, a, input, select, textarea {
     transition: all var(--transition-base) ease-in-out;
   }
+
+  /* Typography utility classes for consistent application */
+  .avs-heading { @apply font-display tracking-tight-plus; }
+  .avs-stat    { @apply font-display font-bold tracking-tight-plus; }
+  .avs-label   { @apply font-sans font-medium; }
+  .avs-body    { @apply font-sans; }
 }
 
 @layer components {

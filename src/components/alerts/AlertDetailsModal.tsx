@@ -89,7 +89,7 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
             <div className="flex justify-between items-center">
               <div className="flex items-center pr-8">
                 {getAlertTypeIcon(alert.alert_type)}
-                <h3 className="ml-2 text-base sm:text-lg leading-6 font-medium text-gray-900 line-clamp-1">
+                <h3 className="ml-2 text-base sm:text-lg leading-6 font-display font-semibold tracking-tight-plus text-gray-900 line-clamp-1">
                   {alert.title}
                 </h3>
               </div>
@@ -115,30 +115,30 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 <div className={`p-3 sm:p-4 rounded-lg border ${getSeverityColor(alert.severity)}`}>
                   <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
                     <div className="flex items-center flex-wrap">
-                      <span className="text-xs sm:text-sm font-medium">Alert Type:</span>
-                      <span className="ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                      <span className="text-xs sm:text-sm font-sans font-medium">Alert Type:</span>
+                      <span className="ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-sans font-medium bg-gray-100 text-gray-800 capitalize">
                         {alert.alert_type.replace('_', ' ')}
                       </span>
                     </div>
                     <div className="flex items-center flex-wrap">
-                      <span className="text-xs sm:text-sm font-medium">Created:</span>
-                      <span className="ml-2 text-xs sm:text-sm">{formatDate(alert.created_at)}</span>
+                      <span className="text-xs sm:text-sm font-sans font-medium">Created:</span>
+                      <span className="ml-2 text-xs sm:text-sm font-sans">{formatDate(alert.created_at)}</span>
                     </div>
                   </div>
-                  <p className="text-xs sm:text-sm font-medium mb-1">Description:</p>
-                  <p className="text-xs sm:text-sm">{alert.description}</p>
+                  <p className="text-xs sm:text-sm font-sans font-medium mb-1">Description:</p>
+                  <p className="text-xs sm:text-sm font-sans">{alert.description}</p>
                 </div>
 
                 {/* Affected Entity */}
                 {(vehicle || driver) && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="text-sm font-medium mb-3">Affected Entity</h4>
+                    <h4 className="text-sm font-display font-medium tracking-tight-plus mb-3">Affected Entity</h4>
                     {vehicle && (
                       <div className="flex items-start space-x-3 mb-2">
                         <Truck className="h-5 w-5 text-gray-400 mt-0.5" />
                         <div>
-                          <p className="font-medium">{vehicle.registration_number}</p>
-                          <p className="text-sm text-gray-500">{vehicle.make} {vehicle.model} ({vehicle.year})</p>
+                          <p className="font-sans font-medium">{vehicle.registration_number}</p>
+                          <p className="text-sm font-sans text-gray-500">{vehicle.make} {vehicle.model} ({vehicle.year})</p>
                         </div>
                       </div>
                     )}
@@ -146,8 +146,8 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                       <div className="flex items-start space-x-3">
                         <User className="h-5 w-5 text-gray-400 mt-0.5" />
                         <div>
-                          <p className="font-medium">{driver.name}</p>
-                          <p className="text-sm text-gray-500">License: {driver.license_number}</p>
+                          <p className="font-sans font-medium">{driver.name}</p>
+                          <p className="text-sm font-sans text-gray-500">License: {driver.license_number}</p>
                         </div>
                       </div>
                     )}
@@ -157,24 +157,24 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 {/* Alert Metadata */}
                 {alert.metadata && Object.keys(alert.metadata).length > 0 && (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="text-sm font-medium mb-3">Alert Details</h4>
+                    <h4 className="text-sm font-display font-medium tracking-tight-plus mb-3">Alert Details</h4>
                     <div className="space-y-2">
                       {alert.metadata.expected_value !== undefined && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Expected Value:</span>
-                          <span className="font-medium">{alert.metadata.expected_value}</span>
+                          <span className="text-gray-600 font-sans">Expected Value:</span>
+                          <span className="font-sans font-medium">{alert.metadata.expected_value}</span>
                         </div>
                       )}
                       {alert.metadata.actual_value !== undefined && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Actual Value:</span>
-                          <span className="font-medium">{alert.metadata.actual_value}</span>
+                          <span className="text-gray-600 font-sans">Actual Value:</span>
+                          <span className="font-sans font-medium">{alert.metadata.actual_value}</span>
                         </div>
                       )}
                       {alert.metadata.deviation !== undefined && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Deviation:</span>
-                          <span className={`font-medium ${
+                          <span className="text-gray-600 font-sans">Deviation:</span>
+                          <span className={`font-sans font-medium ${
                             alert.metadata.deviation > 0 ? 'text-error-600' : 'text-success-600'
                           }`}>
                             {alert.metadata.deviation > 0 ? '+' : ''}{alert.metadata.deviation.toFixed(1)}%
@@ -183,38 +183,38 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                       )}
                       {alert.metadata.distance !== undefined && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Distance:</span>
-                          <span className="font-medium">{alert.metadata.distance} km</span>
+                          <span className="text-gray-600 font-sans">Distance:</span>
+                          <span className="font-sans font-medium">{alert.metadata.distance} km</span>
                         </div>
                       )}
                       {alert.metadata.fuel_quantity !== undefined && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Fuel Quantity:</span>
-                          <span className="font-medium">{alert.metadata.fuel_quantity} L</span>
+                          <span className="text-gray-600 font-sans">Fuel Quantity:</span>
+                          <span className="font-sans font-medium">{alert.metadata.fuel_quantity} L</span>
                         </div>
                       )}
                       {alert.metadata.expected_range && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Expected Range:</span>
-                          <span className="font-medium">{alert.metadata.expected_range}</span>
+                          <span className="text-gray-600 font-sans">Expected Range:</span>
+                          <span className="font-sans font-medium">{alert.metadata.expected_range}</span>
                         </div>
                       )}
                       {alert.metadata.resolution_reason && (
                         <div className="flex justify-between text-sm pt-2 border-t border-gray-200 mt-2">
-                          <span className="text-gray-600">Resolution Reason:</span>
-                          <span className="font-medium">{alert.metadata.resolution_reason}</span>
+                          <span className="text-gray-600 font-sans">Resolution Reason:</span>
+                          <span className="font-sans font-medium">{alert.metadata.resolution_reason}</span>
                         </div>
                       )}
                       {alert.metadata.resolution_comment && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Comment:</span>
-                          <span className="font-medium">{alert.metadata.resolution_comment}</span>
+                          <span className="text-gray-600 font-sans">Comment:</span>
+                          <span className="font-sans font-medium">{alert.metadata.resolution_comment}</span>
                         </div>
                       )}
                       {alert.metadata.resolved_at && (
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Resolved At:</span>
-                          <span className="font-medium">{formatDate(alert.metadata.resolved_at)}</span>
+                          <span className="text-gray-600 font-sans">Resolved At:</span>
+                          <span className="font-sans font-medium">{formatDate(alert.metadata.resolved_at)}</span>
                         </div>
                       )}
                     </div>
@@ -224,14 +224,14 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 {/* Recommendations */}
                 {alert.metadata?.recommendations && alert.metadata.recommendations.length > 0 && (
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <h4 className="text-sm font-medium text-blue-700 mb-3">Suggested Resolution</h4>
+                    <h4 className="text-sm font-display font-medium tracking-tight-plus text-blue-700 mb-3">Suggested Resolution</h4>
                     <ul className="space-y-2">
                       {alert.metadata.recommendations.map((rec, index) => (
                         <li key={index} className="flex items-start">
                           <CheckCircle className="h-4 w-4 text-blue-500 mt-1 mr-2 flex-shrink-0" />
                           <a 
                             href="#" 
-                            className="text-sm text-blue-700 hover:text-blue-800 cursor-pointer"
+                            className="text-sm font-sans text-blue-700 hover:text-blue-800 cursor-pointer"
                             title="More info coming soon"
                           >
                             {rec}
@@ -245,12 +245,12 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 {/* Similar Alerts (Placeholder) */}
                 {similarAlerts.length > 0 ? (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="text-sm font-medium mb-3">Similar Alerts</h4>
+                    <h4 className="text-sm font-display font-medium tracking-tight-plus mb-3">Similar Alerts</h4>
                     <div className="space-y-2">
                       {similarAlerts.map(alert => (
                         <div key={alert.id} className="border-b pb-2">
-                          <p className="font-medium">{alert.title}</p>
-                          <p className="text-sm text-gray-600">{formatDate(alert.created_at)}</p>
+                          <p className="font-sans font-medium">{alert.title}</p>
+                          <p className="text-sm font-sans text-gray-600">{formatDate(alert.created_at)}</p>
                         </div>
                       ))}
                     </div>
@@ -258,14 +258,14 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
                 ) : (
                   <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 text-center">
                     <Info className="h-5 w-5 mx-auto text-gray-400 mb-2" />
-                    <p className="text-gray-500 text-sm">No similar alerts found in the past 30 days</p>
+                    <p className="text-gray-500 text-sm font-sans">No similar alerts found in the past 30 days</p>
                   </div>
                 )}
 
                 {/* Trip ID at the bottom */}
                 {alert.metadata?.trip_id && (
                   <div className="mt-4 pt-4 border-t border-gray-200 flex items-center">
-                    <span className="text-xs text-gray-500 font-mono">Trip ID: {alert.metadata.trip_id}</span>
+                    <span className="text-xs text-gray-500 font-sans font-mono">Trip ID: {alert.metadata.trip_id}</span>
                     <button 
                       onClick={copyTripId}
                       inputSize="sm" 

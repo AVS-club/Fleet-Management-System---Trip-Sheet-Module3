@@ -86,11 +86,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 {icon}
               </div>
               <div className="mt-2 sm:mt-0 sm:ml-4 text-center sm:text-left">
-                <h3 className={`text-base sm:text-lg leading-6 font-medium ${textColor}`} id="modal-title">
+                <h3 className={`text-base sm:text-lg leading-6 font-display font-semibold tracking-tight-plus ${textColor}`} id="modal-title">
                   {title}
                 </h3>
                 <div className="mt-1 sm:mt-2">
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm font-sans text-gray-500">
                     {message}
                   </p>
                 </div>

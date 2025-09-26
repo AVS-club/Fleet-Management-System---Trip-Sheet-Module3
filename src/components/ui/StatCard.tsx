@@ -42,11 +42,11 @@ const StatCard: React.FC<StatCardProps> = ({
     > 
       <div className="flex justify-between items-start gap-2">
         <div>
-          <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">{title}</h3>
+          <h3 className="text-gray-500 dark:text-gray-400 text-sm font-sans font-medium">{title}</h3>
           <div className="mt-1 flex flex-wrap items-center">
-            <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{value}</span>
+            <span className="text-xl sm:text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-white">{value}</span>
             {subtitle && (
-              <span className="ml-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">{subtitle}</span>
+              <span className="ml-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">{subtitle}</span>
             )}
           </div>
         </div>
@@ -60,13 +60,13 @@ const StatCard: React.FC<StatCardProps> = ({
         <div className="mt-2 sm:mt-3 flex items-center">
           <span
             className={cn(
-              "text-xs sm:text-sm font-medium mr-1",
+              "text-xs sm:text-sm font-sans font-medium mr-1",
               trendPositive ? "text-success-600 dark:text-success-400" : "text-error-600 dark:text-error-400"
             )}
           >
             {trendPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
           </span>
-          <span className="text-xs sm:text-xs text-gray-500 dark:text-gray-400">{trend.label}</span>
+          <span className="text-xs sm:text-xs font-sans text-gray-500 dark:text-gray-400">{trend.label}</span>
         </div>
       )}
     </div>

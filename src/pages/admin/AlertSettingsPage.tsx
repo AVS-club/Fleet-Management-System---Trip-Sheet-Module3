@@ -14,9 +14,9 @@ const AlertSettingsPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Alert Settings</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Alert Settings</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Configure system-wide alert preferences</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Configure system-wide alert preferences</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             variant="outline"

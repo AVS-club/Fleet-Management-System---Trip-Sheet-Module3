@@ -475,9 +475,9 @@ const TripsPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Route className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Trip Management</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Trip Management</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
         {!isAddingTrip && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
@@ -515,7 +515,7 @@ const TripsPage: React.FC = () => {
       {isAddingTrip ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
               New Trip Sheet
             </h2>
@@ -629,7 +629,7 @@ const TripsPage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              <span className="ml-3 text-gray-600">Loading trips...</span>
+              <span className="ml-3 font-sans text-gray-600">Loading trips...</span>
             </div>
           ) : (
             <>
@@ -671,7 +671,7 @@ const TripsPage: React.FC = () => {
                 <div className="bg-white rounded-lg shadow-sm p-4">
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     {/* Page Info */}
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm font-sans text-gray-600">
                       Page {currentPage} of {totalPages} • {totalTrips} total trips
                     </div>
                     
@@ -707,7 +707,7 @@ const TripsPage: React.FC = () => {
                             <button
                               key={pageNum}
                               onClick={() => handlePageChange(pageNum)}
-                              className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                              className={`px-3 py-1 text-sm font-sans rounded-md transition-colors ${
                                 currentPage === pageNum
                                   ? 'bg-primary-600 text-white'
                                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -732,11 +732,11 @@ const TripsPage: React.FC = () => {
                     
                     {/* Page Size Selector */}
                     <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-600">Trips per page:</label>
+                      <label className="text-sm font-sans text-gray-600">Trips per page:</label>
                       <select
                         value={tripsPerPage}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                        className="px-3 py-1.5 text-sm font-sans border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>

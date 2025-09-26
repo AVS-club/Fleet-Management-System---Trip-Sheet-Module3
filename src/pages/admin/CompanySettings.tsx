@@ -412,31 +412,31 @@ const CompanySettings: React.FC = () => {
             className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin
+            <span className="font-sans">Back to Admin</span>
           </button>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Building2 className="h-8 w-8 text-primary-600" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-display font-bold tracking-tight-plus text-gray-900">
                   {isEditMode ? (isEditing ? 'Edit Company Profile' : 'Company Profile') : 'Setup Company Profile'}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm font-sans text-gray-500">
                   {isEditMode ? 'View and manage your organization profile' : 'Set up your organization profile and branding'}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               {isEditMode && !isEditing && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-sans">
                   Profile Active
                 </span>
               )}
               {isEditMode && (
                 <button
                   onClick={handleEditToggle}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-lg font-sans font-medium transition-colors ${
                     isEditing 
                       ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
                       : 'bg-primary-600 text-white hover:bg-primary-700'
@@ -453,7 +453,7 @@ const CompanySettings: React.FC = () => {
         {successMessage && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
             <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-            <span className="text-green-800">{successMessage}</span>
+            <span className="font-sans text-green-800">{successMessage}</span>
           </div>
         )}
 
@@ -461,7 +461,7 @@ const CompanySettings: React.FC = () => {
         {errors.save && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
             <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-            <span className="text-red-800">{errors.save}</span>
+            <span className="font-sans text-red-800">{errors.save}</span>
           </div>
         )}
 
@@ -470,11 +470,11 @@ const CompanySettings: React.FC = () => {
           <div className="p-6 space-y-6">
             {/* Company Information Section */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">Company Information</h2>
+              <h2 className="text-lg font-display font-semibold tracking-tight-plus mb-4">Company Information</h2>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-sans font-medium text-gray-700 mb-1">
                     Company Name *
                   </label>
                   <input
@@ -489,12 +489,12 @@ const CompanySettings: React.FC = () => {
                     maxLength={100}
                   />
                   {errors.name && (
-                    <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                    <p className="font-sans text-red-500 text-xs mt-1">{errors.name}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-sans font-medium text-gray-700 mb-1">
                     Tagline
                   </label>
                   <input

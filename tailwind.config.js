@@ -102,10 +102,20 @@ export default {
           950: '#030712',
         },
       },
-      // Custom brand fonts
+      // Rich SaaS Typography System
       fontFamily: {
+        // Body/UI/Data - Inter as primary
+        sans: ["Inter", "ui-sans-serif", "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial"],
+        // Headers/Stats - Plus Jakarta Sans
+        display: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui"],
+        // Legacy support
         'brand': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        'display': ['Lexend', 'Inter', 'system-ui', 'sans-serif'],
+      },
+      letterSpacing: {
+        // Subtle polish for headings
+        'tight-plus': '-0.015em',
+        // Minimal widening for breathing room
+        'wide-min': '0.02em',
       },
       // Enhanced shadows for depth
       boxShadow: {

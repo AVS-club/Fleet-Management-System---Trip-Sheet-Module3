@@ -35,7 +35,6 @@ import {
   AlertTriangle,
   ChevronDown,
   Info,
-  Plus,
   X,
   Hash
 } from 'lucide-react';
@@ -1411,36 +1410,20 @@ const TripForm: React.FC<TripFormProps> = ({
           </div>
         </div>
 
-        {/* Trip Type Info */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-blue-800 dark:text-blue-300">
-              <p className="font-medium mb-1">
-                {isRefuelingTrip ? 'Refueling Trip' : 'Non-Refueling Trip'}
-              </p>
-              {isRefuelingTrip && (
-                <p>
-                  This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one (tank-to-tank method).
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
 
       {/* Main Details Section - Grid Layout for Symmetry */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 items-stretch">
         {/* Trip Details - Left Column */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full flex flex-col border border-gray-200/80">
           <CollapsibleSection
             title="Trip Details"
             icon={<FileText className="h-5 w-5" />}
             iconColor="text-primary-600"
             defaultExpanded={true}
           >
-            <div className="space-y-4 p-4">
+            <div className="space-y-3 p-4 pt-3">
               {/* Start KM */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1621,14 +1604,14 @@ const TripForm: React.FC<TripFormProps> = ({
 
         {/* Refueling Details - Right Column (Only show if refueling is selected) */}
         {isRefuelingTrip && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm h-full flex flex-col border border-emerald-100/80">
             <CollapsibleSection
               title="Refueling Details"
               icon={<Fuel className="h-5 w-5" />}
               iconColor="text-green-600"
               defaultExpanded={true}
             >
-              <div className="space-y-4 p-4">
+              <div className="space-y-3 p-3 pt-2">
                 {/* Refueling Info Hint - with auto-dismiss */}
                 {showRefuelingHint && (
                   <div className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg relative animate-fadeIn">
@@ -1653,21 +1636,6 @@ const TripForm: React.FC<TripFormProps> = ({
                   disabled={isSubmitting}
                 />
 
-                {/* Add Refueling Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRefuelingDetails(true);
-                    setIsRefuelingTrip(true);
-                    setShowRefuelingInfo(true);
-                    setManualToggle(true);
-                    setValue('refueling_done', true);
-                  }}
-                  className="w-full py-2 px-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary-500 transition-colors"
-                >
-                  <Plus className="h-4 w-4 inline mr-2" />
-                  Add Refueling
-                </button>
               </div>
             </CollapsibleSection>
           </div>
@@ -2023,3 +1991,4 @@ const TripForm: React.FC<TripFormProps> = ({
 };
 
 export default TripForm;
+

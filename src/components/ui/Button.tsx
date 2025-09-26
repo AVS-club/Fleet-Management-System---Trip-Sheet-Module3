@@ -99,8 +99,8 @@ const Button: React.FC<ButtonProps> = ({
   };
 
   const buttonClasses = cn(
-    // Base styles
-    'inline-flex items-center justify-center font-medium transition-all duration-200',
+    // Base styles with Rich SaaS Typography
+    'inline-flex items-center justify-center font-sans font-semibold transition-all duration-200',
     'focus:outline-none focus:ring-2 focus:ring-offset-2',
     'focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900',
     'disabled:opacity-50 disabled:pointer-events-none disabled:transform-none',

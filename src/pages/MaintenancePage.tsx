@@ -122,9 +122,9 @@ const MaintenancePage = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Maintenance Dashboard</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Maintenance Dashboard</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Track and analyze vehicle maintenance performance</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Track and analyze vehicle maintenance performance</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             onClick={() => navigate('/maintenance/new')}
@@ -169,7 +169,7 @@ const MaintenancePage = () => {
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 text-gray-600">Loading maintenance analytics...</p>
+          <p className="ml-3 font-sans text-gray-600">Loading maintenance analytics...</p>
         </div>
       ) : (
         <div className="space-y-6">

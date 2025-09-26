@@ -468,9 +468,9 @@ const VehiclesPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicles</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Vehicles</h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
         {!isAddingVehicle && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
@@ -509,7 +509,7 @@ const VehiclesPage: React.FC = () => {
       {isAddingVehicle ? (
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center">
               <Truck className="h-5 w-5 mr-2 text-primary-500" />
               New Vehicle
             </h2>
@@ -627,10 +627,10 @@ const VehiclesPage: React.FC = () => {
               <div className="flex">
                 <AlertTriangle className="h-6 w-6 text-warning-500 mr-2" />
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">
                     Viewing Archived Vehicles
                   </h3>
-                  <p className="text-warning-700">
+                  <p className="font-sans text-warning-700">
                     You are currently viewing archived vehicles. These vehicles
                     are hidden from other parts of the system.
                   </p>
@@ -642,11 +642,11 @@ const VehiclesPage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 text-gray-600">Loading vehicles...</p>
+              <p className="ml-3 font-sans text-gray-600">Loading vehicles...</p>
             </div>
           ) : filteredVehicles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-gray-500">
+              <p className="font-sans text-gray-500">
                 {showArchived
                   ? "No archived vehicles found."
                   : "No vehicles found. Add your first vehicle to get started."}
@@ -680,16 +680,16 @@ const VehiclesPage: React.FC = () => {
                     {/* Header: Registration, Status, Action Buttons */}
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-bold text-gray-900 truncate" 
+                        <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 truncate" 
                             title={`${vehicle.registration_number} - Current Odometer: ${vehicle.current_odometer?.toLocaleString()} km`}>
                           {vehicle.registration_number}
                         </h3>
-                        <p className="text-sm text-gray-500 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
+                        <p className="text-sm font-sans text-gray-500 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
                           {vehicle.make} {vehicle.model}
                           {vehicle.tax_scope && 
                            (vehicle.tax_scope.toLowerCase().includes('ltt') || 
                             vehicle.tax_scope.toLowerCase().includes('lifetime')) && (
-                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full dark:bg-green-900 dark:text-green-200" title="This vehicle has lifetime tax paid">
+                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-sans font-medium rounded-full dark:bg-green-900 dark:text-green-200" title="This vehicle has lifetime tax paid">
                               Lifetime Tax
                             </span>
                           )}
@@ -698,7 +698,7 @@ const VehiclesPage: React.FC = () => {
                       
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full capitalize ${
+                          className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize ${
                             vehicle.status === "active"
                               ? "bg-success-100 text-success-800"
                               : vehicle.status === "maintenance"
@@ -715,11 +715,11 @@ const VehiclesPage: React.FC = () => {
 
                     {/* Pills Row: Year + Fuel */}
                     <div className="flex gap-2 mb-3">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-blue-50 text-blue-700">
                         <Calendar className="h-3 w-3 mr-1" />
                         {vehicle.year}
                       </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 capitalize">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-amber-50 text-amber-700 capitalize">
                         <Fuel className="h-3 w-3 mr-1" />
                         {vehicle.fuel_type}
                       </span>
@@ -731,12 +731,12 @@ const VehiclesPage: React.FC = () => {
                         {assignedDriver ? (
                           <>
                             <span className="mr-1">👤</span>
-                            <span className="text-gray-700 truncate">{assignedDriver.name}</span>
+                            <span className="font-sans text-gray-700 truncate">{assignedDriver.name}</span>
                           </>
                         ) : (
                           <>
                             <User className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="text-gray-400">Unassigned</span>
+                            <span className="font-sans text-gray-400">Unassigned</span>
                           </>
                         )}
                       </div>
@@ -745,17 +745,17 @@ const VehiclesPage: React.FC = () => {
                     {/* Metrics Row */}
                     <div className="grid grid-cols-3 gap-2 mb-3">
                         <div className="text-center">
-                          <span className="text-xs text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 block">
                             Trips
                           </span>
-                          <p className="font-mono text-sm font-medium">{vehicle.stats.totalTrips}</p>
+                          <p className="font-display font-bold tracking-tight-plus text-sm">{vehicle.stats.totalTrips}</p>
                         </div>
 
                         <div className="text-center">
-                          <span className="text-xs text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 block">
                             Distance
                           </span>
-                          <p className="font-mono text-sm font-medium">
+                          <p className="font-display font-bold tracking-tight-plus text-sm">
                             {typeof vehicle.stats.totalDistance === "number"
                               ? vehicle.stats.totalDistance.toLocaleString()
                               : "—"}
@@ -763,10 +763,10 @@ const VehiclesPage: React.FC = () => {
                         </div>
 
                         <div className="text-center">
-                          <span className="text-xs text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 block">
                             Avg KMPL
                           </span>
-                          <p className="font-mono text-sm font-medium">
+                          <p className="font-display font-bold tracking-tight-plus text-sm">
                             {vehicle.stats.averageKmpl?.toFixed(1) || "—"}
                           </p>
                         </div>
@@ -776,9 +776,9 @@ const VehiclesPage: React.FC = () => {
                     <div className="flex items-center justify-between mb-3 pt-2 border-t border-gray-100">
                       <div className="flex items-center">
                         <FileText className="h-3 w-3 text-gray-400 mr-1" />
-                        <span className="text-xs text-gray-500">Docs:</span>
+                        <span className="text-xs font-sans text-gray-500">Docs:</span>
                         <span
-                          className={`ml-1 text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                          className={`ml-1 text-xs font-sans font-medium px-1.5 py-0.5 rounded-full ${
                             uploaded === total
                               ? "bg-success-100 text-success-800"
                               : uploaded === 0
@@ -872,7 +872,7 @@ const VehiclesPage: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">
                 Activity Log - {selectedVehicleForLog.registration_number}
               </h3>
               <button
