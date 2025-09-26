@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle, AlertTriangle } from 'lucide-react';
+import { DocumentCell } from '../documents/DocumentCell';
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
@@ -1475,67 +1476,79 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                               
                               {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.insurance.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.insurance.date)}>
-                                      {formatShortDate(vehicle.documents.insurance.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="insurance"
+                                    expiryDate={vehicle.documents.insurance.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.insurance_document_url ? [vehicles.find(v => v.id === vehicle.id)!.insurance_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </div>
                               )}
                               
                               {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.fitness.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.fitness.date)}>
-                                      {formatShortDate(vehicle.documents.fitness.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="fitness"
+                                    expiryDate={vehicle.documents.fitness.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.fitness_document_url ? [vehicles.find(v => v.id === vehicle.id)!.fitness_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </div>
                               )}
                               
                               {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.permit.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.permit.date)}>
-                                      {formatShortDate(vehicle.documents.permit.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="permit"
+                                    expiryDate={vehicle.documents.permit.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.permit_document_url ? [vehicles.find(v => v.id === vehicle.id)!.permit_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </div>
                               )}
                               
                               {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.puc.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.puc.date)}>
-                                      {formatShortDate(vehicle.documents.puc.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="puc"
+                                    expiryDate={vehicle.documents.puc.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.puc_document_url ? [vehicles.find(v => v.id === vehicle.id)!.puc_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </div>
                               )}
                               
                               {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.tax.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.tax.date)}>
-                                      {formatShortDate(vehicle.documents.tax.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="tax"
+                                    expiryDate={vehicle.documents.tax.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.tax_document_url ? [vehicles.find(v => v.id === vehicle.id)!.tax_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </div>
                               )}
                               
                               {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
                                 <div className="px-2 py-2 w-24 flex-shrink-0 text-center bg-blue-50">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.rc.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.rc.date)}>
-                                      {formatShortDate(vehicle.documents.rc.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="rc"
+                                    expiryDate={vehicle.documents.rc.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.rc_document_url ? [vehicles.find(v => v.id === vehicle.id)!.rc_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                   {vehicle.registrationDate && (
                                     <div className="text-xs text-gray-400">
                                       (15y)
@@ -1671,67 +1684,79 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                               
                               {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
                                 <td className="px-2 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.insurance.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.insurance.date)}>
-                                      {formatShortDate(vehicle.documents.insurance.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="insurance"
+                                    expiryDate={vehicle.documents.insurance.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.insurance_document_url ? [vehicles.find(v => v.id === vehicle.id)!.insurance_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </td>
                               )}
                               
                               {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
                                 <td className="px-2 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.fitness.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.fitness.date)}>
-                                      {formatShortDate(vehicle.documents.fitness.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="fitness"
+                                    expiryDate={vehicle.documents.fitness.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.fitness_document_url ? [vehicles.find(v => v.id === vehicle.id)!.fitness_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </td>
                               )}
                               
                               {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
                                 <td className="px-2 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.permit.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.permit.date)}>
-                                      {formatShortDate(vehicle.documents.permit.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="permit"
+                                    expiryDate={vehicle.documents.permit.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.permit_document_url ? [vehicles.find(v => v.id === vehicle.id)!.permit_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </td>
                               )}
                               
                               {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
                                 <td className="px-2 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.puc.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.puc.date)}>
-                                      {formatShortDate(vehicle.documents.puc.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="puc"
+                                    expiryDate={vehicle.documents.puc.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.puc_document_url ? [vehicles.find(v => v.id === vehicle.id)!.puc_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </td>
                               )}
                               
                               {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
                                 <td className="px-2 py-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.tax.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.tax.date)}>
-                                      {formatShortDate(vehicle.documents.tax.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="tax"
+                                    expiryDate={vehicle.documents.tax.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.tax_document_url ? [vehicles.find(v => v.id === vehicle.id)!.tax_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                 </td>
                               )}
                               
                               {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
                                 <td className="px-2 py-2 text-center bg-blue-50">
-                                  <div className="flex items-center justify-center gap-1">
-                                    <StatusIcon status={vehicle.documents.rc.status} />
-                                    <span className="text-xs" title={formatDate(vehicle.documents.rc.date)}>
-                                      {formatShortDate(vehicle.documents.rc.date)}
-                                    </span>
-                                  </div>
+                                  <DocumentCell
+                                    vehicleId={vehicle.id}
+                                    vehicleNumber={vehicle.registration}
+                                    docKind="rc"
+                                    expiryDate={vehicle.documents.rc.date}
+                                    docPaths={vehicles.find(v => v.id === vehicle.id)?.rc_document_url ? [vehicles.find(v => v.id === vehicle.id)!.rc_document_url!] : null}
+                                    preferredFormat="short"
+                                  />
                                   {vehicle.registrationDate && (
                                     <div className="text-xs text-gray-400 mt-1">
                                       (15y)
