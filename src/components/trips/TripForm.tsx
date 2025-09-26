@@ -224,6 +224,9 @@ const TripForm: React.FC<TripFormProps> = ({
   const selectedWarehouseId = watch('warehouse_id');
   const startKm = watch('start_km');
   const endKm = watch('end_km');
+  const safeStartKm = typeof startKm === 'number' ? startKm : Number(startKm) || 0;
+  const safeEndKm = typeof endKm === 'number' ? endKm : Number(endKm) || 0;
+  const computedDistance = Math.max(0, safeEndKm - safeStartKm);
   const refuelings = watch('refuelings') || [];
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
@@ -1416,12 +1419,11 @@ const TripForm: React.FC<TripFormProps> = ({
               <p className="font-medium mb-1">
                 {isRefuelingTrip ? 'Refueling Trip' : 'Non-Refueling Trip'}
               </p>
-              <p>
-                {isRefuelingTrip 
-                  ? 'This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one (tank-to-tank method).'
-                  : 'This trip does not include fuel purchase. It will contribute to the total distance for the next refueling trip calculation.'
-                }
-              </p>
+              {isRefuelingTrip && (
+                <p>
+                  This trip includes fuel purchase. Distance will be calculated from the last refueling trip to this one (tank-to-tank method).
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1446,10 +1448,36 @@ const TripForm: React.FC<TripFormProps> = ({
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="number"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    {...register('start_km', { required: 'Start KM is required' })}
+                  <Controller
+                    name="start_km"
+                    control={control}
+                    rules={{
+                      required: 'Start KM is required',
+                      min: { value: 0, message: 'Start KM cannot be negative' }
+                    }}
+                    render={({ field: { value, onChange, onBlur, ref } }) => (
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        value={value ?? ''}
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          if (raw === '') {
+                            onChange(undefined);
+                            return;
+                          }
+                          const numeric = Number(raw);
+                          if (Number.isNaN(numeric)) {
+                            return;
+                          }
+                          onChange(Math.max(0, numeric));
+                        }}
+                        onFocus={(event) => event.target.select()}
+                        onBlur={onBlur}
+                        ref={ref}
+                      />
+                    )}
                   />
                 </div>
                 {lastTripData && (
@@ -1461,6 +1489,12 @@ const TripForm: React.FC<TripFormProps> = ({
                     {odometerWarning}
                   </p>
                 )}
+                {errors.start_km && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {errors.start_km.message as string}
+                  </p>
+                )}
               </div>
 
               {/* End KM */}
@@ -1470,16 +1504,59 @@ const TripForm: React.FC<TripFormProps> = ({
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="number"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    {...register('end_km', { required: 'End KM is required' })}
-                    onBlur={handleEndKmBlur}
+                  <Controller
+                    name="end_km"
+                    control={control}
+                    rules={{
+                      required: 'End KM is required',
+                      min: { value: 0, message: 'End KM cannot be negative' },
+                      validate: (value) => {
+                        if (value === undefined || value === null) {
+                          return 'End KM is required';
+                        }
+                        if (value <= safeStartKm) {
+                          return 'End KM must be greater than Start KM';
+                        }
+                        return true;
+                      }
+                    }}
+                    render={({ field: { value, onChange, onBlur, ref } }) => (
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        value={value ?? ''}
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          if (raw === '') {
+                            onChange(undefined);
+                            return;
+                          }
+                          const numeric = Number(raw);
+                          if (Number.isNaN(numeric)) {
+                            return;
+                          }
+                          onChange(Math.max(0, numeric));
+                        }}
+                        onFocus={(event) => event.target.select()}
+                        onBlur={() => {
+                          onBlur();
+                          handleEndKmBlur();
+                        }}
+                        ref={ref}
+                      />
+                    )}
                   />
                 </div>
-                {watchedValues.start_km && watchedValues.end_km && (
+                {startKm !== undefined && endKm !== undefined && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Distance: {watchedValues.end_km - watchedValues.start_km} km
+                    Distance: {computedDistance} km
+                  </p>
+                )}
+                {errors.end_km && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {errors.end_km.message as string}
                   </p>
                 )}
               </div>
@@ -1488,7 +1565,7 @@ const TripForm: React.FC<TripFormProps> = ({
               <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Distance:</span>
-                  <span className="text-sm font-medium">{watchedValues.end_km - watchedValues.start_km} km</span>
+                  <span className="text-sm font-medium">{computedDistance} km</span>
                 </div>
               </div>
 
@@ -1499,12 +1576,44 @@ const TripForm: React.FC<TripFormProps> = ({
                 </label>
                 <div className="relative">
                   <Package className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="number"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
-                    {...register('gross_weight', { required: 'Gross weight is required' })}
+                  <Controller
+                    name="gross_weight"
+                    control={control}
+                    rules={{
+                      required: 'Gross weight is required',
+                      min: { value: 0, message: 'Gross weight cannot be negative' }
+                    }}
+                    render={({ field: { value, onChange, onBlur, ref } }) => (
+                      <input
+                        type="number"
+                        min={0}
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
+                        value={value ?? ''}
+                        onChange={(event) => {
+                          const raw = event.target.value;
+                          if (raw === '') {
+                            onChange(undefined);
+                            return;
+                          }
+                          const numeric = Number(raw);
+                          if (Number.isNaN(numeric)) {
+                            return;
+                          }
+                          onChange(Math.max(0, numeric));
+                        }}
+                        onFocus={(event) => event.target.select()}
+                        onBlur={onBlur}
+                        ref={ref}
+                      />
+                    )}
                   />
                 </div>
+                {errors.gross_weight && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-1 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    {errors.gross_weight.message as string}
+                  </p>
+                )}
               </div>
             </div>
           </CollapsibleSection>

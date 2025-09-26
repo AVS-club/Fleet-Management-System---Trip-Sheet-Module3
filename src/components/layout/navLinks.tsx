@@ -6,8 +6,7 @@ import {
   BarChart3, 
   Wrench, 
   Bell, 
-  ShieldCheck,
-  Search
+  ShieldCheck
 } from 'lucide-react';
 
 type NavLink = {
@@ -25,6 +24,5 @@ export const navLinks: NavLink[] = [
   { to: '/trip-pnl-reports', label: 'P&L',       icon: BarChart3 },
   { to: '/maintenance',     label: 'Service',    icon: Wrench,     hasQuickAdd: true },
   { to: '/notifications',   label: 'Alerts',     icon: Bell },
-  { to: '/ultra-smart-search', label: 'Smart Search', icon: Search },
   { to: '/admin',           label: 'Admin',      icon: ShieldCheck },
 ];
