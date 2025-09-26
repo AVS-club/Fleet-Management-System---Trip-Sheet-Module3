@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle, AlertTriangle } from 'lucide-react';
+import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print, Search, ChevronDown, ChevronUp, Clock, Info, BarChart2, Database, IndianRupee, Bell, FileCheck, AlertCircle, ArrowLeft, ArrowRight, RefreshCw, RotateCcw, CheckCircle, FileSpreadsheet, FileText as FileTextIcon, MinusCircle, AlertTriangle, FileX } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DocumentCell } from '../documents/DocumentCell';
+import { rowUrgency, daysTo, docScore, type DocKey } from '../../utils/urgency';
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
@@ -81,6 +83,14 @@ interface DocumentMetrics {
     totalExpense: number;
   };
 }
+
+// Sorting types
+type SortMode = 
+  | { kind: "urgency" }
+  | { kind: "expiringSoon" }
+  | { kind: "missing" }
+  | { kind: "legalPriority" }
+  | { kind: "column"; column: DocKey; dir: "asc"|"desc" };
 
 // Define document type colors as requested
 const DOC_TYPE_COLORS = {
@@ -341,6 +351,9 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     charts: true
   });
   
+  // Urgency sorting state
+  const [sort, setSort] = useState<SortMode>({ kind: "urgency" });
+  
   // Responsive column visibility
   const isSmallScreen = useMediaQuery('(max-width: 1024px)');
   const visibleColumns = isSmallScreen 
@@ -353,6 +366,13 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  // Column sorting handler
+  const handleColumnSort = (column: DocKey) => {
+    const isCurrentColumn = sort.kind === "column" && sort.column === column;
+    const newDir = isCurrentColumn && sort.dir === "asc" ? "desc" : "asc";
+    setSort({ kind: "column", column, dir: newDir });
   };
 
   // Helper function for individual vehicle refresh
@@ -677,7 +697,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     });
   }, [vehicles, vehicleFilter, searchTerm]);
 
-  // Generate document matrix data from filtered vehicles
+  // Generate document matrix data from filtered vehicles with urgency scores
   const documentMatrix = useMemo((): VehicleDocuments[] => {
     return filteredVehicles.map(vehicle => {
       const calculatedRCExpiry = calculateRCExpiry(vehicle.id!, vehicle.registration_date);
@@ -710,10 +730,52 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             date: vehicle.tax_paid_upto || null,
             status: getExpiryStatus(vehicle.tax_paid_upto || null)
           }
-        }
+        },
+        // Add urgency data to each vehicle
+        __urg: rowUrgency(vehicle)
       };
     });
   }, [filteredVehicles]);
+
+  // Apply sorting to the document matrix
+  const sortedDocumentMatrix = useMemo(() => {
+    const arr = [...documentMatrix];
+    switch (sort.kind) {
+      case "urgency":
+        return arr.sort((a,b) => b.__urg.score - a.__urg.score
+          || b.__urg.meta.expired - a.__urg.meta.expired
+          || a.__urg.meta.minDTX - b.__urg.meta.minDTX
+          || a.registration.localeCompare(b.registration));
+      
+      case "expiringSoon":
+        return arr.filter(r => {
+          const d = r.__urg.meta.minDTX;
+          return d !== null && d >= 0 && d <= 30;
+        }).sort((a,b) => (a.__urg.meta.minDTX ?? 9999) - (b.__urg.meta.minDTX ?? 9999));
+      
+      case "missing":
+        return arr.filter(r => r.__urg.meta.missing > 0)
+          .sort((a,b) => b.__urg.meta.missing - a.__urg.meta.missing);
+      
+      case "legalPriority":
+        const lp = (r: any) => {
+          const S = (k: DocKey) => 
+            docScore(k, r.documents[k].date, !!r.documents[k].date);
+          return S("rc")+S("insurance")+S("permit");
+        };
+        return arr.sort((a,b) => lp(b)-lp(a));
+      
+      case "column": {
+        const {column, dir} = sort;
+        const val = (r: any) => daysTo(r.documents[column].date);
+        const cmp = (x: number|null, y: number|null) => 
+          (x === null ? 9999 : x) - (y === null ? 9999 : y);
+        return arr.sort((a,b) => dir === "asc" ? cmp(val(a),val(b)) : cmp(val(b),val(a)));
+      }
+      default:
+        return arr;
+    }
+  }, [documentMatrix, sort]);
 
   // Generate metrics data based on filtered vehicles and date range
   const metrics = useMemo((): DocumentMetrics => {
@@ -1446,26 +1508,144 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                       className="w-40"
                       inputSize="sm"
                     />
+                    
+                    {/* Urgency Filter Chips */}
+                    <div className="flex gap-2 ml-2">
+                      <button
+                        className={sort.kind === "urgency" ? "chip active" : "chip"}
+                        onClick={() => setSort({ kind: "urgency" })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '16px',
+                          background: sort.kind === "urgency" ? '#eef2ff' : 'white',
+                          color: sort.kind === "urgency" ? '#4f46e5' : '#6b7280',
+                          borderTop: sort.kind === "urgency" ? '2px solid #6366f1' : '2px solid transparent',
+                          cursor: 'pointer',
+                          height: '30px'
+                        }}
+                      >
+                        <AlertTriangle size={14} />
+                        Urgency
+                      </button>
+                      
+                      <button
+                        className={sort.kind === "expiringSoon" ? "chip active" : "chip"}
+                        onClick={() => setSort({ kind: "expiringSoon" })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '16px',
+                          background: sort.kind === "expiringSoon" ? '#fffbeb' : 'white',
+                          color: sort.kind === "expiringSoon" ? '#d97706' : '#6b7280',
+                          borderTop: sort.kind === "expiringSoon" ? '2px solid #f59e0b' : '2px solid transparent',
+                          cursor: 'pointer',
+                          height: '30px'
+                        }}
+                      >
+                        <Clock size={14} />
+                        ≤30d
+                      </button>
+                      
+                      <button
+                        className={sort.kind === "missing" ? "chip active" : "chip"}
+                        onClick={() => setSort({ kind: "missing" })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '16px',
+                          background: sort.kind === "missing" ? '#fef2f2' : 'white',
+                          color: sort.kind === "missing" ? '#dc2626' : '#6b7280',
+                          borderTop: sort.kind === "missing" ? '2px solid #ef4444' : '2px solid transparent',
+                          cursor: 'pointer',
+                          height: '30px'
+                        }}
+                      >
+                        <FileX size={14} />
+                        Missing
+                      </button>
+                      
+                      <button
+                        className={sort.kind === "legalPriority" ? "chip active" : "chip"}
+                        onClick={() => setSort({ kind: "legalPriority" })}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '5px 10px',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '16px',
+                          background: sort.kind === "legalPriority" ? '#f0f9ff' : 'white',
+                          color: sort.kind === "legalPriority" ? '#0369a1' : '#6b7280',
+                          borderTop: sort.kind === "legalPriority" ? '2px solid #0ea5e9' : '2px solid transparent',
+                          cursor: 'pointer',
+                          height: '30px'
+                        }}
+                      >
+                        <Shield size={14} />
+                        Legal
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
                 <div className="overflow-x-auto">
-                  {documentMatrix.length > 50 && FixedSizeList ? (
+                  {sortedDocumentMatrix.length > 50 && FixedSizeList ? (
                     // Virtual scrolling for large datasets
                     <div className="h-96">
                       <FixedSizeList
                         height={384}
-                        itemCount={documentMatrix.length}
+                        itemCount={sortedDocumentMatrix.length}
                         itemSize={48}
                         width="100%"
                       >
                         {({ index, style }) => {
-                          const vehicle = documentMatrix[index];
+                          const vehicle = sortedDocumentMatrix[index];
                           return (
-                            <div style={style} className="flex items-center border-b border-gray-200 hover:bg-gray-50">
+                            <div 
+                              style={{
+                                ...style,
+                                background: vehicle.__urg.score > 2 
+                                  ? 'linear-gradient(90deg, #fef2f2 0%, transparent 100%)'
+                                  : vehicle.__urg.meta.minDTX <= 30 && vehicle.__urg.meta.minDTX >= 0
+                                    ? 'linear-gradient(90deg, #fffbeb 0%, transparent 100%)'
+                                    : 'transparent'
+                              }} 
+                              className="flex items-center border-b border-gray-200 hover:bg-gray-50"
+                            >
                               <div className="px-3 py-2 w-40 flex-shrink-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">
+                                <div className="text-sm font-medium text-gray-900 truncate flex items-center">
                                   {vehicle.registration}
+                                  {vehicle.__urg.score > 2 && (
+                                    <span style={{
+                                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                      color: 'white',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      padding: '2px 6px',
+                                      borderRadius: '10px',
+                                      marginLeft: '8px'
+                                    }}>
+                                      {vehicle.__urg.score.toFixed(1)}
+                                    </span>
+                                  )}
                                 </div>
                                 {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
                                   <div className="text-xs text-blue-600">
@@ -1570,48 +1750,168 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                             Vehicle Number
                           </th>
                           {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <th 
+                              onClick={() => handleColumnSort("insurance")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "insurance" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               Insurance
+                              {sort.kind === "column" && sort.column === "insurance" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                           {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <th 
+                              onClick={() => handleColumnSort("fitness")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "fitness" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               Fitness
+                              {sort.kind === "column" && sort.column === "fitness" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                           {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <th 
+                              onClick={() => handleColumnSort("permit")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "permit" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               Permit
+                              {sort.kind === "column" && sort.column === "permit" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                           {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <th 
+                              onClick={() => handleColumnSort("puc")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "puc" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               PUC
+                              {sort.kind === "column" && sort.column === "puc" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                           {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                            <th 
+                              onClick={() => handleColumnSort("tax")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "tax" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               Tax
+                              {sort.kind === "column" && sort.column === "tax" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                           {visibleColumns.includes('rc_expiry') && (documentTypeFilter === 'all' || documentTypeFilter === 'rc') && (
-                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-blue-50">
+                            <th 
+                              onClick={() => handleColumnSort("rc")}
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] bg-blue-50 cursor-pointer hover:bg-blue-100 transition-colors"
+                              style={{
+                                textDecoration: 
+                                  sort.kind === "column" && sort.column === "rc" 
+                                    ? 'underline' 
+                                    : 'none'
+                              }}
+                            >
                               RC Expiry
+                              {sort.kind === "column" && sort.column === "rc" && (
+                                <span style={{ marginLeft: '4px', fontSize: '12px' }}>
+                                  {sort.dir === "asc" ? '↑' : '↓'}
+                                </span>
+                              )}
                             </th>
                           )}
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {documentMatrix.length > 0 ? (
-                          documentMatrix.map((vehicle) => (
-                            <tr key={vehicle.id} className="hover:bg-gray-50">
+                        <AnimatePresence mode="popLayout">
+                          {sortedDocumentMatrix.length > 0 ? (
+                            sortedDocumentMatrix.map((vehicle) => (
+                              <motion.tr 
+                                key={vehicle.id} 
+                                layout
+                                initial={{ opacity: 0.95 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{
+                                  layout: {
+                                    type: "spring",
+                                    stiffness: 400,
+                                    damping: 34
+                                  },
+                                  opacity: { duration: 0.18 }
+                                }}
+                                style={{
+                                  background: vehicle.__urg.score > 2 
+                                    ? 'linear-gradient(90deg, #fef2f2 0%, transparent 100%)'
+                                    : vehicle.__urg.meta.minDTX <= 30 && vehicle.__urg.meta.minDTX >= 0
+                                      ? 'linear-gradient(90deg, #fffbeb 0%, transparent 100%)'
+                                      : 'transparent'
+                                }}
+                                className="hover:bg-gray-50"
+                              >
                               {/* Enhanced Vehicle Number Cell with Refresh Button */}
                               <td className="px-3 py-2 whitespace-nowrap sticky left-0 bg-white z-10 border-r border-gray-100">
                                 <div className="flex items-center justify-between group">
                                   {/* Vehicle Info */}
                                   <div className="flex-1">
-                                    <div className="text-sm font-medium text-gray-900">
+                                    <div className="text-sm font-medium text-gray-900 flex items-center">
                                       {vehicle.registration}
+                                      {vehicle.__urg.score > 2 && (
+                                        <span style={{
+                                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                          color: 'white',
+                                          fontSize: '11px',
+                                          fontWeight: 600,
+                                          padding: '2px 6px',
+                                          borderRadius: '10px',
+                                          marginLeft: '8px'
+                                        }}>
+                                          {vehicle.__urg.score.toFixed(1)}
+                                        </span>
+                                      )}
                                     </div>
                                     {/* Show last updated info if available */}
                                     {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
@@ -1764,15 +2064,20 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                                   )}
                                 </td>
                               )}
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
-                              {searchTerm ? 'No vehicles found matching your search criteria' : 'No vehicle documents found'}
-                            </td>
-                          </tr>
-                        )}
+                              </motion.tr>
+                            ))
+                          ) : (
+                            <motion.tr
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <td colSpan={7} className="px-3 py-8 text-center text-sm text-gray-500">
+                                {searchTerm ? 'No vehicles found matching your search criteria' : 'No vehicle documents found'}
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
                       </tbody>
                     </table>
                   )}
