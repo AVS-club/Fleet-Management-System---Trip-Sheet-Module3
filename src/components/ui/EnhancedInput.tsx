@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, Check, LucideIcon } from 'lucide-react';
 
 interface DropdownOption {
@@ -8,6 +8,12 @@ interface DropdownOption {
   subtitle?: string;
   status?: 'active' | 'inactive' | 'maintenance' | 'available' | 'on-trip';
   icon?: LucideIcon;
+}
+
+interface NormalizedDropdownOption extends DropdownOption {
+  labelLower: string;
+  valueLower: string;
+  subtitleLower: string;
 }
 
 interface EnhancedInputProps {
@@ -65,11 +71,28 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const hasValue = value.trim().length > 0;
-  const filteredOptions = dropdownOptions.filter(option =>
-    option.label.toLowerCase().includes(value.toLowerCase()) ||
-    option.value.toLowerCase().includes(value.toLowerCase()) ||
-    (option.subtitle && option.subtitle.toLowerCase().includes(value.toLowerCase()))
+  
+  // Pre-compute lowercase versions of dropdown options for efficient filtering
+  const normalizedOptions = useMemo((): NormalizedDropdownOption[] => 
+    dropdownOptions.map(option => ({
+      ...option,
+      labelLower: option.label.toLowerCase(),
+      valueLower: option.value.toLowerCase(),
+      subtitleLower: option.subtitle?.toLowerCase() || ''
+    })), [dropdownOptions]
   );
+
+  // Normalize search query once and filter efficiently
+  const filteredOptions = useMemo(() => {
+    if (!hasValue) return normalizedOptions;
+    
+    const queryLower = value.toLowerCase();
+    return normalizedOptions.filter(option =>
+      option.labelLower.includes(queryLower) ||
+      option.valueLower.includes(queryLower) ||
+      (option.subtitle && option.subtitleLower.includes(queryLower))
+    );
+  }, [normalizedOptions, value, hasValue]);
 
   useEffect(() => {
     if (filteredOptions.length === 0) {

@@ -110,3 +110,148 @@
   [31mremotes/origin/revert-94-codex/remove-fuelrateselector-copy-file[m
   [31mremotes/origin/revert-96-codex/remove-fuelrateselector-copy.tsx-and-verify-build[m
   [31mremotes/origin/revert-99-codex/remove-destinationselector-component-and-references[m
+[1mdiff --git a/src/components/trips/RefuelingForm.tsx b/src/components/trips/RefuelingForm.tsx[m
+[1mindex 4dc8d7d..9c5063e 100644[m
+[1m--- a/src/components/trips/RefuelingForm.tsx[m
+[1m+++ b/src/components/trips/RefuelingForm.tsx[m
+[36m@@ -92,19 +92,6 @@[m [mconst RefuelingForm: React.FC<RefuelingFormProps> = ({[m
+             </span>[m
+           )}[m
+         </div>[m
+[31m-        <Button[m
+[31m-          type="button"[m
+[31m-          onClick={addRefueling}[m
+[31m-          disabled={disabled}[m
+[31m-          variant="success"[m
+[31m-          size="sm"[m
+[31m-          rounded="full"[m
+[31m-          className="h-9 w-9 p-0 flex items-center justify-center shadow-sm"[m
+[31m-          title="Add refueling"[m
+[31m-        >[m
+[31m-          <Plus className="h-4 w-4" />[m
+[31m-          <span className="sr-only">Add refueling</span>[m
+[31m-        </Button>[m
+       </div>[m
+ [m
+       {/* Refueling entries */}[m
+[36m@@ -118,7 +105,6 @@[m [mconst RefuelingForm: React.FC<RefuelingFormProps> = ({[m
+                 "transition-all duration-200"[m
+               )}[m
+             >[m
+[31m-              {/* Remove button - only show if not the first entry */}[m
+               {index > 0 && ([m
+                 <button[m
+                   type="button"[m
+[36m@@ -131,173 +117,176 @@[m [mconst RefuelingForm: React.FC<RefuelingFormProps> = ({[m
+                 </button>[m
+               )}[m
+ [m
+[31m-              {/* Refueling number badge */}[m
+               <div className="absolute top-3 left-3 flex items-center gap-1 text-xs text-gray-500">[m
+                 <Fuel className="h-3 w-3" />[m
+                 #{index + 1}[m
+               </div>[m
+ [m
+[31m-              {/* Form fields in compact grid */}[m
+[31m-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">[m
+[31m-                {/* Total Cost (primary input - at the top) */}[m
+[31m-                <div className="md:col-span-1">[m
+[31m-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">[m
+[32m+[m[32m              <div className="space-y-3">[m
+[32m+[m[32m                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">[m
+[32m+[m[32m                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">[m
+                     Total Fuel Cost (₹) *[m
+                   </label>[m
+[31m-                  <Input[m
+[31m-                    type="number"[m
+[31m-                    step="0.01"[m
+[31m-                    icon={<Calculator className="h-4 w-4" />}[m
+[31m-                    hideIconWhenFocused={true}[m
+[31m-                    value={refueling.total_fuel_cost || ''}[m
+[31m-                    onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}[m
+[31m-                    disabled={disabled}[m
+[31m-                    inputSize="sm"[m
+[31m-                    placeholder="Enter total amount paid"[m
+[31m-                    required[m
+[31m-                  />[m
+[32m+[m[32m                  <div className="sm:max-w-xs">[m
+[32m+[m[32m                    <Input[m
+[32m+[m[32m                      type="number"[m
+[32m+[m[32m                      step="0.01"[m
+[32m+[m[32m                      icon={<Calculator className="h-4 w-4" />}[m
+[32m+[m[32m                      hideIconWhenFocused={true}[m
+[32m+[m[32m                      value={refueling.total_fuel_cost || ''}[m
+[32m+[m[32m                      onChange={(e) => updateRefueling(index, 'total_fuel_cost', parseFloat(e.target.value) || 0)}[m
+[32m+[m[32m                      disabled={disabled}[m
+[32m+[m[32m                      inputSize="sm"[m
+[32m+[m[32m                      placeholder="Enter total amount paid"[m
+[32m+[m[32m                      required[m
+[32m+[m[32m                    />[m
+[32m+[m[32m                  </div>[m
+                 </div>[m
+ [m
+[31m-                {/* Fuel Rate Selector */}[m
+[31m-                <div className="md:col-span-1">[m
+[31m-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">[m
+[32m+[m[32m                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">[m
+[32m+[m[32m                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">[m
+                     Fuel Rate per Liter (₹) *[m
+                   </label>[m
+[31m-                  <FuelRateSelector[m
+[31m-                    value={refueling.fuel_rate_per_liter}[m
+[31m-                    onChange={(rate, location) => updateRefueling(index, 'fuel_rate_per_liter', rate, location)}[m
+[31m-                    disabled={disabled}[m
+[31m-                    inputSize="sm"[m
+[31m-                  />[m
+[32m+[m[32m                  <div className="sm:max-w-xs">[m
+[32m+[m[32m                    <FuelRateSelector[m
+[32m+[m[32m                      value={refueling.fuel_rate_per_liter}[m
+[32m+[m[32m                      onChange={(rate, location) => updateRefueling(index, 'fuel_rate_per_liter', rate, location)}[m
+[32m+[m[32m                      disabled={disabled}[m
+[32m+[m[32m                      inputSize="sm"[m
+[32m+[m[32m                    />[m
+[32m+[m[32m                  </div>[m
+                 </div>[m
+ [m
+[31m-                {/* Fuel Quantity (auto-calculated) */}[m
+[31m-                <div className="md:col-span-1">[m
+[31m-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">[m
+[32m+[m[32m                <div className="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-center">[m
+[32m+[m[32m                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">[m
+                     Fuel Quantity (L)[m
+                   </label>[m
+[31m-                  <Input[m
+[31m-                    type="number"[m
+[31m-                    step="0.01"[m
+[31m-                    icon={<Fuel className="h-4 w-4" />}[m
+[31m-                    value={refueling.fuel_quantity || ''}[m
+[31m-                    disabled[m
+[31m-                    inputSize="sm"[m
+[31m-                    placeholder="Auto-calculated"[m
+[31m-                  />[m
+[32m+[m[32m                  <div className="sm:max-w-xs">[m
+[32m+[m[32m                    <Input[m
+[32m+[m[32m                      type="number"[m
+[32m+[m[32m                      step="0.01"[m
+[32m+[m[32m                      icon={<Fuel className="h-4 w-4" />}[m
+[32m+[m[32m                      value={refueling.fuel_quantity || ''}[m
+[32m+[m[32m                      disabled={disabled}[m
+[32m+[m[32m                      inputSize="sm"[m
+[32m+[m[32m                      placeholder="Auto-calculated"[m
+[32m+[m[32m                    />[m
+[32m+[m[32m                  </div>[m
+                 </div>[m
+ [m
+[31m-                {/* Fuel Bill Upload - Compact Design */}[m
+[31m-                <div className="md:col-span-2 flex flex-wrap items-center justify-between gap-2">[m
+[31m-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">[m
+[32m+[m[32m                <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4 sm:items-start">[m
+[32m+[m[32m                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 sm:text-right">[m
+                     Fuel Bill / Receipt[m
+                   </label>[m
+[31m-                  <div className="flex items-center gap-2">[m
+[31m-                    <input[m
+[31m-                      type="file"[m
+[31m-                      id={`fuel-bill-${index}`}[m
+[31m-                      accept=".jpg,.jpeg,.png,.pdf"[m
+[31m-                      disabled={disabled || uploadState
