@@ -305,3 +305,127 @@ export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<boole
   }
 };
 
+export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
+  try {
+    console.log('🔍 Fetching trips for vehicle:', vehicleId);
+    
+    // First, get the trips with all relations
+    const { data: trips, error } = await supabase
+      .from('trips')
+      .select(`
+        id,
+        trip_serial_number,
+        trip_date,
+        trip_start_time,
+        trip_end_date,
+        trip_end_time,
+        start_km,
+        end_km,
+        total_distance,
+        calculated_kmpl,
+        fuel_filled_qty,
+        fuel_cost,
+        cargo_weight,
+        revenue,
+        vehicle_id,
+        driver_id,
+        warehouse_id,
+        driver:drivers!driver_id (
+          id,
+          name,
+          license_number
+        ),
+        warehouse:warehouses!warehouse_id (
+          id,
+          name,
+          pincode
+        )
+      `)
+      .eq('vehicle_id', vehicleId)
+      .order('trip_date', { ascending: false })
+      .order('trip_start_time', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('❌ Error fetching trips:', error);
+      return { trips: [], stats: {}, destinations: {} };
+    }
+
+    console.log('📊 Raw trips data:', trips);
+
+    // Then get destinations for these trips
+    const tripIds = trips?.map(t => t.id) || [];
+    
+    const { data: destinations } = await supabase
+      .from('trip_destinations')
+      .select('trip_id, destination_name, destination_type')
+      .in('trip_id', tripIds);
+
+    console.log('📍 Destinations data:', destinations);
+
+    // Map destinations to trips
+    const destinationMap = {};
+    destinations?.forEach(dest => {
+      if (!destinationMap[dest.trip_id]) {
+        destinationMap[dest.trip_id] = [];
+      }
+      destinationMap[dest.trip_id].push(dest.destination_name);
+    });
+
+    // Process trips with actual data
+    const processedTrips = trips?.map(trip => ({
+      ...trip,
+      start_location: trip.warehouse?.name || 'Warehouse',
+      end_location: destinationMap[trip.id]?.join(', ') || 'Destination',
+      driver_name: trip.driver?.name || 'Unassigned',
+      mileage: trip.calculated_kmpl || 0,
+      distance: trip.total_distance || (trip.end_km - trip.start_km) || 0
+    })) || [];
+
+    console.log('✅ Processed trips:', processedTrips);
+
+    // Calculate stats from real data
+    const stats = {
+      totalTrips: processedTrips.length,
+      totalDistance: processedTrips.reduce((sum, t) => sum + t.distance, 0),
+      avgMileage: processedTrips.length > 0 
+        ? (processedTrips.reduce((sum, t) => sum + (t.mileage || 0), 0) / processedTrips.filter(t => t.mileage > 0).length).toFixed(2)
+        : 0,
+      totalFuel: processedTrips.reduce((sum, t) => sum + (t.fuel_filled_qty || 0), 0),
+      bestDriver: getMostFrequentDriver(processedTrips)
+    };
+
+    console.log('📈 Calculated stats:', stats);
+
+    return { 
+      trips: processedTrips, 
+      stats,
+      destinations: destinationMap
+    };
+  } catch (error) {
+    console.error('❌ Error in getVehicleTrips:', error);
+    return { trips: [], stats: {}, destinations: {} };
+  }
+};
+
+function getMostFrequentDriver(trips: any[]): string {
+  const driverCount = {};
+  trips.forEach(trip => {
+    if (trip.driver_name && trip.driver_name !== 'Unassigned') {
+      driverCount[trip.driver_name] = (driverCount[trip.driver_name] || 0) + 1;
+    }
+  });
+  
+  let maxDriver = 'No regular driver';
+  let maxCount = 0;
+  
+  Object.entries(driverCount).forEach(([driver, count]) => {
+    if (count > maxCount) {
+      maxDriver = driver;
+      maxCount = count;
+    }
+  });
+  
+  return maxDriver;
+}
+

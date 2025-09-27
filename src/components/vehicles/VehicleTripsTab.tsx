@@ -7,6 +7,8 @@ import {
 import { getTrips } from '../../utils/storage';
 import { formatDate } from '../../utils/dateUtils';
 import { getMileageBadge, vehicleColors } from '../../utils/vehicleColors';
+import { getVehicleTrips } from '../../utils/api/vehicles';
+import { supabase } from '../../utils/supabaseClient';
 
 interface VehicleTripsTabProps {
   vehicleId: string;
@@ -43,52 +45,73 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
     totalFuel: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadLatestTrips();
+    loadVehicleTrips();
   }, [vehicleId]);
 
-  const loadLatestTrips = async () => {
+  const loadVehicleTrips = async () => {
+    console.log('🔍 Loading trips for vehicle:', vehicleId);
+    
     try {
-      const allTrips = await getTrips();
-      const vehicleTrips = Array.isArray(allTrips) 
-        ? allTrips.filter((trip: Trip) => trip.vehicle_id === vehicleId)
-        : [];
+      setLoading(true);
+      setError(null);
       
-      // Get latest 10 trips
-      const latestTrips = vehicleTrips
-        .sort((a, b) => new Date(b.trip_start_date).getTime() - new Date(a.trip_start_date).getTime())
-        .slice(0, 10);
-
-      setTrips(latestTrips);
-
-      // Calculate stats
-      const totalTrips = vehicleTrips.length;
-      const totalDistance = vehicleTrips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
-      const avgMileage = vehicleTrips.length > 0 
-        ? vehicleTrips.reduce((sum, trip) => sum + (trip.calculated_kmpl || trip.mileage || 0), 0) / vehicleTrips.length 
-        : 0;
+      // Check if vehicle exists first
+      const { data: vehicleCheck } = await supabase
+        .from('vehicles')
+        .select('id, registration_number')
+        .eq('id', vehicleId)
+        .single();
       
-      // Find best driver (most trips)
-      const driverCounts = vehicleTrips.reduce((acc, trip) => {
-        if (trip.driver_name) {
-          acc[trip.driver_name] = (acc[trip.driver_name] || 0) + 1;
-        }
-        return acc;
-      }, {} as Record<string, number>);
+      console.log('Vehicle found:', vehicleCheck);
       
-      const bestDriver = Object.keys(driverCounts).reduce((a, b) => 
-        driverCounts[a] > driverCounts[b] ? a : b, '');
-
-      setStats({
-        totalTrips,
-        avgMileage: Math.round(avgMileage * 10) / 10,
-        totalDistance,
-        bestDriver,
-        totalFuel: Math.round(totalDistance / (avgMileage || 1))
-      });
-    } catch (error) {
-      console.error('Error loading vehicle trips:', error);
+      if (!vehicleCheck) {
+        console.warn('⚠️ Vehicle not found:', vehicleId);
+        setError('Vehicle not found');
+        return;
+      }
+      
+      // Get raw trips data first for debugging
+      const { data: rawTrips, error: rawError } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('vehicle_id', vehicleId)
+        .limit(10);
+      
+      console.log('Raw trips data:', rawTrips);
+      console.log('Raw trips error:', rawError);
+      
+      if (rawError) {
+        console.error('❌ Error fetching raw trips:', rawError);
+        setError(`Database error: ${rawError.message}`);
+        return;
+      }
+      
+      if (!rawTrips || rawTrips.length === 0) {
+        console.log('📭 No trips found for vehicle:', vehicleId);
+        setTrips([]);
+        setStats({
+          totalTrips: 0,
+          avgMileage: 0,
+          totalDistance: 0,
+          bestDriver: 'No trips recorded',
+          totalFuel: 0
+        });
+        return;
+      }
+      
+      // Now get processed data with relations
+      const processedData = await getVehicleTrips(vehicleId, 10);
+      console.log('Processed trips data:', processedData);
+      
+      setTrips(processedData.trips);
+      setStats(processedData.stats);
+      
+    } catch (err) {
+      console.error('❌ Error loading trips:', err);
+      setError('Failed to load trip data');
     } finally {
       setLoading(false);
     }
@@ -108,7 +131,29 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-8">Loading trips...</div>;
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <span className="ml-2">Loading trips...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <div className="text-red-600 mb-4">
+          <AlertCircle className="h-12 w-12 mx-auto mb-2" />
+          <p className="font-medium">{error}</p>
+        </div>
+        <button 
+          onClick={loadVehicleTrips}
+          className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (
