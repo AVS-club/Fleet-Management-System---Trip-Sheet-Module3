@@ -1,4 +1,4 @@
-import { format, parseISO, isValid, differenceInDays } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, formatDistanceToNow } from 'date-fns';
 
 export const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) return 'Not specified';
@@ -21,6 +21,32 @@ export const formatDateTime = (dateString: string | null | undefined): string =>
     if (!isValid(date)) return 'Invalid date';
     
     return format(date, 'MMM dd, yyyy HH:mm');
+  } catch (error) {
+    return 'Invalid date';
+  }
+};
+
+export const safeFormatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Not specified';
+  
+  try {
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    if (!isValid(date)) return 'Invalid date';
+    
+    return format(date, 'MMM dd, yyyy');
+  } catch (error) {
+    return 'Invalid date';
+  }
+};
+
+export const formatRelativeDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Not specified';
+  
+  try {
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    if (!isValid(date)) return 'Invalid date';
+    
+    return formatDistanceToNow(date, { addSuffix: true });
   } catch (error) {
     return 'Invalid date';
   }
