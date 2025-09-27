@@ -19,10 +19,14 @@ body {
 /* Mobile Container */
 .mobile-container {
   min-height: 100vh;
-  min-height: -webkit-fill-available; /* iOS fix */
   background: #f5f7fa;
 }
 
+@supports (min-height: -webkit-fill-available) {
+  .mobile-container {
+    min-height: -webkit-fill-available; /* iOS fix */
+  }
+}
 /* Header Mobile Optimization */
 .header-mobile {
   position: sticky;

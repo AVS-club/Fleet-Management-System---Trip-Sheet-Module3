@@ -48,17 +48,32 @@ export const useMobileOptimization = () => {
   useEffect(() => {
     if (!isMobile) return;
 
+    let touchStartYLocal = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartYLocal = e.touches[0]?.clientY ?? 0;
+    };
+
     const preventPullToRefresh = (e: TouchEvent) => {
-      if (e.touches[0].clientY > 0) {
+      const currentY = e.touches[0]?.clientY ?? 0;
+      const isPullingDown = currentY > touchStartYLocal;
+
+      if (window.scrollY <= 0 && isPullingDown) {
         e.preventDefault();
       }
     };
 
+    document.body.addEventListener('touchstart', onTouchStart, { passive: true });
     document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
-    return () => document.body.removeEventListener('touchmove', preventPullToRefresh);
-  }, [isMobile]);
 
-  // Handle touch events for better UX
+    return () => {
+    document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
+
+    return () => {
+      document.body.removeEventListener('touchstart', onTouchStart);
+      document.body.removeEventListener('touchmove', preventPullToRefresh);
+    };
+  }, [isMobile]);  // Handle touch events for better UX
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);
   }, []);

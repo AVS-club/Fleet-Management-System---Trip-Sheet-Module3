@@ -107,11 +107,22 @@ export const showUpdateNotification = (): void => {
   const dismissBtn = notification.querySelector('#dismiss-btn');
 
   updateBtn?.addEventListener('click', () => {
+    let hasReloaded = false;
+    const handleControllerChange = () => {
+      if (!hasReloaded) {
+        hasReloaded = true;
+        window.location.reload();
+      }
+    };
+
+    navigator.serviceWorker.addEventListener(
+      'controllerchange',
+      handleControllerChange,
+      { once: true }
+    );
     skipWaiting();
     notification.remove();
-    window.location.reload();
   });
-
   dismissBtn?.addEventListener('click', () => {
     notification.remove();
   });

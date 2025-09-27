@@ -241,28 +241,51 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
     });
   };
 
-  const handleFormSubmit = async (data: TripFormData) => {
-    // Basic validation
-    if (!data.vehicle_id) {
-      toast.error('Please select a vehicle');
-      return;
-    }
-    if (!data.driver_id) {
-      toast.error('Please select a driver');
-      return;
-    }
-    if (selectedDestinationObjects.length === 0) {
-      toast.error('Please add at least one destination');
-      return;
-    }
-    if (!data.start_km || !data.end_km || data.end_km <= data.start_km) {
-      toast.error('Please enter valid start and end kilometers');
+  useEffect(() => {
+    const initialDestinationIds = initialData?.destinations;
+    if (!Array.isArray(initialDestinationIds) || initialDestinationIds.length === 0) {
       return;
     }
 
-    await onSubmit(data);
+    const matchedDestinations = destinations.filter((destination) =>
+      initialDestinationIds.map(String).includes(String(destination.id))
+    );
+
+    if (matchedDestinations.length > 0) {
+      setSelectedDestinationObjects(matchedDestinations);
+      setValue(
+        'destinations',
+        matchedDestinations.map((destination) => destination.id),
+        { shouldValidate: false }
+      );
+    }
+  }, [initialData?.destinations, destinations, setValue]);
+
+  const handleFormSubmit = async (data: any) => {
+    try {
+      const startKmValue = Number(data.start_km);
+      const endKmValue = Number(data.end_km);
+
+      if (Number.isNaN(startKmValue) || Number.isNaN(endKmValue)) {
+        toast.error('Please enter valid start and end kilometers');
+        return;
+      }
+
+      if (endKmValue <= startKmValue) {
+        toast.error('Please enter valid start and end kilometers');
+        return;
+      }
+
+      await onSubmit({
+        ...data,
+        start_km: startKmValue,
+        end_km: endKmValue,
+      });
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('An error occurred while submitting the form');
+    }
   };
-
   if (loading) {
     return (
       <div className="mobile-container">
