@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Vital - Offline</title>
+    <meta name="theme-color" content="#00a651">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .offline-container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .offline-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #00a651, #10b981);
+        }
+        
+        .offline-icon {
+            font-size: 64px;
+            margin-bottom: 24px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        h1 {
+            color: #374151;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        p {
+            color: #6b7280;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+        
+        .retry-btn {
+            background: linear-gradient(135deg, #00a651, #10b981);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 166, 81, 0.3);
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 166, 81, 0.4);
+        }
+        
+        .retry-btn:active {
+            transform: translateY(0);
+        }
+        
+        .offline-features {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .offline-features h3 {
+            color: #374151;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+        
+        .feature-list li {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .feature-list li::before {
+            content: '✓';
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ef4444;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        .connection-status.online {
+            background: #10b981;
+        }
+        
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+            
+            .offline-icon {
+                font-size: 48px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        <span id="statusText">Offline</span>
+    </div>
+    
+    <div class="offline-container">
+        <div class="offline-icon">📱</div>
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Don't worry, you can still access some features while offline.</p>
+        
+        <button class="retry-btn" onclick="checkConnection()">
+            Check Connection
+        </button>
+        
+        <div class="offline-features">
+            <h3>Available Offline:</h3>
+            <ul class="feature-list">
+                <li>View cached trip data</li>
+                <li>Access saved forms</li>
+                <li>Browse vehicle information</li>
+                <li>View driver details</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Check connection status
+        function checkConnection() {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                statusElement.style.display = 'block';
+                statusElement.classList.add('online');
+                statusText.textContent = 'Back Online!';
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                statusElement.style.display = 'block';
+                statusElement.classList.remove('online');
+                statusText.textContent = 'Still Offline';
+                
+                setTimeout(() => {
+                    statusElement.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            checkConnection();
+        });
+        
+        window.addEventListener('offline', () => {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            
+            statusElement.style.display = 'block';
+            statusElement.classList.remove('online');
+            statusText.textContent = 'Gone Offline';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        });
+        
+        // Check connection on page load
+        window.addEventListener('load', () => {
+            if (navigator.onLine) {
+                // If online, redirect to main app
+                window.location.href = '/';
+            }
+        });
+        
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+        
+        // Add some interactivity
+        document.querySelector('.retry-btn').addEventListener('click', function() {
+            this.textContent = 'Checking...';
+            this.disabled = true;
+            
+            setTimeout(() => {
+                this.textContent = 'Check Connection';
+                this.disabled = false;
+                checkConnection();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

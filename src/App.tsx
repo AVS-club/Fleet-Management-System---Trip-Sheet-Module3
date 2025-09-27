@@ -22,6 +22,7 @@ import DriverPage from "./pages/DriverPage";
 import TripsPage from "./pages/TripsPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
 import TripPnlReportsPage from "./pages/TripPnlReportsPage";
+import MobileTripPage from "./pages/MobileTripPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
 import NotificationsPage from "./pages/NotificationsPage";
@@ -110,6 +111,7 @@ const App: React.FC = () => {
           <Route path="/drivers/:id" element={<ProtectedRoute session={session} loading={loading}><DriverPage /></ProtectedRoute>} />
           <Route path="/trips" element={<ProtectedRoute session={session} loading={loading}><TripsPage /></ProtectedRoute>} />
           <Route path="/trips/:id" element={<ProtectedRoute session={session} loading={loading}><TripDetailsPage /></ProtectedRoute>} />
+          <Route path="/mobile/trips/new" element={<ProtectedRoute session={session} loading={loading}><MobileTripPage /></ProtectedRoute>} />
           <Route path="/trip-pnl-reports" element={<ProtectedRoute session={session} loading={loading}><TripPnlReportsPage /></ProtectedRoute>} />
           <Route path="/maintenance" element={<ProtectedRoute session={session} loading={loading}><MaintenancePage /></ProtectedRoute>} />
           <Route path="/maintenance/:id" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTaskPage /></ProtectedRoute>} />

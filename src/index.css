@@ -2,6 +2,8 @@
 @import "react-toastify/dist/ReactToastify.css";
 /* Enhanced Animation Styles */
 @import "./styles/animations.css";
+/* Mobile-First Styles */
+@import "./styles/mobile.css";
 /* Rich SaaS Typography - Plus Jakarta Sans + Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
 
