@@ -33,7 +33,6 @@ import DocumentViewerModal from "../components/vehicles/DocumentViewerModal";
 import FuelEfficiencyChart from "../components/analytics/FuelEfficiencyChart";
 import CostAnalytics from "../components/analytics/CostAnalytics";
 import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
-import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 
 const VehiclePage: React.FC = () => {
@@ -50,7 +49,7 @@ const VehiclePage: React.FC = () => {
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'overview' | 'trips' | 'maintenance'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'overview' | 'maintenance'>('details');
 
   const [stats, setStats] = useState<{
     totalTrips: number;
@@ -400,7 +399,6 @@ const VehiclePage: React.FC = () => {
               {[
                 { id: 'details', name: 'Details & Documents', icon: <FileCheck className="h-4 w-4" /> },
                 { id: 'overview', name: 'Overview', icon: <BarChart2 className="h-4 w-4" /> },
-                { id: 'trips', name: 'Trips', icon: <Route className="h-4 w-4" /> },
                 { id: 'maintenance', name: 'Maintenance', icon: <Wrench className="h-4 w-4" /> },
               ].map((tab) => (
                 <button
@@ -427,9 +425,6 @@ const VehiclePage: React.FC = () => {
             />
           )}
 
-          {activeTab === 'trips' && (
-            <VehicleTripsTab vehicleId={id || ''} />
-          )}
 
           {activeTab === 'maintenance' && (
             <VehicleMaintenanceTab vehicleId={id || ''} />
@@ -516,17 +511,6 @@ const VehiclePage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'trips' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Route className="h-5 w-5 text-blue-500" />
-                  Trip History
-                </h3>
-                <p className="text-gray-500 text-center py-8">Trip history feature coming soon...</p>
-              </div>
-            </div>
-          )}
 
           {activeTab === 'maintenance' && (
             <div className="space-y-6">
