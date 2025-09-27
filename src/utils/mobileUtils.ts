@@ -48,15 +48,19 @@ export const getViewportDimensions = () => {
 
 // Check if keyboard is open (iOS specific)
 export const isKeyboardOpen = (): boolean => {
-  if (typeof window === 'undefined' || !isIOSDevice()) return false;
-  
-  const initialHeight = window.innerHeight;
-  const currentHeight = window.innerHeight;
-  
-  // On iOS, keyboard reduces viewport height by ~50%
-  return currentHeight < initialHeight * 0.75;
-};
+let iosViewportBaseline: number | null = null;
 
+export const isKeyboardOpen = (): boolean => {
+  if (typeof window === 'undefined' || !isIOSDevice()) return false;
+
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  if (iosViewportBaseline === null) {
+    iosViewportBaseline = viewportHeight;
+    return false;
+  }
+
+  return viewportHeight < iosViewportBaseline * 0.75;
+};
 // Debounce function for mobile performance
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
@@ -317,10 +321,10 @@ export const mobileStorage = {
   getItem: <T>(key: string, defaultValue?: T): T | null => {
     try {
       const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue || null;
+      return item ? JSON.parse(item) : (defaultValue ?? null);
     } catch (error) {
       console.warn('Failed to read from localStorage:', error);
-      return defaultValue || null;
+      return defaultValue ?? null;
     }
   },
   

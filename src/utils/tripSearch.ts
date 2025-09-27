@@ -305,7 +305,7 @@ function buildComprehensiveSearchQuery(query: any, searchTerm: string) {
   const allConditions = [...searchConditions, ...textFields];
   
   if (allConditions.length > 0) {
-    return query.or(allConditions.join(','));
+    return query.or(allConditions);
   }
   
   return query;
