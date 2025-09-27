@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../../utils/supabaseClient";
+import { loginWithOrganization } from "../../utils/auth";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Building2, Lock, Eye, EyeOff, LogIn } from "lucide-react";
+import { toast } from "react-toastify";
 
 interface LoginFormProps {
   showPassword?: boolean;
@@ -15,8 +16,10 @@ const LoginForm: React.FC<LoginFormProps> = ({
   setShowPassword = () => {} 
 }) => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [credentials, setCredentials] = useState({
+    organizationUsername: "",
+    password: ""
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,22 +27,16 @@ const LoginForm: React.FC<LoginFormProps> = ({
     e.preventDefault();
     setError(null);
     setLoading(true);
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error) throw error;
-      if (data && data.user)
-        localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/"); // Navigate to dashboard
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'message' in error) {
-        // @ts-expect-error -- Supabase error object may not match Error
-        setError((error as any).error_description || (error as Error).message);
-      } else {
-        setError('An unexpected error occurred');
-      }
+      const result = await loginWithOrganization(credentials);
+      
+      toast.success(`Welcome back, ${result.organization.name}!`);
+      navigate("/dashboard");
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -53,37 +50,54 @@ const LoginForm: React.FC<LoginFormProps> = ({
         </p>
       )}
       <div>
-        <Input
-          id="email"
-          type="email"
-          label="Email"
-          icon={<Mail className="h-4 w-4" />}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          placeholder="Enter your email"
-          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
-        />
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Organization Username
+        </label>
+        <div className="relative">
+          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            id="organizationUsername"
+            type="text"
+            value={credentials.organizationUsername}
+            onChange={(e) => setCredentials({
+              ...credentials,
+              organizationUsername: e.target.value
+            })}
+            placeholder="e.g., shree_durga_enterprises"
+            className="pl-10 rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
+            required
+          />
+        </div>
+        <p className="mt-1 text-xs text-gray-500">
+          Use your organization's username (not email)
+        </p>
       </div>
-      <div className="relative">
-        <Input
-          id="password"
-          type={showPassword ? "text" : "password"}
-          label="Password"
-          icon={<Lock className="h-4 w-4" />}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          placeholder="Enter your password"
-          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
-        />
-        <button
-          type="button"
-          className="absolute right-3 top-9 text-gray-400 hover:text-primary-600 transition-colors"
-          onClick={() => setShowPassword(!showPassword)}
-        >
-          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-        </button>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Password
+        </label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={credentials.password}
+            onChange={(e) => setCredentials({
+              ...credentials,
+              password: e.target.value
+            })}
+            placeholder="Enter your password"
+            className="pl-10 rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
+            required
+          />
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
       <Button
         type="submit"
@@ -92,9 +106,19 @@ const LoginForm: React.FC<LoginFormProps> = ({
         isLoading={loading}
         inputSize="md"
         className="py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-md transition-all"
+        icon={<LogIn className="h-4 w-4" />}
       >
         {loading ? "Signing in..." : "Sign In"}
       </Button>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Don't have an account?{' '}
+          <a href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+            Register your organization
+          </a>
+        </p>
+      </div>
     </form>
   );
 };

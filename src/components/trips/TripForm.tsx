@@ -40,15 +40,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-// Organizational configuration for auto-selecting warehouses based on vehicle registration
-const ORGANIZATIONAL_CONFIG = {
-  '216a04c7-9d95-411e-b986-b7a17038bbc3': {
-    email: 'cfaraipur19@gmail.com',
-    vehiclePattern: /^OD/i,
-    warehouseName: 'sambalpur',
-    warehousePincode: '768200'
-  }
-};
+// Import the new warehouse rules system
+import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -656,69 +649,34 @@ const TripForm: React.FC<TripFormProps> = ({
       const vehicle = vehicles.find(v => v.id === vehicleId);
       if (!vehicle) return;
 
-      // Organizational auto-select logic
-      const orgConfig = ORGANIZATIONAL_CONFIG[user.id as keyof typeof ORGANIZATIONAL_CONFIG];
-      console.log('Auto-select debug:', {
-        userId: user.id,
-        userEmail: user.email,
-        hasOrgConfig: !!orgConfig,
-        orgConfig: orgConfig,
-        vehicleRegNumber: vehicle.registration_number,
-        vehicleId: vehicleId,
-        warehousesCount: warehouses.length,
-        warehouseNames: warehouses.map(w => w.name)
-      });
-      
-      if (orgConfig && vehicle.registration_number) {
-        const regNumber = vehicle.registration_number.toUpperCase();
-        const matchesPattern = orgConfig.vehiclePattern.test(regNumber);
-        
-        console.log('Pattern matching:', {
-          regNumber,
-          pattern: orgConfig.vehiclePattern.toString(),
-          matchesPattern
-        });
-        
-        if (matchesPattern) {
-          const sambalpurWarehouse = warehouses.find(w => 
-            w.name?.toLowerCase().includes(orgConfig.warehouseName) ||
-            w.pincode === orgConfig.warehousePincode
+      // Auto-assign warehouse based on organization rules
+      if (vehicle.registration_number) {
+        try {
+          const assignedWarehouseId = await autoAssignWarehouse(
+            vehicle.registration_number,
+            undefined, // Will use current organization
+            warehouses
           );
           
-          console.log('Warehouse search:', {
-            searchName: orgConfig.warehouseName,
-            searchPincode: orgConfig.warehousePincode,
-            foundWarehouse: sambalpurWarehouse
-          });
-          
-                if (sambalpurWarehouse) {
-                  setValue('warehouse_id', sambalpurWarehouse.id);
-                  
-                  // Highlight the warehouse field briefly
-                  const warehouseField = document.querySelector('[name="warehouse_id"]') as HTMLElement;
-                  if (warehouseField) {
-                    warehouseField.style.backgroundColor = '#fef3c7'; // Light yellow
-                    warehouseField.style.transition = 'background-color 0.3s ease';
-                    setTimeout(() => {
-                      warehouseField.style.backgroundColor = '';
-                    }, 1500);
-                  }
-                  
-                  console.log('✅ Auto-selected warehouse:', sambalpurWarehouse.name);
-                } else {
-                  console.log('❌ Sambalpur warehouse not found');
-                }
+          if (assignedWarehouseId) {
+            setValue('warehouse_id', assignedWarehouseId);
+            
+            // Highlight the warehouse field briefly
+            const warehouseField = document.querySelector('[name="warehouse_id"]') as HTMLElement;
+            if (warehouseField) {
+              warehouseField.style.backgroundColor = '#fef3c7'; // Light yellow
+              warehouseField.style.transition = 'background-color 0.3s ease';
+              setTimeout(() => {
+                warehouseField.style.backgroundColor = '';
+              }, 1500);
+            }
+            
+            console.log('✅ Auto-selected warehouse:', assignedWarehouseId);
+          }
+        } catch (error) {
+          console.error('Error auto-assigning warehouse:', error);
         }
-      } else {
-        console.log('❌ No org config or vehicle registration number', {
-          hasOrgConfig: !!orgConfig,
-          hasVehicleRegNumber: !!vehicle.registration_number,
-          vehicleRegNumber: vehicle.registration_number,
-          userId: user.id,
-          expectedUserId: '216a04c7-9d95-411e-b986-b7a17038bbc3'
-        });
       }
-      // End of organizational logic
 
       const { data: lastTrip, error } = await supabase
         .from('trips')

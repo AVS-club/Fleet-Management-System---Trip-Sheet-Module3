@@ -14,15 +14,8 @@ import {
 import { toast } from 'react-toastify';
 import '../../styles/mobile.css';
 
-// Organizational configuration for auto-selecting warehouses based on vehicle registration
-const ORGANIZATIONAL_CONFIG = {
-  '216a04c7-9d95-411e-b986-b7a17038bbc3': {
-    email: 'cfaraipur19@gmail.com',
-    vehiclePattern: /^OD/i,
-    warehouseName: 'sambalpur',
-    warehousePincode: '768200'
-  }
-};
+// Import the new warehouse rules system
+import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
 
 interface MobileTripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -194,7 +187,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
     
     const filtered = destinations.filter(destination => 
       destination.name.toLowerCase().includes(query.toLowerCase()) ||
-      destination.address.toLowerCase().includes(query.toLowerCase())
+      (destination.place_name && destination.place_name.toLowerCase().includes(query.toLowerCase()))
     );
     
     setAutoCompleteResults(prev => ({ ...prev, destinations: filtered }));
@@ -207,40 +200,32 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
     setValue('vehicle_id', vehicle.id);
     setAutoCompleteOpen(prev => ({ ...prev, vehicles: false }));
     
-    // Organizational auto-select logic
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const orgConfig = ORGANIZATIONAL_CONFIG[user.id as keyof typeof ORGANIZATIONAL_CONFIG];
-        if (orgConfig && vehicle.registration_number) {
-          const regNumber = vehicle.registration_number.toUpperCase();
+    // Auto-assign warehouse based on organization rules
+    if (vehicle.registration_number) {
+      try {
+        const assignedWarehouseId = await autoAssignWarehouse(
+          vehicle.registration_number!,
+          undefined, // Will use current organization
+          warehouses
+        );
+        
+        if (assignedWarehouseId) {
+          setValue('warehouse_id', assignedWarehouseId);
           
-          if (orgConfig.vehiclePattern.test(regNumber)) {
-            const sambalpurWarehouse = warehouses.find(w => 
-              w.name?.toLowerCase().includes(orgConfig.warehouseName) ||
-              w.pincode === orgConfig.warehousePincode
-            );
-            
-                  if (sambalpurWarehouse) {
-                    setValue('warehouse_id', sambalpurWarehouse.id);
-                    
-                    // Highlight the warehouse field briefly
-                    const warehouseField = document.querySelector('[name="warehouse_id"]') as HTMLElement;
-                    if (warehouseField) {
-                      warehouseField.style.backgroundColor = '#fef3c7'; // Light yellow
-                      warehouseField.style.transition = 'background-color 0.3s ease';
-                      setTimeout(() => {
-                        warehouseField.style.backgroundColor = '';
-                      }, 1500);
-                    }
-                  }
+          // Highlight the warehouse field briefly
+          const warehouseField = document.querySelector('[name="warehouse_id"]') as HTMLElement;
+          if (warehouseField) {
+            warehouseField.style.backgroundColor = '#fef3c7'; // Light yellow
+            warehouseField.style.transition = 'background-color 0.3s ease';
+            setTimeout(() => {
+              warehouseField.style.backgroundColor = '';
+            }, 1500);
           }
         }
+      } catch (error) {
+        console.error('Error auto-assigning warehouse:', error);
       }
-    } catch (error) {
-      console.error('Error in organizational auto-select:', error);
     }
-    // End of organizational logic
     
     // Auto-assign primary driver
     if (vehicle.primary_driver_id) {
@@ -248,7 +233,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
       if (primaryDriver) {
         setSelectedDriver(primaryDriver);
         setDriverInputValue(primaryDriver.name);
-        setValue('driver_id', primaryDriver.id);
+        setValue('driver_id', primaryDriver.id!);
       }
     }
   };
@@ -256,7 +241,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
   const selectDriver = (driver: Driver) => {
     setSelectedDriver(driver);
     setDriverInputValue(driver.name);
-    setValue('driver_id', driver.id);
+    setValue('driver_id', driver.id!);
     setAutoCompleteOpen(prev => ({ ...prev, drivers: false }));
   };
 
@@ -580,7 +565,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
                           onClick={() => addDestination(destination)}
                         >
                           <div className="font-medium">{destination.name}</div>
-                          <div className="text-sm text-gray-500">{destination.address}</div>
+                          <div className="text-sm text-gray-500">{destination.place_name || destination.name}</div>
                         </div>
                       ))}
                     </div>
@@ -621,7 +606,6 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
                           setValue('material_type_ids', newIds);
                         }}
                       >
-                        <div className="material-type-icon">{material.icon}</div>
                         <div className="material-type-label">{material.name}</div>
                       </div>
                     ))}
