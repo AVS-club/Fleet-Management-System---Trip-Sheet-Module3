@@ -33,21 +33,24 @@ const Header: React.FC = () => {
             title="Auto Vital Solution - Fleet Management System"
           >
             {/* Logo with enhanced visual prominence */}
-            <div className="relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 bg-white rounded-lg shadow-lg border-2 border-primary-200 dark:border-primary-700 group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-2 ring-primary-100 dark:ring-primary-800">
+            <div className="relative flex items-center justify-center h-11 w-11 sm:h-12 sm:w-12 bg-white rounded-lg shadow-lg border-2 border-primary-200 dark:border-primary-700 group-hover:shadow-xl group-hover:scale-105 transition-all duration-300 ring-2 ring-primary-100 dark:ring-primary-800 overflow-hidden">
               {/* Background halo effect */}
               <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary-400/10 to-primary-600/10 group-hover:from-primary-400/20 group-hover:to-primary-600/20 transition-all duration-300"></div>
-              
-              <img 
-                src="/assets/AVS-LOGO-512x512-new.png"
-                alt="Auto Vital Solution" 
-                className="relative z-10 h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5 filter drop-shadow-sm"
-                onError={(e) => {
-                  // Fallback if logo doesn't load
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-              <Truck className="hidden h-7 w-7 text-primary-600" />
+              <div className="absolute inset-[2px] rounded-[inherit] bg-white dark:bg-gray-900/95"></div>
+
+              <div className="relative z-20 flex h-full w-full items-center justify-center rounded-[inherit]">
+                <img 
+                  src="/assets/AVS-LOGO-512x512-new.png"
+                  alt="Auto Vital Solution" 
+                  className="h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5 filter drop-shadow-sm"
+                  onError={(e) => {
+                    // Fallback if logo doesn't load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <Truck className="hidden h-7 w-7 text-primary-600" />
+              </div>
             </div>
             
             {/* Brand Text - Show only on larger screens since logo has text */}
