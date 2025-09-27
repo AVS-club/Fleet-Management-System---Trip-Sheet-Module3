@@ -673,9 +673,10 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative ${
+                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative cursor-pointer ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
+                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                   >
                     {/* Header: Registration, Status, Action Buttons */}
                     <div className="flex justify-between items-start mb-3">
