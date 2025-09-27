@@ -653,16 +653,42 @@ const TripForm: React.FC<TripFormProps> = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get the vehicle object from the vehicles array
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (!vehicle) return;
+
       // Organizational auto-select logic
       const orgConfig = ORGANIZATIONAL_CONFIG[user.id as keyof typeof ORGANIZATIONAL_CONFIG];
-      if (orgConfig && selectedVehicle?.registration_number) {
-        const regNumber = selectedVehicle.registration_number.toUpperCase();
+      console.log('Auto-select debug:', {
+        userId: user.id,
+        userEmail: user.email,
+        hasOrgConfig: !!orgConfig,
+        vehicleRegNumber: vehicle.registration_number,
+        warehousesCount: warehouses.length,
+        warehouseNames: warehouses.map(w => w.name)
+      });
+      
+      if (orgConfig && vehicle.registration_number) {
+        const regNumber = vehicle.registration_number.toUpperCase();
+        const matchesPattern = orgConfig.vehiclePattern.test(regNumber);
         
-        if (orgConfig.vehiclePattern.test(regNumber)) {
+        console.log('Pattern matching:', {
+          regNumber,
+          pattern: orgConfig.vehiclePattern.toString(),
+          matchesPattern
+        });
+        
+        if (matchesPattern) {
           const sambalpurWarehouse = warehouses.find(w => 
             w.name?.toLowerCase().includes(orgConfig.warehouseName) ||
             w.pincode === orgConfig.warehousePincode
           );
+          
+          console.log('Warehouse search:', {
+            searchName: orgConfig.warehouseName,
+            searchPincode: orgConfig.warehousePincode,
+            foundWarehouse: sambalpurWarehouse
+          });
           
           if (sambalpurWarehouse) {
             setValue('warehouse_id', sambalpurWarehouse.id);
@@ -671,8 +697,13 @@ const TripForm: React.FC<TripFormProps> = ({
                 autoClose: 3000
               });
             }
+            console.log('✅ Auto-selected warehouse:', sambalpurWarehouse.name);
+          } else {
+            console.log('❌ Sambalpur warehouse not found');
           }
         }
+      } else {
+        console.log('❌ No org config or vehicle registration number');
       }
       // End of organizational logic
 
