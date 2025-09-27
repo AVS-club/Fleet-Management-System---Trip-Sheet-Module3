@@ -1,56 +1,61 @@
-import { formatDistanceToNow, isValid, format } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 
-/**
- * Format a date string to a human-readable format
- * - Recent dates (< 24 hours): "X hours ago"
- * - Older dates: "DD MMM YYYY"
- * - Invalid dates: "-"
- */
-export function formatRelativeDate(dateString: string | null | undefined): string {
-  if (!dateString) {
-    return '-';
-  }
+export const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Not specified';
   
   try {
-    const date = new Date(dateString);
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    if (!isValid(date)) return 'Invalid date';
     
-    // Return dash if date is invalid
-    if (isNaN(date.getTime())) {
-      return '-';
-    }
-    
-    // Get current time
-    const now = new Date();
-    
-    // Check if the date is within the last 24 hours
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      // For recent dates, show relative time
-      return formatDistanceToNow(date, { addSuffix: true });
-    } else {
-      // For older dates, show formatted date
-      return format(date, 'dd MMM yyyy');
-    }
+    return format(date, 'MMM dd, yyyy');
   } catch (error) {
-    console.error('Error formatting date:', error);
-    return '-';
+    return 'Invalid date';
   }
-}
+};
 
-/**
- * Safely format a date string using date-fns format
- * Returns a fallback string if the date is invalid
- */
-export function safeFormatDate(dateString: string | null | undefined, formatString: string = 'dd MMM yyyy HH:mm', fallback: string = '-'): string {
-  if (!dateString) {
-    return fallback;
-  }
+export const formatDateTime = (dateString: string | null | undefined): string => {
+  if (!dateString) return 'Not specified';
   
   try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? fallback : format(date, formatString);
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    if (!isValid(date)) return 'Invalid date';
+    
+    return format(date, 'MMM dd, yyyy HH:mm');
   } catch (error) {
-    return fallback;
+    return 'Invalid date';
   }
-}
+};
+
+export const daysUntil = (dateString: string | null | undefined): number => {
+  if (!dateString) return Infinity;
+  
+  try {
+    const date = typeof dateString === 'string' ? parseISO(dateString) : dateString;
+    if (!isValid(date)) return Infinity;
+    
+    return differenceInDays(date, new Date());
+  } catch (error) {
+    return Infinity;
+  }
+};
+
+export const isExpired = (dateString: string | null | undefined): boolean => {
+  return daysUntil(dateString) < 0;
+};
+
+export const isExpiringSoon = (dateString: string | null | undefined, daysThreshold: number = 30): boolean => {
+  const days = daysUntil(dateString);
+  return days >= 0 && days <= daysThreshold;
+};
+
+export const getExpiryStatus = (dateString: string | null | undefined) => {
+  if (!dateString) return { status: 'unknown', color: 'gray', days: null };
+  
+  const days = daysUntil(dateString);
+  
+  if (days < 0) return { status: 'expired', color: 'red', days: Math.abs(days) };
+  if (days <= 7) return { status: 'critical', color: 'red', days };
+  if (days <= 30) return { status: 'warning', color: 'yellow', days };
+  if (days <= 60) return { status: 'upcoming', color: 'blue', days };
+  return { status: 'valid', color: 'green', days };
+};
