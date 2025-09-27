@@ -1,9 +1,9 @@
-// scripts/seedVehicleTrips.ts
+// scripts/seedVehicleTripsFixed.ts
 import { supabase } from '../src/utils/supabaseClient';
 
 const seedVehicleTrips = async () => {
   try {
-    console.log('🌱 Starting trip data seeding...');
+    console.log('🌱 Starting trip data seeding with correct table structure...');
     
     // Get a vehicle to add trips to
     const { data: vehicles } = await supabase
@@ -61,24 +61,40 @@ const seedVehicleTrips = async () => {
       
       const distance = Math.floor(Math.random() * 300) + 100; // 100-400 km
       const fuelUsed = distance / (15 + Math.random() * 10); // 15-25 KMPL
+      const fuelCost = Math.round(fuelUsed * 95); // ₹95 per liter
+      const revenue = Math.floor(Math.random() * 10000) + 5000; // ₹5000-15000
+      const expenses = Math.floor(Math.random() * 3000) + 2000; // ₹2000-5000
+      const profit = revenue - expenses - fuelCost;
+      
+      // Select random destinations
+      const numDestinations = Math.floor(Math.random() * 2) + 1; // 1-2 destinations
+      const selectedDestinations = [];
+      for (let j = 0; j < numDestinations; j++) {
+        const dest = destinations[Math.floor(Math.random() * destinations.length)];
+        if (!selectedDestinations.includes(dest)) {
+          selectedDestinations.push(dest);
+        }
+      }
       
       const trip = {
+        trip_serial_number: `TRIP-${Date.now()}-${i}`,
         vehicle_id: vehicle.id,
         driver_id: drivers[i % drivers.length].id,
         warehouse_id: warehouses[i % warehouses.length].id,
-        trip_serial_number: `TRIP-${Date.now()}-${i}`,
-        trip_date: tripDate.toISOString().split('T')[0],
-        trip_start_time: '08:00:00',
+        destinations: selectedDestinations.map((_, idx) => `dest-${idx + 1}`), // Simple destination IDs
+        destination_names: selectedDestinations,
+        trip_start_date: tripDate.toISOString().split('T')[0],
         trip_end_date: tripDate.toISOString().split('T')[0],
-        trip_end_time: '18:00:00',
+        trip_duration: Math.floor(Math.random() * 12) + 8, // 8-20 hours
         start_km: currentOdometer,
         end_km: currentOdometer + distance,
-        total_distance: distance,
-        fuel_filled_qty: parseFloat(fuelUsed.toFixed(2)),
-        fuel_cost: Math.round(fuelUsed * 95), // ₹95 per liter
+        gross_weight: Math.floor(Math.random() * 5000) + 1000, // 1000-6000 kg
+        fuel_quantity: parseFloat(fuelUsed.toFixed(2)),
+        fuel_cost: fuelCost,
         calculated_kmpl: parseFloat((distance / fuelUsed).toFixed(2)),
-        cargo_weight: Math.floor(Math.random() * 5000) + 1000, // 1000-6000 kg
-        revenue: Math.floor(Math.random() * 10000) + 5000, // ₹5000-15000
+        income_amount: revenue,
+        total_expense: expenses,
+        net_profit: profit,
         created_by: (await supabase.auth.getUser()).data.user?.id
       };
       
@@ -101,37 +117,15 @@ const seedVehicleTrips = async () => {
 
     console.log(`✅ Created ${insertedTrips.length} trips`);
 
-    // Add destinations for each trip
-    console.log('📍 Adding destinations...');
-    
-    for (const trip of insertedTrips) {
-      const numDestinations = Math.floor(Math.random() * 2) + 1; // 1-2 destinations
-      const tripDestinations = [];
-      
-      for (let j = 0; j < numDestinations; j++) {
-        tripDestinations.push({
-          trip_id: trip.id,
-          destination_name: destinations[Math.floor(Math.random() * destinations.length)],
-          destination_type: j === 0 ? 'primary' : 'secondary',
-          created_at: new Date().toISOString()
-        });
-      }
-
-      const { error: destError } = await supabase
-        .from('trip_destinations')
-        .insert(tripDestinations);
-
-      if (destError) {
-        console.error('❌ Error inserting destinations:', destError);
-      }
-    }
-
     console.log('🎉 Successfully seeded trip data!');
     console.log('📊 Summary:');
     console.log(`   - Vehicle: ${vehicle.registration_number}`);
     console.log(`   - Trips created: ${insertedTrips.length}`);
     console.log(`   - Destinations: ${destinations.length} unique locations`);
-    console.log(`   - Date range: ${trips[trips.length - 1].trip_date} to ${trips[0].trip_date}`);
+    console.log(`   - Date range: ${trips[trips.length - 1].trip_start_date} to ${trips[0].trip_start_date}`);
+    console.log(`   - Total distance: ${trips.reduce((sum, t) => sum + (t.end_km - t.start_km), 0)} km`);
+    console.log(`   - Total revenue: ₹${trips.reduce((sum, t) => sum + t.income_amount, 0).toLocaleString()}`);
+    console.log(`   - Total profit: ₹${trips.reduce((sum, t) => sum + t.net_profit, 0).toLocaleString()}`);
     
   } catch (error) {
     console.error('❌ Seeding failed:', error);

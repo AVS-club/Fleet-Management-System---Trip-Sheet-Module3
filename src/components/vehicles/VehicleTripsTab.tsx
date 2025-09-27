@@ -16,22 +16,18 @@ interface VehicleTripsTabProps {
 
 interface Trip {
   id: string;
-  trip_start_date: string;
-  trip_start_time?: string;
-  start_km: number;
-  end_km: number;
-  destination_display?: string;
+  trip_number?: string;
+  trip_date: string;
   start_location?: string;
   end_location?: string;
-  route_description?: string;
-  destinations?: Array<{ name: string }>;
-  calculated_kmpl?: number;
-  mileage?: number;
   driver_name?: string;
-  cargo_weight?: number;
-  total_road_expenses?: number;
-  revenue?: number;
+  mileage?: number;
   distance?: number;
+  cargo_weight?: number;
+  revenue?: number;
+  fuel_quantity?: number;
+  fuel_cost?: number;
+  profit?: number;
 }
 
 const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
@@ -42,7 +38,9 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
     avgMileage: 0,
     totalDistance: 0,
     bestDriver: '',
-    totalFuel: 0
+    totalFuel: 0,
+    totalRevenue: 0,
+    totalProfit: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,31 +156,43 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Stats Bar */}
-      <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="text-center">
-            <p className="text-xs text-primary-600 font-medium">Total Trips</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.totalTrips}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-primary-600 font-medium">Total Distance</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.totalDistance} km</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-primary-600 font-medium">Avg Mileage</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.avgMileage} KMPL</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-primary-600 font-medium">Fuel Used</p>
-            <p className="text-2xl font-bold text-primary-900">{stats.totalFuel}L</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-primary-600 font-medium">Best Driver</p>
-            <p className="text-lg font-bold text-primary-900 truncate">{stats.bestDriver}</p>
-          </div>
-        </div>
-      </div>
+              {/* Summary Stats Bar */}
+              <div className="bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center">
+                    <p className="text-xs text-primary-600 font-medium">Total Trips</p>
+                    <p className="text-2xl font-bold text-primary-900">{stats.totalTrips}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-primary-600 font-medium">Total Distance</p>
+                    <p className="text-2xl font-bold text-primary-900">{stats.totalDistance} km</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-primary-600 font-medium">Avg Mileage</p>
+                    <p className="text-2xl font-bold text-primary-900">{stats.avgMileage} KMPL</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-primary-600 font-medium">Total Revenue</p>
+                    <p className="text-2xl font-bold text-primary-900">₹{stats.totalRevenue?.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-primary-200">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <p className="text-xs text-primary-600 font-medium">Fuel Used</p>
+                      <p className="text-lg font-bold text-primary-900">{stats.totalFuel}L</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-primary-600 font-medium">Total Profit</p>
+                      <p className="text-lg font-bold text-primary-900">₹{stats.totalProfit?.toLocaleString()}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-primary-600 font-medium">Best Driver</p>
+                      <p className="text-lg font-bold text-primary-900 truncate">{stats.bestDriver}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
       {/* Trip Cards */}
       <div className="space-y-4">
@@ -206,25 +216,19 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
                 {/* Trip Number & Date */}
                 <div>
                   <h4 className="font-semibold text-gray-900 text-lg">
-                    Trip #{trips.length - index}
+                    {trip.trip_number || `Trip #${trips.length - index}`}
                   </h4>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                     <Calendar className="h-4 w-4" />
-                    <span>{formatDate(trip.trip_start_date)}</span>
-                    {trip.trip_start_time && (
-                      <>
-                        <Clock className="h-4 w-4 ml-2" />
-                        <span>{formatTime(trip.trip_start_time)}</span>
-                      </>
-                    )}
+                    <span>{formatDate(trip.trip_date)}</span>
                   </div>
                 </div>
 
                 {/* Mileage Badge */}
-                <div className={`px-3 py-1.5 rounded-full border ${getMileageBadge(trip.mileage || trip.calculated_kmpl || 0, stats.avgMileage)}`}>
+                <div className={`px-3 py-1.5 rounded-full border ${getMileageBadge(trip.mileage || 0, stats.avgMileage)}`}>
                   <div className="flex items-center gap-1">
                     <Fuel className="h-4 w-4" />
-                    <span className="font-semibold">{trip.mileage || trip.calculated_kmpl || 0} KMPL</span>
+                    <span className="font-semibold">{trip.mileage || 0} KMPL</span>
                   </div>
                 </div>
               </div>
@@ -235,11 +239,8 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
                   <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">
-                      {trip.start_location || 'Loading point'} → {trip.end_location || trip.destination_display || 'Destination'}
+                      {trip.start_location || 'Loading Point'} → {trip.end_location || 'Destination'}
                     </p>
-                    {trip.route_description && (
-                      <p className="text-xs text-gray-500 mt-1">{trip.route_description}</p>
-                    )}
                   </div>
                 </div>
               </div>
@@ -258,7 +259,7 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
                   <TrendingUp className="h-4 w-4 text-green-500" />
                   <div>
                     <p className="text-xs text-gray-500">Distance</p>
-                    <p className="text-sm font-medium text-gray-900">{trip.end_km - trip.start_km} km</p>
+                    <p className="text-sm font-medium text-gray-900">{trip.distance || 0} km</p>
                   </div>
                 </div>
 
@@ -274,13 +275,13 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
                   <DollarSign className="h-4 w-4 text-purple-500" />
                   <div>
                     <p className="text-xs text-gray-500">Revenue</p>
-                    <p className="text-sm font-medium text-gray-900">₹{trip.revenue || trip.total_road_expenses || 0}</p>
+                    <p className="text-sm font-medium text-gray-900">₹{(trip.revenue || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
 
               {/* Performance Indicators */}
-              {trip.mileage && (
+              {trip.mileage && trip.mileage > 0 && (
                 <div className="mt-3 pt-3 border-t">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">

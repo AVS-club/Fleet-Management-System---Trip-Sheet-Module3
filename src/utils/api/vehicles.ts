@@ -309,104 +309,76 @@ export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
   try {
     console.log('🔍 Fetching trips for vehicle:', vehicleId);
     
-    // First, get the trips with all relations
     const { data: trips, error } = await supabase
       .from('trips')
       .select(`
-        id,
-        trip_serial_number,
-        trip_date,
-        trip_start_time,
-        trip_end_date,
-        trip_end_time,
-        start_km,
-        end_km,
-        total_distance,
-        calculated_kmpl,
-        fuel_filled_qty,
-        fuel_cost,
-        cargo_weight,
-        revenue,
-        vehicle_id,
-        driver_id,
-        warehouse_id,
+        *,
         driver:drivers!driver_id (
           id,
-          name,
-          license_number
+          name
         ),
         warehouse:warehouses!warehouse_id (
           id,
-          name,
-          pincode
+          name
         )
       `)
       .eq('vehicle_id', vehicleId)
-      .order('trip_date', { ascending: false })
-      .order('trip_start_time', { ascending: false })
+      .is('deleted_at', null)  // Exclude soft-deleted trips
+      .order('trip_start_date', { ascending: false })
       .limit(limit);
 
     if (error) {
       console.error('❌ Error fetching trips:', error);
-      return { trips: [], stats: {}, destinations: {} };
+      return { trips: [], stats: {} };
     }
 
     console.log('📊 Raw trips data:', trips);
 
-    // Then get destinations for these trips
-    const tripIds = trips?.map(t => t.id) || [];
-    
-    const { data: destinations } = await supabase
-      .from('trip_destinations')
-      .select('trip_id, destination_name, destination_type')
-      .in('trip_id', tripIds);
-
-    console.log('📍 Destinations data:', destinations);
-
-    // Map destinations to trips
-    const destinationMap = {};
-    destinations?.forEach(dest => {
-      if (!destinationMap[dest.trip_id]) {
-        destinationMap[dest.trip_id] = [];
-      }
-      destinationMap[dest.trip_id].push(dest.destination_name);
-    });
-
-    // Process trips with actual data
+    // Process trips - destinations are already in the table as arrays
     const processedTrips = trips?.map(trip => ({
-      ...trip,
-      start_location: trip.warehouse?.name || 'Warehouse',
-      end_location: destinationMap[trip.id]?.join(', ') || 'Destination',
-      driver_name: trip.driver?.name || 'Unassigned',
+      id: trip.id,
+      trip_number: trip.trip_serial_number,
+      trip_date: trip.trip_start_date,
+      start_location: trip.warehouse?.name || 'Loading Point',
+      end_location: trip.destination_names?.join(', ') || 'Unknown',
+      driver_name: trip.driver?.name || trip.driver_name || 'Unassigned',
       mileage: trip.calculated_kmpl || 0,
-      distance: trip.total_distance || (trip.end_km - trip.start_km) || 0
+      distance: (trip.end_km - trip.start_km) || 0,
+      cargo_weight: trip.gross_weight || 0,
+      revenue: trip.income_amount || 0,
+      fuel_quantity: trip.fuel_quantity || 0,
+      fuel_cost: trip.fuel_cost || 0,
+      profit: trip.net_profit || 0
     })) || [];
 
     console.log('✅ Processed trips:', processedTrips);
 
-    // Calculate stats from real data
+    // Calculate stats
     const stats = {
       totalTrips: processedTrips.length,
       totalDistance: processedTrips.reduce((sum, t) => sum + t.distance, 0),
-      avgMileage: processedTrips.length > 0 
-        ? (processedTrips.reduce((sum, t) => sum + (t.mileage || 0), 0) / processedTrips.filter(t => t.mileage > 0).length).toFixed(2)
-        : 0,
-      totalFuel: processedTrips.reduce((sum, t) => sum + (t.fuel_filled_qty || 0), 0),
-      bestDriver: getMostFrequentDriver(processedTrips)
+      avgMileage: calculateAverage(processedTrips, 'mileage'),
+      totalFuel: processedTrips.reduce((sum, t) => sum + t.fuel_quantity, 0),
+      bestDriver: getMostFrequentDriver(processedTrips),
+      totalRevenue: processedTrips.reduce((sum, t) => sum + t.revenue, 0),
+      totalProfit: processedTrips.reduce((sum, t) => sum + t.profit, 0)
     };
 
     console.log('📈 Calculated stats:', stats);
 
-    return { 
-      trips: processedTrips, 
-      stats,
-      destinations: destinationMap
-    };
+    return { trips: processedTrips, stats };
   } catch (error) {
     console.error('❌ Error in getVehicleTrips:', error);
-    return { trips: [], stats: {}, destinations: {} };
+    return { trips: [], stats: {} };
   }
 };
+
+function calculateAverage(trips: any[], field: string): number {
+  const validTrips = trips.filter(t => t[field] > 0);
+  if (validTrips.length === 0) return 0;
+  const sum = validTrips.reduce((acc, t) => acc + t[field], 0);
+  return parseFloat((sum / validTrips.length).toFixed(2));
+}
 
 function getMostFrequentDriver(trips: any[]): string {
   const driverCount = {};
