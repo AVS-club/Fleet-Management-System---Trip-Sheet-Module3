@@ -523,6 +523,7 @@ const VehiclePage: React.FC = () => {
     };
   }, [trips, vehicle, stats, drivers, complianceScore]);
 
+
   // Calculate document statuses
   const rcStatus = getDocumentStatus(
     vehicle.rc_document_url,
