@@ -374,6 +374,20 @@ const VehiclePage: React.FC = () => {
     }
   };
 
+  // Compliance Score calculation (moved before analytics to fix hooks order)
+  const complianceScore = useMemo(() => {
+    if (!vehicle) return 0;
+    const docs = [
+      vehicle.rc_document_url?.length,
+      vehicle.insurance_document_url?.length,
+      vehicle.fitness_document_url?.length,
+      vehicle.tax_document_url?.length,
+      vehicle.permit_document_url?.length,
+      vehicle.puc_document_url?.length,
+    ].filter(Boolean).length;
+    return (docs / 6) * 100;
+  }, [vehicle]);
+
   // Analytics calculations
   const analytics = useMemo(() => {
     if (!trips.length || !vehicle) {
@@ -507,21 +521,7 @@ const VehiclePage: React.FC = () => {
         emissions: totalDistance * 0.15 // Rough estimate: 0.15 kg other emissions per km
       }
     };
-  }, [trips, vehicle, stats, drivers]);
-
-  // Compliance Score for use in analytics
-  const complianceScore = useMemo(() => {
-    if (!vehicle) return 0;
-    const docs = [
-      vehicle.rc_document_url?.length,
-      vehicle.insurance_document_url?.length,
-      vehicle.fitness_document_url?.length,
-      vehicle.tax_document_url?.length,
-      vehicle.permit_document_url?.length,
-      vehicle.puc_document_url?.length,
-    ].filter(Boolean).length;
-    return (docs / 6) * 100;
-  }, [vehicle]);
+  }, [trips, vehicle, stats, drivers, complianceScore]);
 
   // Calculate document statuses
   const rcStatus = getDocumentStatus(
