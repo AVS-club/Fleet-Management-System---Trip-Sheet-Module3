@@ -9,11 +9,7 @@ import {
   PenTool as PenToolIcon,
   ChevronLeft,
   Shield,
-  Download,
-  Share2,
-  FileDown,
   BarChart2,
-  RefreshCw,
   Wrench,
   MapPin,
   FileCheck,
@@ -23,18 +19,16 @@ import {
 import { Vehicle } from "@/types";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
-import {
-  generateVehiclePDF,
-  createShareableVehicleLink,
-} from "../utils/exportUtils";
 import { toast } from "react-toastify";
 import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
-import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 import DocumentDownloadModal from "../components/vehicles/DocumentDownloadModal";
 import DocumentViewerModal from "../components/vehicles/DocumentViewerModal";
 import FuelEfficiencyChart from "../components/analytics/FuelEfficiencyChart";
 import CostAnalytics from "../components/analytics/CostAnalytics";
 import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
+import VehicleShareActions from "../components/vehicles/VehicleShareActions";
+import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
+import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,8 +36,6 @@ const VehiclePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exportLoading, setExportLoading] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showDocumentViewerModal, setShowDocumentViewerModal] = useState(false);
@@ -245,178 +237,43 @@ const VehiclePage: React.FC = () => {
     );
   }
 
-  // Handle export as PDF
-  const handleExportPDF = async () => {
-    try {
-      setExportLoading(true);
-      const doc = await generateVehiclePDF(vehicle, stats);
-      doc.save(`${vehicle.registration_number}_profile.pdf`);
-      toast.success("Vehicle profile exported successfully");
-    } catch (error) {
-      console.error("Error exporting vehicle profile:", error);
-      toast.error("Failed to export vehicle profile");
-    } finally {
-      setExportLoading(false);
-    }
-  };
-
-  // Handle download documents
-  const handleDownloadDocuments = () => {
-    setShowDownloadModal(true);
-  };
-
-  // Handle create shareable link
-  const handleCreateShareableLink = async () => {
-    try {
-      setShareLoading(true);
-      const link = await createShareableVehicleLink(vehicle.id);
-
-      // Copy link to clipboard
-      await navigator.clipboard.writeText(link);
-      toast.success("Shareable link copied to clipboard (valid for 7 days)");
-    } catch (error) {
-      console.error("Error creating shareable link:", error);
-      toast.error("Failed to create shareable link");
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  // Handle WhatsApp share
-  const handleWhatsAppShare = () => {
-    setSelectedVehicleForShare(vehicle);
-    setShowShareModal(true);
-  };
-
-  // Handle individual vehicle refresh
-  const handleVehicleRefresh = async () => {
-    if (!vehicle || isRefreshing) return;
-
-    setIsRefreshing(true);
-    try {
-      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
-        body: {
-          registration_number: vehicle.registration_number,
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch details');
-      }
-
-      if (!result?.success) {
-        throw new Error(result?.message || 'Failed to fetch vehicle details');
-      }
-
-      // Extract the RC data from the response
-      const rcData = result.data?.response || result.data || {};
-      
-      // Helper function to check if date is valid
-      const isValidDate = (dateStr: string | undefined): boolean => {
-        return dateStr !== undefined && dateStr !== '1900-01-01' && dateStr !== '';
-      };
-
-      // Prepare update payload with only the expiry dates - FIXED FIELD MAPPINGS
-      const updatePayload: Partial<Vehicle> = {
-        insurance_expiry_date: isValidDate(rcData.insurance_expiry) ? rcData.insurance_expiry : vehicle.insurance_expiry_date,
-        tax_paid_upto: rcData.tax_upto === 'LTT' ? '2099-12-31' : (isValidDate(rcData.tax_upto) ? rcData.tax_upto : vehicle.tax_paid_upto),
-        permit_expiry_date: isValidDate(rcData.permit_valid_upto) ? rcData.permit_valid_upto : vehicle.permit_expiry_date,
-        puc_expiry_date: isValidDate(rcData.pucc_upto) ? rcData.pucc_upto : vehicle.puc_expiry_date,
-        rc_expiry_date: isValidDate(rcData.rc_expiry) ? rcData.rc_expiry : vehicle.rc_expiry_date,
-        fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : vehicle.fitness_expiry_date,
-        vahan_last_fetched_at: new Date().toISOString(),
-      };
-
-      // Update the vehicle in the database
-      const updatedVehicle = await updateVehicle(vehicle.id, updatePayload);
-
-      if (updatedVehicle) {
-        // Update local state
-        setVehicle(prevVehicle => prevVehicle ? { ...prevVehicle, ...updatePayload } : null);
-        toast.success(`✅ ${vehicle.registration_number} updated successfully!`);
-      } else {
-        toast.error(`❌ Failed to update ${vehicle.registration_number}`);
-      }
-    } catch (error: any) {
-      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
-      toast.error(`❌ Failed to refresh ${vehicle.registration_number}: ${error.message}`);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
+        {/* Header with Photo and Actions */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Vehicle: {vehicle.registration_number}
-              </h1>
-              <p className="text-gray-600">
-                {vehicle.make} {vehicle.model} ({vehicle.year})
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/vehicles")}
-                icon={<ChevronLeft className="h-4 w-4" />}
-              >
-                Back
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleVehicleRefresh}
-                isLoading={isRefreshing}
-                icon={<RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
-                title="Refresh vehicle data from RC API"
-              >
-                Refresh Data
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleExportPDF}
-                isLoading={exportLoading}
-                icon={<FileDown className="h-4 w-4" />}
-              >
-                Export PDF
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleDownloadDocuments}
-                isLoading={false}
-                icon={<Download className="h-4 w-4" />}
-                title="Download Documents"
-              />
-
-              <WhatsAppButton
-                onClick={handleWhatsAppShare}
-                className="text-green-600 hover:text-green-800"
-              />
-
-              <Button
-                variant="outline"
-                onClick={handleCreateShareableLink}
-                isLoading={shareLoading}
-                icon={<Share2 className="h-4 w-4" />}
-              >
-                Share
-              </Button>
-
-              <Button
-                onClick={() => setIsEditing(true)}
-                icon={<PenToolIcon className="h-4 w-4" />}
-              >
-                Edit Vehicle
-              </Button>
-            </div>
+          <div className="flex justify-between items-start mb-4">
+            <button
+              onClick={() => navigate("/vehicles")}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>Back to Vehicles</span>
+            </button>
+            
+            {/* Share Actions - Single Location */}
+            <VehicleShareActions
+              vehicleId={id || ''}
+              vehicleNumber={vehicle.registration_number}
+              documents={[
+                { type: 'RC', url: vehicle.rc_document_url?.[0] || '', available: !!vehicle.rc_document_url?.length },
+                { type: 'Insurance', url: vehicle.insurance_document_url?.[0] || '', available: !!vehicle.insurance_document_url?.length },
+                { type: 'Fitness', url: vehicle.fitness_document_url?.[0] || '', available: !!vehicle.fitness_document_url?.length },
+                { type: 'Tax', url: vehicle.tax_document_url?.[0] || '', available: !!vehicle.tax_document_url?.length },
+                { type: 'Permit', url: vehicle.permit_document_url?.[0] || '', available: !!vehicle.permit_document_url?.length },
+                { type: 'PUC', url: vehicle.puc_document_url?.[0] || '', available: !!vehicle.puc_document_url?.length },
+              ]}
+            />
           </div>
+
+          {/* Vehicle Photo and Info */}
+          <VehiclePhotoUpload
+            vehicleId={id || ''}
+            vehicle={vehicle}
+            currentPhotoUrl={vehicle.photo_url}
+            onPhotoUpdate={(url: string) => setVehicle(prev => prev ? { ...prev, photo_url: url } : null)}
+          />
         </div>
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -454,6 +311,17 @@ const VehiclePage: React.FC = () => {
             <VehicleDetailsTab
               vehicle={vehicle}
               onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
+            />
+          )}
+
+          {activeTab === 'trips' && (
+            <VehicleTripsTab vehicleId={id || ''} />
+          )}
+
+          {activeTab === 'maintenance' && (
+            <VehicleMaintenanceTab 
+              vehicleId={id || ''} 
+              vehicleType={vehicle.type || 'truck'} 
             />
           )}
 
@@ -537,38 +405,19 @@ const VehiclePage: React.FC = () => {
               </div>
             </div>
           )}
-
-          {activeTab === 'trips' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Route className="h-5 w-5 text-blue-500" />
-                  Trip History
-                </h3>
-                <p className="text-gray-500 text-center py-8">Trip history feature coming soon...</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'maintenance' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-blue-500" />
-                  Maintenance Tracking
-                </h3>
-                <div className="text-center py-12">
-                  <Wrench className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Maintenance Tracking Coming Soon</h4>
-                  <p className="text-gray-500 max-w-md mx-auto">
-                    Comprehensive maintenance tracking, scheduling, and analytics will be available in the next update.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
+      </div>
+
+      {/* Floating Edit Button */}
+      <div className="fixed bottom-6 right-6">
+        <Button
+          onClick={() => setIsEditing(true)}
+          icon={<PenToolIcon className="h-4 w-4" />}
+          className="shadow-lg"
+        >
+          Edit Vehicle
+        </Button>
       </div>
 
       {/* Modals */}
