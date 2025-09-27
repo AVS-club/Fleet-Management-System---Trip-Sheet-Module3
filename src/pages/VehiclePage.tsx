@@ -477,15 +477,7 @@ const VehiclePage: React.FC = () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    // Compliance Score
-    const complianceScore = [
-      vehicle.rc_document_url?.length ? 1 : 0,
-      vehicle.insurance_document_url?.length ? 1 : 0,
-      vehicle.fitness_document_url?.length ? 1 : 0,
-      vehicle.tax_document_url?.length ? 1 : 0,
-      vehicle.permit_document_url?.length ? 1 : 0,
-      vehicle.puc_document_url?.length ? 1 : 0,
-    ].reduce((sum, hasDoc) => sum + hasDoc, 0) * (100 / 6);
+    // Use the complianceScore from the hook defined above
 
     // Utilization Metrics
     const now = new Date();
@@ -509,7 +501,7 @@ const VehiclePage: React.FC = () => {
       costAnalytics: { totalCost, costPerKm, budgetVsActual: 0 },
       driverPerformance,
       routeAnalytics: { frequentRoutes, totalRoutes: Object.keys(routeStats).length },
-      complianceScore,
+      complianceScore: complianceScore, // Use the complianceScore from the hook defined above
       utilizationMetrics: { 
         daily: today.length, 
         weekly: thisWeek.length, 
