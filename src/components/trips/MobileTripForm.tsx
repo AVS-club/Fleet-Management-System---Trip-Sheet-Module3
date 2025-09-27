@@ -3,6 +3,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
 import { getVehicles, getDrivers, getDestinations, getWarehouses } from '../../utils/storage';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
+import { supabase } from '../../utils/supabaseClient';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format } from 'date-fns';
 import { 
@@ -12,6 +13,17 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import '../../styles/mobile.css';
+
+// Organizational configuration for auto-selecting warehouses based on vehicle registration
+const ORGANIZATIONAL_CONFIG = {
+  '216a04c7-3d95-411e-b986-b7a17038bbc3': {
+    email: 'cfaraipur19@gmail.com',
+    vehiclePattern: /^OD/i,
+    warehouseName: 'sambalpur',
+    warehousePincode: '768200',
+    showNotification: true
+  }
+};
 
 interface MobileTripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -190,11 +202,41 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
     setAutoCompleteOpen(prev => ({ ...prev, destinations: true }));
   };
 
-  const selectVehicle = (vehicle: Vehicle) => {
+  const selectVehicle = async (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
     setVehicleInputValue(vehicle.registration_number);
     setValue('vehicle_id', vehicle.id);
     setAutoCompleteOpen(prev => ({ ...prev, vehicles: false }));
+    
+    // Organizational auto-select logic
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const orgConfig = ORGANIZATIONAL_CONFIG[user.id as keyof typeof ORGANIZATIONAL_CONFIG];
+        if (orgConfig && vehicle.registration_number) {
+          const regNumber = vehicle.registration_number.toUpperCase();
+          
+          if (orgConfig.vehiclePattern.test(regNumber)) {
+            const sambalpurWarehouse = warehouses.find(w => 
+              w.name?.toLowerCase().includes(orgConfig.warehouseName) ||
+              w.pincode === orgConfig.warehousePincode
+            );
+            
+            if (sambalpurWarehouse) {
+              setValue('warehouse_id', sambalpurWarehouse.id);
+              if (orgConfig.showNotification) {
+                toast.info(`${sambalpurWarehouse.name} auto-selected for OD vehicle`, {
+                  autoClose: 3000
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in organizational auto-select:', error);
+    }
+    // End of organizational logic
     
     // Auto-assign primary driver
     if (vehicle.primary_driver_id) {

@@ -40,6 +40,17 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
+// Organizational configuration for auto-selecting warehouses based on vehicle registration
+const ORGANIZATIONAL_CONFIG = {
+  '216a04c7-3d95-411e-b986-b7a17038bbc3': {
+    email: 'cfaraipur19@gmail.com',
+    vehiclePattern: /^OD/i,
+    warehouseName: 'sambalpur',
+    warehousePincode: '768200',
+    showNotification: true
+  }
+};
+
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
   onCancel?: () => void;
@@ -641,6 +652,29 @@ const TripForm: React.FC<TripFormProps> = ({
       // Get last trip for this vehicle
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Organizational auto-select logic
+      const orgConfig = ORGANIZATIONAL_CONFIG[user.id as keyof typeof ORGANIZATIONAL_CONFIG];
+      if (orgConfig && selectedVehicle?.registration_number) {
+        const regNumber = selectedVehicle.registration_number.toUpperCase();
+        
+        if (orgConfig.vehiclePattern.test(regNumber)) {
+          const sambalpurWarehouse = warehouses.find(w => 
+            w.name?.toLowerCase().includes(orgConfig.warehouseName) ||
+            w.pincode === orgConfig.warehousePincode
+          );
+          
+          if (sambalpurWarehouse) {
+            setValue('warehouse_id', sambalpurWarehouse.id);
+            if (orgConfig.showNotification) {
+              toast.info(`${sambalpurWarehouse.name} auto-selected for OD vehicle`, {
+                autoClose: 3000
+              });
+            }
+          }
+        }
+      }
+      // End of organizational logic
 
       const { data: lastTrip, error } = await supabase
         .from('trips')
