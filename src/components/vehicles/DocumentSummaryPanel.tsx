@@ -1631,21 +1631,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                               className="flex items-center border-b border-gray-200 hover:bg-gray-50"
                             >
                               <div className="px-3 py-2 w-40 flex-shrink-0">
-                                <div className="text-sm font-medium text-gray-900 truncate flex items-center">
+                                <div className="text-sm font-medium text-gray-900 truncate">
                                   {vehicle.registration}
-                                  {vehicle.__urg.score > 2 && (
-                                    <span style={{
-                                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                      color: 'white',
-                                      fontSize: '11px',
-                                      fontWeight: 600,
-                                      padding: '2px 6px',
-                                      borderRadius: '10px',
-                                      marginLeft: '8px'
-                                    }}>
-                                      {vehicle.__urg.score.toFixed(1)}
-                                    </span>
-                                  )}
                                 </div>
                                 {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
                                   <div className="text-xs text-blue-600">
@@ -1897,21 +1884,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                                 <div className="flex items-center justify-between group">
                                   {/* Vehicle Info */}
                                   <div className="flex-1">
-                                    <div className="text-sm font-medium text-gray-900 flex items-center">
+                                    <div className="text-sm font-medium text-gray-900">
                                       {vehicle.registration}
-                                      {vehicle.__urg.score > 2 && (
-                                        <span style={{
-                                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                                          color: 'white',
-                                          fontSize: '11px',
-                                          fontWeight: 600,
-                                          padding: '2px 6px',
-                                          borderRadius: '10px',
-                                          marginLeft: '8px'
-                                        }}>
-                                          {vehicle.__urg.score.toFixed(1)}
-                                        </span>
-                                      )}
                                     </div>
                                     {/* Show last updated info if available */}
                                     {vehicles.find(v => v.id === vehicle.id)?.vahan_last_fetched_at && (
