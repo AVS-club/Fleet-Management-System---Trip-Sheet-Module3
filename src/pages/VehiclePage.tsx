@@ -29,7 +29,6 @@ import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
 import VehicleShareActions from "../components/vehicles/VehicleShareActions";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
-import VehiclePhotoUpload from "../components/vehicles/VehiclePhotoUpload";
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
