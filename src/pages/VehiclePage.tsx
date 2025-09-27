@@ -1410,7 +1410,7 @@ const VehiclePage: React.FC = () => {
             </div>
             )}
         </div>
-      </div>
+      )}
     </Layout>
   );
 };
