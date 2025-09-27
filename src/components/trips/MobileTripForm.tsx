@@ -20,8 +20,7 @@ const ORGANIZATIONAL_CONFIG = {
     email: 'cfaraipur19@gmail.com',
     vehiclePattern: /^OD/i,
     warehouseName: 'sambalpur',
-    warehousePincode: '768200',
-    showNotification: true
+    warehousePincode: '768200'
   }
 };
 
@@ -222,14 +221,19 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
               w.pincode === orgConfig.warehousePincode
             );
             
-            if (sambalpurWarehouse) {
-              setValue('warehouse_id', sambalpurWarehouse.id);
-              if (orgConfig.showNotification) {
-                toast.info(`${sambalpurWarehouse.name} auto-selected for OD vehicle`, {
-                  autoClose: 3000
-                });
-              }
-            }
+                  if (sambalpurWarehouse) {
+                    setValue('warehouse_id', sambalpurWarehouse.id);
+                    
+                    // Highlight the warehouse field briefly
+                    const warehouseField = document.querySelector('[name="warehouse_id"]') as HTMLElement;
+                    if (warehouseField) {
+                      warehouseField.style.backgroundColor = '#fef3c7'; // Light yellow
+                      warehouseField.style.transition = 'background-color 0.3s ease';
+                      setTimeout(() => {
+                        warehouseField.style.backgroundColor = '';
+                      }, 1500);
+                    }
+                  }
           }
         }
       }
