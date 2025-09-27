@@ -170,15 +170,27 @@ export const formatCurrency = (amount: number, currency: string = 'INR'): string
 // Format date for mobile display
 export const formatDateForMobile = (date: Date | string): string => {
   const d = new Date(date);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - d.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (diffDays === 1) {
-    return 'Yesterday';
-  } else if (diffDays === 0) {
+  // Guard for invalid Date inputs
+  if (isNaN(d.getTime())) {
+    return 'Invalid date';
+  }
+  
+  const now = new Date();
+  
+  // Create start-of-day for both dates (set hours/minutes/seconds/ms to 0)
+  const startOfDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  // Compute difference in days based on calendar midnights
+  const diffTime = startOfToday.getTime() - startOfDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) {
     return 'Today';
-  } else if (diffDays < 7) {
+  } else if (diffDays === 1) {
+    return 'Yesterday';
+  } else if (diffDays < 7 && diffDays > 0) {
     return `${diffDays} days ago`;
   }
   
