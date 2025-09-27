@@ -1,0 +1,122 @@
+/* Vehicle Detail Page - Mobile Responsive Styles */
+
+/* Mobile-specific color adjustments */
+@media (max-width: 640px) {
+  /* Reduce padding on colored cards */
+  .stat-card {
+    @apply p-2;
+  }
+  
+  /* Simplify gradients on mobile */
+  .gradient-header {
+    @apply bg-primary-500; /* Solid color instead of gradient */
+  }
+  
+  /* High contrast for outdoor visibility */
+  .outdoor-mode {
+    @apply contrast-125 brightness-110;
+  }
+
+  /* Trip card adjustments */
+  .trip-card {
+    @apply p-3;
+  }
+
+  .trip-metrics {
+    @apply grid-cols-2 gap-2;
+  }
+
+  /* Vehicle info grid adjustments */
+  .vehicle-info-grid {
+    @apply grid-cols-1 gap-2;
+  }
+
+  /* Mileage badge adjustments */
+  .mileage-badge {
+    @apply px-2 py-1 text-xs;
+  }
+
+  /* Summary stats adjustments */
+  .summary-stats {
+    @apply grid-cols-2 gap-2;
+  }
+
+  .summary-stats .stat-item {
+    @apply p-2;
+  }
+
+  .summary-stats .stat-value {
+    @apply text-lg;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .vehicle-info-grid {
+    @apply grid-cols-2 gap-3;
+  }
+
+  .trip-metrics {
+    @apply grid-cols-3 gap-3;
+  }
+
+  .summary-stats {
+    @apply grid-cols-3 gap-3;
+  }
+}
+
+/* High contrast mode for accessibility */
+@media (prefers-contrast: high) {
+  .vehicle-colors {
+    @apply border-2;
+  }
+
+  .trip-header-strip {
+    @apply h-2;
+  }
+
+  .mileage-badge {
+    @apply border-2 font-bold;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    @apply animate-none;
+  }
+
+  .transition-all {
+    @apply transition-none;
+  }
+}
+
+/* Dark mode adjustments (if needed) */
+@media (prefers-color-scheme: dark) {
+  .vehicle-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+
+  .vehicle-card .text-gray-900 {
+    @apply text-gray-100;
+  }
+
+  .vehicle-card .text-gray-600 {
+    @apply text-gray-300;
+  }
+}
+
+/* Print styles */
+@media print {
+  .trip-header-strip {
+    @apply bg-gray-400;
+  }
+
+  .vehicle-colors {
+    @apply border-gray-300;
+  }
+
+  .no-print {
+    @apply hidden;
+  }
+}

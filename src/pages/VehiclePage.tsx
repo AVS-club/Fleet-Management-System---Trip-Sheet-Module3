@@ -372,10 +372,10 @@ const VehiclePage: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleExportPDF}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100"
+                className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                title="Export as PDF"
               >
-                <FileText className="h-4 w-4" />
-                <span>Export PDF</span>
+                <FileText className="h-5 w-5" />
               </button>
               
               <button

@@ -8,6 +8,7 @@ import VehiclePhotoUpload from './VehiclePhotoUpload';
 import DocumentViewer from './DocumentViewer';
 import { formatDate, daysUntil } from '../../utils/dateUtils';
 import { toast } from 'react-toastify';
+import { vehicleColors } from '../../utils/vehicleColors';
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -199,22 +200,22 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3">Vehicle Information</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {/* Always show these main fields */}
-              <InfoField label="Registration" value={vehicle.registration_number} icon={<Hash />} required />
-              <InfoField label="Chassis No." value={vehicle.chassis_number} icon={<Settings />} required />
-              <InfoField label="Engine No." value={vehicle.engine_number} icon={<Settings />} required />
-              <InfoField label="Make" value={vehicle.make} icon={<Car />} required />
-              <InfoField label="Model" value={vehicle.model} icon={<Car />} required />
-              <InfoField label="Year" value={vehicle.year} icon={<Calendar />} required />
-              <InfoField label="Type" value={vehicle.type} icon={<Truck />} required />
-              <InfoField label="Fuel" value={vehicle.fuel_type?.toUpperCase()} icon={<Fuel />} required />
-              <InfoField label="Owner" value={vehicle.owner_name} icon={<User />} required />
+              {/* Always show these main fields with colors */}
+              <InfoField label="Registration" value={vehicle.registration_number} icon={<Hash />} required color="registration" />
+              <InfoField label="Chassis No." value={vehicle.chassis_number} icon={<Settings />} required color="technical" />
+              <InfoField label="Engine No." value={vehicle.engine_number} icon={<Settings />} required color="technical" />
+              <InfoField label="Make" value={vehicle.make} icon={<Car />} required color="vehicle" />
+              <InfoField label="Model" value={vehicle.model} icon={<Car />} required color="vehicle" />
+              <InfoField label="Year" value={vehicle.year} icon={<Calendar />} required color="vehicle" />
+              <InfoField label="Type" value={vehicle.type} icon={<Truck />} required color="vehicle" />
+              <InfoField label="Fuel" value={vehicle.fuel_type?.toUpperCase()} icon={<Fuel />} required color="fuel" />
+              <InfoField label="Owner" value={vehicle.owner_name} icon={<User />} required color="owner" />
               
               {/* Show these only if they have values */}
-              {vehicle.registration_date && <InfoField label="Reg. Date" value={formatDate(vehicle.registration_date)} icon={<Calendar />} />}
-              {vehicle.current_odometer && vehicle.current_odometer > 0 && <InfoField label="Odometer" value={`${vehicle.current_odometer?.toLocaleString()} km`} icon={<MapPin />} />}
-              {vehicle.tyre_size && <InfoField label="Tyre Size" value={vehicle.tyre_size} icon={<Settings />} />}
-              {vehicle.number_of_tyres && <InfoField label="No. of Tyres" value={vehicle.number_of_tyres} icon={<Settings />} />}
+              {vehicle.registration_date && <InfoField label="Reg. Date" value={formatDate(vehicle.registration_date)} icon={<Calendar />} color="registration" />}
+              {vehicle.current_odometer && vehicle.current_odometer > 0 && <InfoField label="Odometer" value={`${vehicle.current_odometer?.toLocaleString()} km`} icon={<MapPin />} color="technical" />}
+              {vehicle.tyre_size && <InfoField label="Tyre Size" value={vehicle.tyre_size} icon={<Settings />} color="technical" />}
+              {vehicle.number_of_tyres && <InfoField label="No. of Tyres" value={vehicle.number_of_tyres} icon={<Settings />} color="technical" />}
             </div>
           </div>
         </div>
@@ -346,18 +347,23 @@ const InfoField: React.FC<{
   value: any;
   icon: React.ReactNode;
   required?: boolean;
-}> = ({ label, value, icon, required = false }) => {
+  color?: 'registration' | 'vehicle' | 'fuel' | 'owner' | 'technical';
+}> = ({ label, value, icon, required = false, color = 'technical' }) => {
   // Show main fields even if empty, hide optional fields if empty
   if (!required && !value) return null;
   
+  const colorClasses = vehicleColors.cards[color];
+  
   return (
-    <div className="flex items-start gap-2">
-      <div className="text-gray-400 mt-0.5">{icon}</div>
-      <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm font-medium text-gray-900">
-          {value || '-'}
-        </p>
+    <div className={`rounded-lg p-3 border ${colorClasses}`}>
+      <div className="flex items-start gap-2">
+        <div className="text-gray-400 mt-0.5">{icon}</div>
+        <div>
+          <p className="text-xs text-gray-500 font-medium">{label}</p>
+          <p className="text-sm font-bold text-gray-900">
+            {value || '-'}
+          </p>
+        </div>
       </div>
     </div>
   );
