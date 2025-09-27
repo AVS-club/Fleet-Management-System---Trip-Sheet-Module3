@@ -710,7 +710,7 @@ const TripForm: React.FC<TripFormProps> = ({
           hasVehicleRegNumber: !!vehicle.registration_number,
           vehicleRegNumber: vehicle.registration_number,
           userId: user.id,
-          expectedUserId: '216a04c7-3d95-411e-b986-b7a17038bbc3'
+          expectedUserId: '216a04c7-9d95-411e-b986-b7a17038bbc3'
         });
       }
       // End of organizational logic
