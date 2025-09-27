@@ -230,101 +230,6 @@ const VehiclePage: React.FC = () => {
     }
   };
 
-  // Prepare documents for document viewer modal
-  // const getDocumentsForViewer = () => {
-  //   return [
-  //     {
-  //       type: "RC Document",
-  //       name: "RC Document",
-  //       url: signedDocUrls.rc || null,
-  //       status: vehicle?.rc_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Insurance",
-  //       name: "Insurance",
-  //       url: signedDocUrls.insurance || null,
-  //       status: vehicle?.insurance_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Fitness Certificate",
-  //       name: "Fitness Certificate",
-  //       url: signedDocUrls.fitness || null,
-  //       status: vehicle?.fitness_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Permit",
-  //       name: "Permit",
-  //       url: signedDocUrls.permit || null,
-  //       status: vehicle?.permit_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "PUC Certificate",
-  //       name: "PUC Certificate",
-  //       url: signedDocUrls.puc || null,
-  //       status: vehicle?.puc_document_url ? "submitted" : "missing",
-  //     },
-  //     {
-  //       type: "Tax Receipt",
-  //       name: "Tax Receipt",
-  //       url: signedDocUrls.tax || null,
-  //       status: vehicle?.tax_document_url ? "submitted" : "missing",
-  //     },
-  //     // Add other documents if any
-  //     ...(vehicle?.other_documents && Array.isArray(vehicle.other_documents)
-  //       ? vehicle.other_documents.map((doc, index) => ({
-  //           type: doc.name || `Additional Document ${index + 1}`,
-  //           name: doc.name || `Additional Document ${index + 1}`,
-  //           url: signedDocUrls.other[`other_${index}`] || null,
-  //           status: doc.file_path ? "submitted" : "missing",
-  //         }))
-  //       : []),
-  //   ];
-  // };
-
-  if (!vehicle) {
-    return (
-      <Layout title="Vehicle Not Found">
-        <div className="text-center py-12">
-          <p className="text-gray-500">
-            The requested vehicle could not be found.
-          </p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => navigate("/vehicles")}
-            icon={<ChevronLeft className="h-4 w-4" />}
-          >
-            Back to Vehicles
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (isEditing) {
-    return (
-      <Layout
-        title="Edit Vehicle"
-        subtitle={vehicle.registration_number}
-        actions={
-          <Button variant="outline" onClick={() => setIsEditing(false)}>
-            Cancel
-          </Button>
-        }
-      >
-        <div className="max-w-4xl mx-auto">
-          <VehicleForm
-            initialData={vehicle}
-            onSubmit={(data) => {
-              // Handle update
-              setIsEditing(false);
-            }}
-          />
-        </div>
-      </Layout>
-    );
-  }
-
   // Helper functions for document status
   const getDocumentStatus = (docPath?: string[], expiryDate?: string) => {
     if (!docPath || !docPath.length)
@@ -515,8 +420,54 @@ const VehiclePage: React.FC = () => {
     };
   }, [trips, vehicle, stats, drivers, complianceScore]);
 
+  // IMPORTANT: All hooks are now defined above this point
+  // Now we can have conditional returns
 
-  // Calculate document statuses
+  if (!vehicle) {
+    return (
+      <Layout title="Vehicle Not Found">
+        <div className="text-center py-12">
+          <p className="text-gray-500">
+            The requested vehicle could not be found.
+          </p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => navigate("/vehicles")}
+            icon={<ChevronLeft className="h-4 w-4" />}
+          >
+            Back to Vehicles
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (isEditing) {
+    return (
+      <Layout
+        title="Edit Vehicle"
+        subtitle={vehicle.registration_number}
+        actions={
+          <Button variant="outline" onClick={() => setIsEditing(false)}>
+            Cancel
+          </Button>
+        }
+      >
+        <div className="max-w-4xl mx-auto">
+          <VehicleForm
+            initialData={vehicle}
+            onSubmit={(data) => {
+              // Handle update
+              setIsEditing(false);
+            }}
+          />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Calculate document statuses (these are computed values, not hooks)
   const rcStatus = getDocumentStatus(
     vehicle.rc_document_url,
     vehicle.rc_expiry_date
