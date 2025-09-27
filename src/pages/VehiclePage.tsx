@@ -9,16 +9,14 @@ import {
   PenTool as PenToolIcon,
   ChevronLeft,
   Shield,
-  Download,
-  Share2,
-  FileDown,
   BarChart2,
-  RefreshCw,
   Wrench,
   MapPin,
   FileCheck,
   Fuel,
   Route,
+  FileText,
+  Edit,
 } from "lucide-react";
 import { Vehicle } from "@/types";
 import Button from "../components/ui/Button";
@@ -35,6 +33,8 @@ import DocumentViewerModal from "../components/vehicles/DocumentViewerModal";
 import FuelEfficiencyChart from "../components/analytics/FuelEfficiencyChart";
 import CostAnalytics from "../components/analytics/CostAnalytics";
 import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
+import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
+import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -349,72 +349,42 @@ const VehiclePage: React.FC = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Vehicle: {vehicle.registration_number}
-              </h1>
-              <p className="text-gray-600">
-                {vehicle.make} {vehicle.model} ({vehicle.year})
-              </p>
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/vehicles')}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  {vehicle.registration_number}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {vehicle.make} {vehicle.model} • {vehicle.year}
+                </p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => navigate("/vehicles")}
-                icon={<ChevronLeft className="h-4 w-4" />}
-              >
-                Back
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleVehicleRefresh}
-                isLoading={isRefreshing}
-                icon={<RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />}
-                title="Refresh vehicle data from RC API"
-              >
-                Refresh Data
-              </Button>
-
-              <Button
-                variant="outline"
+            
+            {/* Clean Action Buttons */}
+            <div className="flex gap-2">
+              <button
                 onClick={handleExportPDF}
-                isLoading={exportLoading}
-                icon={<FileDown className="h-4 w-4" />}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100"
               >
-                Export PDF
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={handleDownloadDocuments}
-                isLoading={false}
-                icon={<Download className="h-4 w-4" />}
-                title="Download Documents"
-              />
-
-              <WhatsAppButton
-                onClick={handleWhatsAppShare}
-                className="text-green-600 hover:text-green-800"
-              />
-
-              <Button
-                variant="outline"
-                onClick={handleCreateShareableLink}
-                isLoading={shareLoading}
-                icon={<Share2 className="h-4 w-4" />}
-              >
-                Share
-              </Button>
-
-              <Button
+                <FileText className="h-4 w-4" />
+                <span>Export PDF</span>
+              </button>
+              
+              <button
                 onClick={() => setIsEditing(true)}
-                icon={<PenToolIcon className="h-4 w-4" />}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600"
               >
-                Edit Vehicle
-              </Button>
+                <Edit className="h-4 w-4" />
+                <span>Edit Vehicle</span>
+              </button>
             </div>
           </div>
         </div>
@@ -455,6 +425,14 @@ const VehiclePage: React.FC = () => {
               vehicle={vehicle}
               onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
             />
+          )}
+
+          {activeTab === 'trips' && (
+            <VehicleTripsTab vehicleId={id || ''} />
+          )}
+
+          {activeTab === 'maintenance' && (
+            <VehicleMaintenanceTab vehicleId={id || ''} />
           )}
 
           {activeTab === 'overview' && (

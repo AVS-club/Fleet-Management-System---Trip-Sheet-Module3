@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   FileText, Download, Share2, Eye, Calendar, AlertTriangle,
-  Truck, Settings, User, MapPin, Fuel, Hash, Car
+  Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, MessageCircle, Link
 } from 'lucide-react';
 import { Vehicle } from '../../types';
 import VehiclePhotoUpload from './VehiclePhotoUpload';
@@ -152,36 +152,71 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   };
 
+  const handlePhotoChange = () => {
+    // Trigger photo upload
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Handle photo upload logic here
+        console.log('Photo upload triggered');
+      }
+    };
+    input.click();
+  };
+
   return (
     <div className="space-y-6">
-      {/* Vehicle Photo Section */}
+      {/* Vehicle Profile Section - Compact */}
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <VehiclePhotoUpload
-          vehicleId={vehicle.id}
-          currentPhotoUrl={vehicle.photo_url}
-          onPhotoUpdate={(url) => onUpdate({ photo_url: url })}
-        />
-      </div>
-
-      {/* Vehicle Details Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Truck className="h-5 w-5 text-gray-600" />
-          Vehicle Information
-        </h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {vehicleDetails.map((detail, index) => (
-            <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="text-gray-400 mt-0.5">{detail.icon}</div>
-              <div className="flex-1">
-                <p className="text-xs text-gray-500">{detail.label}</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {detail.value || '-'}
-                </p>
-              </div>
+        <div className="flex items-start gap-4">
+          {/* Small Circular Photo */}
+          <div className="relative flex-shrink-0">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+              {vehicle.photo_url ? (
+                <img
+                  src={vehicle.photo_url}
+                  alt="Vehicle"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <Truck className="h-8 w-8 text-gray-400" />
+                </div>
+              )}
             </div>
-          ))}
+            <button
+              onClick={handlePhotoChange}
+              className="absolute bottom-0 right-0 p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600"
+            >
+              <Camera className="h-3 w-3" />
+            </button>
+          </div>
+
+          {/* Vehicle Information Grid - Next to Photo */}
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold mb-3">Vehicle Information</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Always show these main fields */}
+              <InfoField label="Registration" value={vehicle.registration_number} icon={<Hash />} required />
+              <InfoField label="Chassis No." value={vehicle.chassis_number} icon={<Settings />} required />
+              <InfoField label="Engine No." value={vehicle.engine_number} icon={<Settings />} required />
+              <InfoField label="Make" value={vehicle.make} icon={<Car />} required />
+              <InfoField label="Model" value={vehicle.model} icon={<Car />} required />
+              <InfoField label="Year" value={vehicle.year} icon={<Calendar />} required />
+              <InfoField label="Type" value={vehicle.type} icon={<Truck />} required />
+              <InfoField label="Fuel" value={vehicle.fuel_type?.toUpperCase()} icon={<Fuel />} required />
+              <InfoField label="Owner" value={vehicle.owner_name} icon={<User />} required />
+              
+              {/* Show these only if they have values */}
+              {vehicle.registration_date && <InfoField label="Reg. Date" value={formatDate(vehicle.registration_date)} icon={<Calendar />} />}
+              {vehicle.current_odometer && vehicle.current_odometer > 0 && <InfoField label="Odometer" value={`${vehicle.current_odometer?.toLocaleString()} km`} icon={<MapPin />} />}
+              {vehicle.tyre_size && <InfoField label="Tyre Size" value={vehicle.tyre_size} icon={<Settings />} />}
+              {vehicle.number_of_tyres && <InfoField label="No. of Tyres" value={vehicle.number_of_tyres} icon={<Settings />} />}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -244,38 +279,48 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
                 {/* Document Actions */}
                 {hasDocument ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doc.urls.map((url, index) => (
-                      <div key={index} className="flex gap-2 p-2 bg-gray-50 rounded-lg">
-                        <button
-                          onClick={() => setSelectedDocument({ type: doc.type, url })}
-                          className="flex items-center gap-2 px-3 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="text-sm font-medium">View</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleDownload(url, `${vehicle.registration_number}_${doc.type}_${index + 1}`)}
-                          className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span className="text-sm font-medium">Download</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => handleShare(doc.type, url)}
-                          className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                        >
-                          <Share2 className="h-4 w-4" />
-                          <span className="text-sm font-medium">Share</span>
-                        </button>
-                      </div>
-                    ))}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => window.open(doc.urls[0], '_blank')}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                    >
+                      <Eye className="h-4 w-4" />
+                      <span>View</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => handleDownload(doc.urls[0], `${vehicle.registration_number}_${doc.type}`)}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>Download</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        const message = `${doc.label} for vehicle ${vehicle.registration_number}: ${doc.urls[0]}`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>WhatsApp</span>
+                    </button>
+                    
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(doc.urls[0]);
+                        toast.success('Link copied to clipboard');
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded hover:bg-gray-100"
+                    >
+                      <Link className="h-4 w-4" />
+                      <span>Copy Link</span>
+                    </button>
                   </div>
                 ) : (
-                  <div className="text-center py-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-500">No document uploaded</p>
+                  <div className="bg-gray-50 rounded p-3 text-center text-sm text-gray-500">
+                    No document uploaded
                   </div>
                 )}
               </div>
@@ -291,6 +336,29 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           onClose={() => setSelectedDocument(null)}
         />
       )}
+    </div>
+  );
+};
+
+// Helper Component for Info Fields
+const InfoField: React.FC<{
+  label: string;
+  value: any;
+  icon: React.ReactNode;
+  required?: boolean;
+}> = ({ label, value, icon, required = false }) => {
+  // Show main fields even if empty, hide optional fields if empty
+  if (!required && !value) return null;
+  
+  return (
+    <div className="flex items-start gap-2">
+      <div className="text-gray-400 mt-0.5">{icon}</div>
+      <div>
+        <p className="text-xs text-gray-500">{label}</p>
+        <p className="text-sm font-medium text-gray-900">
+          {value || '-'}
+        </p>
+      </div>
     </div>
   );
 };
