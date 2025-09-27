@@ -663,7 +663,9 @@ const TripForm: React.FC<TripFormProps> = ({
         userId: user.id,
         userEmail: user.email,
         hasOrgConfig: !!orgConfig,
+        orgConfig: orgConfig,
         vehicleRegNumber: vehicle.registration_number,
+        vehicleId: vehicleId,
         warehousesCount: warehouses.length,
         warehouseNames: warehouses.map(w => w.name)
       });
@@ -703,7 +705,13 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         }
       } else {
-        console.log('❌ No org config or vehicle registration number');
+        console.log('❌ No org config or vehicle registration number', {
+          hasOrgConfig: !!orgConfig,
+          hasVehicleRegNumber: !!vehicle.registration_number,
+          vehicleRegNumber: vehicle.registration_number,
+          userId: user.id,
+          expectedUserId: '216a04c7-3d95-411e-b986-b7a17038bbc3'
+        });
       }
       // End of organizational logic
 
