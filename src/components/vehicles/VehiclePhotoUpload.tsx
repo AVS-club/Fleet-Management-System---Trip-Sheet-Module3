@@ -1,19 +1,16 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Check, Loader, Truck } from 'lucide-react';
+import { Camera, Upload, X, Check, Loader } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
-import { Vehicle } from '../../types';
 
 interface VehiclePhotoUploadProps {
   vehicleId: string;
-  vehicle?: Vehicle | null;
   currentPhotoUrl?: string;
   onPhotoUpdate: (url: string) => void;
 }
 
 const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
   vehicleId,
-  vehicle,
   currentPhotoUrl,
   onPhotoUpdate
 }) => {
@@ -104,12 +101,16 @@ const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-6">
-      {/* Profile-style photo - smaller, rounded */}
+    <div className="w-full">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Vehicle Photo
+      </label>
+      
       <div className="relative">
+        {/* Photo Display/Upload Area */}
         <div 
           onClick={() => !uploading && fileInputRef.current?.click()}
-          className="relative w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden bg-gray-100 border-2 border-gray-200 hover:border-primary-400 transition-all cursor-pointer group"
+          className="relative w-full aspect-[4/3] bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 hover:border-primary-400 transition-colors cursor-pointer overflow-hidden group"
         >
           {preview ? (
             <>
@@ -118,14 +119,18 @@ const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
                 alt="Vehicle"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Camera className="h-6 w-6 text-white" />
+              <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="text-white text-center">
+                  <Camera className="h-8 w-8 mx-auto mb-2" />
+                  <span className="text-sm">Change Photo</span>
+                </div>
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full">
-              <Truck className="h-8 w-8 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-500">Add Photo</span>
+            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+              <Camera className="h-12 w-12 mb-2" />
+              <span className="text-sm font-medium">Add Vehicle Photo</span>
+              <span className="text-xs mt-1">PNG, JPEG, GIF (Max 2MB)</span>
             </div>
           )}
 
@@ -154,9 +159,9 @@ const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
                   toast.success('Photo removed');
                 });
             }}
-            className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600"
+            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
           >
-            <X className="h-3 w-3" />
+            <X className="h-4 w-4" />
           </button>
         )}
 
@@ -171,23 +176,10 @@ const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
         />
       </div>
 
-      {/* Vehicle basic info next to photo */}
-      <div className="flex-1">
-        <h2 className="text-xl font-semibold text-gray-900">
-          {vehicle?.registration_number || 'Vehicle'}
-        </h2>
-        <p className="text-sm text-gray-600">
-          {vehicle?.make} {vehicle?.model} • {vehicle?.year}
-        </p>
-        <div className="flex gap-2 mt-2">
-          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-            {vehicle?.status === 'active' ? 'Active' : vehicle?.status || 'Unknown'}
-          </span>
-          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
-            {vehicle?.fuel_type?.toUpperCase() || 'N/A'}
-          </span>
-        </div>
-      </div>
+      {/* Help Text */}
+      <p className="text-xs text-gray-500 mt-2">
+        Upload a clear photo of your vehicle. Animated GIFs are supported for dynamic displays.
+      </p>
     </div>
   );
 };
