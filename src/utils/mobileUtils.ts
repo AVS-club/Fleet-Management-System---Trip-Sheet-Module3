@@ -47,7 +47,6 @@ export const getViewportDimensions = () => {
 };
 
 // Check if keyboard is open (iOS specific)
-export const isKeyboardOpen = (): boolean => {
 let iosViewportBaseline: number | null = null;
 
 export const isKeyboardOpen = (): boolean => {

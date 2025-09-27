@@ -67,13 +67,12 @@ export const useMobileOptimization = () => {
     document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
 
     return () => {
-    document.body.addEventListener('touchmove', preventPullToRefresh, { passive: false });
-
-    return () => {
       document.body.removeEventListener('touchstart', onTouchStart);
       document.body.removeEventListener('touchmove', preventPullToRefresh);
     };
-  }, [isMobile]);  // Handle touch events for better UX
+  }, [isMobile]);
+
+  // Handle touch events for better UX
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     setTouchStartY(e.touches[0].clientY);
   }, []);

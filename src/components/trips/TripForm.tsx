@@ -42,7 +42,7 @@ import { toast } from 'react-toastify';
 
 // Organizational configuration for auto-selecting warehouses based on vehicle registration
 const ORGANIZATIONAL_CONFIG = {
-  '216a04c7-3d95-411e-b986-b7a17038bbc3': {
+  '216a04c7-9d95-411e-b986-b7a17038bbc3': {
     email: 'cfaraipur19@gmail.com',
     vehiclePattern: /^OD/i,
     warehouseName: 'sambalpur',
