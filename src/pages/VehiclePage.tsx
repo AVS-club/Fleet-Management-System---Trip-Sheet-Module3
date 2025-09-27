@@ -34,6 +34,7 @@ import FuelEfficiencyChart from "../components/analytics/FuelEfficiencyChart";
 import CostAnalytics from "../components/analytics/CostAnalytics";
 import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
+import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +50,7 @@ const VehiclePage: React.FC = () => {
   const [selectedVehicleForShare, setSelectedVehicleForShare] =
     useState<Vehicle | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'overview' | 'maintenance'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'overview' | 'trips' | 'maintenance'>('details');
 
   const [stats, setStats] = useState<{
     totalTrips: number;
@@ -399,6 +400,7 @@ const VehiclePage: React.FC = () => {
               {[
                 { id: 'details', name: 'Details & Documents', icon: <FileCheck className="h-4 w-4" /> },
                 { id: 'overview', name: 'Overview', icon: <BarChart2 className="h-4 w-4" /> },
+                { id: 'trips', name: 'Trips', icon: <Route className="h-4 w-4" /> },
                 { id: 'maintenance', name: 'Maintenance', icon: <Wrench className="h-4 w-4" /> },
               ].map((tab) => (
                 <button
@@ -509,6 +511,10 @@ const VehiclePage: React.FC = () => {
                 />
               </div>
             </div>
+          )}
+
+          {activeTab === 'trips' && (
+            <VehicleTripsTab vehicleId={id || ''} />
           )}
 
 
