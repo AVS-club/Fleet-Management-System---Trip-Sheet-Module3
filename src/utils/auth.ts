@@ -13,39 +13,26 @@ interface Organization {
 }
 
 export const loginWithOrganization = async (credentials: LoginCredentials) => {
-  try {
-    // First, get the organization
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name, username, owner_email')
-      .eq('username', credentials.organizationUsername.toLowerCase())
-      .eq('is_active', true)
-      .single();
+  // Just use email directly - no organization lookup
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: credentials.organizationUsername.includes('@') 
+      ? credentials.organizationUsername 
+      : credentials.organizationUsername + '@gmail.com', // Add domain if missing
+    password: credentials.password
+  });
 
-    if (orgError || !org) {
-      throw new Error('Organization not found or inactive');
-    }
+  if (error) throw error;
 
-    // Login with the organization's email
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: org.owner_email,
-      password: credentials.password
-    });
+  // After login, get organization
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('owner_id', data.user.id)
+    .single();
 
-    if (error) throw error;
-
-    // Store organization context
-    localStorage.setItem('current_organization', JSON.stringify({
-      id: org.id,
-      name: org.name,
-      username: credentials.organizationUsername
-    }));
-
-    return { user: data.user, organization: org };
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
-  }
+  localStorage.setItem('current_organization', JSON.stringify(org));
+  
+  return { user: data.user, organization: org };
 };
 
 export const getCurrentOrganization = (): Organization | null => {

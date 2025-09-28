@@ -51,7 +51,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       )}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Organization Username
+          Email or Username
         </label>
         <div className="relative">
           <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -63,13 +63,13 @@ const LoginForm: React.FC<LoginFormProps> = ({
               ...credentials,
               organizationUsername: e.target.value
             })}
-            placeholder="e.g., shree_durga_enterprises"
+            placeholder="e.g., cfraipur19@gmail.com or cfraipur19"
             className="pl-10 rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
             required
           />
         </div>
         <p className="mt-1 text-xs text-gray-500">
-          Use your organization's username (not email)
+          Enter your full email or just the username (we'll add @gmail.com)
         </p>
       </div>
       <div>
