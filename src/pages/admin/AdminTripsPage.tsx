@@ -47,7 +47,7 @@ const AdminTripsPage: React.FC = () => {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -947,31 +947,78 @@ const AdminTripsPage: React.FC = () => {
           </div>
           
           {showFilters && (
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {/* Advanced Search */}
-                <div className="lg:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                {/* Compact Search */}
+                <div className="sm:col-span-2 lg:col-span-2 xl:col-span-2">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Search
                   </label>
-                  <UnifiedSearchBar
-                    value={filters.search}
-                    onChange={(value) => handleFiltersChange({ search: value })}
-                    onSearch={handleSmartSearch}
-                    isSearching={isSearching}
-                    placeholder="Search trips, vehicles, drivers..."
-                    searchResult={searchResult ? {
-                      totalCount: searchResult.totalCount,
-                      searchTime: searchResult.searchTime,
-                      matchedFields: searchResult.matchedFields
-                    } : undefined}
-                    className="w-full"
-                  />
+                  <div className="relative">
+                    <div className="flex items-center bg-white border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                      {/* Search Icon */}
+                      <div className="pl-3 pr-2">
+                        {isSearching ? (
+                          <div className="h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+                        ) : (
+                          <Search className="h-4 w-4 text-gray-400" />
+                        )}
+                      </div>
+                      
+                      {/* Input Field */}
+                      <input
+                        type="text"
+                        value={filters.search}
+                        onChange={(e) => handleFiltersChange({ search: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && filters.search.length >= 2) {
+                            handleSmartSearch(filters.search);
+                          }
+                        }}
+                        placeholder="Search trips, vehicles, drivers..."
+                        className="flex-1 py-2 px-2 text-sm bg-transparent outline-none placeholder-gray-400"
+                        autoComplete="off"
+                      />
+                      
+                      {/* Quick Search Button */}
+                      {filters.search.length >= 2 && (
+                        <button
+                          onClick={() => handleSmartSearch(filters.search)}
+                          className="px-3 py-1 mr-2 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                        >
+                          Search
+                        </button>
+                      )}
+                      
+                      {/* Clear Button */}
+                      {filters.search && (
+                        <button
+                          onClick={() => {
+                            handleFiltersChange({ search: '' });
+                            setSearchResult(null);
+                          }}
+                          className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Search Results Indicator */}
+                    {searchResult && (
+                      <div className="absolute top-full left-0 right-0 mt-1 px-3 py-1 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-700">
+                        Found {searchResult.totalCount} results
+                        {searchResult.matchedFields && searchResult.matchedFields.length > 0 && (
+                          <span className="ml-2">in: {searchResult.matchedFields.join(', ')}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 {/* Date Range */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     From Date
                   </label>
                   <input
@@ -980,12 +1027,12 @@ const AdminTripsPage: React.FC = () => {
                     onChange={(e) => handleFiltersChange({ 
                       dateRange: { ...filters.dateRange, start: e.target.value }
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     To Date
                   </label>
                   <input
@@ -994,19 +1041,19 @@ const AdminTripsPage: React.FC = () => {
                     onChange={(e) => handleFiltersChange({ 
                       dateRange: { ...filters.dateRange, end: e.target.value }
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 
                 {/* Vehicle Select */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Vehicle
                   </label>
                   <select
                     value={filters.vehicleId}
                     onChange={(e) => handleFiltersChange({ vehicleId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Vehicles</option>
                     {vehicles.map(vehicle => (
@@ -1019,13 +1066,13 @@ const AdminTripsPage: React.FC = () => {
                 
                 {/* Driver Select */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Driver
                   </label>
                   <select
                     value={filters.driverId}
                     onChange={(e) => handleFiltersChange({ driverId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Drivers</option>
                     {drivers.map(driver => (
@@ -1038,13 +1085,13 @@ const AdminTripsPage: React.FC = () => {
                 
                 {/* Warehouse Select */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Warehouse
                   </label>
                   <select
                     value={filters.warehouseId}
                     onChange={(e) => handleFiltersChange({ warehouseId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Warehouses</option>
                     {warehouses.map(warehouse => (
@@ -1057,13 +1104,13 @@ const AdminTripsPage: React.FC = () => {
                 
                 {/* Trip Type Select */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
                     Trip Type
                   </label>
                   <select
                     value={filters.tripType}
                     onChange={(e) => handleFiltersChange({ tripType: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">All Types</option>
                     <option value="one_way">One Way</option>
