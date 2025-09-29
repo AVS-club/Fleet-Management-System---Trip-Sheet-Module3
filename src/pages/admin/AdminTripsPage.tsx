@@ -603,31 +603,51 @@ const AdminTripsPage: React.FC = () => {
     setDatePreset('last30');
   };
 
-  const handleExport = async (options: ExportOptions) => {
+  const handleExport = async (options?: ExportOptions) => {
     try {
-      // Use filtered trips as the base
-      let exportTrips = [...filteredTrips];
+      console.log('Starting export...');
+      console.log('Filtered trips count:', filteredTrips.length);
+      console.log('Total trips count:', trips.length);
       
-      // Apply additional export options if provided
-      if (options.dateRange?.start) {
+      // Use filteredTrips directly if no options provided, otherwise use trips as fallback
+      let exportTrips = filteredTrips.length > 0 ? [...filteredTrips] : [...trips];
+      
+      // Apply additional filters only if options are provided
+      if (options?.dateRange?.start) {
         exportTrips = exportTrips.filter(trip => 
           new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
         );
       }
       
-      if (options.dateRange?.end) {
+      if (options?.dateRange?.end) {
         exportTrips = exportTrips.filter(trip => 
           new Date(trip.trip_end_date) <= new Date(options.dateRange.end + 'T23:59:59')
         );
       }
       
-      // Prepare data for export
+      if (options?.vehicleId) {
+        exportTrips = exportTrips.filter(trip => trip.vehicle_id === options.vehicleId);
+      }
+      
+      if (options?.driverId) {
+        exportTrips = exportTrips.filter(trip => trip.driver_id === options.driverId);
+      }
+      
+      console.log('Export trips count after filters:', exportTrips.length);
+      
+      // If no trips to export
+      if (exportTrips.length === 0) {
+        toast.warning('No trips found to export');
+        return;
+      }
+      
+      // Prepare data for export with all trip details
       const exportData = exportTrips.map(trip => {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
         const driver = driversMap.get(trip.driver_id);
         const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
         
-        const distance = trip.end_km - trip.start_km;
+        const distance = (trip.end_km || 0) - (trip.start_km || 0);
         const totalExpense = (trip.total_fuel_cost || 0) + 
                             (trip.total_road_expenses || 0) + 
                             (trip.unloading_expense || 0) + 
@@ -637,71 +657,94 @@ const AdminTripsPage: React.FC = () => {
                             (trip.miscellaneous_expense || 0);
         
         return {
-          'Trip ID': trip.trip_serial_number,
-          'Start Date': format(new Date(trip.trip_start_date), 'dd/MM/yyyy'),
-          'End Date': format(new Date(trip.trip_end_date), 'dd/MM/yyyy'),
+          'Trip ID': trip.trip_serial_number || '',
+          'Start Date': trip.trip_start_date ? format(new Date(trip.trip_start_date), 'dd/MM/yyyy') : '',
+          'End Date': trip.trip_end_date ? format(new Date(trip.trip_end_date), 'dd/MM/yyyy') : '',
           'Vehicle': vehicle?.registration_number || 'N/A',
           'Driver': driver?.name || 'N/A',
-          'Warehouse': warehouse?.name || 'N/A',
-          'Start KM': trip.start_km,
-          'End KM': trip.end_km,
+          'Source Warehouse': warehouse?.name || 'N/A',
+          'Destinations': Array.isArray(trip.destinations) ? trip.destinations.join(', ') : '',
+          'Start KM': trip.start_km || 0,
+          'End KM': trip.end_km || 0,
           'Distance (KM)': distance,
-          'Mileage (km/L)': trip.calculated_kmpl?.toFixed(2) || '-',
-          'Fuel Cost': trip.total_fuel_cost || 0,
-          'Road Expenses': trip.total_road_expenses || 0,
-          'Other Expenses': (trip.unloading_expense || 0) + 
-                           (trip.driver_expense || 0) + 
-                           (trip.road_rto_expense || 0) + 
-                           (trip.breakdown_expense || 0) + 
-                           (trip.miscellaneous_expense || 0),
-          'Total Expense': totalExpense,
-          'Revenue': trip.income_amount || 0,
-          'Net Profit/Loss': trip.net_profit || (trip.income_amount ? trip.income_amount - totalExpense : -totalExpense),
-          'Trip Type': Array.isArray(trip.destinations) && trip.destinations.length > 1 ? 'Two Way' : 'One Way'
+          'Fuel Quantity (L)': trip.fuel_quantity || 0,
+          'Mileage (km/L)': trip.calculated_kmpl ? trip.calculated_kmpl.toFixed(2) : '-',
+          'Fuel Cost (₹)': trip.total_fuel_cost || 0,
+          'Road Expenses (₹)': trip.total_road_expenses || 0,
+          'Unloading Expense (₹)': trip.unloading_expense || 0,
+          'Driver Expense (₹)': trip.driver_expense || 0,
+          'RTO Expense (₹)': trip.road_rto_expense || 0,
+          'Breakdown Expense (₹)': trip.breakdown_expense || 0,
+          'Miscellaneous Expense (₹)': trip.miscellaneous_expense || 0,
+          'Total Expense (₹)': totalExpense,
+          'Income Amount (₹)': trip.income_amount || 0,
+          'Net Profit/Loss (₹)': trip.net_profit || (trip.income_amount ? trip.income_amount - totalExpense : -totalExpense),
+          'Profit Status': trip.profit_status || 'N/A',
+          'Trip Type': Array.isArray(trip.destinations) && trip.destinations.length > 1 ? 'Two Way' : 'One Way',
+          'Billing Type': trip.billing_type || 'N/A',
+          'Freight Rate': trip.freight_rate || 0,
+          'Notes': trip.notes || ''
         };
       });
       
-      // Export based on format
-      if (options.format === 'xlsx' || !options.format) {
-        const ws = XLSX.utils.json_to_sheet(exportData);
-        const wb = XLSX.utils.book_new();
-        
-        // Set column widths
-        const colWidths = [
-          { wch: 12 }, // Trip ID
-          { wch: 12 }, // Start Date
-          { wch: 12 }, // End Date
-          { wch: 15 }, // Vehicle
-          { wch: 20 }, // Driver
-          { wch: 20 }, // Warehouse
-          { wch: 10 }, // Start KM
-          { wch: 10 }, // End KM
-          { wch: 12 }, // Distance
-          { wch: 12 }, // Mileage
-          { wch: 10 }, // Fuel Cost
-          { wch: 12 }, // Road Expenses
-          { wch: 12 }, // Other Expenses
-          { wch: 12 }, // Total Expense
-          { wch: 10 }, // Revenue
-          { wch: 15 }, // Net Profit/Loss
-          { wch: 10 }, // Trip Type
-        ];
-        ws['!cols'] = colWidths;
-        
-        XLSX.utils.book_append_sheet(wb, ws, 'Trips');
-        XLSX.writeFile(wb, `trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.xlsx`);
-        
-        toast.success(`Successfully exported ${exportData.length} trips`);
-      } else if (options.format === 'csv') {
-        const csv = await generateCSV(exportData, {});
-        downloadCSV(`trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`, csv);
-        toast.success(`Successfully exported ${exportData.length} trips`);
+      console.log('Export data sample:', exportData[0]);
+      console.log('Total export data rows:', exportData.length);
+      
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      // Set column widths for better readability
+      const colWidths = [
+        { wch: 15 }, // Trip ID
+        { wch: 12 }, // Start Date
+        { wch: 12 }, // End Date
+        { wch: 15 }, // Vehicle
+        { wch: 20 }, // Driver
+        { wch: 20 }, // Source Warehouse
+        { wch: 30 }, // Destinations
+        { wch: 10 }, // Start KM
+        { wch: 10 }, // End KM
+        { wch: 12 }, // Distance
+        { wch: 12 }, // Fuel Quantity
+        { wch: 12 }, // Mileage
+        { wch: 12 }, // Fuel Cost
+        { wch: 14 }, // Road Expenses
+        { wch: 16 }, // Unloading Expense
+        { wch: 14 }, // Driver Expense
+        { wch: 12 }, // RTO Expense
+        { wch: 16 }, // Breakdown Expense
+        { wch: 18 }, // Miscellaneous Expense
+        { wch: 14 }, // Total Expense
+        { wch: 14 }, // Income Amount
+        { wch: 16 }, // Net Profit/Loss
+        { wch: 12 }, // Profit Status
+        { wch: 10 }, // Trip Type
+        { wch: 12 }, // Billing Type
+        { wch: 12 }, // Freight Rate
+        { wch: 30 }, // Notes
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Trips Report');
+      
+      // Generate filename with timestamp
+      const fileName = `trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.xlsx`;
+      
+      // Write file
+      XLSX.writeFile(wb, fileName);
+      
+      toast.success(`Successfully exported ${exportData.length} trips to ${fileName}`);
+      
+      // Close modal if it's open
+      if (setShowExportModal) {
+        setShowExportModal(false);
       }
       
-      setShowExportModal(false);
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Failed to export trips. Please try again.');
+      toast.error('Failed to export trips. Please check console for details.');
     }
   };
 
@@ -821,7 +864,7 @@ const AdminTripsPage: React.FC = () => {
                   Import
                 </button>
                 <button
-                  onClick={() => setShowExportModal(true)}
+                  onClick={() => handleExport()}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-1"
                 >
                   <Download className="h-4 w-4" />
