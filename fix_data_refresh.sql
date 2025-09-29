@@ -35,9 +35,22 @@ CREATE POLICY "Users can update own profile" ON public.profiles
 
 DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
 CREATE POLICY "Users can insert own profile" ON public.profiles
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- 5. Fix activity log tables if they have issues
+-- First, check if user_activity_log exists and drop it if it has wrong structure
+DO $$ 
+BEGIN
+    -- Check if the table exists and has the wrong column name
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user_activity_log') THEN
+        -- Check if it has user_id column
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'user_activity_log' AND column_name = 'user_id') THEN
+            DROP TABLE IF EXISTS user_activity_log CASCADE;
+        END IF;
+    END IF;
+END $$;
+
+-- Create the table with correct structure
 CREATE TABLE IF NOT EXISTS user_activity_log (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -62,14 +75,19 @@ CREATE INDEX IF NOT EXISTS idx_user_activity_log_timestamp ON user_activity_log(
 -- 7. Enable RLS for activity logs
 ALTER TABLE user_activity_log ENABLE ROW LEVEL SECURITY;
 
--- 8. Create policies for activity logs
-DROP POLICY IF EXISTS "Users can view own activity logs" ON user_activity_log;
-CREATE POLICY "Users can view own activity logs" ON user_activity_log
-    FOR SELECT USING (auth.uid() = user_id);
+-- 8. Create policies for activity logs (only if table exists)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'user_activity_log') THEN
+        DROP POLICY IF EXISTS "Users can view own activity logs" ON user_activity_log;
+        CREATE POLICY "Users can view own activity logs" ON user_activity_log
+            FOR SELECT USING (auth.uid() = user_id);
 
-DROP POLICY IF EXISTS "Users can insert own activity logs" ON user_activity_log;
-CREATE POLICY "Users can insert own activity logs" ON user_activity_log
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
+        DROP POLICY IF EXISTS "Users can insert own activity logs" ON user_activity_log;
+        CREATE POLICY "Users can insert own activity logs" ON user_activity_log
+            FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
 
 -- 9. Grant permissions
 GRANT SELECT, INSERT ON public.profiles TO authenticated;
