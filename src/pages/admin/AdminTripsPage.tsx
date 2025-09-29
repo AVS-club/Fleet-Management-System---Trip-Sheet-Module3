@@ -8,6 +8,7 @@ import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import { supabase } from '../../utils/supabaseClient';
+import { forceDataRefresh, testDatabaseConnection, clearCacheAndRefresh } from '../../utils/forceDataRefresh';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, 
          startOfYear, endOfYear, subWeeks, subMonths, subYears } from 'date-fns';
 import Button from '../../components/ui/Button';
@@ -197,10 +198,72 @@ const AdminTripsPage: React.FC = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  // Refresh data function
-  const refreshData = async () => {
+  // Enhanced refresh data function with force refresh capability
+  const refreshData = async (forceRefresh = false) => {
     try {
       setRefreshing(true);
+      
+      if (forceRefresh) {
+        console.log('🔄 Using force refresh...');
+        const result = await forceDataRefresh();
+        
+        if (result.success) {
+          // Get fresh data after force refresh
+          const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+            getTrips(),
+            getVehicles(),
+            getDrivers(),
+            getWarehouses()
+          ]);
+          setTrips(tripsData);
+          setVehicles(vehiclesData);
+          setDrivers(driversData);
+          setWarehouses(warehousesData);
+          
+          await fetchSummaryMetrics();
+          toast.success(`Force refresh completed: ${result.tripsCount} trips, ${result.vehiclesCount} vehicles, ${result.driversCount} drivers`);
+        } else {
+          toast.error(`Force refresh failed: ${result.error}`);
+        }
+      } else {
+        // Normal refresh
+        const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+          getTrips(),
+          getVehicles(),
+          getDrivers(),
+          getWarehouses()
+        ]);
+        setTrips(tripsData);
+        setVehicles(vehiclesData);
+        setDrivers(driversData);
+        setWarehouses(warehousesData);
+        
+        await fetchSummaryMetrics();
+        toast.success("Data refreshed successfully");
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast.error("Failed to refresh data");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Test database connection
+  const testConnection = async () => {
+    const isConnected = await testDatabaseConnection();
+    if (isConnected) {
+      toast.success("Database connection is working");
+    } else {
+      toast.error("Database connection failed - check console for details");
+    }
+  };
+
+  // Clear cache and force refresh
+  const clearCacheAndForceRefresh = async () => {
+    const result = await clearCacheAndRefresh();
+    if (result.success) {
+      // Update local state
       const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
         getTrips(),
         getVehicles(),
@@ -213,12 +276,6 @@ const AdminTripsPage: React.FC = () => {
       setWarehouses(warehousesData);
       
       await fetchSummaryMetrics();
-      toast.success("Data refreshed successfully");
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      toast.error("Failed to refresh data");
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -598,11 +655,35 @@ const AdminTripsPage: React.FC = () => {
               <Button
                 variant="outline" 
                 inputSize="sm" 
-                onClick={refreshData}
+                onClick={() => refreshData(false)}
                 icon={<RefreshCw className="h-4 w-4" />}
                 isLoading={refreshing}
+                title="Normal refresh"
               >
                 Refresh
+              </Button>
+              
+              <Button
+                variant="outline" 
+                inputSize="sm" 
+                onClick={() => refreshData(true)}
+                icon={<RefreshCw className="h-4 w-4" />}
+                isLoading={refreshing}
+                title="Force refresh - clears cache and reconnects"
+                className="bg-blue-50 hover:bg-blue-100 border-blue-200"
+              >
+                Force Refresh
+              </Button>
+              
+              <Button
+                variant="outline" 
+                inputSize="sm" 
+                onClick={testConnection}
+                icon={<RefreshCw className="h-4 w-4" />}
+                title="Test database connection"
+                className="bg-green-50 hover:bg-green-100 border-green-200"
+              >
+                Test DB
               </Button>
               
               <Button
