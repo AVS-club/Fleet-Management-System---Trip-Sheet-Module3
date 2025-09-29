@@ -15,6 +15,8 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload } from 'lucide-react';
+import UnifiedSearchBar from '../../components/trips/UnifiedSearchBar';
+import { comprehensiveSearchTrips } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
@@ -50,6 +52,8 @@ const AdminTripsPage: React.FC = () => {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fixingMileage, setFixingMileage] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState<any>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
@@ -319,8 +323,50 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
+  // Handle smart search with field selection
+  const handleSmartSearch = async (searchTerm: string, searchField?: string) => {
+    if (searchTerm.length < 2) {
+      // Clear search if term is too short
+      setSearchResult(null);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const result = await comprehensiveSearchTrips(
+        searchTerm,
+        searchField,
+        trips,
+        vehicles,
+        drivers,
+        warehouses,
+        { page: currentPage, limit: tripsPerPage }
+      );
+      
+      setSearchResult(result);
+      
+      // Show appropriate message based on field
+      if (result.totalCount === 0) {
+        toast.info(`No trips found matching "${searchTerm}"${searchField ? ` in ${searchField}` : ''}`);
+      } else {
+        const fieldName = searchField ? ` in ${searchField}` : ' in all fields';
+        toast.success(`Found ${result.totalCount} trips${fieldName}`);
+      }
+    } catch (error) {
+      console.error('Smart search error:', error);
+      toast.error('Search failed. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   // Filter trips based on current filters
   const filteredTrips = useMemo(() => {
+    // If we have search results, use them instead of basic filtering
+    if (searchResult && searchResult.trips) {
+      return searchResult.trips;
+    }
+    
     return trips.filter(trip => {
       // Search filter
       if (filters.search) {
@@ -384,7 +430,7 @@ const AdminTripsPage: React.FC = () => {
 
       return true;
     });
-  }, [trips, vehiclesMap, driversMap, filters]);
+  }, [trips, vehiclesMap, driversMap, filters, searchResult]);
 
   // Calculate pagination
   const indexOfLastTrip = currentPage * tripsPerPage;
@@ -611,6 +657,7 @@ const AdminTripsPage: React.FC = () => {
       search: ''
     });
     setDatePreset('last30');
+    setSearchResult(null); // Clear search results
   };
 
   const handleExport = async () => {
@@ -902,21 +949,24 @@ const AdminTripsPage: React.FC = () => {
           {showFilters && (
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {/* Search Input */}
+                {/* Advanced Search */}
                 <div className="lg:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search
                   </label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search trips, vehicles, drivers..."
-                      value={filters.search}
-                      onChange={(e) => handleFiltersChange({ search: e.target.value })}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+                  <UnifiedSearchBar
+                    value={filters.search}
+                    onChange={(value) => handleFiltersChange({ search: value })}
+                    onSearch={handleSmartSearch}
+                    isSearching={isSearching}
+                    placeholder="Search trips, vehicles, drivers..."
+                    searchResult={searchResult ? {
+                      totalCount: searchResult.totalCount,
+                      searchTime: searchResult.searchTime,
+                      matchedFields: searchResult.matchedFields
+                    } : undefined}
+                    className="w-full"
+                  />
                 </div>
                 
                 {/* Date Range */}
