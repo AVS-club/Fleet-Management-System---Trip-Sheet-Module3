@@ -613,108 +613,121 @@ const AdminTripsPage: React.FC = () => {
     setDatePreset('last30');
   };
 
-  const handleExport = async (options?: ExportOptions) => {
+  const handleExport = async () => {
     try {
-      console.log('Starting export...');
-      console.log('Filtered trips count:', filteredTrips.length);
-      console.log('Total trips count:', trips.length);
+      // Use filtered trips from the current view
+      const tripsToExport = filteredTrips.length > 0 ? filteredTrips : trips;
       
-      // Use filteredTrips directly if no options provided, otherwise use trips as fallback
-      let exportTrips = filteredTrips.length > 0 ? [...filteredTrips] : [...trips];
-      
-      // Apply additional filters only if options are provided
-      if (options?.dateRange?.start) {
-        exportTrips = exportTrips.filter(trip => 
-          new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
-        );
-      }
-      
-      if (options?.dateRange?.end) {
-        exportTrips = exportTrips.filter(trip => 
-          new Date(trip.trip_end_date) <= new Date(options.dateRange.end + 'T23:59:59')
-        );
-      }
-      
-      if (options?.vehicleId) {
-        exportTrips = exportTrips.filter(trip => trip.vehicle_id === options.vehicleId);
-      }
-      
-      if (options?.driverId) {
-        exportTrips = exportTrips.filter(trip => trip.driver_id === options.driverId);
-      }
-      
-      console.log('Export trips count after filters:', exportTrips.length);
-      
-      // If no trips to export
-      if (exportTrips.length === 0) {
-        toast.warning('No trips found to export');
+      if (tripsToExport.length === 0) {
+        toast.error('No trips available to export');
         return;
       }
       
-      // Prepare data for export with all trip details
-      const exportData = exportTrips.map(trip => {
+      // Get destinations for name mapping
+      const destinations = await getDestinations();
+      const destinationMap = new Map(destinations.map(d => [d.id, d.name]));
+      
+      console.log('Exporting trips:', tripsToExport.length);
+      
+      const exportData = tripsToExport.map(trip => {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
         const driver = driversMap.get(trip.driver_id);
         const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
         
+        // Calculate distance
         const distance = (trip.end_km || 0) - (trip.start_km || 0);
-        const totalExpense = (trip.total_fuel_cost || 0) + 
-                            (trip.total_road_expenses || 0) + 
-                            (trip.unloading_expense || 0) + 
-                            (trip.driver_expense || 0) + 
-                            (trip.road_rto_expense || 0) + 
-                            (trip.breakdown_expense || 0) + 
-                            (trip.miscellaneous_expense || 0);
+        
+        // Handle fuel calculations
+        let fuelCost = trip.total_fuel_cost || 0;
+        let fuelRatePerLiter = trip.fuel_rate_per_liter || 0;
+        
+        // Calculate fuel rate if we have cost and quantity
+        if (fuelCost > 0 && trip.fuel_quantity > 0 && !fuelRatePerLiter) {
+          fuelRatePerLiter = fuelCost / trip.fuel_quantity;
+        }
+        
+        // If still no fuel rate but we have quantity, use default rate
+        if (trip.fuel_quantity > 0 && !fuelRatePerLiter && fuelCost === 0) {
+          fuelRatePerLiter = 93.33; // Average diesel price
+          fuelCost = trip.fuel_quantity * fuelRatePerLiter;
+        }
+        
+        // Calculate PROPER total expense INCLUDING all components
+        const totalExpense = 
+          (fuelCost || 0) +
+          (trip.total_road_expenses || 0) +
+          (trip.unloading_expense || 0) +
+          (trip.driver_expense || 0) +
+          (trip.road_rto_expense || 0) +
+          (trip.breakdown_expense || 0) +
+          (trip.miscellaneous_expense || 0);
+        
+        // Convert destination IDs to names
+        let destinationNames = '';
+        if (trip.destinations && Array.isArray(trip.destinations)) {
+          destinationNames = trip.destinations
+            .map(destId => {
+              // Check if it's already a name or needs mapping
+              if (typeof destId === 'string' && destId.includes('-')) {
+                // It's a UUID, map it
+                return destinationMap.get(destId) || 'Unknown';
+              }
+              return destId; // It's already a name
+            })
+            .join(', ');
+        } else if (trip.destinations) {
+          destinationNames = destinationMap.get(trip.destinations) || trip.destinations;
+        }
+        
+        // Determine trip type correctly based on short_trip flag
+        let tripType = 'One Way';
+        if (trip.short_trip === true) {
+          tripType = 'Return Trip';
+        } else if (trip.return_trip === true) {
+          tripType = 'Return Trip';
+        } else if (Array.isArray(trip.destinations) && trip.destinations.length > 1) {
+          tripType = 'Multi-Stop';
+        }
+        
+        // Calculate mileage if not present
+        let mileage = trip.calculated_kmpl || 0;
+        if (!mileage && trip.fuel_quantity > 0) {
+          mileage = distance / trip.fuel_quantity;
+        }
         
         return {
-          'Trip ID': trip.trip_serial_number || '',
-          'Start Date': trip.trip_start_date ? format(new Date(trip.trip_start_date), 'dd/MM/yyyy') : '',
-          'End Date': trip.trip_end_date ? format(new Date(trip.trip_end_date), 'dd/MM/yyyy') : '',
-          'Vehicle': vehicle?.registration_number || 'N/A',
-          'Driver': driver?.name || 'N/A',
-          'Source Warehouse': warehouse?.name || 'N/A',
-          'Destinations': trip.destinations && Array.isArray(trip.destinations) 
-            ? trip.destinations.map(destId => {
-                // If it's already a name (string without UUID pattern), return as is
-                if (typeof destId === 'string' && !destId.includes('-')) {
-                  return destId;
-                }
-                // Otherwise look up the name from destinationsMap
-                return destinationsMap.get(destId) || destId;
-              }).join(', ')
-            : trip.destinations 
-              ? (typeof trip.destinations === 'string' && !trip.destinations.includes('-')
-                  ? trip.destinations 
-                  : destinationsMap.get(trip.destinations) || trip.destinations)
-              : 'N/A',
-          'Start KM': trip.start_km || 0,
-          'End KM': trip.end_km || 0,
-          'Distance (KM)': distance,
-          'Fuel Quantity (L)': trip.fuel_quantity || 0,
-          'Mileage (km/L)': trip.calculated_kmpl ? trip.calculated_kmpl.toFixed(2) : '-',
-          'Fuel Cost (₹)': trip.total_fuel_cost || 0,
-          'Road Expenses (₹)': trip.total_road_expenses || 0,
-          'Unloading Expense (₹)': trip.unloading_expense || 0,
-          'Driver Expense (₹)': trip.driver_expense || 0,
-          'RTO Expense (₹)': trip.road_rto_expense || 0,
-          'Breakdown Expense (₹)': trip.breakdown_expense || 0,
-          'Miscellaneous Expense (₹)': trip.miscellaneous_expense || 0,
-          'Total Expense (₹)': totalExpense,
-          'Income Amount (₹)': trip.income_amount || 0,
-          'Net Profit/Loss (₹)': trip.net_profit || (trip.income_amount ? trip.income_amount - totalExpense : -totalExpense),
-          'Profit Status': trip.profit_status || 'N/A',
-          'Trip Type': Array.isArray(trip.destinations) && trip.destinations.length > 1 ? 'Two Way' : 'One Way',
-          'Billing Type': trip.billing_type || 'N/A',
-          'Freight Rate': trip.freight_rate || 0,
-          'Notes': trip.notes || ''
+          'TRIP ID': trip.trip_serial_number || '',
+          'START DATE': trip.trip_start_date ? 
+            new Date(trip.trip_start_date).toLocaleDateString('en-GB') : '',
+          'END DATE': trip.trip_end_date ? 
+            new Date(trip.trip_end_date).toLocaleDateString('en-GB') : '',
+          'VEHICLE': vehicle?.registration_number || '',
+          'DRIVER': driver?.name || '',
+          'SOURCE WAREHOUSE': warehouse?.name || '',
+          'DESTINATIONS': destinationNames || 'N/A',
+          'START KM': trip.start_km || 0,
+          'END KM': trip.end_km || 0,
+          'DISTANCE (KM)': distance,
+          'FUEL QUANTITY (L)': parseFloat(trip.fuel_quantity || 0).toFixed(2),
+          'FUEL RATE (₹/L)': parseFloat(fuelRatePerLiter || 0).toFixed(2),
+          'FUEL COST (₹)': parseFloat(fuelCost || 0).toFixed(2),
+          'MILEAGE (km/L)': parseFloat(mileage || 0).toFixed(2),
+          'ROAD EXPENSES (₹)': parseFloat(trip.total_road_expenses || 0).toFixed(2),
+          'UNLOADING EXPENSE (₹)': parseFloat(trip.unloading_expense || 0).toFixed(2),
+          'DRIVER EXPENSE (₹)': parseFloat(trip.driver_expense || 0).toFixed(2),
+          'RTO EXPENSE (₹)': parseFloat(trip.road_rto_expense || 0).toFixed(2),
+          'BREAKDOWN EXPENSE (₹)': parseFloat(trip.breakdown_expense || 0).toFixed(2),
+          'MISC EXPENSE (₹)': parseFloat(trip.miscellaneous_expense || 0).toFixed(2),
+          'TOTAL EXPENSE (₹)': parseFloat(totalExpense).toFixed(2),
+          'TRIP TYPE': tripType,
+          'BILLING TYPE': trip.billing_type || 'N/A',
+          'INCOME (₹)': parseFloat(trip.income_amount || 0).toFixed(2),
+          'NET PROFIT/LOSS (₹)': parseFloat((trip.income_amount || 0) - totalExpense).toFixed(2)
         };
       });
       
-      console.log('Export data sample:', exportData[0]);
-      console.log('Total export data rows:', exportData.length);
-      
-      // Create worksheet
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      // Create Excel workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
       
       // Set column widths for better readability
       const colWidths = [
@@ -722,48 +735,37 @@ const AdminTripsPage: React.FC = () => {
         { wch: 12 }, // Start Date
         { wch: 12 }, // End Date
         { wch: 15 }, // Vehicle
-        { wch: 20 }, // Driver
-        { wch: 20 }, // Source Warehouse
-        { wch: 30 }, // Destinations
+        { wch: 25 }, // Driver
+        { wch: 25 }, // Source Warehouse
+        { wch: 35 }, // Destinations
         { wch: 10 }, // Start KM
         { wch: 10 }, // End KM
         { wch: 12 }, // Distance
-        { wch: 12 }, // Fuel Quantity
-        { wch: 12 }, // Mileage
+        { wch: 14 }, // Fuel Quantity
+        { wch: 12 }, // Fuel Rate
         { wch: 12 }, // Fuel Cost
+        { wch: 12 }, // Mileage
         { wch: 14 }, // Road Expenses
-        { wch: 16 }, // Unloading Expense
+        { wch: 16 }, // Unloading
         { wch: 14 }, // Driver Expense
-        { wch: 12 }, // RTO Expense
-        { wch: 16 }, // Breakdown Expense
-        { wch: 18 }, // Miscellaneous Expense
+        { wch: 12 }, // RTO
+        { wch: 14 }, // Breakdown
+        { wch: 12 }, // Misc
         { wch: 14 }, // Total Expense
-        { wch: 14 }, // Income Amount
-        { wch: 16 }, // Net Profit/Loss
-        { wch: 12 }, // Profit Status
-        { wch: 10 }, // Trip Type
+        { wch: 12 }, // Trip Type
         { wch: 12 }, // Billing Type
-        { wch: 12 }, // Freight Rate
-        { wch: 30 }, // Notes
+        { wch: 12 }, // Income
+        { wch: 16 }, // Net Profit/Loss
       ];
-      ws['!cols'] = colWidths;
+      worksheet['!cols'] = colWidths;
       
-      // Create workbook
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Trips Report');
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Trips Report');
       
-      // Generate filename with timestamp
       const fileName = `trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
       
-      // Write file
-      XLSX.writeFile(wb, fileName);
-      
-      toast.success(`Successfully exported ${exportData.length} trips to ${fileName}`);
-      
-      // Close modal if it's open
-      if (setShowExportModal) {
-        setShowExportModal(false);
-      }
+      toast.success(`Successfully exported ${exportData.length} trips!`);
       
     } catch (error) {
       console.error('Export failed:', error);
