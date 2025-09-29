@@ -366,6 +366,10 @@ interface VehicleStats {
   totalTrips: number;
   totalDistance: number;
   averageKmpl?: number;
+  totalCost?: number;
+  costPerKm?: number;
+  monthlyAverage?: number;
+  tripAverage?: number;
 }
 
 export const getAllVehicleStats = async (
@@ -474,12 +478,25 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
-    // Get trips for this vehicle
-    const { data: trips, error } = await supabase // ⚠️ Confirm field refactor here
-      .from('trips') // ⚠️ Confirm field refactor here
-      .select('start_km, end_km, calculated_kmpl')
+    // Get trips for this vehicle with cost data
+    const { data: trips, error } = await supabase
+      .from('trips')
+      .select(`
+        start_km, 
+        end_km, 
+        calculated_kmpl,
+        total_fuel_cost,
+        total_road_expenses,
+        unloading_expense,
+        driver_expense,
+        road_rto_expense,
+        breakdown_expense,
+        miscellaneous_expense,
+        trip_start_date
+      `)
       .eq('created_by', user.id)
-      .eq('vehicle_id', vehicleId);
+      .eq('vehicle_id', vehicleId)
+      .is('deleted_at', null); // Exclude soft-deleted trips
 
     if (error) {
       handleSupabaseError('fetch vehicle trips', error);
@@ -487,31 +504,108 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     }
 
     if (!trips || trips.length === 0) {
-      return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+      return { 
+        totalTrips: 0, 
+        totalDistance: 0, 
+        averageKmpl: undefined,
+        totalCost: 0,
+        costPerKm: 0,
+        monthlyAverage: 0,
+        tripAverage: 0
+      };
     }
 
-    // Calculate stats
+    // Calculate basic stats
     const totalTrips = trips.length;
-    const totalDistance = trips.reduce((sum, trip) => sum + (trip.end_km - trip.start_km), 0);
+    const totalDistance = trips.reduce((sum: number, trip: any) => sum + (trip.end_km - trip.start_km), 0);
     
     // Calculate average KMPL from trips with calculated_kmpl
-    const tripsWithKmpl = trips.filter(trip => trip.calculated_kmpl);
+    const tripsWithKmpl = trips.filter((trip: any) => trip.calculated_kmpl);
     const averageKmpl = tripsWithKmpl.length > 0
-      ? tripsWithKmpl.reduce((sum, trip) => sum + trip.calculated_kmpl, 0) / tripsWithKmpl.length
+      ? tripsWithKmpl.reduce((sum: number, trip: any) => sum + trip.calculated_kmpl, 0) / tripsWithKmpl.length
       : undefined;
+
+    // Calculate cost analytics
+    let totalCost = 0;
+    const monthlyCosts: { [key: string]: number } = {};
+
+    trips.forEach((trip: any) => {
+      // Calculate total cost for this trip
+      const tripCost = 
+        (trip.total_fuel_cost || 0) +
+        (trip.total_road_expenses || 0) +
+        (trip.unloading_expense || 0) +
+        (trip.driver_expense || 0) +
+        (trip.road_rto_expense || 0) +
+        (trip.breakdown_expense || 0) +
+        (trip.miscellaneous_expense || 0);
+
+      totalCost += tripCost;
+
+      // Track monthly costs for monthly average calculation
+      if (trip.trip_start_date) {
+        const tripDate = new Date(trip.trip_start_date);
+        const monthKey = `${tripDate.getFullYear()}-${tripDate.getMonth()}`;
+        monthlyCosts[monthKey] = (monthlyCosts[monthKey] || 0) + tripCost;
+      }
+    });
+
+    // Calculate derived metrics
+    const costPerKm = totalDistance > 0 ? totalCost / totalDistance : 0;
+    const tripAverage = totalTrips > 0 ? totalCost / totalTrips : 0;
+    
+    // Calculate monthly average (average of all months with data)
+    const monthlyValues = Object.values(monthlyCosts);
+    const monthlyAverage = monthlyValues.length > 0 
+      ? monthlyValues.reduce((sum, cost) => sum + cost, 0) / monthlyValues.length 
+      : 0;
+
+    // Log cost analytics for debugging
+    if (config.isDev) {
+      console.log('💰 Vehicle Cost Analytics:', {
+        vehicleId,
+        totalTrips,
+        totalDistance,
+        totalCost,
+        costPerKm,
+        monthlyAverage,
+        tripAverage,
+        monthlyCosts
+      });
+    }
 
     return {
       totalTrips,
       totalDistance,
-      averageKmpl
+      averageKmpl,
+      totalCost,
+      costPerKm,
+      monthlyAverage,
+      tripAverage
     };
   } catch (error) {
     if (isNetworkError(error)) {
       if (config.isDev) console.warn('Network error calculating vehicle stats, returning defaults');
-      return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+      return { 
+        totalTrips: 0, 
+        totalDistance: 0, 
+        averageKmpl: undefined,
+        totalCost: 0,
+        costPerKm: 0,
+        monthlyAverage: 0,
+        tripAverage: 0
+      };
     }
     handleSupabaseError('calculate vehicle stats', error);
-    return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+    return { 
+      totalTrips: 0, 
+      totalDistance: 0, 
+      averageKmpl: undefined,
+      totalCost: 0,
+      costPerKm: 0,
+      monthlyAverage: 0,
+      tripAverage: 0
+    };
   }
 };
 

@@ -56,9 +56,17 @@ const VehiclePage: React.FC = () => {
     totalTrips: number;
     totalDistance: number;
     averageKmpl?: number;
+    totalCost?: number;
+    costPerKm?: number;
+    monthlyAverage?: number;
+    tripAverage?: number;
   }>({
     totalTrips: 0,
     totalDistance: 0,
+    totalCost: 0,
+    costPerKm: 0,
+    monthlyAverage: 0,
+    tripAverage: 0,
   });
 
   // State for signed document URLs
@@ -86,7 +94,14 @@ const VehiclePage: React.FC = () => {
         ]);
 
         setVehicle(vehicleData);
-        setStats(vehicleStats || { totalTrips: 0, totalDistance: 0 });
+        setStats(vehicleStats || { 
+          totalTrips: 0, 
+          totalDistance: 0, 
+          totalCost: 0,
+          costPerKm: 0,
+          monthlyAverage: 0,
+          tripAverage: 0
+        });
 
         // Generate signed URLs for documents
         if (vehicleData) {
@@ -502,12 +517,12 @@ const VehiclePage: React.FC = () => {
                   period="30 days"
                 />
                 <CostAnalytics
-                  totalCost={0}
-                  costPerKm={0}
+                  totalCost={stats.totalCost || 0}
+                  costPerKm={stats.costPerKm || 0}
                   totalDistance={stats.totalDistance}
                   totalTrips={stats.totalTrips}
-                  monthlyAverage={0}
-                  tripAverage={0}
+                  monthlyAverage={stats.monthlyAverage || 0}
+                  tripAverage={stats.tripAverage || 0}
                 />
               </div>
             </div>
