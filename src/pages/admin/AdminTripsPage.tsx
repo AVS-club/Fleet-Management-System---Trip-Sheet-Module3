@@ -4,8 +4,8 @@ import Layout from '../../components/layout/Layout';
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
 import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
-import { Trip, Vehicle, Driver, Warehouse } from '@/types';
-import { getTrips, getVehicles, getDrivers, getWarehouses, updateTrip } from '../../utils/storage';
+import { Trip, Vehicle, Driver, Warehouse, Destination } from '@/types';
+import { getTrips, getVehicles, getDrivers, getWarehouses, getDestinations, updateTrip } from '../../utils/storage';
 import { generateCSV, downloadCSV, parseCSV } from '../../utils/csvParser';
 import { supabase } from '../../utils/supabaseClient';
 import { forceDataRefresh, testDatabaseConnection, clearCacheAndRefresh } from '../../utils/forceDataRefresh';
@@ -43,6 +43,7 @@ const AdminTripsPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,7 @@ const AdminTripsPage: React.FC = () => {
 
   const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
   const driversMap = useMemo(() => new Map(drivers.map(d => [d.id, d])), [drivers]);
+  const destinationsMap = useMemo(() => new Map(destinations.map(d => [d.id, d.name])), [destinations]);
   
   // Date preset state
   const [datePreset, setDatePreset] = useState('last30');
@@ -171,16 +173,18 @@ const AdminTripsPage: React.FC = () => {
         setLoading(true);
         setSummaryLoading(true);
 
-        const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
           getTrips(),
           getVehicles(),
           getDrivers(),
-          getWarehouses()
+          getWarehouses(),
+          getDestinations()
         ]);
         setTrips(tripsData);
         setVehicles(vehiclesData);
         setDrivers(driversData);
         setWarehouses(warehousesData);
+        setDestinations(destinationsData);
 
         // Fetch summary metrics
         await fetchSummaryMetrics();
@@ -212,16 +216,18 @@ const AdminTripsPage: React.FC = () => {
         
         if (result.success) {
           // Get fresh data after force refresh
-          const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+          const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
             getTrips(),
             getVehicles(),
             getDrivers(),
-            getWarehouses()
+            getWarehouses(),
+            getDestinations()
           ]);
           setTrips(tripsData);
           setVehicles(vehiclesData);
           setDrivers(driversData);
           setWarehouses(warehousesData);
+          setDestinations(destinationsData);
           
           await fetchSummaryMetrics();
           toast.success(`Force refresh completed: ${result.tripsCount} trips, ${result.vehiclesCount} vehicles, ${result.driversCount} drivers`);
@@ -230,16 +236,18 @@ const AdminTripsPage: React.FC = () => {
         }
       } else {
         // Normal refresh
-        const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+        const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
           getTrips(),
           getVehicles(),
           getDrivers(),
-          getWarehouses()
+          getWarehouses(),
+          getDestinations()
         ]);
         setTrips(tripsData);
         setVehicles(vehiclesData);
         setDrivers(driversData);
         setWarehouses(warehousesData);
+        setDestinations(destinationsData);
         
         await fetchSummaryMetrics();
         toast.success("Data refreshed successfully");
@@ -267,16 +275,18 @@ const AdminTripsPage: React.FC = () => {
     const result = await clearCacheAndRefresh();
     if (result.success) {
       // Update local state
-      const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+      const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
         getTrips(),
         getVehicles(),
         getDrivers(),
-        getWarehouses()
+        getWarehouses(),
+        getDestinations()
       ]);
       setTrips(tripsData);
       setVehicles(vehiclesData);
       setDrivers(driversData);
       setWarehouses(warehousesData);
+      setDestinations(destinationsData);
       
       await fetchSummaryMetrics();
     }
@@ -663,7 +673,20 @@ const AdminTripsPage: React.FC = () => {
           'Vehicle': vehicle?.registration_number || 'N/A',
           'Driver': driver?.name || 'N/A',
           'Source Warehouse': warehouse?.name || 'N/A',
-          'Destinations': Array.isArray(trip.destinations) ? trip.destinations.join(', ') : '',
+          'Destinations': trip.destinations && Array.isArray(trip.destinations) 
+            ? trip.destinations.map(destId => {
+                // If it's already a name (string without UUID pattern), return as is
+                if (typeof destId === 'string' && !destId.includes('-')) {
+                  return destId;
+                }
+                // Otherwise look up the name from destinationsMap
+                return destinationsMap.get(destId) || destId;
+              }).join(', ')
+            : trip.destinations 
+              ? (typeof trip.destinations === 'string' && !trip.destinations.includes('-')
+                  ? trip.destinations 
+                  : destinationsMap.get(trip.destinations) || trip.destinations)
+              : 'N/A',
           'Start KM': trip.start_km || 0,
           'End KM': trip.end_km || 0,
           'Distance (KM)': distance,
