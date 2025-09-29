@@ -76,10 +76,10 @@ const TripsTable: React.FC<TripsTableProps> = ({
       {
         id: 'trip_serial_number',
         label: 'Trip ID',
-        accessor: trip => trip.trip_serial_number,
+        accessor: trip => trip.trip_serial_number || '-',
         sortable: true,
         width: '120px',
-        description: 'Unique identifier for the trip (e.g., T0001)'
+        description: 'Unique identifier for the trip'
       },
       {
         id: 'vehicle',
@@ -90,7 +90,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
         editable: true,
         type: 'select',
         options: vehicleOptions,
-        width: '150px',
+        width: '120px',
         description: 'Vehicle registration number'
       },
       {
@@ -112,8 +112,8 @@ const TripsTable: React.FC<TripsTableProps> = ({
         sortable: true,
         editable: true,
         type: 'date',
-        width: '120px',
-        description: 'Trip start date (DD/MM/YYYY)'
+        width: '100px',
+        description: 'Trip start date'
       },
       {
         id: 'end_date',
@@ -122,60 +122,262 @@ const TripsTable: React.FC<TripsTableProps> = ({
         sortable: true,
         editable: true,
         type: 'date',
-        width: '120px',
-        description: 'Trip end date (DD/MM/YYYY)'
+        width: '100px',
+        description: 'Trip end date'
       },
       {
         id: 'start_km',
         label: 'Start KM',
-        accessor: trip => trip.start_km,
+        accessor: trip => trip.start_km || 0,
         sortable: true,
         editable: true,
         type: 'number',
-        width: '120px',
+        width: '90px',
         description: 'Starting odometer reading'
       },
       {
         id: 'end_km',
         label: 'End KM',
-        accessor: trip => trip.end_km,
+        accessor: trip => trip.end_km || 0,
         sortable: true,
         editable: true,
         type: 'number',
-        width: '120px',
+        width: '90px',
         description: 'Ending odometer reading'
       },
       {
         id: 'distance',
-        label: 'Distance (km)',
-        accessor: trip => trip.end_km - trip.start_km,
+        label: 'Distance',
+        accessor: trip => (trip.end_km || 0) - (trip.start_km || 0),
         sortable: true,
-        width: '120px',
-        description: 'Total distance covered (calculated)'
+        width: '90px',
+        description: 'Total distance covered'
+      },
+      {
+        id: 'gross_weight',
+        label: 'Weight (kg)',
+        accessor: trip => trip.gross_weight || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Gross weight of cargo'
+      },
+      {
+        id: 'fuel_quantity',
+        label: 'Fuel (L)',
+        accessor: trip => trip.fuel_quantity || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '80px',
+        description: 'Fuel quantity in liters'
+      },
+      {
+        id: 'fuel_rate',
+        label: 'Fuel Rate',
+        accessor: trip => trip.fuel_rate_per_liter || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Fuel rate per liter'
+      },
+      {
+        id: 'total_fuel_cost',
+        label: 'Fuel Cost',
+        accessor: trip => trip.total_fuel_cost || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Total fuel cost'
       },
       {
         id: 'mileage',
         label: 'Mileage',
         accessor: trip => trip.calculated_kmpl?.toFixed(2) || '-',
         sortable: true,
-        width: '100px',
-        description: 'Fuel efficiency in km/L (calculated)'
+        width: '80px',
+        description: 'Fuel efficiency in km/L'
       },
       {
-        id: 'expenses',
-        label: 'Total Expenses',
-        accessor: trip => trip.total_road_expenses + (trip.total_fuel_cost || 0),
+        id: 'road_expenses',
+        label: 'Road Exp',
+        accessor: trip => trip.total_road_expenses || 0,
         sortable: true,
-        width: '120px',
-        description: 'Combined road and fuel expenses'
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Road expenses'
       },
       {
-        id: 'profit_loss',
-        label: 'Profit/Loss',
+        id: 'unloading_expense',
+        label: 'Unloading',
+        accessor: trip => trip.unloading_expense || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Unloading expense'
+      },
+      {
+        id: 'driver_expense',
+        label: 'Driver Exp',
+        accessor: trip => trip.driver_expense || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Driver expense'
+      },
+      {
+        id: 'rto_expense',
+        label: 'RTO Exp',
+        accessor: trip => trip.road_rto_expense || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '80px',
+        description: 'RTO expense'
+      },
+      {
+        id: 'breakdown_expense',
+        label: 'Breakdown',
+        accessor: trip => trip.breakdown_expense || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Breakdown expense'
+      },
+      {
+        id: 'misc_expense',
+        label: 'Misc Exp',
+        accessor: trip => trip.miscellaneous_expense || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '80px',
+        description: 'Miscellaneous expense'
+      },
+      {
+        id: 'total_expenses',
+        label: 'Total Exp',
+        accessor: trip => {
+          const fuel = trip.total_fuel_cost || 0;
+          const road = trip.total_road_expenses || 0;
+          const unloading = trip.unloading_expense || 0;
+          const driver = trip.driver_expense || 0;
+          const rto = trip.road_rto_expense || 0;
+          const breakdown = trip.breakdown_expense || 0;
+          const misc = trip.miscellaneous_expense || 0;
+          return fuel + road + unloading + driver + rto + breakdown + misc;
+        },
+        sortable: true,
+        width: '90px',
+        description: 'Total expenses'
+      },
+      {
+        id: 'freight_rate',
+        label: 'Freight Rate',
+        accessor: trip => trip.freight_rate || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '100px',
+        description: 'Freight rate'
+      },
+      {
+        id: 'billing_type',
+        label: 'Billing',
+        accessor: trip => trip.billing_type || '-',
+        sortable: true,
+        editable: true,
+        type: 'select',
+        options: [
+          { value: 'per_km', label: 'Per KM' },
+          { value: 'per_ton', label: 'Per Ton' },
+          { value: 'manual', label: 'Manual' }
+        ],
+        width: '80px',
+        description: 'Billing type'
+      },
+      {
+        id: 'income_amount',
+        label: 'Income',
+        accessor: trip => trip.income_amount || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Income amount'
+      },
+      {
+        id: 'net_profit',
+        label: 'Net Profit',
         accessor: trip => trip.net_profit || 0,
         sortable: true,
-        width: '120px',
-        description: 'Net profit or loss for the trip'
+        width: '90px',
+        description: 'Net profit or loss'
+      },
+      {
+        id: 'profit_status',
+        label: 'Status',
+        accessor: trip => trip.profit_status || '-',
+        sortable: true,
+        width: '80px',
+        description: 'Profit status'
+      },
+      {
+        id: 'refueling_done',
+        label: 'Refuel',
+        accessor: trip => trip.refueling_done ? 'Yes' : 'No',
+        sortable: true,
+        editable: true,
+        type: 'select',
+        options: [
+          { value: 'true', label: 'Yes' },
+          { value: 'false', label: 'No' }
+        ],
+        width: '70px',
+        description: 'Refueling done'
+      },
+      {
+        id: 'is_return_trip',
+        label: 'Return',
+        accessor: trip => trip.is_return_trip ? 'Yes' : 'No',
+        sortable: true,
+        width: '70px',
+        description: 'Return trip'
+      },
+      {
+        id: 'route_deviation',
+        label: 'Deviation',
+        accessor: trip => trip.route_deviation || 0,
+        sortable: true,
+        width: '90px',
+        description: 'Route deviation'
+      },
+      {
+        id: 'advance_amount',
+        label: 'Advance',
+        accessor: trip => trip.advance_amount || 0,
+        sortable: true,
+        editable: true,
+        type: 'number',
+        width: '90px',
+        description: 'Advance amount'
+      },
+      {
+        id: 'remarks',
+        label: 'Remarks',
+        accessor: trip => trip.remarks || '-',
+        sortable: true,
+        editable: true,
+        type: 'text',
+        width: '150px',
+        description: 'Trip remarks'
       }
     ],
     [vehicleOptions, driverOptions, vehiclesById, driversById]
@@ -310,32 +512,41 @@ const TripsTable: React.FC<TripsTableProps> = ({
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div 
+          className="overflow-x-auto scroll-indicator" 
+          ref={tableContainerRef}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e0 #f7fafc'
+          }}
+        >
+          <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '2000px' }}>
+            <thead className="bg-gray-50 sticky top-0 z-10">
               <tr>
                 {columns.map(column => (
                   <th
                     key={column.id}
-                    className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                      column.width ? `w-[${column.width}]` : ''
-                    }`}
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     onClick={() => column.sortable && handleSort(column.id)}
-                    style={{ cursor: column.sortable ? 'pointer' : 'default' }}
+                    style={{ 
+                      cursor: column.sortable ? 'pointer' : 'default',
+                      width: column.width,
+                      minWidth: column.width
+                    }}
                   >
                     <div className="flex items-center space-x-1">
-                      <span>{column.label}</span>
+                      <span className="truncate">{column.label}</span>
                       {column.sortable && sortConfig?.key === column.id && (
                         sortConfig.direction === 'asc' ? (
-                          <ChevronUp className="h-4 w-4" />
+                          <ChevronUp className="h-3 w-3 flex-shrink-0" />
                         ) : (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-3 w-3 flex-shrink-0" />
                         )
                       )}
                     </div>
                   </th>
                 ))}
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                   Actions
                 </th>
               </tr>
@@ -347,11 +558,12 @@ const TripsTable: React.FC<TripsTableProps> = ({
                     {columns.map(column => (
                       <td
                         key={`${trip.id}-${column.id}`}
-                        className="px-6 py-4 whitespace-nowrap text-sm"
+                        className="px-3 py-2 whitespace-nowrap text-xs"
                         onClick={() => column.editable && setEditingCell({
                           tripId: trip.id,
                           columnId: column.id
                         })}
+                        style={{ width: column.width, minWidth: column.width }}
                       >
                         {editingCell?.tripId === trip.id && 
                          editingCell?.columnId === column.id ? (
@@ -385,7 +597,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
                         )}
                       </td>
                     ))}
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <td className="px-3 py-2 whitespace-nowrap text-center w-20">
                       <button
                         onClick={() => handleDeleteTrip(trip.id)}
                         className="text-error-600 hover:text-error-900"
@@ -398,7 +610,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
                 ))
               ) : (
                 <tr>
-                  <td colSpan={columns.length + 1} className="px-6 py-10 text-center text-gray-500">
+                  <td colSpan={columns.length + 1} className="px-3 py-10 text-center text-gray-500">
                     No trips match your filter criteria
                   </td>
                 </tr>
