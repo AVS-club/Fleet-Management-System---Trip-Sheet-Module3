@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout'; 
 import TripsTable from '../../components/admin/TripsTable';
@@ -14,7 +14,7 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
@@ -49,6 +49,7 @@ const AdminTripsPage: React.FC = () => {
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [fixingMileage, setFixingMileage] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const vehiclesMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
   const driversMap = useMemo(() => new Map(drivers.map(d => [d.id, d])), [drivers]);
@@ -704,28 +705,6 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
-  const handleDownloadFormat = async () => {
-    const sampleData = [{
-      'Trip ID': 'T0001',
-      'Vehicle Registration': 'CG-04-XX-1234',
-      'Driver Name': 'John Doe',
-      'Start Date': '01/01/2024',
-      'End Date': '02/01/2024',
-      'Source Warehouse': 'Main Warehouse',
-      'Destination(s)': 'Bhilai, Durg',
-      'Start KM': '10000',
-      'End KM': '10500',
-      'Fuel Quantity': '50',
-      'Fuel Cost': '5000',
-      'Road Expenses': '2000',
-      'Trip Type': 'Two Way',
-      'Notes': 'Regular delivery trip'
-    }];
-
-    const csv = await generateCSV(sampleData, {});
-    downloadCSV('trips-import-format.csv', csv);
-  };
-
   const handleImport = async (file: File) => {
     try {
       const data = await parseCSV(file);
@@ -737,6 +716,14 @@ const AdminTripsPage: React.FC = () => {
     } catch (error) {
       console.error('Error importing file:', error);
       toast.error('Failed to import trips');
+    }
+  };
+
+  const handleImportInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleImport(file);
+      event.target.value = '';
     }
   };
 
@@ -818,6 +805,21 @@ const AdminTripsPage: React.FC = () => {
                   Refresh
                 </button>
                 
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,.xlsx"
+                  onChange={handleImportInputChange}
+                  className="hidden"
+                  aria-label="Import trips file"
+                />
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1"
+                >
+                  <Upload className="h-4 w-4" />
+                  Import
+                </button>
                 <button
                   onClick={() => setShowExportModal(true)}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-1"
@@ -996,9 +998,6 @@ const AdminTripsPage: React.FC = () => {
         drivers={drivers}
         onUpdateTrip={handleUpdateTrip}
         onDeleteTrip={handleDeleteTrip}
-        onExport={() => setShowExportModal(true)}
-        onImport={handleImport}
-        onDownloadFormat={handleDownloadFormat}
       />
 
       {/* Pagination */}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trip, Vehicle, Driver } from '@/types';
-import { ChevronDown, ChevronUp, Search, Download, Upload, FileText, Trash2, IndianRupee } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, IndianRupee } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -28,9 +28,6 @@ interface TripsTableProps {
   drivers: Driver[];
   onUpdateTrip: (tripId: string, updates: Partial<Trip>) => void;
   onDeleteTrip: (tripId: string) => Promise<void>;
-  onExport: () => void;
-  onImport: (file: File) => void;
-  onDownloadFormat: () => void;
 }
 
 const TripsTable: React.FC<TripsTableProps> = ({
@@ -38,10 +35,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
   vehicles,
   drivers,
   onUpdateTrip,
-  onDeleteTrip,
-  onExport,
-  onImport,
-  onDownloadFormat
+  onDeleteTrip
 }) => {
   const vehiclesById = useMemo(() => {
     const map: Record<string, Vehicle> = {};
@@ -300,13 +294,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
     setEditingCell(null);
   };
 
-  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onImport(file);
-    }
-  };
-
   const handleDeleteTrip = async (tripId: string) => {
     if (window.confirm('Are you sure you want to permanently delete this trip? This action cannot be undone.')) {
       await onDeleteTrip(tripId);
@@ -322,54 +309,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg shadow-sm">
-        <div className="flex-1 min-w-[200px]">
-          <Input
-            placeholder="Search trips..."
-            icon={<Search className="h-4 w-4" />}
-            onChange={() => {}} // This is now handled in the parent component
-            disabled={true}
-          />
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={onDownloadFormat}
-            icon={<FileText className="h-4 w-4" />}
-          >
-            Download Format
-          </Button>
-
-          <Button
-            variant="outline"
-            onClick={onExport}
-            icon={<Download className="h-4 w-4" />}
-          >
-            Export
-          </Button>
-          
-          <div className="relative">
-            <input
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={handleFileImport}
-              className="hidden"
-              id="file-import"
-              aria-label="Import trips file"
-            />
-            <Button
-              variant="outline"
-              onClick={() => document.getElementById('file-import')?.click()}
-              icon={<Upload className="h-4 w-4" />}
-            >
-              Import
-            </Button>
-          </div>
-        </div>
-
-      </div>
-
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
           <table className="min-w-full divide-y divide-gray-200">
