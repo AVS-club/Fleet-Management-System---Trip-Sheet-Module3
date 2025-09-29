@@ -14,7 +14,7 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
@@ -100,63 +100,65 @@ const AdminTripsPage: React.FC = () => {
 
   // Handle date preset changes
   useEffect(() => {
-    if (datePreset === 'custom') {
-      return; // Don't update the date range if custom is selected
-    }
-
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
+    const today = new Date();
+    let start: Date, end: Date;
+    
     switch (datePreset) {
       case 'today':
-        startDate = new Date(now.setHours(0, 0, 0, 0));
+        start = end = today;
         break;
       case 'yesterday':
-        startDate = subDays(new Date(now.setHours(0, 0, 0, 0)), 1);
-        endDate = new Date(startDate);
-        endDate.setHours(23, 59, 59, 999);
+        start = end = subDays(today, 1);
         break;
       case 'thisWeek':
-        startDate = startOfWeek(now);
+        start = startOfWeek(today);
+        end = endOfWeek(today);
         break;
       case 'lastWeek':
-        startDate = startOfWeek(subWeeks(now, 1));
-        endDate = endOfWeek(subWeeks(now, 1));
+        start = startOfWeek(subWeeks(today, 1));
+        end = endOfWeek(subWeeks(today, 1));
         break;
       case 'thisMonth':
-        startDate = startOfMonth(now);
+        start = startOfMonth(today);
+        end = endOfMonth(today);
         break;
       case 'lastMonth':
-        startDate = startOfMonth(subMonths(now, 1));
-        endDate = endOfMonth(subMonths(now, 1));
+        start = startOfMonth(subMonths(today, 1));
+        end = endOfMonth(subMonths(today, 1));
         break;
       case 'thisYear':
-        startDate = startOfYear(now);
+        start = startOfYear(today);
+        end = endOfYear(today);
         break;
       case 'lastYear':
-        startDate = startOfYear(subYears(now, 1));
-        endDate = endOfYear(subYears(now, 1));
+        start = startOfYear(subYears(today, 1));
+        end = endOfYear(subYears(today, 1));
         break;
       case 'last7':
-        startDate = subDays(now, 7);
+        start = subDays(today, 6);
+        end = today;
         break;
       case 'last30':
-        startDate = subDays(now, 30);
+        start = subDays(today, 29);
+        end = today;
         break;
       case 'allTime':
-        startDate = new Date(0); // January 1, 1970
+        start = new Date('2020-01-01');
+        end = today;
         break;
+      case 'custom':
+        // Don't update dates for custom
+        return;
       default:
-        startDate = subDays(now, 30); // Default to last 30 days
+        start = subDays(today, 29);
+        end = today;
     }
-
-    // Update filters with new date range
+    
     setFilters(prev => ({
       ...prev,
       dateRange: {
-        start: format(startDate, 'yyyy-MM-dd'),
-        end: format(endDate, 'yyyy-MM-dd')
+        start: format(start, 'yyyy-MM-dd'),
+        end: format(end, 'yyyy-MM-dd')
       }
     }));
   }, [datePreset]);
@@ -400,9 +402,15 @@ const AdminTripsPage: React.FC = () => {
     try {
       setSummaryLoading(true);
       
+      // Ensure dates are properly formatted
+      const startDate = filters.dateRange.start ? 
+        new Date(filters.dateRange.start).toISOString() : null;
+      const endDate = filters.dateRange.end ? 
+        new Date(filters.dateRange.end + 'T23:59:59').toISOString() : null;
+      
       const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
-        start_date: filters.dateRange.start ? new Date(filters.dateRange.start).toISOString() : null,
-        end_date: filters.dateRange.end ? new Date(filters.dateRange.end).toISOString() : null,
+        start_date: startDate,
+        end_date: endDate,
         p_vehicle_id: filters.vehicleId || null,
         p_driver_id: filters.driverId || null,
         p_warehouse_id: filters.warehouseId || null,
@@ -411,14 +419,118 @@ const AdminTripsPage: React.FC = () => {
       
       if (error) {
         console.error("Error fetching summary metrics:", error);
+        // Fallback to local calculation
+        calculateMetricsLocally();
       } else if (data) {
-        setSummaryMetrics(data);
+        // Handle both array and object responses
+        const metricsData = Array.isArray(data) ? data[0] : data;
+        
+        if (metricsData) {
+          setSummaryMetrics({
+            totalExpenses: metricsData.total_expenses || 0,
+            avgDistance: metricsData.avg_distance || 0,
+            tripCount: metricsData.trip_count || 0,
+            meanMileage: metricsData.mean_mileage || 0,
+            topDriver: metricsData.top_driver ? {
+              id: metricsData.top_driver.id,
+              name: metricsData.top_driver.name,
+              totalDistance: metricsData.top_driver.totalDistance || 0,
+              tripCount: metricsData.top_driver.tripCount || 0
+            } : null,
+            topVehicle: metricsData.top_vehicle ? {
+              id: metricsData.top_vehicle.id,
+              registrationNumber: metricsData.top_vehicle.registrationNumber,
+              tripCount: metricsData.top_vehicle.tripCount || 0
+            } : null
+          });
+        } else {
+          calculateMetricsLocally();
+        }
       }
     } catch (error) {
       console.error("Exception fetching summary metrics:", error);
+      calculateMetricsLocally();
     } finally {
       setSummaryLoading(false);
     }
+  };
+
+  const calculateMetricsLocally = () => {
+    const filtered = filteredTrips;
+    
+    // Calculate total expenses
+    const totalExpenses = filtered.reduce((sum, trip) => {
+      const fuel = trip.total_fuel_cost || 0;
+      const road = trip.total_road_expenses || 0;
+      const unloading = trip.unloading_expense || 0;
+      const driver = trip.driver_expense || 0;
+      const rto = trip.road_rto_expense || 0;
+      const breakdown = trip.breakdown_expense || 0;
+      const misc = trip.miscellaneous_expense || 0;
+      return sum + fuel + road + unloading + driver + rto + breakdown + misc;
+    }, 0);
+    
+    // Calculate average distance
+    const totalDistance = filtered.reduce((sum, trip) => 
+      sum + (trip.end_km - trip.start_km), 0
+    );
+    const avgDistance = filtered.length > 0 ? totalDistance / filtered.length : 0;
+    
+    // Calculate mean mileage (only from trips with valid mileage)
+    const tripsWithMileage = filtered.filter(trip => 
+      trip.calculated_kmpl && trip.calculated_kmpl > 0
+    );
+    const meanMileage = tripsWithMileage.length > 0 ?
+      tripsWithMileage.reduce((sum, trip) => sum + (trip.calculated_kmpl || 0), 0) / tripsWithMileage.length : 0;
+    
+    // Calculate top driver
+    const driverStats: Record<string, any> = {};
+    filtered.forEach(trip => {
+      if (trip.driver_id) {
+        if (!driverStats[trip.driver_id]) {
+          const driver = driversMap.get(trip.driver_id);
+          driverStats[trip.driver_id] = {
+            id: trip.driver_id,
+            name: driver?.name || 'Unknown',
+            tripCount: 0,
+            totalDistance: 0
+          };
+        }
+        driverStats[trip.driver_id].tripCount++;
+        driverStats[trip.driver_id].totalDistance += (trip.end_km - trip.start_km);
+      }
+    });
+    
+    // Calculate top vehicle
+    const vehicleStats: Record<string, any> = {};
+    filtered.forEach(trip => {
+      if (trip.vehicle_id) {
+        if (!vehicleStats[trip.vehicle_id]) {
+          const vehicle = vehiclesMap.get(trip.vehicle_id);
+          vehicleStats[trip.vehicle_id] = {
+            id: trip.vehicle_id,
+            registrationNumber: vehicle?.registration_number || 'Unknown',
+            tripCount: 0
+          };
+        }
+        vehicleStats[trip.vehicle_id].tripCount++;
+      }
+    });
+    
+    const topDriver = Object.values(driverStats)
+      .sort((a, b) => b.tripCount - a.tripCount)[0] || null;
+      
+    const topVehicle = Object.values(vehicleStats)
+      .sort((a, b) => b.tripCount - a.tripCount)[0] || null;
+    
+    setSummaryMetrics({
+      totalExpenses,
+      avgDistance,
+      tripCount: filtered.length,
+      meanMileage,
+      topDriver,
+      topVehicle
+    });
   };
 
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
@@ -491,78 +603,104 @@ const AdminTripsPage: React.FC = () => {
   };
 
   const handleExport = async (options: ExportOptions) => {
-    // Filter trips based on export options
-    let filteredTrips = trips;
-
-    if (options.dateRange.start) {
-      filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
-      );
-    }
-
-    if (options.dateRange.end) {
-      filteredTrips = filteredTrips.filter(trip => 
-        new Date(trip.trip_end_date) <= new Date(options.dateRange.end)
-      );
-    }
-
-    if (options.vehicleId) {
-      filteredTrips = filteredTrips.filter(trip => trip.vehicle_id === options.vehicleId);
-    }
-
-    if (options.driverId) {
-      filteredTrips = filteredTrips.filter(trip => trip.driver_id === options.driverId);
-    }
-
-    if (options.warehouseId) {
-      filteredTrips = filteredTrips.filter(trip => trip.warehouse_id === options.warehouseId);
-    }
-
-    if (options.tripType) {
-      filteredTrips = filteredTrips.filter(trip => {
-        if (options.tripType === 'two_way') return Array.isArray(trip.destinations) && trip.destinations.length > 1;
-        return Array.isArray(trip.destinations) && trip.destinations.length === 1;
+    try {
+      // Use filtered trips as the base
+      let exportTrips = [...filteredTrips];
+      
+      // Apply additional export options if provided
+      if (options.dateRange?.start) {
+        exportTrips = exportTrips.filter(trip => 
+          new Date(trip.trip_start_date) >= new Date(options.dateRange.start)
+        );
+      }
+      
+      if (options.dateRange?.end) {
+        exportTrips = exportTrips.filter(trip => 
+          new Date(trip.trip_end_date) <= new Date(options.dateRange.end + 'T23:59:59')
+        );
+      }
+      
+      // Prepare data for export
+      const exportData = exportTrips.map(trip => {
+        const vehicle = vehiclesMap.get(trip.vehicle_id);
+        const driver = driversMap.get(trip.driver_id);
+        const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
+        
+        const distance = trip.end_km - trip.start_km;
+        const totalExpense = (trip.total_fuel_cost || 0) + 
+                            (trip.total_road_expenses || 0) + 
+                            (trip.unloading_expense || 0) + 
+                            (trip.driver_expense || 0) + 
+                            (trip.road_rto_expense || 0) + 
+                            (trip.breakdown_expense || 0) + 
+                            (trip.miscellaneous_expense || 0);
+        
+        return {
+          'Trip ID': trip.trip_serial_number,
+          'Start Date': format(new Date(trip.trip_start_date), 'dd/MM/yyyy'),
+          'End Date': format(new Date(trip.trip_end_date), 'dd/MM/yyyy'),
+          'Vehicle': vehicle?.registration_number || 'N/A',
+          'Driver': driver?.name || 'N/A',
+          'Warehouse': warehouse?.name || 'N/A',
+          'Start KM': trip.start_km,
+          'End KM': trip.end_km,
+          'Distance (KM)': distance,
+          'Mileage (km/L)': trip.calculated_kmpl?.toFixed(2) || '-',
+          'Fuel Cost': trip.total_fuel_cost || 0,
+          'Road Expenses': trip.total_road_expenses || 0,
+          'Other Expenses': (trip.unloading_expense || 0) + 
+                           (trip.driver_expense || 0) + 
+                           (trip.road_rto_expense || 0) + 
+                           (trip.breakdown_expense || 0) + 
+                           (trip.miscellaneous_expense || 0),
+          'Total Expense': totalExpense,
+          'Revenue': trip.income_amount || 0,
+          'Net Profit/Loss': trip.net_profit || (trip.income_amount ? trip.income_amount - totalExpense : -totalExpense),
+          'Trip Type': Array.isArray(trip.destinations) && trip.destinations.length > 1 ? 'Two Way' : 'One Way'
+        };
       });
-    }
-
-    // Prepare data for export
-    const exportData = filteredTrips.map(trip => {
-      const vehicle = vehiclesMap.get(trip.vehicle_id);
-      const driver = driversMap.get(trip.driver_id);
-      const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
-
-      return {
-        'Trip ID': trip.trip_serial_number,
-        'Start Date': new Date(trip.trip_start_date).toLocaleDateString(),
-        'End Date': new Date(trip.trip_end_date).toLocaleDateString(),
-        'Vehicle': vehicle?.registration_number,
-        'Driver': driver?.name,
-        'Source': warehouse?.name,
-        'Start KM': trip.start_km,
-        'End KM': trip.end_km,
-        'Distance': trip.end_km - trip.start_km,
-        'Mileage': trip.calculated_kmpl?.toFixed(2) || '-',
-        'Fuel Cost': trip.total_fuel_cost || 0,
-        'Road Expenses': trip.total_road_expenses,
-        'Total Cost': (trip.total_fuel_cost || 0) + trip.total_road_expenses,
-        'Revenue': trip.income_amount || 0,
-        'Profit/Loss': trip.net_profit ? `₹${trip.net_profit.toLocaleString()}` : '-',
-        'Status': trip.profit_status ? trip.profit_status.charAt(0).toUpperCase() + trip.profit_status.slice(1) : '-',
-        'Type': Array.isArray(trip.destinations) && trip.destinations.length > 1
-          ? 'Two Way'
-          : 'One Way'
-      };
-    });
-
-    // Export based on format
-    if (options.format === 'xlsx') {
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Trips');
-      XLSX.writeFile(wb, 'trips-export.xlsx');
-    } else {
-      const csv = await generateCSV(exportData, {});
-      downloadCSV('trips-export.csv', csv);
+      
+      // Export based on format
+      if (options.format === 'xlsx' || !options.format) {
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        
+        // Set column widths
+        const colWidths = [
+          { wch: 12 }, // Trip ID
+          { wch: 12 }, // Start Date
+          { wch: 12 }, // End Date
+          { wch: 15 }, // Vehicle
+          { wch: 20 }, // Driver
+          { wch: 20 }, // Warehouse
+          { wch: 10 }, // Start KM
+          { wch: 10 }, // End KM
+          { wch: 12 }, // Distance
+          { wch: 12 }, // Mileage
+          { wch: 10 }, // Fuel Cost
+          { wch: 12 }, // Road Expenses
+          { wch: 12 }, // Other Expenses
+          { wch: 12 }, // Total Expense
+          { wch: 10 }, // Revenue
+          { wch: 15 }, // Net Profit/Loss
+          { wch: 10 }, // Trip Type
+        ];
+        ws['!cols'] = colWidths;
+        
+        XLSX.utils.book_append_sheet(wb, ws, 'Trips');
+        XLSX.writeFile(wb, `trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.xlsx`);
+        
+        toast.success(`Successfully exported ${exportData.length} trips`);
+      } else if (options.format === 'csv') {
+        const csv = await generateCSV(exportData, {});
+        downloadCSV(`trips-export-${format(new Date(), 'yyyy-MM-dd-HHmmss')}.csv`, csv);
+        toast.success(`Successfully exported ${exportData.length} trips`);
+      }
+      
+      setShowExportModal(false);
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export trips. Please try again.');
     }
   };
 
@@ -637,166 +775,208 @@ const AdminTripsPage: React.FC = () => {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">View and manage all trip records</p>
       </div>
 
-      {/* Filters */}
+      {/* Simplified Filters Section */}
       {!loading && (
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 sticky top-16 z-10">
-          <div className="flex flex-wrap justify-between items-center gap-4 mb-4 border-l-2 border-blue-500 pl-2">
-            <h3 className="text-lg font-medium">Trip Filters</h3>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                inputSize="sm"
-                onClick={clearFilters}
-                icon={<X className="h-4 w-4" />}
-              >
-                Clear Filters
-              </Button>
-              
-              <Button
-                variant="outline" 
-                inputSize="sm" 
-                onClick={() => refreshData(false)}
-                icon={<RefreshCw className="h-4 w-4" />}
-                isLoading={refreshing}
-                title="Normal refresh"
-              >
-                Refresh
-              </Button>
-              
-              <Button
-                variant="outline" 
-                inputSize="sm" 
-                onClick={() => refreshData(true)}
-                icon={<RefreshCw className="h-4 w-4" />}
-                isLoading={refreshing}
-                title="Force refresh - clears cache and reconnects"
-                className="bg-blue-50 hover:bg-blue-100 border-blue-200"
-              >
-                Force Refresh
-              </Button>
-              
-              <Button
-                variant="outline" 
-                inputSize="sm" 
-                onClick={testConnection}
-                icon={<RefreshCw className="h-4 w-4" />}
-                title="Test database connection"
-                className="bg-green-50 hover:bg-green-100 border-green-200"
-              >
-                Test DB
-              </Button>
-              
-              <Button
-                variant="outline" 
-                inputSize="sm" 
-                onClick={handleFixMileage}
-                icon={<RefreshCw className="h-4 w-4" />}
-                isLoading={fixingMileage}
-                className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
-              >
-                Fix Mileage
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                inputSize="sm" 
+        <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <div className="flex justify-between items-center">
+              <button
                 onClick={() => setShowFilters(!showFilters)}
-                icon={showFilters ? <ChevronDown className="h-4 w-4" /> : <Filter className="h-4 w-4" />}
+                className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors font-medium"
               >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </Button>
+                <Filter className="h-5 w-5" />
+                <span>Filters</span>
+                {showFilters ? 
+                  <ChevronUp className="h-4 w-4" /> : 
+                  <ChevronDown className="h-4 w-4" />
+                }
+              </button>
+              
+              <div className="flex items-center gap-2">
+                {/* Active filter count badge */}
+                {(filters.search || filters.vehicleId || filters.driverId || filters.warehouseId || filters.tripType) && (
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                    {[filters.search, filters.vehicleId, filters.driverId, filters.warehouseId, filters.tripType]
+                      .filter(Boolean).length} active
+                  </span>
+                )}
+                
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1"
+                >
+                  <X className="h-4 w-4" />
+                  Clear
+                </button>
+                
+                <button
+                  onClick={() => refreshData(false)}
+                  disabled={refreshing}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                
+                <button
+                  onClick={() => setShowExportModal(true)}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
             </div>
           </div>
-
+          
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              {/* Search */}
-              <Input
-                placeholder="Search trips..."
-                icon={<Search className="h-4 w-4" />}
-                value={filters.search}
-                onChange={e => handleFiltersChange({ search: e.target.value })}
-              />
+            <div className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {/* Search Input */}
+                <div className="lg:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Search
+                  </label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search trips, vehicles, drivers..."
+                      value={filters.search}
+                      onChange={(e) => handleFiltersChange({ search: e.target.value })}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                
+                {/* Date Range */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    From Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.dateRange.start}
+                    onChange={(e) => handleFiltersChange({ 
+                      dateRange: { ...filters.dateRange, start: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    To Date
+                  </label>
+                  <input
+                    type="date"
+                    value={filters.dateRange.end}
+                    onChange={(e) => handleFiltersChange({ 
+                      dateRange: { ...filters.dateRange, end: e.target.value }
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                {/* Vehicle Select */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle
+                  </label>
+                  <select
+                    value={filters.vehicleId}
+                    onChange={(e) => handleFiltersChange({ vehicleId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Vehicles</option>
+                    {vehicles.map(vehicle => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {vehicle.registration_number}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Driver Select */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Driver
+                  </label>
+                  <select
+                    value={filters.driverId}
+                    onChange={(e) => handleFiltersChange({ driverId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Drivers</option>
+                    {drivers.map(driver => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Warehouse Select */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Warehouse
+                  </label>
+                  <select
+                    value={filters.warehouseId}
+                    onChange={(e) => handleFiltersChange({ warehouseId: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Warehouses</option>
+                    {warehouses.map(warehouse => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Trip Type Select */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Trip Type
+                  </label>
+                  <select
+                    value={filters.tripType}
+                    onChange={(e) => handleFiltersChange({ tripType: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Types</option>
+                    <option value="one_way">One Way</option>
+                    <option value="two_way">Two Way</option>
+                  </select>
+                </div>
+              </div>
               
-              {/* Date Preset Dropdown */}
-              <Select
-                options={datePresetOptions}
-                value={datePreset}
-                onChange={e => setDatePreset(e.target.value)}
-              />
-              
-              {/* Date Range */}
-              <Input
-                type="date"
-                value={filters.dateRange.start}
-                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, start: e.target.value } })}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              
-              <Input
-                type="date"
-                value={filters.dateRange.end}
-                onChange={e => handleFiltersChange({ dateRange: { ...filters.dateRange, end: e.target.value } })}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              
-              {/* Vehicle Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Vehicles' },
-                  ...vehicles.map(v => ({
-                    value: v.id,
-                    label: v.registration_number
-                  }))
-                ]}
-                value={filters.vehicleId}
-                onChange={e => handleFiltersChange({ vehicleId: e.target.value })}
-              />
-              
-              {/* Driver Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Drivers' },
-                  ...drivers.map(d => ({
-                    value: d.id,
-                    label: d.name
-                  }))
-                ]}
-                value={filters.driverId}
-                onChange={e => handleFiltersChange({ driverId: e.target.value })}
-              />
-              
-              {/* Warehouse Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Warehouses' },
-                  ...warehouses.map(w => ({
-                    value: w.id,
-                    label: w.name
-                  }))
-                ]}
-                value={filters.warehouseId}
-                onChange={e => handleFiltersChange({ warehouseId: e.target.value })}
-              />
-              
-              {/* Trip Type Dropdown */}
-              <Select
-                options={[
-                  { value: '', label: 'All Trip Types' },
-                  { value: 'one_way', label: 'One Way' },
-                  { value: 'two_way', label: 'Two Way' },
-                  { value: 'local', label: 'Local Trip' }
-                ]}
-                value={filters.tripType}
-                onChange={e => handleFiltersChange({ tripType: e.target.value })}
-              />
+              {/* Active filters summary */}
+              {(filters.search || filters.vehicleId || filters.driverId || filters.warehouseId || filters.tripType) && (
+                <div className="mt-4 flex items-center gap-2 text-sm">
+                  <span className="text-gray-500">Active filters:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {filters.search && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                        Search: {filters.search}
+                      </span>
+                    )}
+                    {filters.vehicleId && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                        Vehicle: {vehicles.find(v => v.id === filters.vehicleId)?.registration_number}
+                      </span>
+                    )}
+                    {filters.driverId && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                        Driver: {drivers.find(d => d.id === filters.driverId)?.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {/* Active filters display */}
-          <div className="bg-gray-100 px-3 py-1.5 text-sm text-gray-600 rounded">
-            <strong>Active Filters:</strong> {getActiveFiltersText()}
-          </div>
         </div>
       )}
 
