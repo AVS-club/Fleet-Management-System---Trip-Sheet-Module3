@@ -83,7 +83,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       sanitizedTripData.warehouse_id = null;
     }
 
-    const payload = withOwner({
+    const payload = {
       ...sanitizedTripData,
       station: sanitizedTripData.station ?? null,
       fuel_station_id: sanitizedTripData.fuel_station_id ?? null,
@@ -91,7 +91,13 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       fuel_cost: sanitizedTripData.fuel_cost || sanitizedTripData.fuel_expense || 0,
       // Ensure total_fuel_cost is properly handled
       total_fuel_cost: sanitizedTripData.total_fuel_cost || 0,
-    }, userId);
+      // Explicitly set created_by to ensure RLS policy passes
+      created_by: userId,
+    };
+
+    // Debug: Log the payload to see what's being sent
+    console.log('Trip creation payload:', JSON.stringify(payload, null, 2));
+    console.log('User ID:', userId);
 
     const { data, error } = await supabase
       .from('trips')
