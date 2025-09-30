@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Tool, AlertTriangle, TrendingUp, Award, Clock } from 'lucide-react';
+import { PenTool as Tool, AlertTriangle, TrendingUp, Award, Clock } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 
 interface VehicleMaintenanceTabProps {
