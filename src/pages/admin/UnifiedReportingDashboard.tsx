@@ -29,7 +29,7 @@ import {
   Fuel,
   MapPin,
   Clock,
-  Tool,
+  Wrench,
   BarChart3,
   PieChart as PieChartIcon,
   FileSpreadsheet,
@@ -193,7 +193,7 @@ const UnifiedReportingDashboard: React.FC = () => {
       id: 'maintenance-schedule',
       name: 'Maintenance',
       description: 'Service schedules',
-      icon: <Tool className="h-4 w-4" />,
+      icon: <Wrench className="h-4 w-4" />,
       category: 'maintenance'
     },
     {
