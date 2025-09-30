@@ -291,6 +291,25 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </Link>
 
+              <Link
+                to="/admin/reports"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
+                    <BarChart2 className="h-5 w-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">
+                      Reports & Analytics
+                    </h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                      Visual dashboard and 20+ downloadable reports
+                    </p>
+                  </div>
+                </div>
+              </Link>
+
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70">
                 <div className="flex items-start space-x-3 sm:space-x-4">
                   <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">

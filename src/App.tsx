@@ -41,6 +41,7 @@ import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import CompanySettings from "./pages/admin/CompanySettings";
+import UnifiedReportingDashboard from "./pages/admin/UnifiedReportingDashboard";
 import { isNetworkError } from "./utils/supabaseClient";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -131,6 +132,7 @@ const App: React.FC = () => {
           <Route path="/admin/maintenance-tasks" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTasksAdmin /></ProtectedRoute>} />
           <Route path="/admin/message-templates" element={<ProtectedRoute session={session} loading={loading}><MessageTemplatesPage /></ProtectedRoute>} />
           <Route path="/admin/company-settings" element={<ProtectedRoute session={session} loading={loading}><CompanySettings /></ProtectedRoute>} />
+          <Route path="/admin/reports" element={<ProtectedRoute session={session} loading={loading}><UnifiedReportingDashboard /></ProtectedRoute>} />
         </Routes>
       </Suspense>
       <ToastContainer 
