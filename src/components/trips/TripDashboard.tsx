@@ -10,6 +10,7 @@ import CollapsibleSection from '../ui/CollapsibleSection';
 import MonthlyFuelConsumptionChart from './charts/MonthlyFuelConsumptionChart';
 import FuelConsumedByVehicleChart from './charts/FuelConsumedByVehicleChart';
 import AverageMileagePerVehicleChart from './charts/AverageMileagePerVehicleChart';
+import { NumberFormatter } from '@/utils/numberFormatter';
 
 interface TripDashboardProps {
   trips: Trip[];
@@ -166,21 +167,21 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         
         <StatCard
           title="Total Distance"
-          value={stats.totalDistance.toLocaleString()}
+          value={NumberFormatter.large(stats.totalDistance)}
           subtitle="km"
           icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
           title="Total Fuel"
-          value={stats.totalFuel.toLocaleString()}
+          value={NumberFormatter.large(stats.totalFuel)}
           subtitle="L"
           icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
           title="Average Mileage"
-          value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+          value={stats.avgMileage ? NumberFormatter.display(stats.avgMileage, 2) : "-"}
           subtitle="km/L"
           icon={<Gauge className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />

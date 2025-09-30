@@ -17,6 +17,7 @@ import PredictiveMaintenance from '../components/analytics/PredictiveMaintenance
 import { BarChart, BarChart2, Calculator, Truck, Users, TrendingUp, CalendarRange, Fuel, AlertTriangle, IndianRupee, Bell, Lightbulb, LayoutDashboard, Activity, Wrench } from 'lucide-react';
 import { getMileageInsights } from '../utils/mileageCalculator';
 import { useQuery } from '@tanstack/react-query';
+import { NumberFormatter } from '@/utils/numberFormatter';
 import FleetIQScanner from '../components/FleetIQScanner';
 
 const DashboardPage: React.FC = () => {
@@ -281,7 +282,7 @@ const DashboardPage: React.FC = () => {
           >
             <StatCard
               title="Total Distance"
-              value={stats.totalDistance.toLocaleString()}
+              value={NumberFormatter.large(stats.totalDistance)}
               className={
                 stats.avgMileage > 4.0
                   ? "bg-emerald-50"
@@ -301,7 +302,7 @@ const DashboardPage: React.FC = () => {
               <div>
                 <StatCard
                   title="Average Mileage"
-                  value={stats.avgMileage ? stats.avgMileage.toFixed(2) : "-"}
+                  value={stats.avgMileage ? NumberFormatter.display(stats.avgMileage, 2) : "-"}
                   className={
                     stats.avgMileage > 4.0
                       ? "bg-emerald-50"
@@ -319,7 +320,7 @@ const DashboardPage: React.FC = () => {
               <div>
                 <StatCard
                   title="Total Fuel Used"
-                  value={stats.totalFuel.toLocaleString()}
+                  value={NumberFormatter.large(stats.totalFuel)}
                   subtitle="L"
                   icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
                 />

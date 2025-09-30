@@ -1,6 +1,7 @@
 import React from 'react';
 import { Vehicle, Trip } from '@/types';
 import { Fuel, TrendingUp, Activity } from 'lucide-react';
+import { NumberFormatter } from '@/utils/numberFormatter';
 import EmptyState from './EmptyState';
 
 interface VehicleStatsListProps {
@@ -84,7 +85,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
                     <TrendingUp className="h-3 w-3 mr-1" />
                     Distance
                   </div>
-                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">{totalDistance.toLocaleString()} km</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">{NumberFormatter.large(totalDistance)} km</span>
                 </div>
                 
                 <div className="flex flex-col">
@@ -93,7 +94,7 @@ const VehicleStatsList: React.FC<VehicleStatsListProps> = ({ vehicles, trips, on
                     Avg Mileage
                   </div>
                   <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">
-                    {averageKmpl ? `${averageKmpl.toFixed(1)} km/L` : '-'}
+                    {averageKmpl ? `${NumberFormatter.display(averageKmpl, 2)} km/L` : '-'}
                   </span>
                 </div>
               </div>

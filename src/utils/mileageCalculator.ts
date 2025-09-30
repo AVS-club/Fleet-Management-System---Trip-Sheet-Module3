@@ -1,4 +1,5 @@
 import { Trip, Vehicle } from '@/types';
+import { NumberFormatter } from './numberFormatter';
 
 interface TripEntry {
   start_km: number;
@@ -28,7 +29,7 @@ function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefin
   if (previousRefuelingTrips.length === 0) {
     // For first refueling, calculate mileage based on just this trip
     const distance = currentTrip.end_km - currentTrip.start_km;
-    return distance > 0 ? parseFloat((distance / currentTrip.fuel_quantity).toFixed(2)) : undefined;
+    return distance > 0 ? NumberFormatter.roundUp(distance / currentTrip.fuel_quantity, 2) : undefined;
   }
 
   const lastRefuelingTrip = previousRefuelingTrips[0];
@@ -48,7 +49,7 @@ function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefin
 
   // Calculate KMPL only if we have valid distance and fuel quantity
   if (totalDistance > 0 && currentTrip.fuel_quantity > 0) {
-    return parseFloat((totalDistance / currentTrip.fuel_quantity).toFixed(2));
+    return NumberFormatter.roundUp(totalDistance / currentTrip.fuel_quantity, 2);
   }
 
   return undefined;

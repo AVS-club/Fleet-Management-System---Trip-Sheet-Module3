@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
+import { NumberFormatter } from '@/utils/numberFormatter';
 
 interface TripTableProps {
   trips: Trip[];
@@ -460,20 +461,20 @@ const TripTable: React.FC<TripTableProps> = ({
                   <td className="px-2 py-1.5 text-right font-mono">
                     {(() => {
                       const distance = trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance;
-                      return distance ? `${distance.toFixed(1)}` : '-';
+                      return distance ? NumberFormatter.display(distance, 2) : '-';
                     })()}
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">
-                    {trip.calculated_kmpl ? `${trip.calculated_kmpl.toFixed(2)}` : '-'}
+                    {trip.calculated_kmpl ? NumberFormatter.display(trip.calculated_kmpl, 2) : '-'}
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">
-                    {trip.fuel_quantity ? trip.fuel_quantity.toFixed(1) : '-'}
+                    {trip.fuel_quantity ? NumberFormatter.display(trip.fuel_quantity, 2) : '-'}
                   </td>
 
                   <td className="px-2 py-1.5 text-right font-mono">
-                    {trip.total_expenses ? `₹${trip.total_expenses.toLocaleString()}` : '-'}
+                    {trip.total_expenses ? NumberFormatter.currency(trip.total_expenses, false) : '-'}
                   </td>
 
                   <td className="px-2 py-1.5 text-xs truncate" title={trip.destinations?.join(', ')}>
@@ -550,14 +551,14 @@ const TripTable: React.FC<TripTableProps> = ({
       {/* Footer with stats */}
       <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600">
         <div className="flex items-center gap-4">
-          <span>Total Distance: <strong>{sortedTrips.reduce((sum, t) => sum + (t.total_distance || 0), 0).toFixed(1)} km</strong></span>
-          <span>Total Fuel: <strong>{sortedTrips.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0).toFixed(1)} L</strong></span>
-          <span>Total Expenses: <strong>₹{sortedTrips.reduce((sum, t) => sum + (t.total_expenses || 0), 0).toLocaleString()}</strong></span>
+          <span>Total Distance: <strong>{NumberFormatter.display(sortedTrips.reduce((sum, t) => sum + (t.total_distance || 0), 0), 2)} km</strong></span>
+          <span>Total Fuel: <strong>{NumberFormatter.display(sortedTrips.reduce((sum, t) => sum + (t.fuel_quantity || 0), 0), 2)} L</strong></span>
+          <span>Total Expenses: <strong>{NumberFormatter.currency(sortedTrips.reduce((sum, t) => sum + (t.total_expenses || 0), 0), false)}</strong></span>
         </div>
         
         <div>
           Avg Mileage: <strong>
-            {(sortedTrips.reduce((sum, t) => sum + (t.calculated_kmpl || 0), 0) / sortedTrips.length || 0).toFixed(2)} km/L
+            {NumberFormatter.display((sortedTrips.reduce((sum, t) => sum + (t.calculated_kmpl || 0), 0) / sortedTrips.length || 0), 2)} km/L
           </strong>
         </div>
       </div>

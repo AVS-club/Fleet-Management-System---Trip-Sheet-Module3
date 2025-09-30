@@ -5,6 +5,7 @@ import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { format } from 'date-fns';
+import { NumberFormatter } from '@/utils/numberFormatter';
 
 interface Column {
   id: string;
@@ -196,7 +197,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
       {
         id: 'mileage',
         label: 'Mileage',
-        accessor: trip => trip.calculated_kmpl?.toFixed(2) || '-',
+        accessor: trip => trip.calculated_kmpl ? NumberFormatter.display(trip.calculated_kmpl, 2) : '-',
         sortable: true,
         width: '80px',
         description: 'Fuel efficiency in km/L'
@@ -272,7 +273,8 @@ const TripsTable: React.FC<TripsTableProps> = ({
           const rto = trip.road_rto_expense || 0;
           const breakdown = trip.breakdown_expense || 0;
           const misc = trip.miscellaneous_expense || 0;
-          return fuel + road + unloading + driver + rto + breakdown + misc;
+          const total = fuel + road + unloading + driver + rto + breakdown + misc;
+          return NumberFormatter.roundUp(total, 2);
         },
         sortable: true,
         width: '90px',
