@@ -7,6 +7,7 @@ import { rowUrgency, daysTo, docScore, type DocKey } from '../../utils/urgency';
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const reactWindow = require('react-window');
   FixedSizeList = reactWindow.FixedSizeList;
 } catch (error) {
@@ -757,13 +758,14 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
         return arr.filter(r => r.__urg.meta.missing > 0)
           .sort((a,b) => b.__urg.meta.missing - a.__urg.meta.missing);
       
-      case "legalPriority":
+      case "legalPriority": {
         const lp = (r: any) => {
           const S = (k: DocKey) => 
             docScore(k, r.documents[k].date, !!r.documents[k].date);
           return S("rc")+S("insurance")+S("permit");
         };
         return arr.sort((a,b) => lp(b)-lp(a));
+      }
       
       case "column": {
         const {column, dir} = sort;

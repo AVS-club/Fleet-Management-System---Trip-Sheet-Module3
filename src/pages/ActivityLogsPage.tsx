@@ -99,14 +99,10 @@ export default function ActivityLogsPage() {
   }
 
   const handleExport = async (options: LogExportOptions) => {
-    try {
-      // The export is now handled directly in the LogExport component
-      // This function is kept for compatibility but not used
-      console.log('Export options:', options)
-      return Promise.resolve()
-    } catch (error) {
-      throw error
-    }
+    // The export is now handled directly in the LogExport component
+    // This function is kept for compatibility but not used
+    console.log('Export options:', options)
+    return Promise.resolve()
   }
 
   const vehicleActions = [

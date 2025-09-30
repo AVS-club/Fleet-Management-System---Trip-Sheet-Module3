@@ -671,7 +671,7 @@ const TripForm: React.FC<TripFormProps> = ({
               }, 1500);
             }
             
-            console.log('✅ Auto-selected warehouse:', assignedWarehouseId);
+            // Auto-selected warehouse based on vehicle assignment
           }
         } catch (error) {
           console.error('Error auto-assigning warehouse:', error);
@@ -950,7 +950,7 @@ const TripForm: React.FC<TripFormProps> = ({
     delete submitData.destination_display;
     delete submitData.toll_expense; // Database uses breakdown_expense instead
 
-    console.log('Submitting trip data:', submitData); // Debug log
+    // Submit trip data
 
     await onSubmit(submitData);
   };

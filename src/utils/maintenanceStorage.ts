@@ -169,7 +169,7 @@ export const createTask = async (
         const serviceGroupsWithTaskId = await Promise.all(
           service_groups.map(async (group: any) => {
             // Handle file uploads for bills
-            let bill_urls: string[] = [];
+            const bill_urls: string[] = [];
             if (group.bill_file && Array.isArray(group.bill_file)) {
               for (const file of group.bill_file) {
                 const url = await uploadServiceBill(file, data.id, group.id);
@@ -178,7 +178,7 @@ export const createTask = async (
             }
 
             // Handle battery warranty file uploads
-            let battery_warranty_urls: string[] = [];
+            const battery_warranty_urls: string[] = [];
             if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
               for (const file of group.battery_warranty_file) {
                 const url = await uploadServiceBill(file, data.id, `battery-${group.id}`);
@@ -187,7 +187,7 @@ export const createTask = async (
             }
 
             // Handle tyre warranty file uploads
-            let tyre_warranty_urls: string[] = [];
+            const tyre_warranty_urls: string[] = [];
             if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
               for (const file of group.tyre_warranty_file) {
                 const url = await uploadServiceBill(file, data.id, `tyre-${group.id}`);
@@ -353,7 +353,7 @@ export const updateTask = async (
         const serviceGroupsWithTaskId = await Promise.all(
           service_groups.map(async (group: any) => {
             // Handle file uploads for bills
-            let bill_urls: string[] = [];
+            const bill_urls: string[] = [];
             if (group.bill_file && Array.isArray(group.bill_file)) {
               for (const file of group.bill_file) {
                 const url = await uploadServiceBill(file, id, group.id);
@@ -362,7 +362,7 @@ export const updateTask = async (
             }
 
             // Handle battery warranty file uploads
-            let battery_warranty_urls: string[] = [];
+            const battery_warranty_urls: string[] = [];
             if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
               for (const file of group.battery_warranty_file) {
                 const url = await uploadServiceBill(file, id, `battery-${group.id}`);
@@ -371,7 +371,7 @@ export const updateTask = async (
             }
 
             // Handle tyre warranty file uploads
-            let tyre_warranty_urls: string[] = [];
+            const tyre_warranty_urls: string[] = [];
             if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
               for (const file of group.tyre_warranty_file) {
                 const url = await uploadServiceBill(file, id, `tyre-${group.id}`);
