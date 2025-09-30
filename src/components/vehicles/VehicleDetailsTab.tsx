@@ -130,8 +130,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       }
     } else {
       // Fallback: Copy to clipboard
-      navigator.clipboard.writeText(url);
-      toast.success('Link copied to clipboard');
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link copied to clipboard');
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+        toast.error('Failed to copy link');
+      }
     }
   };
 
@@ -310,8 +315,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                     
                     <button
                       onClick={async () => {
-                        await navigator.clipboard.writeText(doc.urls[0]);
-                        toast.success('Link copied to clipboard');
+                        try {
+                          await navigator.clipboard.writeText(doc.urls[0]);
+                          toast.success('Link copied to clipboard');
+                        } catch (error) {
+                          console.error('Failed to copy to clipboard:', error);
+                          toast.error('Failed to copy link');
+                        }
                       }}
                       className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded hover:bg-gray-100"
                     >
