@@ -837,7 +837,7 @@ const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
     const { data: trips, error } = await supabase
       .from("trips")
       .select("*, vehicles!inner(registration_number)")
-      .eq("added_by", user.id)
+      .eq("created_by", user.id)
       .order("trip_end_date", { ascending: false })
       .limit(100); // Limit to recent trips for performance
 

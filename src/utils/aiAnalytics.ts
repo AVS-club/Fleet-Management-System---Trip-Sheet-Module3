@@ -43,7 +43,7 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
     const { data: vehicleTrips, error } = await supabase
       .from("trips")
       .select("*")
-      .eq("added_by", user.id)
+      .eq("created_by", user.id)
       .eq("vehicle_id", trip.vehicle_id)
       .eq("refueling_done", true)
       .not("fuel_quantity", "is", null)
@@ -405,7 +405,7 @@ export const runAlertScan = async (): Promise<number> => {
     const { data: tripsData, error: tripsError } = await supabase
       .from("trips")
       .select("*")
-      .eq("added_by", user.id)
+      .eq("created_by", user.id)
       .order("trip_end_date", { ascending: false })
       .limit(100); // Get the 100 most recent trips
 
