@@ -6,7 +6,7 @@ import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import Switch from "../ui/Switch";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 
 const AlertThresholdsManager: React.FC = () => {
   const [thresholds, setThresholds] = useState<AlertThreshold[]>([]);
