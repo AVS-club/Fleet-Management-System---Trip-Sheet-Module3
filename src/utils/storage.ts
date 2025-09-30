@@ -273,7 +273,10 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
       throw new Error('User not authenticated');
     }
 
-    const payload = withOwner(destinationData, userId);
+    const payload = {
+      ...destinationData,
+      added_by: userId
+    };
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations')
@@ -338,10 +341,11 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // If destination doesn't exist, create a new one
-    const payload = withOwner({
+    const payload = {
       ...destinationData,
-      place_name: placeName || destinationData.name
-    }, userId);
+      place_name: placeName || destinationData.name,
+      added_by: userId
+    };
 
     const { data: newDestination, error: createError } = await supabase
       .from('destinations')

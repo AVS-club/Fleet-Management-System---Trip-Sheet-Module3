@@ -2,9 +2,9 @@
 
 import { supabase } from './supabaseClient';
 
-// Minimal helper to force created_by when inserting
+// Updated helper to use created_by for trips table
 export function withOwner<T extends Record<string, any>>(payload: T, userId?: string | null): T {
-  // If backend trigger fails for any reason, we still set it
+  // Set created_by for trips table to match RLS policies
   return { created_by: userId ?? (payload as any).created_by, ...payload };
 }
 

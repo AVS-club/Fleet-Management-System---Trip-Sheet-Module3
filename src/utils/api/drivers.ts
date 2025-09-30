@@ -28,7 +28,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
     const { data, error } = await supabase
       .from('drivers')
       .select(DRIVER_COLS)
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -68,7 +68,7 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
     const { data, error } = await supabase
       .from('drivers')
       .select('id,name')
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -108,7 +108,7 @@ export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
     const { data, error } = await supabase
       .from('drivers')
       .select(DRIVER_COLS)
-      .eq('created_by', user.id)
+      .eq('added_by', user.id)
       .order('name', { ascending: true });
 
     if (error) {

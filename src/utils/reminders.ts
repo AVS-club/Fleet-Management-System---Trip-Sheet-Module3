@@ -467,7 +467,7 @@ const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
     const { data: drivers, error } = await supabase
       .from("drivers")
       .select("*")
-      .eq("created_by", user.id)
+      .eq("added_by", user.id)
       .not("status", "eq", "blacklisted");
 
     if (error) {
