@@ -37,7 +37,7 @@ export const usePermissions = () => {
                   .select(`
                     role,
                     organization_id,
-                    organizations!inner (
+                    organizations (
                       name
                     )
                   `)
@@ -48,49 +48,6 @@ export const usePermissions = () => {
           console.error('Error fetching user organization:', error);
           console.log('User ID:', user.id);
           console.log('OrgUser data:', orgUser);
-          
-          // Fallback: try to get organization name directly
-          try {
-            const { data: fallbackOrg } = await supabase
-              .from('organization_users')
-              .select('organization_id, role')
-              .eq('user_id', user.id)
-              .single();
-            
-            if (fallbackOrg) {
-              const { data: orgData } = await supabase
-                .from('organizations')
-                .select('name')
-                .eq('id', fallbackOrg.organization_id)
-                .single();
-              
-              if (orgData) {
-                const role = fallbackOrg.role as 'owner' | 'data_entry' | 'admin';
-                const isOwner = role === 'owner';
-                const isDataEntry = role === 'data_entry';
-                const isAdmin = role === 'admin';
-
-                setPermissions({
-                  userId: user.id,
-                  role,
-                  organizationId: fallbackOrg.organization_id,
-                  organizationName: orgData.name || 'Shree Durga Ent.',
-                  isOwner,
-                  isDataEntry,
-                  canViewDashboard: isOwner || isAdmin,
-                  canViewPnL: isOwner,
-                  canViewAdmin: isOwner || isAdmin,
-                  canViewAlerts: isOwner || isAdmin,
-                  canViewDriverInsights: isOwner || isAdmin,
-                  canViewVehicleOverview: isOwner || isAdmin,
-                });
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (fallbackError) {
-            console.error('Fallback organization fetch failed:', fallbackError);
-          }
           
           setPermissions(null);
           setLoading(false);
@@ -106,8 +63,30 @@ export const usePermissions = () => {
                 const isDataEntry = role === 'data_entry';
                 const isAdmin = role === 'admin';
 
-                // Extract organization name - should now work with !inner join
-                const organizationName = (orgUser.organizations as any)?.name || 'Shree Durga Ent.';
+                // Extract organization name with fallback
+                let organizationName = 'Shree Durga Ent.'; // Default fallback
+                
+                if (orgUser.organizations && (orgUser.organizations as any).name) {
+                  organizationName = (orgUser.organizations as any).name;
+                } else if (orgUser.organization_id) {
+                  // If join failed, fetch organization name directly
+                  try {
+                    const { data: orgData, error: orgError } = await supabase
+                      .from('organizations')
+                      .select('name')
+                      .eq('id', orgUser.organization_id)
+                      .single();
+                    
+                    if (!orgError && orgData && orgData.name) {
+                      organizationName = orgData.name;
+                      console.log('Fetched organization name directly:', organizationName);
+                    } else {
+                      console.error('Error fetching organization name directly:', orgError);
+                    }
+                  } catch (directFetchError) {
+                    console.error('Exception fetching organization name directly:', directFetchError);
+                  }
+                }
 
                 console.log('Final organization name:', organizationName);
 
