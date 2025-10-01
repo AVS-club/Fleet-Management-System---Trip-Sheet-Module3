@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 
-interface UserPermissions {
+export interface UserPermissions {
   userId: string;
   role: 'owner' | 'data_entry' | 'admin' | null;
   organizationId: string;
@@ -15,7 +15,6 @@ interface UserPermissions {
   canViewDriverInsights: boolean;
   canViewVehicleOverview: boolean;
 }
-
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +31,7 @@ export const usePermissions = () => {
         }
 
         const { data: orgUser, error } = await supabase
+        const { data: orgUser, error } = await supabase
           .from('organization_users')
           .select(`
             role,
@@ -41,9 +41,7 @@ export const usePermissions = () => {
             )
           `)
           .eq('user_id', user.id)
-          .single();
-
-        if (error || !orgUser) {
+          .maybeSingle();        if (error || !orgUser) {
           setPermissions(null);
           setLoading(false);
           return;
@@ -51,7 +49,10 @@ export const usePermissions = () => {
 
         const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
         const isOwner = role === 'owner';
+        const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
+        const isOwner = role === 'owner';
         const isDataEntry = role === 'data_entry';
+        const isAdmin = role === 'admin';
 
         setPermissions({
           userId: user.id,
@@ -60,15 +61,13 @@ export const usePermissions = () => {
           organizationName: (orgUser.organizations as any)?.name || 'Unknown Organization',
           isOwner,
           isDataEntry,
-          canViewDashboard: isOwner,
+          canViewDashboard: isOwner || isAdmin,
           canViewPnL: isOwner,
-          canViewAdmin: isOwner,
-          canViewAlerts: isOwner,
-          canViewDriverInsights: isOwner,
-          canViewVehicleOverview: isOwner,
-        });
-      } catch (error) {
-        console.error('Error fetching permissions:', error);
+          canViewAdmin: isOwner || isAdmin,
+          canViewAlerts: isOwner || isAdmin,
+          canViewDriverInsights: isOwner || isAdmin || isDataEntry,
+          canViewVehicleOverview: isOwner || isAdmin || isDataEntry,
+        });        console.error('Error fetching permissions:', error);
         setPermissions(null);
       } finally {
         setLoading(false);

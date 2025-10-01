@@ -10,24 +10,14 @@ import Select from '../components/ui/Select';
 
 const NotificationsPage: React.FC = () => {
   const { permissions, loading: permissionsLoading } = usePermissions();
+  const navigate = useNavigate();
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Redirect non-owner users
-  if (!permissionsLoading && !permissions?.canViewAlerts) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
-  if (permissionsLoading) {
-    return <div>Loading...</div>;
-  }
-
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',
     module: 'all'
   });
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchReminders = async () => {
@@ -45,6 +35,17 @@ const NotificationsPage: React.FC = () => {
     fetchReminders();
   }, []);
 
+  // Redirect non-owner users
+  if (!permissionsLoading && !permissions?.canViewAlerts) {
+    return <Navigate to="/vehicles" replace />;
+  }
+
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // ...rest of component rendering
+};
   const handleReminderClick = (reminder: ReminderItem) => {
     navigate(reminder.link);
   };

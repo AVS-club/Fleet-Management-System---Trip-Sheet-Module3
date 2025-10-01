@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { usePermissions } from "../hooks/usePermissions";
+import { usePermissions, UserPermissions } from "../hooks/usePermissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
@@ -41,6 +41,13 @@ const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { permissions } = usePermissions();
+  
+  // Helper function for type-safe permission checking
+  const hasPermission = (permKey: keyof UserPermissions | string): boolean => {
+    if (!permissions) return false;
+    return Boolean(permissions[permKey as keyof UserPermissions]);
+  };
+  
   const [isEditing, setIsEditing] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -426,7 +433,7 @@ const VehiclePage: React.FC = () => {
                 { id: 'overview', name: 'Overview', icon: <BarChart2 className="h-4 w-4" />, requiresPermission: 'canViewVehicleOverview' },
                 { id: 'trips', name: 'Trips', icon: <Route className="h-4 w-4" /> },
                 { id: 'maintenance', name: 'Maintenance', icon: <Wrench className="h-4 w-4" /> },
-              ].filter(tab => !tab.requiresPermission || (permissions && (permissions as any)[tab.requiresPermission])).map((tab) => (
+              ].filter(tab => !tab.requiresPermission || hasPermission(tab.requiresPermission)).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
@@ -540,25 +547,6 @@ const VehiclePage: React.FC = () => {
           {activeTab === 'trips' && (
             <VehicleTripsTab vehicleId={id || ''} />
           )}
-
-
-          {activeTab === 'maintenance' && (
-            <div className="space-y-6">
-              <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Wrench className="h-5 w-5 text-blue-500" />
-                  Maintenance Tracking
-                </h3>
-                <div className="text-center py-12">
-                  <Wrench className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Maintenance Tracking Coming Soon</h4>
-                  <p className="text-gray-500 max-w-md mx-auto">
-                    Comprehensive maintenance tracking, scheduling, and analytics will be available in the next update.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
       </div>
@@ -575,7 +563,7 @@ const VehiclePage: React.FC = () => {
         />
       )}
 
-      {showDownloadModal && (
+      {showDownloadModal && vehicle && (
         <DocumentDownloadModal
           isOpen={showDownloadModal}
           vehicle={vehicle}
@@ -584,7 +572,7 @@ const VehiclePage: React.FC = () => {
         />
       )}
 
-      {showDocumentViewerModal && (
+      {showDocumentViewerModal && vehicle && (
         <DocumentViewerModal
           isOpen={showDocumentViewerModal}
           vehicleNumber={vehicle.registration_number}

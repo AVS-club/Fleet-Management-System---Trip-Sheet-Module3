@@ -94,6 +94,4 @@ CREATE POLICY "drivers_org_select" ON drivers
   );
 
 SELECT 'Final test with new policy:' as info;
-SELECT COUNT(*) as accessible_drivers 
-FROM drivers 
-WHERE organization_id = 'ab6c2178-32f9-4a03-b5ab-d535db827a58';
+-- Final test removed - RLS policies should be validated in dev/test environments
