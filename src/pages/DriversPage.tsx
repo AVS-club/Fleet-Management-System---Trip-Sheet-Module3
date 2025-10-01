@@ -68,10 +68,16 @@ const DriversPage: React.FC = () => {
       setLoading(true);
       setStatsLoading(true);
       try {
-        const userdetails = localStorage.getItem("user");
-        if (!userdetails) throw new Error("Cannot get user details");
-        const user = JSON.parse(userdetails);
-        if (user) setUser(user);
+        // Get current user from Supabase auth instead of localStorage
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          console.error('Error getting user:', userError);
+          setLoading(false);
+          setStatsLoading(false);
+          return;
+        }
+        setUser(user);
+        
         const [driversData, tripsData] = await Promise.all([
           getDrivers(),
           getTrips(),

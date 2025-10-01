@@ -144,10 +144,14 @@ const VehicleManagementPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const userdetails = localStorage.getItem("user");
-        if (!userdetails) throw new Error("Cannot get user details");
-        const user = JSON.parse(userdetails);
-        if (user) setUser(user);
+        // Get current user from Supabase auth instead of localStorage
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          console.error('Error getting user:', userError);
+          setLoading(false);
+          return;
+        }
+        setUser(user);
         // Fetch vehicles with their stats
         const vehiclesData = await getVehicles();
 
