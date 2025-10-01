@@ -10,10 +10,6 @@ const AppNav: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
   
-  // Debug logging
-  console.log('AppNav - Loading:', loading);
-  console.log('AppNav - Permissions:', permissions);
-  
   const handleQuickAdd = (path: string) => {
     navigate(`${path}?action=new`);
   };
@@ -64,10 +60,9 @@ const AppNav: React.FC = () => {
               </div>
             );
           }
-          if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
-            console.log(`Hiding nav item ${label} - requires ${requiresPermission}, has:`, (permissions as any)[requiresPermission]);
-            return null;
-          }
+                  if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
+                    return null;
+                  }
           const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
           
           return (

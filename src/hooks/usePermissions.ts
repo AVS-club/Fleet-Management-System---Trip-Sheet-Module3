@@ -1,119 +1,93 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
+import { Permissions, OrganizationUser, UserRole } from '../types/permissions';
 
-export interface UserPermissions {
-  userId: string;
-  role: 'owner' | 'data_entry' | 'admin' | null;
-  organizationId: string;
-  organizationName: string;
-  isOwner: boolean;
-  isDataEntry: boolean;
-  canViewDashboard: boolean;
-  canViewPnL: boolean;
-  canViewAdmin: boolean;
-  canViewAlerts: boolean;
-  canViewDriverInsights: boolean;
-  canViewVehicleOverview: boolean;
-}
-
-export const usePermissions = () => {
-  const [permissions, setPermissions] = useState<UserPermissions | null>(null);
+export const usePermissions = (): {
+  permissions: Permissions | null;
+  loading: boolean;
+  refetch: () => Promise<void>;
+} => {
+  const [permissions, setPermissions] = useState<Permissions | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setPermissions(null);
-          setLoading(false);
-          return;
-        }
+  const fetchUserPermissions = async () => {
+    const startTime = performance.now();
+    setLoading(true);
+    
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user found');
 
-                // First try to get organization user data
-                const { data: orgUser, error } = await supabase
-                  .from('organization_users')
-                  .select(`
-                    role,
-                    organization_id,
-                    organizations (
-                      name
-                    )
-                  `)
-                  .eq('user_id', user.id)
-                  .single();
-
-        if (error || !orgUser) {
-          console.error('Error fetching user organization:', error);
-          console.log('User ID:', user.id);
-          console.log('OrgUser data:', orgUser);
-          
-          setPermissions(null);
-          setLoading(false);
-          return;
-        }
-
-                console.log('Fetched orgUser:', orgUser);
-                console.log('Organization data:', orgUser.organizations);
-                console.log('Organization name:', (orgUser.organizations as any)?.name);
-
-                const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
-                const isOwner = role === 'owner';
-                const isDataEntry = role === 'data_entry';
-                const isAdmin = role === 'admin';
-
-                // Extract organization name with fallback
-                let organizationName = 'Shree Durga Ent.'; // Default fallback
-                
-                if (orgUser.organizations && (orgUser.organizations as any).name) {
-                  organizationName = (orgUser.organizations as any).name;
-                } else if (orgUser.organization_id) {
-                  // If join failed, fetch organization name directly
-                  try {
-                    const { data: orgData, error: orgError } = await supabase
-                      .from('organizations')
-                      .select('name')
-                      .eq('id', orgUser.organization_id)
-                      .single();
-                    
-                    if (!orgError && orgData && orgData.name) {
-                      organizationName = orgData.name;
-                      console.log('Fetched organization name directly:', organizationName);
-                    } else {
-                      console.error('Error fetching organization name directly:', orgError);
-                    }
-                  } catch (directFetchError) {
-                    console.error('Exception fetching organization name directly:', directFetchError);
-                  }
-                }
-
-                console.log('Final organization name:', organizationName);
-
-        setPermissions({
-          userId: user.id,
+      // Single optimized query with proper left join
+      const { data: orgUser, error: orgError } = await supabase
+        .from('organization_users')
+        .select(`
           role,
-          organizationId: orgUser.organization_id,
-          organizationName,
-          isOwner,
-          isDataEntry,
-          canViewDashboard: isOwner || isAdmin,
-          canViewPnL: isOwner,
-          canViewAdmin: isOwner || isAdmin,
-          canViewAlerts: isOwner || isAdmin,
-          canViewDriverInsights: isOwner || isAdmin,
-          canViewVehicleOverview: isOwner || isAdmin,
-        });
-      } catch (error) {
-        console.error('Error fetching permissions:', error);
-        setPermissions(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+          organization_id,
+          organizations (
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .single();
 
-    fetchPermissions();
+      if (orgError) {
+        console.error('Error fetching organization user:', orgError);
+        throw orgError;
+      }
+
+      // Safely extract organization name
+      const organizationName = orgUser?.organizations?.name || 'Organization';
+      const userRole = orgUser?.role as UserRole || 'data_entry';
+
+      // Set permissions based on role
+      const newPermissions: Permissions = {
+        role: userRole,
+        organizationId: orgUser?.organization_id || null,
+        organizationName,
+        canAccessDashboard: userRole !== 'data_entry',
+        canAccessReports: userRole !== 'data_entry',
+        canAccessAdmin: userRole === 'admin' || userRole === 'owner',
+        canAccessAlerts: userRole !== 'data_entry',
+        canViewDriverInsights: userRole !== 'data_entry',
+        canViewVehicleOverview: userRole !== 'data_entry',
+      };
+
+      setPermissions(newPermissions);
+      
+      const endTime = performance.now();
+      const duration = endTime - startTime;
+      
+      // Only log in development
+      if (import.meta.env.DEV) {
+        console.log(`✅ Permissions loaded in ${duration.toFixed(2)}ms`);
+      }
+      
+    } catch (error) {
+      console.error('Failed to fetch user permissions:', error);
+      
+      // Set safe defaults on error
+      setPermissions({
+        role: 'data_entry',
+        organizationId: null,
+        organizationName: 'Organization',
+        canAccessDashboard: false,
+        canAccessReports: false,
+        canAccessAdmin: false,
+        canAccessAlerts: false,
+        canViewDriverInsights: false,
+        canViewVehicleOverview: false,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserPermissions();
   }, []);
 
-  return { permissions, loading };
+  return { permissions, loading, refetch: fetchUserPermissions };
 };
