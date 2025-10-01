@@ -372,13 +372,15 @@ const TripLocationsPage: React.FC = () => {
                                   </div>
                                 </div>
                               </div>
-                              {typeof warehouse.latitude === 'number' && typeof warehouse.longitude === 'number' ? (
+                              {warehouse.latitude !== undefined && warehouse.longitude !== undefined && 
+                               warehouse.latitude !== null && warehouse.longitude !== null &&
+                               warehouse.latitude !== 0 && warehouse.longitude !== 0 ? (
                                 <div className="mt-3 text-sm text-gray-500">
                                   Coordinates: {warehouse.latitude.toFixed(6)}, {warehouse.longitude.toFixed(6)}
                                 </div>
-                              ) : warehouse.latitude !== undefined && warehouse.longitude !== undefined && (
-                                <div className="mt-3 text-sm text-gray-500">
-                                  Coordinates: {warehouse.latitude}, {warehouse.longitude} (Invalid)
+                              ) : (
+                                <div className="mt-3 text-sm text-red-500">
+                                  Coordinates: Invalid or missing
                                 </div>
                               )}
                             </div>
@@ -502,13 +504,14 @@ const TripLocationsPage: React.FC = () => {
                                     </div>
                                   </div>
                                 </div>
-                                {typeof destination.latitude === 'number' && typeof destination.longitude === 'number' ? (
+                                {destination.latitude !== null && destination.longitude !== null && 
+                                 destination.latitude !== 0 && destination.longitude !== 0 ? (
                                   <div className="mt-3 text-sm text-gray-500">
                                     Coordinates: {destination.latitude.toFixed(6)}, {destination.longitude.toFixed(6)}
                                   </div>
-                                ) : destination.latitude !== undefined && destination.longitude !== undefined && (
-                                  <div className="mt-3 text-sm text-gray-500">
-                                    Coordinates: {destination.latitude}, {destination.longitude} (Invalid)
+                                ) : (
+                                  <div className="mt-3 text-sm text-red-500">
+                                    Coordinates: Invalid or missing
                                   </div>
                                 )}
                               </div>

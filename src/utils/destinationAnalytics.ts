@@ -8,8 +8,8 @@ export interface DestinationUsageStats {
   last_used: string | null;
   type: string;
   state: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   place_id?: string;
   formatted_address?: string;
   active: boolean;

@@ -7,8 +7,8 @@ import Button from '../ui/Button';
 
 interface DestinationFormData {
   name: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   standardDistance: number;
   estimatedTime: string;
   state: 'chhattisgarh' | 'odisha';
