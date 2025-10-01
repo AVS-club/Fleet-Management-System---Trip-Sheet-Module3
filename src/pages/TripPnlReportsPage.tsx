@@ -69,10 +69,6 @@ interface DatePreset {
 const TripPnlReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
-  const [trips, setTrips] = useState<Trip[]>([]);
-const TripPnlReportsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { permissions, loading: permissionsLoading } = usePermissions();
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -100,40 +96,7 @@ const TripPnlReportsPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  // ...rest of component implementation...
-};  const [selectedWarehouse, setSelectedWarehouse] = useState('');
-  const [selectedProfitStatus, setSelectedProfitStatus] = useState('');
-  const [selectedDatePreset, setSelectedDatePreset] = useState('alltime');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-
-  // Redirect non-owner users
-  if (!permissionsLoading && !permissions?.canViewPnL) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
-  if (permissionsLoading) {
-    return <div>Loading...</div>;
-  }
-
   // ...rest of component logic
-};  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedVehicle, setSelectedVehicle] = useState('');
-  const [selectedDriver, setSelectedDriver] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState('');
-  const [selectedProfitStatus, setSelectedProfitStatus] = useState('');
-  const [selectedDatePreset, setSelectedDatePreset] = useState('alltime');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
 
   const datePresetOptions: DatePreset[] = [
     {

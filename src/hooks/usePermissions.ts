@@ -31,7 +31,6 @@ export const usePermissions = () => {
         }
 
         const { data: orgUser, error } = await supabase
-        const { data: orgUser, error } = await supabase
           .from('organization_users')
           .select(`
             role,
@@ -47,8 +46,6 @@ export const usePermissions = () => {
           return;
         }
 
-        const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
-        const isOwner = role === 'owner';
         const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
         const isOwner = role === 'owner';
         const isDataEntry = role === 'data_entry';

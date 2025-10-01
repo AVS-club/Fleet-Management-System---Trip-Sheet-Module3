@@ -44,8 +44,6 @@ const NotificationsPage: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  // ...rest of component rendering
-};
   const handleReminderClick = (reminder: ReminderItem) => {
     navigate(reminder.link);
   };
