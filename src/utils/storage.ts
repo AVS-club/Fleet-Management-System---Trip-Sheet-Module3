@@ -353,12 +353,12 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // First, try to find existing destination by place_id
-    const { data: existingDestination, error: searchError } = await supabase
+    const { data: existingDestinations, error: searchError } = await supabase
       .from('destinations')
       .select('id')
       .eq('place_id', placeId)
       .eq('organization_id', organizationId)
-      .maybeSingle();
+      .limit(1); // Use limit(1) instead of maybeSingle() for better duplicate handling
 
     if (searchError) {
       handleSupabaseError('search destination by place_id', searchError);
@@ -366,8 +366,8 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // If destination exists, return its UUID
-    if (existingDestination) {
-      return existingDestination.id;
+    if (existingDestinations && existingDestinations.length > 0) {
+      return existingDestinations[0].id;
     }
 
     // If destination doesn't exist, create a new one

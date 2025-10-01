@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { MapPin, Plus, Search, Building, MapIcon as Town, Globe, X } from 'lucide-react';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
-import { getDestinations, findOrCreateDestinationByPlaceId } from '../../utils/storage';
+import { getDestinations } from '../../utils/storage';
+import { searchOrCreateDestination } from '../../lib/destinationUtils';
 import { getMostUsedDestinations } from '../../utils/destinationAnalytics';
 import { Destination } from '@/types';
 import Input from '../ui/Input';
@@ -161,47 +162,18 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         throw new Error('No location data in place details');
       }
 
-      // Determine destination type based on Google Places types
-      let destinationType: 'city' | 'district' | 'town' | 'village' = 'city';
-      if (placeDetails.types) {
-        if (placeDetails.types.includes('administrative_area_level_2')) {
-          destinationType = 'district';
-        } else if (placeDetails.types.includes('locality')) {
-          destinationType = 'city';
-        } else if (placeDetails.types.includes('sublocality')) {
-          destinationType = 'town';
-        } else if (placeDetails.types.includes('neighborhood')) {
-          destinationType = 'village';
-        }
-      }
+      // Destination type will be determined by the utility function
 
-      // Create destination data (without id)
-      const destinationData: Omit<Destination, 'id'> = {
+      // Destination data will be created by the utility function
+
+      // Use the new utility function to search or create destination
+      const newDestination = await searchOrCreateDestination({
+        place_id: prediction.place_id,
         name: placeDetails.name || prediction.description.split(',')[0],
+        formatted_address: placeDetails.formatted_address,
         latitude: placeDetails.geometry.location.lat(),
         longitude: placeDetails.geometry.location.lng(),
-        standard_distance: 0, // Will be calculated
-        estimated_time: '0h 0m',
-        historical_deviation: 0,
-        type: destinationType,
-        state: 'chhattisgarh', // Default state
-        place_id: prediction.place_id,
-        formatted_address: placeDetails.formatted_address,
-        active: true
-      };
-
-      // Find or create destination in database and get proper UUID
-      const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, destinationData);
-      
-      if (!destinationId) {
-        throw new Error('Failed to create or find destination');
-      }
-
-      // Create final destination object with proper UUID
-      const newDestination: Destination = {
-        ...destinationData,
-        id: destinationId
-      };
+      });
 
       onDestinationSelect(newDestination);
 
@@ -214,38 +186,31 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
     } catch (error) {
       console.error('Error selecting place:', error);
       
+      // Better error handling for destination operations
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to process destination';
+      
+      // Show user-friendly error message
+      const { toast } = await import('react-toastify');
+      toast.error(`Destination error: ${errorMessage}`);
+      
       // Fallback: Create a basic destination without Google API data
       try {
-        const fallbackDestinationData: Omit<Destination, 'id'> = {
-          name: prediction.description.split(',')[0],
-          latitude: null, // Invalid coordinates - will need manual entry
-          longitude: null, // Invalid coordinates - will need manual entry
-          standard_distance: 0,
-          estimated_time: '0h 0m',
-          historical_deviation: 0,
-          type: 'city',
-          state: 'chhattisgarh',
+
+        const fallbackDestination = await searchOrCreateDestination({
           place_id: prediction.place_id,
+          name: prediction.description.split(',')[0],
           formatted_address: prediction.description,
-          active: false // Mark as inactive until valid coordinates are provided
-        };
+          latitude: undefined,
+          longitude: undefined,
+        });
 
-        const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, fallbackDestinationData);
+        onDestinationSelect(fallbackDestination);
         
-        if (destinationId) {
-          const fallbackDestination: Destination = {
-            ...fallbackDestinationData,
-            id: destinationId
-          };
-
-          onDestinationSelect(fallbackDestination);
-          
-          // Show a warning toast about the fallback
-          const { toast } = await import('react-toastify');
-          toast.warning(`Destination "${prediction.description.split(',')[0]}" added but is inactive due to missing coordinates. Please update coordinates manually to enable route calculations.`);
-        } else {
-          throw new Error('Failed to create fallback destination');
-        }
+        // Show a warning toast about the fallback
+        const { toast } = await import('react-toastify');
+        toast.warning(`Destination "${prediction.description.split(',')[0]}" added but is inactive due to missing coordinates. Please update coordinates manually to enable route calculations.`);
       } catch (fallbackError) {
         console.error('Fallback destination creation failed:', fallbackError);
         const { toast } = await import('react-toastify');
