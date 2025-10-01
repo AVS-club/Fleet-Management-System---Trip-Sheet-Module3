@@ -157,28 +157,6 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         );
       });
 
-      // …rest of success logic…
-
-      onDestinationSelect(newDestination);
-
-      // Clear state and blur after successful selection
-      setSearchTerm('');
-      setPredictions([]);
-      setActivePredictionIndex(-1);
-      setShowAddAnother(false);
-      setTimeout(() => inputRef.current?.blur(), 0);
-    } catch (error) {
-      console.error('Error selecting place:', error);
-
-      // …fallback logic…
-
-      // Clear state after fallback handling
-      setSearchTerm('');
-      setPredictions([]);
-      setActivePredictionIndex(-1);
-      setShowAddAnother(false);
-    }
-
       if (!placeDetails.geometry?.location) {
         throw new Error('No location data in place details');
       }
@@ -226,6 +204,13 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       };
 
       onDestinationSelect(newDestination);
+
+      // Clear state and blur after successful selection
+      setSearchTerm('');
+      setPredictions([]);
+      setActivePredictionIndex(-1);
+      setShowAddAnother(false);
+      setTimeout(() => inputRef.current?.blur(), 0);
     } catch (error) {
       console.error('Error selecting place:', error);
       
