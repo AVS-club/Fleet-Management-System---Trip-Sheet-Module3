@@ -33,12 +33,23 @@ export const generateTripSerialNumber = async (
     // Build the prefix for this vehicle and year
     const prefix = `T${yy}-${last4Digits}`;
     
+    // Get user's organization ID first
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!orgUser) {
+      throw new Error('User not associated with any organization');
+    }
+
     // Query to find ALL existing serial numbers for THIS specific vehicle and year
     // This ensures we get the complete picture of what sequences exist
     const { data: existingTrips, error } = await supabase
       .from('trips')
       .select('trip_serial_number')
-      .eq('created_by', user.id)  // Only check within user's trips
+      .eq('organization_id', orgUser.organization_id)  // Check within organization
       .eq('vehicle_id', vehicleId)  // Filter by specific vehicle
       .ilike('trip_serial_number', `${prefix}-%`)  // Match the prefix pattern
       .order('trip_serial_number', { ascending: false });
@@ -109,10 +120,21 @@ export const validateTripSerialUniqueness = async (
       throw new Error('User not authenticated');
     }
 
+    // Get user's organization ID
+    const { data: orgUser } = await supabase
+      .from('organization_users')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!orgUser) {
+      throw new Error('User not associated with any organization');
+    }
+
     let query = supabase
       .from('trips')
       .select('id, trip_serial_number')
-      .eq('created_by', user.id)  // Check within user's trips
+      .eq('organization_id', orgUser.organization_id)  // Check within organization
       .eq('trip_serial_number', tripSerialNumber);
     
     // Exclude the current trip if updating

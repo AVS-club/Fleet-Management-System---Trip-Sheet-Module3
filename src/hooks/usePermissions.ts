@@ -36,7 +36,7 @@ export const usePermissions = () => {
           .select(`
             role,
             organization_id,
-            organizations!inner (
+            organizations (
               name
             )
           `)
@@ -45,10 +45,15 @@ export const usePermissions = () => {
 
         if (error || !orgUser) {
           console.error('Error fetching user organization:', error);
+          console.log('User ID:', user.id);
+          console.log('OrgUser data:', orgUser);
           setPermissions(null);
           setLoading(false);
           return;
         }
+
+        console.log('Fetched orgUser:', orgUser);
+        console.log('Organization name:', (orgUser.organizations as any)?.name);
 
         const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
         const isOwner = role === 'owner';
