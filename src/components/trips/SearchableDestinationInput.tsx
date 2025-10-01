@@ -177,19 +177,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       setPredictions([]);
       setActivePredictionIndex(-1);
       setShowAddAnother(false);
-    }          {
-            placeId: prediction.place_id,
-            fields: ['name', 'geometry', 'address_components', 'formatted_address', 'types']
-          },
-          (result, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-              resolve(result);
-            } else {
-              reject(new Error(`Place details request failed: ${status}`));
-            }
-          }
-        );
-      });
+    }
 
       if (!placeDetails.geometry?.location) {
         throw new Error('No location data in place details');
