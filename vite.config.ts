@@ -12,7 +12,8 @@ export default defineConfig({
     hmr: {
       protocol: 'wss',
       clientPort: 443
-    }
+    },
+    historyApiFallback: true
   },
   resolve: {
     alias: {

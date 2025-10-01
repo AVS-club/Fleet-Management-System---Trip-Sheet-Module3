@@ -1,9 +1,11 @@
 import React, { Suspense, useEffect, useState } from "react";
 import {
-  HashRouter as Router,
+  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
+  useNavigate,
+  useLocation,
 } from "react-router-dom";
 import { Session } from "@supabase/supabase-js";
 import { supabase, testSupabaseConnection } from "./utils/supabaseClient";
@@ -48,6 +50,17 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Handle hash routing redirects (catch any old hash URLs)
+    if (window.location.hash) {
+      const hashPath = window.location.hash.replace('#', '');
+      navigate(hashPath, { replace: true });
+      return;
+    }
+  }, [navigate]);
 
   useEffect(() => {
     // Test Supabase connection and get initial session
@@ -103,9 +116,10 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <Suspense fallback={<LoadingScreen isLoading={true} />}>
         <Routes>
-          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/" replace />} />
-          <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/" replace />} />
-          <Route path="/" element={<ProtectedRoute session={session} loading={loading}><DashboardPage /></ProtectedRoute>} />
+          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<ProtectedRoute session={session} loading={loading}><DashboardPage /></ProtectedRoute>} />
           <Route path="/vehicles" element={<ProtectedRoute session={session} loading={loading}><VehiclesPage /></ProtectedRoute>} />
           <Route path="/vehicles/:id" element={<ProtectedRoute session={session} loading={loading}><VehiclePage /></ProtectedRoute>} />
           <Route path="/drivers" element={<ProtectedRoute session={session} loading={loading}><DriversPage /></ProtectedRoute>} />

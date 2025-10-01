@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { usePermissions } from '../hooks/usePermissions';
 import TripList from '../components/trips/TripList';
 import TripListView from '../components/trips/TripListView';
 import TripTable from '../components/trips/TripTable';
@@ -23,6 +24,7 @@ import { toast } from 'react-toastify';
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { permissions } = usePermissions();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -481,19 +483,23 @@ const TripsPage: React.FC = () => {
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
         {!isAddingTrip && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/trip-pnl-reports')}
-              icon={<BarChart2 className="h-4 w-4" />}
-            >
-              P&L Report
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowDashboard(!showDashboard)}
-            >
-              {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
-            </Button>
+            {permissions?.canViewPnL && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/trip-pnl-reports')}
+                icon={<BarChart2 className="h-4 w-4" />}
+              >
+                P&L Report
+              </Button>
+            )}
+            {permissions?.canViewDashboard && (
+              <Button
+                variant="outline"
+                onClick={() => setShowDashboard(!showDashboard)}
+              >
+                {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
+              </Button>
+            )}
             <Button
               onClick={() => setIsAddingTrip(true)}
               icon={<PlusCircle className="h-4 w-4" />}

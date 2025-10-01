@@ -13,6 +13,7 @@ import {
   Bell
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface MobileNavigationProps {
   className?: string;
@@ -21,15 +22,17 @@ interface MobileNavigationProps {
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { permissions } = usePermissions();
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canViewDashboard' },
     { path: '/trips', label: 'Trips', icon: FileText },
     { path: '/vehicles', label: 'Vehicles', icon: Truck },
     { path: '/drivers', label: 'Drivers', icon: Users },
     { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/admin', label: 'Admin', icon: Settings },
-    { path: '/notifications', label: 'Alerts', icon: Bell },
+    { path: '/trip-pnl-reports', label: 'P&L', icon: BarChart3, requiresPermission: 'canViewPnL' },
+    { path: '/admin', label: 'Admin', icon: Settings, requiresPermission: 'canViewAdmin' },
+    { path: '/notifications', label: 'Alerts', icon: Bell, requiresPermission: 'canViewAlerts' },
   ];
 
   const isActive = (path: string) => {
@@ -80,6 +83,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
             <nav className="flex-1 overflow-y-auto">
               <div className="p-4 space-y-2">
                 {navigationItems.map((item) => {
+                  // Check if user has permission to view this nav item
+                  if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
+                    return null;
+                  }
+                  
                   const Icon = item.icon;
                   return (
                     <Link

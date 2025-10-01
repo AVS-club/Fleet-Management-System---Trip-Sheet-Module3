@@ -3,10 +3,12 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { navLinks } from './navLinks';
 import { cn } from '../../utils/cn';
 import { Plus } from 'lucide-react';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const AppNav: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { permissions } = usePermissions();
   
   const handleQuickAdd = (path: string) => {
     navigate(`${path}?action=new`);
@@ -16,7 +18,11 @@ const AppNav: React.FC = () => {
     <nav className="flex items-center justify-between w-full">
       {/* Navigation - Mobile optimized with icon-first design */}
       <div className="flex items-center justify-center gap-1 sm:gap-2">
-        {navLinks.map(({ to, label, icon: Icon, hasQuickAdd }) => {
+        {navLinks.map(({ to, label, icon: Icon, hasQuickAdd, requiresPermission }) => {
+          // Check if user has permission to view this nav item
+          if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
+            return null;
+          }
           const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
           
           return (

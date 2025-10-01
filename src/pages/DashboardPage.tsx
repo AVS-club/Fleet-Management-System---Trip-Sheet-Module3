@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../components/layout/Layout';
 import DashboardHeader from '../components/layout/DashboardHeader';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { usePermissions } from '../hooks/usePermissions';
 import { getTrips, getVehicles, getVehicle, getVehicleStats } from '../utils/storage';
 import { getDrivers, getDriver } from '../utils/api/drivers';
 import { format } from 'date-fns';
@@ -23,7 +24,13 @@ import FleetIQScanner from '../components/FleetIQScanner';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { permissions, loading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'maintenance'>('overview');
+  
+  // Redirect data entry users to vehicles page
+  if (!permissionsLoading && permissions?.isDataEntry) {
+    return <Navigate to="/vehicles" replace />;
+  }
   
   // Use React Query for better caching and performance
   const { data: trips = [], isLoading: tripsLoading, error: tripsError } = useQuery({
@@ -50,7 +57,7 @@ const DashboardPage: React.FC = () => {
     retry: 2,
   });
 
-  const loading = tripsLoading || vehiclesLoading || driversLoading;
+  const loading = permissionsLoading || tripsLoading || vehiclesLoading || driversLoading;
   
   // Calculate stats with error handling and performance optimization
   const stats = useMemo(() => {

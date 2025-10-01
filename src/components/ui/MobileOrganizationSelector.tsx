@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Building2, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -16,9 +17,13 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
     setCurrentOrganization, 
     loading 
   } = useOrganization();
+  const { permissions } = usePermissions();
 
   const [isOpen, setIsOpen] = useState(false);
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
+  
+  // Use organization name from permissions if available
+  const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
 
   if (loading) {
     return (
@@ -52,7 +57,7 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
       )}>
         <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
         <span className="text-gray-700 dark:text-gray-300 font-medium text-sm">
-          {organizations[0].name}
+          {displayName}
         </span>
       </div>
     );
@@ -67,7 +72,7 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
       >
         <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
         <span className="flex-1 text-left truncate">
-          {currentOrg?.name || 'Select Organization'}
+          {displayName}
         </span>
         <ChevronDown className={cn(
           "h-4 w-4 text-gray-400 transition-transform duration-200",

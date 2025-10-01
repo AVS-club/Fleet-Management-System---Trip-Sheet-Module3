@@ -6,10 +6,12 @@ import OrganizationSelector from "../ui/OrganizationSelector";
 import MobileOrganizationSelector from "../ui/MobileOrganizationSelector";
 import AppNav from "./AppNav";
 import { toast } from 'react-toastify';
+import { usePermissions } from '../../hooks/usePermissions';
 import { LogOut, Truck } from 'lucide-react';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { permissions, loading } = usePermissions();
 
   const handleLogout = async () => {
     try {

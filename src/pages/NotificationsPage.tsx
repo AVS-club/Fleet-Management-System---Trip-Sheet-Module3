@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { usePermissions } from '../hooks/usePermissions';
 import { ReminderItem, getRemindersForAll } from '../utils/reminders';
 import { Bell, AlertTriangle, Clock, Calendar, ChevronRight, Filter, Search, ExternalLink } from 'lucide-react';
 import Button from '../components/ui/Button';
@@ -8,8 +9,19 @@ import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 
 const NotificationsPage: React.FC = () => {
+  const { permissions, loading: permissionsLoading } = usePermissions();
   const [reminders, setReminders] = useState<ReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Redirect non-owner users
+  if (!permissionsLoading && !permissions?.canViewAlerts) {
+    return <Navigate to="/vehicles" replace />;
+  }
+
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
   const [filters, setFilters] = useState({
     search: '',
     status: 'all',

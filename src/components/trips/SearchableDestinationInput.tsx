@@ -140,10 +140,9 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
 
     setSearchTerm('');
     setPredictions([]);
-    setActivePredictionIndex(-1);
+    setActivePredictionIndex(-1);    setActivePredictionIndex(-1);
     setShowAddAnother(false);
-    inputRef.current?.blur();
-
+   setTimeout(() => inputRef.current?.blur(), 0);
     try {
       const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
         placesService.getDetails(
@@ -215,8 +214,8 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       try {
         const fallbackDestinationData: Omit<Destination, 'id'> = {
           name: prediction.description.split(',')[0],
-          latitude: 0, // Will need manual entry
-          longitude: 0, // Will need manual entry
+          latitude: null, // Invalid coordinates - will need manual entry
+          longitude: null, // Invalid coordinates - will need manual entry
           standard_distance: 0,
           estimated_time: '0h 0m',
           historical_deviation: 0,
@@ -224,7 +223,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
           state: 'chhattisgarh',
           place_id: prediction.place_id,
           formatted_address: prediction.description,
-          active: true
+          active: false // Mark as inactive until valid coordinates are provided
         };
 
         const destinationId = await findOrCreateDestinationByPlaceId(prediction.place_id, fallbackDestinationData);
@@ -239,7 +238,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
           
           // Show a warning toast about the fallback
           const { toast } = await import('react-toastify');
-          toast.warning(`Destination "${prediction.description.split(',')[0]}" added with limited data. You may need to update coordinates manually.`);
+          toast.warning(`Destination "${prediction.description.split(',')[0]}" added but is inactive due to missing coordinates. Please update coordinates manually to enable route calculations.`);
         } else {
           throw new Error('Failed to create fallback destination');
         }
@@ -312,16 +311,18 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         const destData: Destination = {
           id: destination.id,
           name: destination.name,
-          latitude: 0,
-          longitude: 0,
+          latitude: null, // Invalid coordinates - will need manual entry
+          longitude: null, // Invalid coordinates - will need manual entry
           standard_distance: 0,
           estimated_time: '0h 0m',
           historical_deviation: 0,
-          type: destination.type as any,
+          type: (['city', 'district', 'town', 'village'].includes(destination.type)
+            ? destination.type
+            : 'city') as 'city' | 'district' | 'town' | 'village',
           state: 'chhattisgarh',
-          active: true
+          active: false // Mark as inactive until valid coordinates are provided
         };
-
+        
         onDestinationSelect(destData);
         setShowAddAnother(false);
         setSearchTerm('');

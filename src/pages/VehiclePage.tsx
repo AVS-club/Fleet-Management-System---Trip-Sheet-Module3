@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import { usePermissions } from "../hooks/usePermissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
@@ -39,6 +40,7 @@ import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { permissions } = usePermissions();
   const [isEditing, setIsEditing] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,13 @@ const VehiclePage: React.FC = () => {
     useState<Vehicle | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'overview' | 'trips' | 'maintenance'>('details');
+  
+  // Set default tab based on permissions
+  useEffect(() => {
+    if (permissions && !permissions.canViewVehicleOverview && activeTab === 'overview') {
+      setActiveTab('trips');
+    }
+  }, [permissions, activeTab]);
 
   const [stats, setStats] = useState<{
     totalTrips: number;
@@ -414,10 +423,10 @@ const VehiclePage: React.FC = () => {
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               {[
                 { id: 'details', name: 'Details & Documents', icon: <FileCheck className="h-4 w-4" /> },
-                { id: 'overview', name: 'Overview', icon: <BarChart2 className="h-4 w-4" /> },
+                { id: 'overview', name: 'Overview', icon: <BarChart2 className="h-4 w-4" />, requiresPermission: 'canViewVehicleOverview' },
                 { id: 'trips', name: 'Trips', icon: <Route className="h-4 w-4" /> },
                 { id: 'maintenance', name: 'Maintenance', icon: <Wrench className="h-4 w-4" /> },
-              ].map((tab) => (
+              ].filter(tab => !tab.requiresPermission || (permissions && (permissions as any)[tab.requiresPermission])).map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
@@ -447,7 +456,7 @@ const VehiclePage: React.FC = () => {
             <VehicleMaintenanceTab vehicleId={id || ''} />
           )}
 
-          {activeTab === 'overview' && (
+          {activeTab === 'overview' && permissions?.canViewVehicleOverview && (
             <div className="space-y-6">
               {/* Simple Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

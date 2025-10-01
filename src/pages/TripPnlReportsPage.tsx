@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import { usePermissions } from '../hooks/usePermissions';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getWarehouses } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';
@@ -67,7 +68,18 @@ interface DatePreset {
 
 const TripPnlReportsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { permissions, loading: permissionsLoading } = usePermissions();
   const [trips, setTrips] = useState<Trip[]>([]);
+  
+  // Redirect non-owner users
+  if (!permissionsLoading && !permissions?.canViewPnL) {
+    return <Navigate to="/vehicles" replace />;
+  }
+
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);

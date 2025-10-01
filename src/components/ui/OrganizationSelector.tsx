@@ -1,5 +1,6 @@
 import React from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Building2, ChevronDown, Loader2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -20,8 +21,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     setCurrentOrganization, 
     loading 
   } = useOrganization();
+  const { permissions } = usePermissions();
 
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
+  
+  // Use organization name from permissions if available
+  const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
 
   const sizeClasses = {
     sm: 'h-8 px-2 text-xs',
@@ -70,7 +75,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
       )}>
         <Building2 className={cn("text-gray-500 dark:text-gray-400", iconSizes[size])} />
         <span className="text-gray-700 dark:text-gray-300 font-medium">
-          {organizations[0].name}
+          {displayName}
         </span>
       </div>
     );

@@ -14,15 +14,16 @@ type NavLink = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   hasQuickAdd?: boolean;
+  requiresPermission?: string;
 };
 
 export const navLinks: NavLink[] = [
-  { to: '/',                label: 'Dashboard',  icon: LayoutDashboard },
+  { to: '/',                label: 'Dashboard',  icon: LayoutDashboard, requiresPermission: 'canViewDashboard' },
   { to: '/vehicles',        label: 'Vehicles',   icon: Truck,      hasQuickAdd: true },
   { to: '/drivers',         label: 'Drivers',    icon: Users,      hasQuickAdd: true },
   { to: '/trips',           label: 'Trips',      icon: Route,      hasQuickAdd: true },
-  { to: '/trip-pnl-reports', label: 'P&L',       icon: BarChart3 },
+  { to: '/trip-pnl-reports', label: 'P&L',       icon: BarChart3, requiresPermission: 'canViewPnL' },
   { to: '/maintenance',     label: 'Service',    icon: Wrench,     hasQuickAdd: true },
-  { to: '/notifications',   label: 'Alerts',     icon: Bell },
-  { to: '/admin',           label: 'Admin',      icon: ShieldCheck },
+  { to: '/notifications',   label: 'Alerts',     icon: Bell, requiresPermission: 'canViewAlerts' },
+  { to: '/admin',           label: 'Admin',      icon: ShieldCheck, requiresPermission: 'canViewAdmin' },
 ];

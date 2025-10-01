@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
+import { usePermissions } from '../../hooks/usePermissions';
+import { Navigate } from 'react-router-dom';
 import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2 } from 'lucide-react'; 
 import { Link } from 'react-router-dom';
 import { getVehicles } from '../../utils/storage';
@@ -17,7 +19,18 @@ import AuditTrailDashboard from '../../components/admin/AuditTrailDashboard';
 import DataIntegrityDashboard from '../../components/admin/DataIntegrityDashboard';
 
 const AdminDashboard: React.FC = () => {
+  const { permissions, loading } = usePermissions();
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Redirect non-admin users
+  if (!loading && !permissions?.canViewAdmin) {
+    return <Navigate to="/vehicles" replace />;
+  }
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);

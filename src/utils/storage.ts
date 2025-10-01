@@ -296,7 +296,12 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
       throw new Error('No organization selected. Please select an organization.');
     }
 
-    const payload = withOwner(destinationData, userId, organizationId);
+    // Note: destinations table uses 'added_by' instead of 'created_by'
+    const payload = {
+      ...destinationData,
+      added_by: userId,
+      organization_id: organizationId
+    };
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations')
@@ -366,10 +371,13 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // If destination doesn't exist, create a new one
-    const payload = withOwner({
+    // Note: destinations table uses 'added_by' instead of 'created_by'
+    const payload = {
       ...destinationData,
       place_name: placeName || destinationData.name,
-    }, userId, organizationId);
+      added_by: userId,
+      organization_id: organizationId
+    };
 
     const { data: newDestination, error: createError } = await supabase
       .from('destinations')
@@ -667,11 +675,21 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       throw new Error('No valid destinations found');
     }
 
+    // Check for destinations with invalid coordinates
+    const destinationsWithInvalidCoords = validDestinations.filter(dest => 
+      dest.latitude === null || dest.longitude === null || 
+      dest.latitude === 0 || dest.longitude === 0
+    );
+    
+    if (destinationsWithInvalidCoords.length > 0) {
+      throw new Error(`Cannot calculate route: ${destinationsWithInvalidCoords.length} destination(s) have invalid coordinates. Please update coordinates manually.`);
+    }
+
 
     // Create waypoints for map
     const waypoints = [
       { lat: warehouse.latitude || 0, lng: warehouse.longitude || 0 },
-      ...validDestinations.map(dest => ({ lat: dest.latitude, lng: dest.longitude }))
+      ...validDestinations.map(dest => ({ lat: dest.latitude!, lng: dest.longitude! }))
     ];
 
     // Load Google Maps and get live distance/duration using Directions API

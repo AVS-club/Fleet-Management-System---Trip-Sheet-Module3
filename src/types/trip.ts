@@ -123,8 +123,8 @@ export interface Destination {
   id: string;
   name: string;
   place_name?: string; // Human-readable place name from Google Places API
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   standard_distance: number;
   estimated_time: string;
   historical_deviation: number;

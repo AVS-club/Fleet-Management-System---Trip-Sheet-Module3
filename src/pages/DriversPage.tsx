@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import { usePermissions } from "../hooks/usePermissions";
 import { 
   getTrips, 
   uploadDriverPhoto 
@@ -36,6 +37,7 @@ import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
+  const { permissions } = usePermissions();
   const [user, setUser] = useState<any>();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -480,13 +482,15 @@ const DriversPage: React.FC = () => {
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
         {!isAddingDriver && !editingDriver && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/drivers/insights')}
-              icon={<BarChart className="h-4 w-4" />}
-            >
-              Driver Insights
-            </Button>
+            {permissions?.canViewDriverInsights && (
+              <Button
+                variant="outline"
+                onClick={() => navigate('/drivers/insights')}
+                icon={<BarChart className="h-4 w-4" />}
+              >
+                Driver Insights
+              </Button>
+            )}
             <Button
               onClick={() => setIsAddingDriver(true)}
               icon={<PlusCircle className="h-4 w-4" />}
