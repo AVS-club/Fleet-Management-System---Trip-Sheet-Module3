@@ -138,14 +138,46 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
     if (!placesService) return;
 
     setSearchTerm('');
-    setPredictions([]);
-    setActivePredictionIndex(-1);    setActivePredictionIndex(-1);
-    setShowAddAnother(false);
-   setTimeout(() => inputRef.current?.blur(), 0);
+// …above this, remove the initial setSearchTerm/Predictions/etc. and the pre-try blur…
+
     try {
       const placeDetails = await new Promise<google.maps.places.PlaceResult>((resolve, reject) => {
         placesService.getDetails(
           {
+            placeId: prediction.place_id,
+            fields: ['name', 'geometry', 'address_components', 'formatted_address', 'types']
+          },
+          (result, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+              resolve(result);
+            } else {
+              reject(new Error(`Place details request failed: ${status}`));
+            }
+          }
+        );
+      });
+
+      // …rest of success logic…
+
+      onDestinationSelect(newDestination);
+
+      // Clear state and blur after successful selection
+      setSearchTerm('');
+      setPredictions([]);
+      setActivePredictionIndex(-1);
+      setShowAddAnother(false);
+      setTimeout(() => inputRef.current?.blur(), 0);
+    } catch (error) {
+      console.error('Error selecting place:', error);
+
+      // …fallback logic…
+
+      // Clear state after fallback handling
+      setSearchTerm('');
+      setPredictions([]);
+      setActivePredictionIndex(-1);
+      setShowAddAnother(false);
+    }          {
             placeId: prediction.place_id,
             fields: ['name', 'geometry', 'address_components', 'formatted_address', 'types']
           },
