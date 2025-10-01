@@ -1,4 +1,4 @@
-import { getCurrentUserId, withOwner } from './supaHelpers';
+import { getCurrentUserId, withOwner, getUserActiveOrganization } from './supaHelpers';
 import { loadGoogleMaps } from './googleMapsLoader';
 import { handleSupabaseError } from './errors';
 import { supabase, isNetworkError } from './supabaseClient';
@@ -80,10 +80,16 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('warehouses') // ⚠️ Confirm field refactor here
       .select('*')
-      .eq('created_by', user.id)
+      .eq('organization_id', organizationId)
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
@@ -137,10 +143,16 @@ export const getDestinations = async (): Promise<Destination[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations') // ⚠️ Confirm field refactor here
       .select('*')
-      .eq('added_by', user.id)
+      .eq('organization_id', organizationId)
       .eq('active', true)
       .order('name');
 
@@ -191,7 +203,10 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
       .eq('id', id);
 
     if (!ignoreOwnership && user) {
-      query = query.eq('added_by', user.id);
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
     }
 
     const { data, error } = await query.maybeSingle();
@@ -245,7 +260,10 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
       .eq('place_id', id);
 
     if (!ignoreOwnership && user) {
-      query = query.eq('added_by', user.id);
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
     }
 
     const { data, error } = await query.maybeSingle();
@@ -273,10 +291,12 @@ export const createDestination = async (destinationData: Omit<Destination, 'id'>
       throw new Error('User not authenticated');
     }
 
-    const payload = {
-      ...destinationData,
-      added_by: userId
-    };
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
+    const payload = withOwner(destinationData, userId, organizationId);
 
     const { data, error } = await supabase // ⚠️ Confirm field refactor here
       .from('destinations')
@@ -322,12 +342,17 @@ export const findOrCreateDestinationByPlaceId = async (
       throw new Error('User not authenticated');
     }
 
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
     // First, try to find existing destination by place_id
     const { data: existingDestination, error: searchError } = await supabase
       .from('destinations')
       .select('id')
       .eq('place_id', placeId)
-      .eq('added_by', userId)
+      .eq('organization_id', organizationId)
       .maybeSingle();
 
     if (searchError) {
@@ -341,11 +366,10 @@ export const findOrCreateDestinationByPlaceId = async (
     }
 
     // If destination doesn't exist, create a new one
-    const payload = {
+    const payload = withOwner({
       ...destinationData,
       place_name: placeName || destinationData.name,
-      added_by: userId
-    };
+    }, userId, organizationId);
 
     const { data: newDestination, error: createError } = await supabase
       .from('destinations')
@@ -404,10 +428,15 @@ export const getAllVehicleStats = async (
         return {};
       }
 
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (!organizationId) {
+        return {};
+      }
+
       const { data, error } = await supabase
         .from('trips')
         .select('vehicle_id,start_km,end_km,calculated_kmpl')
-        .eq('created_by', user.id);
+        .eq('organization_id', organizationId);
 
       if (error) {
         handleSupabaseError('fetch vehicle trips', error);
@@ -482,6 +511,11 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
+    }
+
     // Get trips for this vehicle with cost data
     const { data: trips, error } = await supabase
       .from('trips')
@@ -498,7 +532,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
         miscellaneous_expense,
         trip_start_date
       `)
-      .eq('created_by', user.id)
+      .eq('organization_id', organizationId)
       .eq('vehicle_id', vehicleId)
       .is('deleted_at', null); // Exclude soft-deleted trips
 
@@ -767,11 +801,16 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       return { value: 0, fromTrip: false };
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      return { value: 0, fromTrip: false };
+    }
+
     // First try to get the latest completed trip using end_km and timestamps
     const { data: trips, error: tripsError } = await supabase // ⚠️ Confirm field refactor here
       .from('trips') // ⚠️ Confirm field refactor here
       .select('end_km, created_at, trip_end_date')
-      .eq('created_by', user.id)
+      .eq('organization_id', organizationId)
       .eq('vehicle_id', vehicleId)
       .not('end_km', 'is', null)
       .order('trip_end_date', { ascending: false, nullsFirst: false })
@@ -786,7 +825,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     const { data: maxOdometerTrip, error: maxTripError } = await supabase
       .from('trips')
       .select('end_km')
-      .eq('created_by', user.id)
+      .eq('organization_id', organizationId)
       .eq('vehicle_id', vehicleId)
       .not('end_km', 'is', null)
       .order('end_km', { ascending: false, nullsFirst: false })

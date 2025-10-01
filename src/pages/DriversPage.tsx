@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { 
-  getDrivers, 
   getTrips, 
-  createDriver, 
-  updateDriver, 
   uploadDriverPhoto 
 } from "../utils/storage"; // ⚠️ Confirm field refactor here
+import { 
+  getDrivers, 
+  createDriver, 
+  updateDriver 
+} from "../utils/api/drivers";
 import { supabase } from "../utils/supabaseClient";
 import {
   User, Users,
@@ -107,10 +109,11 @@ const DriversPage: React.FC = () => {
         thirtyDaysFromNow.setDate(today.getDate() + 30);
 
         const expiringLicenses = driversArray.filter((driver) => {
-          if (!driver.license_expiry_date) return false;
+          const expiryDate = driver.license_expiry || driver.license_expiry_date;
+          if (!expiryDate) return false;
 
-          const expiryDate = new Date(driver.license_expiry_date);
-          return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+          const expiry = new Date(expiryDate);
+          return expiry > today && expiry <= thirtyDaysFromNow;
         }).length;
 
         setDriversWithExpiringLicense(expiringLicenses);
@@ -573,7 +576,7 @@ const DriversPage: React.FC = () => {
                   0
                 );
                 const licenseStatus = getLicenseStatus(
-                  driver.license_expiry_date
+                  driver.license_expiry || driver.license_expiry_date
                 );
 
                 return (
@@ -646,10 +649,10 @@ const DriversPage: React.FC = () => {
                         </div>
                         
                         {/* Contact Number */}
-                        {driver.contact_number && (
+                        {(driver.contact_number || driver.phone) && (
                           <div className="mt-2 flex items-center text-sm">
                             <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="font-sans text-gray-600">{driver.contact_number}</span>
+                            <span className="font-sans text-gray-600">{driver.contact_number || driver.phone}</span>
                           </div>
                         )}
                       </div>

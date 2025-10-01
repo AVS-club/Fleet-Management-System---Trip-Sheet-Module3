@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
-import { getTrips, getVehicles, getDrivers, getWarehouses } from '../utils/storage';
+import { getTrips, getVehicles, getWarehouses } from '../utils/storage';
+import { getDrivers } from '../utils/api/drivers';
 import { 
   Calendar, 
   ChevronDown, 

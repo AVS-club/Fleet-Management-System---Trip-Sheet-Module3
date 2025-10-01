@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./utils/themeContext";
+import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import config from "./utils/env";
@@ -47,9 +48,11 @@ root.render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <OrganizationProvider>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </OrganizationProvider>
       </ThemeProvider>
       {config.isDev && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>

@@ -2,6 +2,8 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from "../ui/ThemeToggle";
+import OrganizationSelector from "../ui/OrganizationSelector";
+import MobileOrganizationSelector from "../ui/MobileOrganizationSelector";
 import AppNav from "./AppNav";
 import { toast } from 'react-toastify';
 import { LogOut, Truck } from 'lucide-react';
@@ -76,6 +78,11 @@ const Header: React.FC = () => {
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
+            {/* Organization Selector - Desktop */}
+            <div className="hidden md:block">
+              <OrganizationSelector size="sm" showLabel={false} />
+            </div>
+            
             {/* Theme Toggle */}
             <ThemeToggle />
             
@@ -102,6 +109,11 @@ const Header: React.FC = () => {
               <LogOut className="h-5 w-5" />
             </button>
           </div>
+        </div>
+
+        {/* Mobile Organization Selector - Below main header */}
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 px-4 py-2">
+          <MobileOrganizationSelector />
         </div>
 
       </div>

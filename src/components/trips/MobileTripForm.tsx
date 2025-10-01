@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse } from '@/types';
-import { getVehicles, getDrivers, getDestinations, getWarehouses } from '../../utils/storage';
+import { getVehicles, getDestinations, getWarehouses } from '../../utils/storage';
+import { getDrivers } from '../../utils/api/drivers';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { supabase } from '../../utils/supabaseClient';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';

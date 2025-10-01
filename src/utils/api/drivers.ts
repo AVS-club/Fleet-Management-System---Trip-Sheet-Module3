@@ -1,11 +1,11 @@
 import { supabase, isNetworkError } from '../supabaseClient';
 import config from '../env';
 import { Driver, DriverSummary } from '../../types';
-import { getCurrentUserId, withOwner } from '../supaHelpers';
+import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';
 
-// Define allowed columns for drivers table
-const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,created_at,updated_at,license_expiry_date';
+// Define allowed columns for drivers table (matching actual database schema)
+const DRIVER_COLS = 'id,name,license_number,phone,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,created_at,updated_at';
 
 export const getDrivers = async (): Promise<Driver[]> => {
   try {
@@ -25,10 +25,16 @@ export const getDrivers = async (): Promise<Driver[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('drivers')
       .select(DRIVER_COLS)
-      .eq('added_by', user.id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -65,10 +71,16 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('drivers')
       .select('id,name')
-      .eq('added_by', user.id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -105,10 +117,16 @@ export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('drivers')
       .select(DRIVER_COLS)
-      .eq('added_by', user.id)
+      .eq('organization_id', organizationId)
       .order('name', { ascending: true });
 
     if (error) {
@@ -149,7 +167,12 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       throw new Error('User not authenticated');
     }
 
-    const payload = withOwner(driverData as any, userId);
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
+    const payload = withOwner(driverData as any, userId, organizationId);
 
     for (const k of Object.keys(payload)) {
       if (k.endsWith('_file')) {

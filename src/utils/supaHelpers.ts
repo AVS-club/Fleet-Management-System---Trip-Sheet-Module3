@@ -2,14 +2,45 @@
 
 import { supabase } from './supabaseClient';
 
-// Updated helper to use created_by for trips table
-export function withOwner<T extends Record<string, any>>(payload: T, userId?: string | null): T {
-  // Set created_by for trips table to match RLS policies
-  return { created_by: userId ?? (payload as any).created_by, ...payload };
+// Updated helper to use created_by and organization_id for multi-tenant architecture
+export function withOwner<T extends Record<string, any>>(
+  payload: T, 
+  userId?: string | null,
+  organizationId?: string | null
+): T {
+  return { 
+    ...payload,
+    created_by: userId ?? (payload as any).created_by,
+    organization_id: organizationId ?? (payload as any).organization_id
+  };
 }
 
 // Helper to get current user ID
 export async function getCurrentUserId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   return user?.id || null;
+}
+
+// New helper function to get user's active organization
+export async function getUserActiveOrganization(userId: string): Promise<string | null> {
+  // First try to get from profiles.active_organization_id
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('active_organization_id')
+    .eq('id', userId)
+    .single();
+  
+  if (profile?.active_organization_id) {
+    return profile.active_organization_id;
+  }
+  
+  // Fallback: get first organization from organization_users
+  const { data: membership } = await supabase
+    .from('organization_users')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .limit(1)
+    .single();
+  
+  return membership?.organization_id || null;
 }

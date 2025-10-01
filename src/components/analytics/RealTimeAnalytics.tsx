@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { Trip, Vehicle, Driver } from '@/types';
 import { useQuery } from '@tanstack/react-query';
-import { getTrips, getVehicles, getDrivers } from '../../utils/storage';
+import { getTrips, getVehicles } from '../../utils/storage';
+import { getDrivers } from '../../utils/api/drivers';
 
 interface RealTimeMetrics {
   activeTrips: number;

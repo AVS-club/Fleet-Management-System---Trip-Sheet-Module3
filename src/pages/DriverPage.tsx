@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
-import { getDriver, getVehicle, getTrips, getDrivers, getVehicles } from "../utils/storage";
+import { getVehicle, getTrips, getVehicles } from "../utils/storage";
+import { getDriver, getDrivers } from "../utils/api/drivers";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
   User,

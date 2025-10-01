@@ -2,7 +2,7 @@ import { supabase, isNetworkError } from '../supabaseClient';
 import config from '../env';
 import { Vehicle } from '../../types';
 import { uploadVehicleDocument } from '../supabaseStorage';
-import { getCurrentUserId, withOwner } from '../supaHelpers';
+import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { generateCSV, downloadCSV } from '../csvParser';
 import { handleSupabaseError } from '../errors';
 
@@ -42,10 +42,16 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('vehicles')
       .select(VEHICLE_COLS)
-      .eq('added_by', user.id)
+      .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -86,6 +92,11 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
       throw new Error('User not authenticated');
     }
 
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
     // Strip UI-only fields and prepare data
     const { documents, selected, ...cleanData } = vehicleData as any;
 
@@ -100,7 +111,7 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
     const payload = withOwner({
       ...cleanData,
       current_odometer: cleanData.current_odometer || 0,
-    }, userId);
+    }, userId, organizationId);
 
     for (const k of Object.keys(payload)) {
       if (k.endsWith('_file')) {

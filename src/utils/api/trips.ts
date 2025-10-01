@@ -1,7 +1,7 @@
 import { supabase, isNetworkError } from '../supabaseClient';
 import config from '../env';
 import { Trip } from '../../types';
-import { getCurrentUserId, withOwner } from '../supaHelpers';
+import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';
 
 export const getTrips = async (): Promise<Trip[]> => {
@@ -22,10 +22,16 @@ export const getTrips = async (): Promise<Trip[]> => {
       return [];
     }
 
+    const organizationId = await getUserActiveOrganization(user.id);
+    if (!organizationId) {
+      console.warn('No organization selected for user');
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('trips')
       .select('*')
-      .eq('created_by', user.id)
+      .eq('organization_id', organizationId)
       .order('trip_start_date', { ascending: false });
 
     if (error) {
@@ -66,6 +72,11 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       throw new Error('User not authenticated');
     }
 
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No organization selected. Please select an organization.');
+    }
+
     const sanitizedTripData = { ...tripData } as any;
     if (sanitizedTripData.fuel_station_id === '') {
       sanitizedTripData.fuel_station_id = null;
@@ -91,7 +102,7 @@ export const createTrip = async (tripData: Omit<Trip, 'id'>): Promise<Trip | nul
       fuel_cost: sanitizedTripData.fuel_cost || sanitizedTripData.fuel_expense || 0,
       // Ensure total_fuel_cost is properly handled
       total_fuel_cost: sanitizedTripData.total_fuel_cost || 0,
-    }, userId);
+    }, userId, organizationId);
 
     const { data, error } = await supabase
       .from('trips')
