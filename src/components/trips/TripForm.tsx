@@ -1286,7 +1286,7 @@ const TripForm: React.FC<TripFormProps> = ({
       <div className="group bg-gradient-to-br from-emerald-50/40 to-white dark:from-emerald-900/10 dark:to-gray-800 
                       rounded-xl border border-emerald-200/50 dark:border-emerald-800/30 p-4
                       shadow-sm hover:shadow-md transition-all duration-200
-                      relative overflow-hidden">
+                      relative overflow-visible">
         {/* Subtle pattern background */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" 
@@ -2028,4 +2028,3 @@ const TripForm: React.FC<TripFormProps> = ({
 };
 
 export default TripForm;
-

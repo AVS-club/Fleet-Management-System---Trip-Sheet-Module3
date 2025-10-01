@@ -42,9 +42,9 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     };
 
     const iconSizeClasses = {
-      sm: 'pl-8',
-      md: 'pl-11',
-      lg: 'pl-12'
+      sm: 'pl-9',
+      md: 'pl-12',
+      lg: 'pl-14'
     };
 
     // Don't show icon for date inputs to avoid conflict with browser's date picker icon
