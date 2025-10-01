@@ -34,15 +34,18 @@ export const generateTripSerialNumber = async (
     const prefix = `T${yy}-${last4Digits}`;
     
     // Get user's organization ID first
-    const { data: orgUser } = await supabase
+    const { data: orgUser, error: orgError } = await supabase
       .from('organization_users')
       .select('organization_id')
       .eq('user_id', user.id)
       .single();
 
-    if (!orgUser) {
+    if (orgError || !orgUser) {
+      console.error('Error fetching user organization for serial generation:', orgError);
       throw new Error('User not associated with any organization');
     }
+
+    console.log('User organization ID for serial generation:', orgUser.organization_id);
 
     // Query to find ALL existing serial numbers for THIS specific vehicle and year
     // This ensures we get the complete picture of what sequences exist
@@ -59,6 +62,9 @@ export const generateTripSerialNumber = async (
       throw error;
     }
 
+    console.log(`Found ${existingTrips?.length || 0} existing trips for prefix ${prefix}`);
+    console.log('Existing trips:', existingTrips);
+
     // Extract all existing sequence numbers to find gaps or the next available
     const existingSequences = new Set<number>();
     let maxSequence = 0;
@@ -73,11 +79,15 @@ export const generateTripSerialNumber = async (
             if (!isNaN(parsedSequence)) {
               existingSequences.add(parsedSequence);
               maxSequence = Math.max(maxSequence, parsedSequence);
+              console.log(`Found existing serial: ${trip.trip_serial_number}, sequence: ${parsedSequence}`);
             }
           }
         }
       });
     }
+
+    console.log(`Max sequence found: ${maxSequence}`);
+    console.log(`Existing sequences:`, Array.from(existingSequences).sort((a, b) => a - b));
     
     // Find the next available sequence number
     // Start from max + 1 + attempt number to ensure we try different numbers
@@ -121,13 +131,14 @@ export const validateTripSerialUniqueness = async (
     }
 
     // Get user's organization ID
-    const { data: orgUser } = await supabase
+    const { data: orgUser, error: orgError } = await supabase
       .from('organization_users')
       .select('organization_id')
       .eq('user_id', user.id)
       .single();
 
-    if (!orgUser) {
+    if (orgError || !orgUser) {
+      console.error('Error fetching user organization for validation:', orgError);
       throw new Error('User not associated with any organization');
     }
 

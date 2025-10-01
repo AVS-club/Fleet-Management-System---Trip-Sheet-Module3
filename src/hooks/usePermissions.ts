@@ -36,17 +36,61 @@ export const usePermissions = () => {
           .select(`
             role,
             organization_id,
-            organizations (
+            organizations!inner (
               name
             )
           `)
           .eq('user_id', user.id)
-          .maybeSingle();
+          .single();
 
         if (error || !orgUser) {
           console.error('Error fetching user organization:', error);
           console.log('User ID:', user.id);
           console.log('OrgUser data:', orgUser);
+          
+          // Fallback: try to get organization name directly
+          try {
+            const { data: fallbackOrg } = await supabase
+              .from('organization_users')
+              .select('organization_id, role')
+              .eq('user_id', user.id)
+              .single();
+            
+            if (fallbackOrg) {
+              const { data: orgData } = await supabase
+                .from('organizations')
+                .select('name')
+                .eq('id', fallbackOrg.organization_id)
+                .single();
+              
+              if (orgData) {
+                const role = fallbackOrg.role as 'owner' | 'data_entry' | 'admin';
+                const isOwner = role === 'owner';
+                const isDataEntry = role === 'data_entry';
+                const isAdmin = role === 'admin';
+
+                setPermissions({
+                  userId: user.id,
+                  role,
+                  organizationId: fallbackOrg.organization_id,
+                  organizationName: orgData.name || 'Shree Durga Ent.',
+                  isOwner,
+                  isDataEntry,
+                  canViewDashboard: isOwner || isAdmin,
+                  canViewPnL: isOwner,
+                  canViewAdmin: isOwner || isAdmin,
+                  canViewAlerts: isOwner || isAdmin,
+                  canViewDriverInsights: isOwner || isAdmin,
+                  canViewVehicleOverview: isOwner || isAdmin,
+                });
+                setLoading(false);
+                return;
+              }
+            }
+          } catch (fallbackError) {
+            console.error('Fallback organization fetch failed:', fallbackError);
+          }
+          
           setPermissions(null);
           setLoading(false);
           return;
