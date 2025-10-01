@@ -1,8 +1,9 @@
-import { supabase } from '../utils/supabase';
+import { supabase } from '../utils/supabaseClient';
 import { Destination } from '../types/trip';
-import { getCurrentUserId, getUserActiveOrganization } from '../utils/auth';
-import { handleSupabaseError, isNetworkError } from '../utils/errorHandling';
-import { config } from '../utils/config';
+import { getCurrentUserId, getUserActiveOrganization } from '../utils/supaHelpers';
+import { handleSupabaseError } from '../utils/errors';
+import { isNetworkError } from '../utils/supabaseClient';
+import config from '../utils/env';
 
 export interface PlaceDetails {
   place_id: string;
