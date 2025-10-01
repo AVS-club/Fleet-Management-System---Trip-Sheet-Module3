@@ -31,12 +31,13 @@ export const usePermissions = () => {
           return;
         }
 
+        // First try to get organization user data
         const { data: orgUser, error } = await supabase
           .from('organization_users')
           .select(`
             role,
             organization_id,
-            organizations!inner (
+            organizations (
               name
             )
           `)
@@ -97,6 +98,7 @@ export const usePermissions = () => {
         }
 
         console.log('Fetched orgUser:', orgUser);
+        console.log('Organization data:', orgUser.organizations);
         console.log('Organization name:', (orgUser.organizations as any)?.name);
 
         const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
@@ -104,11 +106,33 @@ export const usePermissions = () => {
         const isDataEntry = role === 'data_entry';
         const isAdmin = role === 'admin';
 
+        // Extract organization name with better fallback
+        let organizationName = 'Unknown Organization';
+        if (orgUser.organizations && (orgUser.organizations as any).name) {
+          organizationName = (orgUser.organizations as any).name;
+        } else if (orgUser.organization_id) {
+          // Try to fetch organization name directly
+          try {
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', orgUser.organization_id)
+              .single();
+            if (orgData && orgData.name) {
+              organizationName = orgData.name;
+            }
+          } catch (orgError) {
+            console.error('Error fetching organization name directly:', orgError);
+          }
+        }
+
+        console.log('Final organization name:', organizationName);
+
         setPermissions({
           userId: user.id,
           role,
           organizationId: orgUser.organization_id,
-          organizationName: (orgUser.organizations as any)?.name || 'Shree Durga Ent.',
+          organizationName,
           isOwner,
           isDataEntry,
           canViewDashboard: isOwner || isAdmin,

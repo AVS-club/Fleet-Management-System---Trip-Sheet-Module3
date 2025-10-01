@@ -23,6 +23,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { permissions, loading } = usePermissions();
+  
+  // Debug logging
+  console.log('MobileNavigation - Loading:', loading);
+  console.log('MobileNavigation - Permissions:', permissions);
 
   const navigationItems = [
     { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canViewDashboard' },
