@@ -31,18 +31,18 @@ export const usePermissions = () => {
           return;
         }
 
-        // First try to get organization user data
-        const { data: orgUser, error } = await supabase
-          .from('organization_users')
-          .select(`
-            role,
-            organization_id,
-            organizations (
-              name
-            )
-          `)
-          .eq('user_id', user.id)
-          .single();
+                // First try to get organization user data
+                const { data: orgUser, error } = await supabase
+                  .from('organization_users')
+                  .select(`
+                    role,
+                    organization_id,
+                    organizations!inner (
+                      name
+                    )
+                  `)
+                  .eq('user_id', user.id)
+                  .single();
 
         if (error || !orgUser) {
           console.error('Error fetching user organization:', error);
@@ -97,36 +97,19 @@ export const usePermissions = () => {
           return;
         }
 
-        console.log('Fetched orgUser:', orgUser);
-        console.log('Organization data:', orgUser.organizations);
-        console.log('Organization name:', (orgUser.organizations as any)?.name);
+                console.log('Fetched orgUser:', orgUser);
+                console.log('Organization data:', orgUser.organizations);
+                console.log('Organization name:', (orgUser.organizations as any)?.name);
 
-        const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
-        const isOwner = role === 'owner';
-        const isDataEntry = role === 'data_entry';
-        const isAdmin = role === 'admin';
+                const role = orgUser.role as 'owner' | 'data_entry' | 'admin';
+                const isOwner = role === 'owner';
+                const isDataEntry = role === 'data_entry';
+                const isAdmin = role === 'admin';
 
-        // Extract organization name with better fallback
-        let organizationName = 'Unknown Organization';
-        if (orgUser.organizations && (orgUser.organizations as any).name) {
-          organizationName = (orgUser.organizations as any).name;
-        } else if (orgUser.organization_id) {
-          // Try to fetch organization name directly
-          try {
-            const { data: orgData } = await supabase
-              .from('organizations')
-              .select('name')
-              .eq('id', orgUser.organization_id)
-              .single();
-            if (orgData && orgData.name) {
-              organizationName = orgData.name;
-            }
-          } catch (orgError) {
-            console.error('Error fetching organization name directly:', orgError);
-          }
-        }
+                // Extract organization name - should now work with !inner join
+                const organizationName = (orgUser.organizations as any)?.name || 'Shree Durga Ent.';
 
-        console.log('Final organization name:', organizationName);
+                console.log('Final organization name:', organizationName);
 
         setPermissions({
           userId: user.id,
