@@ -1,0 +1,21 @@
+[33mcommit 672e868881c742b48bf4b86f47370a80bba9fe52[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: Your Name <your.email@example.com>
+Date:   Wed Oct 1 17:13:55 2025 +0530
+
+    Fix invalid coordinates issue in SearchableDestinationInput
+    
+    - Update Destination type to allow null coordinates (latitude/longitude: number | null)
+    - Fix fallback destination creation to use null instead of 0 for invalid coordinates
+    - Mark fallback destinations as inactive until valid coordinates are provided
+    - Add coordinate validation in route analysis to prevent calculations with invalid coords
+    - Update UI to show visual indicators for destinations with invalid coordinates
+    - Update related interfaces in DestinationForm and destinationAnalytics
+    - Improve coordinate display logic in TripLocationsPage
+    
+    This prevents invalid world coordinates (0,0) from being used in route calculations
+    and provides clear user feedback about destinations needing coordinate updates.
+
+src/components/admin/DestinationForm.tsx
+src/components/trips/SearchableDestinationInput.tsx
+src/pages/admin/TripLocationsPage.tsx
+src/utils/destinationAnalytics.ts

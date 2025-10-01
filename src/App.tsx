@@ -46,6 +46,7 @@ import CompanySettings from "./pages/admin/CompanySettings";
 import CompleteFixedReportingDashboard from "./pages/admin/CompleteFixedReportingDashboard";
 import { isNetworkError } from "./utils/supabaseClient";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import SmartRedirect from "./components/auth/SmartRedirect";
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -116,9 +117,9 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <Suspense fallback={<LoadingScreen isLoading={true} />}>
         <Routes>
-          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/login" element={!session ? <LoginPage /> : <SmartRedirect />} />
+          <Route path="/register" element={!session ? <RegisterPage /> : <SmartRedirect />} />
+          <Route path="/" element={<SmartRedirect />} />
           <Route path="/dashboard" element={<ProtectedRoute session={session} loading={loading}><DashboardPage /></ProtectedRoute>} />
           <Route path="/vehicles" element={<ProtectedRoute session={session} loading={loading}><VehiclesPage /></ProtectedRoute>} />
           <Route path="/vehicles/:id" element={<ProtectedRoute session={session} loading={loading}><VehiclePage /></ProtectedRoute>} />

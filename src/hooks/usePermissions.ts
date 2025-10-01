@@ -15,6 +15,7 @@ export interface UserPermissions {
   canViewDriverInsights: boolean;
   canViewVehicleOverview: boolean;
 }
+
 export const usePermissions = () => {
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,12 +36,15 @@ export const usePermissions = () => {
           .select(`
             role,
             organization_id,
-            organizations (
+            organizations!inner (
               name
             )
           `)
           .eq('user_id', user.id)
-          .maybeSingle();        if (error || !orgUser) {
+          .maybeSingle();
+
+        if (error || !orgUser) {
+          console.error('Error fetching user organization:', error);
           setPermissions(null);
           setLoading(false);
           return;
@@ -55,16 +59,18 @@ export const usePermissions = () => {
           userId: user.id,
           role,
           organizationId: orgUser.organization_id,
-          organizationName: (orgUser.organizations as any)?.name || 'Unknown Organization',
+          organizationName: (orgUser.organizations as any)?.name || 'Shree Durga Ent.',
           isOwner,
           isDataEntry,
           canViewDashboard: isOwner || isAdmin,
           canViewPnL: isOwner,
           canViewAdmin: isOwner || isAdmin,
           canViewAlerts: isOwner || isAdmin,
-          canViewDriverInsights: isOwner || isAdmin || isDataEntry,
-          canViewVehicleOverview: isOwner || isAdmin || isDataEntry,
-        });        console.error('Error fetching permissions:', error);
+          canViewDriverInsights: isOwner || isAdmin,
+          canViewVehicleOverview: isOwner || isAdmin,
+        });
+      } catch (error) {
+        console.error('Error fetching permissions:', error);
         setPermissions(null);
       } finally {
         setLoading(false);

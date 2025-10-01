@@ -22,7 +22,7 @@ interface MobileNavigationProps {
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-  const { permissions } = usePermissions();
+  const { permissions, loading } = usePermissions();
 
   const navigationItems = [
     { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canViewDashboard' },
@@ -84,6 +84,26 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
               <div className="p-4 space-y-2">
                 {navigationItems.map((item) => {
                   // Check if user has permission to view this nav item
+                  // While loading, show all items to prevent flickering
+                  if (loading) {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        className={cn(
+                          'flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
+                          isActive(item.path)
+                            ? 'bg-primary-100 text-primary-800'
+                            : 'text-gray-700 hover:bg-gray-100'
+                        )}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  }
                   if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
                     return null;
                   }
