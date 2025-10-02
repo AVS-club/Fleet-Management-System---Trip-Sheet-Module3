@@ -826,17 +826,23 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
 
     // First try to get the latest completed trip using end_km and timestamps
     // ✅ FIXED: Use organization-based query consistent with validation
+    // Get all trips for this vehicle from users in the same organization
+    const { data: orgUsers, error: orgUsersError } = await supabase
+      .from('organization_users')
+      .select('user_id')
+      .eq('organization_id', organizationId);
+
+    if (orgUsersError || !orgUsers || orgUsers.length === 0) {
+      return { value: 0, fromTrip: false };
+    }
+
+    const userIds = orgUsers.map(ou => ou.user_id);
+
     const { data: trips, error: tripsError } = await supabase
       .from('trips')
-      .select(`
-        end_km, 
-        created_at, 
-        trip_end_date,
-        created_by,
-        organization_users!inner(organization_id)
-      `)
-      .eq('organization_users.organization_id', organizationId)
+      .select('end_km, created_at, trip_end_date, created_by')
       .eq('vehicle_id', vehicleId)
+      .in('created_by', userIds)
       .not('end_km', 'is', null)
       .order('trip_end_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false, nullsFirst: false })
@@ -850,12 +856,9 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     // ✅ FIXED: Use organization-based query consistent with validation
     const { data: maxOdometerTrip, error: maxTripError } = await supabase
       .from('trips')
-      .select(`
-        end_km,
-        organization_users!inner(organization_id)
-      `)
-      .eq('organization_users.organization_id', organizationId)
+      .select('end_km')
       .eq('vehicle_id', vehicleId)
+      .in('created_by', userIds)
       .not('end_km', 'is', null)
       .order('end_km', { ascending: false, nullsFirst: false })
       .limit(1);
