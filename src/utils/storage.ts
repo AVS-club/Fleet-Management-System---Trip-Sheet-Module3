@@ -245,19 +245,26 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
       return null;
     }
 
+    if (typeof id !== 'string' || id.trim().length === 0) {
+      if (config.isDev) console.warn('Invalid destination identifier received:', id);
+      return null;
+    }
+
+    const identifier = id.trim();
+
     // First try to get by UUID (standard database ID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     
-    if (uuidRegex.test(id)) {
+    if (uuidRegex.test(identifier)) {
       // It's a UUID, use the standard getDestination function
-      return await getDestination(id, ignoreOwnership);
+      return await getDestination(identifier, ignoreOwnership);
     }
     
     // If not a UUID, try to find by place_id (Google Places ID)
     let query = supabase
       .from('destinations')
       .select('*')
-      .eq('place_id', id);
+      .eq('place_id', identifier);
 
     if (!ignoreOwnership && user) {
       const organizationId = await getUserActiveOrganization(user.id);
@@ -266,14 +273,16 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
       }
     }
 
-    const { data, error } = await query.maybeSingle();
+    const { data, error } = await query
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
     if (error) {
       handleSupabaseError('fetch destination by place_id', error);
       return null;
     }
 
-    return data;
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     if (isNetworkError(error)) {
       if (config.isDev) console.warn('Network error fetching destination by any id, returning null');
