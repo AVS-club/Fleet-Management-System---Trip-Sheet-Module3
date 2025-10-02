@@ -10,6 +10,67 @@ import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
 import { clearVehiclePredictionCache } from "./maintenancePredictor";
 
+// CRASH-PROOF: Compress images before upload to prevent main thread blocking
+const compressImageForUpload = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    // Only compress if it's an image and larger than 1MB
+    if (!file.type.startsWith('image/') || file.size <= 1024 * 1024) {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate new dimensions (max 1920px width)
+        let width = img.width;
+        let height = img.height;
+        const maxWidth = 1920;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              console.log(`📸 Odometer image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.8 // 80% quality
+        );
+      };
+      
+      img.onerror = () => resolve(file);
+    };
+    
+    reader.onerror = () => resolve(file);
+  });
+};
+
 // Tasks CRUD operations
 export const getTasks = async (): Promise<MaintenanceTask[]> => {
   const {
@@ -112,10 +173,12 @@ export const createTask = async (
   }
 
 
-  // Handle odometer image upload
+  // CRASH-PROOF: Handle odometer image upload with compression
   let odometerImageUrl: string | null = null;
   if (taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
-    odometerImageUrl = await uploadServiceBill(taskData.odometer_image[0], 'temp', 'odometer');
+    // Compress image before upload to prevent main thread blocking
+    const compressedImage = await compressImageForUpload(taskData.odometer_image[0]);
+    odometerImageUrl = await uploadServiceBill(compressedImage, 'temp', 'odometer');
   }
 
   // Insert the main task
@@ -168,29 +231,32 @@ export const createTask = async (
       try {
         const serviceGroupsWithTaskId = await Promise.all(
           service_groups.map(async (group: any) => {
-            // Handle file uploads for bills
+            // CRASH-PROOF: Handle file uploads for bills with compression
             const bill_urls: string[] = [];
             if (group.bill_file && Array.isArray(group.bill_file)) {
               for (const file of group.bill_file) {
-                const url = await uploadServiceBill(file, data.id, group.id);
+                const compressedFile = await compressImageForUpload(file);
+                const url = await uploadServiceBill(compressedFile, data.id, group.id);
                 if (url) bill_urls.push(url);
               }
             }
 
-            // Handle battery warranty file uploads
+            // CRASH-PROOF: Handle battery warranty file uploads with compression
             const battery_warranty_urls: string[] = [];
             if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
               for (const file of group.battery_warranty_file) {
-                const url = await uploadServiceBill(file, data.id, `battery-${group.id}`);
+                const compressedFile = await compressImageForUpload(file);
+                const url = await uploadServiceBill(compressedFile, data.id, `battery-${group.id}`);
                 if (url) battery_warranty_urls.push(url);
               }
             }
 
-            // Handle tyre warranty file uploads
+            // CRASH-PROOF: Handle tyre warranty file uploads with compression
             const tyre_warranty_urls: string[] = [];
             if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
               for (const file of group.tyre_warranty_file) {
-                const url = await uploadServiceBill(file, data.id, `tyre-${group.id}`);
+                const compressedFile = await compressImageForUpload(file);
+                const url = await uploadServiceBill(compressedFile, data.id, `tyre-${group.id}`);
                 if (url) tyre_warranty_urls.push(url);
               }
             }
@@ -274,10 +340,12 @@ export const updateTask = async (
     updateData.garage_id = oldTask.garage_id;
   }
 
-  // Handle odometer image upload for updates
+  // CRASH-PROOF: Handle odometer image upload for updates with compression
   let odometerImageUrl: string | null = null;
   if (updateData.odometer_image && Array.isArray(updateData.odometer_image) && updateData.odometer_image.length > 0) {
-    odometerImageUrl = await uploadServiceBill(updateData.odometer_image[0], id, 'odometer');
+    // Compress image before upload to prevent main thread blocking
+    const compressedImage = await compressImageForUpload(updateData.odometer_image[0]);
+    odometerImageUrl = await uploadServiceBill(compressedImage, id, 'odometer');
   }
 
   // Update the task

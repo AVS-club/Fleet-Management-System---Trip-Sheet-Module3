@@ -106,7 +106,68 @@ const MaintenanceTaskPage: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
-  // Handle file uploads for service group bills
+  // CRASH-PROOF: Compress images before upload to prevent main thread blocking
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      // Only compress if it's an image and larger than 1MB
+      if (!file.type.startsWith('image/') || file.size <= 1024 * 1024) {
+        resolve(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Calculate new dimensions (max 1920px width)
+          let width = img.width;
+          let height = img.height;
+          const maxWidth = 1920;
+          
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw and compress
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                console.log(`📸 Image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            0.8 // 80% quality
+          );
+        };
+        
+        img.onerror = () => resolve(file);
+      };
+      
+      reader.onerror = () => resolve(file);
+    });
+  };
+
+  // CRASH-PROOF: Handle file uploads with compression and async processing
   const handleFileUploads = async (
     serviceGroups: Array<Partial<MaintenanceServiceGroup>>,
     taskId: string
@@ -120,11 +181,16 @@ const MaintenanceTaskPage: React.FC = () => {
 
       try {
         if (group.bill_file && group.bill_file.length) {
+          // CRASH-PROOF: Compress images before upload
+          const compressedFiles = await Promise.all(
+            group.bill_file.map(file => compressImage(file))
+          );
+          
           let groupBillPublicUrls = [];
           groupBillPublicUrls = await uploadFilesAndGetPublicUrls(
             "maintenance",
             `${taskId}/group${i}/bill`,
-            group.bill_file
+            compressedFiles
           );
 
           // Update the group with the URL
@@ -135,11 +201,16 @@ const MaintenanceTaskPage: React.FC = () => {
         }
 
         if (group.battery_warranty_file && group.battery_warranty_file.length) {
+          // CRASH-PROOF: Compress images before upload
+          const compressedBatteryFiles = await Promise.all(
+            group.battery_warranty_file.map(file => compressImage(file))
+          );
+          
           let groupBatteryPublicUrls = [];
           groupBatteryPublicUrls = await uploadFilesAndGetPublicUrls(
             "maintenance",
             `${taskId}/group${i}/battery`,
-            group.battery_warranty_file
+            compressedBatteryFiles
           );
 
           // Update the group with the URL
@@ -150,11 +221,16 @@ const MaintenanceTaskPage: React.FC = () => {
         }
 
         if (group.tyre_warranty_file && group.tyre_warranty_file.length) {
+          // CRASH-PROOF: Compress images before upload
+          const compressedTyreFiles = await Promise.all(
+            group.tyre_warranty_file.map(file => compressImage(file))
+          );
+          
           let groupTyrePublicUrls = [];
           groupTyrePublicUrls = await uploadFilesAndGetPublicUrls(
             "maintenance",
             `${taskId}/group${i}/tyre`,
-            group.tyre_warranty_file
+            compressedTyreFiles
           );
 
           // Update the group with the URL
@@ -187,25 +263,33 @@ const MaintenanceTaskPage: React.FC = () => {
   };
 
   const handleSubmit = async (formData: MaintenanceFormData) => {
+    // CRASH-PROOF: Prevent multiple simultaneous submissions
+    if (isSubmitting) {
+      console.log('🚫 Already submitting, ignoring click to prevent crash...');
+      return;
+    }
+    
     setIsSubmitting(true);
+    console.log('🎯 Starting maintenance task submission...');
+    
     try {
+      // CRASH-PROOF: Allow UI to update before processing
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Make sure required fields are present
       if (!formData.vehicle_id) {
         toast.error("Vehicle selection is required");
-        setIsSubmitting(false);
         return;
       }
 
       if (!formData.start_date || formData.start_date === "") {
         toast.error("Start date is required");
-        setIsSubmitting(false);
         return;
       }
 
       // Ensure odometer_reading is provided
       if (!formData.odometer_reading) {
         toast.error("Odometer reading is required");
-        setIsSubmitting(false);
         return;
       }
 
@@ -228,86 +312,107 @@ const MaintenanceTaskPage: React.FC = () => {
           "Are you sure you want to update this maintenance task?"
         );
         if (!confirmUpdate) {
-          setIsSubmitting(false);
           return;
         }
 
-        // Handle service group file uploads
-        let updatedServiceGroups: Array<Partial<MaintenanceServiceGroup>> = [];
-        if (service_groups && service_groups.length > 0) {
-          updatedServiceGroups = await handleFileUploads(service_groups, id);
-          // Clean the service groups data for database insertion
-          updatedServiceGroups =
-            cleanServiceGroupsForDatabase(updatedServiceGroups);
-        }
+        // CRASH-PROOF: Use requestAnimationFrame to defer heavy file upload processing
+        await new Promise(resolve => {
+          requestAnimationFrame(async () => {
+            try {
+              // Handle service group file uploads
+              let updatedServiceGroups: Array<Partial<MaintenanceServiceGroup>> = [];
+              if (service_groups && service_groups.length > 0) {
+                console.log('📁 Starting file uploads for service groups...');
+                updatedServiceGroups = await handleFileUploads(service_groups, id);
+                // Clean the service groups data for database insertion
+                updatedServiceGroups =
+                  cleanServiceGroupsForDatabase(updatedServiceGroups);
+                console.log('✅ File uploads completed');
+              }
 
-        const updatePayload: Partial<MaintenanceTask> = {
-          ...taskData,
-          service_groups: updatedServiceGroups,
-        };
+              const updatePayload: Partial<MaintenanceTask> = {
+                ...taskData,
+                service_groups: updatedServiceGroups,
+              };
 
-
-        try {
-          // Now try our utility function
-          const updatedTask = await updateTask(id, updatePayload);
-          if (updatedTask) {
-            setTask(updatedTask);
-            toast.success("Maintenance task updated successfully");
-            navigate("/maintenance");
-          } else {
-            toast.error("Failed to update task");
-          }
-        } catch (error) {
-          console.error("Error updating task:", error);
-          toast.error(
-            `Error updating task: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
-        }
+              try {
+                // Now try our utility function
+                const updatedTask = await updateTask(id, updatePayload);
+                if (updatedTask) {
+                  setTask(updatedTask);
+                  toast.success("Maintenance task updated successfully");
+                  navigate("/maintenance");
+                } else {
+                  toast.error("Failed to update task");
+                }
+              } catch (error) {
+                console.error("Error updating task:", error);
+                toast.error(
+                  `Error updating task: ${
+                    error instanceof Error ? error.message : "Unknown error"
+                  }`
+                );
+              }
+            } catch (error) {
+              console.error("Error in file upload processing:", error);
+              toast.error("Error processing file uploads");
+            } finally {
+              resolve(undefined);
+            }
+          });
+        });
       } else {
-        // Create new task
-        try {
-          const newTask = await createTask(
-            taskData as Omit<
-              MaintenanceTask,
-              "id" | "created_at" | "updated_at"
-            >
-          );
-
-          if (newTask) {
-            // Handle service group file uploads
-            if (service_groups && service_groups.length > 0 && newTask.id) {
-              const updatedServiceGroups = await handleFileUploads(
-                service_groups,
-                newTask.id
+        // CRASH-PROOF: Use requestAnimationFrame to defer heavy processing for new task creation
+        await new Promise(resolve => {
+          requestAnimationFrame(async () => {
+            try {
+              console.log('🆕 Creating new maintenance task...');
+              const newTask = await createTask(
+                taskData as Omit<
+                  MaintenanceTask,
+                  "id" | "created_at" | "updated_at"
+                >
               );
 
-              // Clean the service groups data for database insertion
-              // updatedServiceGroups =
-              //   cleanServiceGroupsForDatabase(updatedServiceGroups);
+              if (newTask) {
+                // Handle service group file uploads
+                if (service_groups && service_groups.length > 0 && newTask.id) {
+                  console.log('📁 Starting file uploads for new task...');
+                  const updatedServiceGroups = await handleFileUploads(
+                    service_groups,
+                    newTask.id
+                  );
 
-              // Update the task with the service groups
-              if (updatedServiceGroups.length > 0) {
-                await updateTask(newTask.id, {
-                  service_groups: updatedServiceGroups,
-                });
+                  // Clean the service groups data for database insertion
+                  // updatedServiceGroups =
+                  //   cleanServiceGroupsForDatabase(updatedServiceGroups);
+
+                  // Update the task with the service groups
+                  if (updatedServiceGroups.length > 0) {
+                    await updateTask(newTask.id, {
+                      service_groups: updatedServiceGroups,
+                    });
+                  }
+                  console.log('✅ File uploads completed for new task');
+                }
+
+                toast.success("Maintenance task created successfully");
+                navigate("/maintenance");
+              } else {
+                toast.error("Task creation failed - no data returned");
               }
+            } catch (error) {
+              console.error("Error creating task:", error);
+              toast.error(
+                `Error creating task: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`
+              );
+            } finally {
+              resolve(undefined);
             }
-
-            toast.success("Maintenance task created successfully");
-            navigate("/maintenance");
-          } else {
-            toast.error("Task creation failed - no data returned");
-          }
-        } catch (error) {
-          console.error("Error creating task:", error);
-          toast.error(
-            `Error creating task: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
-        }
+          });
+        });
       }
     } catch (error) {
       console.error("Error submitting maintenance task:", error);
