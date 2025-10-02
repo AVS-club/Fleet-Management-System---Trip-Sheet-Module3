@@ -266,9 +266,27 @@ const VehiclePage: React.FC = () => {
           <div className="max-w-4xl mx-auto">
             <VehicleForm
               initialData={vehicle}
-              onSubmit={() => {
-                // Handle update
-                setIsEditing(false);
+              onSubmit={async (formData) => {
+                try {
+                  // Update the vehicle in the database
+                  const updatedVehicle = await updateVehicle(vehicle.id, formData);
+                  
+                  if (updatedVehicle) {
+                    // Update local state
+                    setVehicle(prevVehicle => prevVehicle ? { ...prevVehicle, ...formData } : null);
+                    
+                    // Regenerate signed URLs for updated documents
+                    await generateSignedUrls({ ...vehicle, ...formData });
+                    
+                    toast.success('Vehicle updated successfully');
+                    setIsEditing(false);
+                  } else {
+                    toast.error('Failed to update vehicle');
+                  }
+                } catch (error) {
+                  console.error('Error updating vehicle:', error);
+                  toast.error('Failed to update vehicle');
+                }
               }}
             />
           </div>
@@ -404,7 +422,7 @@ const VehiclePage: React.FC = () => {
             <div className="flex gap-2">
               <button
                 onClick={handleExportPDF}
-                className="p-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
                 title="Export as PDF"
               >
                 <FileText className="h-5 w-5" />

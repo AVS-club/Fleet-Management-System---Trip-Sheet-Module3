@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import {
-  FileText, Download, Share2, Eye, Calendar, AlertTriangle,
+  FileText, Download, Eye, Calendar, AlertTriangle,
   Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, MessageCircle, Link
 } from 'lucide-react';
 import { Vehicle } from '../../types';
-import VehiclePhotoUpload from './VehiclePhotoUpload';
 import DocumentViewer from './DocumentViewer';
 import { formatDate, daysUntil } from '../../utils/dateUtils';
 import { toast } from 'react-toastify';
 import { vehicleColors } from '../../utils/vehicleColors';
 import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortener';
+import { supabase } from '../../utils/supabaseClient';
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -174,16 +174,38 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   };
 
-  const handlePhotoChange = () => {
-    // Trigger photo upload
+  const handlePhotoChange = async () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        // Handle photo upload logic here
-        console.log('Photo upload triggered');
+        try {
+          // Upload photo to Supabase Storage
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${vehicle.id}/photo_${Date.now()}.${fileExt}`;
+          
+          const { data, error } = await supabase.storage
+            .from('vehicle-photos')
+            .upload(fileName, file);
+
+          if (error) {
+            throw error;
+          }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('vehicle-photos')
+            .getPublicUrl(fileName);
+
+          // Update vehicle with new photo URL
+          onUpdate({ photo_url: publicUrl });
+          toast.success('Vehicle photo updated successfully');
+        } catch (error) {
+          console.error('Photo upload failed:', error);
+          toast.error('Failed to upload photo');
+        }
       }
     };
     input.click();
