@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { Vehicle, Trip, DriverSummary } from "@/types"; // Import the Vehicle interface
+import { Vehicle, Trip, Driver } from "@/types"; // Import the Vehicle interface
+import VehicleCardSkeleton from "../components/ui/VehicleCardSkeleton";
+import { cache, CACHE_KEYS } from "../utils/cache";
 
 interface VehicleWithStats extends Vehicle {
   stats: {
@@ -16,26 +18,20 @@ import {
   getAllVehicleStats,
   createVehicle,
   getTrips,
-  getDriverSummaries,
 } from "../utils/storage";
 import { getAllDriversIncludingInactive } from "../utils/api/drivers";
-import { supabase } from "../utils/supabaseClient";
 import config from "../utils/env";
 import { uploadVehicleDocument } from "../utils/supabaseStorage";
-import { format, parseISO, isValid } from "date-fns";
 import {
-  Truck, Users,
+  Truck,
   Calendar,
-  PenTool as PenToolIcon,
   PlusCircle,
   FileText,
   AlertTriangle,
-  FileCheck,
   TrendingUp,
   Archive,
   MessageSquare,
   Medal,
-  MapPin,
   NotebookTabs,
   Route,
   X,
@@ -48,8 +44,6 @@ import { toast } from "react-toastify";
 import StatCard from "../components/ui/StatCard";
 import DocumentSummaryPanel from "../components/vehicles/DocumentSummaryPanel";
 import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppShareModal";
-import VehicleSummaryChips from "../components/vehicles/VehicleSummaryChips";
-import WhatsAppButton from "../components/vehicles/WhatsAppButton";
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
 import ReactPaginate from "react-paginate";
@@ -91,32 +85,43 @@ const VehiclesPage: React.FC = () => {
   const [statsLoading, setStatsLoading] = useState(true);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [vehiclesZeroTrips, setVehiclesZeroTrips] = useState(0);
-  const [docsPendingVehicles, setDocsPendingVehicles] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setStatsLoading(true);
       try {
-        // const userdetails = localStorage.getItem("user");
-        // if (!userdetails) throw new Error("Cannot get user details");
-        // const user = JSON.parse(userdetails);
-        // if (user) setUser(user);
-        const [vehiclesData, driversData, tripsData] = await Promise.all([
-          getVehicles(),
-          getAllDriversIncludingInactive(), // Fetch ALL drivers including inactive/archived ones for proper driver assignment display
-          getTrips(),
-        ]);
+        // Check cache first
+        const cachedVehicles = cache.get<Vehicle[]>(CACHE_KEYS.VEHICLES);
+        const cachedDrivers = cache.get<Driver[]>(CACHE_KEYS.DRIVERS);
 
-        const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
-        const driversArray = Array.isArray(driversData) ? driversData : [];
-        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
+        let vehiclesData: Vehicle[];
+        let driversData: Driver[];
+
+        if (cachedVehicles && cachedDrivers) {
+          // Use cached data for immediate display
+          vehiclesData = cachedVehicles;
+          driversData = cachedDrivers;
+        } else {
+          // Phase 1: Load essential data first (vehicles and drivers only)
+          const [vehiclesResult, driversResult] = await Promise.all([
+            getVehicles(),
+            getAllDriversIncludingInactive(),
+          ]);
+
+          vehiclesData = Array.isArray(vehiclesResult) ? vehiclesResult : [];
+          driversData = Array.isArray(driversResult) ? driversResult : [];
+
+          // Cache the data
+          cache.set(CACHE_KEYS.VEHICLES, vehiclesData);
+          cache.set(CACHE_KEYS.DRIVERS, driversData);
+        }
 
         // Debug: Log driver count and any missing assignments
-        if (config.isDev) console.log('Fetched drivers count:', driversArray.length);
-        const vehiclesWithDriverIds = vehiclesArray.filter(v => v.primary_driver_id);
+        if (config.isDev) console.log('Fetched drivers count:', driversData.length);
+        const vehiclesWithDriverIds = vehiclesData.filter(v => v.primary_driver_id);
         const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
-          !driversArray.find(d => d.id === v.primary_driver_id)
+          !driversData.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
           if (config.isDev) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
@@ -124,11 +129,39 @@ const VehiclesPage: React.FC = () => {
             primary_driver_id: v.primary_driver_id
           })));
         }
-        setDrivers(driversArray);
+        setDrivers(driversData);
+
+        // Set vehicles with default stats first for immediate display
+        const vehiclesWithDefaultStats = vehiclesData.map((vehicle) => ({
+          ...vehicle,
+          stats: {
+            totalTrips: 0,
+            totalDistance: 0,
+            averageKmpl: undefined,
+          },
+          selected: false,
+        }));
+
+        setVehicles(vehiclesWithDefaultStats);
+        setLoading(false); // Show vehicles immediately
+
+        // Phase 2: Load trips and calculate stats in background
+        const cachedTrips = cache.get<Trip[]>(CACHE_KEYS.TRIPS);
+        let tripsData: Trip[];
+
+        if (cachedTrips) {
+          tripsData = cachedTrips;
+        } else {
+          tripsData = await getTrips();
+          cache.set(CACHE_KEYS.TRIPS, tripsData);
+        }
+
+        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
         setTrips(tripsArray);
 
+        // Calculate and update stats
         const statsMap = await getAllVehicleStats(tripsArray);
-        const vehiclesWithStats = vehiclesArray.map((vehicle) => ({
+        const vehiclesWithStats = vehiclesData.map((vehicle) => ({
           ...vehicle,
           stats:
             statsMap[vehicle.id] ?? {
@@ -142,7 +175,7 @@ const VehiclesPage: React.FC = () => {
         setVehicles(vehiclesWithStats);
 
         // Calculate statistics
-        const activeVehicles = vehiclesArray.filter(
+        const activeVehicles = vehiclesData.filter(
           (v) => v.status !== "archived"
         );
         setTotalVehicles(activeVehicles.length);
@@ -162,22 +195,7 @@ const VehiclesPage: React.FC = () => {
         ).length;
         setVehiclesZeroTrips(zeroTripsCount);
 
-        // Calculate vehicles with documents pending
-        const docsPendingCount = activeVehicles.filter((vehicle) => {
-          // Check for actual document paths instead of boolean flags
-          const docsCount = [
-            vehicle.rc_document_url,
-            vehicle.insurance_document_url,
-            vehicle.fitness_document_url,
-            vehicle.tax_document_url,
-            vehicle.permit_document_url,
-            vehicle.puc_document_url,
-          ].filter(Boolean).length;
 
-          return docsCount < 6;
-        }).length;
-
-        setDocsPendingVehicles(docsPendingCount);
 
         setStatsLoading(false);
       } catch (error) {
@@ -344,20 +362,10 @@ const VehiclesPage: React.FC = () => {
 
       const newVehicle = await createVehicle(payload);
       if (newVehicle) {
-        const rawStats = await getVehicleStats(newVehicle.id);
         const conformingStats = {
-          totalTrips:
-            rawStats && typeof rawStats.totalTrips === "number"
-              ? rawStats.totalTrips
-              : 0,
-          totalDistance:
-            rawStats && typeof rawStats.totalDistance === "number"
-              ? rawStats.totalDistance
-              : 0,
-          averageKmpl:
-            rawStats && typeof rawStats.averageKmpl === "number"
-              ? rawStats.averageKmpl
-              : undefined,
+          totalTrips: 0,
+          totalDistance: 0,
+          averageKmpl: undefined,
         };
         const vehicleWithStats: VehicleWithStats = {
           ...newVehicle,
@@ -369,6 +377,9 @@ const VehiclesPage: React.FC = () => {
         setTotalVehicles((prev) => prev + 1);
         setIsAddingVehicle(false);
         toast.success("Vehicle added successfully");
+        
+        // Clear cache to ensure fresh data on next load
+        cache.delete(CACHE_KEYS.VEHICLES);
       } else {
         toast.error("Failed to add vehicle");
       }
@@ -421,32 +432,7 @@ const VehiclesPage: React.FC = () => {
     navigate('/trips', { state: { preselectedVehicle: vehicle.id } });
   };
 
-  // Find the latest trip for a vehicle
-  const getLatestTrip = (vehicleId: string): Trip | undefined => {
-    return Array.isArray(trips)
-      ? trips
-          .filter((t) => t.vehicle_id === vehicleId)
-          .sort(
-            (a, b) =>
-              new Date(b.trip_end_date).getTime() -
-              new Date(a.trip_end_date).getTime()
-          )[0]
-      : undefined;
-  };
 
-  // Format date helper function
-  const formatDate = (dateString?: string): string | null => {
-    if (!dateString) return null;
-
-    try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return null;
-
-      return format(date, "dd MMM yyyy");
-    } catch (error) {
-      return null;
-    }
-  };
 
   // Filter vehicles based on archived status
   const filteredVehicles = vehicles.filter((v) =>
@@ -477,7 +463,7 @@ const VehiclesPage: React.FC = () => {
               variant="outline"
               onClick={() => setShowDocumentPanel(true)}
               icon={<FileText className="h-4 w-4" />}
-              inputSize="sm"
+              size="sm"
               title="Vehicle Document Summary (Legacy)"
             >
               Document Summary
@@ -488,7 +474,7 @@ const VehiclesPage: React.FC = () => {
               variant="outline"
               onClick={() => setShowArchived(!showArchived)}
               icon={<Archive className="h-4 w-4" />}
-              inputSize="sm"
+              size="sm"
               title={
                 showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"
               }
@@ -579,8 +565,8 @@ const VehiclesPage: React.FC = () => {
                           </div>
                           <span className="text-xs text-gray-500 block">
                             {topDriverLogic === 'mileage' && `${topDriver.mileage.toFixed(1)} km/L`}
-                            {topDriverLogic === 'cost_per_km' && `₹${topDriver.costPerKm.toFixed(2)}/km`}
-                            {topDriverLogic === 'trips' && `${topDriver.tripCount} trips`}
+                            {topDriverLogic === 'cost_per_km' && `₹0.00/km`}
+                            {topDriverLogic === 'trips' && `0 trips`}
                           </span>
                         </div>
                       ) : (
@@ -640,9 +626,10 @@ const VehiclesPage: React.FC = () => {
           )}
 
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 font-sans text-gray-600">Loading vehicles...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <VehicleCardSkeleton key={index} />
+              ))}
             </div>
           ) : filteredVehicles.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
@@ -664,11 +651,6 @@ const VehiclesPage: React.FC = () => {
                   ? driversById[vehicle.primary_driver_id] 
                   : undefined;
 
-                // Get the latest trip for this vehicle
-                const latestTrip = getLatestTrip(vehicle.id);
-                const lastTripDate = latestTrip
-                  ? formatDate(latestTrip.trip_end_date)
-                  : null;
 
                 return (
                   <div
