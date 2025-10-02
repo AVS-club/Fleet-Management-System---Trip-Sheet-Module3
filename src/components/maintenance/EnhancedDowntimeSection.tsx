@@ -53,7 +53,9 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
   const [downtimeStartTime, setDowntimeStartTime] = useState<string>('');
   const [downtimeEndTime, setDowntimeEndTime] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastClickTimeRef = useRef<number>(0);
 
   const downtimeDays = watch('downtime_days') || 0;
   const downtimeHours = watch('downtime_hours') || 0;
@@ -61,47 +63,89 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
   const downtimeImpactLevel = watch('downtime_impact_level') || 'medium';
   const downtimeReason = watch('downtime_reason') || '';
 
-  // Calculate total downtime for display
-  const totalDowntimeHours = (downtimeDays * 24) + downtimeHours;
-  const totalDowntimeDays = Math.floor(totalDowntimeHours / 24);
-  const remainingHours = totalDowntimeHours % 24;
+  // CRASH-PROOF: Use useMemo to prevent expensive recalculations on every render
+  // This prevents main thread blocking that causes RESULT_CODE_HUNG crashes
+  const downtimeCalculations = useMemo(() => {
+    const totalDowntimeHours = (downtimeDays * 24) + downtimeHours;
+    const totalDowntimeDays = Math.floor(totalDowntimeHours / 24);
+    const remainingHours = totalDowntimeHours % 24;
+    
+    return {
+      totalDowntimeHours,
+      totalDowntimeDays,
+      remainingHours
+    };
+  }, [downtimeDays, downtimeHours]);
 
-  // Handle preset selection with debounce and proper error handling
-  const handlePresetSelectInternal = useCallback(async (preset: typeof DOWNTIME_PRESETS[0]) => {
+  // Destructure for easier use
+  const { totalDowntimeHours, totalDowntimeDays, remainingHours } = downtimeCalculations;
+
+  // CRASH-PROOF handler to prevent RESULT_CODE_HUNG errors
+  const handlePresetSelectInternal = useCallback((preset: typeof DOWNTIME_PRESETS[0]) => {
+    const currentTime = Date.now();
+    
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    // CRITICAL: Prevent rapid clicks that cause main thread blocking
     if (isProcessing) {
-      console.log('Already processing, ignoring click');
+      console.log('🚫 Still processing previous click, ignoring to prevent RESULT_CODE_HUNG crash...');
       return;
     }
-
-    try {
-      setIsProcessing(true);
-      console.log('Quick select clicked:', preset.id);
-      
-      setValue('downtime_days', preset.days);
-      setValue('downtime_hours', preset.hours);
-      setSelectedPreset(preset.id);
-      
-      // Clear any existing timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Add success animation with error handling
-      timeoutRef.current = setTimeout(() => {
-        setSelectedPreset(null);
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error in handlePresetSelect:', error);
-      setSelectedPreset(null);
-    } finally {
-      setIsProcessing(false);
+    
+    // CRITICAL: Prevent clicks too close together (less than 100ms apart)
+    if (currentTime - lastClickTimeRef.current < 100) {
+      console.log('🚫 Click too rapid, ignoring to prevent crash...');
+      return;
     }
-  }, [isProcessing, setValue]);
+    
+    // CRITICAL: Prevent excessive clicking that can overwhelm the main thread
+    if (clickCount > 10) {
+      console.log('🚫 Too many clicks detected, temporarily blocking to prevent crash...');
+      setTimeout(() => setClickCount(0), 2000); // Reset after 2 seconds
+      return;
+    }
+    
+    // Update tracking variables
+    lastClickTimeRef.current = currentTime;
+    setClickCount(prev => prev + 1);
+    setIsProcessing(true);
+    
+    console.log(`🎯 Quick select clicked: ${preset.id} (${preset.days}d ${preset.hours}h) - Click #${clickCount + 1}`);
+    
+    // Use requestAnimationFrame to defer state updates and prevent main thread blocking
+    // This is CRITICAL to prevent RESULT_CODE_HUNG crashes
+    requestAnimationFrame(() => {
+      try {
+        // Batch all state updates together to prevent multiple re-renders
+        setValue('downtime_days', preset.days, { shouldDirty: true, shouldValidate: false });
+        setValue('downtime_hours', preset.hours, { shouldDirty: true, shouldValidate: false });
+        setSelectedPreset(preset.id);
+        
+        console.log(`✅ Successfully updated downtime: ${preset.days}d ${preset.hours}h`);
+        
+        // Add success animation with error handling
+        timeoutRef.current = setTimeout(() => {
+          setSelectedPreset(null);
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Error updating downtime (preventing crash):', error);
+        setSelectedPreset(null);
+      } finally {
+        // Reset processing state after a delay to prevent rapid successive clicks
+        timeoutRef.current = setTimeout(() => {
+          setIsProcessing(false);
+        }, 500);
+      }
+    });
+  }, [isProcessing, setValue, clickCount]);
 
-  // Debounced version of the handler
+  // Debounced version with longer delay to prevent rapid clicks that cause crashes
   const handlePresetSelect = useCallback(
-    debounce(handlePresetSelectInternal, 300),
+    debounce(handlePresetSelectInternal, 500), // Increased to 500ms for better crash prevention
     [handlePresetSelectInternal]
   );
 
@@ -204,9 +248,17 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
 
       {/* Quick Presets */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700">
-          Quick Select
-        </label>
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-gray-700">
+            Quick Select
+          </label>
+          {isProcessing && (
+            <div className="flex items-center text-xs text-blue-600 animate-pulse">
+              <Clock className="h-3 w-3 mr-1" />
+              Processing...
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
           {DOWNTIME_PRESETS.map((preset) => (
             <button
