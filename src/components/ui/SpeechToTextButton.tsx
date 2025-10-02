@@ -20,17 +20,6 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
-
-const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
-  onTranscript,
-  language = 'hi-IN',
-  className = '',
-  buttonClassName = '',
-  title = 'Click to dictate'
-}) => {
-  const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(true);
-  const recognitionRef = useRef<any>(null);
   const onTranscriptRef = useRef(onTranscript);
 
   // Keep ref in sync with latest callback
@@ -85,23 +74,8 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
         }
       }
     };
-  }, [language]);
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.onresult = null;
-        recognitionRef.current.onend = null;
-        recognitionRef.current.onerror = null;
+  }, [language, isListening]);
 
-        if (isListening) {
-          try {
-            recognitionRef.current.stop();
-          } catch (err) {
-            console.error('Error stopping speech recognition:', err);
-          }
-        }
-      }
-    };
-  }, [language]);
   const toggleListening = () => {
     if (!isSupported || !recognitionRef.current) return;
 
@@ -134,21 +108,6 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       aria-label={isListening ? 'Stop dictation' : 'Start dictation'}
     >
       {isListening ? (
-        <div className="relative">
-          <MicOff className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-error-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-error-500"></span>
-          </span>
-        </div>
-      ) : (
-        <Mic className="h-4 w-4" />
-      )}
-    </button>
-  );
-};
-
-export default SpeechToTextButton;      {isListening ? (
         <div className="relative">
           <MicOff className="h-4 w-4" />
           <span className="absolute -top-1 -right-1 flex h-2 w-2">
