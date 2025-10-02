@@ -92,64 +92,83 @@ const ServiceDetailsSection = () => {
   return (
     <>
       {/* Service Details Box */}
-      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
-        <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg border border-green-100 p-6 space-y-6">
+        <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
+            <Calendar className="h-5 w-5 text-white" />
+          </div>
+          Service Details
+        </h3>
         
         {/* Quick Select */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Quick Select
           </label>
-          <div className="grid grid-cols-7 gap-2">
-            {[
-              { id: '2h', label: '2h', days: 0, hours: 2 },
-              { id: '4h', label: '4h', days: 0, hours: 4 },
-              { id: '6h', label: '6h', days: 0, hours: 6 },
-              { id: '8h', label: '8h', days: 0, hours: 8 },
-              { id: '1d', label: '1d', days: 1, hours: 0 },
-              { id: '2d', label: '2d', days: 2, hours: 0 },
-              { id: '3d', label: '3d', days: 3, hours: 0 },
-            ].map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handleQuickSelect(opt.days, opt.hours, opt.id)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-all
-                  ${selectedOption === opt.id
-                    ? opt.hours > 0 ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white'
-                    : opt.hours > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                  }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+                  <div className="grid grid-cols-7 gap-3">
+                    {[
+                      { id: '2h', label: '2h', days: 0, hours: 2 },
+                      { id: '4h', label: '4h', days: 0, hours: 4 },
+                      { id: '6h', label: '6h', days: 0, hours: 6 },
+                      { id: '8h', label: '8h', days: 0, hours: 8 },
+                      { id: '1d', label: '1d', days: 1, hours: 0 },
+                      { id: '2d', label: '2d', days: 2, hours: 0 },
+                      { id: '3d', label: '3d', days: 3, hours: 0 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleQuickSelect(opt.days, opt.hours, opt.id)}
+                        className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-md
+                          ${selectedOption === opt.id
+                            ? opt.hours > 0 
+                              ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-300' 
+                              : 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg ring-2 ring-orange-300'
+                            : opt.hours > 0 
+                              ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300 border border-blue-200' 
+                              : 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300 border border-orange-200'
+                          }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
         </div>
 
         {/* Date Display Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Start Date *
             </label>
-            <input
-              type="text"
-              value={formatDisplay(startDate)}
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={formatDisplay(startDate)}
+                readOnly
+                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-gray-700 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <Calendar className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               End Date
             </label>
-            <input
-              type="text"
-              value={formatDisplay(endDate, true)}
-              readOnly
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={formatDisplay(endDate, true)}
+                readOnly
+                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-gray-700 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+              />
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <Calendar className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -180,22 +199,27 @@ const DowntimeSummary = () => {
   };
   
   return (
-    <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-lg p-4">
+    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <Clock className="h-5 w-5 text-yellow-600 mr-2" />
-          <span className="text-sm font-medium text-gray-700">Downtime Tracking</span>
+          <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
+            <Clock className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <span className="text-lg font-semibold text-gray-800">Downtime Tracking</span>
+            <p className="text-sm text-gray-600">Service duration monitoring</p>
+          </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-gray-900">
-            Total Downtime: {getTotalDisplay()}
+          <div className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+            {getTotalDisplay()}
           </div>
-          <div className="text-xs text-gray-500">
-            <span>{downtimeDays}d {downtimeHours}h</span>
-            <span className="mx-1">•</span>
-            <span>Maintenance</span>
-            <span className="mx-1">•</span>
-            <span>Medium Impact</span>
+          <div className="text-sm text-gray-600 mt-1">
+            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">{downtimeDays}d {downtimeHours}h</span>
+            <span className="mx-2">•</span>
+            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Maintenance</span>
+            <span className="mx-2">•</span>
+            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Medium Impact</span>
           </div>
         </div>
       </div>
@@ -557,7 +581,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         if (!group.battery_brand) {
           return `Please select battery brand for service group ${i + 1}`;
         }
-        if (!group.battery_warranty_expiry_date) {
+        if (!group.battery_warranty_expiry) {
           return `Please set battery warranty expiry date for service group ${i + 1}`;
         }
       }
@@ -570,7 +594,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         if (!group.tyre_brand) {
           return `Please select tyre brand for service group ${i + 1}`;
         }
-        if (!group.tyre_warranty_expiry_date) {
+        if (!group.tyre_warranty_expiry) {
           return `Please set tyre warranty expiry date for service group ${i + 1}`;
         }
       }
@@ -609,12 +633,28 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   };
 
   return (
-    <FormProvider {...methods}>
-      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-green-600 px-8 py-6">
+            <h1 className="text-3xl font-bold text-white flex items-center">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
+                <Truck className="h-6 w-6 text-white" />
+              </div>
+              Maintenance Task
+            </h1>
+            <p className="text-blue-100 mt-2">Create and manage vehicle maintenance records</p>
+          </div>
+          
+          <div className="p-8">
+            <FormProvider {...methods}>
+              <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
         {/* Vehicle & Basic Info */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Truck className="h-5 w-5 mr-2 text-primary-500" />
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6 space-y-6">
+          <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+              <Truck className="h-5 w-5 text-white" />
+            </div>
             Basic Information
           </h3>
 
@@ -684,8 +724,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
           
           {/* Right side: Odometer Section */}
-          <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-            <h3 className="text-lg font-medium text-gray-900">Vehicle Information</h3>
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-lg border border-purple-100 p-6 space-y-6">
+            <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+              <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
+                <PenToolIcon className="h-5 w-5 text-white" />
+              </div>
+              Vehicle Information
+            </h3>
             <div className="grid grid-cols-1 gap-5">
               <Input
                 label="Odometer Reading"
@@ -726,10 +771,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         {/* Status Section */}
-        <div className="bg-white rounded-lg shadow-sm p-5">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
+        <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl shadow-lg border border-red-100 p-6">
+          <label className="block text-lg font-semibold text-gray-800 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-white" />
+              </div>
               Status
               <span className="text-red-500 ml-1">*</span>
             </div>
@@ -737,11 +784,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           
           <div className="flex flex-wrap gap-2">
             {[
-              { value: "open", label: "Open", color: "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200", selectedColor: "bg-gray-200 text-gray-800 border-gray-300" },
-              { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200", selectedColor: "bg-blue-200 text-blue-800 border-blue-300" },
-              { value: "resolved", label: "Resolved", color: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200", selectedColor: "bg-green-200 text-green-800 border-green-300" },
-              { value: "escalated", label: "Escalated", color: "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200", selectedColor: "bg-orange-200 text-orange-800 border-orange-300" },
-              { value: "rework", label: "Rework Required", color: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200", selectedColor: "bg-red-200 text-red-800 border-red-300" },
+              { value: "open", label: "Open", color: "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200", selectedColor: "bg-gray-600 text-white border-gray-600 shadow-lg" },
+              { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200", selectedColor: "bg-blue-600 text-white border-blue-600 shadow-lg" },
+              { value: "resolved", label: "Resolved", color: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200", selectedColor: "bg-green-600 text-white border-green-600 shadow-lg" },
+              { value: "escalated", label: "Escalated", color: "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200", selectedColor: "bg-orange-600 text-white border-orange-600 shadow-lg" },
+              { value: "rework", label: "Rework Required", color: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200", selectedColor: "bg-red-600 text-white border-red-600 shadow-lg" },
             ].map((option) => (
               <Controller
                 key={option.value}
@@ -752,12 +799,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                   <button
                     type="button"
                     onClick={() => field.onChange(option.value)}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200
+                    className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200 transform hover:scale-105
                       ${field.value === option.value 
-                        ? option.selectedColor 
-                        : option.color
+                        ? option.selectedColor + " ring-2 ring-offset-2 ring-blue-500" 
+                        : option.color + " hover:shadow-md"
                       }`}
                   >
+                    {field.value === option.value && (
+                      <span className="mr-1">✓</span>
+                    )}
                     {option.label}
                   </button>
                 )}
@@ -824,17 +874,22 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         )}
 
         {/* Submit Button */}
-        <div className="flex flex-wrap justify-end gap-4 pt-4 border-t border-gray-200">
+        <div className="flex flex-wrap justify-end gap-4 pt-8 border-t-2 border-gradient-to-r from-blue-200 to-green-200">
           <Button
             type="submit"
             isLoading={isSubmitting}
-            icon={<CheckCircle className="h-4 w-4" />}
+            icon={<CheckCircle className="h-5 w-5" />}
+            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             {initialData ? "Update Task" : "Create Task"}
           </Button>
         </div>
-      </form>
-    </FormProvider>
+              </form>
+            </FormProvider>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
