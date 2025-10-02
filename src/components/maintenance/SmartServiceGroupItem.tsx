@@ -520,6 +520,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                   accept=".jpg,.jpeg,.png,.pdf"
                   className="w-full text-xs"
                 />
+                <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (max 10MB)</p>
               </div>
             </div>
           </div>
@@ -622,6 +623,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                     accept=".jpg,.jpeg,.png,.pdf"
                     className="w-full text-xs"
                   />
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (max 10MB)</p>
                 </div>
               </div>
             </div>
@@ -645,7 +647,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 disabled={isUploading}
               />
             </label>
-            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF</p>
+            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (max 10MB)</p>
             
             {/* Upload Progress */}
             {isUploading && (
