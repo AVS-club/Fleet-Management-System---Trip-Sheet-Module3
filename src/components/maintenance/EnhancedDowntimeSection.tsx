@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Clock, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
 import { ANIMATIONS } from '@/utils/animations';
@@ -37,12 +37,23 @@ const IMPACT_LEVELS = [
   { value: 'critical', label: 'Critical Impact', color: 'bg-red-100 text-red-700', description: 'Severe business impact' },
 ];
 
+// Debounce utility function
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
 const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ className = '' }) => {
   const { register, watch, setValue, formState: { errors } } = useFormContext<Partial<MaintenanceTask>>();
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [downtimeStartTime, setDowntimeStartTime] = useState<string>('');
   const [downtimeEndTime, setDowntimeEndTime] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const downtimeDays = watch('downtime_days') || 0;
   const downtimeHours = watch('downtime_hours') || 0;
@@ -55,25 +66,44 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
   const totalDowntimeDays = Math.floor(totalDowntimeHours / 24);
   const remainingHours = totalDowntimeHours % 24;
 
-  // Handle preset selection
-  const handlePresetSelect = (preset: typeof DOWNTIME_PRESETS[0]) => {
+  // Handle preset selection with debounce and proper error handling
+  const handlePresetSelectInternal = useCallback(async (preset: typeof DOWNTIME_PRESETS[0]) => {
+    if (isProcessing) {
+      console.log('Already processing, ignoring click');
+      return;
+    }
+
     try {
+      setIsProcessing(true);
+      console.log('Quick select clicked:', preset.id);
+      
       setValue('downtime_days', preset.days);
       setValue('downtime_hours', preset.hours);
       setSelectedPreset(preset.id);
       
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
       // Add success animation with error handling
-      const timeoutId = setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         setSelectedPreset(null);
       }, 1000);
       
-      // Cleanup timeout on unmount
-      return () => clearTimeout(timeoutId);
     } catch (error) {
       console.error('Error in handlePresetSelect:', error);
       setSelectedPreset(null);
+    } finally {
+      setIsProcessing(false);
     }
-  };
+  }, [isProcessing, setValue]);
+
+  // Debounced version of the handler
+  const handlePresetSelect = useCallback(
+    debounce(handlePresetSelectInternal, 300),
+    [handlePresetSelectInternal]
+  );
 
   // Handle custom downtime input
   const handleCustomDowntimeChange = (field: 'downtime_days' | 'downtime_hours', value: number) => {
@@ -84,6 +114,15 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
       console.error('Error in handleCustomDowntimeChange:', error);
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   // Auto-calculate downtime from start/end times
   useEffect(() => {
@@ -174,14 +213,19 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
               key={preset.id}
               type="button"
               onClick={() => handlePresetSelect(preset)}
+              disabled={isProcessing}
               className={`
                 px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200
                 ${selectedPreset === preset.id 
                   ? 'animate-pulse scale-110 shadow-lg' 
                   : preset.color
                 }
-                ${ANIMATIONS.CLASSES.HOVER_SCALE}
+                ${isProcessing 
+                  ? 'opacity-60 cursor-not-allowed' 
+                  : `${ANIMATIONS.CLASSES.HOVER_SCALE} hover:scale-105`
+                }
                 focus:outline-none focus:ring-2 focus:ring-primary-500
+                disabled:opacity-60 disabled:cursor-not-allowed
               `}
             >
               {preset.label}
