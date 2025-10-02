@@ -473,7 +473,7 @@ const MaintenanceTaskPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="mb-6">
             <Button
               variant="outline"
