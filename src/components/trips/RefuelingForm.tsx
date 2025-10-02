@@ -105,12 +105,12 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                 "transition-all duration-200"
               )}
             >
-              {index > 0 && (
+              {refuelings.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeRefueling(index)}
                   disabled={disabled}
-                  className="absolute top-2 right-2 p-1 text-gray-400 hover:text-error-500 transition-colors"
+                  className="absolute top-2 right-2 rounded-full bg-white/90 p-1 text-error-500 shadow-sm transition-colors hover:bg-error-50 hover:text-error-600 dark:bg-emerald-950/70 dark:text-error-300 dark:hover:bg-error-900/40"
                   title="Remove refueling"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -261,20 +261,38 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                           <span>Upload</span>
                         </label>
                       )}
-                      {index === refuelings.length - 1 && (
-                        <Button
-                          type="button"
-                          onClick={addRefueling}
-                          disabled={disabled}
-                          variant="success"
-                          size="sm"
-                          rounded="full"
-                          className="h-9 w-9 p-0 flex items-center justify-center shadow-sm"
-                          title="Add refueling"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span className="sr-only">Add refueling</span>
-                        </Button>
+                      {(refuelings.length > 1 || index === refuelings.length - 1) && (
+                        <div className="ml-auto flex items-center gap-2">
+                          {refuelings.length > 1 && (
+                            <Button
+                              type="button"
+                              onClick={() => removeRefueling(index)}
+                              disabled={disabled}
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "flex items-center gap-1.5 border-error-200 text-error-600 hover:border-error-300 hover:bg-error-50 hover:text-error-700",
+                                "dark:border-error-500/60 dark:text-error-300 dark:hover:bg-error-900/30 dark:hover:text-error-200"
+                              )}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              <span>Remove slip</span>
+                            </Button>
+                          )}
+                          {index === refuelings.length - 1 && (
+                            <Button
+                              type="button"
+                              onClick={addRefueling}
+                              disabled={disabled}
+                              variant="success"
+                              size="sm"
+                              className="flex items-center gap-1.5"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              <span>Add fuel slip</span>
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

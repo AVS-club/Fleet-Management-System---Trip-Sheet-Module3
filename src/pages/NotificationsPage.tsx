@@ -36,7 +36,7 @@ const NotificationsPage: React.FC = () => {
   }, []);
 
   // Redirect non-owner users
-  if (!permissionsLoading && !permissions?.canViewAlerts) {
+  if (!permissionsLoading && !permissions?.canAccessAlerts) {
     return <Navigate to="/vehicles" replace />;
   }
 

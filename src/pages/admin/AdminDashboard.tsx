@@ -19,18 +19,9 @@ import AuditTrailDashboard from '../../components/admin/AuditTrailDashboard';
 import DataIntegrityDashboard from '../../components/admin/DataIntegrityDashboard';
 
 const AdminDashboard: React.FC = () => {
+  // ✅ ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
   const { permissions, loading } = usePermissions();
   const [activeTab, setActiveTab] = useState('overview');
-  
-  // Redirect non-admin users
-  if (!loading && !permissions?.canViewAdmin) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -45,6 +36,15 @@ const AdminDashboard: React.FC = () => {
     };
     loadData();
   }, []);
+
+  // ✅ THEN PERMISSION CHECKS AFTER ALL HOOKS
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!permissions?.canAccessAdmin) {
+    return <Navigate to="/vehicles" replace />;
+  }
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: <Settings className="h-5 w-5" /> },

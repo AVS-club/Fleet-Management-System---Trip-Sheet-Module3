@@ -23,14 +23,10 @@ import { NumberFormatter } from '@/utils/numberFormatter';
 import FleetIQScanner from '../components/FleetIQScanner';
 
 const DashboardPage: React.FC = () => {
+  // ✅ ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'maintenance'>('overview');
-  
-  // Redirect data entry users to vehicles page
-  if (!permissionsLoading && permissions?.isDataEntry) {
-    return <Navigate to="/vehicles" replace />;
-  }
   
   // Use React Query for better caching and performance
   const { data: trips = [], isLoading: tripsLoading, error: tripsError } = useQuery({
@@ -174,6 +170,16 @@ const DashboardPage: React.FC = () => {
     enabled: !!mileageInsights.bestDriver,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
+
+  // ✅ THEN PERMISSION CHECKS AFTER ALL HOOKS
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Redirect data entry users to vehicles page - FIXED: use correct permission property
+  if (!permissions?.canAccessDashboard) {
+    return <Navigate to="/vehicles" replace />;
+  }
   
   const handleSelectTrip = (trip: Trip) => {
     navigate(`/trips/${trip.id}`);

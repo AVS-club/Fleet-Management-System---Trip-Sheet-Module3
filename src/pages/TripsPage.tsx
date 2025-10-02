@@ -483,7 +483,7 @@ const TripsPage: React.FC = () => {
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
         {!isAddingTrip && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {permissions?.canViewPnL && (
+            {permissions?.role !== 'data_entry' && (
               <Button
                 variant="outline"
                 onClick={() => navigate('/trip-pnl-reports')}
@@ -492,7 +492,7 @@ const TripsPage: React.FC = () => {
                 P&L Report
               </Button>
             )}
-            {permissions?.canViewDashboard && (
+            {permissions?.canAccessDashboard && (
               <Button
                 variant="outline"
                 onClick={() => setShowDashboard(!showDashboard)}

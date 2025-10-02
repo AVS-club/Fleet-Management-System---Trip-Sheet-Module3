@@ -107,6 +107,116 @@ const LoginPage: React.FC = () => {
         .float-animation {
           animation: float 6s ease-in-out infinite;
         }
+        .brand-logo-frame {
+          width: 5.4rem;
+          height: 5.4rem;
+          padding: 0.55rem;
+          border-radius: 1.5rem;
+          position: relative;
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(236, 253, 245, 0.94));
+          box-shadow: 0 18px 38px -18px rgba(16, 185, 129, 0.52), 0 0 0 3px rgba(134, 239, 172, 0.45);
+          border: 1px solid rgba(209, 250, 229, 0.82);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .brand-logo-frame::before {
+          content: '';
+          position: absolute;
+          inset: -12%;
+          border-radius: inherit;
+          background: radial-gradient(circle, rgba(167, 243, 208, 0.45) 0%, rgba(16, 185, 129, 0.22) 55%, transparent 78%);
+          z-index: 0;
+          filter: blur(12px);
+          opacity: 0.85;
+          transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .brand-logo-frame:hover {
+          transform: translateY(-2px) scale(1.02);
+          box-shadow: 0 22px 46px -18px rgba(16, 185, 129, 0.65), 0 0 0 4px rgba(74, 222, 128, 0.35);
+        }
+
+        .brand-logo-frame:hover::before {
+          opacity: 1;
+          transform: scale(1.04);
+        }
+
+        .brand-logo-surface {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          height: 100%;
+          border-radius: 1.25rem;
+          background: linear-gradient(135deg, #ffffff 15%, #f0fdf4 100%);
+          padding: 0.28rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: inset 0 4px 14px rgba(16, 185, 129, 0.08), inset 0 -2px 6px rgba(45, 212, 191, 0.08);
+          transition: box-shadow 0.4s ease;
+        }
+
+        .brand-logo-frame:hover .brand-logo-surface {
+          box-shadow: inset 0 6px 18px rgba(16, 185, 129, 0.12), inset 0 -3px 8px rgba(45, 212, 191, 0.12);
+        }
+
+        .brand-logo {
+          width: 84%;
+          height: 84%;
+          object-fit: contain;
+          transition: transform 0.3s ease;
+        }
+
+        .brand-logo-frame:hover .brand-logo {
+          transform: scale(1.01);
+        }
+
+        @media (max-width: 640px) {
+          .brand-logo-frame {
+            width: 4.8rem;
+            height: 4.8rem;
+            padding: 0.48rem;
+          }
+
+          .brand-logo-surface {
+            border-radius: 1.1rem;
+            padding: 0.22rem;
+          }
+
+          .brand-logo {
+            width: 88%;
+            height: 88%;
+          }
+
+          .welcome-text {
+            font-size: clamp(1.4rem, 7vw, 1.75rem);
+          }
+        }
+
+        @media (max-width: 420px) {
+          .brand-logo-frame {
+            width: 4.2rem;
+            height: 4.2rem;
+            padding: 0.38rem;
+          }
+
+          .brand-logo-surface {
+            border-radius: 0.95rem;
+            padding: 0.18rem;
+          }
+
+          .brand-logo {
+            width: 90%;
+            height: 90%;
+          }
+        }
+
+
+
       `}</style>
       
       {/* Theme Toggle */}
@@ -121,13 +231,20 @@ const LoginPage: React.FC = () => {
       
       <div className="w-full max-w-md relative z-10 bg-pattern">
         {/* Logo and Brand */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl mb-5 shadow-xl shadow-emerald-600/40">
-            <Truck className="w-11 h-11 text-white" strokeWidth={2.5} fill="white" />
+        <div className="text-center mb-6 sm:mb-8">
+          {/* Brand Logo */}
+          <div className="brand-logo-frame mx-auto mb-5">
+            <div className="brand-logo-surface">
+              <img
+                src="/assets/avs-logo.png"
+                alt="Auto Vital Solution logo"
+                className="brand-logo"
+              />
+            </div>
           </div>
-          
-          {/* Static Brand Name - Only in English */}
-          <h1 className="text-3xl font-bold tracking-tight mb-1.5">
+
+          {/* Static Brand Name */}
+          <h1 className="font-bold tracking-tight mb-1.5 text-[1.85rem] sm:text-[2.06rem]">
             <span className="text-gray-900">Auto Vital</span>
             <span className="text-emerald-600"> Solution</span>
           </h1>
@@ -144,7 +261,7 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-8 border border-gray-100 transform hover:shadow-3xl hover:shadow-gray-400/50 transition-all duration-300" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 10px 20px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)' }}>
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-6 sm:p-8 border border-gray-100 transform hover:shadow-3xl hover:shadow-gray-400/50 transition-all duration-300" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 10px 20px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)' }}>
           {/* Animated Welcome Message - Fixed Height */}
           <div className="mb-6">
             <div className="h-11 flex items-center justify-center overflow-visible px-2">
@@ -201,7 +318,7 @@ const LoginPage: React.FC = () => {
 
         {/* Footer */}
         <p className="text-center text-xs text-gray-400 mt-6">
-          © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with ❤️
+          &copy; {new Date().getFullYear()} Auto Vital Solution. All rights reserved. &bull; Built with &#10084;&#65039;
         </p>
         
         {/* Decorative Clickable Truck Icon */}

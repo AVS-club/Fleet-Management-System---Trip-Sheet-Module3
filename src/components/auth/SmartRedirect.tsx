@@ -10,12 +10,12 @@ const SmartRedirect: React.FC = () => {
   }
 
   // For data entry users, redirect to trips instead of dashboard
-  if (permissions?.isDataEntry) {
+  if (permissions?.role === 'data_entry') {
     return <Navigate to="/trips" replace />;
   }
 
   // For owners, redirect to dashboard
-  if (permissions?.isOwner) {
+  if (permissions?.role === 'owner') {
     return <Navigate to="/dashboard" replace />;
   }
 

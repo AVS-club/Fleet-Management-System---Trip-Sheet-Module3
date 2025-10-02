@@ -87,14 +87,7 @@ const TripPnlReportsPage: React.FC = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Redirect non-owner users
-  if (!permissionsLoading && !permissions?.canViewPnL) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
-  if (permissionsLoading) {
-    return <div>Loading...</div>;
-  }
+  // Permission checks will be moved after all hooks
 
   // ...rest of component logic
 
@@ -413,6 +406,16 @@ const TripPnlReportsPage: React.FC = () => {
 
     return summary;
   }, [filteredTrips]);
+
+  // ✅ PERMISSION CHECKS AFTER ALL HOOKS
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Redirect non-owner users - FIXED: use correct permission property
+  if (!permissions?.canAccessReports) {
+    return <Navigate to="/vehicles" replace />;
+  }
 
   const clearFilters = () => {
     setSearchTerm('');

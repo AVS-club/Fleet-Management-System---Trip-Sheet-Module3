@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
-import { usePermissions, UserPermissions } from "../hooks/usePermissions";
+import { usePermissions } from "../hooks/usePermissions";
+import { Permissions } from "../types/permissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
@@ -43,9 +44,9 @@ const VehiclePage: React.FC = () => {
   const { permissions } = usePermissions();
   
   // Helper function for type-safe permission checking
-  const hasPermission = (permKey: keyof UserPermissions | string): boolean => {
+  const hasPermission = (permKey: keyof Permissions | string): boolean => {
     if (!permissions) return false;
-    return Boolean(permissions[permKey as keyof UserPermissions]);
+    return Boolean(permissions[permKey as keyof Permissions]);
   };
   
   const [isEditing, setIsEditing] = useState(false);

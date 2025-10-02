@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { differenceInDays } from 'date-fns';
 import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface Organization {
   id: string;
@@ -26,6 +27,7 @@ interface DashboardHeaderProps {
 }
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => {
+  const { permissions } = usePermissions();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoError, setLogoError] = useState(false);
@@ -63,6 +65,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       if (org) {
         setOrganization(org);
         setLogoError(false);
+      } else if (permissions?.organizationName) {
+        // ✅ USE PERMISSIONS AS FALLBACK if no org found
+        setOrganization({
+          id: permissions.organizationId || '',
+          name: permissions.organizationName,
+          owner_id: user.id
+        } as Organization);
       }
 
       // Load fleet metrics
@@ -153,7 +162,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-gray-900">
-                  {organization?.name || 'Dashboard'}
+                  {organization?.name || permissions?.organizationName || 'Dashboard'}
                 </h1>
                 {/* Subtle "Powered by AVS" indicator */}
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 rounded-full border border-primary-200">

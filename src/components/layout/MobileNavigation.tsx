@@ -25,14 +25,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const { permissions, loading } = usePermissions();
 
   const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canViewDashboard' },
+    { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canAccessDashboard' },
     { path: '/trips', label: 'Trips', icon: FileText },
     { path: '/vehicles', label: 'Vehicles', icon: Truck },
     { path: '/drivers', label: 'Drivers', icon: Users },
     { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/trip-pnl-reports', label: 'P&L', icon: BarChart3, requiresPermission: 'canViewPnL' },
-    { path: '/admin', label: 'Admin', icon: Settings, requiresPermission: 'canViewAdmin' },
-    { path: '/notifications', label: 'Alerts', icon: Bell, requiresPermission: 'canViewAlerts' },
+    { path: '/trip-pnl-reports', label: 'P&L', icon: BarChart3, requiresPermission: 'canAccessReports' },
+    { path: '/admin', label: 'Admin', icon: Settings, requiresPermission: 'canAccessAdmin' },
+    { path: '/notifications', label: 'Alerts', icon: Bell, requiresPermission: 'canAccessAlerts' },
   ];
 
   const isActive = (path: string) => {

@@ -38,6 +38,22 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
   }
 
   if (organizations.length === 0) {
+    // Still show organization name from permissions if available
+    if (permissions?.organizationName) {
+      return (
+        <div className={cn(
+          "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2",
+          className
+        )}>
+          <Building2 className="h-4 w-4 text-primary-600" />
+          <span className="text-gray-900 dark:text-gray-100 text-sm font-medium">
+            {permissions.organizationName}
+          </span>
+        </div>
+      );
+    }
+    
+    // Only show error if BOTH organizations and permissions are empty
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-2",
