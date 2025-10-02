@@ -36,6 +36,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
   const [isLoadingVendors, setIsLoadingVendors] = useState(false);
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [vendorHistory, setVendorHistory] = useState(new Map());
+  const [uploadedBillFiles, setUploadedBillFiles] = useState<File[]>([]);
 
   // Watch form values
   const selectedTasks = watch(`service_groups.${index}.tasks`) || [];
@@ -87,6 +88,23 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
       }
     }
   }, [selectedTasks, vendors, vendorHistory, setValue, index]); // Removed 'cost' from dependencies
+
+  // Handle bill file upload
+  const handleBillFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      setUploadedBillFiles(files);
+      setValue(`service_groups.${index}.bill_file`, files);
+      console.log(`📁 Bill files selected for service group ${index}:`, files.map(f => f.name));
+    }
+  };
+
+  // Remove bill file
+  const removeBillFile = (fileIndex: number) => {
+    const newFiles = uploadedBillFiles.filter((_, idx) => idx !== fileIndex);
+    setUploadedBillFiles(newFiles);
+    setValue(`service_groups.${index}.bill_file`, newFiles);
+  };
 
   // Format maintenance task options with grouping
   const maintenanceTaskOptions = useMemo(() => {
@@ -533,7 +551,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
               <span className="text-sm text-gray-500"> or drag and drop</span>
               <input
                 type="file"
-                {...register(`service_groups.${index}.bill_file`)}
+                onChange={handleBillFileChange}
                 multiple
                 accept=".jpg,.jpeg,.png,.pdf"
                 className="sr-only"
@@ -541,6 +559,29 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
             </label>
             <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF up to 10MB</p>
           </div>
+          
+          {/* Show uploaded files */}
+          {uploadedBillFiles.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-medium text-gray-700">Uploaded files:</p>
+              {uploadedBillFiles.map((file, fileIndex) => (
+                <div key={fileIndex} className="flex items-center justify-between bg-green-50 border border-green-200 rounded-md p-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">{file.name}</span>
+                    <span className="text-xs text-gray-500">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeBillFile(fileIndex)}
+                    className="text-red-500 hover:text-red-700 p-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
