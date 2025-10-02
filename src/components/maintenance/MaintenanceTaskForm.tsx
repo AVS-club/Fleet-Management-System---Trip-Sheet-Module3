@@ -15,7 +15,6 @@ import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
-import EnhancedDowntimeSection from "./EnhancedDowntimeSection";
 import {
   PenTool as PenToolIcon,
   Calendar,
@@ -31,6 +30,176 @@ import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
+
+// ServiceDetailsSection component
+const ServiceDetailsSection = () => {
+  const [selectedOption, setSelectedOption] = useState('');
+  const [displayStartTime] = useState('09:00');
+  const [displayEndTime, setDisplayEndTime] = useState('09:00');
+  
+  // Watch form values
+  const startDate = watch('start_date');
+  const endDate = watch('end_date');
+  const downtimeDays = watch('downtime_days') || 0;
+  const downtimeHours = watch('downtime_hours') || 0;
+  
+  // Set today's date as default
+  useEffect(() => {
+    if (!startDate) {
+      setValue('start_date', new Date().toISOString().split('T')[0]);
+    }
+  }, []);
+
+  // Handle quick select
+  const handleQuickSelect = (days: number, hours: number, optionId: string) => {
+    setSelectedOption(optionId);
+    setValue('downtime_days', days);
+    setValue('downtime_hours', hours);
+    
+    const start = new Date(startDate || new Date().toISOString().split('T')[0]);
+    
+    if (hours > 0 && days === 0) {
+      // For hours: same date
+      setValue('end_date', start.toISOString().split('T')[0]);
+      
+      // Calculate display time
+      const endHour = (9 + hours) % 24;
+      setDisplayEndTime(`${endHour.toString().padStart(2, '0')}:00`);
+    } else {
+      // For days: add days
+      const end = new Date(start.getTime() + days * 24 * 60 * 60 * 1000);
+      setValue('end_date', end.toISOString().split('T')[0]);
+      setDisplayEndTime('09:00');
+    }
+  };
+
+  // Format date display
+  const formatDisplay = (date: string, isEnd: boolean = false) => {
+    if (!date) return 'dd/mm/yyyy';
+    
+    const d = new Date(date);
+    const formatted = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+    
+    // Add time for hour selections only
+    if (selectedOption.includes('h') && downtimeDays === 0) {
+      return `${formatted} ${isEnd ? displayEndTime : displayStartTime}`;
+    }
+    
+    return formatted;
+  };
+
+  return (
+    <>
+      {/* Service Details Box */}
+      <div className="bg-white rounded-lg shadow-sm p-5 space-y-4">
+        <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
+        
+        {/* Quick Select */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Quick Select
+          </label>
+          <div className="grid grid-cols-7 gap-2">
+            {[
+              { id: '2h', label: '2h', days: 0, hours: 2 },
+              { id: '4h', label: '4h', days: 0, hours: 4 },
+              { id: '6h', label: '6h', days: 0, hours: 6 },
+              { id: '8h', label: '8h', days: 0, hours: 8 },
+              { id: '1d', label: '1d', days: 1, hours: 0 },
+              { id: '2d', label: '2d', days: 2, hours: 0 },
+              { id: '3d', label: '3d', days: 3, hours: 0 },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleQuickSelect(opt.days, opt.hours, opt.id)}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-all
+                  ${selectedOption === opt.id
+                    ? opt.hours > 0 ? 'bg-blue-600 text-white' : 'bg-orange-600 text-white'
+                    : opt.hours > 0 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                  }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Date Display Fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date *
+            </label>
+            <input
+              type="text"
+              value={formatDisplay(startDate)}
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="text"
+              value={formatDisplay(endDate, true)}
+              readOnly
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Hidden inputs for form values */}
+      <input type="hidden" {...register('start_date')} />
+      <input type="hidden" {...register('end_date')} />
+      <input type="hidden" {...register('downtime_days')} />
+      <input type="hidden" {...register('downtime_hours')} />
+    </>
+  );
+};
+
+// DowntimeSummary component
+const DowntimeSummary = () => {
+  const downtimeDays = watch('downtime_days') || 0;
+  const downtimeHours = watch('downtime_hours') || 0;
+  
+  const getTotalDisplay = () => {
+    const totalHours = downtimeDays * 24 + downtimeHours;
+    if (totalHours === 0) return '0h';
+    if (totalHours < 24) return `${totalHours}h`;
+    
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  };
+  
+  return (
+    <div className="bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-lg p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Clock className="h-5 w-5 text-yellow-600 mr-2" />
+          <span className="text-sm font-medium text-gray-700">Downtime Tracking</span>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-gray-900">
+            Total Downtime: {getTotalDisplay()}
+          </div>
+          <div className="text-xs text-gray-500">
+            <span>{downtimeDays}d {downtimeHours}h</span>
+            <span className="mx-1">•</span>
+            <span>Maintenance</span>
+            <span className="mx-1">•</span>
+            <span>Medium Impact</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const DOWNTIME_PRESETS = [
   { id: "2h", label: "2 h", days: 0, hours: 2 },
@@ -497,6 +666,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         {/* Maintenance Tasks */}
         <ServiceGroupsSection />
 
+        {/* Downtime Summary */}
+        <DowntimeSummary />
+
         {/* Complaint & Resolution */}
         <ComplaintResolutionSection
           onComplaintTranscript={handleComplaintTranscript}
@@ -576,7 +748,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               })}
             />
 
-            <EnhancedDowntimeSection />
+            <ServiceDetailsSection />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

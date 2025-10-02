@@ -9,15 +9,26 @@ import DocumentViewer from './DocumentViewer';
 import { formatDate, daysUntil } from '../../utils/dateUtils';
 import { toast } from 'react-toastify';
 import { vehicleColors } from '../../utils/vehicleColors';
+import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortener';
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
   onUpdate: (updates: Partial<Vehicle>) => void;
+  signedDocUrls: {
+    rc?: string[];
+    insurance?: string[];
+    fitness?: string[];
+    tax?: string[];
+    permit?: string[];
+    puc?: string[];
+    other: Record<string, string>;
+  };
 }
 
 const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   vehicle,
-  onUpdate
+  onUpdate,
+  signedDocUrls
 }) => {
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
@@ -44,14 +55,14 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     {
       type: 'RC',
       label: 'Registration Certificate',
-      urls: vehicle.rc_document_url,
+      urls: signedDocUrls.rc || [],
       expiryDate: vehicle.rc_expiry_date,
       expiryField: 'RC Expiry'
     },
     {
       type: 'Insurance',
       label: 'Insurance Document',
-      urls: vehicle.insurance_document_url,
+      urls: signedDocUrls.insurance || [],
       expiryDate: vehicle.insurance_expiry_date,
       expiryField: 'Insurance Expiry',
       additionalInfo: [
@@ -63,7 +74,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     {
       type: 'Fitness',
       label: 'Fitness Certificate',
-      urls: vehicle.fitness_document_url,
+      urls: signedDocUrls.fitness || [],
       expiryDate: vehicle.fitness_expiry_date,
       expiryField: 'Fitness Expiry',
       additionalInfo: [
@@ -73,7 +84,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     {
       type: 'Permit',
       label: 'Permit Document',
-      urls: vehicle.permit_document_url,
+      urls: signedDocUrls.permit || [],
       expiryDate: vehicle.permit_expiry_date,
       expiryField: 'Permit Expiry',
       additionalInfo: [
@@ -85,7 +96,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     {
       type: 'PUC',
       label: 'PUC Certificate',
-      urls: vehicle.puc_document_url,
+      urls: signedDocUrls.puc || [],
       expiryDate: vehicle.puc_expiry_date,
       expiryField: 'PUC Expiry',
       additionalInfo: [
@@ -95,7 +106,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     {
       type: 'Tax',
       label: 'Tax Receipt',
-      urls: vehicle.tax_document_url,
+      urls: signedDocUrls.tax || [],
       expiryDate: vehicle.tax_paid_upto,
       expiryField: 'Tax Paid Upto',
       additionalInfo: [
@@ -142,7 +153,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
   const handleDownload = async (url: string, filename: string) => {
     try {
+      // Use fetch to download the file
       const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch document');
+      
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -152,6 +166,8 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success('Document downloaded successfully');
     } catch (error) {
       console.error('Download failed:', error);
       toast.error('Failed to download document');
@@ -174,13 +190,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Vehicle Profile Section - Compact */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <div className="flex items-start gap-4">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Vehicle Profile Section - Mobile Responsive */}
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row items-start gap-4">
           {/* Small Circular Photo */}
-          <div className="relative flex-shrink-0">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+          <div className="relative flex-shrink-0 self-center sm:self-start">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
               {vehicle.photo_url ? (
                 <img
                   src={vehicle.photo_url}
@@ -189,22 +205,22 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <Truck className="h-8 w-8 text-gray-400" />
+                  <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                 </div>
               )}
             </div>
             <button
               onClick={handlePhotoChange}
-              className="absolute bottom-0 right-0 p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600"
+              className="absolute bottom-0 right-0 p-1 sm:p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600"
             >
               <Camera className="h-3 w-3" />
             </button>
           </div>
 
-          {/* Vehicle Information Grid - Next to Photo */}
+          {/* Vehicle Information Grid - Mobile Responsive */}
           <div className="flex-1">
             <h3 className="text-lg font-semibold mb-3">Vehicle Information</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Always show these main fields with colors */}
               <InfoField label="Registration" value={vehicle.registration_number} icon={<Hash />} required color="registration" />
               <InfoField label="Chassis No." value={vehicle.chassis_number} icon={<Settings />} required color="technical" />
@@ -226,14 +242,14 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         </div>
       </div>
 
-      {/* Documents Section */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      {/* Documents Section - Mobile Responsive */}
+      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <FileText className="h-5 w-5 text-gray-600" />
           Compliance Documents
         </h3>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {documents.map((doc) => {
             const expiry = getExpiryStatus(doc.expiryDate);
             const hasDocument = doc.urls && doc.urls.length > 0;
@@ -241,21 +257,23 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
             return (
               <div
                 key={doc.type}
-                className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
               >
                 {/* Document Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h4 className="font-medium text-gray-900">{doc.label}</h4>
                     
-                    {/* Expiry Status */}
+                    {/* Expiry Status - Always show if expiry date exists */}
                     {doc.expiryDate && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {doc.expiryField}: {formatDate(doc.expiryDate)}
-                        </span>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full bg-${expiry.color}-100 text-${expiry.color}-700`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">
+                            {doc.expiryField}: {formatDate(doc.expiryDate)}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full bg-${expiry.color}-100 text-${expiry.color}-700 self-start sm:self-auto`}>
                           {expiry.status === 'expired' ? `Expired ${expiry.days} days ago` :
                            expiry.status === 'valid' ? 'Valid' :
                            `Expires in ${expiry.days} days`}
@@ -279,59 +297,82 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
                   {/* Document Status Icon */}
                   {!hasDocument && (
-                    <AlertTriangle className="h-5 w-5 text-warning-500" />
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
                   )}
                 </div>
 
-                {/* Document Actions */}
+                {/* Document Actions - Mobile Responsive */}
                 {hasDocument ? (
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       onClick={() => window.open(doc.urls[0], '_blank')}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
                     >
                       <Eye className="h-4 w-4" />
-                      <span>View</span>
+                      <span className="text-sm">View</span>
                     </button>
                     
                     <button
                       onClick={() => handleDownload(doc.urls[0], `${vehicle.registration_number}_${doc.type}`)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100"
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
                     >
                       <Download className="h-4 w-4" />
-                      <span>Download</span>
+                      <span className="text-sm">Download</span>
                     </button>
                     
                     <button
                       onClick={() => {
-                        const message = `${doc.label} for vehicle ${vehicle.registration_number}: ${doc.urls[0]}`;
-                        window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                        const whatsappUrl = createWhatsAppShareLink(
+                          doc.label,
+                          vehicle.registration_number,
+                          doc.urls[0]
+                        );
+                        window.open(whatsappUrl, '_blank');
                       }}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100"
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100 transition-colors"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      <span>WhatsApp</span>
+                      <span className="text-sm">WhatsApp</span>
                     </button>
                     
                     <button
                       onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText(doc.urls[0]);
-                          toast.success('Link copied to clipboard');
+                          const shortUrl = createShortUrl(doc.urls[0]);
+                          await navigator.clipboard.writeText(shortUrl);
+                          toast.success('Short link copied to clipboard');
                         } catch (error) {
                           console.error('Failed to copy to clipboard:', error);
                           toast.error('Failed to copy link');
                         }
                       }}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded hover:bg-gray-100"
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-50 text-orange-600 rounded hover:bg-orange-100 transition-colors"
                     >
                       <Link className="h-4 w-4" />
-                      <span>Copy Link</span>
+                      <span className="text-sm">Copy Link</span>
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-gray-50 rounded p-3 text-center text-sm text-gray-500">
-                    No document uploaded
+                  <div className="bg-gray-50 rounded p-3">
+                    <div className="text-center text-sm text-gray-500 mb-2">
+                      No document uploaded
+                    </div>
+                    {/* Show expiry info even when no document */}
+                    {doc.expiryDate && (
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-1 sm:gap-2 text-xs text-gray-400">
+                        <div className="flex items-center justify-center gap-2">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            {doc.expiryField}: {formatDate(doc.expiryDate)}
+                          </span>
+                        </div>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full bg-${expiry.color}-100 text-${expiry.color}-700 self-center sm:self-auto`}>
+                          {expiry.status === 'expired' ? `Expired ${expiry.days} days ago` :
+                           expiry.status === 'valid' ? 'Valid' :
+                           `Expires in ${expiry.days} days`}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

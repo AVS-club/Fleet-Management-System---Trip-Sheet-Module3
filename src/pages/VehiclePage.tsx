@@ -456,6 +456,7 @@ const VehiclePage: React.FC = () => {
             <VehicleDetailsTab
               vehicle={vehicle}
               onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
+              signedDocUrls={signedDocUrls}
             />
           )}
 

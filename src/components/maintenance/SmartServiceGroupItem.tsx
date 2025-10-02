@@ -536,6 +536,19 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                   />
                 </div>
               </div>
+              
+              {/* Tyre Warranty Expiry */}
+              <div className="mt-3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Warranty Expiry Date
+                </label>
+                <input
+                  type="date"
+                  {...register(`service_groups.${index}.tyre_warranty_expiry`)}
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md 
+                           focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
           </div>
         )}

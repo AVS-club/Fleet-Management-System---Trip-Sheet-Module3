@@ -45,6 +45,7 @@ import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import CompanySettings from "./pages/admin/CompanySettings";
 import CompleteFixedReportingDashboard from "./pages/admin/CompleteFixedReportingDashboard";
+import DocumentRedirect from "./pages/DocumentRedirect";
 import { isNetworkError } from "./utils/supabaseClient";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SmartRedirect from "./components/auth/SmartRedirect";
@@ -150,6 +151,7 @@ const App: React.FC = () => {
           <Route path="/admin/message-templates" element={<ProtectedRoute session={session} loading={loading}><MessageTemplatesPage /></ProtectedRoute>} />
           <Route path="/admin/company-settings" element={<ProtectedRoute session={session} loading={loading}><CompanySettings /></ProtectedRoute>} />
           <Route path="/admin/reports" element={<ProtectedRoute session={session} loading={loading}><CompleteFixedReportingDashboard /></ProtectedRoute>} />
+          <Route path="/doc/:shortId" element={<DocumentRedirect />} />
         </Routes>
       </Suspense>
       <ToastContainer 
