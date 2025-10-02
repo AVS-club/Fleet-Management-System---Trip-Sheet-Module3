@@ -38,12 +38,35 @@ const LoginPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{background: '#F1F5F9'}}>
       {/* Aurora Background */}
       <AuroraBackground />
+      <div className="aurora-bg"></div>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Satisfy&family=Dancing+Script:wght@600;700&family=Pacifico&display=swap');
         
+        /* Aurora Background Styles */
+        .aurora-bg {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: -1;
+          background:
+            radial-gradient(60rem 60rem at 10% 15%, rgba(22, 163, 74, 0.4) 0%, transparent 60%),
+            radial-gradient(50rem 50rem at 85% 25%, rgba(52, 211, 153, 0.3) 0%, transparent 60%),
+            radial-gradient(65rem 65rem at 80% 85%, rgba(6, 95, 70, 0.25) 0%, transparent 60%),
+            radial-gradient(70rem 70rem at 15% 80%, rgba(22, 163, 74, 0.3) 0%, transparent 60%);
+          filter: blur(25px) saturate(1.1);
+          animation: auroraDrift 25s ease-in-out infinite alternate;
+        }
+        
+        @keyframes auroraDrift {
+          0%   { transform: translate3d(0,0,0) scale(1); }
+          50%  { transform: translate3d(0,-2%,0) scale(1.02); }
+          100% { transform: translate3d(0,2%,0) scale(1.015); }
+        }
         
         .welcome-text {
           background: linear-gradient(135deg, var(--tw-gradient-stops));
