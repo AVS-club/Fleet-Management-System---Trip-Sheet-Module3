@@ -17,10 +17,10 @@ const AuroraBackground: React.FC = () => {
         
         .avs-aurora {
           background:
-            radial-gradient(60rem 60rem at 10% 15%, color-mix(in oklab, var(--avs-green) 88%, white) 0%, transparent 60%),
-            radial-gradient(50rem 50rem at 85% 25%, color-mix(in oklab, var(--avs-mint) 80%, white) 0%, transparent 60%),
-            radial-gradient(65rem 65rem at 80% 85%, color-mix(in oklab, var(--avs-deep) 40%, white) 0%, transparent 60%),
-            radial-gradient(70rem 70rem at 15% 80%, color-mix(in oklab, var(--avs-green) 45%, white) 0%, transparent 60%);
+            radial-gradient(60rem 60rem at 10% 15%, rgba(22, 163, 74, 0.3) 0%, transparent 60%),
+            radial-gradient(50rem 50rem at 85% 25%, rgba(52, 211, 153, 0.25) 0%, transparent 60%),
+            radial-gradient(65rem 65rem at 80% 85%, rgba(6, 95, 70, 0.2) 0%, transparent 60%),
+            radial-gradient(70rem 70rem at 15% 80%, rgba(22, 163, 74, 0.2) 0%, transparent 60%);
           filter: blur(22px) saturate(1.05);
           animation: avsDrift 22s ease-in-out infinite alternate;
         }
