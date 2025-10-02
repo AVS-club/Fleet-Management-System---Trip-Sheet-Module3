@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Clock, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
 import { ANIMATIONS } from '@/utils/animations';
