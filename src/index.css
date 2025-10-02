@@ -7,6 +7,36 @@
 /* Rich SaaS Typography - Plus Jakarta Sans + Inter */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
 
+/* Aurora Background - Simple and Direct */
+:root {
+  --avs-green: #16A34A;
+  --avs-mint: #34D399;
+  --avs-deep: #065F46;
+  --avs-ice: #F1F5F9;
+}
+
+body {
+  background: var(--avs-ice);
+}
+
+.aurora-background {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 600px at 10% 20%, rgba(22, 163, 74, 0.15), transparent),
+    radial-gradient(ellipse 700px 500px at 90% 30%, rgba(52, 211, 153, 0.12), transparent),
+    radial-gradient(ellipse 900px 700px at 80% 90%, rgba(6, 95, 70, 0.08), transparent);
+  filter: blur(40px);
+  animation: auroraDrift 20s ease-in-out infinite alternate;
+}
+
+@keyframes auroraDrift {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-20px) scale(1.05); }
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
