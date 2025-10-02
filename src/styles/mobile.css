@@ -82,8 +82,13 @@ body {
   border: 1.5px solid #e5e7eb;
   border-radius: 8px;
   font-size: 16px; /* Prevents zoom */
-  transition: border-color 0.2s;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
   -webkit-appearance: none;
+  /* Prevent input interference */
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
 .form-input:focus {

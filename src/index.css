@@ -131,9 +131,31 @@ body {
     border-radius: 0.25rem;
   }
 
-  /* Smooth transitions for interactive elements */
-  button, a, input, select, textarea {
+  /* Smooth transitions for interactive elements - exclude inputs to prevent interference */
+  button, a, select, textarea {
     transition: all var(--transition-base) ease-in-out;
+  }
+  
+  /* Input-specific transitions - minimal to prevent character sticking */
+  input {
+    transition: border-color var(--transition-base) ease-in-out, box-shadow var(--transition-base) ease-in-out;
+    /* Prevent input interference and character sticking */
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    /* Ensure proper input behavior */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Login form specific optimizations */
+  .login-form input {
+    /* Remove any problematic transitions that might cause character sticking */
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    /* Ensure smooth typing experience */
+    caret-color: rgb(var(--brand-primary));
   }
 
   /* Typography utility classes for consistent application */

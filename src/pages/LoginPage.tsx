@@ -137,9 +137,9 @@ const LoginPage: React.FC = () => {
           z-index: 1;
           width: 100%;
           height: 100%;
-          border-radius: 1.25rem;
+          border-radius: 1.35rem;
           background: linear-gradient(135deg, #ffffff 15%, #f0fdf4 100%);
-          padding: 0.28rem;
+          padding: 0.05rem;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -152,8 +152,8 @@ const LoginPage: React.FC = () => {
         }
 
         .brand-logo {
-          width: 84%;
-          height: 84%;
+          width: 100%;
+          height: 100%;
           object-fit: contain;
           transition: transform 0.3s ease;
         }
@@ -193,7 +193,7 @@ const LoginPage: React.FC = () => {
 
           .brand-logo-surface {
             border-radius: 0.95rem;
-            padding: 0.18rem;
+            padding: 0.05rem;
           }
 
           .brand-logo {
@@ -246,7 +246,7 @@ const LoginPage: React.FC = () => {
           <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-6 sm:p-8 border border-gray-100 transform hover:shadow-3xl hover:shadow-gray-400/50 transition-all duration-300" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 10px 20px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)' }}>
             {/* Animated Welcome Message - Fixed Height */}
             <div className="mb-6">
-              <div className="h-11 flex items-center justify-center overflow-visible px-2">
+              <div className="min-h-[3.65rem] sm:min-h-[4rem] flex items-start justify-center overflow-visible px-3 pt-1">
                 <h2 
                   key={`welcome-${currentMessage}`}
                   className={`welcome-text text-3xl ${welcomeMessages[currentMessage].color} ${!isAnimating ? 'fade-slide-up' : 'fade-slide-down'} text-center`}
@@ -263,6 +263,13 @@ const LoginPage: React.FC = () => {
                     <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 sparkle" />
                   </span>
                 )}
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-1">
+                <span className="h-[2px] w-4 rounded-full bg-gradient-to-r from-transparent via-emerald-300/50 to-emerald-500/70" />
+                <div
+                  className={`h-0.5 w-20 sm:w-24 bg-gradient-to-r opacity-80 transition-all duration-500 ${welcomeMessages[currentMessage].color}`}
+                />
+                <span className="h-[2px] w-4 rounded-full bg-gradient-to-r from-emerald-500/70 via-emerald-300/50 to-transparent" />
               </div>
               <p className="text-sm text-gray-500 mt-2">
                 Sign in to manage your fleet like a pro
