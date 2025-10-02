@@ -486,6 +486,42 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 </select>
               </div>
             </div>
+            
+            {/* Battery Warranty Expiry */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Battery Warranty Expiry Date
+              </label>
+              <input
+                type="date"
+                {...register(`service_groups.${index}.battery_warranty_expiry`, {
+                  value: (() => {
+                    // Auto-calculate: 1 year from today minus 3-4 days
+                    const today = new Date();
+                    const oneYearFromNow = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+                    const warrantyDate = new Date(oneYearFromNow.getTime() - (4 * 24 * 60 * 60 * 1000)); // 4 days back
+                    return warrantyDate.toISOString().split('T')[0];
+                  })()
+                })}
+                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md 
+                         focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              />
+            </div>
+            
+            {/* Battery Warranty Document Upload */}
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Battery Warranty Document
+              </label>
+              <div className="border border-gray-300 rounded-md p-2">
+                <input
+                  type="file"
+                  {...register(`service_groups.${index}.battery_warranty_file`)}
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  className="w-full text-xs"
+                />
+              </div>
+            </div>
           </div>
         )}
 
@@ -573,19 +609,33 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                            focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              
+              {/* Tyre Warranty Document Upload */}
+              <div className="mt-3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Warranty Document
+                </label>
+                <div className="border border-gray-300 rounded-md p-2">
+                  <input
+                    type="file"
+                    {...register(`service_groups.${index}.tyre_warranty_file`)}
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    className="w-full text-xs"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         {/* Upload Bill Section */}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-primary-400 transition-colors">
+        <div className="border border-gray-300 rounded-md p-2 hover:border-primary-400 transition-colors">
           <div className="text-center">
-            <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <Upload className="h-4 w-4 text-gray-400 mx-auto mb-1" />
             <label className="cursor-pointer">
-              <span className="text-sm font-medium text-primary-600 hover:text-primary-700">
+              <span className="text-xs font-medium text-primary-600 hover:text-primary-700">
                 Upload bill
               </span>
-              <span className="text-sm text-gray-500"> or drag and drop</span>
               <input
                 type="file"
                 onChange={handleBillFileChange}
@@ -595,18 +645,18 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 disabled={isUploading}
               />
             </label>
-            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF up to 10MB</p>
+            <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF</p>
             
             {/* Upload Progress */}
             {isUploading && (
-              <div className="mt-3">
+              <div className="mt-2">
                 <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
                   <span>Uploading...</span>
                   <span>{uploadProgress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-1">
                   <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-blue-600 h-1 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   ></div>
                 </div>

@@ -20,7 +20,8 @@ const DocumentsSection: React.FC = () => {
             onChange={onChange}
             accept=".jpg,.jpeg,.png,.pdf"
             helperText="Upload warranty card, or other relevant documents"
-            icon={<FileText className="h-4 w-4" />}
+            variant="compact"
+            size="sm"
           />
         )}
       />

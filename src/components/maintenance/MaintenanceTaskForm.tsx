@@ -677,79 +677,97 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
         {/* Service Details and Odometer Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left side: Service Details */}
-          <ServiceDetailsSection />
-          
-          {/* Right side: Odometer and Downtime Tracking */}
+          {/* Left side: Service Details and Downtime Tracking */}
           <div className="space-y-5">
-            {/* Odometer Section */}
-            <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-              <h3 className="text-lg font-medium text-gray-900">Vehicle Information</h3>
-              <div className="grid grid-cols-1 gap-5">
-                <Input
-                  label="Odometer Reading"
-                  type="number"
-                  icon={<PenToolIcon className="h-4 w-4" />}
-                  error={errors.odometer_reading?.message}
-                  required
-                  {...register("odometer_reading", {
-                    required: "Odometer reading is required",
-                    valueAsNumber: true,
-                    min: { value: 0, message: "Odometer reading must be positive" },
-                    max: { value: 999999, message: "Odometer reading seems too high" },
-                    validate: (value) => {
-                      if (isNaN(value)) return "Please enter a valid number";
-                      if (value < 0) return "Odometer reading cannot be negative";
-                      return true;
-                    }
-                  })}
-                />
-                
-                <Controller
-                  control={control}
-                  name="odometer_image"
-                  render={({ field: { value, onChange } }) => (
-                    <FileUpload
-                      label="Odometer Photo"
-                      value={value as File[] | null}
-                      onChange={onChange}
-                      accept=".jpg,.jpeg,.png"
-                      helperText="Upload photo of odometer reading"
-                      icon={<PenToolIcon className="h-4 w-4" />}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            
-            {/* Downtime Tracking */}
+            <ServiceDetailsSection />
             <DowntimeSummary />
+          </div>
+          
+          {/* Right side: Odometer Section */}
+          <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
+            <h3 className="text-lg font-medium text-gray-900">Vehicle Information</h3>
+            <div className="grid grid-cols-1 gap-5">
+              <Input
+                label="Odometer Reading"
+                type="number"
+                icon={<PenToolIcon className="h-4 w-4" />}
+                error={errors.odometer_reading?.message}
+                required
+                {...register("odometer_reading", {
+                  required: "Odometer reading is required",
+                  valueAsNumber: true,
+                  min: { value: 0, message: "Odometer reading must be positive" },
+                  max: { value: 999999, message: "Odometer reading seems too high" },
+                  validate: (value) => {
+                    if (isNaN(value)) return "Please enter a valid number";
+                    if (value < 0) return "Odometer reading cannot be negative";
+                    return true;
+                  }
+                })}
+              />
+              
+              <Controller
+                control={control}
+                name="odometer_image"
+                render={({ field: { value, onChange } }) => (
+                  <FileUpload
+                    label="Odometer Photo"
+                    value={value as File[] | null}
+                    onChange={onChange}
+                    accept=".jpg,.jpeg,.png"
+                    helperText="Upload photo of odometer reading"
+                    variant="compact"
+                    size="sm"
+                  />
+                )}
+              />
+            </div>
           </div>
         </div>
 
         {/* Status Section */}
         <div className="bg-white rounded-lg shadow-sm p-5">
-          <Controller
-            control={control}
-            name="status"
-            rules={{ required: "Status is required" }}
-            render={({ field }) => (
-              <Select
-                label="Status"
-                icon={<AlertTriangle className="h-4 w-4" />}
-                options={[
-                  { value: "open", label: "Open" },
-                  { value: "in_progress", label: "In Progress" },
-                  { value: "resolved", label: "Resolved" },
-                  { value: "escalated", label: "Escalated" },
-                  { value: "rework", label: "Rework Required" },
-                ]}
-                error={errors.status?.message}
-                required
-                {...field}
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Status
+              <span className="text-red-500 ml-1">*</span>
+            </div>
+          </label>
+          
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: "open", label: "Open", color: "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200", selectedColor: "bg-gray-200 text-gray-800 border-gray-300" },
+              { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200", selectedColor: "bg-blue-200 text-blue-800 border-blue-300" },
+              { value: "resolved", label: "Resolved", color: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200", selectedColor: "bg-green-200 text-green-800 border-green-300" },
+              { value: "escalated", label: "Escalated", color: "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200", selectedColor: "bg-orange-200 text-orange-800 border-orange-300" },
+              { value: "rework", label: "Rework Required", color: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200", selectedColor: "bg-red-200 text-red-800 border-red-300" },
+            ].map((option) => (
+              <Controller
+                key={option.value}
+                control={control}
+                name="status"
+                rules={{ required: "Status is required" }}
+                render={({ field }) => (
+                  <button
+                    type="button"
+                    onClick={() => field.onChange(option.value)}
+                    className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all duration-200
+                      ${field.value === option.value 
+                        ? option.selectedColor 
+                        : option.color
+                      }`}
+                  >
+                    {option.label}
+                  </button>
+                )}
               />
-            )}
-          />
+            ))}
+          </div>
+          
+          {errors.status && (
+            <p className="text-red-500 text-sm mt-2">{errors.status.message}</p>
+          )}
         </div>
 
         {/* Next Service Reminder */}

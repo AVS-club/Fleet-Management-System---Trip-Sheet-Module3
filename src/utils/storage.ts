@@ -876,6 +876,19 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
       return { value: maxOdometerTrip[0].end_km, fromTrip: true };
     }
 
+    // Also check maintenance tasks for latest odometer reading
+    const { data: maintenanceTasks, error: maintenanceError } = await supabase
+      .from('maintenance_tasks')
+      .select('odometer_reading, created_at')
+      .eq('vehicle_id', vehicleId)
+      .not('odometer_reading', 'is', null)
+      .order('created_at', { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    if (!maintenanceError && maintenanceTasks && maintenanceTasks.length > 0 && maintenanceTasks[0].odometer_reading) {
+      return { value: maintenanceTasks[0].odometer_reading, fromTrip: false };
+    }
+
     // Fallback to vehicle's current_odometer
     const vehicle = await getVehicle(vehicleId);
     return { 
