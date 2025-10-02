@@ -83,11 +83,16 @@ const VehiclesPage: React.FC = () => {
 
   // Stats state
   const [statsLoading, setStatsLoading] = useState(true);
+  const [isCalculatingStats, setIsCalculatingStats] = useState(false);
   const [totalVehicles, setTotalVehicles] = useState(0);
   const [vehiclesZeroTrips, setVehiclesZeroTrips] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
+      // Performance monitoring
+      const startTime = performance.now();
+      performance.mark('vehicles-load-start');
+      
       setLoading(true);
       setStatsLoading(true);
       try {
@@ -143,9 +148,15 @@ const VehiclesPage: React.FC = () => {
         }));
 
         setVehicles(vehiclesWithDefaultStats);
+        
+        // Performance logging for initial load
+        const initialLoadTime = performance.now() - startTime;
+        console.log(`🚀 Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
+        
         setLoading(false); // Show vehicles immediately
 
         // Phase 2: Load trips and calculate stats in background
+        setIsCalculatingStats(true);
         const cachedTrips = cache.get<Trip[]>(CACHE_KEYS.TRIPS);
         let tripsData: Trip[];
 
@@ -172,7 +183,17 @@ const VehiclesPage: React.FC = () => {
           selected: false,
         }));
 
-        setVehicles(vehiclesWithStats);
+        // Smooth transition to stats - use setTimeout to prevent layout shift
+        setTimeout(() => {
+          setVehicles(vehiclesWithStats);
+          setIsCalculatingStats(false);
+          
+          // Performance logging for complete load
+          const totalLoadTime = performance.now() - startTime;
+          performance.mark('vehicles-load-end');
+          performance.measure('vehicles-complete-load', 'vehicles-load-start', 'vehicles-load-end');
+          console.log(`📊 Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
+        }, 150); // Small delay to prevent glitchy updates
 
         // Calculate statistics
         const activeVehicles = vehiclesData.filter(
@@ -304,6 +325,14 @@ const VehiclesPage: React.FC = () => {
   const topDriver =
     topDriversThisMonth.length > 0 ? topDriversThisMonth[0] : null;
 
+  // Comprehensive cache invalidation utility
+  const invalidateVehicleCache = () => {
+    cache.delete(CACHE_KEYS.VEHICLES);
+    cache.delete(CACHE_KEYS.DRIVERS);
+    cache.delete(CACHE_KEYS.TRIPS);
+    cache.delete(CACHE_KEYS.VEHICLE_STATS);
+  };
+
   const handleAddVehicle = async (data: Omit<Vehicle, "id">) => {
     setIsSubmitting(true);
     try {
@@ -379,7 +408,7 @@ const VehiclesPage: React.FC = () => {
         toast.success("Vehicle added successfully");
         
         // Clear cache to ensure fresh data on next load
-        cache.delete(CACHE_KEYS.VEHICLES);
+        invalidateVehicleCache();
       } else {
         toast.error("Failed to add vehicle");
       }
@@ -455,6 +484,12 @@ const VehiclesPage: React.FC = () => {
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Vehicles</h1>
+          {isCalculatingStats && (
+            <div className="ml-3 flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
+              <span className="ml-2 text-xs text-gray-500">Updating stats...</span>
+            </div>
+          )}
         </div>
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
         {!isAddingVehicle && (
@@ -655,7 +690,7 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 relative cursor-pointer ${
+                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative cursor-pointer ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}

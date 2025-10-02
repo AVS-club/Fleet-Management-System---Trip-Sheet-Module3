@@ -2,7 +2,7 @@ import React from 'react';
 
 const VehicleCardSkeleton: React.FC = () => {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse h-64">
       {/* Header with vehicle ID and actions */}
       <div className="flex justify-between items-start mb-4">
         <div className="h-4 bg-gray-200 rounded w-24"></div>
@@ -19,28 +19,28 @@ const VehicleCardSkeleton: React.FC = () => {
         <div className="h-4 bg-gray-200 rounded w-28"></div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+      {/* Stats grid - Fixed height to prevent layout shifts */}
+      <div className="grid grid-cols-2 gap-4 mb-4 h-20">
+        <div className="flex flex-col justify-between">
+          <div className="h-3 bg-gray-200 rounded w-16"></div>
           <div className="h-4 bg-gray-200 rounded w-12"></div>
         </div>
-        <div>
-          <div className="h-3 bg-gray-200 rounded w-20 mb-1"></div>
+        <div className="flex flex-col justify-between">
+          <div className="h-3 bg-gray-200 rounded w-20"></div>
           <div className="h-4 bg-gray-200 rounded w-16"></div>
         </div>
-        <div>
-          <div className="h-3 bg-gray-200 rounded w-14 mb-1"></div>
+        <div className="flex flex-col justify-between">
+          <div className="h-3 bg-gray-200 rounded w-14"></div>
           <div className="h-4 bg-gray-200 rounded w-10"></div>
         </div>
-        <div>
-          <div className="h-3 bg-gray-200 rounded w-18 mb-1"></div>
+        <div className="flex flex-col justify-between">
+          <div className="h-3 bg-gray-200 rounded w-18"></div>
           <div className="h-4 bg-gray-200 rounded w-14"></div>
         </div>
       </div>
 
-      {/* Status badge */}
-      <div className="flex justify-between items-center">
+      {/* Status badge - Fixed height */}
+      <div className="flex justify-between items-center h-6">
         <div className="h-6 bg-gray-200 rounded-full w-16"></div>
         <div className="h-4 bg-gray-200 rounded w-20"></div>
       </div>
