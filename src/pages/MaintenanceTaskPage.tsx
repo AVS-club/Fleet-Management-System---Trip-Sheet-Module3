@@ -175,6 +175,7 @@ const MaintenanceTaskPage: React.FC = () => {
     if (!serviceGroups || serviceGroups.length === 0) return [];
 
     const updatedGroups = [...serviceGroups];
+    console.log(`📁 Starting file upload for ${serviceGroups.length} service groups`);
 
     for (let i = 0; i < updatedGroups.length; i++) {
       const group = updatedGroups[i];
@@ -378,6 +379,7 @@ const MaintenanceTaskPage: React.FC = () => {
                 // Handle service group file uploads
                 if (service_groups && service_groups.length > 0 && newTask.id) {
                   console.log('📁 Starting file uploads for new task...');
+                  toast.info('Uploading files...', { autoClose: 2000 });
                   const updatedServiceGroups = await handleFileUploads(
                     service_groups,
                     newTask.id
@@ -394,6 +396,7 @@ const MaintenanceTaskPage: React.FC = () => {
                     });
                   }
                   console.log('✅ File uploads completed for new task');
+                  toast.success('Files uploaded successfully!', { autoClose: 2000 });
                 }
 
                 toast.success("Maintenance task created successfully");

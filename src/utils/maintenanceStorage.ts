@@ -173,22 +173,14 @@ export const createTask = async (
   }
 
 
-  // CRASH-PROOF: Handle odometer image upload with compression
-  let odometerImageUrl: string | null = null;
-  if (taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
-    // Compress image before upload to prevent main thread blocking
-    const compressedImage = await compressImageForUpload(taskData.odometer_image[0]);
-    odometerImageUrl = await uploadServiceBill(compressedImage, 'temp', 'odometer');
-  }
-
-  // Insert the main task
+  // Insert the main task first to get the ID
   const { data, error } = await supabase
     .from("maintenance_tasks")
     .insert({
       ...taskData,
       bills: taskData.bills || [],
       parts_required: taskData.parts_required || [],
-      odometer_image: odometerImageUrl,
+      odometer_image: null, // Will be updated after upload
     })
     .select()
     .single();
@@ -196,6 +188,26 @@ export const createTask = async (
   if (error) {
     handleSupabaseError('create maintenance task', error);
     throw new Error(`Error creating maintenance task: ${error.message}`);
+  }
+
+  // Handle odometer image upload with actual task ID
+  if (data && taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
+    try {
+      const compressedImage = await compressImageForUpload(taskData.odometer_image[0]);
+      const odometerImageUrl = await uploadServiceBill(compressedImage, data.id, 'odometer');
+      
+      if (odometerImageUrl) {
+        await supabase
+          .from("maintenance_tasks")
+          .update({ odometer_image: odometerImageUrl })
+          .eq("id", data.id);
+        
+        data.odometer_image = odometerImageUrl;
+      }
+    } catch (uploadError) {
+      console.error("Failed to upload odometer image:", uploadError);
+      // Continue without failing the entire task creation
+    }
   }
 
   // Create audit log for task creation

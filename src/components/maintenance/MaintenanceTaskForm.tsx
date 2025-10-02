@@ -61,6 +61,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 }) => {
   const [setReminder, setSetReminder] = useState(false);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<{
     averageReplacementKm?: number;
     averageReplacementDays?: number;
@@ -203,76 +204,27 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     fetchAuditLogs();
   }, [initialData?.id]);
 
-  // Keep downtime in sync with selected end date
-  useEffect(() => {
-    if (!startDate || !endDate) {
-      return;
+  // Controlled downtime handler to prevent infinite loops
+  const handleDowntimeQuickSelect = useCallback((days: number, hours: number) => {
+    // Prevent multiple rapid updates
+    const timeoutKey = 'downtime-update';
+    if ((window as any)[timeoutKey]) {
+      clearTimeout((window as any)[timeoutKey]);
     }
-
-    try {
-      const parsedStartDate = new Date(startDate);
-      const parsedEndDate = new Date(endDate);
-
-      if (
-        Number.isNaN(parsedStartDate.getTime()) ||
-        Number.isNaN(parsedEndDate.getTime())
-      ) {
-        return;
+    
+    (window as any)[timeoutKey] = setTimeout(() => {
+      setValue('downtime_days', days, { shouldDirty: true });
+      setValue('downtime_hours', hours, { shouldDirty: true });
+      
+      // Calculate end date if start date exists
+      if (startDate) {
+        const start = new Date(startDate);
+        const totalHours = days * 24 + hours;
+        const end = new Date(start.getTime() + totalHours * 60 * 60 * 1000);
+        setValue('end_date', end.toISOString().split('T')[0], { shouldDirty: true });
       }
-
-      const diffMs = parsedEndDate.getTime() - parsedStartDate.getTime();
-      if (diffMs < 0) {
-        return;
-      }
-
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      const normalized = parseFloat(diffDays.toFixed(4));
-
-      if (
-        typeof downtimeDays !== "number" ||
-        Number.isNaN(downtimeDays) ||
-        !isClose(downtimeDays, normalized, 0.01)
-      ) {
-        setValue("downtime_days", normalized, {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error calculating downtime days:", error);
-    }
-  }, [startDate, endDate, downtimeDays, setValue]);
-
-  // Update end date when downtime selection changes
-  useEffect(() => {
-    if (!startDate) {
-      return;
-    }
-
-    if (typeof downtimeDays !== "number" || Number.isNaN(downtimeDays)) {
-      return;
-    }
-
-    try {
-      const parsedStartDate = new Date(startDate);
-      if (Number.isNaN(parsedStartDate.getTime())) {
-        return;
-      }
-
-      const milliseconds = Math.round(downtimeDays * 24 * 60 * 60 * 1000);
-      const calculatedEndDate = new Date(parsedStartDate.getTime() + milliseconds);
-      const formattedEndDate = calculatedEndDate.toISOString().split("T")[0];
-
-      if (formattedEndDate !== endDate) {
-        setValue("end_date", formattedEndDate, {
-          shouldDirty: true,
-          shouldValidate: true,
-        });
-      }
-    } catch (error) {
-      console.error("Error updating end date from downtime:", error);
-    }
-  }, [startDate, downtimeDays, endDate, setValue]);
+    }, 100); // Small delay to batch updates
+  }, [startDate, setValue]);
 
   // Auto-fill odometer reading based on latest trip for the selected vehicle
   useEffect(() => {
