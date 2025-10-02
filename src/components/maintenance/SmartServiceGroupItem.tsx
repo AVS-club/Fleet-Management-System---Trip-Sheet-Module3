@@ -37,6 +37,8 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
   const [estimatedCost, setEstimatedCost] = useState(0);
   const [vendorHistory, setVendorHistory] = useState(new Map());
   const [uploadedBillFiles, setUploadedBillFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Watch form values
   const selectedTasks = watch(`service_groups.${index}.tasks`) || [];
@@ -89,13 +91,27 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
     }
   }, [selectedTasks, vendors, vendorHistory, setValue, index]); // Removed 'cost' from dependencies
 
-  // Handle bill file upload
+  // Handle bill file upload with progress simulation
   const handleBillFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length > 0) {
-      setUploadedBillFiles(files);
-      setValue(`service_groups.${index}.bill_file`, files);
-      console.log(`📁 Bill files selected for service group ${index}:`, files.map(f => f.name));
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(progressInterval);
+            setIsUploading(false);
+            setUploadedBillFiles(files);
+            setValue(`service_groups.${index}.bill_file`, files);
+            console.log(`📁 Bill files uploaded for service group ${index}:`, files.map(f => f.name));
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 200);
     }
   };
 
@@ -544,7 +560,15 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 </label>
                 <input
                   type="date"
-                  {...register(`service_groups.${index}.tyre_warranty_expiry`)}
+                  {...register(`service_groups.${index}.tyre_warranty_expiry`, {
+                    value: (() => {
+                      // Auto-calculate: 1 year from today minus 3-4 days
+                      const today = new Date();
+                      const oneYearFromNow = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+                      const warrantyDate = new Date(oneYearFromNow.getTime() - (4 * 24 * 60 * 60 * 1000)); // 4 days back
+                      return warrantyDate.toISOString().split('T')[0];
+                    })()
+                  })}
                   className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md 
                            focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -568,9 +592,26 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 multiple
                 accept=".jpg,.jpeg,.png,.pdf"
                 className="sr-only"
+                disabled={isUploading}
               />
             </label>
             <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF up to 10MB</p>
+            
+            {/* Upload Progress */}
+            {isUploading && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                  <span>Uploading...</span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
           </div>
           
           {/* Show uploaded files */}

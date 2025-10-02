@@ -668,8 +668,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         {/* Maintenance Tasks */}
         <ServiceGroupsSection />
 
-        {/* Downtime Summary */}
-        <DowntimeSummary />
 
         {/* Complaint & Resolution */}
         <ComplaintResolutionSection
@@ -677,118 +675,60 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           onResolutionTranscript={handleResolutionTranscript}
         />
 
-        {/* Service Details */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900">Service Details</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            <Input
-              label="Start Date"
-              type="date"
-              icon={<Calendar className="h-4 w-4" />}
-              error={errors.start_date?.message}
-              required
-              {...register("start_date", {
-                required: "Start date is required",
-                validate: (value) => {
-                  // Standardize the date first
-                  const standardizedDate = standardizeDate(value);
-                  if (!standardizedDate) {
-                    return "Invalid date format";
-                  }
-                  
-                  // Validate the date
-                  const dateValidation = validateDate(standardizedDate);
-                  if (!dateValidation.isValid) {
-                    return dateValidation.error;
-                  }
-                  
-                  // Validate date range with end date
-                  if (standardizedEndDate) {
-                    const rangeValidation = validateDateRange(standardizedDate, standardizedEndDate);
-                    if (!rangeValidation.isValid) {
-                      return rangeValidation.error;
-                    }
-                  }
-                  
-                  return true;
-                }
-              })}
-            />
-
-            <Input
-              label="End Date"
-              type="date"
-              icon={<Calendar className="h-4 w-4" />}
-              error={errors.end_date?.message}
-              {...register("end_date", {
-                validate: (value) => {
-                  if (!value) return true; // End date is optional
-                  
-                  // Standardize the date first
-                  const standardizedDate = standardizeDate(value);
-                  if (!standardizedDate) {
-                    return "Invalid date format";
-                  }
-                  
-                  // Validate the date
-                  const dateValidation = validateDate(standardizedDate);
-                  if (!dateValidation.isValid) {
-                    return dateValidation.error;
-                  }
-                  
-                  // Validate date range with start date
-                  if (standardizedStartDate) {
-                    const rangeValidation = validateDateRange(standardizedStartDate, standardizedDate);
-                    if (!rangeValidation.isValid) {
-                      return rangeValidation.error;
-                    }
-                  }
-                  
-                  return true;
-                }
-              })}
-            />
-
-            <ServiceDetailsSection />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Input
-              label="Odometer Reading"
-              type="number"
-              icon={<PenToolIcon className="h-4 w-4" />}
-              error={errors.odometer_reading?.message}
-              required
-              {...register("odometer_reading", {
-                required: "Odometer reading is required",
-                valueAsNumber: true,
-                min: { value: 0, message: "Odometer reading must be positive" },
-                max: { value: 999999, message: "Odometer reading seems too high" },
-                validate: (value) => {
-                  if (isNaN(value)) return "Please enter a valid number";
-                  if (value < 0) return "Odometer reading cannot be negative";
-                  return true;
-                }
-              })}
-            />
-            
-            <Controller
-              control={control}
-              name="odometer_image"
-              render={({ field: { value, onChange } }) => (
-                <FileUpload
-                  label="Odometer Photo"
-                  value={value as File[] | null}
-                  onChange={onChange}
-                  accept=".jpg,.jpeg,.png"
-                  helperText="Upload photo of odometer reading"
+        {/* Service Details and Odometer Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left side: Service Details */}
+          <ServiceDetailsSection />
+          
+          {/* Right side: Odometer and Downtime Tracking */}
+          <div className="space-y-5">
+            {/* Odometer Section */}
+            <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
+              <h3 className="text-lg font-medium text-gray-900">Vehicle Information</h3>
+              <div className="grid grid-cols-1 gap-5">
+                <Input
+                  label="Odometer Reading"
+                  type="number"
                   icon={<PenToolIcon className="h-4 w-4" />}
+                  error={errors.odometer_reading?.message}
+                  required
+                  {...register("odometer_reading", {
+                    required: "Odometer reading is required",
+                    valueAsNumber: true,
+                    min: { value: 0, message: "Odometer reading must be positive" },
+                    max: { value: 999999, message: "Odometer reading seems too high" },
+                    validate: (value) => {
+                      if (isNaN(value)) return "Please enter a valid number";
+                      if (value < 0) return "Odometer reading cannot be negative";
+                      return true;
+                    }
+                  })}
                 />
-              )}
-            />
+                
+                <Controller
+                  control={control}
+                  name="odometer_image"
+                  render={({ field: { value, onChange } }) => (
+                    <FileUpload
+                      label="Odometer Photo"
+                      value={value as File[] | null}
+                      onChange={onChange}
+                      accept=".jpg,.jpeg,.png"
+                      helperText="Upload photo of odometer reading"
+                      icon={<PenToolIcon className="h-4 w-4" />}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+            
+            {/* Downtime Tracking */}
+            <DowntimeSummary />
           </div>
+        </div>
 
+        {/* Status Section */}
+        <div className="bg-white rounded-lg shadow-sm p-5">
           <Controller
             control={control}
             name="status"
