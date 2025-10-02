@@ -1,13 +1,14 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { 
-  ArrowUpDown, ArrowUp, ArrowDown, Filter, Download, 
-  Eye, Edit2, DollarSign, Copy, MoreVertical, Maximize2
+  ArrowUpDown, ArrowUp, ArrowDown, Download, 
+  Eye, Edit2, DollarSign, Copy
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { NumberFormatter } from '@/utils/numberFormatter';
+import { getDestinationByAnyId } from '@/utils/storage';
 
 interface TripTableProps {
   trips: Trip[];
@@ -22,6 +23,89 @@ interface TripTableProps {
 type SortField = 'serial' | 'date' | 'vehicle' | 'driver' | 'distance' | 'expense' | 'mileage';
 type SortOrder = 'asc' | 'desc';
 
+// Component to handle destination resolution for table display
+const TripDestinationCell: React.FC<{ 
+  trip: Trip; 
+  destinationCache: Map<string, string>;
+}> = ({ trip, destinationCache }) => {
+  const [destinationNames, setDestinationNames] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const resolveDestinations = async () => {
+      if (!trip.destinations || trip.destinations.length === 0) {
+        setDestinationNames([]);
+        setLoading(false);
+        return;
+      }
+
+      // Check which destination IDs are in cache vs missing
+      const cachedNames: string[] = [];
+      const missing: string[] = [];
+
+      trip.destinations.forEach(id => {
+        if (destinationCache.has(id)) {
+          cachedNames.push(destinationCache.get(id)!);
+        } else {
+          missing.push(id);
+        }
+      });
+
+      // If all destinations are cached, use them immediately
+      if (missing.length === 0) {
+        setDestinationNames(cachedNames);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch any missing destinations
+      try {
+        const missingDestinations = await Promise.all(
+          missing.map(async (id) => {
+            try {
+              const dest = await getDestinationByAnyId(id);
+              return { id, name: dest ? dest.name : id };
+            } catch (error) {
+              console.warn(`Destination ${id} not found:`, error);
+              return { id, name: id };
+            }
+          })
+        );
+
+        // Combine cached and fetched destinations
+        const allNames = [...cachedNames];
+        missingDestinations.forEach(({ name }) => {
+          allNames.push(name);
+        });
+
+        setDestinationNames(allNames);
+      } catch (error) {
+        console.error('Error resolving missing destinations:', error);
+        // Fallback to cached names + missing IDs
+        setDestinationNames([...cachedNames, ...missing]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    resolveDestinations();
+  }, [trip.destinations, destinationCache]);
+
+  if (loading) {
+    return <span className="text-gray-400 italic">Loading...</span>;
+  }
+
+  if (destinationNames.length === 0) {
+    return <span className="text-gray-500">-</span>;
+  }
+
+  return (
+    <span className="text-xs truncate" title={destinationNames.join(', ')}>
+      {destinationNames.join(', ')}
+    </span>
+  );
+};
+
 const TripTable: React.FC<TripTableProps> = ({ 
   trips, 
   vehicles, 
@@ -35,6 +119,7 @@ const TripTable: React.FC<TripTableProps> = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [destinationCache, setDestinationCache] = useState<Map<string, string>>(new Map());
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     select: 40,
     serial: 140,
@@ -62,6 +147,57 @@ const TripTable: React.FC<TripTableProps> = ({
   
   const warehousesMap = useMemo(() => 
     new Map(warehouses.map(w => [w.id, w])), [warehouses]);
+
+  // Extract unique destination IDs from all trips
+  const uniqueDestinationIds = useMemo(() => {
+    const ids = new Set<string>();
+    trips.forEach(trip => {
+      if (trip.destinations && trip.destinations.length > 0) {
+        trip.destinations.forEach(id => ids.add(id));
+      }
+    });
+    return Array.from(ids);
+  }, [trips]);
+
+  // Fetch destinations and populate cache
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      if (uniqueDestinationIds.length === 0) {
+        setDestinationCache(new Map());
+        return;
+      }
+
+      try {
+        const newCache = new Map<string, string>();
+        
+        // Fetch all destinations in parallel
+        const destinationPromises = uniqueDestinationIds.map(async (id) => {
+          try {
+            const dest = await getDestinationByAnyId(id);
+            return { id, name: dest ? dest.name : id };
+          } catch (error) {
+            console.warn(`Destination ${id} not found:`, error);
+            return { id, name: id }; // Fallback to ID if error
+          }
+        });
+
+        const results = await Promise.all(destinationPromises);
+        results.forEach(({ id, name }) => {
+          newCache.set(id, name);
+        });
+
+        setDestinationCache(newCache);
+      } catch (error) {
+        console.error('Error fetching destinations:', error);
+        // Fallback: create cache with IDs as names
+        const fallbackCache = new Map<string, string>();
+        uniqueDestinationIds.forEach(id => fallbackCache.set(id, id));
+        setDestinationCache(fallbackCache);
+      }
+    };
+
+    fetchDestinations();
+  }, [uniqueDestinationIds]);
 
   // Sort trips
   const sortedTrips = useMemo(() => {
@@ -182,37 +318,62 @@ const TripTable: React.FC<TripTableProps> = ({
   };
 
   // Export to Excel
-  const handleExportExcel = () => {
-    const data = sortedTrips.map(trip => {
-      const vehicle = vehiclesMap.get(trip.vehicle_id);
-      const driver = driversMap.get(trip.driver_id);
-      const warehouse = warehousesMap.get(trip.warehouse_id);
+  const handleExportExcel = async () => {
+    try {
+      // Resolve destination names for all trips
+      const data = await Promise.all(sortedTrips.map(async trip => {
+        const vehicle = vehiclesMap.get(trip.vehicle_id);
+        const driver = driversMap.get(trip.driver_id);
+        const warehouse = warehousesMap.get(trip.warehouse_id);
+        
+        // Resolve destination names
+        let destinationNames = '';
+        if (trip.destinations && trip.destinations.length > 0) {
+          try {
+            const destinations = await Promise.all(
+              trip.destinations.map(async (id) => {
+                try {
+                  const dest = await getDestinationByAnyId(id);
+                  return dest ? dest.name : id;
+                } catch (error) {
+                  return id; // Fallback to ID if error
+                }
+              })
+            );
+            destinationNames = destinations.join(', ');
+          } catch (error) {
+            console.error('Error resolving destinations for export:', error);
+            destinationNames = trip.destinations.join(', '); // Fallback to IDs
+          }
+        }
+        
+        return {
+          'Trip Serial': trip.trip_serial_number,
+          'Date': format(parseISO(trip.trip_start_date || ''), 'dd/MM/yyyy'),
+          'Vehicle': vehicle?.registration_number,
+          'Driver': driver?.name,
+          'Start KM': trip.start_km,
+          'End KM': trip.end_km,
+          'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
+          'Fuel (L)': trip.fuel_quantity,
+          'Fuel Cost': trip.total_fuel_cost,
+          'Total Expenses': trip.total_expenses,
+          'Mileage (km/L)': trip.calculated_kmpl,
+          'Destinations': destinationNames,
+          'Warehouse': warehouse?.name,
+          'Deviation %': trip.route_deviation
+        };
+      }));
       
-      return {
-        'Trip Serial': trip.trip_serial_number,
-        'Date': format(parseISO(trip.trip_start_date || ''), 'dd/MM/yyyy'),
-        'Vehicle': vehicle?.registration_number,
-        'Driver': driver?.name,
-        'Start KM': trip.start_km,
-        'End KM': trip.end_km,
-        'Distance': trip.end_km && trip.start_km ? trip.end_km - trip.start_km : trip.total_distance,
-        'Fuel (L)': trip.fuel_quantity,
-        'Fuel Cost': trip.total_fuel_cost,
-        'Total Expenses': trip.total_expenses,
-        'Mileage (km/L)': trip.calculated_kmpl,
-        'Destinations': trip.destinations?.map((d: any) => 
-          typeof d === 'string' ? d : d.name
-        ).join(', '),
-        'Warehouse': warehouse?.name,
-        'Deviation %': trip.route_deviation
-      };
-    });
-    
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Trips');
-    XLSX.writeFile(wb, `trips_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
-    toast.success('Exported to Excel successfully');
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Trips');
+      XLSX.writeFile(wb, `trips_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
+      toast.success('Exported to Excel successfully');
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export to Excel');
+    }
   };
 
   // Sort icon
@@ -477,10 +638,8 @@ const TripTable: React.FC<TripTableProps> = ({
                     {trip.total_expenses ? NumberFormatter.currency(trip.total_expenses, false) : '-'}
                   </td>
 
-                  <td className="px-2 py-1.5 text-xs truncate" title={trip.destinations?.join(', ')}>
-                    {trip.destinations?.map((d: any) => 
-                      typeof d === 'string' ? d : d.name
-                    ).join(', ') || '-'}
+                  <td className="px-2 py-1.5">
+                    <TripDestinationCell trip={trip} destinationCache={destinationCache} />
                   </td>
 
                   <td className="px-2 py-1.5">
