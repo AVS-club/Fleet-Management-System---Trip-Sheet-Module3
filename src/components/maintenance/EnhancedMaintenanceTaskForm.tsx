@@ -172,7 +172,6 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
         try {
           const suggestions = await predictNextService(
             vehicleId,
-            taskType,
             parseInt(odometerReading.toString())
           );
           setAiSuggestions(suggestions);

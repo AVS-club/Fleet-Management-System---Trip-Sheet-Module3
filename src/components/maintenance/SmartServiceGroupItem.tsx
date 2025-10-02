@@ -81,12 +81,12 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
       const estimated = getEstimatedCost(selectedTasks);
       setEstimatedCost(estimated);
       
-      // Pre-fill cost if empty
+      // Pre-fill cost if empty (only once to prevent infinite loops)
       if (!cost || cost === 0) {
         setValue(`service_groups.${index}.cost`, estimated);
       }
     }
-  }, [selectedTasks, vendors, vendorHistory, cost, setValue, index]);
+  }, [selectedTasks, vendors, vendorHistory, setValue, index]); // Removed 'cost' from dependencies
 
   // Format maintenance task options with grouping
   const maintenanceTaskOptions = useMemo(() => {

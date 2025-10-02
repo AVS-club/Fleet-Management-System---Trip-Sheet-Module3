@@ -362,24 +362,24 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     }
   }, [serviceGroupsWatch, setValue]);
 
+  // Combined AI prediction effect to prevent infinite loops
   useEffect(() => {
     if (vehicleId && odometerReading) {
-      const prediction = predictNextService(vehicleId, odometerReading);
-      if (prediction) {
-        setValue("next_predicted_service", prediction);
-      }
+      const getPredictions = async () => {
+        try {
+          const prediction = await predictNextService(vehicleId, odometerReading);
+          if (prediction) {
+            setValue("next_predicted_service", prediction);
+            setAiSuggestions(prediction);
+          }
+        } catch (error) {
+          console.error("Error getting AI predictions:", error);
+          setAiSuggestions({ confidence: 0 });
+        }
+      };
+      getPredictions();
     }
   }, [vehicleId, odometerReading, setValue]);
-
-  useEffect(() => {
-    if (vehicleId && odometerReading && title?.length > 0) {
-      // Calculate AI suggestions based on historical data
-      const suggestions = predictNextService(vehicleId, odometerReading);
-      if (suggestions) {
-        setAiSuggestions(suggestions);
-      }
-    }
-  }, [vehicleId, odometerReading, title]);
 
   const validateFormData = (data: any): string | null => {
     // Vehicle validation
