@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm, FormProvider, Controller } from "react-hook-form";
 import { Vehicle } from "@/types";
 import { MaintenanceTask } from "@/types/maintenance";
