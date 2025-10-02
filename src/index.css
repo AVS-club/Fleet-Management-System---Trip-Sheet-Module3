@@ -18,6 +18,12 @@
   --brand-secondary: 37, 99, 235; /* rgb values for secondary-600 */
   --brand-accent: 249, 115, 22; /* rgb values for accent-500 */
   
+  /* Aurora Background Colors */
+  --avs-green: #16A34A; /* emerald-600 */
+  --avs-mint: #34D399;  /* emerald-300 */
+  --avs-deep: #065F46;  /* teal-900-ish */
+  --avs-ice: #F1F5F9;   /* slate-100 */
+  
   /* Smooth animations */
   --transition-base: 200ms;
   --transition-slow: 300ms;
@@ -51,6 +57,11 @@
   body {
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased;
     transition: background-color var(--transition-slow) ease-in-out;
+  }
+  
+  /* Aurora Background for Auth Pages */
+  html, body { 
+    background: var(--avs-ice); 
   }
 
   /* Rich SaaS Typography System */

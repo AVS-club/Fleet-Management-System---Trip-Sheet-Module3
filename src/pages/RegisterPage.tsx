@@ -3,6 +3,7 @@ import RegisterForm from '../components/auth/RegisterForm';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import AuroraBackground from '../components/ui/AuroraBackground';
 import { Truck } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
@@ -10,8 +11,11 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
-      <div className="absolute top-4 right-4">
+    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Aurora Background */}
+      <AuroraBackground />
+      
+      <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>
       
@@ -23,7 +27,7 @@ const RegisterPage: React.FC = () => {
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Smarter Fleet. Less Stress.</p>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md animate-slide-up">
+      <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-3xl shadow-2xl shadow-gray-300/60 border border-gray-100 w-full max-w-md animate-slide-up relative z-10">
         <div className="mb-6 text-center">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Create an Account</h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Join us to manage your fleet efficiently</p>

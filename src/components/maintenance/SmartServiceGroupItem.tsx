@@ -119,21 +119,28 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
 
   // Format vendor options with smart ordering
   const vendorOptions = useMemo(() => {
-    const suggestions = smartVendorSuggestions.map(v => ({
-      ...v,
-      isSuggested: true
+    const formattedSuggestions = smartVendorSuggestions.map((vendor) => ({
+      ...vendor,
+      value: vendor.vendorId,
+      label: vendor.name,
+      name: vendor.name,
+      location: vendor.location || '',
+      isSuggested: true,
     }));
-    
+
     const otherVendors = vendors
-      .filter(v => !suggestions.find(s => s.vendorId === v.id))
-      .map(v => ({
-        vendorId: v.id,
-        name: v.name,
-        location: v.address || v.location,
-        isSuggested: false
+      .filter((vendor) => !smartVendorSuggestions.find((s) => s.vendorId === vendor.id))
+      .map((vendor) => ({
+        ...vendor,
+        vendorId: vendor.id,
+        value: vendor.id,
+        label: vendor.name,
+        name: vendor.name,
+        location: vendor.address || vendor.location || '',
+        isSuggested: false,
       }));
-    
-    return [...suggestions, ...otherVendors];
+
+    return [...formattedSuggestions, ...otherVendors];
   }, [vendors, smartVendorSuggestions]);
 
   // Validate and format cost input

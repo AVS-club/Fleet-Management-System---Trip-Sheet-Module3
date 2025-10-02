@@ -3,6 +3,7 @@ import LoginForm from '../components/auth/LoginForm';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
 import ThemeToggle from '../components/ui/ThemeToggle';
+import AuroraBackground from '../components/ui/AuroraBackground';
 import { Eye, EyeOff, Truck, Lock } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
@@ -37,17 +38,12 @@ const LoginPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-emerald-50/30 to-gray-100 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Aurora Background */}
+      <AuroraBackground />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Satisfy&family=Dancing+Script:wght@600;700&family=Pacifico&display=swap');
         
-        /* Subtle background pattern */
-        .bg-pattern {
-          background-image: 
-            radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(16, 185, 129, 0.02) 0%, transparent 50%);
-        }
         
         .welcome-text {
           background: linear-gradient(135deg, var(--tw-gradient-stops));
@@ -224,12 +220,8 @@ const LoginPage: React.FC = () => {
         <ThemeToggle />
       </div>
       
-      {/* Decorative floating elements */}
-      <div className="absolute top-20 left-10 w-20 h-20 bg-emerald-200/20 rounded-full blur-2xl float-animation"></div>
-      <div className="absolute bottom-20 right-10 w-32 h-32 bg-teal-200/20 rounded-full blur-2xl float-animation" style={{animationDelay: '2s'}}></div>
-      <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-emerald-300/20 rounded-full blur-2xl float-animation" style={{animationDelay: '4s'}}></div>
       
-      <div className="w-full max-w-md relative z-10 bg-pattern">
+      <div className="w-full max-w-md relative z-10">
         {/* Logo and Brand */}
         <div className="text-center mb-6 sm:mb-8">
           {/* Brand Logo */}
@@ -291,12 +283,12 @@ const LoginPage: React.FC = () => {
 
           {/* Links */}
           <div className="mt-6 text-center text-sm space-y-2">
-            <a
-              href="#"
+            <Link
+              to="/reset-password"
               className="block text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
             >
               Forgot password?
-            </a>
+            </Link>
             <p className="text-gray-500 hover:text-gray-700 font-medium transition-colors">
               Don't have an account?{' '}
               <Link to="/register" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">

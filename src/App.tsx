@@ -17,6 +17,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import VehiclesPage from "./pages/VehiclesPage";
 import VehiclePage from "./pages/VehiclePage";
 import DriversPage from "./pages/DriversPage";
@@ -119,6 +120,7 @@ const App: React.FC = () => {
         <Routes>
           <Route path="/login" element={!session ? <LoginPage /> : <SmartRedirect />} />
           <Route path="/register" element={!session ? <RegisterPage /> : <SmartRedirect />} />
+          <Route path="/reset-password" element={!session ? <ResetPasswordPage /> : <SmartRedirect />} />
           <Route path="/" element={<SmartRedirect />} />
           <Route path="/dashboard" element={<ProtectedRoute session={session} loading={loading}><DashboardPage /></ProtectedRoute>} />
           <Route path="/vehicles" element={<ProtectedRoute session={session} loading={loading}><VehiclesPage /></ProtectedRoute>} />
