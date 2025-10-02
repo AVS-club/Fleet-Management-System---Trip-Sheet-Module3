@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useForm, FormProvider, Controller } from "react-hook-form";
+import { useForm, FormProvider, Controller, useFormContext } from "react-hook-form";
 import { Vehicle } from "@/types";
 import { MaintenanceTask } from "@/types/maintenance";
 import Input from "../ui/Input";
@@ -33,6 +33,7 @@ import { standardizeDate, validateDate, validateDateRange, formatDateForInput } 
 
 // ServiceDetailsSection component
 const ServiceDetailsSection = () => {
+  const { watch, setValue, register } = useFormContext();
   const [selectedOption, setSelectedOption] = useState('');
   const [displayStartTime] = useState('09:00');
   const [displayEndTime, setDisplayEndTime] = useState('09:00');
@@ -164,6 +165,7 @@ const ServiceDetailsSection = () => {
 
 // DowntimeSummary component
 const DowntimeSummary = () => {
+  const { watch } = useFormContext();
   const downtimeDays = watch('downtime_days') || 0;
   const downtimeHours = watch('downtime_hours') || 0;
   
