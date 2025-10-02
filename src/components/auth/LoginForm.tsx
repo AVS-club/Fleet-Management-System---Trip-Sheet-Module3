@@ -1,9 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginWithOrganization } from "../../utils/auth";
-import Input from "../ui/Input";
-import Button from "../ui/Button";
-import { Building2, Lock, Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { toast } from "react-toastify";
 
 interface LoginFormProps {
@@ -17,8 +15,8 @@ const LoginForm: React.FC<LoginFormProps> = ({
 }) => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({
-    organizationUsername: "",
-    password: ""
+    organizationUsername: "cfaraipur19@gmail.com",
+    password: "password123"
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,82 +41,72 @@ const LoginForm: React.FC<LoginFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-5">
+    <form onSubmit={handleLogin} className="space-y-3.5">
       {error && (
-        <p className="text-error-500 dark:text-error-400 text-xs sm:text-sm bg-error-50 dark:bg-error-900/30 p-3 sm:p-4 rounded-xl">
-          {error}
-        </p>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-red-600 text-sm font-medium">
+            {error}
+          </p>
+        </div>
       )}
+      
+      {/* Email Field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-bold text-gray-700 mb-2">
           Email or Username
         </label>
-        <div className="relative">
-          <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            id="organizationUsername"
-            type="text"
-            value={credentials.organizationUsername}
-            onChange={(e) => setCredentials({
-              ...credentials,
-              organizationUsername: e.target.value
-            })}
-            placeholder="e.g., cfraipur19@gmail.com or cfraipur19"
-            className="pl-10 rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
-            required
-          />
-        </div>
-        <p className="mt-1 text-xs text-gray-500">
-          Enter your full email or just the username (we'll add @gmail.com)
-        </p>
+        <input
+          type="text"
+          value={credentials.organizationUsername}
+          onChange={(e) => setCredentials({
+            ...credentials,
+            organizationUsername: e.target.value
+          })}
+          className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+          placeholder="Enter email or username (we'll add @gmail.com)"
+          required
+        />
       </div>
+
+      {/* Password Field */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-bold text-gray-700 mb-2">
           Password
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            id="password"
+          <input
             type={showPassword ? "text" : "password"}
             value={credentials.password}
             onChange={(e) => setCredentials({
               ...credentials,
               password: e.target.value
             })}
+            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all pr-12"
             placeholder="Enter your password"
-            className="pl-10 rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
             required
           />
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition-colors"
             onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            {showPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
-      <Button
+
+      {/* Sign In Button */}
+      <button
         type="submit"
         disabled={loading}
-        fullWidth
-        isLoading={loading}
-        inputSize="md"
-        className="py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-md transition-all"
-        icon={<LogIn className="h-4 w-4" />}
+        className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 active:scale-[0.98] mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Signing in..." : "Sign In"}
-      </Button>
-
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
-          Don't have an account?{' '}
-          <a href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-            Register your organization
-          </a>
-        </p>
-      </div>
+      </button>
     </form>
   );
 };
