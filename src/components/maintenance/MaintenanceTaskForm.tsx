@@ -23,6 +23,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Bell,
+  Wrench,
 } from "lucide-react";
 import { predictNextService } from "../../utils/maintenancePredictor";
 import { getAuditLogs } from "../../utils/maintenanceStorage";
@@ -92,7 +93,7 @@ const ServiceDetailsSection = () => {
   return (
     <>
       {/* Service Details Box */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl shadow-lg border border-green-100 p-6 space-y-6">
+      <div className="bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-xl shadow-lg border border-green-100/70 p-6 space-y-6">
         <h3 className="text-xl font-semibold text-gray-800 flex items-center">
           <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
             <Calendar className="h-5 w-5 text-white" />
@@ -119,7 +120,7 @@ const ServiceDetailsSection = () => {
                         key={opt.id}
                         type="button"
                         onClick={() => handleQuickSelect(opt.days, opt.hours, opt.id)}
-                        className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-md
+                        className={`px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center justify-center min-h-[44px]
                           ${selectedOption === opt.id
                             ? opt.hours > 0 
                               ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg ring-2 ring-blue-300' 
@@ -129,7 +130,7 @@ const ServiceDetailsSection = () => {
                               : 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300 border border-orange-200'
                           }`}
                       >
-                        {opt.label}
+                        <span className="text-center leading-none">{opt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -199,7 +200,7 @@ const DowntimeSummary = () => {
   };
   
   return (
-    <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-xl p-6 shadow-lg">
+    <div className="bg-gradient-to-r from-amber-50/80 to-yellow-50/80 border-2 border-amber-200/70 rounded-xl p-6 shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
@@ -210,15 +211,13 @@ const DowntimeSummary = () => {
             <p className="text-sm text-gray-600">Service duration monitoring</p>
           </div>
         </div>
-        <div className="text-right">
+        <div className="text-right flex-shrink-0">
           <div className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
             {getTotalDisplay()}
           </div>
-          <div className="text-sm text-gray-600 mt-1">
+          <div className="text-sm text-gray-600 mt-1 flex flex-wrap justify-end gap-1">
             <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">{downtimeDays}d {downtimeHours}h</span>
-            <span className="mx-2">•</span>
             <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Maintenance</span>
-            <span className="mx-2">•</span>
             <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Medium Impact</span>
           </div>
         </div>
@@ -634,23 +633,23 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-green-600 px-8 py-6">
-            <h1 className="text-3xl font-bold text-white flex items-center">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mr-4">
-                <Truck className="h-6 w-6 text-white" />
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-100 to-green-100 border-b-2 border-blue-200 px-8 py-6">
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center">
+              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-4 shadow-md">
+                <Wrench className="h-6 w-6 text-white" />
               </div>
               Maintenance Task
             </h1>
-            <p className="text-blue-100 mt-2">Create and manage vehicle maintenance records</p>
+            <p className="text-gray-600 mt-2">Create and manage vehicle maintenance records</p>
           </div>
           
-          <div className="p-8">
+          <div className="p-10">
             <FormProvider {...methods}>
-              <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-8">
+              <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-10">
         {/* Vehicle & Basic Info */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6 space-y-6">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6 space-y-5">
           <h3 className="text-xl font-semibold text-gray-800 flex items-center">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
               <Truck className="h-5 w-5 text-white" />
@@ -724,7 +723,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
           
           {/* Right side: Odometer Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl shadow-lg border border-purple-100 p-6 space-y-6">
+          <div className="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 rounded-xl shadow-lg border border-purple-100/70 p-6 space-y-6">
             <h3 className="text-xl font-semibold text-gray-800 flex items-center">
               <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
                 <PenToolIcon className="h-5 w-5 text-white" />
@@ -771,10 +770,30 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         {/* Status Section */}
-        <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl shadow-lg border border-red-100 p-6">
+        <div className={`rounded-xl shadow-lg border p-6 ${
+          watch('status') === 'in_progress' 
+            ? 'bg-gradient-to-r from-blue-50/80 to-blue-100/80 border-blue-200/70'
+            : watch('status') === 'resolved'
+            ? 'bg-gradient-to-r from-green-50/80 to-green-100/80 border-green-200/70'
+            : watch('status') === 'escalated'
+            ? 'bg-gradient-to-r from-orange-50/80 to-orange-100/80 border-orange-200/70'
+            : watch('status') === 'rework'
+            ? 'bg-gradient-to-r from-red-50/80 to-red-100/80 border-red-200/70'
+            : 'bg-gradient-to-r from-gray-50/80 to-gray-100/80 border-gray-200/70'
+        }`}>
           <label className="block text-lg font-semibold text-gray-800 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                watch('status') === 'in_progress' 
+                  ? 'bg-blue-500'
+                  : watch('status') === 'resolved'
+                  ? 'bg-green-500'
+                  : watch('status') === 'escalated'
+                  ? 'bg-orange-500'
+                  : watch('status') === 'rework'
+                  ? 'bg-red-500'
+                  : 'bg-gray-500'
+              }`}>
                 <AlertTriangle className="h-5 w-5 text-white" />
               </div>
               Status
