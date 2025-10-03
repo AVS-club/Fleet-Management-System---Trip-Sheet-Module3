@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { usePermissions } from "../hooks/usePermissions";
@@ -38,6 +39,7 @@ import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
   const { permissions } = usePermissions();
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>();
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -477,9 +479,9 @@ const DriversPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Drivers</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('drivers.title')}</h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet drivers</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('drivers.manageFleetDrivers')}</p>
         {!isAddingDriver && !editingDriver && (
           <div className="mt-4 flex flex-wrap gap-2">
             {permissions?.canViewDriverInsights && (
@@ -488,14 +490,14 @@ const DriversPage: React.FC = () => {
                 onClick={() => navigate('/drivers/insights')}
                 icon={<BarChart className="h-4 w-4" />}
               >
-                Driver Insights
+                {t('drivers.driverInsights')}
               </Button>
             )}
             <Button
               onClick={() => setIsAddingDriver(true)}
               icon={<PlusCircle className="h-4 w-4" />}
             >
-              Add Driver
+              {t('drivers.addDriver')}
             </Button>
           </div>
         )}

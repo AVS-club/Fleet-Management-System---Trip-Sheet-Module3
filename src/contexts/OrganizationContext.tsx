@@ -28,7 +28,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      // Get user's organizations
+      // Get user's organizations from organization_users table
       const { data: orgs, error } = await supabase
         .from('organization_users')
         .select('organization_id, role, organizations(id, name)')
@@ -40,11 +40,41 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         return;
       }
 
-      const formattedOrgs = orgs?.map(org => ({
+      let formattedOrgs = orgs?.map(org => ({
         id: org.organization_id,
         name: org.organizations?.name || 'Unknown Organization',
         role: org.role
       })) || [];
+
+      // ✅ FALLBACK: If no organizations found in organization_users, check if user owns any organizations directly
+      if (formattedOrgs.length === 0) {
+        const { data: ownedOrgs, error: ownedError } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('owner_id', userId);
+
+        if (!ownedError && ownedOrgs && ownedOrgs.length > 0) {
+          formattedOrgs = ownedOrgs.map(org => ({
+            id: org.id,
+            name: org.name,
+            role: 'owner'
+          }));
+
+          // ✅ AUTO-CREATE organization_users record for the owned organization
+          const orgToCreate = ownedOrgs[0]; // Use the first owned organization
+          const { error: createError } = await supabase
+            .from('organization_users')
+            .insert([{
+              user_id: userId,
+              organization_id: orgToCreate.id,
+              role: 'owner'
+            }]);
+
+          if (createError) {
+            console.error('Error auto-creating organization_users record:', createError);
+          }
+        }
+      }
 
       setOrganizations(formattedOrgs);
       

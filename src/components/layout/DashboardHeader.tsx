@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { differenceInDays } from 'date-fns';
 import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
@@ -28,6 +29,7 @@ interface DashboardHeaderProps {
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => {
   const { permissions } = usePermissions();
+  const { t } = useTranslation();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [logoError, setLogoError] = useState(false);
@@ -180,23 +182,19 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
           <div className="hidden md:flex items-center space-x-4 text-sm">
             <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
               <Truck className="h-4 w-4 text-primary-600" />
-              <span className="text-gray-600">Fleet:</span>
-              <span className="font-semibold text-primary-700">{metrics.fleetSize} vehicles</span>
+              <span className="text-gray-600">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
             </div>
             <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-gray-600">Today:</span>
-              <span className="font-semibold text-green-700">{metrics.tripsToday} trips</span>
+              <span className="text-gray-600">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
             </div>
             <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
               <TrendingUp className="h-4 w-4 text-blue-600" />
-              <span className="text-gray-600">Total:</span>
-              <span className="font-semibold text-blue-700">{metrics.totalTrips.toLocaleString()} trips</span>
+              <span className="text-gray-600">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
             </div>
             <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
               <Award className="h-4 w-4 text-yellow-600" />
-              <span className="text-gray-600">Active:</span>
-              <span className="font-semibold text-yellow-700">{metrics.activeDays} days</span>
+              <span className="text-gray-600">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
             </div>
           </div>
         </div>
@@ -206,19 +204,19 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       <div className="md:hidden grid grid-cols-2 gap-2 text-sm">
         <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
           <Truck className="h-4 w-4 text-primary-600" />
-          <span className="font-medium">{metrics.fleetSize} vehicles</span>
+          <span className="font-medium">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
         </div>
         <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
           <CheckCircle className="h-4 w-4 text-green-600" />
-          <span className="font-medium">{metrics.tripsToday} trips today</span>
+          <span className="font-medium">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
         </div>
         <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
           <TrendingUp className="h-4 w-4 text-blue-600" />
-          <span className="font-medium">{metrics.totalTrips.toLocaleString()} total trips</span>
+          <span className="font-medium">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
         </div>
         <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
           <Award className="h-4 w-4 text-yellow-600" />
-          <span className="font-medium">{metrics.activeDays} active days</span>
+          <span className="font-medium">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
         </div>
       </div>
     </div>

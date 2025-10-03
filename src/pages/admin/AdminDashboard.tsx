@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../../components/layout/Layout';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Navigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ import DataIntegrityDashboard from '../../components/admin/DataIntegrityDashboar
 const AdminDashboard: React.FC = () => {
   // ✅ ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
   const { permissions, loading } = usePermissions();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -124,9 +126,9 @@ const AdminDashboard: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <ShieldCheck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Admin Dashboard</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.title')}</h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage system settings and configurations</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('admin.description')}</p>
       </div>
 
       <div className="space-y-6">
@@ -142,9 +144,9 @@ const AdminDashboard: React.FC = () => {
                     <FileText className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Management</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.tripManagement')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Manage trip records and configurations
+                      {t('admin.tripManagementDesc')}
                     </p>
                   </div>
                 </div>
@@ -159,9 +161,9 @@ const AdminDashboard: React.FC = () => {
                     <MapPin className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Locations</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.tripLocations')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Manage warehouses and destinations
+                      {t('admin.tripLocationsDesc')}
                     </p>
                   </div>
                 </div>
@@ -176,9 +178,9 @@ const AdminDashboard: React.FC = () => {
                     <Truck className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Vehicle Management</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.vehicleManagement')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Advanced vehicle management and administration
+                      {t('admin.vehicleManagementDesc')}
                     </p>
                   </div>
                 </div>
@@ -193,9 +195,9 @@ const AdminDashboard: React.FC = () => {
                     <Users className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Management</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.driverManagement')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Manage drivers and assignments
+                      {t('admin.driverManagementDesc')}
                     </p>
                   </div>
                 </div>
@@ -210,9 +212,9 @@ const AdminDashboard: React.FC = () => {
                     <Tool className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Maintenance Tasks</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.maintenanceTasks')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Configure maintenance task types
+                      {t('admin.maintenanceTasksDesc')}
                     </p>
                   </div>
                 </div>
@@ -227,9 +229,9 @@ const AdminDashboard: React.FC = () => {
                     <Bell className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Alert Settings</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.alertSettings')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Configure alert rules and notifications
+                      {t('admin.alertSettingsDesc')}
                     </p>
                   </div>
                 </div>
@@ -244,9 +246,9 @@ const AdminDashboard: React.FC = () => {
                     <Calendar className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Reminders</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.reminders')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Configure reminder contacts and timing rules
+                      {t('admin.remindersDesc')}
                     </p>
                   </div>
                 </div>
@@ -262,9 +264,9 @@ const AdminDashboard: React.FC = () => {
                     <BarChart2 className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Ranking</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.driverRanking')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Configure performance metrics for driver rankings
+                      {t('admin.driverRankingDesc')}
                     </p>
                   </div>
                 </div>
@@ -280,9 +282,9 @@ const AdminDashboard: React.FC = () => {
                     <Activity className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Activity Logs</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.activityLogs')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      View system activity and audit logs
+                      {t('admin.activityLogsDesc')}
                     </p>
                   </div>
                 </div>
@@ -297,9 +299,9 @@ const AdminDashboard: React.FC = () => {
                     <Building2 className="h-5 w-5 text-primary-600" />
                   </div> 
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Company Settings</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.companySettings')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Manage company profile, GST details & banking
+                      {t('admin.companySettingsDesc')}
                     </p>
                   </div>
                 </div>
@@ -315,10 +317,10 @@ const AdminDashboard: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">
-                      Reports & Analytics
+                      {t('admin.reportsAnalytics')}
                     </h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
-                      Visual dashboard and 20+ downloadable reports
+                      {t('admin.reportsAnalyticsDesc')}
                     </p>
                   </div>
                 </div>
@@ -330,9 +332,9 @@ const AdminDashboard: React.FC = () => {
                     <Database className="h-5 w-5 text-gray-400" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-400">Database Backup</h3>
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-400">{t('admin.databaseBackup')}</h3>
                     <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-400">
-                      Coming soon
+                      {t('admin.databaseBackupDesc')}
                     </p>
                   </div>
                 </div>

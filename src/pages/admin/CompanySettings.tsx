@@ -346,6 +346,20 @@ const CompanySettings: React.FC = () => {
         // Update local state with the new ID
         if (newData) {
           setCompany({ ...company, id: newData.id });
+          
+          // ✅ CRITICAL: Create organization_users record so user can access their organization
+          const { error: orgUserError } = await supabase
+            .from('organization_users')
+            .insert([{
+              user_id: user.id,
+              organization_id: newData.id,
+              role: 'owner'
+            }]);
+
+          if (orgUserError) {
+            console.error('Error creating organization_users record:', orgUserError);
+            // Don't throw error here as the organization was created successfully
+          }
         }
         
         setIsEditMode(true);

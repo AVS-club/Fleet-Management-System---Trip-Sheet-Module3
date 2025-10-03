@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout'; 
 import { MaintenanceTask, Vehicle } from '@/types';
@@ -16,6 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 const MaintenancePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const [dateRangeFilter, setDateRangeFilter] = useState('allTime');
   const [customDateRange, setCustomDateRange] = useState({
     start: '',
@@ -122,16 +124,16 @@ const MaintenancePage = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Maintenance Dashboard</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('maintenance.title')}</h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Track and analyze vehicle maintenance performance</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('maintenance.description')}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             onClick={() => navigate('/maintenance/new')}
             icon={<PlusCircle className="h-4 w-4" />}
             inputSize="sm"
           >
-            New Task
+            {t('maintenance.newTask')}
           </Button>
           <Button
             onClick={() => navigate('/parts-health')}
@@ -139,7 +141,7 @@ const MaintenancePage = () => {
             variant="outline"
             inputSize="sm"
           >
-            Parts Health & Analytics
+            {t('maintenance.partsHealthAnalytics')}
           </Button>
           
           {/* View Toggle */}
@@ -151,7 +153,7 @@ const MaintenancePage = () => {
               icon={<Table className="h-4 w-4" />}
               className="rounded-none border-0"
             >
-              Table
+              {t('maintenance.table')}
             </Button>
             <Button
               onClick={() => setViewMode('calendar')}
@@ -160,7 +162,7 @@ const MaintenancePage = () => {
               icon={<Calendar className="h-4 w-4" />}
               className="rounded-none border-0"
             >
-              Calendar
+              {t('maintenance.calendar')}
             </Button>
           </div>
         </div>

@@ -35,6 +35,7 @@ import DocumentViewerModal from "../components/vehicles/DocumentViewerModal";
 import FuelEfficiencyChart from "../components/analytics/FuelEfficiencyChart";
 import CostAnalytics from "../components/analytics/CostAnalytics";
 import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
+import VehicleDetailsTabMobile from "../components/vehicles/VehicleDetailsTabMobile";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 
@@ -471,11 +472,24 @@ const VehiclePage: React.FC = () => {
 
           {/* Tab Content */}
           {activeTab === 'details' && (
-            <VehicleDetailsTab
-              vehicle={vehicle}
-              onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
-              signedDocUrls={signedDocUrls}
-            />
+            <>
+              {/* Desktop Version */}
+              <div className="hidden md:block">
+                <VehicleDetailsTab
+                  vehicle={vehicle}
+                  onUpdate={(updates: Partial<Vehicle>) => setVehicle(prev => prev ? { ...prev, ...updates } : null)}
+                  signedDocUrls={signedDocUrls}
+                />
+              </div>
+              
+              {/* Mobile Version */}
+              <div className="md:hidden">
+                <VehicleDetailsTabMobile
+                  vehicle={vehicle}
+                  signedDocUrls={signedDocUrls}
+                />
+              </div>
+            </>
           )}
 
 

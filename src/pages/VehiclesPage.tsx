@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import Layout from "../components/layout/Layout";
 import { Vehicle, Trip, Driver } from "@/types"; // Import the Vehicle interface
 import VehicleCardSkeleton from "../components/ui/VehicleCardSkeleton";
@@ -50,6 +51,7 @@ import ReactPaginate from "react-paginate";
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [vehicles, setVehicles] = useState<VehicleWithStats[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -483,7 +485,7 @@ const VehiclesPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Vehicles</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('vehicles.title')}</h1>
           {isCalculatingStats && (
             <div className="ml-3 flex items-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
@@ -491,7 +493,7 @@ const VehiclesPage: React.FC = () => {
             </div>
           )}
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Manage your fleet vehicles</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('vehicles.manageFleet', 'Manage your fleet vehicles')}</p>
         {!isAddingVehicle && (
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
@@ -501,7 +503,7 @@ const VehiclesPage: React.FC = () => {
               size="sm"
               title="Vehicle Document Summary (Legacy)"
             >
-              Document Summary
+{t('vehicles.documentSummary', 'Document Summary')}
             </Button>
 
 
@@ -514,14 +516,14 @@ const VehiclesPage: React.FC = () => {
                 showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"
               }
             >
-              {showArchived ? "Show Active" : "Show Archived"}
+{t(showArchived ? 'vehicles.showActive' : 'vehicles.showArchived', showArchived ? 'Show Active' : 'Show Archived')}
             </Button>
 
             <Button
               onClick={() => setIsAddingVehicle(true)}
               icon={<PlusCircle className="h-4 w-4" />}
             >
-              Add New Vehicle
+{t('vehicles.addVehicle')}
             </Button>
           </div>
         )}

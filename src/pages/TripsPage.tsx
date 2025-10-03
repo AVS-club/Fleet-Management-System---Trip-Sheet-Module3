@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { usePermissions } from '../hooks/usePermissions';
@@ -25,6 +26,7 @@ const TripsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { permissions } = usePermissions();
+  const { t } = useTranslation();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -478,9 +480,9 @@ const TripsPage: React.FC = () => {
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Route className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Trip Management</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('trips.tripManagement')}</h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">Log and track all vehicle trips</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('trips.logAndTrack')}</p>
         {!isAddingTrip && (
           <div className="mt-4 flex flex-wrap gap-2">
             {permissions?.role !== 'data_entry' && (
@@ -489,7 +491,7 @@ const TripsPage: React.FC = () => {
                 onClick={() => navigate('/trip-pnl-reports')}
                 icon={<BarChart2 className="h-4 w-4" />}
               >
-                P&L Report
+                {t('trips.plReport')}
               </Button>
             )}
             {permissions?.canAccessDashboard && (
@@ -497,14 +499,14 @@ const TripsPage: React.FC = () => {
                 variant="outline"
                 onClick={() => setShowDashboard(!showDashboard)}
               >
-                {showDashboard ? 'Hide Dashboard' : 'Show Dashboard'}
+                {showDashboard ? t('trips.hideDashboard') : t('trips.showDashboard')}
               </Button>
             )}
             <Button
               onClick={() => setIsAddingTrip(true)}
               icon={<PlusCircle className="h-4 w-4" />}
             >
-              Add New Trip
+              {t('trips.addNewTrip')}
             </Button>
             <Button
               onClick={handleFixMileage}
@@ -513,7 +515,7 @@ const TripsPage: React.FC = () => {
               variant="outline"
               className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
             >
-              Fix Mileage
+              {t('trips.fixMileage')}
             </Button>
           </div>
         )}
@@ -524,7 +526,7 @@ const TripsPage: React.FC = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
-              New Trip Sheet
+              {t('trips.newTripSheet')}
             </h2>
             
             <Button
@@ -535,7 +537,7 @@ const TripsPage: React.FC = () => {
                 setClonedTripData(null); // Clear cloned data on cancel
               }}
             >
-              Cancel
+              {t('trips.cancel')}
             </Button>
           </div>
           

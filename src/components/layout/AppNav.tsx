@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { navLinks } from './navLinks';
 import { cn } from '../../utils/cn';
 import { Plus } from 'lucide-react';
@@ -9,6 +10,7 @@ const AppNav: React.FC = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
+  const { t } = useTranslation();
   
   const handleQuickAdd = (path: string) => {
     navigate(`${path}?action=new`);
@@ -34,7 +36,7 @@ const AppNav: React.FC = () => {
                       (navIsActive || isActive) ? "bg-primary-100 text-primary-700 font-semibold" : ""
                     )
                   }
-                  title={label}
+                  title={t(label)}
                   end={to === "/"}
                 >
                   <div className="relative">
@@ -47,14 +49,14 @@ const AppNav: React.FC = () => {
                           handleQuickAdd(to);
                         }}
                         className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                        title={`Add new ${label.slice(0, -1)}`}
+                        title={`Add new ${t(label).slice(0, -1)}`}
                       >
                         <Plus className="h-2.5 w-2.5" />
                       </button>
                     )}
                   </div>
                   <span className="mt-0.5 text-[10px] sm:text-xs">
-                    {label}
+                    {t(label)}
                   </span>
                 </NavLink>
               </div>
@@ -76,7 +78,7 @@ const AppNav: React.FC = () => {
                     (navIsActive || isActive) ? "bg-primary-100 text-primary-700 font-semibold" : ""
                   )
                 }
-                title={label}
+                title={t(label)}
                 end={to === "/"}
               >
                 <div className="relative">
@@ -90,7 +92,7 @@ const AppNav: React.FC = () => {
                         handleQuickAdd(to);
                       }}
                       className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                      title={`Add new ${label.slice(0, -1)}`}
+                      title={`Add new ${t(label).slice(0, -1)}`}
                     >
                       <Plus className="h-2.5 w-2.5" />
                     </button>
@@ -98,7 +100,7 @@ const AppNav: React.FC = () => {
                 </div>
                 {/* Small labels below icons on mobile */}
                 <span className="mt-0.5 text-[10px] sm:text-xs">
-                  {label}
+                  {t(label)}
                 </span>
               </NavLink>
             </div>

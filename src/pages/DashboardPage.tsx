@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import { useNavigate, Navigate } from 'react-router-dom';
@@ -26,6 +27,7 @@ const DashboardPage: React.FC = () => {
   // ✅ ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'maintenance'>('overview');
   
   // Use React Query for better caching and performance
@@ -250,7 +252,7 @@ const DashboardPage: React.FC = () => {
                 {tab === 'overview' && <LayoutDashboard className="h-4 w-4 mr-2 inline" />}
                 {tab === 'analytics' && <Activity className="h-4 w-4 mr-2 inline" />}
                 {tab === 'maintenance' && <Wrench className="h-4 w-4 mr-2 inline" />}
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {t(`dashboard.${tab}`)}
               </button>
             ))}
           </div>
@@ -263,7 +265,7 @@ const DashboardPage: React.FC = () => {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
               <div className="flex items-center space-x-2 mb-6">
                 <BarChart2 className="h-5 w-5 text-primary-600" />
-                <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Key Metrics</h2>
+                <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">{t('dashboard.keyMetrics')}</h2>
               </div>
               
               {/* Stats Cards */}
@@ -276,12 +278,12 @@ const DashboardPage: React.FC = () => {
             className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
           >
             <StatCard
-              title="Total Trips"
+              title={t('dashboard.totalTrips')}
               value={stats.totalTrips}
               icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
               trend={stats.tripsThisMonth > 0 ? {
                 value: 12,
-                label: "vs last month",
+                label: t('dashboard.vsLastMonth'),
                 isPositive: true
               } : undefined}
             />
@@ -295,7 +297,7 @@ const DashboardPage: React.FC = () => {
             className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
           >
             <StatCard
-              title="Total Distance"
+              title={t('dashboard.totalDistance')}
               value={NumberFormatter.large(stats.totalDistance)}
               className={
                 stats.avgMileage > 4.0
@@ -315,7 +317,7 @@ const DashboardPage: React.FC = () => {
             <>
               <div>
                 <StatCard
-                  title="Average Mileage"
+                  title={t('dashboard.averageMileage')}
                   value={stats.avgMileage ? NumberFormatter.display(stats.avgMileage, 2) : "-"}
                   className={
                     stats.avgMileage > 4.0
@@ -333,7 +335,7 @@ const DashboardPage: React.FC = () => {
               
               <div>
                 <StatCard
-                  title="Total Fuel Used"
+                  title={t('dashboard.totalFuelUsed')}
                   value={NumberFormatter.large(stats.totalFuel)}
                   subtitle="L"
                   icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
@@ -367,14 +369,14 @@ const DashboardPage: React.FC = () => {
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
                 <div className="flex items-center space-x-2 mb-6">
                   <TrendingUp className="h-5 w-5 text-success-600" />
-                  <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Performance Highlights</h2>
+                  <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">{t('dashboard.performanceHighlights')}</h2>
                 </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {bestVehicle && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Best Vehicle</h3>
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('dashboard.bestVehicle')}</h3>
                   <Truck className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
                 <div className="mt-3 sm:mt-4">
@@ -390,12 +392,12 @@ const DashboardPage: React.FC = () => {
             {bestDriver && (
               <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Best Driver</h3>
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('dashboard.bestDriver')}</h3>
                   <Users className="h-6 w-6 text-success-500 dark:text-success-400" />
                 </div>
                 <div className="mt-3 sm:mt-4">
                   <p className="text-xl sm:text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">{bestDriver.name}</p>
-                  <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">License: {bestDriver.license_number}</p>
+                  <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">{t('dashboard.license')}: {bestDriver.license_number}</p>
                   <p className="mt-1 sm:mt-2 text-success-600 dark:text-success-400 font-sans font-medium text-sm sm:text-base">
                     {stats.bestDriverMileage?.toFixed(2)} km/L
                   </p>

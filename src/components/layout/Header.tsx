@@ -1,10 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../utils/supabaseClient';
 import ThemeToggle from "../ui/ThemeToggle";
 import OrganizationSelector from "../ui/OrganizationSelector";
 import MobileOrganizationSelector from "../ui/MobileOrganizationSelector";
 import AppNav from "./AppNav";
+import LanguageSwitcher from "../ui/LanguageSwitcher";
 import { toast } from 'react-toastify';
 import { usePermissions } from '../../hooks/usePermissions';
 import { LogOut, Truck } from 'lucide-react';
@@ -12,6 +14,7 @@ import { LogOut, Truck } from 'lucide-react';
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
@@ -85,6 +88,9 @@ const Header: React.FC = () => {
               <OrganizationSelector size="sm" showLabel={false} />
             </div>
             
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
             {/* Theme Toggle */}
             <ThemeToggle />
             
@@ -98,7 +104,7 @@ const Header: React.FC = () => {
                 className="group inline-flex h-9 items-center gap-2 rounded-brand border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4 group-hover:text-error-500 transition-colors" />
-                <span className="hidden sm:inline">Logout</span>
+                <span className="hidden sm:inline">{t('settings.logout')}</span>
               </button>
             </div>
 
@@ -106,7 +112,7 @@ const Header: React.FC = () => {
             <button
               onClick={handleLogout}
               className="flex sm:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-              aria-label="Logout"
+              aria-label={t('settings.logout')}
             >
               <LogOut className="h-5 w-5" />
             </button>

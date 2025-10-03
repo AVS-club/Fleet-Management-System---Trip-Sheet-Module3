@@ -33,19 +33,49 @@ export const usePermissions = (): {
         .eq('user_id', user.id)
         .single();
 
+      let organizationName = 'Organization';
+      let userRole: UserRole = 'data_entry';
+      let organizationId: string | null = null;
+
       if (orgError) {
         console.error('Error fetching organization user:', orgError);
-        throw orgError;
-      }
+        
+        // ✅ FALLBACK: If no organization_users record, check if user owns any organizations directly
+        const { data: ownedOrg, error: ownedError } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .eq('owner_id', user.id)
+          .single();
 
-      // Safely extract organization name
-      const organizationName = orgUser?.organizations?.name || 'Organization';
-      const userRole = orgUser?.role as UserRole || 'data_entry';
+        if (!ownedError && ownedOrg) {
+          organizationName = ownedOrg.name;
+          userRole = 'owner';
+          organizationId = ownedOrg.id;
+
+          // ✅ AUTO-CREATE organization_users record
+          const { error: createError } = await supabase
+            .from('organization_users')
+            .insert([{
+              user_id: user.id,
+              organization_id: ownedOrg.id,
+              role: 'owner'
+            }]);
+
+          if (createError) {
+            console.error('Error auto-creating organization_users record:', createError);
+          }
+        }
+      } else {
+        // Safely extract organization name from organization_users
+        organizationName = orgUser?.organizations?.name || 'Organization';
+        userRole = orgUser?.role as UserRole || 'data_entry';
+        organizationId = orgUser?.organization_id || null;
+      }
 
       // Set permissions based on role
       const newPermissions: Permissions = {
         role: userRole,
-        organizationId: orgUser?.organization_id || null,
+        organizationId: organizationId,
         organizationName,
         canAccessDashboard: userRole !== 'data_entry',
         canAccessReports: userRole !== 'data_entry',
