@@ -1,0 +1,648 @@
+/* Auto Vital Solution Reports - Print and Screen Styles */
+
+/* CSS Variables for consistent theming */
+:root {
+  --primary-green: #10B981;
+  --dark-green: #065F46;
+  --light-green: #D1FAE5;
+  --gray-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6B7280;
+  --gray-100: #F3F4F6;
+  --white: #FFFFFF;
+}
+
+/* Base Report Container */
+.report-container {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 20px;
+  background: var(--white);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--gray-900);
+}
+
+/* Typography Classes */
+.report-heading-1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.report-heading-2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 12px;
+}
+
+.report-heading-3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.report-body {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-700);
+}
+
+.report-caption {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Report Header */
+.report-header {
+  background: linear-gradient(135deg, var(--light-green) 0%, var(--white) 100%);
+  padding: 24px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid var(--primary-green);
+  margin-bottom: 24px;
+}
+
+.report-header h1 {
+  color: var(--gray-900);
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.report-header p {
+  color: var(--gray-600);
+  margin: 4px 0 0 0;
+  font-size: 14px;
+}
+
+/* Stat Cards */
+.stat-card {
+  background: var(--gray-100);
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-green);
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 4px 0;
+}
+
+.stat-card .stat-label {
+  font-size: 11px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-card .stat-change {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stat-card .stat-change.positive {
+  color: var(--primary-green);
+}
+
+.stat-card .stat-change.negative {
+  color: #EF4444;
+}
+
+/* Report Tables */
+.report-table {
+  margin-bottom: 32px;
+}
+
+.report-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--white);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.report-table thead {
+  background: var(--gray-100);
+}
+
+.report-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-200);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.report-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  color: var(--gray-700);
+}
+
+.report-table tbody tr:hover {
+  background: var(--light-green);
+}
+
+.report-table tbody tr:nth-child(even) {
+  background: #FAFAFA;
+}
+
+.report-table tbody tr:nth-child(even):hover {
+  background: var(--light-green);
+}
+
+/* Progress Bars */
+.progress-bar-container {
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  background: var(--gray-200);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress.bg-green-500 {
+  background: var(--primary-green);
+}
+
+.progress.bg-blue-500 {
+  background: #3B82F6;
+}
+
+.progress.bg-yellow-500 {
+  background: #F59E0B;
+}
+
+.progress.bg-red-500 {
+  background: #EF4444;
+}
+
+/* Vehicle Cards */
+.vehicle-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.vehicle-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.vehicle-card h3 {
+  color: var(--gray-900);
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.vehicle-card .vehicle-model {
+  color: var(--gray-500);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+/* Performance Badges */
+.performance-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.performance-badge.excellent {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.performance-badge.good {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.performance-badge.average {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.performance-badge.poor {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+/* Utilization Cards */
+.utilization-overview {
+  margin-bottom: 32px;
+}
+
+.overview-card {
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  transition: all 0.2s ease;
+}
+
+.overview-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.overview-card.high-utilization {
+  background: #D1FAE5;
+  border-left-color: var(--primary-green);
+}
+
+.overview-card.medium-utilization {
+  background: #FEF3C7;
+  border-left-color: #F59E0B;
+}
+
+.overview-card.low-utilization {
+  background: #FEE2E2;
+  border-left-color: #EF4444;
+}
+
+/* Top Performers */
+.top-performers {
+  background: var(--light-green);
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 32px;
+}
+
+.performer-card {
+  background: var(--white);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.performer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.performer-card .rank {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.performer-card h3 {
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.performer-card .rating {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 8px;
+}
+
+/* Insights and Recommendations */
+.insights-section {
+  background: var(--gray-100);
+  padding: 24px;
+  border-radius: 8px;
+  margin-top: 32px;
+}
+
+.insights-section h3 {
+  color: var(--gray-900);
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.insights-column h4 {
+  color: var(--gray-700);
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.insights-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insights-column li {
+  color: var(--gray-600);
+  font-size: 12px;
+  margin-bottom: 6px;
+  padding-left: 12px;
+  position: relative;
+}
+
+.insights-column li::before {
+  content: '•';
+  color: var(--primary-green);
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+/* Print Styles */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  .report-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .report-header {
+    background: var(--light-green) !important;
+    -webkit-print-color-adjust: exact;
+    page-break-inside: avoid;
+  }
+
+  .stat-card {
+    background: var(--gray-100) !important;
+    border-left: 4px solid var(--primary-green) !important;
+    page-break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  .report-table {
+    page-break-inside: avoid;
+  }
+
+  .report-table table {
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+  }
+
+  .report-table thead {
+    background: var(--gray-100) !important;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .vehicle-card {
+    page-break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+  }
+
+  .top-performers {
+    background: var(--light-green) !important;
+    -webkit-print-color-adjust: exact;
+    page-break-inside: avoid;
+  }
+
+  .performer-card {
+    box-shadow: none;
+    border: 1px solid var(--gray-300);
+  }
+
+  .insights-section {
+    background: var(--gray-100) !important;
+    -webkit-print-color-adjust: exact;
+    page-break-inside: avoid;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+
+  .no-break {
+    page-break-inside: avoid;
+  }
+
+  /* Hide interactive elements in print */
+  button,
+  .btn,
+  .interactive {
+    display: none !important;
+  }
+
+  /* Ensure proper spacing in print */
+  .report-container > * {
+    margin-bottom: 16px;
+  }
+
+  .report-container > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .report-container {
+    padding: 16px;
+    max-width: none;
+  }
+
+  .report-header {
+    padding: 16px;
+  }
+
+  .report-header h1 {
+    font-size: 24px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .report-table {
+    font-size: 11px;
+  }
+
+  .report-table th,
+  .report-table td {
+    padding: 8px 12px;
+  }
+
+  .vehicle-card {
+    padding: 12px;
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .top-performers {
+    padding: 16px;
+  }
+
+  .performer-card {
+    padding: 16px;
+  }
+}
+
+/* Loading States */
+.report-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--gray-500);
+}
+
+.report-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top: 3px solid var(--primary-green);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 12px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error States */
+.report-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.report-error .error-icon {
+  width: 48px;
+  height: 48px;
+  background: #FEE2E2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: #EF4444;
+}
+
+.report-error h3 {
+  color: var(--gray-900);
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.report-error p {
+  color: var(--gray-600);
+  margin: 0 0 16px 0;
+  font-size: 14px;
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+
+.text-green-600 { color: var(--primary-green); }
+.text-red-600 { color: #EF4444; }
+.text-blue-600 { color: #3B82F6; }
+.text-yellow-600 { color: #F59E0B; }
+.text-gray-500 { color: var(--gray-500); }
+.text-gray-600 { color: var(--gray-600); }
+.text-gray-700 { color: var(--gray-700); }
+.text-gray-900 { color: var(--gray-900); }
+
+.bg-green-50 { background-color: var(--light-green); }
+.bg-gray-50 { background-color: #FAFAFA; }
+.bg-gray-100 { background-color: var(--gray-100); }
+
+.border-green-500 { border-color: var(--primary-green); }
+.border-gray-200 { border-color: var(--gray-200); }
+
+.rounded { border-radius: 4px; }
+.rounded-lg { border-radius: 8px; }
+
+.shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+.shadow { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.shadow-lg { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
