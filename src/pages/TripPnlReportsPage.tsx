@@ -112,6 +112,10 @@ interface DatePreset {
 const TripPnlReportsPage: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
+  
+  // Add error state for debugging
+  const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -212,6 +216,10 @@ const TripPnlReportsPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      setDebugInfo(null);
+      
+      console.log('Loading PNL Reports data...');
 
       const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
         getTrips(),
@@ -220,13 +228,26 @@ const TripPnlReportsPage: React.FC = () => {
         getWarehouses()
       ]);
       
+      console.log('Data loaded successfully:', {
+        trips: tripsData.length,
+        vehicles: vehiclesData.length,
+        drivers: driversData.length,
+        warehouses: warehousesData.length
+      });
       
       setTrips(tripsData);
       setVehicles(vehiclesData);
       setDrivers(driversData);
       setWarehouses(warehousesData);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching PNL Reports data:", error);
+      setError(error instanceof Error ? error.message : 'Unknown error occurred');
+      setDebugInfo({
+        error: error,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+      });
       toast.error("Failed to load data");
     } finally {
       setLoading(false);
@@ -321,6 +342,7 @@ const TripPnlReportsPage: React.FC = () => {
 
   // Filter trips based on current filters
   const filteredTrips = useMemo(() => {
+    try {
     const filtered = trips.filter(trip => {
       // Date range filter
       const tripDate = parseISO(trip.trip_start_date);
@@ -405,6 +427,12 @@ const TripPnlReportsPage: React.FC = () => {
         profit_status: calculatedProfitStatus
       };
     });
+    
+    return filtered;
+    } catch (error) {
+      console.error('Error filtering trips:', error);
+      return [];
+    }
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
   // Calculate P&L summary directly from filtered trips
@@ -461,11 +489,12 @@ const TripPnlReportsPage: React.FC = () => {
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    // Profit/Loss distribution pie chart
-    const profitLossData: ChartData[] = [
-      { name: 'Profitable Trips', value: pnlSummary.profitableTrips, color: '#10B981' },
-      { name: 'Loss Trips', value: pnlSummary.lossTrips, color: '#EF4444' }
-    ];
+    try {
+      // Profit/Loss distribution pie chart
+      const profitLossData: ChartData[] = [
+        { name: 'Profitable Trips', value: pnlSummary.profitableTrips, color: '#10B981' },
+        { name: 'Loss Trips', value: pnlSummary.lossTrips, color: '#EF4444' }
+      ];
 
     // Monthly trend data
     const monthlyTrend: TrendData[] = [];
@@ -527,11 +556,20 @@ const TripPnlReportsPage: React.FC = () => {
       });
     });
 
-    return {
-      profitLossData,
-      monthlyTrend: monthlyTrend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-      vehiclePerformance: vehiclePerformance.slice(0, 10) // Top 10 vehicles
-    };
+      return {
+        profitLossData,
+        monthlyTrend: monthlyTrend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        vehiclePerformance: vehiclePerformance.slice(0, 10) // Top 10 vehicles
+      };
+    } catch (error) {
+      console.error('Error preparing chart data:', error);
+      // Return empty data structure to prevent crashes
+      return {
+        profitLossData: [],
+        monthlyTrend: [],
+        vehiclePerformance: []
+      };
+    }
   }, [filteredTrips, pnlSummary]);
 
   // Pagination
@@ -671,6 +709,54 @@ const TripPnlReportsPage: React.FC = () => {
       <Layout title="Trip P&L Report" subtitle="Analyze profitability of trips">
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error state if there's an error
+  if (error) {
+    return (
+      <Layout title="Trip P&L Report" subtitle="Analyze profitability of trips">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600 mr-2" />
+              <h3 className="text-lg font-semibold text-red-800">Error Loading PNL Reports</h3>
+            </div>
+            <p className="text-red-700 mb-4">{error}</p>
+            
+            {debugInfo && (
+              <details className="mb-4">
+                <summary className="cursor-pointer text-sm font-medium text-red-600 mb-2">
+                  Debug Information
+                </summary>
+                <pre className="text-xs bg-red-100 p-3 rounded overflow-auto max-h-40">
+                  {JSON.stringify(debugInfo, null, 2)}
+                </pre>
+              </details>
+            )}
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setError(null);
+                  setDebugInfo(null);
+                  fetchData();
+                }}
+                icon={<RefreshCw className="h-4 w-4" />}
+              >
+                Try Again
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/trips')}
+                icon={<ChevronLeft className="h-4 w-4" />}
+              >
+                Back to Trips
+              </Button>
+            </div>
+          </div>
         </div>
       </Layout>
     );
