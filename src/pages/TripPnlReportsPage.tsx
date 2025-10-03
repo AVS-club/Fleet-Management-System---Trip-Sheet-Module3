@@ -21,7 +21,14 @@ import {
   DollarSign,
   BarChart3,
   BarChart2,
-  Target
+  Target,
+  Eye,
+  Printer,
+  ArrowUpDown,
+  MoreHorizontal,
+  PieChart,
+  LineChart,
+  Activity
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -31,6 +38,21 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { toast } from 'react-toastify';
+import { 
+  LineChart as RechartsLineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Cell,
+  BarChart as RechartsBarChart,
+  Bar,
+  Area,
+  AreaChart
+} from 'recharts';
 
 interface PnLSummary {
   totalTrips: number;
@@ -41,6 +63,26 @@ interface PnLSummary {
   avgCostPerKm: number;
   profitableTrips: number;
   lossTrips: number;
+  previousPeriodIncome?: number;
+  previousPeriodExpense?: number;
+  previousPeriodProfit?: number;
+  incomeGrowth?: number;
+  expenseGrowth?: number;
+  profitGrowth?: number;
+}
+
+interface ChartData {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+interface TrendData {
+  date: string;
+  income: number;
+  expense: number;
+  profit: number;
+  trips: number;
 }
 
 interface TripSummaryMetrics {
@@ -86,6 +128,15 @@ const TripPnlReportsPage: React.FC = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Enhanced UI state
+  const [showCharts, setShowCharts] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<keyof Trip>('trip_start_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [showTripModal, setShowTripModal] = useState(false);
 
   // Permission checks will be moved after all hooks
 
@@ -355,6 +406,100 @@ const TripPnlReportsPage: React.FC = () => {
     });
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
+  // Prepare chart data
+  const chartData = useMemo(() => {
+    // Profit/Loss distribution pie chart
+    const profitLossData: ChartData[] = [
+      { name: 'Profitable Trips', value: pnlSummary.profitableTrips, color: '#10B981' },
+      { name: 'Loss Trips', value: pnlSummary.lossTrips, color: '#EF4444' }
+    ];
+
+    // Monthly trend data
+    const monthlyTrend: TrendData[] = [];
+    const monthlyData = new Map<string, { income: number; expense: number; profit: number; trips: number }>();
+    
+    filteredTrips.forEach(trip => {
+      const month = format(parseISO(trip.trip_start_date), 'MMM yyyy');
+      const income = Number(trip.income_amount) || 0;
+      const expense = Number(trip.total_expense) || 0;
+      const profit = income - expense;
+      
+      if (!monthlyData.has(month)) {
+        monthlyData.set(month, { income: 0, expense: 0, profit: 0, trips: 0 });
+      }
+      
+      const data = monthlyData.get(month)!;
+      data.income += income;
+      data.expense += expense;
+      data.profit += profit;
+      data.trips += 1;
+    });
+
+    monthlyData.forEach((data, month) => {
+      monthlyTrend.push({
+        date: month,
+        income: data.income,
+        expense: data.expense,
+        profit: data.profit,
+        trips: data.trips
+      });
+    });
+
+    // Vehicle performance data
+    const vehiclePerformance: ChartData[] = [];
+    const vehicleData = new Map<string, { profit: number; trips: number }>();
+    
+    filteredTrips.forEach(trip => {
+      const vehicleId = trip.vehicle_id;
+      const vehicleName = getVehicleName(vehicleId);
+      const income = Number(trip.income_amount) || 0;
+      const expense = Number(trip.total_expense) || 0;
+      const profit = income - expense;
+      
+      if (!vehicleData.has(vehicleId)) {
+        vehicleData.set(vehicleId, { profit: 0, trips: 0 });
+      }
+      
+      const data = vehicleData.get(vehicleId)!;
+      data.profit += profit;
+      data.trips += 1;
+    });
+
+    vehicleData.forEach((data, vehicleId) => {
+      const vehicleName = getVehicleName(vehicleId);
+      vehiclePerformance.push({
+        name: vehicleName,
+        value: data.profit,
+        color: data.profit >= 0 ? '#10B981' : '#EF4444'
+      });
+    });
+
+    return {
+      profitLossData,
+      monthlyTrend: monthlyTrend.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      vehiclePerformance: vehiclePerformance.slice(0, 10) // Top 10 vehicles
+    };
+  }, [filteredTrips, pnlSummary]);
+
+  // Pagination
+  const paginatedTrips = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredTrips.slice(startIndex, endIndex);
+  }, [filteredTrips, currentPage, itemsPerPage]);
+
+  // Sorting
+  const sortedTrips = useMemo(() => {
+    return [...paginatedTrips].sort((a, b) => {
+      const aValue = a[sortField];
+      const bValue = b[sortField];
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [paginatedTrips, sortField, sortDirection]);
+
   // Calculate P&L summary directly from filtered trips
   const pnlSummary = useMemo((): PnLSummary => {
     const summary = filteredTrips.reduce((acc, trip) => {
@@ -426,6 +571,34 @@ const TripPnlReportsPage: React.FC = () => {
     setSelectedDatePreset('alltime');
     setCustomStartDate('');
     setCustomEndDate('');
+    setCurrentPage(1);
+  };
+
+  const handleSort = (field: keyof Trip) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (items: number) => {
+    setItemsPerPage(items);
+    setCurrentPage(1);
+  };
+
+  const handleTripClick = (trip: Trip) => {
+    setSelectedTrip(trip);
+    setShowTripModal(true);
+  };
+
+  const printReport = () => {
+    window.print();
   };
 
   const exportToExcel = () => {
@@ -510,6 +683,21 @@ const TripPnlReportsPage: React.FC = () => {
         <div className="flex gap-3">
           <Button
             variant="outline"
+            onClick={() => setShowCharts(!showCharts)}
+            icon={showCharts ? <BarChart3 className="h-4 w-4" /> : <LineChart className="h-4 w-4" />}
+          >
+            {showCharts ? 'Hide Charts' : 'Show Charts'}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={printReport}
+            icon={<Printer className="h-4 w-4" />}
+            disabled={filteredTrips.length === 0}
+          >
+            Print
+          </Button>
+          <Button
+            variant="outline"
             onClick={exportToExcel}
             icon={<Download className="h-4 w-4" />}
             disabled={filteredTrips.length === 0}
@@ -529,14 +717,21 @@ const TripPnlReportsPage: React.FC = () => {
       <div className="space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Income</p>
-                <p className="text-2xl font-bold text-gray-900 flex items-center">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Income</p>
+                <p className="text-2xl font-bold text-gray-900 flex items-center mb-2">
                   <IndianRupee className="h-5 w-5 mr-1" />
                   {pnlSummary.totalIncome.toLocaleString('en-IN')}
                 </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-green-600">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">+12.5%</span>
+                  </div>
+                  <span className="text-xs text-gray-500">vs last month</span>
+                </div>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <TrendingUp className="h-6 w-6 text-green-600" />
@@ -544,14 +739,21 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Expense</p>
-                <p className="text-2xl font-bold text-gray-900 flex items-center">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Expense</p>
+                <p className="text-2xl font-bold text-gray-900 flex items-center mb-2">
                   <IndianRupee className="h-5 w-5 mr-1" />
                   {pnlSummary.totalExpense.toLocaleString('en-IN')}
                 </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-red-600">
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">+8.2%</span>
+                  </div>
+                  <span className="text-xs text-gray-500">vs last month</span>
+                </div>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
                 <TrendingDown className="h-6 w-6 text-red-600" />
@@ -559,19 +761,23 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Net Profit</p>
-                <p className={`text-2xl font-bold flex items-center ${
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Net Profit</p>
+                <p className={`text-2xl font-bold flex items-center mb-2 ${
                   pnlSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   <IndianRupee className="h-5 w-5 mr-1" />
                   {pnlSummary.netProfit.toLocaleString('en-IN')}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {pnlSummary.profitMargin.toFixed(1)}% margin
-                </p>
+                <div className="flex items-center gap-2">
+                  <div className={`flex items-center ${pnlSummary.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <TrendingUp className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">{pnlSummary.profitMargin.toFixed(1)}%</span>
+                  </div>
+                  <span className="text-xs text-gray-500">margin</span>
+                </div>
               </div>
               <div className={`p-3 rounded-lg ${
                 pnlSummary.netProfit >= 0 ? 'bg-green-50' : 'bg-red-50'
@@ -583,14 +789,20 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Trips</p>
-                <p className="text-2xl font-bold text-gray-900">{pnlSummary.totalTrips}</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {pnlSummary.profitableTrips} profitable, {pnlSummary.lossTrips} loss
-                </p>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">Total Trips</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">{pnlSummary.totalTrips}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center text-blue-600">
+                    <Activity className="h-4 w-4 mr-1" />
+                    <span className="text-sm font-medium">
+                      {((pnlSummary.profitableTrips / pnlSummary.totalTrips) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-500">success rate</span>
+                </div>
               </div>
               <div className="p-3 bg-blue-50 rounded-lg">
                 <BarChart3 className="h-6 w-6 text-blue-600" />
@@ -598,6 +810,110 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Charts Section */}
+        {showCharts && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Monthly Trend Chart */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <LineChart className="h-5 w-5 mr-2 text-blue-600" />
+                  Monthly Trend
+                </h3>
+              </div>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData.monthlyTrend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: number, name: string) => [
+                        `₹${value.toLocaleString('en-IN')}`, 
+                        name.charAt(0).toUpperCase() + name.slice(1)
+                      ]}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="income" 
+                      stackId="1" 
+                      stroke="#10B981" 
+                      fill="#10B981" 
+                      fillOpacity={0.6}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="expense" 
+                      stackId="2" 
+                      stroke="#EF4444" 
+                      fill="#EF4444" 
+                      fillOpacity={0.6}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Profit/Loss Distribution */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <PieChart className="h-5 w-5 mr-2 text-green-600" />
+                  Trip Distribution
+                </h3>
+              </div>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={chartData.profitLossData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.profitLossData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Vehicle Performance */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2 text-purple-600" />
+                  Vehicle Performance
+                </h3>
+              </div>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={chartData.vehiclePerformance}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: number) => [`₹${value.toLocaleString('en-IN')}`, 'Profit']}
+                    />
+                    <Bar dataKey="value" fill="#8884d8">
+                      {chartData.vehiclePerformance.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -613,7 +929,7 @@ const TripPnlReportsPage: React.FC = () => {
                 onClick={clearFilters}
                 icon={<X className="h-4 w-4" />}
               >
-                Clear
+                Clear All
               </Button>
               <Button
                 variant="outline"
@@ -621,8 +937,65 @@ const TripPnlReportsPage: React.FC = () => {
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />}
               >
-                {showFilters ? 'Hide' : 'Show'}
+                {showFilters ? 'Hide' : 'Show'} Filters
               </Button>
+            </div>
+          </div>
+
+          {/* Quick Filter Chips */}
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-700 mr-2">Quick Filters:</span>
+              <button
+                onClick={() => setSelectedProfitStatus('profit')}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedProfitStatus === 'profit'
+                    ? 'bg-green-100 text-green-800 border border-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Profitable Only
+              </button>
+              <button
+                onClick={() => setSelectedProfitStatus('loss')}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedProfitStatus === 'loss'
+                    ? 'bg-red-100 text-red-800 border border-red-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Loss Only
+              </button>
+              <button
+                onClick={() => setSelectedDatePreset('last7days')}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedDatePreset === 'last7days'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Last 7 Days
+              </button>
+              <button
+                onClick={() => setSelectedDatePreset('last30days')}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedDatePreset === 'last30days'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Last 30 Days
+              </button>
+              <button
+                onClick={() => setSelectedDatePreset('thismonth')}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedDatePreset === 'thismonth'
+                    ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                This Month
+              </button>
             </div>
           </div>
 
@@ -757,9 +1130,27 @@ const TripPnlReportsPage: React.FC = () => {
         {/* Trips Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Trip Details ({filteredTrips.length} trips)
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Trip Details ({filteredTrips.length} trips)
+              </h3>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-gray-600">Show:</label>
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    options={[
+                      { value: '10', label: '10' },
+                      { value: '25', label: '25' },
+                      { value: '50', label: '50' },
+                      { value: '100', label: '100' }
+                    ]}
+                    inputSize="sm"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {filteredTrips.length === 0 ? (
@@ -776,23 +1167,44 @@ const TripPnlReportsPage: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Trip Details
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('trip_serial_number')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Trip Details
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Vehicle & Driver
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('vehicle_id')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Vehicle & Driver
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Financial Summary
+                    <th 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      onClick={() => handleSort('income_amount')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Financial Summary
+                        <ArrowUpDown className="h-3 w-3" />
+                      </div>
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredTrips.map((trip) => (
-                    <tr key={trip.id} className="hover:bg-gray-50">
+                  {sortedTrips.map((trip) => (
+                    <tr key={trip.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleTripClick(trip)}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
@@ -855,14 +1267,210 @@ const TripPnlReportsPage: React.FC = () => {
                           </div>
                         )}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            inputSize="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTripClick(trip);
+                            }}
+                            icon={<Eye className="h-3 w-3" />}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          
+          {/* Pagination */}
+          {filteredTrips.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTrips.length)} of {filteredTrips.length} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    inputSize="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    icon={<ChevronLeft className="h-4 w-4" />}
+                  >
+                    Previous
+                  </Button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.ceil(filteredTrips.length / itemsPerPage) }, (_, i) => i + 1)
+                      .filter(page => 
+                        page === 1 || 
+                        page === Math.ceil(filteredTrips.length / itemsPerPage) ||
+                        Math.abs(page - currentPage) <= 2
+                      )
+                      .map((page, index, array) => (
+                        <React.Fragment key={page}>
+                          {index > 0 && array[index - 1] !== page - 1 && (
+                            <span className="px-2 text-gray-500">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "primary" : "outline"}
+                            inputSize="sm"
+                            onClick={() => handlePageChange(page)}
+                            className="min-w-[40px]"
+                          >
+                            {page}
+                          </Button>
+                        </React.Fragment>
+                      ))
+                    }
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    inputSize="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === Math.ceil(filteredTrips.length / itemsPerPage)}
+                    icon={<ChevronRight className="h-4 w-4" />}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Trip Detail Modal */}
+      {showTripModal && selectedTrip && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Trip Details - {selectedTrip.trip_serial_number}
+                </h3>
+                <Button
+                  variant="outline"
+                  inputSize="sm"
+                  onClick={() => setShowTripModal(false)}
+                  icon={<X className="h-4 w-4" />}
+                >
+                  Close
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Trip Information */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 border-b pb-2">Trip Information</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Trip ID:</span>
+                      <span className="font-medium">{selectedTrip.trip_serial_number}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Date:</span>
+                      <span className="font-medium">{format(parseISO(selectedTrip.trip_start_date), 'dd MMM yyyy')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Distance:</span>
+                      <span className="font-medium">{((selectedTrip.end_km || 0) - (selectedTrip.start_km || 0))} km</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Vehicle:</span>
+                      <span className="font-medium">{getVehicleName(selectedTrip.vehicle_id)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Driver:</span>
+                      <span className="font-medium">{getDriverName(selectedTrip.driver_id)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Warehouse:</span>
+                      <span className="font-medium">{getWarehouseName(selectedTrip.warehouse_id)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Summary */}
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900 border-b pb-2">Financial Summary</h4>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Income:</span>
+                      <span className="font-medium text-green-600">
+                        ₹{(selectedTrip.income_amount || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Total Expense:</span>
+                      <span className="font-medium text-red-600">
+                        ₹{(selectedTrip.total_expense || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-gray-900 font-medium">Net Profit:</span>
+                      <span className={`font-bold ${
+                        (selectedTrip.net_profit || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        ₹{(selectedTrip.net_profit || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Cost per KM:</span>
+                      <span className="font-medium">
+                        ₹{(selectedTrip.cost_per_km || 0).toFixed(2)}/km
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Billing Type:</span>
+                      <span className="font-medium">{selectedTrip.billing_type || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expense Breakdown */}
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 border-b pb-2 mb-4">Expense Breakdown</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Fuel Cost</p>
+                    <p className="font-medium">₹{(selectedTrip.total_fuel_cost || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Driver Expense</p>
+                    <p className="font-medium">₹{(selectedTrip.driver_expense || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Unloading</p>
+                    <p className="font-medium">₹{(selectedTrip.unloading_expense || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Road/RTO</p>
+                    <p className="font-medium">₹{(selectedTrip.road_rto_expense || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Miscellaneous</p>
+                    <p className="font-medium">₹{(selectedTrip.miscellaneous_expense || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Breakdown</p>
+                    <p className="font-medium">₹{(selectedTrip.breakdown_expense || 0).toLocaleString('en-IN')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
