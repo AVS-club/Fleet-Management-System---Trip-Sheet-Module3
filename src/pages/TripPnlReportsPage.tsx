@@ -47,6 +47,7 @@ import {
   Tooltip, 
   ResponsiveContainer,
   PieChart as RechartsPieChart,
+  Pie,
   Cell,
   BarChart as RechartsBarChart,
   Bar,
@@ -406,6 +407,58 @@ const TripPnlReportsPage: React.FC = () => {
     });
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
 
+  // Calculate P&L summary directly from filtered trips
+  const pnlSummary = useMemo((): PnLSummary => {
+    const summary = filteredTrips.reduce((acc, trip) => {
+      const income = Number(trip.income_amount) || 0;
+      
+      // Calculate total expense from individual components using total_fuel_cost
+      const calculatedTotalExpense = (
+        Number(trip.total_fuel_cost || 0) +
+        Number(trip.unloading_expense || 0) +
+        Number(trip.driver_expense || 0) +
+        Number(trip.road_rto_expense || 0) +
+        Number(trip.miscellaneous_expense || 0) +
+        Number(trip.breakdown_expense || 0)
+      );
+      
+      // Calculate profit from income minus calculated expenses
+      const calculatedProfit = income - calculatedTotalExpense;
+      
+      // Calculate cost per km from calculated expenses
+      const distance = (Number(trip.end_km) || 0) - (Number(trip.start_km) || 0);
+      const calculatedCostPerKm = distance > 0 ? calculatedTotalExpense / distance : 0;
+
+      acc.totalIncome += income;
+      acc.totalExpense += calculatedTotalExpense;
+      acc.netProfit += calculatedProfit;
+      acc.avgCostPerKm += calculatedCostPerKm;
+
+      // Determine profit status based on calculated profit
+      if (calculatedProfit > 0) {
+        acc.profitableTrips++;
+      } else if (calculatedProfit < 0) {
+        acc.lossTrips++;
+      }
+
+      return acc;
+    }, {
+      totalTrips: filteredTrips.length,
+      totalIncome: 0,
+      totalExpense: 0,
+      netProfit: 0,
+      profitMargin: 0,
+      avgCostPerKm: 0,
+      profitableTrips: 0,
+      lossTrips: 0
+    });
+
+    summary.avgCostPerKm = filteredTrips.length > 0 ? summary.avgCostPerKm / filteredTrips.length : 0;
+    summary.profitMargin = summary.totalIncome > 0 ? (summary.netProfit / summary.totalIncome) * 100 : 0;
+
+    return summary;
+  }, [filteredTrips]);
+
   // Prepare chart data
   const chartData = useMemo(() => {
     // Profit/Loss distribution pie chart
@@ -499,58 +552,6 @@ const TripPnlReportsPage: React.FC = () => {
       return 0;
     });
   }, [paginatedTrips, sortField, sortDirection]);
-
-  // Calculate P&L summary directly from filtered trips
-  const pnlSummary = useMemo((): PnLSummary => {
-    const summary = filteredTrips.reduce((acc, trip) => {
-      const income = Number(trip.income_amount) || 0;
-      
-      // Calculate total expense from individual components using total_fuel_cost
-      const calculatedTotalExpense = (
-        Number(trip.total_fuel_cost || 0) +
-        Number(trip.unloading_expense || 0) +
-        Number(trip.driver_expense || 0) +
-        Number(trip.road_rto_expense || 0) +
-        Number(trip.miscellaneous_expense || 0) +
-        Number(trip.breakdown_expense || 0)
-      );
-      
-      // Calculate profit from income minus calculated expenses
-      const calculatedProfit = income - calculatedTotalExpense;
-      
-      // Calculate cost per km from calculated expenses
-      const distance = (Number(trip.end_km) || 0) - (Number(trip.start_km) || 0);
-      const calculatedCostPerKm = distance > 0 ? calculatedTotalExpense / distance : 0;
-
-      acc.totalIncome += income;
-      acc.totalExpense += calculatedTotalExpense;
-      acc.netProfit += calculatedProfit;
-      acc.avgCostPerKm += calculatedCostPerKm;
-
-      // Determine profit status based on calculated profit
-      if (calculatedProfit > 0) {
-        acc.profitableTrips++;
-      } else if (calculatedProfit < 0) {
-        acc.lossTrips++;
-      }
-
-      return acc;
-    }, {
-      totalTrips: filteredTrips.length,
-      totalIncome: 0,
-      totalExpense: 0,
-      netProfit: 0,
-      profitMargin: 0,
-      avgCostPerKm: 0,
-      profitableTrips: 0,
-      lossTrips: 0
-    });
-
-    summary.avgCostPerKm = filteredTrips.length > 0 ? summary.avgCostPerKm / filteredTrips.length : 0;
-    summary.profitMargin = summary.totalIncome > 0 ? (summary.netProfit / summary.totalIncome) * 100 : 0;
-
-    return summary;
-  }, [filteredTrips]);
 
   // ✅ PERMISSION CHECKS AFTER ALL HOOKS
   if (permissionsLoading) {
