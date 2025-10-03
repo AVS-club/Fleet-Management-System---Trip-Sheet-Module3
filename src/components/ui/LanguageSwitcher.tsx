@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n, t } = useTranslation();
@@ -21,13 +21,13 @@ const LanguageSwitcher: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Compact Language Switcher Button - Just globe icon to save space */}
+      {/* Compact Language Switcher Button - Using 🌐 emoji instead of boring globe icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+        className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-lg"
         title={`${t('settings.selectLanguage')} - ${currentLanguage?.nativeName || 'English'}`}
       >
-        <Globe className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+        🌐
       </button>
 
       {/* Dropdown Menu */}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Trip, Vehicle, Driver } from '@/types';
 import { Calendar, TrendingUp, Fuel, IndianRupee, Package, MapPin, Truck, AlertTriangle, BarChart2, BarChartHorizontal, Gauge } from 'lucide-react';
 import { format, subDays, startOfYear, endOfYear, subYears, isWithinInterval, isValid, parseISO, subMonths, isBefore, isAfter } from 'date-fns';
@@ -21,6 +22,7 @@ interface TripDashboardProps {
 type DateFilterType = 'lastMonth' | 'last3Months' | 'last6Months' | 'last12Months' | 'allTime' | 'custom';
 
 const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers }) => {
+  const { t } = useTranslation();
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('allTime');
   const [customStartDate, setCustomStartDate] = useState<string>(format(subMonths(new Date(), 3), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -160,27 +162,27 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          title="Total Trips"
+          title={t('dashboard.totalTrips')}
           value={stats.totalTrips}
           icon={<BarChart2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
-          title="Total Distance"
+          title={t('dashboard.totalDistance')}
           value={NumberFormatter.large(stats.totalDistance)}
           subtitle="km"
           icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
-          title="Total Fuel"
+          title={t('dashboard.totalFuelUsed')}
           value={NumberFormatter.large(stats.totalFuel)}
           subtitle="L"
           icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
         
         <StatCard
-          title="Average Mileage"
+          title={t('dashboard.averageMileage')}
           value={stats.avgMileage ? NumberFormatter.display(stats.avgMileage, 2) : "-"}
           subtitle="km/L"
           icon={<Gauge className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
