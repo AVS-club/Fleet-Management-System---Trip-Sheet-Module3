@@ -61,7 +61,7 @@ const Header: React.FC = () => {
             </div>
             
             {/* Brand Text - Show only on larger screens since logo has text */}
-            <div className="hidden md:flex flex-col justify-center">
+            <div className="hidden md:flex flex-col justify-center items-center">
               <div className="flex items-baseline gap-2">
                 <h1 className="text-base lg:text-lg font-bold text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
                   Auto Vital
@@ -70,7 +70,7 @@ const Header: React.FC = () => {
                   Solution
                 </span>
               </div>
-              <p className="text-[11px] lg:text-xs text-gray-500 dark:text-gray-400 -mt-0.5 tracking-wide uppercase">
+              <p className="text-[11px] lg:text-xs text-gray-500 dark:text-gray-400 -mt-0.5 tracking-wide uppercase text-center">
                 Intelligent Fleet Management
               </p>
             </div>
