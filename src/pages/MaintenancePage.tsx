@@ -9,10 +9,9 @@ import {
 } from "../utils/maintenanceAnalytics";
 import { getTasks } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
-import { PlusCircle, BarChart3, Wrench, Calendar, Table } from "lucide-react";
+import { PlusCircle, BarChart3, Wrench, Calendar } from "lucide-react";
 import Button from "../components/ui/Button";
 import KPIPanel from "../components/maintenance/KPIPanel";
-import EnhancedMaintenanceTable from "../components/maintenance/EnhancedMaintenanceTable";
 import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
 import { useQuery } from "@tanstack/react-query";
 const MaintenancePage = () => {
@@ -24,7 +23,7 @@ const MaintenancePage = () => {
     start: "",
     end: "",
   });
-  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
+  const [viewMode, setViewMode] = useState<"calendar">("calendar");
   const [metrics, setMetrics] = useState<any>({
     totalTasks: 0,
     pendingTasks: 0,
@@ -139,20 +138,11 @@ const MaintenancePage = () => {
           >
             {t("maintenance.partsHealthAnalytics")}
           </Button>
-          {/* View Toggle */}
+          {/* Calendar View Toggle */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <Button
-              onClick={() => setViewMode("table")}
-              variant={viewMode === "table" ? "default" : "outline"}
-              inputSize="sm"
-              icon={<Table className="h-4 w-4" />}
-              className="rounded-none border-0"
-            >
-              {t("maintenance.table")}
-            </Button>
-            <Button
               onClick={() => setViewMode("calendar")}
-              variant={viewMode === "calendar" ? "default" : "outline"}
+              variant="default"
               inputSize="sm"
               icon={<Calendar className="h-4 w-4" />}
               className="rounded-none border-0"
@@ -181,18 +171,11 @@ const MaintenancePage = () => {
             totalExpenditure={metrics.totalExpenditure}
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
-          {/* Enhanced Maintenance Table or Calendar */}
-          {viewMode === "table" ? (
-            <EnhancedMaintenanceTable
-              tasks={tasks || []}
-              vehicles={vehicles || []}
-            />
-          ) : (
-            <MaintenanceCalendar
-              tasks={tasks || []}
-              vehicles={vehicles || []}
-            />
-          )}
+          {/* Maintenance Calendar */}
+          <MaintenanceCalendar
+            tasks={tasks || []}
+            vehicles={vehicles || []}
+          />
         </div>
       )}
     </Layout>
