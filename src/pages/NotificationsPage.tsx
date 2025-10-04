@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import MediaCard from '../components/HeroFeed/MediaCard';
 import { usePermissions } from '../hooks/usePermissions';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
+import LoadingScreen from '../components/LoadingScreen';
 import { RefreshCw, Sparkles, Play } from 'lucide-react';
 
 // Fleet-relevant YouTube videos

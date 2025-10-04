@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { usePermissions } from '../hooks/usePermissions';
+import LoadingScreen from '../components/LoadingScreen';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getWarehouses } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';

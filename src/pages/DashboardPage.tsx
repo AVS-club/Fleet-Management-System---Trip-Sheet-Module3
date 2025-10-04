@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import DashboardHeader from '../components/layout/DashboardHeader';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { usePermissions } from '../hooks/usePermissions';
+import LoadingScreen from '../components/LoadingScreen';
 import { getTrips, getVehicles, getVehicle, getVehicleStats } from '../utils/storage';
 import { getDrivers, getDriver } from '../utils/api/drivers';
 import { format } from 'date-fns';
