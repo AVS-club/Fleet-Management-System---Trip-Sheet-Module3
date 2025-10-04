@@ -175,7 +175,7 @@ const DashboardPage: React.FC = () => {
 
   // ✅ THEN PERMISSION CHECKS AFTER ALL HOOKS
   if (permissionsLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen isLoading={true} />;
   }
 
   // Redirect data entry users to vehicles page - FIXED: use correct permission property

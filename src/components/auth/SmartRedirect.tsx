@@ -1,12 +1,13 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { usePermissions } from '../../hooks/usePermissions';
+import LoadingScreen from '../LoadingScreen';
 
 const SmartRedirect: React.FC = () => {
   const { permissions, loading } = usePermissions();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen isLoading={true} />;
   }
 
   // For data entry users, redirect to trips instead of dashboard

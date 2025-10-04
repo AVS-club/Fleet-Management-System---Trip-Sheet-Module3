@@ -593,7 +593,7 @@ const TripPnlReportsPage: React.FC = () => {
 
   // ✅ PERMISSION CHECKS AFTER ALL HOOKS
   if (permissionsLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen isLoading={true} />;
   }
 
   // Redirect non-owner users - FIXED: use correct permission property

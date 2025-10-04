@@ -41,7 +41,7 @@ const AdminDashboard: React.FC = () => {
 
   // ✅ THEN PERMISSION CHECKS AFTER ALL HOOKS
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen isLoading={true} />;
   }
 
   if (!permissions?.canAccessAdmin) {

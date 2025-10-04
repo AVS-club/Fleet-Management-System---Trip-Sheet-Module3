@@ -134,7 +134,7 @@ const NotificationsPage: React.FC = () => {
 
   // Handle loading and permissions after all hooks
   if (permissionsLoading) {
-    return <div>Loading...</div>;
+    return <LoadingScreen isLoading={true} />;
   }
 
   if (!permissions?.canAccessAlerts) {
