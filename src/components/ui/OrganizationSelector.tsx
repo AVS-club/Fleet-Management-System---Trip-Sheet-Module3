@@ -28,10 +28,16 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
   // Use organization name from permissions if available
   const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
 
-  const sizeClasses = {
-    sm: 'h-8 px-2 text-xs',
-    md: 'h-9 px-3 text-sm',
-    lg: 'h-10 px-4 text-base'
+  const sizeLayouts = {
+    sm: 'h-8 px-3',
+    md: 'h-9 px-3',
+    lg: 'h-10 px-4'
+  };
+
+  const textSizes = {
+    sm: 'text-xs',
+    md: 'text-sm',
+    lg: 'text-base'
   };
 
   const iconSizes = {
@@ -40,11 +46,30 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     lg: 'h-5 w-5'
   };
 
+  const getAdaptiveNameSizeClass = (name: string, variant: 'sm' | 'md' | 'lg') => {
+    const length = name.trim().length;
+
+    if (variant === 'sm') {
+      if (length > 30) return 'text-[10px]';
+      if (length > 22) return 'text-[11px]';
+      return 'text-xs';
+    }
+
+    if (variant === 'md') {
+      if (length > 32) return 'text-[13px]';
+      return 'text-sm';
+    }
+
+    if (length > 36) return 'text-[15px]';
+    return 'text-base';
+  };
+
   if (loading) {
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2",
-        sizeClasses[size],
+        sizeLayouts[size],
+        textSizes[size],
         className
       )}>
         <Loader2 className={cn("animate-spin text-gray-400", iconSizes[size])} />
@@ -57,7 +82,8 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-2",
-        sizeClasses[size],
+        sizeLayouts[size],
+        textSizes[size],
         className
       )}>
         <Building2 className={cn("text-red-500", iconSizes[size])} />
@@ -68,13 +94,21 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
 
   if (organizations.length === 1) {
     return (
-      <div className={cn(
-        "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2",
-        sizeClasses[size],
-        className
-      )}>
-        <Building2 className={cn("text-gray-500 dark:text-gray-400", iconSizes[size])} />
-        <span className="text-gray-700 dark:text-gray-300 font-medium">
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-xl border border-[#f0dca3] bg-[#fff8e6] shadow-sm transition-colors duration-200 hover:border-[#e5c768] dark:bg-[#332915] dark:border-[#a9852a]/60 dark:hover:border-[#d6b24f]/60 shrink-0",
+          sizeLayouts[size],
+          textSizes[size],
+          className
+        )}
+      >
+        <Building2 className={cn("text-[#c49a3a] dark:text-[#e2c46d]", iconSizes[size])} />
+        <span
+          className={cn(
+            "text-gray-800 dark:text-gray-200 font-medium leading-tight tracking-tight whitespace-nowrap",
+            getAdaptiveNameSizeClass(displayName, size)
+          )}
+        >
           {displayName}
         </span>
       </div>
@@ -94,7 +128,8 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
           onChange={(e) => setCurrentOrganization(e.target.value)}
           className={cn(
             "appearance-none flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium transition-all duration-200 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent",
-            sizeClasses[size],
+            sizeLayouts[size],
+            textSizes[size],
             "pr-8"
           )}
           aria-label="Select organization"

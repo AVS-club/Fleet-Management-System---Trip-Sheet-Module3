@@ -114,8 +114,8 @@ export const calculateMaintenanceMetrics = (
     });
   }
   
-  // Calculate total tasks
-  const totalTasks = filteredTasks.length;
+  // Calculate total tasks - use ALL tasks, not just filtered ones
+  const totalTasks = Array.isArray(tasks) ? tasks.length : 0;
   
   // Calculate pending tasks
   const pendingTasks = filteredTasks.filter(task => 

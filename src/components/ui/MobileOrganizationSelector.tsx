@@ -8,6 +8,14 @@ interface MobileOrganizationSelectorProps {
   className?: string;
 }
 
+const getAdaptiveNameSizeClass = (name: string) => {
+  const length = name.trim().length;
+
+  if (length > 34) return 'text-[12px]';
+  if (length > 26) return 'text-[13px]';
+  return 'text-sm';
+};
+
 const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({ 
   className 
 }) => {
@@ -41,12 +49,19 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
     // Still show organization name from permissions if available
     if (permissions?.organizationName) {
       return (
-        <div className={cn(
-          "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2",
-          className
-        )}>
-          <Building2 className="h-4 w-4 text-primary-600" />
-          <span className="text-gray-900 dark:text-gray-100 text-sm font-medium">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-xl border border-[#f0dca3] bg-[#fff8e6] shadow-sm px-3 py-2 transition-colors duration-200 hover:border-[#e5c768] dark:bg-[#332915] dark:border-[#a9852a]/60 dark:hover:border-[#d6b24f]/60 shrink-0",
+            className
+          )}
+        >
+          <Building2 className="h-4 w-4 text-[#c49a3a] dark:text-[#e2c46d]" />
+          <span
+            className={cn(
+              "text-gray-800 dark:text-gray-200 font-medium leading-tight tracking-tight whitespace-nowrap",
+              getAdaptiveNameSizeClass(permissions.organizationName)
+            )}
+          >
             {permissions.organizationName}
           </span>
         </div>
@@ -67,12 +82,19 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
 
   if (organizations.length === 1) {
     return (
-      <div className={cn(
-        "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2",
-        className
-      )}>
-        <Building2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-        <span className="text-gray-700 dark:text-gray-300 font-medium text-sm">
+      <div
+        className={cn(
+          "flex items-center gap-2 rounded-xl border border-[#f0dca3] bg-[#fff8e6] shadow-sm px-3 py-2 transition-colors duration-200 hover:border-[#e5c768] dark:bg-[#332915] dark:border-[#a9852a]/60 dark:hover:border-[#d6b24f]/60 shrink-0",
+          className
+        )}
+      >
+        <Building2 className="h-4 w-4 text-[#c49a3a] dark:text-[#e2c46d]" />
+        <span
+          className={cn(
+            "text-gray-800 dark:text-gray-200 font-medium leading-tight tracking-tight whitespace-nowrap",
+            getAdaptiveNameSizeClass(displayName)
+          )}
+        >
           {displayName}
         </span>
       </div>

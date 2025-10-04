@@ -6,7 +6,8 @@ import {
   BarChart3, 
   Wrench, 
   Bell, 
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from 'lucide-react';
 
 type NavLink = {

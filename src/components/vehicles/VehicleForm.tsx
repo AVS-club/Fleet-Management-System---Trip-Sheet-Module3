@@ -567,6 +567,24 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
 
           <Input
+            label="Gross Vehicle Weight (GVW) (kg)"
+            type="number"
+            placeholder="Enter GVW in kg"
+            icon={<Weight className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('gvw', { valueAsNumber: true })}
+          />
+
+          <Input
+            label="Gross Brake Weight (GBW) (kg)"
+            type="number"
+            placeholder="Enter GBW in kg"
+            icon={<Weight className="h-4 w-4" />}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('gbw', { valueAsNumber: true })}
+          />
+
+          <Input
             label="Seating Capacity"
             type="number"
             icon={<Users className="h-4 w-4" />}

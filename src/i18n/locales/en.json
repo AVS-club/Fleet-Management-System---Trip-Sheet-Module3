@@ -28,6 +28,7 @@
     "drivers": "Drivers",
     "trips": "Trips",
     "maintenance": "Maintenance",
+    "partsHealth": "Parts Health",
     "expenses": "Expenses",
     "alerts": "Alerts",
     "reports": "Reports",

@@ -1,29 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Layout from '../components/layout/Layout'; 
-import { MaintenanceTask, Vehicle } from '@/types';
-import { getDateRangeForFilter, calculateMaintenanceMetrics, getMaintenanceMetricsWithComparison, exportMaintenanceReport } from '../utils/maintenanceAnalytics';
-import { getTasks } from '../utils/maintenanceStorage';
-import { getVehicles } from '../utils/storage';
-import { PlusCircle, PenTool as PenToolIcon, Download, Settings, BarChart3, Wrench, Calendar, Table } from 'lucide-react';
-import Button from '../components/ui/Button';
-import MaintenanceDashboardFilters from '../components/maintenance/MaintenanceDashboardFilters';
-import KPIPanel from '../components/maintenance/KPIPanel';
-import EnhancedMaintenanceTable from '../components/maintenance/EnhancedMaintenanceTable';
-import MaintenanceCalendar from '../components/maintenance/MaintenanceCalendar';
-import { useQuery } from '@tanstack/react-query';
-
+import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useLocation } from "react-router-dom";
+import Layout from "../components/layout/Layout";
+import { MaintenanceTask, Vehicle } from "@/types";
+import {
+  getDateRangeForFilter,
+  getMaintenanceMetricsWithComparison,
+} from "../utils/maintenanceAnalytics";
+import { getTasks } from "../utils/maintenanceStorage";
+import { getVehicles } from "../utils/storage";
+import { PlusCircle, BarChart3, Wrench, Calendar, Table } from "lucide-react";
+import Button from "../components/ui/Button";
+import KPIPanel from "../components/maintenance/KPIPanel";
+import EnhancedMaintenanceTable from "../components/maintenance/EnhancedMaintenanceTable";
+import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
+import { useQuery } from "@tanstack/react-query";
 const MaintenancePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const [dateRangeFilter, setDateRangeFilter] = useState('allTime');
+  const [dateRangeFilter] = useState("allTime");
   const [customDateRange, setCustomDateRange] = useState({
-    start: '',
-    end: ''
+    start: "",
+    end: "",
   });
-  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const [metrics, setMetrics] = useState<any>({
     totalTasks: 0,
     pendingTasks: 0,
@@ -40,151 +41,136 @@ const MaintenancePage = () => {
     previousPeriodComparison: {
       totalTasks: 0,
       totalExpenditure: 0,
-      percentChange: 0
-    }
+      percentChange: 0,
+    },
   });
-
   // Initialize custom date range values and handle action=new
   useEffect(() => {
     const today = new Date();
     setCustomDateRange({
-      start: '2020-01-01',
-      end: today.toISOString().split('T')[0]
+      start: "2020-01-01",
+      end: today.toISOString().split("T")[0],
     });
-    
     // Check query parameters for action=new
     const searchParams = new URLSearchParams(location.search);
-    const action = searchParams.get('action');
-    
-    if (action === 'new') {
+    const action = searchParams.get("action");
+    if (action === "new") {
       // Navigate to new maintenance task page
-      navigate('/maintenance/new');
+      navigate("/maintenance/new");
       // Clear query params
       const newUrl = window.location.pathname;
       window.history.replaceState({}, document.title, newUrl);
     }
   }, [location.search, navigate]);
-
   // Use React Query to fetch tasks
   const { data: tasks, isLoading: tasksLoading } = useQuery({
-    queryKey: ['maintenanceTasks'],
+    queryKey: ["maintenanceTasks"],
     queryFn: getTasks,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
   // Use React Query to fetch vehicles
   const { data: vehicles, isLoading: vehiclesLoading } = useQuery({
-    queryKey: ['vehicles'],
+    queryKey: ["vehicles"],
     queryFn: getVehicles,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
-
   // Calculate metrics whenever date range changes or data is loaded
   useEffect(() => {
     if (!tasksLoading && !vehiclesLoading && tasks && vehicles) {
       calculateMetrics(tasks, vehicles, dateRangeFilter);
     }
-  }, [dateRangeFilter, customDateRange, tasks, vehicles, tasksLoading, vehiclesLoading]);
-  
-  const calculateMetrics = async (tasksData: MaintenanceTask[], vehiclesData: Vehicle[], filter: string) => {
+  }, [
+    dateRangeFilter,
+    customDateRange,
+    tasks,
+    vehicles,
+    tasksLoading,
+    vehiclesLoading,
+  ]);
+  const calculateMetrics = async (
+    tasksData: MaintenanceTask[],
+    vehiclesData: Vehicle[],
+    filter: string,
+  ) => {
     try {
       const dateRange = getDateRangeForFilter(
-        filter, 
-        customDateRange.start, 
-        customDateRange.end
+        filter,
+        customDateRange.start,
+        customDateRange.end,
       );
-      
       // Get metrics with comparison to previous period
       const metricsData = await getMaintenanceMetricsWithComparison(
         dateRange,
         tasksData,
-        vehiclesData
+        vehiclesData,
       );
       setMetrics(metricsData);
     } catch (error) {
-      console.error('Error calculating maintenance metrics:', error);
+      console.error("Error calculating maintenance metrics:", error);
     }
   };
-  
-  const handleExportPDF = () => {
-    const dateRange = getDateRangeForFilter(dateRangeFilter, customDateRange.start, customDateRange.end);
-    exportMaintenanceReport(tasks || [], vehicles || [], 'pdf', dateRange);
-  };
-  
-  const handleExportCSV = () => {
-    const dateRange = getDateRangeForFilter(dateRangeFilter, customDateRange.start, customDateRange.end);
-    exportMaintenanceReport(tasks || [], vehicles || [], 'csv', dateRange);
-  };
-
   const loading = tasksLoading || vehiclesLoading;
-
   return (
     <Layout>
       {/* Page Header */}
       <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('maintenance.title')}</h1>
+          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+            {t("maintenance.title")}
+          </h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('maintenance.description')}</p>
+        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
+          {t("maintenance.description")}
+        </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
-            onClick={() => navigate('/maintenance/new')}
+            onClick={() => navigate("/maintenance/new")}
             icon={<PlusCircle className="h-4 w-4" />}
             inputSize="sm"
           >
-            {t('maintenance.newTask')}
+            {t("maintenance.newTask")}
           </Button>
           <Button
-            onClick={() => navigate('/parts-health')}
+            onClick={() => navigate("/parts-health-v2")}
             icon={<BarChart3 className="h-4 w-4" />}
             variant="outline"
             inputSize="sm"
           >
-            {t('maintenance.partsHealthAnalytics')}
+            {t("maintenance.partsHealthAnalytics")}
           </Button>
-          
           {/* View Toggle */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <Button
-              onClick={() => setViewMode('table')}
-              variant={viewMode === 'table' ? 'default' : 'outline'}
+              onClick={() => setViewMode("table")}
+              variant={viewMode === "table" ? "default" : "outline"}
               inputSize="sm"
               icon={<Table className="h-4 w-4" />}
               className="rounded-none border-0"
             >
-              {t('maintenance.table')}
+              {t("maintenance.table")}
             </Button>
             <Button
-              onClick={() => setViewMode('calendar')}
-              variant={viewMode === 'calendar' ? 'default' : 'outline'}
+              onClick={() => setViewMode("calendar")}
+              variant={viewMode === "calendar" ? "default" : "outline"}
               inputSize="sm"
               icon={<Calendar className="h-4 w-4" />}
               className="rounded-none border-0"
             >
-              {t('maintenance.calendar')}
+              {t("maintenance.calendar")}
             </Button>
           </div>
         </div>
       </div>
-
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 font-sans text-gray-600">Loading maintenance analytics...</p>
+          <p className="ml-3 font-sans text-gray-600">
+            Loading maintenance analytics...
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Global Filter Bar */}
-          <MaintenanceDashboardFilters
-            dateRangeFilter={dateRangeFilter}
-            onDateRangeFilterChange={setDateRangeFilter}
-            customDateRange={customDateRange}
-            onCustomDateRangeChange={setCustomDateRange}
-            onExportPDF={handleExportPDF}
-            onExportCSV={handleExportCSV}
-          />
-          
           {/* KPI Panel */}
           <KPIPanel
             totalTasks={metrics.totalTasks}
@@ -195,15 +181,14 @@ const MaintenancePage = () => {
             totalExpenditure={metrics.totalExpenditure}
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
-          
           {/* Enhanced Maintenance Table or Calendar */}
-          {viewMode === 'table' ? (
-            <EnhancedMaintenanceTable 
+          {viewMode === "table" ? (
+            <EnhancedMaintenanceTable
               tasks={tasks || []}
               vehicles={vehicles || []}
             />
           ) : (
-            <MaintenanceCalendar 
+            <MaintenanceCalendar
               tasks={tasks || []}
               vehicles={vehicles || []}
             />
@@ -213,5 +198,4 @@ const MaintenancePage = () => {
     </Layout>
   );
 };
-
 export default MaintenancePage;
