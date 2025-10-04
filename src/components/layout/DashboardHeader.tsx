@@ -144,8 +144,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
   return (
     <div className={`mb-3 ${className}`}>
       {/* Company branding header */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-3">
-        <div className="flex items-center justify-between">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-6 mb-3 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
           <div className="flex items-center space-x-4">
             {organization?.logo_url && !logoError && (
               <div className="relative flex items-center justify-center h-14 w-14 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200">

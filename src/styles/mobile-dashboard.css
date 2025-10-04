@@ -1,0 +1,34 @@
+/* Mobile Dashboard Optimizations */
+@media (max-width: 640px) {
+  /* Reduce header spacing */
+  .dashboard-header {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+  
+  /* Company branding section */
+  .company-branding {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .company-logo-wrapper {
+    height: 3rem !important;
+    width: 3rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  /* Reduce gap between elements */
+  .header-metrics {
+    gap: 0.5rem !important;
+  }
+  
+  /* Compact metric cards */
+  .metric-card {
+    padding: 0.5rem !important;
+  }
+  
+  /* Navigation spacing */
+  .mobile-nav-container {
+    padding: 0.5rem 0 !important;
+  }
+}

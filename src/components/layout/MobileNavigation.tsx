@@ -48,12 +48,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-lg border border-gray-200',
+          'lg:hidden fixed top-4 left-3 z-[60] p-2 rounded-lg bg-white shadow-lg border border-gray-200',
           className
         )}
         aria-label="Open navigation menu"
       >
-        <Menu className="h-6 w-6 text-gray-600" />
+        <Menu className="h-5 w-5 text-gray-600" />
       </button>
 
       {/* Mobile Menu Overlay */}

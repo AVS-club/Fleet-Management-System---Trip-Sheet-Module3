@@ -411,7 +411,56 @@ body {
     background-color: rgb(var(--brand-primary) / 0.3);
     color: rgb(var(--brand-primary));
   }
-}
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+  }
+
+  /* Prevent horizontal overscroll on mobile */
+  @media (max-width: 768px) {
+    .overflow-x-auto {
+      position: relative;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x proximity;
+    }
+    
+    .overflow-x-auto > div {
+      scroll-snap-align: start;
+    }
+    
+    /* Add fade effect at edges */
+    .overflow-x-auto::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 20px;
+      background: linear-gradient(to right, transparent, rgb(249 250 251));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .overflow-x-auto:not(:hover)::after {
+      opacity: 0;
+    }
+    
+    .overflow-x-auto[data-overflowing="true"]::after {
+      opacity: 1;
+    }
+    
+    .dark .overflow-x-auto::after {
+      background: linear-gradient(to right, transparent, rgb(17 24 39));
+    }
+  }}
 
 /* Custom Toastify Styling to Match Brand */
 .Toastify__toast {

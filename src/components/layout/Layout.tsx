@@ -15,10 +15,7 @@ const Layout: React.FC<LayoutProps> = ({
       <MobileNavigation />
 
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        {/* Mobile padding adjustment */}
-        <div className="pt-16 lg:pt-0">
-          {children}
-        </div>
+        {children}
       </main>
     </div>
   );

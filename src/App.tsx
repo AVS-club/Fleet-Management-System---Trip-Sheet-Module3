@@ -16,7 +16,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n/config';
-import MobileBottomNav from './components/layout/MobileBottomNav';
+// import MobileBottomNav from './components/layout/MobileBottomNav';
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -168,7 +168,7 @@ const App: React.FC = () => {
         </Suspense>
         
         {/* Mobile Bottom Navigation - Shows only on mobile */}
-        <MobileBottomNav />
+        {/* <MobileBottomNav /> */}
         
         <ToastContainer 
           position="top-right" 

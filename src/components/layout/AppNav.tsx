@@ -19,7 +19,8 @@ const AppNav: React.FC = () => {
   return (
     <nav className="flex items-center justify-between w-full">
       {/* Navigation - Mobile optimized with icon-first design */}
-      <div className="flex items-center justify-center gap-1 sm:gap-2">
+      <div className="flex items-center overflow-x-auto lg:overflow-x-visible scrollbar-hide">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 px-2">
         {navLinks.map(({ to, label, icon: Icon, hasQuickAdd, requiresPermission }) => {
           // Check if user has permission to view this nav item
           // While loading, show all items to prevent flickering
@@ -106,6 +107,7 @@ const AppNav: React.FC = () => {
             </div>
           );
         })}
+        </div>
       </div>
 
       {/* Navigation is always visible with icons */}

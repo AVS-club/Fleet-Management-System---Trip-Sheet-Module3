@@ -34,7 +34,7 @@ const Header: React.FC = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Brand Section */}
           <button
-            className="flex items-center gap-2 sm:gap-3 group transition-all duration-200"
+            className="flex items-center gap-2 sm:gap-3 group transition-all duration-200 ml-12 lg:ml-0"
             onClick={() => navigate("/")}
             aria-label="Go to Dashboard"
             title="Auto Vital Solution - Fleet Management System"

@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { usePermissions } from '../hooks/usePermissions';
-import { useHeroFeed } from '../hooks/useHeroFeed';
-import { RefreshCw, AlertCircle, FileText, Wrench, Truck, Activity, TrendingUp, Sparkles, Play } from 'lucide-react';
-import { supabase } from '../utils/supabaseClient';
+import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
+import { RefreshCw, Sparkles, Play } from 'lucide-react';
 
 // Fleet-relevant YouTube videos
 const FLEET_VIDEOS = [
@@ -36,6 +35,8 @@ const NotificationsPage: React.FC = () => {
     limit: 20
   });
 
+  const { data: kpiCards } = useKPICards();
+
   const events = data?.pages.flat() || [];
 
   // Count events by type
@@ -50,7 +51,7 @@ const NotificationsPage: React.FC = () => {
       activity: 0
     };
     
-    events.forEach(event => {
+    events.forEach((event: any) => {
       if (counts.hasOwnProperty(event.kind)) {
         counts[event.kind as keyof typeof counts]++;
       }
@@ -60,6 +61,13 @@ const NotificationsPage: React.FC = () => {
   };
 
   const counts = getCounts();
+
+  // Calculate media count from KPI cards
+  const mediaCount = kpiCards?.filter(card => 
+    card.kpi_payload?.type === 'youtube' || 
+    card.kpi_payload?.type === 'image' || 
+    card.kpi_payload?.type === 'playlist'
+  ).length ?? 0;
 
   // Intersection Observer for autoplay
   useEffect(() => {
@@ -154,7 +162,7 @@ const NotificationsPage: React.FC = () => {
   );
 
   // Video Reel Component
-  const VideoReel = ({ videoId, title, index }: any) => {
+  const VideoReel = ({ videoId, index }: any) => {
     const isPlaying = playingVideos.has(videoId);
     const videoIndex = index % FLEET_VIDEOS.length;
     const video = FLEET_VIDEOS[videoIndex];
@@ -180,10 +188,13 @@ const NotificationsPage: React.FC = () => {
             className="relative cursor-pointer group h-full"
             onClick={() => setPlayingVideos(new Set([videoId]))}
           >
-            <img 
+            <img
               src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
               alt={video.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+              }}
             />
             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
               <div className="bg-white/90 rounded-full p-4">
@@ -200,26 +211,24 @@ const NotificationsPage: React.FC = () => {
   };
 
   const renderEventCard = (event: any, index: number) => {
+    // Insert AI summary every 8 events (check first to avoid conflict with video reel)
+    if (index > 0 && index % 8 === 0) {
+      return (
+        <React.Fragment key={`fragment-${event.id}`}>
+          <AISummary index={index / 8} />
+          {renderOriginalEventCard(event)}
+        </React.Fragment>
+      );
+    }
+
     // Insert video reel every 4 events
     if (index > 0 && index % 4 === 0) {
       return (
         <React.Fragment key={`fragment-${event.id}`}>
           <VideoReel 
             videoId={`video-${index}`} 
-            title="Fleet Training" 
             index={index}
           />
-          {/* Original event card */}
-          {renderOriginalEventCard(event)}
-        </React.Fragment>
-      );
-    }
-
-    // Insert AI summary every 8 events
-    if (index > 0 && index % 8 === 0) {
-      return (
-        <React.Fragment key={`fragment-${event.id}`}>
-          <AISummary index={index / 8} />
           {renderOriginalEventCard(event)}
         </React.Fragment>
       );
@@ -259,10 +268,7 @@ const NotificationsPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      title="Fleet Activity Feed"
-      subtitle="Real-time updates and notifications from your fleet operations"
-    >
+    <Layout>
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Compact KPIs */}
         <CompactKPIs />
@@ -302,7 +308,7 @@ const NotificationsPage: React.FC = () => {
             <p className="text-xs text-gray-600">KPIs</p>
           </div>
           <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">4</span>
+            <span className="text-lg font-bold">{mediaCount}</span>
             <p className="text-xs text-gray-600">Media</p>
           </div>
         </div>
