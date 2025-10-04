@@ -38,15 +38,6 @@ const NotificationsPage: React.FC = () => {
 
   const events = data?.pages.flat() || [];
 
-  // Handle loading and permissions after all hooks
-  if (permissionsLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!permissions?.canAccessAlerts) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
   // Count events by type
   const getCounts = () => {
     const counts = {
@@ -98,6 +89,15 @@ const NotificationsPage: React.FC = () => {
 
     return () => observer.disconnect();
   }, [events]);
+
+  // Handle loading and permissions after all hooks
+  if (permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!permissions?.canAccessAlerts) {
+    return <Navigate to="/vehicles" replace />;
+  }
 
   const handleFilterClick = (filterId: string) => {
     if (filterId === 'all') {
