@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { signedUrlFromPath } from '@/utils/supaSignedUrl';
 import { fmtDateWithYear } from '@/utils/dateFmt';
+import { shareDocument } from '@/utils/documentShare';
 import { 
   Share2, 
   Download, 
@@ -95,22 +96,22 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
     }
   };
 
-  // WhatsApp share handler
-  const handleWhatsApp = () => {
+  // Enhanced share handler using document sharing utility
+  const handleShare = async () => {
     if (!signedUrl) return;
     
-    const message = encodeURIComponent(
-      `Vehicle: ${vehicleNumber}\n` +
-      `Document: ${docKind.toUpperCase()}\n` +
-      `Link: ${signedUrl}\n` +
-      `(Link expires in 24 hours)`
+    const documentData = {
+      url: signedUrl,
+      expiryDate: formattedDate,
+      type: docKind.toUpperCase()
+    };
+    
+    await shareDocument(
+      documentData,
+      vehicleNumber,
+      docKind.toUpperCase(),
+      'Shree Durga ENT'
     );
-    
-    const whatsappUrl = whatsappTo 
-      ? `https://wa.me/${whatsappTo}?text=${message}`
-      : `https://wa.me/?text=${message}`;
-    
-    window.open(whatsappUrl, '_blank');
   };
 
   // Download handler
@@ -188,13 +189,13 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
           {(signedUrl || !hasDocument) && !isLoading && (
             <div className="doc-popover__actions">
               <button
-                onClick={handleWhatsApp}
+                onClick={handleShare}
                 disabled={!hasDocument}
                 className="doc-popover__btn"
-                title="Share on WhatsApp"
+                title="Share Document"
               >
                 <Share2 size={16} />
-                WhatsApp
+                Share
               </button>
               
               <button

@@ -7,6 +7,13 @@ import { RefreshCw } from 'lucide-react';
 
 export default function HeroFeed() {
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
+  const feedKinds = useMemo(() => {
+    if (selectedFilters.includes('all')) {
+      return [];
+    }
+    return selectedFilters.filter(kind => kind !== 'media');
+  }, [selectedFilters]);
+
   const { 
     data, 
     fetchNextPage, 
@@ -15,7 +22,7 @@ export default function HeroFeed() {
     isLoading, 
     refetch 
   } = useHeroFeed({
-    kinds: selectedFilters,
+    kinds: feedKinds,
     limit: 20
   });
 
@@ -84,11 +91,12 @@ export default function HeroFeed() {
         ].map(option => {
           let count = 0;
           if (option.id === 'media') {
-            count = kpiCards?.filter(card => 
-              card.kpi_payload.type === 'youtube' || 
-              card.kpi_payload.type === 'image' || 
-              card.kpi_payload.type === 'playlist'
-            ).length || 0;
+            count = (kpiCards || [])
+              .filter(card => {
+                const type = card.kpi_payload?.type;
+                return type === 'youtube' || type === 'image' || type === 'playlist';
+              })
+              .length;
           } else {
             count = events.filter(e => e.kind === option.id).length;
           }
@@ -149,3 +157,4 @@ export default function HeroFeed() {
     </div>
   );
 }
+

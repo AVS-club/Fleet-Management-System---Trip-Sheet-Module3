@@ -10,6 +10,7 @@ import TripDashboard from '../components/trips/TripDashboard';
 import TripForm from '../components/trips/TripForm';
 import TripPnlModal from '../components/trips/TripPnlModal';
 import ComprehensiveFilters, { ViewMode } from '../components/trips/ComprehensiveFilters';
+import MobileFilters from '../components/trips/MobileFilters';
 import Button from '../components/ui/Button';
 import { Trip, TripFormData, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, createTrip, updateTrip, getWarehouses, getDestinations } from '../utils/storage';
@@ -614,25 +615,38 @@ const TripsPage: React.FC = () => {
             />
           )}
           
-          {/* Comprehensive Filters */}
-          <ComprehensiveFilters
+          {/* Mobile Filters */}
+          <MobileFilters
             filters={filters}
             onFiltersChange={handleFiltersChange}
             vehicles={vehicles}
             drivers={drivers}
             warehouses={warehouses}
-            materialTypes={materialTypes}
-            statistics={statistics}
-            isSearching={isSearching}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            searchResult={searchResult ? {
-              matchedFields: searchResult.matchedFields,
-              searchTime: searchResult.searchTime,
-              totalResults: searchResult.totalCount
-            } : undefined}
-            onSmartSearch={handleSmartSearch}
+            onFixMileage={handleFixMileage}
+            onShowDashboard={() => setShowDashboard(!showDashboard)}
           />
+          
+          {/* Comprehensive Filters - Desktop Only */}
+          <div className="hidden lg:block">
+            <ComprehensiveFilters
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              vehicles={vehicles}
+              drivers={drivers}
+              warehouses={warehouses}
+              materialTypes={materialTypes}
+              statistics={statistics}
+              isSearching={isSearching}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              searchResult={searchResult ? {
+                matchedFields: searchResult.matchedFields,
+                searchTime: searchResult.searchTime,
+                totalResults: searchResult.totalCount
+              } : undefined}
+              onSmartSearch={handleSmartSearch}
+            />
+          </div>
           
           {/* Loading State */}
           {loading ? (

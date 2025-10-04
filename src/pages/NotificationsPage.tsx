@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
+import MediaCard from '../components/HeroFeed/MediaCard';
 import { usePermissions } from '../hooks/usePermissions';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import { RefreshCw, Sparkles, Play } from 'lucide-react';
@@ -22,7 +23,14 @@ const NotificationsPage: React.FC = () => {
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
   const videoRefs = useRef<{ [key: string]: HTMLDivElement }>({});
-  
+
+  const feedKinds = useMemo(() => {
+    if (selectedFilters.includes('all')) {
+      return [];
+    }
+    return selectedFilters.filter(kind => kind !== 'media');
+  }, [selectedFilters]);
+
   const { 
     data, 
     fetchNextPage, 
@@ -31,11 +39,11 @@ const NotificationsPage: React.FC = () => {
     isLoading, 
     refetch 
   } = useHeroFeed({
-    kinds: selectedFilters.includes('all') ? [] : selectedFilters,
+    kinds: feedKinds,
     limit: 20
   });
 
-  const { data: kpiCards } = useKPICards();
+  const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
 
   const events = data?.pages.flat() || [];
 
@@ -62,12 +70,28 @@ const NotificationsPage: React.FC = () => {
 
   const counts = getCounts();
 
-  // Calculate media count from KPI cards
-  const mediaCount = kpiCards?.filter(card => 
-    card.kpi_payload?.type === 'youtube' || 
-    card.kpi_payload?.type === 'image' || 
-    card.kpi_payload?.type === 'playlist'
-  ).length ?? 0;
+  const mediaCards = useMemo(() => {
+    if (!kpiCards) {
+      return [];
+    }
+    return kpiCards.filter(card => {
+      const type = card.kpi_payload?.type;
+      return type === 'youtube' || type === 'image' || type === 'playlist';
+    });
+  }, [kpiCards]);
+
+  const mediaCount = mediaCards.length;
+  const isMediaOnly = selectedFilters.length === 1 && selectedFilters[0] === 'media';
+
+  const filteredEvents = useMemo(() => {
+    if (isMediaOnly) {
+      return [];
+    }
+    if (feedKinds.length === 0) {
+      return events;
+    }
+    return events.filter((event: any) => feedKinds.includes(event.kind));
+  }, [events, feedKinds, isMediaOnly]);
 
   // Intersection Observer for autoplay
   useEffect(() => {
@@ -106,7 +130,7 @@ const NotificationsPage: React.FC = () => {
     return () => {
       observer.disconnect();
     };
-  }, [events]); // Re-run when events change
+  }, [events, selectedFilters]); // Re-run when events change
 
   // Handle loading and permissions after all hooks
   if (permissionsLoading) {
@@ -128,7 +152,10 @@ const NotificationsPage: React.FC = () => {
       setSelectedFilters(newFilters.length === 0 ? ['all'] : newFilters);
     }
     // Force refetch when changing filters
-    setTimeout(() => refetch(), 100);
+    setTimeout(() => {
+      refetch();
+      refetchKPIs();
+    }, 100);
   };
 
   // AI Summary Component
@@ -160,7 +187,7 @@ const NotificationsPage: React.FC = () => {
         { label: 'Utilization', value: '0.1%' },
         { label: 'Mileage', value: '6.8 km/L' },
         { label: 'Load/Trip', value: '3,924 kg' },
-        { label: 'Cost/KM', value: '₹10.21' },
+        { label: 'Cost/KM', value: 'Rs 10.21' },
         { label: 'Distance', value: '12,450 km' }
       ].map((kpi, i) => (
         <div key={i} className="bg-white p-2 rounded text-center border border-gray-200">
@@ -179,7 +206,13 @@ const NotificationsPage: React.FC = () => {
     
     return (
       <div 
-        ref={el => { if (el) videoRefs.current[videoId] = el; }}
+        ref={el => {
+          if (el) {
+            videoRefs.current[videoId] = el;
+          } else {
+            delete videoRefs.current[videoId];
+          }
+        }}
         data-video-id={videoId}
         className="relative rounded-lg overflow-hidden bg-black video-reel-container"
         style={{ aspectRatio: '16/9', maxHeight: '400px' }}
@@ -349,9 +382,28 @@ const NotificationsPage: React.FC = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-4 text-gray-600">Loading feed...</p>
             </div>
-          ) : events.length > 0 ? (
+          ) : isMediaOnly ? (
+            mediaCards.length > 0 || FLEET_VIDEOS.length > 0 ? (
+              <div className="space-y-4">
+                {mediaCards.map((card, index) => (
+                  <MediaCard key={`media-card-${card.id ?? index}`} card={card} />
+                ))}
+                {FLEET_VIDEOS.map((video, index) => (
+                  <VideoReel
+                    key={`media-reel-${video.id}`}
+                    videoId={`media-${video.id}`}
+                    index={index}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <p className="text-gray-600">No media to display</p>
+              </div>
+            )
+          ) : filteredEvents.length > 0 ? (
             <>
-              {events.map((event, index) => renderEventCard(event, index))}
+              {filteredEvents.map((event, index) => renderEventCard(event, index))}
               
               {hasNextPage && (
                 <div className="text-center pt-4">

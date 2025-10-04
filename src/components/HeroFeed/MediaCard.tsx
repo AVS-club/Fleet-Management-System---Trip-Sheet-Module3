@@ -24,6 +24,15 @@ export default function MediaCard({ card }: MediaCardProps) {
     }
   };
 
+  if (!kpi_payload) {
+    return (
+      <div className={`p-6 rounded-lg border ${getThemeColor()}`}>
+        <h3 className="font-semibold text-gray-900 mb-1">{kpi_title || 'Media item unavailable'}</h3>
+        <p className="text-sm text-gray-600">This media entry is missing its content.</p>
+      </div>
+    );
+  }
+
   const handlePlay = () => {
     if (kpi_payload.type === 'youtube' && kpi_payload.videoId) {
       window.open(`https://www.youtube.com/watch?v=${kpi_payload.videoId}`, '_blank');
