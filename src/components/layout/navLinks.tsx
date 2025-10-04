@@ -15,16 +15,21 @@ type NavLink = {
   icon: React.ComponentType<{ className?: string }>;
   hasQuickAdd?: boolean;
   requiresPermission?: string;
+  mobileVisible?: boolean; // Add this property
 };
 
-// Note: Labels will be translated in the components that use these links
+// Desktop navigation includes all items
 export const navLinks: NavLink[] = [
-  { to: '/',                label: 'navigation.dashboard',  icon: LayoutDashboard, requiresPermission: 'canAccessDashboard' },
-  { to: '/vehicles',        label: 'navigation.vehicles',   icon: Truck,      hasQuickAdd: true },
-  { to: '/drivers',         label: 'navigation.drivers',    icon: Users,      hasQuickAdd: true },
-  { to: '/trips',           label: 'navigation.trips',      icon: Route,      hasQuickAdd: true },
-  { to: '/trip-pnl-reports', label: 'navigation.reports',       icon: BarChart3, requiresPermission: 'canAccessReports' },
-  { to: '/maintenance',     label: 'navigation.maintenance',    icon: Wrench,     hasQuickAdd: true },
-  { to: '/notifications',   label: 'navigation.alerts',     icon: Bell, requiresPermission: 'canAccessAlerts' },
-  { to: '/admin',           label: 'navigation.settings',      icon: ShieldCheck, requiresPermission: 'canAccessAdmin' },
+  { to: '/', label: 'navigation.dashboard', icon: LayoutDashboard, requiresPermission: 'canAccessDashboard', mobileVisible: false }, // Hide on mobile
+  { to: '/vehicles', label: 'navigation.vehicles', icon: Truck, hasQuickAdd: true, mobileVisible: true },
+  { to: '/drivers', label: 'navigation.drivers', icon: Users, hasQuickAdd: true, mobileVisible: true },
+  { to: '/trips', label: 'navigation.trips', icon: Route, hasQuickAdd: true, mobileVisible: true },
+  { to: '/trip-pnl-reports', label: 'navigation.reports', icon: BarChart3, requiresPermission: 'canAccessReports', mobileVisible: true },
+  { to: '/maintenance', label: 'navigation.maintenance', icon: Wrench, hasQuickAdd: true, mobileVisible: true },
+  { to: '/notifications', label: 'navigation.alerts', icon: Bell, requiresPermission: 'canAccessAlerts', mobileVisible: true },
+  { to: '/admin', label: 'navigation.settings', icon: ShieldCheck, requiresPermission: 'canAccessAdmin', mobileVisible: false }, // Move to hamburger
 ];
+
+// Helper function to get mobile navigation
+export const getMobileNavLinks = () => navLinks.filter(link => link.mobileVisible !== false);
+export const getHamburgerNavLinks = () => navLinks.filter(link => link.mobileVisible === false);

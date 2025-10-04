@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { navLinks } from './navLinks';
+import { navLinks, getMobileNavLinks } from './navLinks';
 import { cn } from '../../utils/cn';
 import { Plus } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -11,17 +11,28 @@ const AppNav: React.FC = () => {
   const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
   const { t } = useTranslation();
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+  
+  // Listen for window resize
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const handleQuickAdd = (path: string) => {
     navigate(`${path}?action=new`);
   };
+
+  // Use filtered links for mobile
+  const displayLinks = isMobile ? getMobileNavLinks() : navLinks;
 
   return (
     <nav className="flex items-center justify-between w-full">
       {/* Navigation - Mobile optimized with icon-first design */}
       <div className="flex items-center overflow-x-auto lg:overflow-x-visible scrollbar-hide">
         <div className="flex items-center justify-center gap-1 sm:gap-2 px-2">
-        {navLinks.map(({ to, label, icon: Icon, hasQuickAdd, requiresPermission }) => {
+        {displayLinks.map(({ to, label, icon: Icon, hasQuickAdd, requiresPermission }) => {
           // Check if user has permission to view this nav item
           // While loading, show all items to prevent flickering
           if (loading) {
@@ -42,7 +53,7 @@ const AppNav: React.FC = () => {
                 >
                   <div className="relative">
                     <Icon className="h-5 w-5 sm:h-5 sm:w-5" />
-                    {hasQuickAdd && (
+                    {hasQuickAdd && !isMobile && (
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -56,8 +67,8 @@ const AppNav: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  <span className="mt-0.5 text-[10px] sm:text-xs">
-                    {t(label)}
+                  <span className="mt-0.5 text-[10px] sm:text-xs whitespace-nowrap">
+                    {isMobile ? t(label).split(' ')[0] : t(label)}
                   </span>
                 </NavLink>
               </div>
@@ -85,7 +96,7 @@ const AppNav: React.FC = () => {
                 <div className="relative">
                   <Icon className="h-5 w-5 sm:h-5 sm:w-5" />
                   {/* Quick Add Badge for specific pages */}
-                  {hasQuickAdd && (
+                  {hasQuickAdd && !isMobile && (
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -100,8 +111,8 @@ const AppNav: React.FC = () => {
                   )}
                 </div>
                 {/* Small labels below icons on mobile */}
-                <span className="mt-0.5 text-[10px] sm:text-xs">
-                  {t(label)}
+                <span className="mt-0.5 text-[10px] sm:text-xs whitespace-nowrap">
+                  {isMobile ? t(label).split(' ')[0] : t(label)}
                 </span>
               </NavLink>
             </div>

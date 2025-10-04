@@ -77,9 +77,11 @@ const NotificationsPage: React.FC = () => {
           const videoId = entry.target.getAttribute('data-video-id');
           if (!videoId) return;
           
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            // Auto-play when more than 50% visible
             setPlayingVideos(prev => new Set([...prev, videoId]));
           } else {
+            // Stop playing when less than 50% visible
             setPlayingVideos(prev => {
               const newSet = new Set(prev);
               newSet.delete(videoId);
@@ -88,15 +90,23 @@ const NotificationsPage: React.FC = () => {
           }
         });
       },
-      { threshold: 0.5 }
+      { 
+        threshold: [0, 0.5, 1], // Multiple thresholds for better detection
+        rootMargin: '0px'
+      }
     );
 
-    Object.values(videoRefs.current).forEach(ref => {
-      if (ref) observer.observe(ref);
-    });
+    // Delay observation to ensure elements are rendered
+    setTimeout(() => {
+      Object.values(videoRefs.current).forEach(ref => {
+        if (ref) observer.observe(ref);
+      });
+    }, 100);
 
-    return () => observer.disconnect();
-  }, [events]);
+    return () => {
+      observer.disconnect();
+    };
+  }, [events]); // Re-run when events change
 
   // Handle loading and permissions after all hooks
   if (permissionsLoading) {
@@ -171,17 +181,18 @@ const NotificationsPage: React.FC = () => {
       <div 
         ref={el => { if (el) videoRefs.current[videoId] = el; }}
         data-video-id={videoId}
-        className="relative rounded-lg overflow-hidden bg-black"
-        style={{ aspectRatio: '9/16', maxHeight: '600px' }}
+        className="relative rounded-lg overflow-hidden bg-black video-reel-container"
+        style={{ aspectRatio: '16/9', maxHeight: '400px' }}
       >
         {isPlaying ? (
           <iframe
             className="w-full h-full"
-            src={`https://www.youtube.com/embed/${video.id}?autoplay=1&mute=1&controls=1&loop=1&playlist=${video.id}`}
+            src={`https://www.youtube.com/embed/${video.id}?autoplay=1&mute=1&controls=1&loop=1&playlist=${video.id}&playsinline=1`}
             title={video.title}
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
+            loading="lazy"
           />
         ) : (
           <div 
@@ -189,20 +200,21 @@ const NotificationsPage: React.FC = () => {
             onClick={() => setPlayingVideos(new Set([videoId]))}
           >
             <img
-              src={`https://img.youtube.com/vi/${video.id}/maxresdefault.jpg`}
+              src={`https://img.youtube.com/vi/${video.id}/hqdefault.jpg`}
               alt={video.title}
               className="w-full h-full object-cover"
+              loading="lazy"
               onError={(e) => {
-                e.currentTarget.src = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+                e.currentTarget.src = `https://img.youtube.com/vi/${video.id}/default.jpg`;
               }}
             />
-            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-              <div className="bg-white/90 rounded-full p-4">
-                <Play className="w-8 h-8 text-black" />
+            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center hover:bg-opacity-40 transition-all">
+              <div className="bg-white/90 rounded-full p-3 hover:scale-110 transition-transform">
+                <Play className="w-6 h-6 text-black" />
               </div>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent">
-              <p className="text-white font-semibold">{video.title}</p>
+            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+              <p className="text-white font-medium text-sm">{video.title}</p>
             </div>
           </div>
         )}

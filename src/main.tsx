@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./styles/mobile-dashboard.css";
+import "./styles/navigation-mobile.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./utils/themeContext";
 import { OrganizationProvider } from "./contexts/OrganizationContext";

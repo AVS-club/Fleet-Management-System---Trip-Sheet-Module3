@@ -1,0 +1,38 @@
+/* Mobile Navigation Optimizations */
+@media (max-width: 768px) {
+  /* Hide scrollbar but maintain scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Prevent horizontal overscroll */
+  nav {
+    max-width: 100vw;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Compact navigation items */
+  nav .nav-item {
+    min-width: 50px;
+    flex-shrink: 0;
+  }
+  
+  /* Fix video container aspect ratio */
+  .video-reel-container {
+    aspect-ratio: 16/9 !important;
+    max-height: 50vh !important;
+  }
+  
+  /* Ensure logo is always visible */
+  .logo-container {
+    position: relative;
+    z-index: 10;
+    margin-left: 3rem; /* Space for hamburger */
+  }
+}

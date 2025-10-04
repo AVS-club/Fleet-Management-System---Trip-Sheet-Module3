@@ -10,7 +10,8 @@ import {
   Wrench, 
   BarChart3,
   Settings,
-  Bell
+  Bell,
+  ShieldCheck
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -24,15 +25,10 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const location = useLocation();
   const { permissions, loading } = usePermissions();
 
+  // Only show items not visible in top nav
   const navigationItems = [
     { path: '/', label: 'Dashboard', icon: Home, requiresPermission: 'canAccessDashboard' },
-    { path: '/trips', label: 'Trips', icon: FileText },
-    { path: '/vehicles', label: 'Vehicles', icon: Truck },
-    { path: '/drivers', label: 'Drivers', icon: Users },
-    { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/trip-pnl-reports', label: 'P&L', icon: BarChart3, requiresPermission: 'canAccessReports' },
-    { path: '/admin', label: 'Admin', icon: Settings, requiresPermission: 'canAccessAdmin' },
-    { path: '/notifications', label: 'Alerts', icon: Bell, requiresPermission: 'canAccessAlerts' },
+    { path: '/admin', label: 'Settings', icon: Settings, requiresPermission: 'canAccessAdmin' },
   ];
 
   const isActive = (path: string) => {
