@@ -393,55 +393,154 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     try {
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       
-      // Add header
-      pdf.setFontSize(20);
+      // Add colorful header with gradient effect
+      pdf.setFillColor(59, 130, 246); // Blue background
+      pdf.rect(0, 0, pageWidth, 50, 'F');
+      
+      // White text on blue background
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('AVS Fleet Management', pageWidth / 2, 20, { align: 'center' });
+      
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Intelligent Fleet Solutions', pageWidth / 2, 30, { align: 'center' });
+      
+      // Report type with accent color
+      pdf.setFillColor(16, 185, 129); // Green accent
+      pdf.rect(0, 50, pageWidth, 20, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(18);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(reportType.replace(/-/g, ' ').toUpperCase(), pageWidth / 2, 62, { align: 'center' });
+      
+      // Date and period info with subtle background
+      pdf.setFillColor(249, 250, 251); // Light gray
+      pdf.rect(0, 70, pageWidth, 25, 'F');
+      
+      pdf.setTextColor(75, 85, 99);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, 82, { align: 'center' });
+      pdf.text(`Period: ${format(dateRange.startDate, 'dd/MM/yyyy')} to ${format(dateRange.endDate, 'dd/MM/yyyy')}`, pageWidth / 2, 90, { align: 'center' });
+      
+      let yPosition = 110;
+
+      // Key Metrics Section with colored cards
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(31, 41, 55);
-      pdf.text('AVS Fleet Management Report', pageWidth / 2, 20, { align: 'center' });
+      pdf.text('📊 Key Performance Indicators', 14, yPosition);
+      yPosition += 15;
+
+      // Create colored metric cards
+      const metricCards = [
+        { label: 'Total Revenue', value: `₹${metrics.totalRevenue.toLocaleString('en-IN')}`, color: [34, 197, 94] }, // Green
+        { label: 'Total Trips', value: metrics.totalTrips.toString(), color: [59, 130, 246] }, // Blue
+        { label: 'Active Vehicles', value: metrics.activeVehicles.toString(), color: [168, 85, 247] }, // Purple
+        { label: 'Active Drivers', value: metrics.activeDrivers.toString(), color: [245, 158, 11] } // Orange
+      ];
+
+      metricCards.forEach((metric, index) => {
+        const x = 14 + (index % 2) * 90;
+        const y = yPosition + Math.floor(index / 2) * 25;
+        
+        // Colored background
+        pdf.setFillColor(...metric.color);
+        pdf.roundedRect(x, y, 80, 20, 3, 3, 'F');
+        
+        // White text
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(metric.label, x + 5, y + 8);
+        
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(metric.value, x + 5, y + 16);
+      });
+
+      yPosition += 60;
+
+      // Executive Summary Section
+      pdf.setFillColor(239, 246, 255); // Light blue background
+      pdf.rect(14, yPosition, pageWidth - 28, 40, 'F');
       
+      pdf.setTextColor(31, 41, 55);
       pdf.setFontSize(14);
-      pdf.setTextColor(75, 85, 99);
-      pdf.text(reportType.replace(/-/g, ' ').toUpperCase(), pageWidth / 2, 30, { align: 'center' });
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('📋 Executive Summary', 20, yPosition + 12);
       
       pdf.setFontSize(10);
-      pdf.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, 38, { align: 'center' });
-      pdf.text(`Period: ${format(dateRange.startDate, 'dd/MM/yyyy')} to ${format(dateRange.endDate, 'dd/MM/yyyy')}`, pageWidth / 2, 45, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(75, 85, 99);
       
-      let yPosition = 60;
+      const summaryText = [
+        `This comprehensive ${reportType.replace(/-/g, ' ')} report provides detailed insights into your fleet operations.`,
+        `During the selected period, your fleet generated ₹${metrics.totalRevenue.toLocaleString('en-IN')} in revenue through ${metrics.totalTrips} completed trips.`,
+        `With ${metrics.activeVehicles} active vehicles and ${metrics.activeDrivers} drivers, your fleet utilization shows strong operational efficiency.`,
+        `The data presented below is sourced directly from your Supabase database and reflects real-time operational metrics.`
+      ];
+      
+      summaryText.forEach((text, index) => {
+        pdf.text(text, 20, yPosition + 20 + (index * 5));
+      });
 
-      // Add basic report content
-      pdf.setFontSize(12);
+      yPosition += 50;
+
+      // Detailed Analysis Section
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(31, 41, 55);
-      pdf.text(`${reportType.replace(/-/g, ' ').toUpperCase()} Report`, 14, yPosition);
-      yPosition += 10;
+      pdf.text('📈 Detailed Analysis', 14, yPosition);
+      yPosition += 15;
 
-      pdf.setFontSize(10);
-      pdf.setTextColor(75, 85, 99);
-      pdf.text('This report contains real data from your Supabase database.', 14, yPosition);
-      yPosition += 6;
-      pdf.text(`Total Revenue: ₹${metrics.totalRevenue.toLocaleString('en-IN')}`, 14, yPosition);
-      yPosition += 6;
-      pdf.text(`Total Trips: ${metrics.totalTrips}`, 14, yPosition);
-      yPosition += 6;
-      pdf.text(`Active Vehicles: ${metrics.activeVehicles}`, 14, yPosition);
-      yPosition += 6;
-      pdf.text(`Active Drivers: ${metrics.activeDrivers}`, 14, yPosition);
+      // Add specific report content based on type
+      switch (reportType) {
+        case 'trip-summary':
+          await addTripSummaryContent(pdf, yPosition, dateRange);
+          break;
+        case 'week-comparison':
+        case 'month-comparison':
+          await addComparisonContent(pdf, yPosition, reportType, dateRange);
+          break;
+        case 'fuel-analysis':
+          await addFuelAnalysisContent(pdf, yPosition, dateRange);
+          break;
+        case 'expense-report':
+          await addExpenseReportContent(pdf, yPosition, dateRange);
+          break;
+        default:
+          await addGenericReportContent(pdf, yPosition, reportType, dateRange);
+      }
 
-      // Add footer
+      // Add footer with company branding
       const pageCount = pdf.internal.pages.length - 1;
       for (let i = 1; i <= pageCount; i++) {
         pdf.setPage(i);
+        
+        // Footer background
+        pdf.setFillColor(31, 41, 55);
+        pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+        
+        // Footer text
+        pdf.setTextColor(255, 255, 255);
         pdf.setFontSize(8);
-        pdf.setTextColor(156, 163, 175);
-        pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pdf.internal.pageSize.getHeight() - 10, { align: 'center' });
-        pdf.text('© 2024 AVS - Auto Vital Solution', 14, pdf.internal.pageSize.getHeight() - 10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Page ${i} of ${pageCount}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+        pdf.text('© 2024 AVS - Auto Vital Solution | Intelligent Fleet Management', 14, pageHeight - 8);
+        pdf.text('Generated by AVS Fleet Management System', pageWidth - 14, pageHeight - 8, { align: 'right' });
       }
 
       // Save the PDF
       pdf.save(`AVS-${reportType}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
       // Show success message
-      alert('Report generated successfully!');
+      alert('Enhanced report generated successfully!');
       
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -449,6 +548,297 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     } finally {
       setGeneratingReport(null);
     }
+  };
+
+  // Helper function to add trip summary content
+  const addTripSummaryContent = async (pdf: any, yPosition: number, dateRange: any) => {
+    try {
+      const { data: trips } = await supabase
+        .from('trips')
+        .select(`
+          *,
+          vehicle:vehicles(registration_number),
+          driver:drivers(name)
+        `)
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString())
+        .limit(50);
+
+      if (trips && trips.length > 0) {
+        // Summary statistics
+        const totalDistance = trips.reduce((sum, trip) => 
+          sum + ((trip.end_km || 0) - (trip.start_km || 0)), 0);
+        const totalFuel = trips.reduce((sum, trip) => 
+          sum + (trip.total_fuel_cost || 0), 0);
+        const avgDistance = trips.length ? totalDistance / trips.length : 0;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(31, 41, 55);
+        pdf.text('Trip Summary Statistics', 14, yPosition);
+        yPosition += 10;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(75, 85, 99);
+        pdf.text(`• Total Distance Covered: ${totalDistance.toFixed(0)} km`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Total Fuel Cost: ₹${totalFuel.toFixed(2)}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Average Distance per Trip: ${avgDistance.toFixed(1)} km`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Fuel Efficiency: ${totalDistance > 0 ? (totalDistance / totalFuel).toFixed(2) : 0} km/₹`, 20, yPosition);
+        yPosition += 15;
+
+        // Trip details table
+        const tableData = trips.slice(0, 20).map(trip => [
+          format(new Date(trip.created_at), 'dd/MM/yy'),
+          trip.vehicle?.registration_number || 'N/A',
+          trip.driver?.name || 'N/A',
+          `${trip.from_location || 'N/A'} → ${trip.to_location || 'N/A'}`,
+          `${((trip.end_km || 0) - (trip.start_km || 0)).toFixed(0)} km`,
+          `₹${(trip.total_fuel_cost || 0).toFixed(2)}`
+        ]);
+
+        if (tableData.length > 0) {
+          pdf.autoTable({
+            head: [['Date', 'Vehicle', 'Driver', 'Route', 'Distance', 'Fuel Cost']],
+            body: tableData,
+            startY: yPosition,
+            theme: 'grid',
+            headStyles: { 
+              fillColor: [59, 130, 246],
+              textColor: [255, 255, 255],
+              fontSize: 9
+            },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [249, 250, 251] }
+          });
+        }
+      } else {
+        pdf.setFontSize(10);
+        pdf.setTextColor(239, 68, 68);
+        pdf.text('No trip data available for the selected period.', 14, yPosition);
+      }
+    } catch (error) {
+      console.error('Error adding trip summary:', error);
+    }
+  };
+
+  // Helper function to add comparison content
+  const addComparisonContent = async (pdf: any, yPosition: number, reportType: string, dateRange: any) => {
+    try {
+      let currentPeriodStart, currentPeriodEnd, previousPeriodStart, previousPeriodEnd;
+      
+      if (reportType === 'week-comparison') {
+        currentPeriodStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        currentPeriodEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+        previousPeriodStart = startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 });
+        previousPeriodEnd = endOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 });
+      } else {
+        currentPeriodStart = startOfMonth(new Date());
+        currentPeriodEnd = endOfMonth(new Date());
+        previousPeriodStart = startOfMonth(subMonths(new Date(), 1));
+        previousPeriodEnd = endOfMonth(subMonths(new Date(), 1));
+      }
+
+      const { data: currentTrips } = await supabase
+        .from('trips')
+        .select('*')
+        .gte('created_at', currentPeriodStart.toISOString())
+        .lte('created_at', currentPeriodEnd.toISOString());
+
+      const { data: previousTrips } = await supabase
+        .from('trips')
+        .select('*')
+        .gte('created_at', previousPeriodStart.toISOString())
+        .lte('created_at', previousPeriodEnd.toISOString());
+
+      const calculateMetrics = (trips: any[]) => {
+        return {
+          trips: trips?.length || 0,
+          distance: trips?.reduce((sum, trip) => sum + ((trip.end_km || 0) - (trip.start_km || 0)), 0) || 0,
+          fuel: trips?.reduce((sum, trip) => sum + (trip.total_fuel_cost || 0), 0) || 0,
+          revenue: trips?.reduce((sum, trip) => sum + ((trip.end_km || 0) - (trip.start_km || 0)) * 10, 0) || 0
+        };
+      };
+
+      const current = calculateMetrics(currentTrips || []);
+      const previous = calculateMetrics(previousTrips || []);
+
+      const calculatePercentChange = (old: number, newVal: number) => {
+        if (old === 0) return newVal > 0 ? 100 : 0;
+        return ((newVal - old) / old) * 100;
+      };
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(31, 41, 55);
+      pdf.text('Period-over-Period Comparison', 14, yPosition);
+      yPosition += 15;
+
+      const comparisonData = [
+        ['Metric', reportType === 'week-comparison' ? 'This Week' : 'This Month', 
+         reportType === 'week-comparison' ? 'Last Week' : 'Last Month', 'Change', '% Change'],
+        ['Total Trips', current.trips.toString(), previous.trips.toString(), 
+         (current.trips - previous.trips).toString(),
+         `${calculatePercentChange(previous.trips, current.trips).toFixed(1)}%`],
+        ['Distance (km)', current.distance.toFixed(0), previous.distance.toFixed(0),
+         (current.distance - previous.distance).toFixed(0),
+         `${calculatePercentChange(previous.distance, current.distance).toFixed(1)}%`],
+        ['Revenue (₹)', current.revenue.toFixed(0), previous.revenue.toFixed(0),
+         (current.revenue - previous.revenue).toFixed(0),
+         `${calculatePercentChange(previous.revenue, current.revenue).toFixed(1)}%`],
+        ['Fuel Cost (₹)', current.fuel.toFixed(2), previous.fuel.toFixed(2),
+         (current.fuel - previous.fuel).toFixed(2),
+         `${calculatePercentChange(previous.fuel, current.fuel).toFixed(1)}%`]
+      ];
+
+      pdf.autoTable({
+        head: [comparisonData[0]],
+        body: comparisonData.slice(1),
+        startY: yPosition,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [34, 197, 94],
+          textColor: [255, 255, 255],
+          fontSize: 9
+        },
+        bodyStyles: { fontSize: 8 },
+        alternateRowStyles: { fillColor: [249, 250, 251] }
+      });
+    } catch (error) {
+      console.error('Error adding comparison content:', error);
+    }
+  };
+
+  // Helper function to add fuel analysis content
+  const addFuelAnalysisContent = async (pdf: any, yPosition: number, dateRange: any) => {
+    try {
+      const { data: trips } = await supabase
+        .from('trips')
+        .select('total_fuel_cost, start_km, end_km, vehicle_id')
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+
+      if (trips && trips.length > 0) {
+        const totalFuel = trips.reduce((sum, trip) => sum + (trip.total_fuel_cost || 0), 0);
+        const totalDistance = trips.reduce((sum, trip) => 
+          sum + ((trip.end_km || 0) - (trip.start_km || 0)), 0);
+        const avgFuelCost = trips.length ? totalFuel / trips.length : 0;
+        const fuelEfficiency = totalFuel > 0 ? totalDistance / totalFuel : 0;
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(31, 41, 55);
+        pdf.text('Fuel Analysis Summary', 14, yPosition);
+        yPosition += 15;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(75, 85, 99);
+        pdf.text(`• Total Fuel Expenditure: ₹${totalFuel.toFixed(2)}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Average Fuel Cost per Trip: ₹${avgFuelCost.toFixed(2)}`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Fuel Efficiency: ${fuelEfficiency.toFixed(2)} km/₹`, 20, yPosition);
+        yPosition += 6;
+        pdf.text(`• Total Distance Covered: ${totalDistance.toFixed(0)} km`, 20, yPosition);
+      } else {
+        pdf.setFontSize(10);
+        pdf.setTextColor(239, 68, 68);
+        pdf.text('No fuel data available for the selected period.', 14, yPosition);
+      }
+    } catch (error) {
+      console.error('Error adding fuel analysis:', error);
+    }
+  };
+
+  // Helper function to add expense report content
+  const addExpenseReportContent = async (pdf: any, yPosition: number, dateRange: any) => {
+    try {
+      const { data: trips } = await supabase
+        .from('trips')
+        .select('total_fuel_cost, total_road_expenses, driver_expense, breakdown_expense, unloading_expense, miscellaneous_expense')
+        .gte('created_at', dateRange.startDate.toISOString())
+        .lte('created_at', dateRange.endDate.toISOString());
+
+      if (trips && trips.length > 0) {
+        const expenses = {
+          'Fuel': 0,
+          'Road Expenses': 0,
+          'Driver Expenses': 0,
+          'Breakdown': 0,
+          'Unloading': 0,
+          'Miscellaneous': 0
+        };
+
+        trips.forEach(trip => {
+          expenses['Fuel'] += trip.total_fuel_cost || 0;
+          expenses['Road Expenses'] += trip.total_road_expenses || 0;
+          expenses['Driver Expenses'] += trip.driver_expense || 0;
+          expenses['Breakdown'] += trip.breakdown_expense || 0;
+          expenses['Unloading'] += trip.unloading_expense || 0;
+          expenses['Miscellaneous'] += trip.miscellaneous_expense || 0;
+        });
+
+        const totalExpenses = Object.values(expenses).reduce((sum, val) => sum + val, 0);
+
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(31, 41, 55);
+        pdf.text('Expense Breakdown Analysis', 14, yPosition);
+        yPosition += 15;
+
+        const expenseData = Object.entries(expenses)
+          .filter(([_, amount]) => amount > 0)
+          .map(([category, amount]) => [
+            category,
+            `₹${amount.toFixed(2)}`,
+            `${((amount / totalExpenses) * 100).toFixed(1)}%`
+          ]);
+
+        if (expenseData.length > 0) {
+          pdf.autoTable({
+            head: [['Expense Category', 'Amount', 'Percentage']],
+            body: expenseData,
+            startY: yPosition,
+            theme: 'grid',
+            headStyles: { 
+              fillColor: [239, 68, 68],
+              textColor: [255, 255, 255],
+              fontSize: 9
+            },
+            bodyStyles: { fontSize: 8 },
+            alternateRowStyles: { fillColor: [254, 242, 242] }
+          });
+        }
+      } else {
+        pdf.setFontSize(10);
+        pdf.setTextColor(239, 68, 68);
+        pdf.text('No expense data available for the selected period.', 14, yPosition);
+      }
+    } catch (error) {
+      console.error('Error adding expense report:', error);
+    }
+  };
+
+  // Helper function to add generic report content
+  const addGenericReportContent = async (pdf: any, yPosition: number, reportType: string, dateRange: any) => {
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(31, 41, 55);
+    pdf.text(`${reportType.replace(/-/g, ' ').toUpperCase()} Analysis`, 14, yPosition);
+    yPosition += 15;
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(75, 85, 99);
+    pdf.text('This report provides comprehensive insights into your fleet operations.', 14, yPosition);
+    yPosition += 6;
+    pdf.text('All data is sourced from your live Supabase database and reflects current operational status.', 14, yPosition);
+    yPosition += 6;
+    pdf.text('For more detailed analysis, please contact your fleet management team.', 14, yPosition);
   };
 
   const reportTypes = [
