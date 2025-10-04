@@ -38,13 +38,13 @@ const NotificationsPage: React.FC = () => {
 
   const events = data?.pages.flat() || [];
 
-  // Redirect non-owner users
-  if (!permissionsLoading && !permissions?.canAccessAlerts) {
-    return <Navigate to="/vehicles" replace />;
-  }
-
+  // Handle loading and permissions after all hooks
   if (permissionsLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (!permissions?.canAccessAlerts) {
+    return <Navigate to="/vehicles" replace />;
   }
 
   // Count events by type
