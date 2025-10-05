@@ -31,7 +31,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
       <div className="bg-white rounded-lg shadow-sm p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500">Total Tasks</p>
+            <p className="text-xs text-gray-500">Total Tasks (All Time)</p>
             <h3 className="text-xl font-bold text-gray-900">{totalTasks}</h3>
             {previousPeriodComparison && (
               <p className="text-xs text-gray-500 mt-1">
@@ -41,7 +41,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
                   <span className="text-error-600">↓ {Math.abs(totalTasks - previousPeriodComparison.totalTasks)}</span>
                 ) : (
                   <span>No change</span>
-                )} vs previous period
+                )} vs last month
               </p>
             )}
           </div>
@@ -52,7 +52,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
       <div className="bg-white rounded-lg shadow-sm p-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500">Pending Tasks</p>
+            <p className="text-xs text-gray-500">Pending Tasks (All Time)</p>
             <h3 className="text-xl font-bold text-warning-600">{pendingTasks}</h3>
             <p className="text-xs text-gray-500 mt-1">Requires attention</p>
           </div>
@@ -64,7 +64,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-500">Avg. Completion</p>
-            <h3 className="text-xl font-bold text-gray-900">{averageCompletionTime.toFixed(1)} days</h3>
+            <h3 className="text-xl font-bold text-gray-900">{(averageCompletionTime * 24).toFixed(1)} hours</h3>
             <p className="text-xs text-gray-500 mt-1">Based on completed tasks</p>
           </div>
           <Clock className="h-6 w-6 text-primary-500" />
@@ -87,7 +87,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Avg. Maintenance Cost</p>
             <h3 className="text-xl font-bold text-gray-900">₹{averageCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-            <p className="text-xs text-gray-500 mt-1">Per maintenance task</p>
+            <p className="text-xs text-gray-500 mt-1">Per completed task (This Month)</p>
           </div>
           <IndianRupee className="h-6 w-6 text-primary-500" />
         </div>
@@ -102,7 +102,7 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
               <p className="text-xs mt-1">
                 <span className={previousPeriodComparison.percentChange > 0 ? 'text-error-600' : 'text-success-600'}>
                   {previousPeriodComparison.percentChange > 0 ? '↑' : '↓'} {Math.abs(Math.round(previousPeriodComparison.percentChange))}%
-                </span> vs previous
+                </span> vs last month
               </p>
             )}
           </div>

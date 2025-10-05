@@ -143,7 +143,7 @@ const MaintenancePage = () => {
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <Button
               onClick={() => setViewMode("calendar")}
-              variant={viewMode === "calendar" ? "primary" : "outline"}
+              variant={viewMode === "calendar" ? "default" : "outline"}
               inputSize="sm"
               icon={<Calendar className="h-4 w-4" />}
               className="rounded-none border-0"
@@ -152,7 +152,7 @@ const MaintenancePage = () => {
             </Button>
             <Button
               onClick={() => setViewMode("list")}
-              variant={viewMode === "list" ? "primary" : "outline"}
+              variant={viewMode === "list" ? "default" : "outline"}
               inputSize="sm"
               icon={<Wrench className="h-4 w-4" />}
               className="rounded-none border-0"
