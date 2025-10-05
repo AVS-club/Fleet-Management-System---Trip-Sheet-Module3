@@ -36,36 +36,114 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
   const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
   const [selectedPartType, setSelectedPartType] = useState<string>('all');
   
-  // Calculate metrics from parts data
+  // Extract parts from tasks.parts_replaced field
+  const extractedParts = useMemo(() => {
+    const replacedParts: Array<{
+      vehicleId: string;
+      vehicleReg: string;
+      partName: string;
+      category: string;
+      replacementDate: string;
+      kmAtReplacement: number;
+      cost: number;
+      vendor?: string;
+      status: 'good' | 'needs_attention' | 'overdue';
+      kmSinceReplacement: number;
+      expectedLife: number;
+    }> = [];
+
+    // Part life expectations (in km)
+    const PART_LIFE: Record<string, number> = {
+      'Tyres (All)': 60000,
+      'Tyres (Front)': 60000,
+      'Tyres (Rear)': 60000,
+      'Brake Pads': 40000,
+      'Brakes All': 40000,
+      'Battery': 80000,
+      'Clutch Plate': 100000,
+      'Gearbox': 150000,
+      'Engine Oil': 10000,
+      'Air Filter': 20000,
+      'Oil Filter': 10000,
+      'Fuel Filter': 30000,
+      'Alternator': 120000,
+      'Radiator': 100000,
+      'Shock Absorbers': 80000,
+      'Timing Belt': 100000,
+      'Leaf Springs': 120000,
+    };
+
+    vehicles.forEach(vehicle => {
+      const vehicleTasks = tasks.filter(t => t.vehicle_id === vehicle.id);
+      const currentOdometer = vehicle.current_odometer || 0;
+      
+      vehicleTasks.forEach(task => {
+        // PRIORITY 1: Read parts_replaced JSONB field
+        if (task.parts_replaced && Array.isArray(task.parts_replaced) && task.parts_replaced.length > 0) {
+          task.parts_replaced.forEach((part: any) => {
+            const kmAtReplacement = part.odometerAtReplacement || task.odometer_reading || 0;
+            const kmSince = currentOdometer - kmAtReplacement;
+            const expectedLife = PART_LIFE[part.partName] || 50000;
+            const lifePercentage = (kmSince / expectedLife) * 100;
+            
+            replacedParts.push({
+              vehicleId: vehicle.id,
+              vehicleReg: vehicle.registration_number,
+              partName: part.partName,
+              category: part.category || 'General',
+              replacementDate: part.replacementDate || task.start_date,
+              kmAtReplacement,
+              cost: part.cost || 0,
+              vendor: task.garage_id,
+              status: lifePercentage >= 100 ? 'overdue' : lifePercentage >= 80 ? 'needs_attention' : 'good',
+              kmSinceReplacement: kmSince,
+              expectedLife
+            });
+          });
+        }
+      });
+    });
+
+    console.log('Parts detected from tasks:', replacedParts.length, replacedParts);
+    return replacedParts;
+  }, [tasks, vehicles]);
+
+  // Calculate metrics from both partsMetrics and extracted parts
   const metrics = useMemo(() => {
-    const critical = partsMetrics.filter(p => p.status === 'critical').length;
-    const warning = partsMetrics.filter(p => p.status === 'warning').length;
-    const good = partsMetrics.filter(p => p.status === 'good').length;
-    const upcomingCost = partsMetrics
+    // Use extracted parts if available, otherwise fall back to partsMetrics
+    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
+    
+    const critical = allParts.filter(p => p.status === 'overdue' || p.status === 'critical').length;
+    const warning = allParts.filter(p => p.status === 'needs_attention' || p.status === 'warning').length;
+    const good = allParts.filter(p => p.status === 'good').length;
+    const upcomingCost = allParts
       .filter(p => p.status !== 'good')
-      .reduce((sum, p) => sum + (p.estimatedCost || 0), 0);
+      .reduce((sum, p) => sum + (p.cost || p.estimatedCost || 0), 0);
 
     return { critical, warning, good, upcomingCost };
-  }, [partsMetrics]);
+  }, [extractedParts, partsMetrics]);
 
   // Filter parts by selected type
   const filteredParts = useMemo(() => {
-    if (selectedPartType === 'all') return partsMetrics;
-    return partsMetrics.filter(part => part.partName === selectedPartType);
-  }, [partsMetrics, selectedPartType]);
+    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
+    if (selectedPartType === 'all') return allParts;
+    return allParts.filter(part => part.partName === selectedPartType);
+  }, [extractedParts, partsMetrics, selectedPartType]);
 
   // Get unique part types for filter
   const partTypes = useMemo(() => {
-    const types = [...new Set(partsMetrics.map(p => p.partName))];
+    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
+    const types = [...new Set(allParts.map(p => p.partName))];
     return types.sort();
-  }, [partsMetrics]);
+  }, [extractedParts, partsMetrics]);
 
   // Get critical parts requiring attention
   const criticalParts = useMemo(() => {
-    return partsMetrics
-      .filter(p => p.status === 'critical')
-      .sort((a, b) => (b.kmOverdue || 0) - (a.kmOverdue || 0));
-  }, [partsMetrics]);
+    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
+    return allParts
+      .filter(p => p.status === 'overdue' || p.status === 'critical')
+      .sort((a, b) => (b.kmSinceReplacement || b.kmOverdue || 0) - (a.kmSinceReplacement || a.kmOverdue || 0));
+  }, [extractedParts, partsMetrics]);
 
   return (
     <div className="space-y-6">
