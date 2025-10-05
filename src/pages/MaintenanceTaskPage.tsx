@@ -15,7 +15,7 @@ import {
 import { getVehicles } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, Trash2, Edit } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 // Define a more specific type for the data coming from MaintenanceTaskForm
@@ -73,10 +73,15 @@ interface MaintenanceFormData {
 const MaintenanceTaskPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [task, setTask] = useState<MaintenanceTask | null>(null);
+  const location = useLocation();
+  const locationState = (location.state as { task?: MaintenanceTask; mode?: string } | undefined) || {};
+  const [task, setTask] = useState<MaintenanceTask | null>(locationState.task || null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const searchParams = new URLSearchParams(location.search);
+  const modeParam = searchParams.get('mode');
+  const isViewMode = (modeParam || (locationState.mode ?? undefined)) === 'view';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -452,18 +457,32 @@ const MaintenanceTaskPage: React.FC = () => {
 
   return (
     <Layout
-      title={id === "new" ? "New Maintenance Task" : "Edit Maintenance Task"}
-      subtitle={task ? `Task #${task.id}` : "Create a new maintenance task"}
+      title={
+        id === "new"
+          ? "New Maintenance Task"
+          : isViewMode
+          ? "Maintenance Task Details"
+          : "Edit Maintenance Task"
+      }
+      subtitle={
+        task
+          ? `Task #${task.id}`
+          : id === "new"
+          ? "Create a new maintenance task"
+          : "Loading maintenance task..."
+      }
       actions={
-        id !== "new" ? (
-          <Button
-            variant="danger"
-            onClick={handleDelete}
-            icon={<Trash2 className="h-4 w-4" />}
-          >
-            Delete Task
-          </Button>
-        ) : undefined
+        !isViewMode && id !== "new"
+          ? (
+              <Button
+                variant="danger"
+                onClick={handleDelete}
+                icon={<Trash2 className="h-4 w-4" />}
+              >
+                Delete Task
+              </Button>
+            )
+          : undefined
       }
     >
       {loading ? (
@@ -479,28 +498,98 @@ const MaintenanceTaskPage: React.FC = () => {
             <Button
               variant="outline"
               inputSize="sm"
-              onClick={() => navigate("/maintenance")}
+              onClick={() => navigate("/maintenance") }
               icon={<ChevronLeft className="h-4 w-4" />}
             >
               Back to Maintenance
             </Button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <MaintenanceTaskForm
-              vehicles={vehicles}
-              initialData={task || undefined}
-              onSubmit={handleSubmit}
-              isSubmitting={isSubmitting}
-            />
-          </div>
+          {isViewMode ? (
+            task ? (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      navigate(`/maintenance/`, {
+                        state: { task, mode: "edit" },
+                      })
+                    }
+                    icon={<Edit className="h-4 w-4" />}
+                  >
+                    Edit Task
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Vehicle</h3>
+                    <p className="text-gray-900">
+                      {vehicles.find((v) => v.id === task.vehicle_id)?.registrationNumber || 'Unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Status</h3>
+                    <p className="text-gray-900 capitalize">{task.status}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Priority</h3>
+                    <p className="text-gray-900 capitalize">{task.priority}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Task Type</h3>
+                    <p className="text-gray-900 capitalize">{task.task_type?.replace(/_/g, ' ')}</p>
+                  </div>
+                  {task.description && (
+                    <div className="md:col-span-2">
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
+                      <p className="text-gray-900">{task.description}</p>
+                    </div>
+                  )}
+                  {task.estimated_cost && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Estimated Cost</h3>
+                      <p className="text-gray-900">₹{task.estimated_cost.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {task.actual_cost && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
+                      <p className="text-gray-900">₹{task.actual_cost.toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm p-6 text-center text-gray-500">
+                Task details not available.
+              </div>
+            )
+          ) : (
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <MaintenanceTaskForm
+                vehicles={vehicles}
+                initialData={task || undefined}
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+              />
+            </div>
+          )}
         </div>
       )}
     </Layout>
   );
 };
 
+
 export default MaintenanceTaskPage;
+
+
+
+
+
+
 
 
 
