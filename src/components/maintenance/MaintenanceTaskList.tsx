@@ -146,10 +146,26 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                     {/* Task Title */}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {Array.isArray(task.title) ? task.title.join(', ') : task.title || 'Maintenance Task'}
+                        {(() => {
+                          if (Array.isArray(task.title)) {
+                            return task.title.join(', ');
+                          } else if (typeof task.title === 'object' && task.title !== null) {
+                            // Handle i18n object like {en: "text", hi: "text"}
+                            return task.title.en || task.title.hi || Object.values(task.title)[0] || 'Maintenance Task';
+                          } else if (typeof task.title === 'string') {
+                            return task.title;
+                          }
+                          return 'Maintenance Task';
+                        })()}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
-                        {task.description || 'No description'}
+                        {(() => {
+                          if (typeof task.description === 'object' && task.description !== null) {
+                            // Handle i18n object like {en: "text", hi: "text"}
+                            return task.description.en || task.description.hi || Object.values(task.description)[0] || 'No description';
+                          }
+                          return task.description || 'No description';
+                        })()}
                       </p>
                     </div>
 
@@ -234,7 +250,17 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                         <div className="mt-2 space-y-1">
                           {task.service_groups.map((group, index) => (
                             <div key={index} className="text-sm text-gray-600">
-                              {Array.isArray(group.tasks) ? group.tasks.join(', ') : 'No services listed'}
+                              {(() => {
+                                if (Array.isArray(group.tasks)) {
+                                  return group.tasks.map(task => {
+                                    if (typeof task === 'object' && task !== null) {
+                                      return task.en || task.hi || Object.values(task)[0] || task;
+                                    }
+                                    return task;
+                                  }).join(', ');
+                                }
+                                return 'No services listed';
+                              })()}
                               {group.cost > 0 && (
                                 <span className="ml-2 text-green-600 font-medium">
                                   ({formatCurrency(group.cost)})
@@ -253,7 +279,12 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                         <div className="mt-2 space-y-1">
                           {task.parts_required.map((part, index) => (
                             <div key={index} className="text-sm text-gray-600">
-                              {part.name} (Qty: {part.quantity})
+                              {(() => {
+                                if (typeof part.name === 'object' && part.name !== null) {
+                                  return part.name.en || part.name.hi || Object.values(part.name)[0] || 'Unknown Part';
+                                }
+                                return part.name || 'Unknown Part';
+                              })()} (Qty: {part.quantity})
                               {part.total_cost > 0 && (
                                 <span className="ml-2 text-green-600 font-medium">
                                   ({formatCurrency(part.total_cost)})
