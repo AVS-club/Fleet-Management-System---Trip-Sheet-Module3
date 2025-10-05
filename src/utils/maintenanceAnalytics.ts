@@ -742,12 +742,15 @@ export const getMaintenanceMetricsWithComparison = async (
       return isValid(taskDate) && isWithinInterval(taskDate, previousDateRange);
     }) : [];
     
-    // Calculate metrics for current period
+    // Calculate metrics for current period - but use ALL tasks for totalTasks
     const currentMetrics = calculateMaintenanceMetrics(
       currentTasks,
       Array.isArray(vehicles) ? vehicles : [],
       currentDateRange
     );
+    
+    // Override totalTasks to show ALL tasks, not just filtered ones
+    currentMetrics.totalTasks = Array.isArray(tasks) ? tasks.length : 0;
     
     // Calculate total tasks and expenditure for previous period
     const previousTotalTasks = previousTasks.length;
