@@ -22,7 +22,8 @@ i18n
   .init({
     resources,
     fallbackLng: 'en', // Fallback language
-    lng: 'hi', // Default language (Hindi for Indian market)
+    lng: 'en', // Default language (English for global accessibility)
+    supportedLngs: ['en', 'hi'], // Only support English and Hindi
     debug: false,
     
     interpolation: {
@@ -30,9 +31,13 @@ i18n
     },
     
     detection: {
-      // Order of language detection
+      // Order of language detection - prioritize English
       order: ['localStorage', 'navigator'],
-      caches: ['localStorage']
+      caches: ['localStorage'],
+      // Force English as default if no preference is stored
+      lookupLocalStorage: 'i18nextLng',
+      // Don't auto-detect from browser if no stored preference
+      checkWhitelist: true
     },
     
     // Ensure proper initialization
