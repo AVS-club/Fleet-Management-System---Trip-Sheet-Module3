@@ -66,13 +66,13 @@ const MaintenancePage = () => {
   const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["maintenanceTasks"],
     queryFn: getTasks,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds
   });
   // Use React Query to fetch vehicles
   const { data: vehicles, isLoading: vehiclesLoading } = useQuery({
     queryKey: ["vehicles"],
     queryFn: getVehicles,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds
   });
   // Calculate metrics whenever date range changes or data is loaded
   useEffect(() => {
