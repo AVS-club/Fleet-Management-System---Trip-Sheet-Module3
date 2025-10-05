@@ -64,7 +64,8 @@
     "vsLastMonth": "पिछले महीने से",
     "overview": "अवलोकन",
     "analytics": "विश्लेषण",
-    "maintenance": "मेंटेनेंस"
+    "maintenance": "मेंटेनेंस",
+    "totalTripsLabel": "कुल यात्राएं"
   },
   "vehicles": {
     "title": "गाड़ियां",

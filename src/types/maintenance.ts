@@ -88,6 +88,16 @@ export interface MaintenanceTask {
     warranty_expiry_date: string;
   };
   parts_required: MaintenancePart[];
+  parts_replaced?: Array<{
+    id: string;
+    partName: string;
+    category: string;
+    quantity: number;
+    cost: number;
+    brand: string;
+    odometerAtReplacement: number;
+    replacementDate: string;
+  }>;
   start_date: string;
   end_date?: string;
   downtime_days: number;

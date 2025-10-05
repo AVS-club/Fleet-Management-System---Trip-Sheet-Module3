@@ -64,6 +64,17 @@ const DashboardPage: React.FC = () => {
         totalFuel: 0,
         avgMileage: 0,
         tripsThisMonth: 0,
+        tripsLastMonth: 0,
+        distanceThisMonth: 0,
+        distanceLastMonth: 0,
+        avgMileageThisMonth: 0,
+        avgMileageLastMonth: 0,
+        fuelThisMonth: 0,
+        fuelLastMonth: 0,
+        tripsChangePercent: 0,
+        distanceChangePercent: 0,
+        avgMileageChangePercent: 0,
+        fuelChangePercent: 0,
         lastTripDate: undefined,
         bestVehicle: null,
         bestVehicleMileage: 0,
@@ -76,56 +87,105 @@ const DashboardPage: React.FC = () => {
     }
 
     try {
-      // Pre-calculate values to avoid repeated calculations
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
-      
+      const previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
+      const prevMonth = previousMonthDate.getMonth();
+      const prevYear = previousMonthDate.getFullYear();
+      const currentDayOfMonth = now.getDate();
+      const daysInPreviousMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+      const comparisonDayForPrevMonth = Math.min(currentDayOfMonth, daysInPreviousMonth);
+
       let totalDistance = 0;
       let totalFuel = 0;
       let tripsWithKmpl = 0;
       let totalKmpl = 0;
       let tripsThisMonth = 0;
+      let tripsLastMonth = 0;
+      let distanceThisMonth = 0;
+      let distanceLastMonth = 0;
+      let fuelThisMonth = 0;
+      let fuelLastMonth = 0;
+      let mileageThisMonthTotal = 0;
+      let mileageThisMonthCount = 0;
+      let mileageLastMonthTotal = 0;
+      let mileageLastMonthCount = 0;
       const tripDates: number[] = [];
-      
-      // Single pass through trips for better performance
+
       for (const trip of trips) {
-        // Distance calculation
         const distance = trip.end_km - trip.start_km;
         totalDistance += distance;
-        
-        // Fuel calculation
-        totalFuel += trip.fuel_quantity || 0;
-        
-        // Mileage calculation
+
+        const fuelQuantity = trip.fuel_quantity || 0;
+        totalFuel += fuelQuantity;
+
         if (trip.calculated_kmpl && trip.calculated_kmpl > 0) {
           tripsWithKmpl++;
           totalKmpl += trip.calculated_kmpl;
         }
-        
-        // Monthly trips
+
         const tripDate = new Date(trip.trip_start_date);
-        if (tripDate.getMonth() === currentMonth && tripDate.getFullYear() === currentYear) {
+        const tripMonth = tripDate.getMonth();
+        const tripYear = tripDate.getFullYear();
+        const tripDay = tripDate.getDate();
+
+        if (tripMonth === currentMonth && tripYear === currentYear && tripDay <= currentDayOfMonth) {
           tripsThisMonth++;
+          distanceThisMonth += distance;
+          fuelThisMonth += fuelQuantity;
+
+          if (trip.calculated_kmpl && trip.calculated_kmpl > 0) {
+            mileageThisMonthCount++;
+            mileageThisMonthTotal += trip.calculated_kmpl;
+          }
+        } else if (tripMonth === prevMonth && tripYear === prevYear && tripDay <= comparisonDayForPrevMonth) {
+          tripsLastMonth++;
+          distanceLastMonth += distance;
+          fuelLastMonth += fuelQuantity;
+
+          if (trip.calculated_kmpl && trip.calculated_kmpl > 0) {
+            mileageLastMonthCount++;
+            mileageLastMonthTotal += trip.calculated_kmpl;
+          }
         }
-        
-        // Date tracking
+
         tripDates.push(tripDate.getTime());
       }
-      
+
       const avgMileage = tripsWithKmpl > 0 ? totalKmpl / tripsWithKmpl : 0;
+      const avgMileageThisMonth = mileageThisMonthCount > 0 ? mileageThisMonthTotal / mileageThisMonthCount : 0;
+      const avgMileageLastMonth = mileageLastMonthCount > 0 ? mileageLastMonthTotal / mileageLastMonthCount : 0;
+
+      const calculateChangePercent = (currentValue: number, previousValue: number) => {
+        if (previousValue === 0) {
+          return 0;
+        }
+        return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+      };
+
       const mileageInsights = getMileageInsights(trips);
-      
       const earliestTripDate = tripDates.length > 0 ? new Date(Math.min(...tripDates)) : undefined;
       const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
-      
+
       return {
         totalTrips: trips.length,
         totalDistance,
         totalFuel,
         avgMileage,
         tripsThisMonth,
-        lastTripDate: tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined,
+        tripsLastMonth,
+        distanceThisMonth,
+        distanceLastMonth,
+        avgMileageThisMonth,
+        avgMileageLastMonth,
+        fuelThisMonth,
+        fuelLastMonth,
+        tripsChangePercent: calculateChangePercent(tripsThisMonth, tripsLastMonth),
+        distanceChangePercent: calculateChangePercent(distanceThisMonth, distanceLastMonth),
+        avgMileageChangePercent: calculateChangePercent(avgMileageThisMonth, avgMileageLastMonth),
+        fuelChangePercent: calculateChangePercent(fuelThisMonth, fuelLastMonth),
+        lastTripDate: latestTripDate,
         bestVehicle: null,
         bestVehicleMileage: mileageInsights.bestVehicleMileage,
         bestDriver: null,
@@ -142,6 +202,17 @@ const DashboardPage: React.FC = () => {
         totalFuel: 0,
         avgMileage: 0,
         tripsThisMonth: 0,
+        tripsLastMonth: 0,
+        distanceThisMonth: 0,
+        distanceLastMonth: 0,
+        avgMileageThisMonth: 0,
+        avgMileageLastMonth: 0,
+        fuelThisMonth: 0,
+        fuelLastMonth: 0,
+        tripsChangePercent: 0,
+        distanceChangePercent: 0,
+        avgMileageChangePercent: 0,
+        fuelChangePercent: 0,
         lastTripDate: undefined,
         bestVehicle: null,
         bestVehicleMileage: 0,
@@ -196,6 +267,18 @@ const DashboardPage: React.FC = () => {
   // Check if we have enough data to show insights
   const hasEnoughData = Array.isArray(trips) && trips.length > 0;
   const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
+
+  const buildTrend = (percent?: number | null) => {
+    if (percent === null || percent === undefined || Number.isNaN(percent)) {
+      return undefined;
+    }
+
+    return {
+      value: Number(percent.toFixed(1)),
+      label: t('dashboard.vsLastMonth'),
+      isPositive: percent >= 0,
+    };
+  };
   
   // Handle errors
   const hasError = tripsError || vehiclesError || driversError;
@@ -252,14 +335,10 @@ const DashboardPage: React.FC = () => {
               className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all"
             >
               <StatCard
-                title={t('dashboard.totalTrips')}
+                title={t('dashboard.totalTripsLabel')}
                 value={stats.totalTrips}
                 icon={<BarChart className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
-                trend={stats.tripsThisMonth > 0 ? {
-                  value: 12,
-                  label: t('dashboard.vsLastMonth'),
-                  isPositive: true
-                } : undefined}
+                trend={buildTrend(stats.tripsChangePercent)}
               />
             </div>
 
@@ -283,6 +362,7 @@ const DashboardPage: React.FC = () => {
                     : ""
                 }
                 subtitle="km"
+                trend={buildTrend(stats.distanceChangePercent)}
                 icon={<TrendingUp className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
               />
             </div>
@@ -303,6 +383,7 @@ const DashboardPage: React.FC = () => {
                         : ""
                     }
                     subtitle="km/L"
+                    trend={buildTrend(stats.avgMileageChangePercent)}
                     icon={<Calculator className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
                   />
                 </div>
@@ -312,6 +393,7 @@ const DashboardPage: React.FC = () => {
                     title={t('dashboard.totalFuelUsed')}
                     value={NumberFormatter.large(stats.totalFuel)}
                     subtitle="L"
+                    trend={buildTrend(stats.fuelChangePercent)}
                     icon={<Fuel className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
                   />
                 </div>

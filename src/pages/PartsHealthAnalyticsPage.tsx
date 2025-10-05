@@ -136,18 +136,49 @@ const PartsHealthAnalyticsPage: React.FC = () => {
 
   return (
     <Layout>
-      {/* Page Header - Same style as Maintenance Dashboard */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      {/* Page Header with Apple Design */}
+      <div className="rounded-xl border bg-white/95 backdrop-blur-sm px-4 py-3 shadow-sm mb-6 border-gray-200/80">
         <div className="flex items-center group">
-          <Settings className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+          <Settings className="h-5 w-5 mr-2 text-gray-400 group-hover:text-blue-500 transition-colors duration-200" />
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
             Parts Health & Analytics
           </h1>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
-          Monitor and analyze the health of all vehicle parts across your fleet
+        <p className="text-sm text-gray-500 mt-1 ml-7">
+          Comprehensive vehicle parts monitoring and predictive analysis
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
+          {/* 1. Part Health - Primary Action */}
+          <Button
+            variant={activeTab === 'health' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('health')}
+            icon={<Activity className="h-4 w-4" />}
+            inputSize="sm"
+          >
+            Part Health
+          </Button>
+          
+          {/* 2. Analytics */}
+          <Button
+            variant={activeTab === 'analytics' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('analytics')}
+            icon={<BarChart3 className="h-4 w-4" />}
+            inputSize="sm"
+          >
+            Analytics
+          </Button>
+          
+          {/* 3. Back to Maintenance */}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/maintenance')}
+            icon={<ChevronLeft className="h-4 w-4" />}
+            inputSize="sm"
+          >
+            Back to Maintenance
+          </Button>
+          
+          {/* 4. Refresh */}
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -157,50 +188,40 @@ const PartsHealthAnalyticsPage: React.FC = () => {
           >
             Refresh
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/maintenance')}
-            icon={<ChevronLeft className="h-4 w-4" />}
-            inputSize="sm"
-          >
-            Back to Maintenance
-          </Button>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="border-b border-gray-200">
-            <div className="flex space-x-8 px-6">
-              <button
-                className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'health'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => setActiveTab('health')}
-              >
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  <span>Part Health</span>
-                </div>
-              </button>
-              
-              <button
-                className={`py-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'analytics'
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => setActiveTab('analytics')}
-              >
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Analytics</span>
-                </div>
-              </button>
-            </div>
+        {/* Tabs with Apple Design */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200/80">
+          <div className="flex space-x-1 p-2">
+            <button
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                activeTab === 'health'
+                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveTab('health')}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <Activity className="h-4 w-4" />
+                <span>Part Health</span>
+              </div>
+            </button>
+            
+            <button
+              className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                activeTab === 'analytics'
+                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+              onClick={() => setActiveTab('analytics')}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span>Analytics</span>
+              </div>
+            </button>
           </div>
 
           {/* Tab Content */}

@@ -288,7 +288,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         disabled={disabled || status === 'uploading'}
       />
 
-      {value.length > 0 && (
+      {value && value.length > 0 && (
         <div className="mt-3 space-y-2">
           {value.map((file, index) => (
             <div

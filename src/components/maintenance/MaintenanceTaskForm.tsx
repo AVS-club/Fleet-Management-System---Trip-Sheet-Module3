@@ -15,6 +15,7 @@ import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
+import PartsReplacedSelector from "./PartsReplacedSelector";
 import {
   PenTool as PenToolIcon,
   Calendar,
@@ -263,6 +264,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   }>({
     confidence: 0,
   });
+  const [selectedParts, setSelectedParts] = useState<any[]>([]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -621,7 +623,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
 
-      onSubmit(data);
+      // Add parts_replaced data to the submission
+      const formDataWithParts = {
+        ...data,
+        parts_replaced: selectedParts.length > 0 ? selectedParts : undefined
+      };
+
+      onSubmit(formDataWithParts);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error(
@@ -707,6 +715,16 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         {/* Maintenance Tasks */}
         <ServiceGroupsSection />
 
+        {/* Parts Replaced Section - NEW */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6">
+          <PartsReplacedSelector
+            selectedParts={selectedParts}
+            onChange={setSelectedParts}
+            vehicleOdometer={vehicles.find(v => v.id === vehicleId)?.current_odometer}
+            disabled={isSubmitting}
+          />
+        </div>
+
 
         {/* Complaint & Resolution */}
         <ComplaintResolutionSection
@@ -756,7 +774,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 render={({ field: { value, onChange } }) => (
                   <FileUpload
                     label="Odometer Photo"
-                    value={value as File[] | null}
+                    value={value as File[] || []}
                     onChange={onChange}
                     accept=".jpg,.jpeg,.png"
                     helperText="Upload photo of odometer reading"

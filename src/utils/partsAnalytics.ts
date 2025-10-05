@@ -206,14 +206,75 @@ const PART_DEFINITIONS: PartDefinition[] = [
     standardLifeDays: 1825,
     criticalThreshold: 10,
     warningThreshold: 25
+  },
+  {
+    id: 'oil_filter',
+    name: 'Oil Filter',
+    category: 'Engine',
+    icon: '🛢️',
+    standardLifeKm: 10000,
+    standardLifeDays: 90,
+    criticalThreshold: 5,
+    warningThreshold: 15
+  },
+  {
+    id: 'spark_plugs',
+    name: 'Spark Plugs',
+    category: 'Engine',
+    icon: '⚡',
+    standardLifeKm: 40000,
+    standardLifeDays: 365,
+    criticalThreshold: 10,
+    warningThreshold: 25
+  },
+  {
+    id: 'water_pump',
+    name: 'Water Pump',
+    category: 'Cooling',
+    icon: '💧',
+    standardLifeKm: 80000,
+    standardLifeDays: 1095,
+    criticalThreshold: 10,
+    warningThreshold: 25
+  },
+  {
+    id: 'starter_motor',
+    name: 'Starter Motor',
+    category: 'Electrical',
+    icon: '🔋',
+    standardLifeKm: 100000,
+    standardLifeDays: 1825,
+    criticalThreshold: 15,
+    warningThreshold: 30
+  },
+  {
+    id: 'headlights',
+    name: 'Headlights',
+    category: 'Electrical',
+    icon: '💡',
+    standardLifeKm: 50000,
+    standardLifeDays: 730,
+    criticalThreshold: 20,
+    warningThreshold: 40
+  },
+  {
+    id: 'wiper_blades',
+    name: 'Wiper Blades',
+    category: 'Body',
+    icon: '🌧️',
+    standardLifeKm: 20000,
+    standardLifeDays: 180,
+    criticalThreshold: 10,
+    warningThreshold: 20
   }
 ];
 
-// Map maintenance task names to part IDs
+// Enhanced mapping function to detect parts from maintenance task names
 const mapTaskToPartId = (taskName: string): string | null => {
   const name = taskName.toLowerCase();
   
-  if (name.includes('tyre') || name.includes('tire')) {
+  // Tyres - Enhanced detection
+  if (name.includes('tyre') || name.includes('tire') || name.includes('wheel')) {
     if (name.includes('front') || name.includes('fl') || name.includes('fr')) {
       return 'tyres_front';
     } else if (name.includes('rear') || name.includes('rl') || name.includes('rr')) {
@@ -222,20 +283,107 @@ const mapTaskToPartId = (taskName: string): string | null => {
     return 'tyres_front'; // default to front if position not specified
   }
   
-  if (name.includes('battery')) return 'battery';
-  if (name.includes('brake pad')) return 'brake_pads';
-  if (name.includes('clutch')) return 'clutch_plate';
-  if (name.includes('timing belt')) return 'timing_belt';
-  if (name.includes('shock absorber')) return 'shock_absorbers';
-  if (name.includes('air filter')) return 'air_filter';
-  if (name.includes('fuel filter')) return 'fuel_filter';
-  if (name.includes('alternator')) return 'alternator';
-  if (name.includes('engine mount')) return 'engine_mounts';
-  if (name.includes('leaf spring')) return 'leaf_springs';
-  if (name.includes('wheel bearing')) return 'wheel_bearings';
-  if (name.includes('gearbox')) return 'gearbox';
-  if (name.includes('differential')) return 'differential';
-  if (name.includes('radiator')) return 'radiator';
+  // Battery - Enhanced detection
+  if (name.includes('battery') || name.includes('accumulator')) return 'battery';
+  
+  // Brakes - Enhanced detection
+  if (name.includes('brake pad') || name.includes('brake disc') || name.includes('brake shoe') || 
+      name.includes('brake lining') || name.includes('brake') && (name.includes('pad') || name.includes('disc'))) {
+    return 'brake_pads';
+  }
+  
+  // Clutch - Enhanced detection
+  if (name.includes('clutch') || name.includes('clutch plate') || name.includes('clutch disc')) {
+    return 'clutch_plate';
+  }
+  
+  // Timing Belt - Enhanced detection
+  if (name.includes('timing belt') || name.includes('timing chain') || name.includes('cam belt')) {
+    return 'timing_belt';
+  }
+  
+  // Shock Absorbers - Enhanced detection
+  if (name.includes('shock absorber') || name.includes('shock') || name.includes('damper') || 
+      name.includes('suspension') && name.includes('shock')) {
+    return 'shock_absorbers';
+  }
+  
+  // Air Filter - Enhanced detection
+  if (name.includes('air filter') || name.includes('air cleaner') || name.includes('filter') && name.includes('air')) {
+    return 'air_filter';
+  }
+  
+  // Fuel Filter - Enhanced detection
+  if (name.includes('fuel filter') || name.includes('diesel filter') || name.includes('filter') && name.includes('fuel')) {
+    return 'fuel_filter';
+  }
+  
+  // Alternator - Enhanced detection
+  if (name.includes('alternator') || name.includes('generator') || name.includes('dynamo')) {
+    return 'alternator';
+  }
+  
+  // Engine Mounts - Enhanced detection
+  if (name.includes('engine mount') || name.includes('motor mount') || name.includes('mount') && name.includes('engine')) {
+    return 'engine_mounts';
+  }
+  
+  // Leaf Springs - Enhanced detection
+  if (name.includes('leaf spring') || name.includes('spring') && name.includes('leaf') || 
+      name.includes('suspension') && name.includes('spring')) {
+    return 'leaf_springs';
+  }
+  
+  // Wheel Bearings - Enhanced detection
+  if (name.includes('wheel bearing') || name.includes('bearing') && name.includes('wheel') || 
+      name.includes('hub bearing')) {
+    return 'wheel_bearings';
+  }
+  
+  // Gearbox - Enhanced detection
+  if (name.includes('gearbox') || name.includes('transmission') || name.includes('gear box')) {
+    return 'gearbox';
+  }
+  
+  // Differential - Enhanced detection
+  if (name.includes('differential') || name.includes('diff') || name.includes('rear axle')) {
+    return 'differential';
+  }
+  
+  // Radiator - Enhanced detection
+  if (name.includes('radiator') || name.includes('cooler') && name.includes('engine')) {
+    return 'radiator';
+  }
+  
+  // Oil Filter - New detection
+  if (name.includes('oil filter') || name.includes('filter') && name.includes('oil')) {
+    return 'oil_filter';
+  }
+  
+  // Spark Plugs - New detection
+  if (name.includes('spark plug') || name.includes('plug') && name.includes('spark')) {
+    return 'spark_plugs';
+  }
+  
+  // Water Pump - New detection
+  if (name.includes('water pump') || name.includes('coolant pump')) {
+    return 'water_pump';
+  }
+  
+  // Starter Motor - New detection
+  if (name.includes('starter motor') || name.includes('starter') || name.includes('self starter')) {
+    return 'starter_motor';
+  }
+  
+  // Headlights - New detection
+  if (name.includes('headlight') || name.includes('head lamp') || name.includes('light') && name.includes('head')) {
+    return 'headlights';
+  }
+  
+  // Wiper Blades - New detection
+  if (name.includes('wiper blade') || name.includes('wiper') || name.includes('windshield wiper')) {
+    return 'wiper_blades';
+  }
   
   return null;
 };
@@ -312,7 +460,104 @@ export const getPartsHealthMetrics = (
     const vehicle = vehicleMap.get(task.vehicle_id);
     if (!vehicle) return;
     
-    // Process service groups for battery and tyre tracking
+    // PRIORITY 1: Explicit parts_replaced field (NEW)
+    if (task.parts_replaced && Array.isArray(task.parts_replaced)) {
+      task.parts_replaced.forEach((part: any) => {
+        const partId = mapTaskToPartId(part.partName);
+        if (!partId) return;
+        
+        if (!partReplacements[partId]) partReplacements[partId] = [];
+        
+        partReplacements[partId].push({
+          vehicleId: task.vehicle_id,
+          date: part.replacementDate || task.start_date,
+          cost: part.cost || 0,
+          odometerReading: part.odometerAtReplacement || task.odometer_reading,
+          brand: part.brand,
+          warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
+        });
+      });
+    }
+    
+    // PRIORITY 2: Extract parts from service_groups tasks array
+    if (Array.isArray(task.service_groups)) {
+      task.service_groups.forEach(serviceGroup => {
+        if (Array.isArray(serviceGroup.tasks)) {
+          serviceGroup.tasks.forEach(serviceName => {
+            const partId = mapTaskToPartId(serviceName);
+            if (partId) {
+              if (!partReplacements[partId]) partReplacements[partId] = [];
+              
+              partReplacements[partId].push({
+                vehicleId: task.vehicle_id,
+                date: task.start_date,
+                cost: serviceGroup.cost || 0,
+                odometerReading: task.odometer_reading,
+                brand: serviceGroup.battery_brand || serviceGroup.tyre_brand,
+                warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    // PRIORITY 3: Extract parts from parts_required array
+    if (Array.isArray(task.parts_required)) {
+      task.parts_required.forEach(part => {
+        const partId = mapTaskToPartId(part.name);
+        if (partId) {
+          if (!partReplacements[partId]) partReplacements[partId] = [];
+          
+          partReplacements[partId].push({
+            vehicleId: task.vehicle_id,
+            date: task.start_date,
+            cost: part.total_cost || part.unit_cost || 0,
+            odometerReading: task.odometer_reading,
+            brand: part.supplier,
+            warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
+          });
+        }
+      });
+    }
+    
+    // PRIORITY 4: Extract parts from title array
+    if (Array.isArray(task.title)) {
+      task.title.forEach(titleItem => {
+        const partId = mapTaskToPartId(titleItem);
+        if (partId) {
+          if (!partReplacements[partId]) partReplacements[partId] = [];
+          
+          partReplacements[partId].push({
+            vehicleId: task.vehicle_id,
+            date: task.start_date,
+            cost: task.actual_cost || task.estimated_cost || 0,
+            odometerReading: task.odometer_reading,
+            brand: undefined,
+            warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
+          });
+        }
+      });
+    }
+    
+    // PRIORITY 5: Extract parts from description
+    if (task.description) {
+      const partId = mapTaskToPartId(task.description);
+      if (partId) {
+        if (!partReplacements[partId]) partReplacements[partId] = [];
+        
+        partReplacements[partId].push({
+          vehicleId: task.vehicle_id,
+          date: task.start_date,
+          cost: task.actual_cost || task.estimated_cost || 0,
+          odometerReading: task.odometer_reading,
+          brand: undefined,
+          warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
+        });
+      }
+    }
+    
+    // PRIORITY 6: Process service groups for battery and tyre tracking (legacy)
     if (Array.isArray(task.service_groups)) {
       task.service_groups.forEach(group => {
         // Battery replacement

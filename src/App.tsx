@@ -149,8 +149,7 @@ const App: React.FC = () => {
             <Route path="/notifications" element={<ProtectedRoute session={session} loading={loading}><NotificationsPage /></ProtectedRoute>} />
             <Route path="/alerts" element={<ProtectedRoute session={session} loading={loading}><AIAlertsPage /></ProtectedRoute>} />
             <Route path="/drivers/insights" element={<ProtectedRoute session={session} loading={loading}><DriverInsightsPage /></ProtectedRoute>} />
-            <Route path="/parts-health" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />
-            <Route path="/parts-health-v2" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />
+            <Route path="/parts-health-analytics" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute session={session} loading={loading}><AdminDashboard /></ProtectedRoute>} />
             <Route path="/admin/reminders" element={<ProtectedRoute session={session} loading={loading}><RemindersPage /></ProtectedRoute>} />
             <Route path="/admin/alert-settings" element={<ProtectedRoute session={session} loading={loading}><AlertSettingsPage /></ProtectedRoute>} />

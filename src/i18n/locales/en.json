@@ -64,7 +64,8 @@
     "vsLastMonth": "vs last month",
     "overview": "Overview",
     "analytics": "Analytics",
-    "maintenance": "Maintenance"
+    "maintenance": "Maintenance",
+    "totalTripsLabel": "Total Trips"
   },
   "vehicles": {
     "title": "Vehicles",

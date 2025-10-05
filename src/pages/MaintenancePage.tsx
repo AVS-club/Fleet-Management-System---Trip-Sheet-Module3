@@ -13,6 +13,7 @@ import { PlusCircle, BarChart3, Wrench, Calendar } from "lucide-react";
 import Button from "../components/ui/Button";
 import KPIPanel from "../components/maintenance/KPIPanel";
 import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
+import MaintenanceTaskList from "../components/maintenance/MaintenanceTaskList";
 import { useQuery } from "@tanstack/react-query";
 const MaintenancePage = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const MaintenancePage = () => {
     start: "",
     end: "",
   });
-  const [viewMode, setViewMode] = useState<"calendar">("calendar");
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [metrics, setMetrics] = useState<any>({
     totalTasks: 0,
     pendingTasks: 0,
@@ -131,23 +132,32 @@ const MaintenancePage = () => {
             {t("maintenance.newTask")}
           </Button>
           <Button
-            onClick={() => navigate("/parts-health-v2")}
+            onClick={() => navigate("/parts-health-analytics")}
             icon={<BarChart3 className="h-4 w-4" />}
             variant="outline"
             inputSize="sm"
           >
             {t("maintenance.partsHealthAnalytics")}
           </Button>
-          {/* Calendar View Toggle */}
+          {/* View Toggle */}
           <div className="flex border border-gray-200 rounded-lg overflow-hidden">
             <Button
               onClick={() => setViewMode("calendar")}
-              variant="default"
+              variant={viewMode === "calendar" ? "primary" : "outline"}
               inputSize="sm"
               icon={<Calendar className="h-4 w-4" />}
               className="rounded-none border-0"
             >
               {t("maintenance.calendar")}
+            </Button>
+            <Button
+              onClick={() => setViewMode("list")}
+              variant={viewMode === "list" ? "primary" : "outline"}
+              inputSize="sm"
+              icon={<Wrench className="h-4 w-4" />}
+              className="rounded-none border-0"
+            >
+              Task List
             </Button>
           </div>
         </div>
@@ -171,11 +181,27 @@ const MaintenancePage = () => {
             totalExpenditure={metrics.totalExpenditure}
             previousPeriodComparison={metrics.previousPeriodComparison}
           />
-          {/* Maintenance Calendar */}
-          <MaintenanceCalendar
-            tasks={tasks || []}
-            vehicles={vehicles || []}
-          />
+          
+          {/* View Content */}
+          {viewMode === "calendar" ? (
+            <MaintenanceCalendar
+              tasks={tasks || []}
+              vehicles={vehicles || []}
+            />
+          ) : (
+            <MaintenanceTaskList
+              tasks={tasks || []}
+              vehicles={vehicles || []}
+              onViewTask={(task) => {
+                // Navigate to task details or open modal
+                console.log('View task:', task);
+              }}
+              onEditTask={(task) => {
+                // Navigate to edit task
+                navigate(`/maintenance/edit/${task.id}`);
+              }}
+            />
+          )}
         </div>
       )}
     </Layout>
