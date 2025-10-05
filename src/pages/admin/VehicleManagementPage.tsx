@@ -41,6 +41,7 @@ import VehicleActivityLogTable from "../../components/admin/VehicleActivityLogTa
 import VehicleForm from "../../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import { saveAs } from "file-saver";
+import { supabase } from "../../utils/supabaseClient";
 
 interface VehicleWithStats extends Vehicle {
   stats?: {
@@ -148,12 +149,39 @@ const VehicleManagementPage: React.FC = () => {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
           console.error('Error getting user:', userError);
+          toast.error("Authentication error. Please log in again.");
           setLoading(false);
           return;
         }
         setUser(user);
+        
+        console.log('🔍 Fetching vehicles for user:', user.id);
+        
+        // Check user's organization membership first
+        const { data: orgMembership, error: orgError } = await supabase
+          .from('organization_users')
+          .select('organization_id, role, organizations(id, name)')
+          .eq('user_id', user.id);
+          
+        if (orgError) {
+          console.error('Error checking organization membership:', orgError);
+          toast.error("Error checking organization access. Please contact support.");
+          setLoading(false);
+          return;
+        }
+        
+        if (!orgMembership || orgMembership.length === 0) {
+          console.error('No organization membership found for user');
+          toast.error("No organization access found. Please contact your administrator.");
+          setLoading(false);
+          return;
+        }
+        
+        console.log('✅ Organization membership found:', orgMembership);
+        
         // Fetch vehicles with their stats
         const vehiclesData = await getVehicles();
+        console.log('📊 Vehicles fetched:', vehiclesData.length);
 
         // Fetch stats for each vehicle
         const vehiclesWithStats = await Promise.all(
@@ -168,9 +196,11 @@ const VehicleManagementPage: React.FC = () => {
         // Fetch drivers for assignment dropdown
         const driversData = await getDrivers();
         setDrivers(driversData);
+        
+        console.log('✅ Data loading completed successfully');
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Failed to load vehicle data");
+        toast.error(`Failed to load vehicle data: ${error.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
       }

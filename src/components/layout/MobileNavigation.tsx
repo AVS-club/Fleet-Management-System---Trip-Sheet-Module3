@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Menu, 
   X, 
@@ -14,6 +14,7 @@ import {
   Bell,
   ShieldCheck
 } from 'lucide-react';
+import AvsAiButton from '../ui/AvsAiButton';
 import { cn } from '../../utils/cn';
 import { usePermissions } from '../../hooks/usePermissions';
 
@@ -24,6 +25,7 @@ interface MobileNavigationProps {
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { permissions, loading } = usePermissions();
 
   // Comprehensive navigation items for mobile hamburger menu
@@ -34,7 +36,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
     { path: '/trips', label: 'Trips', icon: MapPin },
     { path: '/trip-pnl-reports', label: 'Reports', icon: BarChart3, requiresPermission: 'canAccessReports' },
     { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/notifications', label: 'Alerts', icon: Bell, requiresPermission: 'canAccessAlerts' },
+    { path: '/notifications', label: 'Alerts', icon: Bell, customComponent: AvsAiButton, requiresPermission: 'canAccessAlerts' },
     { path: '/admin', label: 'Settings', icon: Settings, requiresPermission: 'canAccessAdmin' },
   ];
 
@@ -94,6 +96,25 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                 // Check if user has permission to view this nav item
                 // While loading, show all items to prevent flickering
                 if (loading) {
+                  // Special handling for custom components (like AVS AI Button)
+                  if (item.customComponent) {
+                    const CustomComponent = item.customComponent;
+                    return (
+                      <div key={item.path} className="px-4 py-2">
+                        <CustomComponent
+                          onClick={() => {
+                            navigate(item.path);
+                            setIsOpen(false);
+                          }}
+                          label={item.label}
+                          variant="compact"
+                          isActive={isActive(item.path)}
+                          className="w-full"
+                        />
+                      </div>
+                    );
+                  }
+                  
                   const Icon = item.icon;
                   return (
                     <Link
@@ -114,6 +135,25 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                 }
                 if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
                   return null;
+                }
+                
+                // Special handling for custom components (like AVS AI Button)
+                if (item.customComponent) {
+                  const CustomComponent = item.customComponent;
+                  return (
+                    <div key={item.path} className="px-4 py-2">
+                      <CustomComponent
+                        onClick={() => {
+                          navigate(item.path);
+                          setIsOpen(false);
+                        }}
+                        label={item.label}
+                        variant="compact"
+                        isActive={isActive(item.path)}
+                        className="w-full"
+                      />
+                    </div>
+                  );
                 }
                 
                 const Icon = item.icon;

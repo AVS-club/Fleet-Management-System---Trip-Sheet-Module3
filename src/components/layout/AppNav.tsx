@@ -32,11 +32,27 @@ const AppNav: React.FC = () => {
       {/* Navigation - Mobile optimized with icon-first design */}
       <div className="flex items-center overflow-x-auto lg:overflow-x-visible scrollbar-hide">
         <div className="flex items-center justify-center gap-1 sm:gap-2 px-2">
-        {displayLinks.map(({ to, label, icon: Icon, hasQuickAdd, requiresPermission }) => {
+        {displayLinks.map(({ to, label, icon: Icon, customComponent: CustomComponent, hasQuickAdd, requiresPermission }) => {
           // Check if user has permission to view this nav item
           // While loading, show all items to prevent flickering
           if (loading) {
             const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
+            
+            // Special handling for custom components (like AVS AI Button)
+            if (CustomComponent) {
+              return (
+                <div key={to} className="relative group">
+                  <CustomComponent
+                    onClick={() => navigate(to)}
+                    label={t(label)}
+                    variant="compact"
+                    isActive={isActive}
+                    className=""
+                  />
+                </div>
+              );
+            }
+            
             return (
               <div key={to} className="relative group">
                 <NavLink
@@ -74,10 +90,25 @@ const AppNav: React.FC = () => {
               </div>
             );
           }
-                  if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
-                    return null;
-                  }
+          if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
+            return null;
+          }
           const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
+          
+          // Special handling for custom components (like AVS AI Button)
+          if (CustomComponent) {
+            return (
+              <div key={to} className="relative group">
+                <CustomComponent
+                  onClick={() => navigate(to)}
+                  label={t(label)}
+                  variant="compact"
+                  isActive={isActive}
+                  className=""
+                />
+              </div>
+            );
+          }
           
           return (
             <div key={to} className="relative group">
