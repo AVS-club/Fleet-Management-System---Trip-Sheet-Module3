@@ -615,7 +615,12 @@ export const getPartsHealthMetrics = (
             const maintenanceItem = MAINTENANCE_ITEMS.find(item => item.id === taskId);
             if (!maintenanceItem) return;
             
-            const partId = mapTaskToPartId(maintenanceItem.name);
+            // Handle i18n object in maintenanceItem.name
+            let taskName = maintenanceItem.name;
+            if (typeof taskName === 'object' && taskName !== null) {
+              taskName = taskName.en || taskName.hi || Object.values(taskName)[0] || '';
+            }
+            const partId = mapTaskToPartId(taskName);
             if (!partId) return;
             
             if (!partReplacements[partId]) partReplacements[partId] = [];
