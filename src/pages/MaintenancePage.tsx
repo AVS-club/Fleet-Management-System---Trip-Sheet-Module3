@@ -109,6 +109,14 @@ const MaintenancePage = () => {
       console.error("Error calculating maintenance metrics:", error);
     }
   };
+  const handleViewTask = (task: MaintenanceTask) => {
+    navigate(`/maintenance/?mode=view`, { state: { task, mode: 'view' } });
+  };
+
+  const handleEditTask = (task: MaintenanceTask) => {
+    navigate(`/maintenance/`, { state: { task, mode: 'edit' } });
+  };
+
   const loading = tasksLoading || vehiclesLoading;
   return (
     <Layout>
@@ -192,14 +200,8 @@ const MaintenancePage = () => {
             <MaintenanceTaskList
               tasks={tasks || []}
               vehicles={vehicles || []}
-              onViewTask={(task) => {
-                // Navigate to task details or open modal
-                console.log('View task:', task);
-              }}
-              onEditTask={(task) => {
-                // Navigate to edit task
-                navigate(`/maintenance/edit/${task.id}`);
-              }}
+              onViewTask={handleViewTask}
+              onEditTask={handleEditTask}
             />
           )}
         </div>
@@ -208,3 +210,10 @@ const MaintenancePage = () => {
   );
 };
 export default MaintenancePage;
+
+
+
+
+
+
+
