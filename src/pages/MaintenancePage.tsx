@@ -110,11 +110,11 @@ const MaintenancePage = () => {
     }
   };
   const handleViewTask = (task: MaintenanceTask) => {
-    navigate(`/maintenance/?mode=view`, { state: { task, mode: 'view' } });
+    navigate(`/maintenance/${task.id}?mode=view`, { state: { task, mode: 'view' } });
   };
 
   const handleEditTask = (task: MaintenanceTask) => {
-    navigate(`/maintenance/`, { state: { task, mode: 'edit' } });
+    navigate(`/maintenance/${task.id}`, { state: { task, mode: 'edit' } });
   };
 
   const loading = tasksLoading || vehiclesLoading;
@@ -210,6 +210,7 @@ const MaintenancePage = () => {
   );
 };
 export default MaintenancePage;
+
 
 
 

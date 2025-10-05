@@ -19,7 +19,7 @@ import {
   Shield,
   Clock
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface PartHealthDashboardProps {
   tasks: MaintenanceTask[];
@@ -35,6 +35,13 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'peer-comparison' | 'historical-trends'>('overview');
   const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
   const [selectedPartType, setSelectedPartType] = useState<string>('all');
+  
+  // Helper function to safely format dates
+  const safeFormatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return isValid(date) ? format(date, 'dd MMM yyyy') : 'N/A';
+  };
   
   // Extract parts from tasks.parts_replaced field
   const extractedParts = useMemo(() => {
@@ -113,8 +120,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
     // Use extracted parts if available, otherwise fall back to partsMetrics
     const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
     
-    const critical = allParts.filter(p => p.status === 'overdue' || p.status === 'critical').length;
-    const warning = allParts.filter(p => p.status === 'needs_attention' || p.status === 'warning').length;
+    const critical = allParts.filter(p => p.status === 'overdue').length;
+    const warning = allParts.filter(p => p.status === 'needs_attention').length;
     const good = allParts.filter(p => p.status === 'good').length;
     const upcomingCost = allParts
       .filter(p => p.status !== 'good')
@@ -141,8 +148,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
   const criticalParts = useMemo(() => {
     const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
     return allParts
-      .filter(p => p.status === 'overdue' || p.status === 'critical')
-      .sort((a, b) => (b.kmSinceReplacement || b.kmOverdue || 0) - (a.kmSinceReplacement || a.kmOverdue || 0));
+      .filter(p => p.status === 'overdue')
+      .sort((a, b) => (b.kmSinceReplacement || 0) - (a.kmSinceReplacement || 0));
   }, [extractedParts, partsMetrics]);
 
   return (
@@ -269,8 +276,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {vehicles.map(vehicle => {
                 const vehicleParts = filteredParts.filter(p => p.vehicleId === vehicle.id);
-                const criticalParts = vehicleParts.filter(p => p.status === 'critical').length;
-                const warningParts = vehicleParts.filter(p => p.status === 'warning').length;
+                const criticalParts = vehicleParts.filter(p => p.status === 'overdue').length;
+                const warningParts = vehicleParts.filter(p => p.status === 'needs_attention').length;
                 const isExpanded = expandedVehicle === vehicle.id;
                 
                 return (
@@ -310,13 +317,13 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                     {isExpanded && (
                       <div className="border-t border-gray-200 p-4 bg-gray-50">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {vehicleParts.map(part => (
+                          {vehicleParts.map((part, index) => (
                             <div
-                              key={part.id}
+                              key={`${part.vehicleId}-${part.partName}-${index}`}
                               className={`p-3 rounded-lg border-2 bg-white ${
-                                part.status === 'critical'
+                                part.status === 'overdue'
                                   ? 'border-red-300'
-                                  : part.status === 'warning'
+                                  : part.status === 'needs_attention'
                                   ? 'border-yellow-300'
                                   : 'border-green-300'
                               }`}
@@ -326,7 +333,7 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                                   <p className="text-sm font-medium text-gray-900">{part.partName}</p>
                                   <p className="text-xs text-gray-500 mt-0.5">{part.category}</p>
                                 </div>
-                                {part.status === 'critical' && (
+                                {part.status === 'overdue' && (
                                   <AlertTriangle className="h-4 w-4 text-red-600" />
                                 )}
                               </div>
@@ -335,13 +342,13 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${
-                                      part.status === 'critical'
+                                      part.status === 'overdue'
                                         ? 'bg-red-500'
-                                        : part.status === 'warning'
+                                        : part.status === 'needs_attention'
                                         ? 'bg-yellow-500'
                                         : 'bg-green-500'
                                     }`}
-                                    style={{ width: `${Math.min(part.lifePercentage, 100)}%` }}
+                                    style={{ width: `${Math.min((part.kmSinceReplacement / part.expectedLife) * 100, 100)}%` }}
                                   />
                                 </div>
                                 <p className="text-xs text-gray-600 mt-1">
@@ -366,9 +373,9 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
               Parts Requiring Attention
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {criticalParts.map(part => (
+              {criticalParts.map((part, index) => (
                 <div
-                  key={part.id}
+                  key={`critical-${part.vehicleId}-${part.partName}-${index}`}
                   className="border border-red-200 rounded-lg p-4 bg-red-50/30 hover:bg-red-50 transition-colors"
                 >
                   <div className="flex items-start justify-between">
@@ -380,14 +387,14 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                         <p className="font-semibold text-gray-900">{part.partName}</p>
                         <p className="text-sm text-gray-600">{part.vehicleReg}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Last: {format(new Date(part.lastReplacementDate), 'dd MMM yyyy')}
+                          Last: {safeFormatDate(part.replacementDate)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-red-700">{part.kmOverdue} km</p>
-                      <p className="text-xs text-gray-600 mt-1">overdue</p>
-                      <p className="text-sm font-semibold text-gray-900 mt-2">₹{part.estimatedCost.toLocaleString()}</p>
+                      <p className="text-sm font-medium text-red-700">{part.kmSinceReplacement || 0} km</p>
+                      <p className="text-xs text-gray-600 mt-1">since replacement</p>
+                      <p className="text-sm font-semibold text-gray-900 mt-2">₹{(part.cost || 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
