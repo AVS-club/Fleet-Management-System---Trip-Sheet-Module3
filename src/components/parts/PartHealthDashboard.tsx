@@ -91,10 +91,10 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
             const kmAtReplacement = part.odometerAtReplacement || task.odometer_reading || 0;
             const kmSince = currentOdometer - kmAtReplacement;
             const expectedLife = PART_LIFE[part.partName] || 50000;
-            const lifePercentage = (kmSince / expectedLife) * 100;
+                  const lifePercentage = (kmSince / expectedLife) * 100;
             
-            replacedParts.push({
-              vehicleId: vehicle.id,
+                    replacedParts.push({
+                      vehicleId: vehicle.id,
               vehicleReg: vehicle.registration_number,
               partName: part.partName,
               category: part.category || 'General',
@@ -103,9 +103,9 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
               cost: part.cost || 0,
               vendor: task.garage_id,
               status: lifePercentage >= 100 ? 'overdue' : lifePercentage >= 80 ? 'needs_attention' : 'good',
-              kmSinceReplacement: kmSince,
-              expectedLife
-            });
+                      kmSinceReplacement: kmSince,
+                      expectedLife
+                    });
           });
         }
       });
@@ -151,7 +151,7 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
       .filter(p => p.status === 'overdue')
       .sort((a, b) => (b.kmSinceReplacement || 0) - (a.kmSinceReplacement || 0));
   }, [extractedParts, partsMetrics]);
-
+  
   return (
     <div className="space-y-6">
       {/* Summary Cards with Apple Design */}
@@ -260,9 +260,9 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
             >
               Historical Trends
             </button>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content */}
       {activeSubTab === 'overview' && (
@@ -272,97 +272,97 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Gauge className="h-5 w-5 text-blue-500" />
               Parts Health by Vehicle
-            </h2>
+          </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {vehicles.map(vehicle => {
                 const vehicleParts = filteredParts.filter(p => p.vehicleId === vehicle.id);
-                const criticalParts = vehicleParts.filter(p => p.status === 'overdue').length;
-                const warningParts = vehicleParts.filter(p => p.status === 'needs_attention').length;
+            const criticalParts = vehicleParts.filter(p => p.status === 'overdue').length;
+            const warningParts = vehicleParts.filter(p => p.status === 'needs_attention').length;
                 const isExpanded = expandedVehicle === vehicle.id;
-                
-                return (
+            
+            return (
                   <div key={vehicle.id} className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-200">
                     <button
-                      onClick={() => setExpandedVehicle(isExpanded ? null : vehicle.id)}
+                  onClick={() => setExpandedVehicle(isExpanded ? null : vehicle.id)}
                       className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                    >
+                >
                       <div className="flex items-center gap-3">
                         <div className="text-left">
                           <p className="font-semibold text-gray-900">{vehicle.registrationNumber}</p>
-                          <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500">
                             {vehicle.make} {vehicle.model} • {vehicle.type}
-                          </p>
-                        </div>
+                        </p>
                       </div>
+                    </div>
                       <div className="flex items-center gap-3">
-                        {criticalParts > 0 && (
+                      {criticalParts > 0 && (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
                             {criticalParts} Critical
                           </span>
-                        )}
-                        {warningParts > 0 && (
+                      )}
+                      {warningParts > 0 && (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
                             {warningParts} Warning
                           </span>
                         )}
-                        {isExpanded ? (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
-                        )}
-                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      )}
+                    </div>
                     </button>
-                    
+
                     {/* Expanded Part Details */}
                     {isExpanded && (
-                      <div className="border-t border-gray-200 p-4 bg-gray-50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="border-t border-gray-200 p-4 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {vehicleParts.map((part, index) => (
-                            <div
-                              key={`${part.vehicleId}-${part.partName}-${index}`}
-                              className={`p-3 rounded-lg border-2 bg-white ${
-                                part.status === 'overdue'
-                                  ? 'border-red-300'
-                                  : part.status === 'needs_attention'
-                                  ? 'border-yellow-300'
-                                  : 'border-green-300'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between mb-2">
+                          <div 
+                            key={`${part.vehicleId}-${part.partName}-${index}`}
+                            className={`p-3 rounded-lg border-2 bg-white ${
+                              part.status === 'overdue'
+                                ? 'border-red-300'
+                                : part.status === 'needs_attention'
+                                ? 'border-yellow-300'
+                                : 'border-green-300'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between mb-2">
                                 <div>
                                   <p className="text-sm font-medium text-gray-900">{part.partName}</p>
                                   <p className="text-xs text-gray-500 mt-0.5">{part.category}</p>
-                                </div>
-                                {part.status === 'overdue' && (
-                                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                                )}
                               </div>
-                              {/* Progress Bar */}
+                              {part.status === 'overdue' && (
+                                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                              )}
+                            </div>
+                            {/* Progress Bar */}
                               <div className="mt-2">
                                 <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${
-                                      part.status === 'overdue'
+                                    part.status === 'overdue'
                                         ? 'bg-red-500'
-                                        : part.status === 'needs_attention'
+                                      : part.status === 'needs_attention'
                                         ? 'bg-yellow-500'
                                         : 'bg-green-500'
-                                    }`}
+                                  }`}
                                     style={{ width: `${Math.min((part.kmSinceReplacement / part.expectedLife) * 100, 100)}%` }}
-                                  />
-                                </div>
+                                />
+                              </div>
                                 <p className="text-xs text-gray-600 mt-1">
                                   {part.kmSinceReplacement.toLocaleString()} / {part.expectedLife.toLocaleString()} km
-                                </p>
-                              </div>
+                              </p>
+                            </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                  </div>
-                );
-              })}
+                          </div>
+                        );
+                      })}
             </div>
           </div>
 
@@ -416,9 +416,9 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
             <p className="text-gray-500">
               Compare your fleet's part performance with industry benchmarks
             </p>
-          </div>
-        </div>
-      )}
+                    </div>
+                  </div>
+                )}
 
       {activeSubTab === 'historical-trends' && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
@@ -433,8 +433,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
               Track part replacement patterns and performance over time
             </p>
           </div>
-        </div>
-      )}
+                  </div>
+                )}
 
       {/* AI-Powered Insights */}
       <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg p-6 border border-slate-700">
@@ -472,8 +472,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                   Standardizing could save ₹45K annually.
                 </p>
               </div>
-            </div>
-          </div>
+              </div>
+        </div>
 
           {/* Maintenance Pattern */}
           <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
@@ -486,8 +486,8 @@ const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
                 <p className="text-sm text-gray-300 mt-1">
                   CG04NJ9478 showing improving trend with 12% increase in parts life after recent driver change. 
                   Consider driver training program.
-                </p>
-              </div>
+            </p>
+          </div>
             </div>
           </div>
         </div>
