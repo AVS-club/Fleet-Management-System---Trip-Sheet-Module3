@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -94,16 +94,16 @@ const CompleteFixedReportingDashboard: React.FC = () => {
   // Initialize date range properly
   useEffect(() => {
     updateDateRange(selectedDateRange);
-  }, []);
+  }, [updateDateRange, selectedDateRange]);
 
   // Fetch data when date range changes
   useEffect(() => {
     if (activeTab === 'dashboard') {
       fetchDashboardData();
     }
-  }, [dateRange, activeTab]);
+  }, [dateRange, activeTab, fetchDashboardData]);
 
-  const updateDateRange = (rangeType: string) => {
+  const updateDateRange = useCallback((rangeType: string) => {
     const now = new Date();
     let start: Date, end: Date;
 
@@ -147,9 +147,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
     setDateRange({ startDate: start, endDate: end });
     setSelectedDateRange(rangeType);
-  };
+  }, [customStartDate, customEndDate]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
@@ -166,9 +166,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       // Get trips for the selected period
       const { data: trips, error: tripsError } = await supabase
@@ -229,9 +229,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       console.error('Error in fetchMetrics:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchTripTrends = async () => {
+  const fetchTripTrends = useCallback(async () => {
     try {
       const { data: trips, error } = await supabase
         .from('trips')
@@ -264,9 +264,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       console.error('Error in fetchTripTrends:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchVehicleUtilization = async () => {
+  const fetchVehicleUtilization = useCallback(async () => {
     try {
       const { data: vehicles, error } = await supabase
         .from('vehicles')
@@ -303,9 +303,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       console.error('Error in fetchVehicleUtilization:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchDriverPerformance = async () => {
+  const fetchDriverPerformance = useCallback(async () => {
     try {
       const { data: drivers, error } = await supabase
         .from('drivers')
@@ -345,9 +345,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       console.error('Error in fetchDriverPerformance:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchExpenseBreakdown = async () => {
+  const fetchExpenseBreakdown = useCallback(async () => {
     try {
       const { data: trips, error } = await supabase
         .from('trips')
@@ -385,7 +385,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       console.error('Error in fetchExpenseBreakdown:', error);
       return false;
     }
-  };
+  }, [dateRange, metrics.maintenanceCosts]);
 
   const generatePDFReport = async (reportType: string) => {
     setGeneratingReport(reportType);

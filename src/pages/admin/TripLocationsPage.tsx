@@ -68,7 +68,7 @@ const TripLocationsPage: React.FC = () => {
     };
     
     fetchData();
-  }, [showInactive, currentPage, destinationFilters]); // Add pagination and filter dependencies
+  }, [showInactive, currentPage, destinationFilters, destinationsPerPage]); // Add pagination and filter dependencies
 
   // Separate effect for fetching destinations analytics when filters change
   useEffect(() => {

@@ -150,6 +150,8 @@ const DriverInsightsPage: React.FC = () => {
         };
     }
   }, [dateRange]);
+  const effectiveStart = effectiveDateRange.start;
+  const effectiveEnd = effectiveDateRange.end;
 
   // Filter trips based on date range and driver selection
   const filteredTrips = useMemo(() => {
@@ -158,8 +160,8 @@ const DriverInsightsPage: React.FC = () => {
       const tripDate = parseISO(trip.trip_start_date);
       if (
         !isValid(tripDate) ||
-        tripDate < effectiveDateRange.start ||
-        tripDate > effectiveDateRange.end
+        tripDate < effectiveStart ||
+        tripDate > effectiveEnd
       ) {
         return false;
       }
@@ -171,7 +173,7 @@ const DriverInsightsPage: React.FC = () => {
 
       return true;
     });
-  }, [trips, effectiveDateRange, selectedDriver]);
+  }, [trips, effectiveStart, effectiveEnd, selectedDriver]);
 
   // Calculate driver performance metrics
   const driverPerformance = useMemo(() => {
@@ -265,7 +267,7 @@ const DriverInsightsPage: React.FC = () => {
           ? performance.totalGrossWeight / performance.totalTrips
           : 0;
       const totalDaysInPeriod =
-        differenceInDays(effectiveDateRange.end, effectiveDateRange.start) + 1;
+        differenceInDays(effectiveEnd, effectiveStart) + 1;
       performance.driverUtilizationPercentage =
         totalDaysInPeriod > 0
           ? (performance.tripDays.size / totalDaysInPeriod) * 100
@@ -280,7 +282,7 @@ const DriverInsightsPage: React.FC = () => {
         return performance.name.toLowerCase().includes(lowerSearch);
       })
       .sort((a, b) => b.totalTrips - a.totalTrips);
-  }, [drivers, filteredTrips, searchTerm]);
+  }, [drivers, filteredTrips, searchTerm, effectiveStart, effectiveEnd]);
 
   // Calculate summary metrics
   const summaryMetrics = useMemo(() => {
@@ -308,8 +310,8 @@ const DriverInsightsPage: React.FC = () => {
       Math.max(
         1,
         Math.round(
-          (effectiveDateRange.end.getTime() -
-            effectiveDateRange.start.getTime()) /
+          (effectiveEnd.getTime() -
+            effectiveStart.getTime()) /
             (1000 * 60 * 60 * 24),
         ),
       );
@@ -342,7 +344,7 @@ const DriverInsightsPage: React.FC = () => {
       avgDriverUtilization,
       topDriver,
     };
-  }, [drivers, driverPerformance, effectiveDateRange]);
+  }, [drivers, driverPerformance, effectiveStart, effectiveEnd]);
 
   // Monthly performance data for charts
   const monthlyPerformanceData = useMemo(() => {
@@ -936,3 +938,4 @@ const DriverInsightsPage: React.FC = () => {
 };
 
 export default DriverInsightsPage;
+

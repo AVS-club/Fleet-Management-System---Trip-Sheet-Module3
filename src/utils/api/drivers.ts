@@ -5,7 +5,7 @@ import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaH
 import { handleSupabaseError } from '../errors';
 
 // Define allowed columns for drivers table (matching actual database schema)
-const DRIVER_COLS = 'id,name,license_number,phone,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,created_at,updated_at';
+const DRIVER_COLS = 'id,name,license_number,phone,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,organization_id,created_at,updated_at';
 
 export const getDrivers = async (): Promise<Driver[]> => {
   try {
@@ -174,6 +174,9 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
 
     const payload = withOwner(driverData as any, userId, organizationId);
 
+    // Debug: Log the payload before processing
+    console.log('Driver creation payload before processing:', payload);
+
     for (const k of Object.keys(payload)) {
       if (k.endsWith('_file')) {
         delete payload[k];
@@ -186,6 +189,9 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       }
     }
 
+    // Debug: Log the final payload
+    console.log('Driver creation payload after processing:', payload);
+
     const { data, error } = await supabase
       .from('drivers')
       .insert(payload)
@@ -193,6 +199,13 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       .single();
 
     if (error) {
+      console.error('Supabase driver creation error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       handleSupabaseError('create driver', error);
       throw error;
     }

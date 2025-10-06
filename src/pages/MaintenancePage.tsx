@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
 import Layout from "../components/layout/Layout";
@@ -74,20 +74,8 @@ const MaintenancePage = () => {
     queryFn: getVehicles,
     staleTime: 30 * 1000, // 30 seconds
   });
-  // Calculate metrics whenever date range changes or data is loaded
-  useEffect(() => {
-    if (!tasksLoading && !vehiclesLoading && tasks && vehicles) {
-      calculateMetrics(tasks, vehicles, dateRangeFilter);
-    }
-  }, [
-    dateRangeFilter,
-    customDateRange,
-    tasks,
-    vehicles,
-    tasksLoading,
-    vehiclesLoading,
-  ]);
-  const calculateMetrics = async (
+
+  const calculateMetrics = useCallback(async (
     tasksData: MaintenanceTask[],
     vehiclesData: Vehicle[],
     filter: string,
@@ -108,7 +96,22 @@ const MaintenancePage = () => {
     } catch (error) {
       console.error("Error calculating maintenance metrics:", error);
     }
-  };
+  }, [customDateRange.start, customDateRange.end]);
+
+  // Calculate metrics whenever date range changes or data is loaded
+  useEffect(() => {
+    if (!tasksLoading && !vehiclesLoading && tasks && vehicles) {
+      calculateMetrics(tasks, vehicles, dateRangeFilter);
+    }
+  }, [
+    dateRangeFilter,
+    customDateRange,
+    tasks,
+    vehicles,
+    tasksLoading,
+    vehiclesLoading,
+    calculateMetrics,
+  ]);
   const handleViewTask = (task: MaintenanceTask) => {
     navigate(`/maintenance/${task.id}?mode=view`, { state: { task, mode: 'view' } });
   };
@@ -210,6 +213,8 @@ const MaintenancePage = () => {
   );
 };
 export default MaintenancePage;
+
+
 
 
 

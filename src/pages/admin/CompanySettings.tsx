@@ -88,9 +88,9 @@ const CompanySettings: React.FC = () => {
   // Load existing company data
   useEffect(() => {
     loadCompanyData();
-  }, []);
+  }, [loadCompanyData]);
 
-  const loadCompanyData = async () => {
+  const loadCompanyData = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -145,7 +145,7 @@ const CompanySettings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   // Handle file selection (preview only)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -347,7 +347,7 @@ const CompanySettings: React.FC = () => {
         if (newData) {
           setCompany({ ...company, id: newData.id });
           
-          // ✅ CRITICAL: Create organization_users record so user can access their organization
+          //  CRITICAL: Create organization_users record so user can access their organization
           const { error: orgUserError } = await supabase
             .from('organization_users')
             .insert([{
@@ -844,3 +844,4 @@ const CompanySettings: React.FC = () => {
 };
 
 export default CompanySettings;
+

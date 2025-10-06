@@ -249,10 +249,12 @@ const DriverForm: React.FC<DriverFormProps> = ({
     }
   };
 
+  const joinDateValue = watch('join_date');
+
   // Auto-calculate experience based on join_date
   useEffect(() => {
-    if (watch('join_date')) {
-      const joinDate = new Date(watch('join_date'));
+    if (joinDateValue) {
+      const joinDate = new Date(joinDateValue);
       const today = new Date();
       const totalMonths = differenceInMonths(today, joinDate);
       const years = Math.floor(totalMonths / 12);
@@ -268,7 +270,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       setValue('experience_years', 0);
       setExperienceDisplay('0 years, 0 months');
     }
-  }, [watch('join_date'), setValue]);
+  }, [joinDateValue, setValue]);
 
   // Handle document upload completion
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {

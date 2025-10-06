@@ -18,6 +18,7 @@ interface TripTableProps {
   onSelectTrip: (trip: Trip) => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
+  highlightTripId?: string | null;
 }
 
 type SortField = 'serial' | 'date' | 'vehicle' | 'driver' | 'distance' | 'expense' | 'mileage';
@@ -113,7 +114,8 @@ const TripTable: React.FC<TripTableProps> = ({
   warehouses = [],
   onSelectTrip,
   onPnlClick,
-  onEditTrip
+  onEditTrip,
+  highlightTripId
 }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -570,12 +572,15 @@ const TripTable: React.FC<TripTableProps> = ({
               const warehouse = warehousesMap.get(trip.warehouse_id);
               const isSelected = selectedRows.has(trip.id);
               const isHovered = hoveredRow === trip.id;
+              const isHighlighted = highlightTripId === trip.id;
               
               return (
                 <tr 
                   key={trip.id}
                   className={`
-                    ${isSelected ? 'bg-primary-50' : isHovered ? 'bg-gray-50' : 'bg-white'}
+                    ${isHighlighted ? 'bg-blue-50 ring-2 ring-blue-500' : 
+                      isSelected ? 'bg-primary-50' : 
+                      isHovered ? 'bg-gray-50' : 'bg-white'}
                     hover:bg-gray-50 transition-colors cursor-pointer
                   `}
                   onMouseEnter={() => setHoveredRow(trip.id)}

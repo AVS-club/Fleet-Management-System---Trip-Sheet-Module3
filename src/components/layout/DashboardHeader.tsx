@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { differenceInDays } from 'date-fns';
 import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
@@ -41,11 +41,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
     activeDays: 0
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
@@ -124,8 +120,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, [permissions]);
 
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return (

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { Vehicle, Driver } from '@/types';
+import { Tag } from '../../types/tags';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { getReminderContacts, ReminderContact } from '../../utils/reminderService';
 import { getDrivers } from '../../utils/api/drivers';
+import { getTags } from '../../utils/api/tags';
 import { supabase } from '../../utils/supabaseClient';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -12,6 +14,7 @@ import Button from '../ui/Button';
 import Textarea from '../ui/Textarea';
 import DocumentUploader from '../shared/DocumentUploader';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import VehicleTagSelector from './VehicleTagSelector';
 import {
   Truck,
   Calendar,
@@ -36,6 +39,7 @@ import {
   DollarSign,
   Clock,
   CreditCard,
+  Tag as TagIcon,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -59,6 +63,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
+  const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
 
   const {
     register,
@@ -95,6 +100,32 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   useEffect(() => {
     if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
+
+  // Load vehicle tags when editing existing vehicle
+  useEffect(() => {
+    if (initialData?.id) {
+      loadVehicleTags();
+    }
+  }, [initialData?.id]);
+
+  const loadVehicleTags = async () => {
+    if (!initialData?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_tags')
+        .select(`
+          tags (*)
+        `)
+        .eq('vehicle_id', initialData.id);
+
+      if (error) throw error;
+      const tags = (data || []).map((item: any) => item.tags).filter(Boolean);
+      setVehicleTags(tags);
+    } catch (error) {
+      console.error('Error loading vehicle tags:', error);
+    }
+  };
 
   // Fetch required data on component mount
   useEffect(() => {
@@ -505,6 +536,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           />
         </div>
       </CollapsibleSection>
+
+      {/* Vehicle Tags */}
+      {initialData?.id && (
+        <CollapsibleSection
+          title="Vehicle Tags"
+          icon={<TagIcon className="h-5 w-5" />}
+          iconColor="text-indigo-600"
+          defaultExpanded={true}
+        >
+          <div className="space-y-4">
+            <VehicleTagSelector
+              vehicleId={initialData.id}
+              currentTags={vehicleTags}
+              onTagsChange={setVehicleTags}
+              readOnly={false}
+            />
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Technical Details */}
       <CollapsibleSection

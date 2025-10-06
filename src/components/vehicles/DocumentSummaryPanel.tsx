@@ -936,7 +936,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
     result.thisMonth.lapsedCount = lapsedDocs.length;
 
     return result;
-  }, [filteredVehicles, effectiveDateRange]);
+  }, [filteredVehicles]);
 
   // Generate monthly expenditure data for filtered vehicles based on actual renewal dates
   const monthlyExpenditure = useMemo((): MonthlyExpenditure[] => {

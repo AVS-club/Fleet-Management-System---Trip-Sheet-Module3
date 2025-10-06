@@ -382,7 +382,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
         description: 'Trip remarks'
       }
     ],
-    [vehicleOptions, driverOptions, vehiclesById, driversById]
+    [vehicleOptions, driverOptions]
   );
 
   const [sortConfig, setSortConfig] = useState<{

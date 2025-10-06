@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { usePermissions } from '../hooks/usePermissions';
@@ -148,7 +148,7 @@ const TripPnlReportsPage: React.FC = () => {
 
   // ...rest of component logic
 
-  const datePresetOptions: DatePreset[] = [
+  const datePresetOptions = useMemo<DatePreset[]>(() => [
     {
       label: 'Last 7 days',
       getValue: () => ({
@@ -212,7 +212,7 @@ const TripPnlReportsPage: React.FC = () => {
         endDate: new Date()
       })
     }
-  ];
+  ], []);
 
   const fetchData = async () => {
     try {
@@ -339,7 +339,7 @@ const TripPnlReportsPage: React.FC = () => {
       const preset = datePresetOptions.find(option => option.label.toLowerCase().replace(/\s+/g, '') === selectedDatePreset);
       return preset ? preset.getValue() : datePresetOptions[1].getValue();
     }
-  }, [selectedDatePreset, customStartDate, customEndDate]);
+  }, [selectedDatePreset, customStartDate, customEndDate, datePresetOptions]);
 
   // Filter trips based on current filters
   const filteredTrips = useMemo(() => {
@@ -488,6 +488,14 @@ const TripPnlReportsPage: React.FC = () => {
     return summary;
   }, [filteredTrips]);
 
+  const vehicleNameMap = useMemo(() => new Map(vehicles.map(v => [v.id, v.registration_number])), [vehicles]);
+  const driverNameMap = useMemo(() => new Map(drivers.map(d => [d.id, d.name])), [drivers]);
+  const warehouseNameMap = useMemo(() => new Map(warehouses.map(w => [w.id, w.name])), [warehouses]);
+
+  const getVehicleName = useCallback((vehicleId: string) => vehicleNameMap.get(vehicleId) || 'N/A', [vehicleNameMap]);
+  const getDriverName = useCallback((driverId: string) => driverNameMap.get(driverId) || 'N/A', [driverNameMap]);
+  const getWarehouseName = useCallback((warehouseId: string) => warehouseNameMap.get(warehouseId) || 'N/A', [warehouseNameMap]);
+
   // Prepare chart data
   const chartData = useMemo(() => {
     try {
@@ -571,7 +579,7 @@ const TripPnlReportsPage: React.FC = () => {
         vehiclePerformance: []
       };
     }
-  }, [filteredTrips, pnlSummary]);
+  }, [filteredTrips, pnlSummary, getVehicleName]);
 
   // Pagination
   const paginatedTrips = useMemo(() => {
@@ -675,21 +683,6 @@ const TripPnlReportsPage: React.FC = () => {
     saveAs(data, fileName);
     
     toast.success('Report exported successfully');
-  };
-
-  const getVehicleName = (vehicleId: string) => {
-    const vehicle = vehicles.find(v => v.id === vehicleId);
-    return vehicle?.registration_number || 'N/A';
-  };
-
-  const getDriverName = (driverId: string) => {
-    const driver = drivers.find(d => d.id === driverId);
-    return driver?.name || 'N/A';
-  };
-
-  const getWarehouseName = (warehouseId: string) => {
-    const warehouse = warehouses.find(w => w.id === warehouseId);
-    return warehouse?.name || 'N/A';
   };
 
   const getProfitStatusColor = (status: string) => {

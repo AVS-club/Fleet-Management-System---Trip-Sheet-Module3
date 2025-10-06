@@ -41,6 +41,7 @@ import AlertSettingsPage from "./pages/admin/AlertSettingsPage";
 import TripLocationsPage from "./pages/admin/TripLocationsPage";
 import AdminTripsPage from "./pages/admin/AdminTripsPage";
 import VehicleManagementPage from "./pages/admin/VehicleManagementPage";
+import VehicleTagsPage from "./pages/admin/VehicleTagsPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
 import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
@@ -156,6 +157,7 @@ const App: React.FC = () => {
             <Route path="/admin/trip-locations" element={<ProtectedRoute session={session} loading={loading}><TripLocationsPage /></ProtectedRoute>} />
             <Route path="/admin/trips" element={<ProtectedRoute session={session} loading={loading}><AdminTripsPage /></ProtectedRoute>} />
             <Route path="/admin/vehicle-management" element={<ProtectedRoute session={session} loading={loading}><VehicleManagementPage /></ProtectedRoute>} />
+            <Route path="/admin/vehicle-tags" element={<ProtectedRoute session={session} loading={loading}><VehicleTagsPage /></ProtectedRoute>} />
             <Route path="/admin/driver-management" element={<ProtectedRoute session={session} loading={loading}><AdminDriversPage /></ProtectedRoute>} />
             <Route path="/admin/activity-logs" element={<ProtectedRoute session={session} loading={loading}><ActivityLogPage /></ProtectedRoute>} />
             <Route path="/admin/driver-ranking-settings" element={<ProtectedRoute session={session} loading={loading}><DriverRankingSettingsPage /></ProtectedRoute>} />

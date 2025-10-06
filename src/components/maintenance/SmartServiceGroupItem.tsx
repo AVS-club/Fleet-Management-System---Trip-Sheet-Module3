@@ -41,7 +41,8 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
   const [isUploading, setIsUploading] = useState(false);
 
   // Watch form values
-  const selectedTasks = watch(`service_groups.${index}.tasks`) || [];
+  const rawSelectedTasks = watch(`service_groups.${index}.tasks`);
+  const selectedTasks = useMemo(() => rawSelectedTasks || [], [rawSelectedTasks]);
   const selectedVendor = watch(`service_groups.${index}.vendor_id`);
   const cost = watch(`service_groups.${index}.cost`) || 0;
   const batteryTracking = watch(`service_groups.${index}.battery_tracking`);
@@ -89,7 +90,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
         setValue(`service_groups.${index}.cost`, estimated);
       }
     }
-  }, [selectedTasks, vendors, vendorHistory, setValue, index]); // Removed 'cost' from dependencies
+  }, [selectedTasks, vendors, vendorHistory, setValue, index, cost]);
 
   // Handle bill file upload with progress simulation
   const handleBillFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -695,3 +696,4 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
 };
 
 export default SmartServiceGroupItem;
+

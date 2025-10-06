@@ -41,6 +41,7 @@ const TripsPage: React.FC = () => {
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(false);
   const [fixingMileage, setFixingMileage] = useState(false);
+  const [highlightTripId, setHighlightTripId] = useState<string | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,6 +94,12 @@ const TripsPage: React.FC = () => {
       } else {
         window.history.replaceState({}, document.title);
       }
+    } else if (location.state?.highlightTripId) {
+      setHighlightTripId(location.state.highlightTripId);
+      // Clear the highlight after 5 seconds
+      setTimeout(() => setHighlightTripId(null), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
     }
   }, [location.state, location.search]);
 
@@ -666,6 +673,7 @@ const TripsPage: React.FC = () => {
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
+                  highlightTripId={highlightTripId}
                 />
               ) : viewMode === 'list' ? (
                 <TripListView
@@ -676,6 +684,7 @@ const TripsPage: React.FC = () => {
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
+                  highlightTripId={highlightTripId}
                 />
               ) : (
                 <TripList 
@@ -685,6 +694,7 @@ const TripsPage: React.FC = () => {
                   onSelectTrip={handleTripSelect}
                   onPnlClick={handlePnlClick}
                   onEditTrip={handleEditTrip}
+                  highlightTripId={highlightTripId}
                   searchTerm={filters.search}
                 />
               )}

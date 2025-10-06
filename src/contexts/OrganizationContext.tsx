@@ -121,6 +121,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (!context) {

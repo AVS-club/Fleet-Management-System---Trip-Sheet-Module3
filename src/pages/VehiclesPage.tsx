@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Layout from "../components/layout/Layout";
 import { Vehicle, Trip, Driver } from "@/types"; // Import the Vehicle interface
 import VehicleCardSkeleton from "../components/ui/VehicleCardSkeleton";
+import VehicleTagBadges from "../components/vehicles/VehicleTagBadges";
 import { cache, CACHE_KEYS } from "../utils/cache";
 
 interface VehicleWithStats extends Vehicle {
@@ -38,6 +39,7 @@ import {
   X,
   User,
   Fuel,
+  Gauge,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -58,7 +60,7 @@ const VehiclesPage: React.FC = () => {
   const [isAddingVehicle, setIsAddingVehicle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showArchived, setShowArchived] = useState(false);
+  const [showArchived] = useState(false);
   const [showDocumentPanel, setShowDocumentPanel] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showTopDriversModal, setShowTopDriversModal] = useState(false);
@@ -153,7 +155,7 @@ const VehiclesPage: React.FC = () => {
         
         // Performance logging for initial load
         const initialLoadTime = performance.now() - startTime;
-        console.log(`🚀 Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
+        console.log(`ðŸš€ Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
         
         setLoading(false); // Show vehicles immediately
 
@@ -194,7 +196,7 @@ const VehiclesPage: React.FC = () => {
           const totalLoadTime = performance.now() - startTime;
           performance.mark('vehicles-load-end');
           performance.measure('vehicles-complete-load', 'vehicles-load-start', 'vehicles-load-end');
-          console.log(`📊 Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
+          console.log(`ðŸ“Š Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
         }, 150); // Small delay to prevent glitchy updates
 
         // Calculate statistics
@@ -428,19 +430,159 @@ const VehiclesPage: React.FC = () => {
   // Helper function to count uploaded documents - updated to check for actual file paths
   const countDocuments = (
     vehicle: Vehicle
-  ): { uploaded: number; total: number } => {
-    let uploaded = 0;
-    const total = 6; // RC, Insurance, Fitness, Tax, Permit, PUC
+  ): { uploaded: number; total: number; status: 'none' | 'partial' | 'complete' } => {
+    const documentFields: (keyof Vehicle)[] = [
+      'rc_document_url',
+      'insurance_document_url',
+      'fitness_document_url',
+      'tax_document_url',
+      'permit_document_url',
+      'puc_document_url',
+    ];
 
-    // Check for actual document paths instead of boolean flags
-    if (vehicle.rc_document_url) uploaded++;
-    if (vehicle.insurance_document_url) uploaded++;
-    if (vehicle.fitness_document_url) uploaded++;
-    if (vehicle.tax_document_url) uploaded++;
-    if (vehicle.permit_document_url) uploaded++;
-    if (vehicle.puc_document_url) uploaded++;
+    const normalizePath = (value: string) => value.split('?')[0].split('#')[0].trim();
 
-    return { uploaded, total };
+    const isValidFile = (value: unknown) => {
+      if (typeof value !== 'string') return false;
+      const normalized = normalizePath(value);
+      if (!normalized) return false;
+      return /\.(pdf|png|jpe?g)$/i.test(normalized);
+    };
+
+    const looksLikeDocument = (value: unknown) => {
+      if (typeof value !== 'string') return false;
+      const normalized = normalizePath(value);
+      if (!normalized) return false;
+      return /\.[a-z0-9]{2,5}$/i.test(normalized);
+    };
+
+    const extractFileStrings = (value: unknown): string[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        return value.flatMap((item) => extractFileStrings(item));
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return [];
+        if (
+          (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+          (trimmed.startsWith('{') && trimmed.endsWith('}'))
+        ) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            return extractFileStrings(parsed);
+          } catch {
+            return [trimmed];
+          }
+        }
+        return [trimmed];
+      }
+      if (typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const candidateKeys = [
+          'file_path',
+          'file',
+          'url',
+          'path',
+          'signedUrl',
+          'signed_url',
+          'document_path',
+          'documentUrl',
+          'document_url',
+        ];
+        const matches = candidateKeys
+          .map((key) => record[key])
+          .filter((candidate): candidate is string => typeof candidate === 'string' && candidate.trim() !== '');
+        if (matches.length > 0) {
+          return matches.map((candidate) => candidate.trim());
+        }
+        return Object.values(record).flatMap((item) => extractFileStrings(item));
+      }
+      return [];
+    };
+
+    const ensureArray = <T,>(value: unknown): T[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) {
+        return value as T[];
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return [];
+        if (
+          (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+          (trimmed.startsWith('{') && trimmed.endsWith('}'))
+        ) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              return parsed as T[];
+            }
+            if (parsed && typeof parsed === 'object') {
+              return Object.values(parsed) as T[];
+            }
+          } catch {
+            return [trimmed as unknown as T];
+          }
+        }
+        return [trimmed as unknown as T];
+      }
+      if (typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const entries = Object.entries(record);
+        const isIndexedObject = entries.every(([key]) => /^\d+$/.test(key));
+        if (isIndexedObject) {
+          return entries
+            .sort((a, b) => Number(a[0]) - Number(b[0]))
+            .map(([, entry]) => entry as T);
+        }
+      }
+      return [];
+    };
+
+    let total = documentFields.length;
+
+    let uploaded = documentFields.reduce((count, field) => {
+      const entries = extractFileStrings((vehicle as Record<string, unknown>)[field]);
+      return count + (entries.some(isValidFile) ? 1 : 0);
+    }, 0);
+
+    const otherDocuments = ensureArray<Record<string, unknown>>(vehicle.other_documents);
+
+    if (otherDocuments.length > 0) {
+      total += otherDocuments.length;
+      otherDocuments.forEach((doc) => {
+        const entries = extractFileStrings(doc);
+        if (entries.some(isValidFile)) {
+          uploaded += 1;
+        }
+      });
+    }
+
+    const otherInfoDocuments = ensureArray<unknown>(vehicle.other_info_documents);
+
+    if (otherInfoDocuments.length > 0) {
+      otherInfoDocuments.forEach((entry) => {
+        const entries = extractFileStrings(entry);
+        const hasDocumentShape = entries.some((item) => looksLikeDocument(item));
+        if (!hasDocumentShape) {
+          return;
+        }
+        total += 1;
+        if (entries.some(isValidFile)) {
+          uploaded += 1;
+        }
+      });
+    }
+
+    const status: 'none' | 'partial' | 'complete' =
+      uploaded === 0
+        ? 'none'
+        : uploaded >= total
+        ? 'complete'
+        : 'partial';
+
+    return { uploaded, total, status };
   };
 
   // Open WhatsApp share modal
@@ -504,19 +646,6 @@ const VehiclesPage: React.FC = () => {
               title="Vehicle Document Summary (Legacy)"
             >
 {t('vehicles.documentSummary', 'Document Summary')}
-            </Button>
-
-
-            <Button
-              variant="outline"
-              onClick={() => setShowArchived(!showArchived)}
-              icon={<Archive className="h-4 w-4" />}
-              size="sm"
-              title={
-                showArchived ? "Show Active Vehicles" : "Show Archived Vehicles"
-              }
-            >
-{t(showArchived ? 'vehicles.showActive' : 'vehicles.showArchived', showArchived ? 'Show Active' : 'Show Archived')}
             </Button>
 
             <Button
@@ -602,7 +731,7 @@ const VehiclesPage: React.FC = () => {
                           </div>
                           <span className="text-xs text-gray-500 block">
                             {topDriverLogic === 'mileage' && `${topDriver.mileage.toFixed(1)} km/L`}
-                            {topDriverLogic === 'cost_per_km' && `₹0.00/km`}
+                            {topDriverLogic === 'cost_per_km' && `â‚¹0.00/km`}
                             {topDriverLogic === 'trips' && `0 trips`}
                           </span>
                         </div>
@@ -681,13 +810,79 @@ const VehiclesPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedVehicles.map((vehicle) => {
                 // Count documents using actual document paths
-                const { uploaded, total } = countDocuments(vehicle);
+                const { uploaded, total, status: uploadStatus } = countDocuments(vehicle);
 
                 // Get the assigned driver using the driversById lookup
                 const assignedDriver = vehicle.primary_driver_id 
                   ? driversById[vehicle.primary_driver_id] 
                   : undefined;
 
+                const statusPillClasses =
+                  vehicle.status === "active"
+                    ? "bg-success-100 text-success-800"
+                    : vehicle.status === "maintenance"
+                    ? "bg-warning-100 text-warning-800"
+                    : vehicle.status === "archived"
+                    ? "bg-gray-100 text-gray-600"
+                    : "bg-gray-100 text-gray-800";
+
+                const photoRingClasses =
+                  vehicle.status === "active"
+                    ? "ring-2 ring-success-400 ring-offset-2"
+                    : "";
+
+                const metaItems: { icon: React.ReactNode; label: string }[] = [];
+
+                const totalTrips =
+                  typeof vehicle.stats.totalTrips === "number"
+                    ? vehicle.stats.totalTrips
+                    : 0;
+
+                const totalDistanceRaw =
+                  typeof vehicle.stats.totalDistance === "number"
+                    ? vehicle.stats.totalDistance
+                    : 0;
+
+                const averageKmplRaw =
+                  typeof vehicle.stats.averageKmpl === "number"
+                    ? vehicle.stats.averageKmpl
+                    : Number.NaN;
+
+                const displayTotalDistance =
+                  totalDistanceRaw > 0 ? totalDistanceRaw.toLocaleString() : "0";
+
+                const displayAverageKmpl =
+                  totalTrips > 0 && Number.isFinite(averageKmplRaw)
+                    ? averageKmplRaw.toFixed(1)
+                    : "0";
+
+                const normalizedType =
+                  typeof vehicle.type === "string"
+                    ? vehicle.type.replace(/_/g, " ")
+                    : "";
+
+                if (normalizedType) {
+                  const readableType =
+                    normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1);
+                  metaItems.push({
+                    icon: <Truck className="h-3 w-3 text-gray-400" />,
+                    label: readableType,
+                  });
+                }
+
+                if (typeof vehicle.owner_name === "string" && vehicle.owner_name.trim()) {
+                  metaItems.push({
+                    icon: <User className="h-3 w-3 text-gray-400" />,
+                    label: vehicle.owner_name.trim(),
+                  });
+                }
+
+                if (typeof vehicle.current_odometer === "number") {
+                  metaItems.push({
+                    icon: <Gauge className="h-3 w-3 text-gray-400" />,
+                    label: `${vehicle.current_odometer.toLocaleString()} km`,
+                  });
+                }
 
                 return (
                   <div
@@ -698,7 +893,7 @@ const VehiclesPage: React.FC = () => {
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}
                   >
                     {/* Header: Registration, Status, Action Buttons */}
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 truncate" 
                             title={`${vehicle.registration_number} - Current Odometer: ${vehicle.current_odometer?.toLocaleString()} km`}>
@@ -714,27 +909,59 @@ const VehiclesPage: React.FC = () => {
                             </span>
                           )}
                         </p>
+                        {metaItems.length > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-sans text-gray-500">
+                            {metaItems.map((item, index) => (
+                              <span
+                                key={`vehicle-meta-${vehicle.id}-${index}`}
+                                className="flex items-center gap-1 text-gray-600"
+                              >
+                                {item.icon}
+                                <span className="max-w-[8rem] truncate">{item.label}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-2">
                         <span
-                          className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize ${
-                            vehicle.status === "active"
-                              ? "bg-success-100 text-success-800"
-                              : vehicle.status === "maintenance"
-                              ? "bg-warning-100 text-warning-800"
-                              : vehicle.status === "archived"
-                              ? "bg-gray-100 text-gray-600"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
+                          className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize flex items-center gap-2 ${statusPillClasses}`}
                         >
+                          {vehicle.status === "active" && (
+                            <span
+                              className="inline-block h-2 w-2 rounded-full bg-success-500"
+                              aria-hidden="true"
+                            />
+                          )}
                           {vehicle.status}
                         </span>
+                        <div
+                          className={`relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200 ${photoRingClasses}`}
+                        >
+                          {vehicle.photo_url ? (
+                            <img
+                              src={vehicle.photo_url}
+                              alt={`${vehicle.registration_number} photo`}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <Truck className="h-5 w-5 text-gray-400" />
+                            </div>
+                          )}
+                          {vehicle.status === "active" && (
+                            <span
+                              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-success-500"
+                              aria-hidden="true"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Pills Row: Year + Fuel */}
-                    <div className="flex gap-2 mb-3">
+                    <div className="flex gap-1 mb-2">
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-blue-50 text-blue-700">
                         <Calendar className="h-3 w-3 mr-1" />
                         {vehicle.year}
@@ -746,11 +973,11 @@ const VehiclesPage: React.FC = () => {
                     </div>
 
                     {/* Driver Assignment */}
-                    <div className="mb-3">
+                    <div className="mb-2">
                       <div className="flex items-center text-sm">
                         {assignedDriver ? (
                           <>
-                            <span className="mr-1">👤</span>
+                            <span className="mr-1" role="img" aria-label="Driver">{"\u{1F464}"}</span>
                             <span className="font-sans text-gray-700 truncate">{assignedDriver.name}</span>
                           </>
                         ) : (
@@ -762,8 +989,20 @@ const VehiclesPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Vehicle Tags */}
+                    {vehicle.tags && vehicle.tags.length > 0 && (
+                      <div className="mb-2">
+                        <VehicleTagBadges 
+                          tags={vehicle.tags} 
+                          readOnly 
+                          size="sm"
+                          maxDisplay={3}
+                        />
+                      </div>
+                    )}
+
                     {/* Metrics Row */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="grid grid-cols-3 gap-2 mb-2">
                         <div className="text-center">
                           <span className="text-xs font-sans text-gray-500 block">
                             Trips
@@ -776,9 +1015,7 @@ const VehiclesPage: React.FC = () => {
                             Distance
                           </span>
                           <p className="font-display font-bold tracking-tight-plus text-sm">
-                            {typeof vehicle.stats.totalDistance === "number"
-                              ? vehicle.stats.totalDistance.toLocaleString()
-                              : "—"}
+                            {displayTotalDistance}
                           </p>
                         </div>
 
@@ -787,23 +1024,23 @@ const VehiclesPage: React.FC = () => {
                             Avg KMPL
                           </span>
                           <p className="font-display font-bold tracking-tight-plus text-sm">
-                            {vehicle.stats.averageKmpl?.toFixed(1) || "—"}
+                            {displayAverageKmpl}
                           </p>
                         </div>
                     </div>
 
                     {/* Documents Status */}
-                    <div className="flex items-center justify-between mb-3 pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                       <div className="flex items-center">
                         <FileText className="h-3 w-3 text-gray-400 mr-1" />
                         <span className="text-xs font-sans text-gray-500">Docs:</span>
                         <span
                           className={`ml-1 text-xs font-sans font-medium px-1.5 py-0.5 rounded-full ${
-                            uploaded === total
-                              ? "bg-success-100 text-success-800"
-                              : uploaded === 0
-                              ? "bg-error-100 text-error-800"
-                              : "bg-warning-100 text-warning-800"
+                            uploadStatus === 'complete'
+                              ? 'bg-success-100 text-success-800'
+                              : uploadStatus === 'none'
+                              ? 'bg-error-100 text-error-800'
+                              : 'bg-warning-100 text-warning-800'
                           }`}
                         >
                           {uploaded}/{total}

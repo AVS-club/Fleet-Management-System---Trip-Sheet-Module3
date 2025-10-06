@@ -110,6 +110,7 @@ export function LogExport({ onExport, disabled = false, className = '' }: LogExp
 }
 
 // Utility function to generate CSV content
+// eslint-disable-next-line react-refresh/only-export-components
 export function generateCSVContent<T>(
   data: T[],
   columns: Array<{ key: string; label: string; formatter?: (value: any) => string }>
@@ -127,6 +128,7 @@ export function generateCSVContent<T>(
 }
 
 // Utility function to download file
+// eslint-disable-next-line react-refresh/only-export-components
 export function downloadFile(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType })
   const url = window.URL.createObjectURL(blob)
@@ -136,3 +138,4 @@ export function downloadFile(content: string, filename: string, mimeType: string
   a.click()
   window.URL.revokeObjectURL(url)
 }
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   generatePDF, 
   generateWeeklyComparisonExcel, 
@@ -102,11 +102,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
 
   const config = reportConfigs[reportType];
 
-  useEffect(() => {
-    fetchReportData();
-  }, [reportType, dateRange]);
-
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -114,28 +110,25 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       let data: any;
       
       switch (reportType) {
-        case 'weekly-comparison':
+        case 'weekly-comparison': {
           const currentWeek = getWeekNumber(new Date());
           data = await fetchWeeklyComparisonData(currentWeek);
           break;
-          
-        case 'monthly-comparison':
+        }
+        case 'monthly-comparison': {
           const currentMonth = new Date().getMonth() + 1;
           data = await fetchMonthlyComparisonData(currentMonth);
           break;
-          
+        }
         case 'trip-summary':
           data = await fetchTripSummaryData(dateRange);
           break;
-          
         case 'vehicle-utilization':
           data = await fetchVehicleUtilizationData('Current Month');
           break;
-          
         case 'driver-performance':
           data = await fetchDriverPerformanceData('Current Month');
           break;
-          
         default:
           throw new Error(`Unknown report type: ${reportType}`);
       }
@@ -147,7 +140,11 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [reportType, dateRange]);
+
+  useEffect(() => {
+    fetchReportData();
+  }, [fetchReportData]);
 
   const getWeekNumber = (date: Date): number => {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);

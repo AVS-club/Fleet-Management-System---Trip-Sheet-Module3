@@ -187,7 +187,7 @@ const RealTimeAnalytics: React.FC = () => {
       alertsCount,
       maintenanceDue
     };
-  }, [trips, vehicles, drivers, selectedTimeframe]);
+  }, [trips, vehicles, selectedTimeframe]);
 
   // Calculate trends
   const trends = useMemo((): TrendData[] => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { CheckCircle, AlertCircle, X } from 'lucide-react';
 import { ANIMATIONS } from '@/utils/animations';
 
@@ -20,6 +20,14 @@ const AnimatedToast: React.FC<AnimatedToastProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => {
+      setIsVisible(false);
+      onClose?.();
+    }, 300);
+  }, [onClose]);
+
   useEffect(() => {
     if (duration > 0) {
       const timer = setTimeout(() => {
@@ -28,15 +36,7 @@ const AnimatedToast: React.FC<AnimatedToastProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [duration]);
-
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      setIsVisible(false);
-      onClose?.();
-    }, 300);
-  };
+  }, [duration, handleClose]);
 
   if (!isVisible) return null;
 
@@ -142,3 +142,4 @@ export const ToastManager: React.FC = () => {
 };
 
 export default AnimatedToast;
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { MaintenanceTask } from "@/types/maintenance";
 import { Vehicle } from "@/types";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, isPast, addMonths, subMonths } from "date-fns";
@@ -30,7 +30,7 @@ const MaintenanceCalendar: React.FC<MaintenanceCalendarProps> = ({ tasks, vehicl
   const [events, setEvents] = useState<CalendarEvent[]>([]);
 
   // Create a map of vehicles for quick lookup
-  const vehicleMap = new Map(vehicles.map(v => [v.id, v]));
+  const vehicleMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
 
   // Generate calendar events from maintenance tasks
   useEffect(() => {
@@ -350,3 +350,4 @@ const MaintenanceCalendar: React.FC<MaintenanceCalendarProps> = ({ tasks, vehicl
 };
 
 export default MaintenanceCalendar;
+

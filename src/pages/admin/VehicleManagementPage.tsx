@@ -31,6 +31,7 @@ import {
   BarChart2,
   Edit,
   X,
+  Tag as TagIcon,
 } from "lucide-react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
@@ -725,6 +726,13 @@ const VehicleManagementPage: React.FC = () => {
             icon={<ChevronLeft className="h-4 w-4" />}
           >
             Back to Admin
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin/vehicle-tags")}
+            icon={<TagIcon className="h-4 w-4" />}
+          >
+            Manage Tags
           </Button>
         </div>
       </div>

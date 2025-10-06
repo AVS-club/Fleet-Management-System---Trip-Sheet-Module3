@@ -1,7 +1,8 @@
 import React from 'react';
 import { Vehicle, Driver } from '@/types';
-import { X, Truck, User, FileText, PenTool as Tool, Calendar } from 'lucide-react';
+import { X, Truck, User, FileText, PenTool as Tool, Calendar, Tag as TagIcon } from 'lucide-react';
 import { getDriver } from '../../utils/storage';
+import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 
 interface VehicleProfileModalProps {
   vehicle: Vehicle;
@@ -68,6 +69,24 @@ const VehicleProfileModal: React.FC<VehicleProfileModalProps> = ({ vehicle, onCl
                       <p className="text-xs sm:text-sm font-medium text-gray-900">{assignedDriver.name}</p>
                       <p className="text-xs sm:text-sm text-gray-500">{assignedDriver.licenseNumber}</p>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Vehicle Tags */}
+              {vehicle.tags && vehicle.tags.length > 0 && (
+                <div>
+                  <h4 className="text-xs sm:text-sm font-medium text-gray-900 flex items-center gap-2">
+                    <TagIcon className="h-4 w-4" />
+                    Vehicle Tags
+                  </h4>
+                  <div className="mt-1 sm:mt-2">
+                    <VehicleTagBadges 
+                      tags={vehicle.tags} 
+                      readOnly 
+                      size="sm"
+                      maxDisplay={3}
+                    />
                   </div>
                 </div>
               )}

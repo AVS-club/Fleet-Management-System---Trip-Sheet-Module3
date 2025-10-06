@@ -50,7 +50,21 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
 
     const { data, error } = await supabase
       .from('vehicles')
-      .select(VEHICLE_COLS)
+      .select(`
+        ${VEHICLE_COLS},
+        vehicle_tags (
+          tags (
+            id,
+            name,
+            slug,
+            color_hex,
+            description,
+            active,
+            created_at,
+            updated_at
+          )
+        )
+      `)
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false });
 
@@ -59,7 +73,13 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
       return [];
     }
 
-    return data || [];
+    // Transform the data to include tags
+    const vehiclesWithTags = (data || []).map(vehicle => ({
+      ...vehicle,
+      tags: vehicle.vehicle_tags?.map((vt: any) => vt.tags).filter(Boolean) || []
+    }));
+
+    return vehiclesWithTags;
   } catch (error) {
     if (isNetworkError(error)) {
       if (config.isDev) console.warn('Network error fetching user for vehicles, returning empty array');
@@ -73,7 +93,21 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
 export const getVehicle = async (id: string): Promise<Vehicle | null> => {
   const { data, error } = await supabase
     .from('vehicles')
-    .select(VEHICLE_COLS)
+    .select(`
+      ${VEHICLE_COLS},
+      vehicle_tags (
+        tags (
+          id,
+          name,
+          slug,
+          color_hex,
+          description,
+          active,
+          created_at,
+          updated_at
+        )
+      )
+    `)
     .eq('id', id)
     .single();
 
@@ -82,7 +116,13 @@ export const getVehicle = async (id: string): Promise<Vehicle | null> => {
     return null;
   }
 
-  return data;
+  // Transform the data to include tags
+  const vehicleWithTags = {
+    ...data,
+    tags: data.vehicle_tags?.map((vt: any) => vt.tags).filter(Boolean) || []
+  };
+
+  return vehicleWithTags;
 };
 
 export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<Vehicle | null> => {

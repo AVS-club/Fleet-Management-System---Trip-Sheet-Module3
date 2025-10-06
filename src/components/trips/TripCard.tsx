@@ -23,8 +23,13 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [warehouseData, setWarehouseData] = useState<any>(null);
+  const warehouseDataRef = useRef<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    warehouseDataRef.current = warehouseData;
+  }, [warehouseData]);
 
   // Fetch warehouse and destinations data
   useEffect(() => {
@@ -43,7 +48,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
               setLoadingError('Unable to load warehouse data due to connection issues');
             } else {
               // Only set error if warehouse_id exists but data is null
-              if (!warehouseData) {
+              if (!warehouseDataRef.current) {
                 setLoadingError('Unable to load warehouse data');
               }
               setLoadingError('Unable to load warehouse data due to connection issues');

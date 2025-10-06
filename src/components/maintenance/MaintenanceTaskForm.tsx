@@ -51,7 +51,7 @@ const ServiceDetailsSection = () => {
     if (!startDate) {
       setValue('start_date', new Date().toISOString().split('T')[0]);
     }
-  }, []);
+  }, [startDate, setValue]);
 
   // Handle quick select
   const handleQuickSelect = (days: number, hours: number, optionId: string) => {
@@ -931,4 +931,5 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 };
 
 export default MaintenanceTaskForm;
+
 

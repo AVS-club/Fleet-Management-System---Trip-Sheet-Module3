@@ -890,6 +890,16 @@ const TripForm: React.FC<TripFormProps> = ({
       // Use the utility function to calculate mileage
       const { updatedTrip } = recalculateMileageForRefuelingTrip(tempTrip, trips);
       data.calculated_kmpl = updatedTrip.calculated_kmpl;
+      
+      // Validate mileage after calculation
+      const mileage = data.calculated_kmpl || 0;
+      if (mileage > 30) {
+        toast.error('Mileage exceeds 30 km/L - please verify fuel quantity and distance');
+        return;
+      }
+      if (mileage < 3 && mileage > 0) {
+        toast.warning('Mileage below 3 km/L - possible fuel leak or calculation error');
+      }
     }
     
     // For backward compatibility, convert refuelings to old format if there's one refueling

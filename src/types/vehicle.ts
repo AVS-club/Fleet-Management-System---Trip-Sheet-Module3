@@ -177,4 +177,18 @@ export interface Vehicle {
   created_at?: string;
   updated_at?: string;
   primary_driver_id?: string;
+  
+  // Vehicle Tags
+  tags?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    color_hex: string;
+    description?: string;
+    organization_id: string;
+    created_by?: string;
+    active: boolean;
+    created_at: string;
+    updated_at: string;
+  }>;
 }

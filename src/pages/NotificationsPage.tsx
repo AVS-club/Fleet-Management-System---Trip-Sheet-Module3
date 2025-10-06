@@ -46,30 +46,27 @@ const NotificationsPage: React.FC = () => {
 
   const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
 
-  const events = data?.pages.flat() || [];
+  const events = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
-  // Count events by type
-  const getCounts = () => {
-    const counts = {
+  const counts = useMemo(() => {
+    const result = {
       ai_alert: 0,
       vehicle_doc: 0,
       maintenance: 0,
       trip: 0,
       kpi: 0,
       vehicle_activity: 0,
-      activity: 0
+      activity: 0,
     };
-    
+
     events.forEach((event: any) => {
-      if (counts.hasOwnProperty(event.kind)) {
-        counts[event.kind as keyof typeof counts]++;
+      if (Object.prototype.hasOwnProperty.call(result, event.kind)) {
+        result[event.kind as keyof typeof result]++;
       }
     });
-    
-    return counts;
-  };
 
-  const counts = getCounts();
+    return result;
+  }, [events]);
 
   const mediaCards = useMemo(() => {
     if (!kpiCards) {
@@ -430,3 +427,5 @@ const NotificationsPage: React.FC = () => {
 };
 
 export default NotificationsPage;
+
+

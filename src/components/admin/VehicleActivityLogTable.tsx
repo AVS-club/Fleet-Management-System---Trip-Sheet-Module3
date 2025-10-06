@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getVehicles } from '../../utils/storage';
 import { getAllVehicleActivityLogs, VehicleActivityLog } from '../../utils/vehicleActivity';
 import { Clock, UserCircle, Truck, Filter, Search, RefreshCw } from 'lucide-react';
@@ -33,7 +33,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
     search: ''
   });
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       let fetchedLogs;
@@ -63,9 +63,9 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehicleId, limit]);
 
-  const fetchVehicles = async () => {
+  const fetchVehicles = useCallback(async () => {
     try {
       const vehiclesData = await getVehicles();
       setVehicles(
@@ -77,14 +77,17 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
     } catch (error) {
       console.error('Error fetching vehicles:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLogs();
+  }, [fetchLogs, refreshTrigger]);
+
+  useEffect(() => {
     if (!vehicleId) {
       fetchVehicles();
     }
-  }, [vehicleId, limit, refreshTrigger]);
+  }, [vehicleId, fetchVehicles]);
 
   const handleRefresh = () => {
     fetchLogs();

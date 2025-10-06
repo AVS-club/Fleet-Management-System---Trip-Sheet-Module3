@@ -131,6 +131,7 @@ export function ActivityLogIntegration() {
 /**
  * Higher-order component to automatically log activities
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function withActivityLogging<T extends object>(
   WrappedComponent: React.ComponentType<T>,
   logConfig: {
@@ -140,25 +141,26 @@ export function withActivityLogging<T extends object>(
   }
 ) {
   return function ActivityLoggedComponent(props: T) {
-    React.useEffect(() => {
-      if (logConfig.onMount) {
-        logConfig.onMount(props)
-      }
-      
-      return () => {
-        if (logConfig.onUnmount) {
-          logConfig.onUnmount(props)
-        }
-      }
-    }, [])
+    const initialPropsRef = React.useRef(props);
+    const { onMount, onUnmount } = logConfig;
 
-    return <WrappedComponent {...props} />
-  }
+    React.useEffect(() => {
+      const mountProps = initialPropsRef.current;
+      onMount?.(mountProps);
+
+      return () => {
+        onUnmount?.(mountProps);
+      };
+    }, [onMount, onUnmount]);
+
+    return <WrappedComponent {...props} />;
+  };
 }
 
 /**
  * Hook for automatic activity logging
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useActivityLogging(userId: string) {
   const logActivity = React.useCallback(async (
     action: UserAction | string,
@@ -180,3 +182,4 @@ export function useActivityLogging(userId: string) {
 
   return { logActivity }
 }
+

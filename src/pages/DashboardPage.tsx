@@ -10,7 +10,7 @@ import { getDrivers, getDriver } from '../utils/api/drivers';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '@/types';
 import StatCard from '../components/ui/StatCard';
-import MileageChart from '../components/dashboard/MileageChart';
+import EnhancedMileageChart from '../components/dashboard/EnhancedMileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
 import RecentTripsTable from '../components/dashboard/RecentTripsTable';
 import DashboardSummary from '../components/dashboard/DashboardSummary';
@@ -473,19 +473,26 @@ const DashboardPage: React.FC = () => {
             <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">Detailed Analytics</h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-              <MileageChart trips={trips} onDataPointClick={handleDataPointClick} />
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+            {/* Left column - Stats */}
+            <div className="xl:col-span-1 order-2 xl:order-1">
+              <div
+                onClick={() => navigate("/vehicles")}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
+                className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+              </div>
             </div>
-
-            <div
-              onClick={() => navigate("/vehicles")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && navigate("/vehicles")}
-              className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-400 hover:shadow-md transition-all bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
-            >
-              <VehicleStatsList vehicles={vehicles} onSelectVehicle={handleSelectVehicle} />
+            
+            {/* Right column - Enhanced Chart (now takes full width) */}
+            <div className="xl:col-span-2 order-1 xl:order-2">
+              <EnhancedMileageChart 
+                trips={trips}
+                vehicles={vehicles}
+              />
             </div>
           </div>
         </div>

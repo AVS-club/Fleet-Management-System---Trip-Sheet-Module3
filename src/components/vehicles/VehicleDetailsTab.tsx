@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText, Download, Eye, Calendar, AlertTriangle,
-  Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, MessageCircle, Link
+  Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, MessageCircle, Link, Tag as TagIcon
 } from 'lucide-react';
 import { Vehicle } from '../../types';
+import { Tag } from '../../types/tags';
 import DocumentViewer from './DocumentViewer';
+import VehicleTagSelector from './VehicleTagSelector';
+import VehicleTagHistoryModal from '../admin/VehicleTagHistoryModal';
+import VehicleTagBadges from './VehicleTagBadges';
+import { removeTagFromVehicle } from '../../utils/api/tags';
 import { formatDate, daysUntil } from '../../utils/dateUtils';
 import { toast } from 'react-toastify';
 import { vehicleColors } from '../../utils/vehicleColors';
 import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortener';
 import { supabase } from '../../utils/supabaseClient';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -30,10 +36,37 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   onUpdate,
   signedDocUrls
 }) => {
+  const { permissions } = usePermissions();
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     url: string;
   } | null>(null);
+  const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
+  const [showTagHistory, setShowTagHistory] = useState(false);
+
+  // Load vehicle tags
+  useEffect(() => {
+    if (vehicle?.id) {
+      loadVehicleTags();
+    }
+  }, [vehicle?.id]);
+
+  const loadVehicleTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_tags')
+        .select(`
+          tags (*)
+        `)
+        .eq('vehicle_id', vehicle.id);
+
+      if (error) throw error;
+      const tags = (data || []).map(item => item.tags).filter(Boolean);
+      setVehicleTags(tags);
+    } catch (error) {
+      console.error('Error loading vehicle tags:', error);
+    }
+  };
 
   const vehicleDetails = [
     { label: 'Registration Number', value: vehicle.registration_number, icon: <Hash /> },
@@ -213,6 +246,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
   return (
     <div className="space-y-4 sm:space-y-6">
+
       {/* Vehicle Profile Section - Mobile Responsive */}
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -259,6 +293,39 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
               {vehicle.current_odometer && vehicle.current_odometer > 0 && <InfoField label="Odometer" value={`${vehicle.current_odometer?.toLocaleString()} km`} icon={<MapPin />} color="technical" />}
               {vehicle.tyre_size && <InfoField label="Tyre Size" value={vehicle.tyre_size} icon={<Settings />} color="technical" />}
               {vehicle.number_of_tyres && <InfoField label="No. of Tyres" value={vehicle.number_of_tyres} icon={<Settings />} color="technical" />}
+              
+              {/* Compact Tags Row */}
+              <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                <TagIcon className="h-4 w-4 text-gray-400" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 mb-1">Tags</p>
+                  {vehicleTags.length > 0 ? (
+                    <VehicleTagBadges 
+                      tags={vehicleTags} 
+                      onRemove={async (tagId) => {
+                        try {
+                          await removeTagFromVehicle(vehicle.id, tagId);
+                          setVehicleTags(prev => prev.filter(t => t.id !== tagId));
+                          toast.success('Tag removed');
+                        } catch (error) {
+                          console.error('Error:', error);
+                          toast.error('Failed to remove tag');
+                        }
+                      }}
+                      size="sm"
+                      maxDisplay={2}
+                    />
+                  ) : (
+                    <span className="text-sm text-gray-400">None</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowTagHistory(true)}
+                  className="text-xs text-primary-600 hover:underline shrink-0"
+                >
+                  History
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -403,6 +470,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         </div>
       </div>
 
+
       {/* Document Viewer Modal */}
       {selectedDocument && (
         <DocumentViewer
@@ -410,6 +478,14 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           onClose={() => setSelectedDocument(null)}
         />
       )}
+
+      {/* Tag History Modal */}
+      <VehicleTagHistoryModal
+        isOpen={showTagHistory}
+        onClose={() => setShowTagHistory(false)}
+        vehicleId={vehicle.id}
+        registrationNumber={vehicle.registration_number}
+      />
     </div>
   );
 };

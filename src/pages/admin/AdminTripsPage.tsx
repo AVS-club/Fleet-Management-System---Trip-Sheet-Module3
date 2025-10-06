@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout'; 
 import TripsTable from '../../components/admin/TripsTable';
@@ -201,14 +201,8 @@ const AdminTripsPage: React.FC = () => {
       }
     };
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Fetch summary metrics when filters change
-  useEffect(() => {
-    fetchSummaryMetrics();
-    // Reset to first page when filters change
-    setCurrentPage(1);
-  }, [filters]);
 
   // Enhanced refresh data function with force refresh capability
   const refreshData = async (forceRefresh = false) => {
@@ -216,7 +210,7 @@ const AdminTripsPage: React.FC = () => {
       setRefreshing(true);
       
       if (forceRefresh) {
-        console.log('🔄 Using force refresh...');
+        console.log('Using force refresh...');
         const result = await forceDataRefresh();
         
         if (result.success) {
@@ -456,7 +450,7 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
-  const fetchSummaryMetrics = async () => {
+  const fetchSummaryMetrics = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
@@ -511,9 +505,15 @@ const AdminTripsPage: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  };
+  }, [filters, calculateMetricsLocally]);
 
-  const calculateMetricsLocally = () => {
+  useEffect(() => {
+    fetchSummaryMetrics();
+    setCurrentPage(1);
+  }, [fetchSummaryMetrics, filters]);
+
+
+  const calculateMetricsLocally = useCallback(() => {
     const filtered = filteredTrips;
     
     // Calculate total expenses
@@ -589,7 +589,7 @@ const AdminTripsPage: React.FC = () => {
       topDriver,
       topVehicle
     });
-  };
+  }, [filteredTrips, driversMap, vehiclesMap]);
 
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);
@@ -757,20 +757,20 @@ const AdminTripsPage: React.FC = () => {
           'END KM': trip.end_km || 0,
           'DISTANCE (KM)': distance,
           'FUEL QUANTITY (L)': parseFloat(trip.fuel_quantity || 0).toFixed(2),
-          'FUEL RATE (₹/L)': parseFloat(fuelRatePerLiter || 0).toFixed(2),
-          'FUEL COST (₹)': parseFloat(fuelCost || 0).toFixed(2),
+          'FUEL RATE (INR/L)': parseFloat(fuelRatePerLiter || 0).toFixed(2),
+          'FUEL COST (INR)': parseFloat(fuelCost || 0).toFixed(2),
           'MILEAGE (km/L)': parseFloat(mileage || 0).toFixed(2),
-          'ROAD EXPENSES (₹)': parseFloat(trip.total_road_expenses || 0).toFixed(2),
-          'UNLOADING EXPENSE (₹)': parseFloat(trip.unloading_expense || 0).toFixed(2),
-          'DRIVER EXPENSE (₹)': parseFloat(trip.driver_expense || 0).toFixed(2),
-          'RTO EXPENSE (₹)': parseFloat(trip.road_rto_expense || 0).toFixed(2),
-          'BREAKDOWN EXPENSE (₹)': parseFloat(trip.breakdown_expense || 0).toFixed(2),
-          'MISC EXPENSE (₹)': parseFloat(trip.miscellaneous_expense || 0).toFixed(2),
-          'TOTAL EXPENSE (₹)': parseFloat(totalExpense).toFixed(2),
+          'ROAD EXPENSES (INR)': parseFloat(trip.total_road_expenses || 0).toFixed(2),
+          'UNLOADING EXPENSE (INR)': parseFloat(trip.unloading_expense || 0).toFixed(2),
+          'DRIVER EXPENSE (INR)': parseFloat(trip.driver_expense || 0).toFixed(2),
+          'RTO EXPENSE (INR)': parseFloat(trip.road_rto_expense || 0).toFixed(2),
+          'BREAKDOWN EXPENSE (INR)': parseFloat(trip.breakdown_expense || 0).toFixed(2),
+          'MISC EXPENSE (INR)': parseFloat(trip.miscellaneous_expense || 0).toFixed(2),
+          'TOTAL EXPENSE (INR)': parseFloat(totalExpense).toFixed(2),
           'TRIP TYPE': tripType,
           'BILLING TYPE': trip.billing_type || 'N/A',
-          'INCOME (₹)': parseFloat(trip.income_amount || 0).toFixed(2),
-          'NET PROFIT/LOSS (₹)': parseFloat((trip.income_amount || 0) - totalExpense).toFixed(2)
+          'INCOME (INR)': parseFloat(trip.income_amount || 0).toFixed(2),
+          'NET PROFIT/LOSS (INR)': parseFloat((trip.income_amount || 0) - totalExpense).toFixed(2)
         };
       });
       
@@ -1249,3 +1249,4 @@ const AdminTripsPage: React.FC = () => {
 };
 
 export default AdminTripsPage;
+

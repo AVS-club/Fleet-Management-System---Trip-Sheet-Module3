@@ -28,7 +28,7 @@ export default function HeroFeed() {
 
   const { data: kpiCards, isLoading: kpiLoading, refetch: refetchKPIs } = useKPICards();
 
-  const events = useMemo(() => (data?.pages ?? []).flat(), [data]);
+  const events = data?.pages.flat() || [];
   
   // Combine events and media cards, interleaving them for a rich feed experience
   const combinedFeed = useMemo(() => {
@@ -157,6 +157,4 @@ export default function HeroFeed() {
     </div>
   );
 }
-
-
 

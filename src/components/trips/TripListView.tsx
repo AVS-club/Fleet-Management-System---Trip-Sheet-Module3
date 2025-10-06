@@ -17,6 +17,7 @@ interface TripListViewProps {
   onSelectTrip: (trip: Trip) => void;
   onPnlClick?: (e: React.MouseEvent, trip: Trip) => void;
   onEditTrip?: (trip: Trip) => void;
+  highlightTripId?: string | null;
 }
 
 // Component to handle destination loading for individual trips
@@ -83,7 +84,7 @@ const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
     };
     
     fetchData();
-  }, [trip.warehouse_id, trip.destinations]);
+  }, [trip.warehouse_id, trip.destinations, warehouseData]);
 
   // Use saved destination_display for efficiency
   if (trip.destination_display) {
@@ -141,7 +142,8 @@ const TripListView: React.FC<TripListViewProps> = ({
   warehouses = [],
   onSelectTrip,
   onPnlClick,
-  onEditTrip
+  onEditTrip,
+  highlightTripId
 }) => {
   const [expandedTrip, setExpandedTrip] = useState<string | null>(null);
   
@@ -185,6 +187,7 @@ const TripListView: React.FC<TripListViewProps> = ({
           const warehouse = warehousesMap.get(trip.warehouse_id);
           const isExpanded = expandedTrip === trip.id;
           const metrics = getPerformanceMetrics(trip);
+          const isHighlighted = highlightTripId === trip.id;
           
           const dateString = trip.trip_end_date || trip.trip_start_date || trip.created_at;
           const tripDate = dateString ? parseISO(dateString) : null;
@@ -198,7 +201,9 @@ const TripListView: React.FC<TripListViewProps> = ({
           return (
             <div 
               key={trip.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200"
+              className={`bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 ${
+                isHighlighted ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
             >
               {/* Main Content Row */}
               <div 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   MapPin, Calendar, User, Fuel, TrendingUp, 
@@ -45,11 +45,7 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadVehicleTrips();
-  }, [vehicleId]);
-
-  const loadVehicleTrips = async () => {
+  const loadVehicleTrips = useCallback(async () => {
     console.log('🔍 Loading trips for vehicle:', vehicleId);
     
     try {
@@ -113,7 +109,11 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehicleId]);
+
+  useEffect(() => {
+    loadVehicleTrips();
+  }, [loadVehicleTrips]);
 
   const formatTime = (timeString?: string) => {
     if (!timeString) return '';
@@ -328,3 +328,4 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
 };
 
 export default VehicleTripsTab;
+

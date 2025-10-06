@@ -27,8 +27,8 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
   const handleZoomIn = () => {

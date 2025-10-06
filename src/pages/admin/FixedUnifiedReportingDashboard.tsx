@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -96,16 +96,16 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
   // Initialize date range properly
   useEffect(() => {
     updateDateRange(selectedDateRange);
-  }, []);
+  }, [updateDateRange, selectedDateRange]);
 
   // Fetch data when date range changes
   useEffect(() => {
     if (activeTab === 'dashboard') {
       fetchDashboardData();
     }
-  }, [dateRange, activeTab]);
+  }, [dateRange, activeTab, fetchDashboardData]);
 
-  const updateDateRange = (rangeType: string) => {
+  const updateDateRange = useCallback((rangeType: string) => {
     const now = new Date();
     let start: Date, end: Date;
 
@@ -149,9 +149,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
     setDateRange({ startDate: start, endDate: end });
     setSelectedDateRange(rangeType);
-  };
+  }, [customStartDate, customEndDate]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
@@ -169,9 +169,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       // Get trips for the selected period
       const { data: trips, error: tripsError } = await supabase
@@ -233,9 +233,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       console.error('Error in fetchMetrics:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchTripTrends = async () => {
+  const fetchTripTrends = useCallback(async () => {
     try {
       const { data: trips, error } = await supabase
         .from('trips')
@@ -272,9 +272,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       console.error('Error in fetchTripTrends:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchVehicleUtilization = async () => {
+  const fetchVehicleUtilization = useCallback(async () => {
     try {
       const { data: vehicles, error } = await supabase
         .from('vehicles')
@@ -315,9 +315,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       console.error('Error in fetchVehicleUtilization:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchDriverPerformance = async () => {
+  const fetchDriverPerformance = useCallback(async () => {
     try {
       const { data: drivers, error } = await supabase
         .from('drivers')
@@ -362,9 +362,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       console.error('Error in fetchDriverPerformance:', error);
       return false;
     }
-  };
+  }, [dateRange]);
 
-  const fetchExpenseBreakdown = async () => {
+  const fetchExpenseBreakdown = useCallback(async () => {
     try {
       const { data: trips, error } = await supabase
         .from('trips')
@@ -407,7 +407,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       console.error('Error in fetchExpenseBreakdown:', error);
       return false;
     }
-  };
+  }, [dateRange, metrics.maintenanceCosts]);
 
   const generatePDFReport = async (reportType: string) => {
     setGeneratingReport(reportType);
@@ -432,7 +432,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       let yPosition = 60;
 
       switch (reportType) {
-        case 'trip-summary':
+        case 'trip-summary': {
           const { data: trips } = await supabase
             .from('trips')
             .select(`
@@ -488,9 +488,10 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
             });
           }
           break;
+        }
 
         case 'week-comparison':
-        case 'month-comparison':
+        case 'month-comparison': {
           // Comparison logic
           let currentPeriodStart, currentPeriodEnd, previousPeriodStart, previousPeriodEnd;
           
@@ -563,6 +564,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
             styles: { fontSize: 9 }
           });
           break;
+        }
 
         default:
           pdf.text('Report generation in progress...', 14, yPosition);

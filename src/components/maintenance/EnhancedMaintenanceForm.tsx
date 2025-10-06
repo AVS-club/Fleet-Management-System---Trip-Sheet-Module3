@@ -72,10 +72,6 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
     setValue,
     formState: { errors },
   } = methods;
-
-  const startDate = watch("start_date");
-  const endDate = watch("end_date");
-  const odometerReading = watch("odometer_reading");
   const downtimeDays = watch("downtime_days");
   const downtimeHours = watch("downtime_hours");
   const status = watch("status");
@@ -129,7 +125,7 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
       setOverallProgress(100);
       setSubmitSuccess(true);
       
-      console.log('✅ Task created successfully');
+      console.log('Task created successfully');
       
       // Show success for 2 seconds then reset
       setTimeout(() => {
@@ -140,13 +136,12 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
       }, 2000);
       
     } catch (error) {
-      console.error('❌ Submission error:', error);
+      console.error('Submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create task');
       setIsSubmitting(false);
       setOverallProgress(0);
     }
-  }, [isSubmitting, externalIsSubmitting, startDate, endDate, odometerReading, 
-      odometerPhoto, documents, onSubmit]);
+  }, [isSubmitting, externalIsSubmitting, odometerPhoto, documents, onSubmit]);
 
   return (
     <FormProvider {...methods}>
@@ -369,3 +364,5 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
 };
 
 export default EnhancedMaintenanceForm;
+
+

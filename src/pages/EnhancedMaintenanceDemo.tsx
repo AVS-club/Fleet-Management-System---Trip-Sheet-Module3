@@ -111,7 +111,7 @@ const EnhancedMaintenanceDemo: React.FC = () => {
               🧪 Test Scenarios
             </h2>
             <div className="text-sm text-green-800 space-y-2">
-              <p><strong>1. Single File Upload (Odometer Photo):</strong> Try uploading a large image (>2MB) to see compression in action.</p>
+              <p><strong>1. Single File Upload (Odometer Photo):</strong> Try uploading a large image (&gt;2MB) to see compression in action.</p>
               <p><strong>2. Multiple Files Upload (Documents):</strong> Select 2-3 files to see individual progress tracking.</p>
               <p><strong>3. Form Submission:</strong> Fill the form and submit to see overall progress bar.</p>
               <p><strong>4. Error Handling:</strong> Try uploading files that are too large or invalid formats.</p>

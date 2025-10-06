@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -210,9 +210,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     if (activeTab === 'dashboard') {
       fetchDashboardData();
     }
-  }, [dateRange, activeTab]);
+  }, [dateRange, activeTab, fetchDashboardData]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       await Promise.all([
@@ -227,9 +227,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
 
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     try {
       const { data: trips } = await supabase
         .from('trips')
@@ -277,9 +277,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching metrics:', error);
     }
-  };
+  }, [dateRange]);
 
-  const fetchTripTrends = async () => {
+  const fetchTripTrends = useCallback(async () => {
     try {
       const { data: trips } = await supabase
         .from('trips')
@@ -305,9 +305,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching trip trends:', error);
     }
-  };
+  }, [dateRange]);
 
-  const fetchVehicleUtilization = async () => {
+  const fetchVehicleUtilization = useCallback(async () => {
     try {
       const { data: vehicles } = await supabase
         .from('vehicles')
@@ -339,9 +339,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching vehicle utilization:', error);
     }
-  };
+  }, [dateRange]);
 
-  const fetchDriverPerformance = async () => {
+  const fetchDriverPerformance = useCallback(async () => {
     try {
       const { data: drivers } = await supabase
         .from('drivers')
@@ -379,9 +379,9 @@ const UnifiedReportingDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching driver performance:', error);
     }
-  };
+  }, [dateRange]);
 
-  const fetchExpenseBreakdown = async () => {
+  const fetchExpenseBreakdown = useCallback(async () => {
     try {
       const { data: trips } = await supabase
         .from('trips')
@@ -414,7 +414,7 @@ const UnifiedReportingDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching expense breakdown:', error);
     }
-  };
+  }, [dateRange, metrics.maintenanceCosts]);
 
   const getDateRange = () => {
     const now = new Date();
@@ -471,7 +471,7 @@ const UnifiedReportingDashboard: React.FC = () => {
       let rows: any[][] = [];
 
       switch (reportId) {
-        case 'week-comparison':
+        case 'week-comparison': {
           const thisWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
           const lastWeekStart = startOfWeek(subDays(new Date(), 7), { weekStartsOn: 1 });
 
@@ -504,8 +504,9 @@ const UnifiedReportingDashboard: React.FC = () => {
              calculatePercentChange(lastWeekMetrics.totalRevenue, thisWeekMetrics.totalRevenue)]
           ];
           break;
+        }
 
-        case 'trip-summary':
+        case 'trip-summary': {
           const { data: trips } = await supabase
             .from('trips')
             .select(`
@@ -528,6 +529,7 @@ const UnifiedReportingDashboard: React.FC = () => {
             trip.status || ''
           ]) || [];
           break;
+        }
       }
 
       // Create CSV content
@@ -916,3 +918,4 @@ const UnifiedReportingDashboard: React.FC = () => {
 };
 
 export default UnifiedReportingDashboard;
+

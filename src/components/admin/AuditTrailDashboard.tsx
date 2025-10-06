@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuditTrailLogger, AuditTrailEntry, AuditSearchFilters, AuditTrailStats } from '../../utils/auditTrailLogger';
 import { 
   User, AlertTriangle, Info, CheckCircle, XCircle, Filter, 
@@ -25,13 +25,13 @@ const AuditTrailDashboard: React.FC<AuditTrailDashboardProps> = ({ className = '
 
   useEffect(() => {
     loadAuditData();
-  }, []);
+  }, [loadAuditData]);
 
   useEffect(() => {
     searchAuditTrail();
-  }, [searchFilters]);
+  }, [searchAuditTrail]);
 
-  const loadAuditData = async () => {
+  const loadAuditData = useCallback(async () => {
     try {
       const stats = await AuditTrailLogger.getAuditTrailStats();
       setAuditStats(stats);
@@ -39,9 +39,9 @@ const AuditTrailDashboard: React.FC<AuditTrailDashboardProps> = ({ className = '
       console.error('Error loading audit stats:', error);
       toast.error('Failed to load audit trail statistics');
     }
-  };
+  }, []);
 
-  const searchAuditTrail = async () => {
+  const searchAuditTrail = useCallback(async () => {
     setLoading(true);
     try {
       const { entries, total } = await AuditTrailLogger.searchAuditTrail(searchFilters);
@@ -53,7 +53,7 @@ const AuditTrailDashboard: React.FC<AuditTrailDashboardProps> = ({ className = '
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchFilters]);
 
   const handleFilterChange = (field: keyof AuditSearchFilters, value: any) => {
     setSearchFilters(prev => ({

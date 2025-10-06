@@ -38,9 +38,9 @@ const IMPACT_LEVELS = [
 ];
 
 // Debounce utility function
-const debounce = (func: Function, delay: number) => {
-  let timeoutId: NodeJS.Timeout;
-  return (...args: any[]) => {
+const debounce = <T extends (...args: any[]) => void>(func: T, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func(...args), delay);
   };
@@ -144,8 +144,8 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
   }, [isProcessing, setValue, clickCount]);
 
   // Debounced version with longer delay to prevent rapid clicks that cause crashes
-  const handlePresetSelect = useCallback(
-    debounce(handlePresetSelectInternal, 500), // Increased to 500ms for better crash prevention
+  const handlePresetSelect = useMemo(
+    () => debounce(handlePresetSelectInternal, 500),
     [handlePresetSelectInternal]
   );
 
@@ -466,3 +466,4 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
 };
 
 export default EnhancedDowntimeSection;
+

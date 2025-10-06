@@ -28,7 +28,7 @@ console.log('Testing formatDisplayNumber (2 decimal places, rounded up):');
 console.log('----------------------------------------------------------');
 
 let passedTests = 0;
-let totalTests = testCases.length;
+const totalTests = testCases.length;
 
 testCases.forEach((testCase, index) => {
   const result = NumberFormatter.display(testCase.input, 2);

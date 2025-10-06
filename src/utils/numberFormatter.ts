@@ -155,7 +155,7 @@ export function batchFormatNumbers<T extends Record<string, any>>(
   const formatted: any = {};
   
   for (const key in values) {
-    if (values.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(values, key)) {
       formatted[key] = formatNumberWithRoundUp(values[key], decimals);
     }
   }

@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
     }, 3500);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [welcomeMessages.length]);
 
   return (
     <>
@@ -330,3 +330,4 @@ const LoginPage: React.FC = () => {
 };
 
 export default LoginPage;
+
