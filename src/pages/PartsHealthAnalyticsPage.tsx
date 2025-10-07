@@ -416,7 +416,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
                 : vehicles
               } 
             />
-            <TaskDistributionChart tasks={tasks} />
+            <TaskDistributionChart taskTypeDistribution={analyticsMetrics.taskTypeDistribution} />
           </div>
         </>
       )}

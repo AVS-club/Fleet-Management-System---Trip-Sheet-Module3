@@ -24,6 +24,22 @@ const formatTaskType = (type: string): string => {
 const TaskDistributionChart: React.FC<TaskDistributionChartProps> = ({
   taskTypeDistribution
 }) => {
+  // Safety check for undefined or invalid data
+  if (!taskTypeDistribution || !Array.isArray(taskTypeDistribution)) {
+    return (
+      <CollapsibleSection 
+        title="Task Type Distribution"
+        iconColor="text-purple-600"
+      >
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="h-64 flex items-center justify-center">
+            <p className="text-gray-500">No task type data available</p>
+          </div>
+        </div>
+      </CollapsibleSection>
+    );
+  }
+
   // Format data for the chart
   const chartData = taskTypeDistribution.map(item => ({
     name: formatTaskType(item.type),
