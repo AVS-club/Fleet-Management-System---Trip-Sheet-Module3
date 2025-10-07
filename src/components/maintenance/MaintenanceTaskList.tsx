@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { MaintenanceTask, Vehicle } from '@/types';
 import { format } from 'date-fns';
+import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 import { 
   Eye, 
   Edit, 
@@ -138,9 +139,19 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                     {/* Vehicle Info */}
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <Truck className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                      <span className="text-sm font-medium text-gray-900 truncate">
-                        {vehicle?.registration_number || 'Unknown Vehicle'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          {vehicle?.registration_number || 'Unknown Vehicle'}
+                        </span>
+                        {vehicle?.tags && vehicle.tags.length > 0 && (
+                          <VehicleTagBadges 
+                            tags={vehicle.tags} 
+                            readOnly 
+                            size="sm"
+                            maxDisplay={2}
+                          />
+                        )}
+                      </div>
                     </div>
 
                     {/* Task Title */}

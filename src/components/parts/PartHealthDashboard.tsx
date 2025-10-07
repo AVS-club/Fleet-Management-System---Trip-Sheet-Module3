@@ -1,497 +1,350 @@
 import React, { useState, useMemo } from 'react';
+import { ChevronDown, ChevronRight, Activity, AlertTriangle, CheckCircle2, TrendingUp, Tag as TagIcon } from 'lucide-react';
 import { MaintenanceTask } from '@/types/maintenance';
-import { Vehicle } from '@/types';
-import { PartHealthMetrics } from '@/utils/partsAnalytics';
+import { Vehicle, Tag } from '@/types';
 import { 
-  AlertTriangle,
-  CheckCircle,
-  Activity,
-  Gauge,
-  Info,
-  Calendar,
-  DollarSign,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
-  TrendingUp,
-  BarChart3,
-  Lightbulb,
-  Shield,
-  Clock
-} from 'lucide-react';
-import { format, isValid } from 'date-fns';
+  getTagBasedPartsHealthMetrics,
+  getVehiclePartHealth,
+  getLastFourDigits,
+  TagBasedPartHealthMetrics
+} from '@/utils/partsAnalytics';
+import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 
 interface PartHealthDashboardProps {
   tasks: MaintenanceTask[];
   vehicles: Vehicle[];
-  partsMetrics: PartHealthMetrics[];
+  partsMetrics: any[];
+  activeSubTab: 'overview' | 'peer-comparison' | 'historical-trends';
+  onSubTabChange: (tab: 'overview' | 'peer-comparison' | 'historical-trends') => void;
 }
 
 const PartHealthDashboard: React.FC<PartHealthDashboardProps> = ({
   tasks,
   vehicles,
-  partsMetrics
+  partsMetrics,
+  activeSubTab,
+  onSubTabChange
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'overview' | 'peer-comparison' | 'historical-trends'>('overview');
-  const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
   const [selectedPartType, setSelectedPartType] = useState<string>('all');
-  
-  // Helper function to safely format dates
-  const safeFormatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return isValid(date) ? format(date, 'dd MMM yyyy') : 'N/A';
-  };
-  
-  // Extract parts from tasks.parts_replaced field
-  const extractedParts = useMemo(() => {
-    const replacedParts: Array<{
-      vehicleId: string;
-      vehicleReg: string;
-      partName: string;
-      category: string;
-      replacementDate: string;
-      kmAtReplacement: number;
-      cost: number;
-      vendor?: string;
-      status: 'good' | 'needs_attention' | 'overdue';
-      kmSinceReplacement: number;
-      expectedLife: number;
-    }> = [];
+  const [expandedVehicle, setExpandedVehicle] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-    // Part life expectations (in km)
-    const PART_LIFE: Record<string, number> = {
-      'Tyres (All)': 60000,
-      'Tyres (Front)': 60000,
-      'Tyres (Rear)': 60000,
-      'Brake Pads': 40000,
-      'Brakes All': 40000,
-      'Battery': 80000,
-      'Clutch Plate': 100000,
-      'Gearbox': 150000,
-      'Engine Oil': 10000,
-      'Air Filter': 20000,
-      'Oil Filter': 10000,
-      'Fuel Filter': 30000,
-      'Alternator': 120000,
-      'Radiator': 100000,
-      'Shock Absorbers': 80000,
-      'Timing Belt': 100000,
-      'Leaf Springs': 120000,
-    };
-
+  // Get all unique tags from vehicles
+  const availableTags = useMemo(() => {
+    const tagMap = new Map<string, Tag>();
     vehicles.forEach(vehicle => {
-      const vehicleTasks = tasks.filter(t => t.vehicle_id === vehicle.id);
-      const currentOdometer = vehicle.current_odometer || 0;
-      
-      vehicleTasks.forEach(task => {
-        // PRIORITY 1: Read parts_replaced JSONB field
-        if (task.parts_replaced && Array.isArray(task.parts_replaced) && task.parts_replaced.length > 0) {
-          task.parts_replaced.forEach((part: any) => {
-            const kmAtReplacement = part.odometerAtReplacement || task.odometer_reading || 0;
-            const kmSince = currentOdometer - kmAtReplacement;
-            const expectedLife = PART_LIFE[part.partName] || 50000;
-                  const lifePercentage = (kmSince / expectedLife) * 100;
-            
-                    replacedParts.push({
-                      vehicleId: vehicle.id,
-              vehicleReg: vehicle.registration_number,
-              partName: part.partName,
-              category: part.category || 'General',
-              replacementDate: part.replacementDate || task.start_date,
-              kmAtReplacement,
-              cost: part.cost || 0,
-              vendor: task.garage_id,
-              status: lifePercentage >= 100 ? 'overdue' : lifePercentage >= 80 ? 'needs_attention' : 'good',
-                      kmSinceReplacement: kmSince,
-                      expectedLife
-                    });
-          });
-        }
-      });
+      if (vehicle.tags) {
+        vehicle.tags.forEach(tag => {
+          if (!tagMap.has(tag.id)) {
+            tagMap.set(tag.id, tag);
+          }
+        });
+      }
     });
+    return Array.from(tagMap.values());
+  }, [vehicles]);
 
-    console.log('Parts detected from tasks:', replacedParts.length, replacedParts);
-    return replacedParts;
-  }, [tasks, vehicles]);
+  // Get tag-aware metrics
+  const tagBasedMetrics = useMemo(() => {
+    return getTagBasedPartsHealthMetrics(
+      tasks,
+      vehicles,
+      selectedTags.length > 0 ? selectedTags : undefined
+    );
+  }, [tasks, vehicles, selectedTags]);
 
-  // Calculate metrics from both partsMetrics and extracted parts
-  const metrics = useMemo(() => {
-    // Use extracted parts if available, otherwise fall back to partsMetrics
-    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
+  // Filter vehicles by selected tags
+  const filteredVehicles = useMemo(() => {
+    if (selectedTags.length === 0) return vehicles;
     
-    const critical = allParts.filter(p => p.status === 'overdue').length;
-    const warning = allParts.filter(p => p.status === 'needs_attention').length;
-    const good = allParts.filter(p => p.status === 'good').length;
-    const upcomingCost = allParts
+    return vehicles.filter(vehicle => {
+      if (!vehicle.tags || vehicle.tags.length === 0) return false;
+      return vehicle.tags.some(tag => selectedTags.includes(tag.id));
+    });
+  }, [vehicles, selectedTags]);
+
+  // Calculate summary metrics
+  const metrics = useMemo(() => {
+    const critical = tagBasedMetrics.filter(p => p.status === 'overdue').length;
+    const warning = tagBasedMetrics.filter(p => p.status === 'needs_attention').length;
+    const good = tagBasedMetrics.filter(p => p.status === 'good').length;
+    const upcomingCost = tagBasedMetrics
       .filter(p => p.status !== 'good')
-      .reduce((sum, p) => sum + (p.cost || p.estimatedCost || 0), 0);
+      .reduce((sum, p) => sum + (p.averageCost || 0), 0);
 
     return { critical, warning, good, upcomingCost };
-  }, [extractedParts, partsMetrics]);
+  }, [tagBasedMetrics]);
 
-  // Filter parts by selected type
-  const filteredParts = useMemo(() => {
-    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
-    if (selectedPartType === 'all') return allParts;
-    return allParts.filter(part => part.partName === selectedPartType);
-  }, [extractedParts, partsMetrics, selectedPartType]);
-
-  // Get unique part types for filter
+  // Get unique part types
   const partTypes = useMemo(() => {
-    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
-    const types = [...new Set(allParts.map(p => p.partName))];
+    const types = [...new Set(tagBasedMetrics.map(p => p.partName))];
     return types.sort();
-  }, [extractedParts, partsMetrics]);
+  }, [tagBasedMetrics]);
 
-  // Get critical parts requiring attention
-  const criticalParts = useMemo(() => {
-    const allParts = extractedParts.length > 0 ? extractedParts : partsMetrics;
-    return allParts
-      .filter(p => p.status === 'overdue')
-      .sort((a, b) => (b.kmSinceReplacement || 0) - (a.kmSinceReplacement || 0));
-  }, [extractedParts, partsMetrics]);
-  
   return (
     <div className="space-y-6">
-      {/* Summary Cards with Apple Design */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Critical Parts Card */}
-        <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-red-50 to-red-100/50 border border-red-200/60 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-700 text-sm font-medium">Critical Parts</p>
-              <p className="text-3xl font-semibold mt-1 text-gray-900">{metrics.critical}</p>
-              <p className="text-xs text-gray-600 mt-2">Need immediate attention</p>
-            </div>
-            <div className="p-3 bg-red-100 rounded-xl">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
-            </div>
+      {/* Tag Filter */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center gap-3">
+          <TagIcon className="h-5 w-5 text-gray-400" />
+          <label className="text-sm font-medium text-gray-700">Filter by Tags:</label>
+          <div className="flex flex-wrap gap-2 flex-1">
+            {availableTags.length === 0 ? (
+              <span className="text-sm text-gray-500 italic">No tags available</span>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    selectedTags.length === 0
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All Vehicles
+                </button>
+                {availableTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => {
+                      if (selectedTags.includes(tag.id)) {
+                        setSelectedTags(selectedTags.filter(t => t !== tag.id));
+                      } else {
+                        setSelectedTags([...selectedTags, tag.id]);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedTags.includes(tag.id)
+                        ? 'text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                    style={{
+                      backgroundColor: selectedTags.includes(tag.id) ? tag.color_hex : undefined
+                    }}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
-
-        {/* Need Attention Card */}
-        <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-yellow-50 to-yellow-100/50 border border-yellow-200/60 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-700 text-sm font-medium">Need Attention</p>
-              <p className="text-3xl font-semibold mt-1 text-gray-900">{metrics.warning}</p>
-              <p className="text-xs text-gray-600 mt-2">Schedule maintenance</p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-xl">
-              <Activity className="h-6 w-6 text-yellow-600" />
-            </div>
+        {selectedTags.length > 0 && (
+          <div className="mt-2 text-sm text-gray-600">
+            Showing {filteredVehicles.length} vehicle(s) with selected tag(s)
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Good Health Card */}
-        <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-green-50 to-green-100/50 border border-green-200/60 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-700 text-sm font-medium">Good Health</p>
-              <p className="text-3xl font-semibold mt-1 text-gray-900">{metrics.good}</p>
-              <p className="text-xs text-gray-600 mt-2">Operating normally</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-xl">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+      {/* Parts Filter Dropdown */}
+      <div className="flex items-center gap-3">
+        <select
+          value={selectedPartType}
+          onChange={(e) => setSelectedPartType(e.target.value)}
+          className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        >
+          <option value="all">All Parts</option>
+          {partTypes.map(type => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
 
-        {/* Upcoming Cost Card */}
-        <div className="relative overflow-hidden rounded-xl p-5 bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200/60 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-700 text-sm font-medium">Upcoming Cost</p>
-              <p className="text-3xl font-semibold mt-1 text-gray-900">₹{(metrics.upcomingCost / 1000).toFixed(1)}K</p>
-              <p className="text-xs text-gray-600 mt-2">Estimated expenditure</p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <DollarSign className="h-6 w-6 text-blue-600" />
-            </div>
-          </div>
+        {/* Sub-tabs */}
+        <div className="flex gap-2 ml-auto">
+          <button
+            onClick={() => onSubTabChange('overview')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeSubTab === 'overview'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => onSubTabChange('peer-comparison')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeSubTab === 'peer-comparison'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Tag-Based Comparison
+          </button>
+          <button
+            onClick={() => onSubTabChange('historical-trends')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeSubTab === 'historical-trends'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Historical Trends
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
-        <div className="flex flex-wrap gap-4">
-          <select 
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-gray-50"
-            value={selectedPartType}
-            onChange={(e) => setSelectedPartType(e.target.value)}
-          >
-            <option value="all">All Parts</option>
-            {partTypes.map(part => (
-              <option key={part} value={part}>
-                {part}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex gap-2 ml-auto">
-            <button 
-              onClick={() => setActiveSubTab('overview')}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeSubTab === 'overview' 
-                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Overview
-            </button>
-            <button 
-              onClick={() => setActiveSubTab('peer-comparison')}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeSubTab === 'peer-comparison' 
-                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Peer Comparison
-            </button>
-            <button 
-              onClick={() => setActiveSubTab('historical-trends')}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                activeSubTab === 'historical-trends' 
-                  ? 'bg-blue-500 text-white shadow-md shadow-blue-500/30' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Historical Trends
-            </button>
-            </div>
-          </div>
-        </div>
-
-      {/* Main Content */}
+      {/* Overview Tab */}
       {activeSubTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Parts Health by Vehicle */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Gauge className="h-5 w-5 text-blue-500" />
+              <Activity className="h-5 w-5 text-blue-500" />
               Parts Health by Vehicle
-          </h2>
+            </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {vehicles.map(vehicle => {
-                const vehicleParts = filteredParts.filter(p => p.vehicleId === vehicle.id);
-            const criticalParts = vehicleParts.filter(p => p.status === 'overdue').length;
-            const warningParts = vehicleParts.filter(p => p.status === 'needs_attention').length;
-                const isExpanded = expandedVehicle === vehicle.id;
-            
-            return (
-                  <div key={vehicle.id} className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-200">
-                    <button
-                  onClick={() => setExpandedVehicle(isExpanded ? null : vehicle.id)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                      <div className="flex items-center gap-3">
-                        <div className="text-left">
-                          <p className="font-semibold text-gray-900">{vehicle.registrationNumber}</p>
-                        <p className="text-sm text-gray-500">
-                            {vehicle.make} {vehicle.model} • {vehicle.type}
-                        </p>
-                      </div>
-                    </div>
-                      <div className="flex items-center gap-3">
-                      {criticalParts > 0 && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                            {criticalParts} Critical
-                          </span>
-                      )}
-                      {warningParts > 0 && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                            {warningParts} Warning
-                          </span>
-                        )}
-                      {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                      )}
-                    </div>
-                    </button>
+              {filteredVehicles.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {selectedTags.length > 0 
+                    ? 'No vehicles found with selected tags'
+                    : 'No vehicles available'
+                  }
+                </div>
+              ) : (
+                filteredVehicles.map(vehicle => {
+                  const vehicleParts = getVehiclePartHealth(vehicle.id, tasks, vehicles);
+                  const criticalParts = vehicleParts.filter(p => p.status === 'overdue').length;
+                  const warningParts = vehicleParts.filter(p => p.status === 'needs_attention').length;
+                  const isExpanded = expandedVehicle === vehicle.id;
+                  const lastFour = getLastFourDigits(vehicle.registration_number);
 
-                    {/* Expanded Part Details */}
-                    {isExpanded && (
-                  <div className="border-t border-gray-200 p-4 bg-gray-50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {vehicleParts.map((part, index) => (
-                          <div 
-                            key={`${part.vehicleId}-${part.partName}-${index}`}
-                            className={`p-3 rounded-lg border-2 bg-white ${
-                              part.status === 'overdue'
-                                ? 'border-red-300'
-                                : part.status === 'needs_attention'
-                                ? 'border-yellow-300'
-                                : 'border-green-300'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">{part.partName}</p>
-                                  <p className="text-xs text-gray-500 mt-0.5">{part.category}</p>
-                              </div>
-                              {part.status === 'overdue' && (
-                                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                              )}
+                  return (
+                    <div key={vehicle.id} className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
+                      <button
+                        onClick={() => setExpandedVehicle(isExpanded ? null : vehicle.id)}
+                        className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-gray-900">
+                                {vehicle.make} {vehicle.model}
+                              </span>
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-mono rounded">
+                                {lastFour}
+                              </span>
                             </div>
-                            {/* Progress Bar */}
-                              <div className="mt-2">
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${
-                                    part.status === 'overdue'
-                                        ? 'bg-red-500'
-                                      : part.status === 'needs_attention'
-                                        ? 'bg-yellow-500'
-                                        : 'bg-green-500'
+                            <div className="text-sm text-gray-500 mb-2">
+                              {vehicle.registration_number}
+                            </div>
+                            {vehicle.tags && vehicle.tags.length > 0 && (
+                              <VehicleTagBadges tags={vehicle.tags} size="sm" maxVisible={3} />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {criticalParts > 0 && (
+                              <span className="flex items-center gap-1 text-sm text-red-600 font-medium">
+                                <AlertTriangle className="h-4 w-4" />
+                                {criticalParts}
+                              </span>
+                            )}
+                            {warningParts > 0 && (
+                              <span className="flex items-center gap-1 text-sm text-yellow-600 font-medium">
+                                <Activity className="h-4 w-4" />
+                                {warningParts}
+                              </span>
+                            )}
+                            {criticalParts === 0 && warningParts === 0 && (
+                              <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
+                                <CheckCircle2 className="h-4 w-4" />
+                                Good
+                              </span>
+                            )}
+                            {isExpanded ? (
+                              <ChevronDown className="h-5 w-5 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
+                            )}
+                          </div>
+                        </div>
+                      </button>
+
+                      {isExpanded && vehicleParts.length > 0 && (
+                        <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-2">
+                          {vehicleParts.map((part, idx) => (
+                            <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="font-medium text-sm">{part.partName}</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  part.status === 'overdue' ? 'bg-red-100 text-red-700' :
+                                  part.status === 'needs_attention' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-green-100 text-green-700'
+                                }`}>
+                                  {part.lifePercentage}% Life
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    part.status === 'overdue' ? 'bg-red-500' :
+                                    part.status === 'needs_attention' ? 'bg-yellow-500' :
+                                    'bg-green-500'
                                   }`}
-                                    style={{ width: `${Math.min((part.kmSinceReplacement / part.expectedLife) * 100, 100)}%` }}
+                                  style={{ width: `${part.lifePercentage}%` }}
                                 />
                               </div>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {part.kmSinceReplacement.toLocaleString()} / {part.expectedLife.toLocaleString()} km
-                              </p>
-                            </div>
+                              <div className="mt-2 text-xs text-gray-600">
+                                {part.kmSinceReplacement.toLocaleString()} km since replacement
+                              </div>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
-                          </div>
-                        );
-                      })}
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
           {/* Parts Requiring Attention */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
               Parts Requiring Attention
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {criticalParts.map((part, index) => (
-                <div
-                  key={`critical-${part.vehicleId}-${part.partName}-${index}`}
-                  className="border border-red-200 rounded-lg p-4 bg-red-50/30 hover:bg-red-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-red-100 rounded-lg">
-                        <span className="text-2xl">🔧</span>
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{part.partName}</p>
-                        <p className="text-sm text-gray-600">{part.vehicleReg}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Last: {safeFormatDate(part.replacementDate)}
-                        </p>
-                      </div>
+              {filteredVehicles.map(vehicle => {
+                const vehicleParts = getVehiclePartHealth(vehicle.id, tasks, vehicles);
+                const criticalParts = vehicleParts.filter(p => 
+                  p.status === 'overdue' || p.status === 'needs_attention'
+                );
+                
+                if (criticalParts.length === 0) return null;
+                
+                const lastFour = getLastFourDigits(vehicle.registration_number);
+
+                return (
+                  <div key={vehicle.id} className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-gray-900">
+                        {vehicle.make} {vehicle.model}
+                      </span>
+                      <span className="px-2 py-0.5 bg-red-200 text-red-800 text-xs font-mono rounded">
+                        {lastFour}
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-red-700">{part.kmSinceReplacement || 0} km</p>
-                      <p className="text-xs text-gray-600 mt-1">since replacement</p>
-                      <p className="text-sm font-semibold text-gray-900 mt-2">₹{(part.cost || 0).toLocaleString()}</p>
+                    {vehicle.tags && vehicle.tags.length > 0 && (
+                      <div className="mb-2">
+                        <VehicleTagBadges tags={vehicle.tags} size="sm" maxVisible={2} />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      {criticalParts.map((part, idx) => (
+                        <div key={idx} className="text-sm">
+                          <span className="font-medium">{part.partName}</span>
+                          <span className="text-gray-600"> - {part.lifePercentage}% remaining</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
-
-      {activeSubTab === 'peer-comparison' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-blue-500" />
-            Performance vs Peers
-          </h2>
-          <div className="text-center py-12">
-            <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">Peer Comparison</h3>
-            <p className="text-gray-500">
-              Compare your fleet's part performance with industry benchmarks
-            </p>
-                    </div>
-                  </div>
-                )}
-
-      {activeSubTab === 'historical-trends' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200/80 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-500" />
-            Historical Performance Trends
-          </h2>
-          <div className="text-center py-12">
-            <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">Historical Trends</h3>
-            <p className="text-gray-500">
-              Track part replacement patterns and performance over time
-            </p>
-          </div>
-                  </div>
-                )}
-
-      {/* AI-Powered Insights */}
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-lg p-6 border border-slate-700">
-        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-yellow-400" />
-          AI-Powered Insights & Recommendations
-        </h2>
-        <div className="space-y-4">
-          {/* Cost Optimization */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Info className="h-5 w-5 text-blue-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-200">Cost Optimization</p>
-                <p className="text-sm text-gray-300 mt-1">
-                  Vehicles in the 7.5T category are achieving 15% better clutch plate life than heavier vehicles. 
-                  Consider preventive maintenance scheduling.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Brand Performance */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-green-200">Brand Performance</p>
-                <p className="text-sm text-gray-300 mt-1">
-                  MRF tyres showing 20% longer life compared to other brands in your fleet. 
-                  Standardizing could save ₹45K annually.
-                </p>
-              </div>
-              </div>
-        </div>
-
-          {/* Maintenance Pattern */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Activity className="h-5 w-5 text-purple-300" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-purple-200">Maintenance Pattern</p>
-                <p className="text-sm text-gray-300 mt-1">
-                  CG04NJ9478 showing improving trend with 12% increase in parts life after recent driver change. 
-                  Consider driver training program.
-            </p>
-          </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

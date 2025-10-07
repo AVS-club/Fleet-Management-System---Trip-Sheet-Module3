@@ -11,13 +11,15 @@ interface VehicleTagSelectorProps {
   currentTags: TagType[];
   onTagsChange: (tags: TagType[]) => void;
   readOnly?: boolean;
+  autoPersist?: boolean;
 }
 
 const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
   vehicleId,
   currentTags,
   onTagsChange,
-  readOnly = false
+  readOnly = false,
+  autoPersist = true
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [availableTags, setAvailableTags] = useState<TagType[]>([]);
@@ -199,3 +201,4 @@ const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
 };
 
 export default VehicleTagSelector;
+

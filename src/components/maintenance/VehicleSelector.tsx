@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Truck, Check } from "lucide-react";
 import { Vehicle } from "@/types";
+import VehicleTagBadges from "../vehicles/VehicleTagBadges";
 
 interface VehicleSelectorProps {
   selectedVehicle?: string;
@@ -93,9 +94,19 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Truck className="h-5 w-5 text-gray-400" />
-                <span className="font-medium text-gray-900">
-                  {selectedVehicleDetails.registration_number}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-900">
+                    {selectedVehicleDetails.registration_number}
+                  </span>
+                  {selectedVehicleDetails.tags && selectedVehicleDetails.tags.length > 0 && (
+                    <VehicleTagBadges 
+                      tags={selectedVehicleDetails.tags} 
+                      readOnly 
+                      size="sm"
+                      maxDisplay={2}
+                    />
+                  )}
+                </div>
                 <span className="text-gray-500">
                   - {selectedVehicleDetails.make} {selectedVehicleDetails.model}
                 </span>
@@ -163,11 +174,21 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Truck className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          {vehicle.registration_number}
-                        </span>
-                        <span className="text-gray-500 ml-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {vehicle.registration_number}
+                          </span>
+                          {vehicle.tags && vehicle.tags.length > 0 && (
+                            <VehicleTagBadges 
+                              tags={vehicle.tags} 
+                              readOnly 
+                              size="sm"
+                              maxDisplay={2}
+                            />
+                          )}
+                        </div>
+                        <span className="text-gray-500 text-sm">
                           {vehicle.make} {vehicle.model}
                         </span>
                       </div>

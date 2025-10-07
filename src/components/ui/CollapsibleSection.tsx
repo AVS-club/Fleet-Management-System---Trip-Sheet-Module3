@@ -22,7 +22,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className="border border-gray-200 rounded-lg mb-6 overflow-hidden">
+    <div className="border border-gray-200 rounded-lg mb-6">
       <button
         type="button"
         className={cn(
@@ -46,8 +46,10 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 
       <div
         className={cn(
-          "transition-all duration-300 ease-in-out overflow-hidden",
-          isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          "transition-all duration-300 ease-in-out",
+          isExpanded
+            ? "max-h-[2000px] opacity-100 overflow-visible"
+            : "max-h-0 opacity-0 overflow-hidden"
         )}
       >
         <div className="p-4 bg-gray-50 border-t border-gray-200">
@@ -59,3 +61,4 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 };
 
 export default CollapsibleSection;
+

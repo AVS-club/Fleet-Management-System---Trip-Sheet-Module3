@@ -6,6 +6,7 @@ import { Permissions } from "../types/permissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
 import { getSignedDocumentUrl } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
+import { assignTagToVehicle, removeTagFromVehicle } from "../utils/api/tags";
 import { supabase } from "../utils/supabaseClient";
 import {
   PenTool as PenToolIcon,
@@ -22,7 +23,7 @@ import {
 } from "lucide-react";
 import { Vehicle } from "@/types";
 import Button from "../components/ui/Button";
-import VehicleForm from "../components/vehicles/VehicleForm";
+import VehicleForm, { VehicleFormSubmission } from "../components/vehicles/VehicleForm";
 import {
   generateVehiclePDF,
   createShareableVehicleLink,
@@ -267,20 +268,64 @@ const VehiclePage: React.FC = () => {
           <div className="max-w-4xl mx-auto">
             <VehicleForm
               initialData={vehicle}
-              onSubmit={async (formData) => {
+              onSubmit={async (formData: VehicleFormSubmission) => {
+                if (!vehicle) return;
+
                 try {
-                  // Update the vehicle in the database
-                  const updatedVehicle = await updateVehicle(vehicle.id, formData);
-                  
+                  const { tagUpdates, tags: _ignoredTags, ...vehiclePayload } = formData;
+                  const updatedVehicle = await updateVehicle(vehicle.id, vehiclePayload);
+
                   if (updatedVehicle) {
-                    // Update local state
-                    setVehicle(prevVehicle => prevVehicle ? { ...prevVehicle, ...formData } : null);
-                    
-                    // Regenerate signed URLs for updated documents
-                    await generateSignedUrls({ ...vehicle, ...formData });
-                    
-                    toast.success('Vehicle updated successfully');
-                    setIsEditing(false);
+                    let tagUpdateError = false;
+                    let nextTags = vehicle.tags ?? [];
+
+                    if (tagUpdates && ((tagUpdates.add?.length ?? 0) > 0 || (tagUpdates.remove?.length ?? 0) > 0)) {
+                      try {
+                        if (Array.isArray(tagUpdates.remove)) {
+                          for (const tagId of tagUpdates.remove) {
+                            await removeTagFromVehicle(vehicle.id, tagId);
+                          }
+                        }
+
+                        if (Array.isArray(tagUpdates.add)) {
+                          for (const tagId of tagUpdates.add) {
+                            await assignTagToVehicle(vehicle.id, tagId);
+                          }
+                        }
+
+                        nextTags = tagUpdates.nextTags;
+                      } catch (tagError) {
+                        tagUpdateError = true;
+                        console.error('Error updating vehicle tags:', tagError);
+                        toast.error('Vehicle updated, but tags could not be saved. Please try again.');
+                      }
+                    }
+
+                    setVehicle(prevVehicle => {
+                      if (!prevVehicle) return null;
+
+                      const updatedState: Vehicle = {
+                        ...prevVehicle,
+                        ...vehiclePayload,
+                      };
+
+                      if (!tagUpdateError && tagUpdates) {
+                        updatedState.tags = nextTags;
+                      }
+
+                      return updatedState;
+                    });
+
+                    await generateSignedUrls({
+                      ...vehicle,
+                      ...vehiclePayload,
+                      tags: !tagUpdateError && tagUpdates ? nextTags : vehicle.tags,
+                    });
+
+                    if (!tagUpdateError) {
+                      toast.success('Vehicle updated successfully');
+                      setIsEditing(false);
+                    }
                   } else {
                     toast.error('Failed to update vehicle');
                   }

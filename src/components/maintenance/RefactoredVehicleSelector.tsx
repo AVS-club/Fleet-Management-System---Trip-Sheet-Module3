@@ -3,6 +3,7 @@ import { Truck, Check, Search, ChevronDown, X } from 'lucide-react';
 import { Vehicle } from '@/types';
 import { formatVehicleLabel } from '@/utils/vehicleFormatter';
 import { debounce } from 'lodash';
+import VehicleTagBadges from '../vehicles/VehicleTagBadges';
 
 interface RefactoredVehicleSelectorProps {
   selectedVehicle?: string;
@@ -164,11 +165,21 @@ const RefactoredVehicleSelector: React.FC<RefactoredVehicleSelectorProps> = ({
               <div className="flex items-center gap-2 flex-1">
                 <Truck className="h-5 w-5 text-primary-600 flex-shrink-0" />
                 <div className="flex-1 truncate">
-                  <span className="font-medium text-gray-900">
-                    {getVehicleDisplayLabel(selectedVehicleDetails)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      {getVehicleDisplayLabel(selectedVehicleDetails)}
+                    </span>
+                    {selectedVehicleDetails.tags && selectedVehicleDetails.tags.length > 0 && (
+                      <VehicleTagBadges 
+                        tags={selectedVehicleDetails.tags} 
+                        readOnly 
+                        size="sm"
+                        maxDisplay={2}
+                      />
+                    )}
+                  </div>
                   <span className={`
-                    ml-2 px-2 py-0.5 text-xs rounded-full inline-flex items-center
+                    mt-1 inline-block px-2 py-0.5 text-xs rounded-full
                     ${selectedVehicleDetails.status === 'active'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-600'
@@ -283,6 +294,14 @@ const RefactoredVehicleSelector: React.FC<RefactoredVehicleSelectorProps> = ({
                             `}>
                               {getVehicleDisplayLabel(vehicle)}
                             </span>
+                            {vehicle.tags && vehicle.tags.length > 0 && (
+                              <VehicleTagBadges 
+                                tags={vehicle.tags} 
+                                readOnly 
+                                size="sm"
+                                maxDisplay={2}
+                              />
+                            )}
                           </div>
                           
                           {/* Additional details */}

@@ -1,6 +1,6 @@
 import { MaintenanceTask, MAINTENANCE_ITEMS } from '@/types/maintenance';
-import { Vehicle } from '@/types';
-import { format, differenceInDays, differenceInMonths } from 'date-fns';
+import { Vehicle, Tag } from '@/types';
+import { format, differenceInDays, differenceInMonths, subMonths } from 'date-fns';
 
 interface PartDefinition {
   id: string;
@@ -40,6 +40,45 @@ export interface PartHealthMetrics {
       usageCount: number;
     }>;
   };
+}
+
+// Enhanced interface for tag-based metrics
+export interface TagBasedPartHealthMetrics extends PartHealthMetrics {
+  vehicleReg?: string; // Added for vehicle identification
+  vehicleLastFourDigits?: string; // Last 4 digits of registration
+  tagId?: string;
+  tagName?: string;
+  tagColor?: string;
+  peerComparison?: {
+    averageLifeInTag: number;
+    performanceVsPeers: 'above_average' | 'average' | 'below_average';
+    percentileInTag: number;
+    bestPerformingVehicle?: {
+      id: string;
+      registration: string;
+      lifePercentage: number;
+    };
+    worstPerformingVehicle?: {
+      id: string;
+      registration: string;
+      lifePercentage: number;
+    };
+    totalVehiclesInTag: number;
+  };
+}
+
+export interface HistoricalTrendData {
+  month: string;
+  averagePartLife: number;
+  replacementCount: number;
+  totalCost: number;
+  criticalIssues: number;
+  byTag?: {
+    tagId: string;
+    tagName: string;
+    avgLife: number;
+    count: number;
+  }[];
 }
 
 // Comprehensive part definitions for fleet vehicles
@@ -848,4 +887,280 @@ export const getFleetPartHealthSummary = (partsMetrics: PartHealthMetrics[]) => 
   });
   
   return summary;
+};
+
+// Helper to get last 4 digits of registration
+export const getLastFourDigits = (registration: string): string => {
+  return registration.slice(-4);
+};
+
+// Calculate tag-based metrics
+export const getTagBasedPartsHealthMetrics = (
+  tasks: MaintenanceTask[],
+  vehicles: Vehicle[],
+  selectedTagIds?: string[] // Optional filter
+): TagBasedPartHealthMetrics[] => {
+  
+  // Group vehicles by their tags
+  const vehiclesByTag = new Map<string, Vehicle[]>();
+  const untaggedVehicles: Vehicle[] = [];
+  
+  vehicles.forEach(vehicle => {
+    if (vehicle.tags && vehicle.tags.length > 0) {
+      vehicle.tags.forEach(tag => {
+        // Filter by selected tags if provided
+        if (selectedTagIds && selectedTagIds.length > 0 && !selectedTagIds.includes(tag.id)) {
+          return;
+        }
+        
+        if (!vehiclesByTag.has(tag.id)) {
+          vehiclesByTag.set(tag.id, []);
+        }
+        vehiclesByTag.get(tag.id)!.push(vehicle);
+      });
+    } else {
+      untaggedVehicles.push(vehicle);
+    }
+  });
+
+  const allMetrics: TagBasedPartHealthMetrics[] = [];
+
+  // Process tagged vehicles
+  vehiclesByTag.forEach((tagVehicles, tagId) => {
+    const tag = tagVehicles[0]?.tags?.find(t => t.id === tagId);
+    
+    // Get base metrics for this tag group
+    const baseMetrics = getPartsHealthMetrics(tasks, tagVehicles);
+    
+    // Enhance each metric with tag and peer comparison
+    baseMetrics.forEach(metric => {
+      const enhancedMetric: TagBasedPartHealthMetrics = {
+        ...metric,
+        tagId: tagId,
+        tagName: tag?.name || 'Unknown',
+        tagColor: tag?.color_hex || '#3B82F6',
+        peerComparison: calculatePeerComparison(
+          metric.partId,
+          tagVehicles,
+          tasks
+        )
+      };
+      allMetrics.push(enhancedMetric);
+    });
+  });
+
+  // Process untagged vehicles if no filter is applied
+  if (!selectedTagIds || selectedTagIds.length === 0) {
+    if (untaggedVehicles.length > 0) {
+      const untaggedMetrics = getPartsHealthMetrics(tasks, untaggedVehicles);
+      untaggedMetrics.forEach(metric => {
+        const enhancedMetric: TagBasedPartHealthMetrics = {
+          ...metric,
+          tagName: 'Untagged',
+          peerComparison: calculatePeerComparison(
+            metric.partId,
+            untaggedVehicles,
+            tasks
+          )
+        };
+        allMetrics.push(enhancedMetric);
+      });
+    }
+  }
+
+  return allMetrics;
+};
+
+// Calculate peer comparison within a tag group
+function calculatePeerComparison(
+  partId: string,
+  peerVehicles: Vehicle[],
+  tasks: MaintenanceTask[]
+): TagBasedPartHealthMetrics['peerComparison'] {
+  
+  const partLifespans: Array<{
+    vehicleId: string;
+    registration: string;
+    lifePercentage: number;
+  }> = [];
+  
+  peerVehicles.forEach(vehicle => {
+    const vehicleTasks = tasks.filter(t => t.vehicle_id === vehicle.id);
+    const partTasks = vehicleTasks.filter(t => 
+      t.task_type === 'part_replacement' && 
+      detectPartType(t.item_name || '') === partId
+    );
+    
+    if (partTasks.length > 0) {
+      const latestTask = partTasks.sort((a, b) => 
+        new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+      )[0];
+      
+      const kmSince = (vehicle.current_odometer || 0) - (latestTask.odometer_reading || 0);
+      const standardLife = PART_DEFINITIONS.find(p => p.id === partId)?.standardLifeKm || 50000;
+      const lifePercentage = Math.max(0, Math.min(100, 
+        ((standardLife - kmSince) / standardLife) * 100
+      ));
+      
+      partLifespans.push({
+        vehicleId: vehicle.id,
+        registration: vehicle.registration_number,
+        lifePercentage
+      });
+    }
+  });
+
+  if (partLifespans.length === 0) {
+    return {
+      averageLifeInTag: 0,
+      performanceVsPeers: 'average',
+      percentileInTag: 50,
+      totalVehiclesInTag: peerVehicles.length
+    };
+  }
+
+  const averageLife = partLifespans.reduce((sum, p) => sum + p.lifePercentage, 0) / partLifespans.length;
+  
+  // Sort to find best and worst
+  const sorted = [...partLifespans].sort((a, b) => b.lifePercentage - a.lifePercentage);
+  
+  return {
+    averageLifeInTag: Math.round(averageLife),
+    performanceVsPeers: 'average', // This will be set per vehicle
+    percentileInTag: 50, // This will be calculated per vehicle
+    bestPerformingVehicle: sorted.length > 0 ? {
+      id: sorted[0].vehicleId,
+      registration: sorted[0].registration,
+      lifePercentage: sorted[0].lifePercentage
+    } : undefined,
+    worstPerformingVehicle: sorted.length > 0 ? {
+      id: sorted[sorted.length - 1].vehicleId,
+      registration: sorted[sorted.length - 1].registration,
+      lifePercentage: sorted[sorted.length - 1].lifePercentage
+    } : undefined,
+    totalVehiclesInTag: peerVehicles.length
+  };
+}
+
+// Helper function to detect part type from task name
+function detectPartType(taskName: string): string | null {
+  return mapTaskToPartId(taskName);
+}
+
+// Calculate historical trends
+export const calculateHistoricalTrends = (
+  tasks: MaintenanceTask[],
+  vehicles: Vehicle[],
+  monthsBack: number = 12
+): HistoricalTrendData[] => {
+  const trends: HistoricalTrendData[] = [];
+  const today = new Date();
+  
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const monthDate = subMonths(today, i);
+    const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+    
+    const monthTasks = tasks.filter(t => {
+      const taskDate = new Date(t.start_date);
+      return taskDate >= monthStart && taskDate <= monthEnd;
+    });
+    
+    // Calculate metrics for the month
+    const replacementTasks = monthTasks.filter(t => t.task_type === 'part_replacement');
+    const totalCost = replacementTasks.reduce((sum, t) => sum + (t.cost || 0), 0);
+    const criticalCount = monthTasks.filter(t => t.priority === 'high').length;
+    
+    // Calculate by tag
+    const tagMetrics = new Map<string, { name: string; avgLife: number; count: number; color: string }>();
+    
+    vehicles.forEach(vehicle => {
+      if (vehicle.tags && vehicle.tags.length > 0) {
+        const vehicleTasks = replacementTasks.filter(t => t.vehicle_id === vehicle.id);
+        
+        vehicle.tags.forEach(tag => {
+          if (!tagMetrics.has(tag.id)) {
+            tagMetrics.set(tag.id, { 
+              name: tag.name, 
+              avgLife: 0, 
+              count: 0,
+              color: tag.color_hex 
+            });
+          }
+          
+          const existing = tagMetrics.get(tag.id)!;
+          existing.count += vehicleTasks.length;
+        });
+      }
+    });
+    
+    trends.push({
+      month: format(monthDate, 'MMM yyyy'),
+      averagePartLife: replacementTasks.length > 0 ? 75 : 0, // Simplified
+      replacementCount: replacementTasks.length,
+      totalCost,
+      criticalIssues: criticalCount,
+      byTag: Array.from(tagMetrics.entries()).map(([tagId, data]) => ({
+        tagId,
+        tagName: data.name,
+        avgLife: data.avgLife,
+        count: data.count
+      }))
+    });
+  }
+  
+  return trends;
+};
+
+// Get vehicle-specific part health with enhanced info
+export const getVehiclePartHealth = (
+  vehicleId: string,
+  tasks: MaintenanceTask[],
+  vehicles: Vehicle[]
+): Array<{
+  partName: string;
+  status: 'good' | 'needs_attention' | 'overdue';
+  lifePercentage: number;
+  kmSinceReplacement: number;
+  lastReplacement?: string;
+  cost?: number;
+}> => {
+  const vehicle = vehicles.find(v => v.id === vehicleId);
+  if (!vehicle) return [];
+  
+  const vehicleTasks = tasks.filter(t => t.vehicle_id === vehicleId);
+  const parts: any[] = [];
+  
+  PART_DEFINITIONS.forEach(partDef => {
+    const partTasks = vehicleTasks.filter(t => 
+      detectPartType(t.item_name || '') === partDef.id
+    );
+    
+    if (partTasks.length > 0) {
+      const latestTask = partTasks.sort((a, b) => 
+        new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+      )[0];
+      
+      const kmSince = (vehicle.current_odometer || 0) - (latestTask.odometer_reading || 0);
+      const standardLife = partDef.standardLifeKm || 50000;
+      const remainingLife = standardLife - kmSince;
+      const lifePercentage = Math.max(0, Math.min(100, (remainingLife / standardLife) * 100));
+      
+      let status: 'good' | 'needs_attention' | 'overdue';
+      if (lifePercentage < 20) status = 'overdue';
+      else if (lifePercentage < 50) status = 'needs_attention';
+      else status = 'good';
+      
+      parts.push({
+        partName: partDef.name,
+        status,
+        lifePercentage: Math.round(lifePercentage),
+        kmSinceReplacement: kmSince,
+        lastReplacement: latestTask.start_date,
+        cost: latestTask.cost
+      });
+    }
+  });
+  
+  return parts.sort((a, b) => a.lifePercentage - b.lifePercentage);
 };
