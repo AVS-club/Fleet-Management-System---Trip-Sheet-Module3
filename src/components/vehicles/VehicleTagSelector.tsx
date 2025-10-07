@@ -60,21 +60,27 @@ const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
       return;
     }
 
-    setLoading(true);
-    try {
-      await assignTagToVehicle(vehicleId, tag.id);
+    if (autoPersist) {
+      setLoading(true);
+      try {
+        await assignTagToVehicle(vehicleId, tag.id);
+        const updatedTags = [...currentTags, tag];
+        onTagsChange(updatedTags);
+        toast.success(`Tag "${tag.name}" added`);
+      } catch (error: any) {
+        console.error('Error assigning tag:', error);
+        if (error.message.includes('already assigned')) {
+          toast.info('Tag already assigned');
+        } else {
+          toast.error('Failed to assign tag');
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Just update local state without persisting
       const updatedTags = [...currentTags, tag];
       onTagsChange(updatedTags);
-      toast.success(`Tag "${tag.name}" added`);
-    } catch (error: any) {
-      console.error('Error assigning tag:', error);
-      if (error.message.includes('already assigned')) {
-        toast.info('Tag already assigned');
-      } else {
-        toast.error('Failed to assign tag');
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -82,17 +88,23 @@ const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
     const tag = currentTags.find(t => t.id === tagId);
     if (!tag) return;
 
-    setLoading(true);
-    try {
-      await removeTagFromVehicle(vehicleId, tagId);
+    if (autoPersist) {
+      setLoading(true);
+      try {
+        await removeTagFromVehicle(vehicleId, tagId);
+        const updatedTags = currentTags.filter(t => t.id !== tagId);
+        onTagsChange(updatedTags);
+        toast.success(`Tag "${tag.name}" removed`);
+      } catch (error) {
+        console.error('Error removing tag:', error);
+        toast.error('Failed to remove tag');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Just update local state without persisting
       const updatedTags = currentTags.filter(t => t.id !== tagId);
       onTagsChange(updatedTags);
-      toast.success(`Tag "${tag.name}" removed`);
-    } catch (error) {
-      console.error('Error removing tag:', error);
-      toast.error('Failed to remove tag');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -149,7 +161,14 @@ const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
         </Button>
 
         {isOpen && (
-          <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200">
+          <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-hidden"
+               style={{
+                 top: '100%',
+                 left: 0,
+                 right: 'auto',
+                 transform: 'translateY(0)',
+                 maxHeight: 'calc(100vh - 200px)'
+               }}>
             {/* Search */}
             <div className="p-3 border-b border-gray-200">
               <input
@@ -173,7 +192,11 @@ const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
                   {filteredTags.map((tag) => (
                     <button
                       key={tag.id}
-                      onClick={() => handleAddTag(tag)}
+                      onClick={() => {
+                        handleAddTag(tag);
+                        setIsOpen(false);
+                        setSearchQuery('');
+                      }}
                       className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center space-x-2">

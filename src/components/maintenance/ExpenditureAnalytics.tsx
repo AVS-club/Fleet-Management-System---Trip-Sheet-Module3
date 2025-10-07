@@ -31,12 +31,12 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
 
   // Limit data for initial view
   const topVehicles = showFullVehicleList 
-    ? expenditureByVehicle 
-    : expenditureByVehicle.slice(0, 5);
+    ? (expenditureByVehicle || [])
+    : (expenditureByVehicle || []).slice(0, 5);
 
   const topVendors = showFullVendorList 
-    ? expenditureByVendor 
-    : expenditureByVendor.slice(0, 5);
+    ? (expenditureByVendor || [])
+    : (expenditureByVendor || []).slice(0, 5);
 
   // Custom tooltip for monthly expenditure
   const CustomMonthlyTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) => {
@@ -149,7 +149,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     labelFormatter={(label) => `Vehicle: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {topVehicles.map((entry, index) => (
+                    {(topVehicles || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -198,7 +198,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                     labelFormatter={(label) => `Vendor: ${label}`}
                   />
                   <Bar dataKey="cost" barSize={20}>
-                    {topVendors.map((entry, index) => (
+                    {(topVendors || []).map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Bar>
@@ -227,7 +227,7 @@ const ExpenditureAnalytics: React.FC<ExpenditureAnalyticsProps> = ({
                       nameKey="type"
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                     >
-                      {taskTypeDistribution.map((entry, index) => (
+                      {(taskTypeDistribution || []).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>

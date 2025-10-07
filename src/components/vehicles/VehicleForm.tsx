@@ -117,6 +117,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   }, [initialData?.id]);
 
+  // Reset form when initialData changes (when entering edit mode)
+  useEffect(() => {
+    if (initialData) {
+      reset({
+        type: 'truck',
+        fuel_type: 'diesel',
+        status: 'active',
+        current_odometer: 0,
+        remind_insurance: false,
+        remind_fitness: false,
+        remind_puc: false,
+        remind_tax: false,
+        remind_permit: false,
+        remind_service: false,
+        other_documents: [],
+        ...initialData,
+      });
+    }
+  }, [initialData, reset]);
+
   const loadVehicleTags = async () => {
     if (!initialData?.id) return;
     
@@ -340,6 +360,22 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const handleTagSelectionChange = (tags: Tag[]) => {
     setVehicleTags(tags);
+  };
+
+  const handleCancel = () => {
+    // Reset form to initial values
+    reset();
+    
+    // Reset tag state to initial values
+    setVehicleTags(initialVehicleTags);
+    
+    // Reset uploaded documents
+    setUploadedDocuments({});
+    
+    // Call the parent's cancel handler
+    if (onCancel) {
+      onCancel();
+    }
   };
 
   const computeTagUpdates = (): VehicleFormSubmission['tagUpdates'] => {
@@ -1379,7 +1415,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onCancel}
+            onClick={handleCancel}
             disabled={isSubmitting}
           >
             Cancel

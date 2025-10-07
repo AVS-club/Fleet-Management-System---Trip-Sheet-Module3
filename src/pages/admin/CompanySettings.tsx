@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Building2, Upload, Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
@@ -86,10 +86,6 @@ const CompanySettings: React.FC = () => {
   };
 
   // Load existing company data
-  useEffect(() => {
-    loadCompanyData();
-  }, [loadCompanyData]);
-
   const loadCompanyData = useCallback(async () => {
     try {
       setLoading(true);
@@ -146,6 +142,11 @@ const CompanySettings: React.FC = () => {
       setLoading(false);
     }
   }, [navigate]);
+
+  // Load existing company data
+  useEffect(() => {
+    loadCompanyData();
+  }, [loadCompanyData]);
 
   // Handle file selection (preview only)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

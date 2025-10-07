@@ -1,0 +1,318 @@
+/* Mobile-First Parts Health Styles */
+
+/* Touch-friendly minimum sizes */
+@media (max-width: 768px) {
+  /* Ensure all interactive elements are at least 48px tall */
+  .mobile-touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Sticky header optimization */
+  .parts-health-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  /* Horizontal scroll optimization */
+  .horizontal-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Metric cards spacing */
+  .metric-cards-container {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    margin: 0 -0.75rem;
+  }
+
+  .metric-card {
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+
+  /* Tab navigation */
+  .tab-navigation {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tab-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+
+  /* Vehicle cards */
+  .vehicle-card {
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
+  }
+
+  .vehicle-card:active {
+    background-color: #f9fafb;
+  }
+
+  /* Touch feedback */
+  .touch-feedback {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05);
+    touch-action: manipulation;
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+
+  /* Collapsible sections */
+  .collapsible-header {
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .collapsible-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+  }
+
+  .collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+  }
+
+  .collapsible-content.expanded {
+    max-height: 1000px;
+    opacity: 1;
+  }
+
+  /* Tag filter chips */
+  .tag-chip {
+    flex-shrink: 0;
+    touch-action: manipulation;
+    transition: all 0.2s ease;
+  }
+
+  .tag-chip:active {
+    transform: scale(0.95);
+  }
+
+  /* Progress bars */
+  .progress-bar {
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Critical alert cards */
+  .critical-alert-card {
+    background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+    border: 1px solid #fecaca;
+    box-shadow: 0 1px 2px rgba(220, 38, 38, 0.1);
+  }
+
+  /* Bottom padding for mobile navigation */
+  .parts-health-content {
+    padding-bottom: 80px;
+  }
+
+  /* Safe area for notched devices */
+  @supports (padding: max(0px)) {
+    .parts-health-header {
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
+
+    .parts-health-content {
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+      padding-bottom: max(80px, env(safe-area-inset-bottom));
+    }
+  }
+}
+
+/* Small mobile devices (< 380px) */
+@media (max-width: 380px) {
+  .metric-card {
+    min-width: 85px;
+    padding: 0.5rem !important;
+  }
+
+  .tab-button {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .vehicle-card-title {
+    font-size: 0.875rem;
+  }
+
+  .status-badge {
+    font-size: 0.6875rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* Medium devices and above */
+@media (min-width: 769px) {
+  /* Two-column layout for larger screens */
+  .parts-health-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* Sticky sidebar on desktop */
+  .parts-health-sidebar {
+    position: sticky;
+    top: 80px;
+    height: fit-content;
+  }
+
+  /* Remove bottom padding on desktop */
+  .parts-health-content {
+    padding-bottom: 24px;
+  }
+}
+
+/* Large devices */
+@media (min-width: 1024px) {
+  .parts-health-grid {
+    grid-template-columns: 1fr 400px;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease;
+}
+
+/* Loading states */
+.skeleton {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .parts-health-header,
+  .tab-navigation,
+  .mobile-bottom-nav {
+    display: none;
+  }
+
+  .parts-health-content {
+    padding: 0;
+  }
+
+  .vehicle-card {
+    page-break-inside: avoid;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .parts-health-header {
+    background: #1f2937;
+    border-bottom-color: #374151;
+  }
+
+  .metric-card {
+    background: #374151;
+  }
+
+  .vehicle-card {
+    border-bottom-color: #374151;
+  }
+
+  .vehicle-card:active {
+    background-color: #374151;
+  }
+
+  .collapsible-content {
+    background: #1f2937;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

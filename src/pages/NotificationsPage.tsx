@@ -5,25 +5,20 @@ import MediaCard from '../components/HeroFeed/MediaCard';
 import { usePermissions } from '../hooks/usePermissions';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import LoadingScreen from '../components/LoadingScreen';
-import { RefreshCw, Sparkles, Play } from 'lucide-react';
+import { RefreshCw, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff } from 'lucide-react';
+import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 
-// Fleet-relevant YouTube videos
-const FLEET_VIDEOS = [
-  { id: 'L2ZM0j0KDr4', title: 'Truck Maintenance Tips' },
-  { id: 'nUHjUoT2QwA', title: 'Fuel Saving Techniques' },
-  { id: 'zWOADa2rKHo', title: 'Driver Safety Training' },
-  { id: 'B1J6Ou4q8vE', title: 'Fleet GPS Tracking Guide' },
-  { id: 'sFYo6-nVHd8', title: 'Commercial Vehicle Inspection' },
-  { id: 'kWTozGbRrCs', title: 'Route Optimization Tips' },
-  { id: 'p3jiXMXK2Cs', title: 'ELD Compliance Guide' },
-  { id: 'TK5_kEBx-q4', title: 'Winter Driving Safety' }
-];
+// Dynamic YouTube shorts are now fetched from the API
 
 const NotificationsPage: React.FC = () => {
   const { permissions, loading: permissionsLoading } = usePermissions();
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
-  const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
-  const videoRefs = useRef<{ [key: string]: HTMLDivElement }>({});
+  
+  // Video toggle state with localStorage persistence
+  const [showVideos, setShowVideos] = useState(() => {
+    const saved = localStorage.getItem('showVideos');
+    return saved !== null ? JSON.parse(saved) : false; // DEFAULT OFF
+  });
 
   const feedKinds = useMemo(() => {
     if (selectedFilters.includes('all')) {
@@ -45,6 +40,22 @@ const NotificationsPage: React.FC = () => {
   });
 
   const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
+
+  // Check if YouTube API key is available
+  const hasYouTubeAPIKey = !!import.meta.env.VITE_YOUTUBE_API_KEY;
+
+  // Fetch dynamic YouTube shorts only if API key is available
+  const { 
+    data: youtubeShorts, 
+    isLoading: shortsLoading,
+    refetch: refetchShorts 
+  } = useYouTubeShorts({ 
+    count: 20,
+    enabled: hasYouTubeAPIKey // Only fetch if API key is available
+  });
+
+  // Use YouTube shorts if available, fallback to empty array
+  const availableShorts = youtubeShorts || [];
 
   const events = useMemo(() => (data?.pages ?? []).flat(), [data]);
 
@@ -91,44 +102,6 @@ const NotificationsPage: React.FC = () => {
     return events.filter((event: any) => feedKinds.includes(event.kind));
   }, [events, feedKinds, isMediaOnly]);
 
-  // Intersection Observer for autoplay
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const videoId = entry.target.getAttribute('data-video-id');
-          if (!videoId) return;
-          
-          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-            // Auto-play when more than 50% visible
-            setPlayingVideos(prev => new Set([...prev, videoId]));
-          } else {
-            // Stop playing when less than 50% visible
-            setPlayingVideos(prev => {
-              const newSet = new Set(prev);
-              newSet.delete(videoId);
-              return newSet;
-            });
-          }
-        });
-      },
-      { 
-        threshold: [0, 0.5, 1], // Multiple thresholds for better detection
-        rootMargin: '0px'
-      }
-    );
-
-    // Delay observation to ensure elements are rendered
-    setTimeout(() => {
-      Object.values(videoRefs.current).forEach(ref => {
-        if (ref) observer.observe(ref);
-      });
-    }, 100);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [events, selectedFilters]); // Re-run when events change
 
   // Handle loading and permissions after all hooks
   if (permissionsLoading) {
@@ -154,6 +127,13 @@ const NotificationsPage: React.FC = () => {
       refetch();
       refetchKPIs();
     }, 100);
+  };
+
+  // Toggle video visibility
+  const toggleVideos = () => {
+    const newValue = !showVideos;
+    setShowVideos(newValue);
+    localStorage.setItem('showVideos', JSON.stringify(newValue));
   };
 
   // AI Summary Component
@@ -196,59 +176,209 @@ const NotificationsPage: React.FC = () => {
     </div>
   );
 
-  // Video Reel Component
-  const VideoReel = ({ videoId, index }: any) => {
-    const isPlaying = playingVideos.has(videoId);
-    const videoIndex = index % FLEET_VIDEOS.length;
-    const video = FLEET_VIDEOS[videoIndex];
+  // Inline Reel Card Component
+  interface InlineReelCardProps {
+    videoId: string;
+    index: number;
+    short?: YouTubeShort; // Optional short data
+  }
+
+  const InlineReelCard: React.FC<InlineReelCardProps> = ({ videoId, index, short: providedShort }) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(true);
+    const [liked, setLiked] = useState(false);
+    const videoRef = useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    // Use provided short or get from availableShorts
+    const short = providedShort || availableShorts[index % availableShorts.length];
+
+    // If no short available, show appropriate state
+    if (!short) {
+      return (
+        <div className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-gray-900 shadow-2xl my-6" 
+             style={{ aspectRatio: '9/16', maxHeight: '650px' }}>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white text-center p-6">
+              {!hasYouTubeAPIKey ? (
+                <div>
+                  <div className="text-4xl mb-4">🎬</div>
+                  <div className="text-lg font-semibold mb-2">YouTube API Key Required</div>
+                  <div className="text-sm text-gray-300">
+                    Add VITE_YOUTUBE_API_KEY to .env file to enable dynamic video content
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                  <div>Loading videos...</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Intersection Observer for autoplay
+    useEffect(() => {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+              setIsPlaying(true);
+            } else if (entry.intersectionRatio < 0.4) {
+              setIsPlaying(false);
+            }
+          });
+        },
+        {
+          threshold: [0, 0.4, 0.6, 1],
+          rootMargin: '0px'
+        }
+      );
+
+      if (videoRef.current) {
+        observerRef.current.observe(videoRef.current);
+      }
+
+      return () => {
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+        }
+      };
+    }, []);
+
+    const toggleMute = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsMuted(!isMuted);
+    };
+
+    const togglePlay = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsPlaying(!isPlaying);
+    };
+
+    const handleLike = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setLiked(!liked);
+    };
     
     return (
       <div 
-        ref={el => {
-          if (el) {
-            videoRefs.current[videoId] = el;
-          } else {
-            delete videoRefs.current[videoId];
-          }
-        }}
+        ref={videoRef}
         data-video-id={videoId}
-        className="relative rounded-lg overflow-hidden bg-black video-reel-container"
-        style={{ aspectRatio: '16/9', maxHeight: '400px' }}
+        className="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-black shadow-2xl my-6"
+        style={{ aspectRatio: '9/16', maxHeight: '650px' }}
       >
-        {isPlaying ? (
+        <div className="relative w-full h-full">
           <iframe
-            className="w-full h-full"
-            src={`https://www.youtube.com/embed/${video.id}?autoplay=1&mute=1&controls=1&loop=1&playlist=${video.id}&playsinline=1`}
-            title={video.title}
+            className="absolute inset-0 w-full h-full"
+            src={`https://www.youtube.com/embed/${short.id}?${
+              isPlaying ? 'autoplay=1' : 'autoplay=0'
+            }&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${short.id}&playsinline=1&modestbranding=1&rel=0&fs=0&disablekb=1`}
+            title={short.title}
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             loading="lazy"
           />
-        ) : (
-          <div 
-            className="relative cursor-pointer group h-full"
-            onClick={() => setPlayingVideos(new Set([videoId]))}
-          >
-            <img
-              src={`https://img.youtube.com/vi/${video.id}/hqdefault.jpg`}
-              alt={video.title}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                e.currentTarget.src = `https://img.youtube.com/vi/${video.id}/default.jpg`;
-              }}
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center hover:bg-opacity-40 transition-all">
-              <div className="bg-white/90 rounded-full p-3 hover:scale-110 transition-transform">
-                <Play className="w-6 h-6 text-black" />
+
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none">
+            
+            <div className="absolute top-0 left-0 right-0 p-4 pointer-events-auto">
+              <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-2">
+                  <span className="text-lg">🎬</span>
+                  AVS Fleet Tips
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-all active:scale-95"
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-              <p className="text-white font-medium text-sm">{video.title}</p>
+
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+                <button
+                  onClick={togglePlay}
+                  className="w-20 h-20 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center hover:bg-white/40 transition-all hover:scale-110 active:scale-95"
+                >
+                  <Play className="w-10 h-10 text-white ml-1" fill="white" />
+                </button>
+              </div>
+            )}
+
+            {isPlaying && (
+              <div className="absolute top-4 left-4 flex gap-1 pointer-events-none">
+                <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '0.8s' }} />
+                <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '150ms', animationDuration: '0.8s' }} />
+                <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '300ms', animationDuration: '0.8s' }} />
+              </div>
+            )}
+
+            <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 pointer-events-auto">
+              <div className="flex items-end justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-bold text-lg mb-1 drop-shadow-lg line-clamp-2">
+                    {short.title}
+                  </h3>
+                  <p className="text-white/90 text-sm mb-3 drop-shadow-lg line-clamp-2">
+                    {short.description.substring(0, 100)}...
+                  </p>
+                  <div className="flex items-center gap-4 text-white/80 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Heart className="w-4 h-4" />
+                      {short.viewCount || short.likeCount || '0'}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageCircle className="w-4 h-4" />
+                      {short.channelTitle}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4 items-center flex-shrink-0">
+                  <button 
+                    onClick={handleLike}
+                    className={`flex flex-col items-center gap-1 transition-all ${
+                      liked ? 'text-red-500' : 'text-white hover:text-red-400'
+                    }`}
+                  >
+                    <div className={`w-12 h-12 rounded-full backdrop-blur-sm flex items-center justify-center transition-all ${
+                      liked ? 'bg-red-500/30 scale-110' : 'bg-white/20 hover:bg-white/30'
+                    }`}>
+                      <Heart className={`w-6 h-6 ${liked ? 'fill-current' : ''}`} />
+                    </div>
+                    <span className="text-xs font-medium drop-shadow">{short.viewCount || '0'}</span>
+                  </button>
+
+                  <button className="flex flex-col items-center gap-1 text-white hover:text-blue-400 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all">
+                      <MessageCircle className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-medium drop-shadow">{short.likeCount || '0'}</span>
+                  </button>
+
+                  <button className="flex flex-col items-center gap-1 text-white hover:text-green-400 transition-colors">
+                    <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all">
+                      <Share2 className="w-6 h-6" />
+                    </div>
+                    <span className="text-xs font-medium drop-shadow">Share</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        )}
+        </div>
+
+        <div className="absolute -inset-px bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-xl opacity-20 blur-md -z-10" />
       </div>
     );
   };
@@ -264,13 +394,17 @@ const NotificationsPage: React.FC = () => {
       );
     }
 
-    // Insert video reel every 4 events
-    if (index > 0 && index % 4 === 0) {
+    // Insert video reel every 5 events - ONLY IF showVideos is true
+    if (showVideos && index > 0 && index % 5 === 0 && index % 8 !== 0) {
+      const shortIndex = Math.floor(index / 5) % (availableShorts.length || 1);
+      const short = availableShorts[shortIndex];
+
       return (
         <React.Fragment key={`fragment-${event.id}`}>
-          <VideoReel 
+          <InlineReelCard 
             videoId={`video-${index}`} 
-            index={index}
+            index={shortIndex}
+            short={short}
           />
           {renderOriginalEventCard(event)}
         </React.Fragment>
@@ -319,13 +453,39 @@ const NotificationsPage: React.FC = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Fleet Activity Feed</h1>
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Video Toggle Button */}
+            <button
+              onClick={toggleVideos}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                showVideos 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+              title={showVideos ? 'Hide video reels' : 'Show video reels'}
+            >
+              {showVideos ? (
+                <>
+                  <Video className="w-4 h-4" />
+                  <span className="text-sm font-medium">Videos ON</span>
+                </>
+              ) : (
+                <>
+                  <VideoOff className="w-4 h-4" />
+                  <span className="text-sm font-medium">Videos OFF</span>
+                </>
+              )}
+            </button>
+
+            {/* Refresh Button */}
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid - Updated to show real counts */}
@@ -381,16 +541,17 @@ const NotificationsPage: React.FC = () => {
               <p className="mt-4 text-gray-600">Loading feed...</p>
             </div>
           ) : isMediaOnly ? (
-            mediaCards.length > 0 || FLEET_VIDEOS.length > 0 ? (
+            mediaCards.length > 0 || availableShorts.length > 0 ? (
               <div className="space-y-4">
                 {mediaCards.map((card, index) => (
                   <MediaCard key={`media-card-${card.id ?? index}`} card={card} />
                 ))}
-                {FLEET_VIDEOS.map((video, index) => (
-                  <VideoReel
-                    key={`media-reel-${video.id}`}
-                    videoId={`media-${video.id}`}
+                {availableShorts.map((short, index) => (
+                  <InlineReelCard
+                    key={`media-reel-${short.id}`}
+                    videoId={`media-${short.id}`}
                     index={index}
+                    short={short}
                   />
                 ))}
               </div>

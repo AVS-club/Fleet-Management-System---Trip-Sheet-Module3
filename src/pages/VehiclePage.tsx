@@ -334,6 +334,7 @@ const VehiclePage: React.FC = () => {
                   toast.error('Failed to update vehicle');
                 }
               }}
+              onCancel={() => setIsEditing(false)}
             />
           </div>
         </div>

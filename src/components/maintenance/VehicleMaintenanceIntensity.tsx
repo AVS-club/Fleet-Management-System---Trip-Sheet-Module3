@@ -17,6 +17,11 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
 }) => {
   // Prepare data for chart
   const processedData = React.useMemo(() => {
+    // Safety check for undefined data
+    if (!kmBetweenMaintenance || !Array.isArray(kmBetweenMaintenance)) {
+      return [];
+    }
+    
     // Only consider vehicles with at least one KM reading
     const vehiclesWithData = kmBetweenMaintenance.filter(v => v.kmReadings.length > 0);
     
@@ -28,7 +33,7 @@ const VehicleMaintenanceIntensity: React.FC<VehicleMaintenanceIntensityProps> = 
     }).slice(0, 5);
     
     // Find the maximum number of readings across all vehicles
-    const maxReadingsCount = Math.max(...topVehicles.map(v => v.kmReadings.length));
+    const maxReadingsCount = topVehicles.length > 0 ? Math.max(...topVehicles.map(v => v.kmReadings.length)) : 1;
     
     // Prepare data points for each interval
     const chartData = [];

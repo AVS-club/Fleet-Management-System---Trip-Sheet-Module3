@@ -4,7 +4,7 @@ import { Clock } from 'lucide-react';
 import CollapsibleSection from '../ui/CollapsibleSection';
 
 interface VehicleDowntimeChartProps {
-  vehicleDowntime: { vehicleId: string; registration: string; downtime: number }[];
+  vehicleDowntime?: { vehicleId: string; registration: string; downtime: number }[];
 }
 
 // Chart colors based on downtime severity
@@ -17,8 +17,11 @@ const getDowntimeColor = (downtime: number) => {
 const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
   vehicleDowntime
 }) => {
+  // Ensure vehicleDowntime is an array, default to empty array if undefined/null
+  const safeVehicleDowntime = Array.isArray(vehicleDowntime) ? vehicleDowntime : [];
+  
   // Sort vehicles by downtime (highest first)
-  const sortedDowntime = [...vehicleDowntime].sort((a, b) => b.downtime - a.downtime);
+  const sortedDowntime = [...safeVehicleDowntime].sort((a, b) => b.downtime - a.downtime);
   
   // Limit to top 10 vehicles for readability
   const displayData = sortedDowntime.slice(0, 10);

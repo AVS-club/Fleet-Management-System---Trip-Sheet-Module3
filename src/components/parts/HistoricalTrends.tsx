@@ -57,8 +57,8 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
   }, [filteredTrends]);
 
   // Get max values for scaling
-  const maxCost = Math.max(...filteredTrends.map(t => t.totalCost));
-  const maxReplacements = Math.max(...filteredTrends.map(t => t.replacementCount));
+  const maxCost = filteredTrends.length > 0 ? Math.max(...filteredTrends.map(t => t.totalCost)) : 1;
+  const maxReplacements = filteredTrends.length > 0 ? Math.max(...filteredTrends.map(t => t.replacementCount)) : 1;
 
   if (filteredTrends.length === 0) {
     return (
