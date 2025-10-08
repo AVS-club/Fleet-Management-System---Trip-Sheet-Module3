@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Building2, ChevronDown, Loader2 } from 'lucide-react';
@@ -22,6 +22,20 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     loading 
   } = useOrganization();
   const { permissions } = usePermissions();
+  
+  const [showNoOrg, setShowNoOrg] = useState(false);
+
+  useEffect(() => {
+    if (!loading && organizations.length === 0) {
+      const timer = setTimeout(() => {
+        setShowNoOrg(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowNoOrg(false);
+    }
+  }, [loading, organizations.length]);
 
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
   
@@ -64,7 +78,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     return 'text-base';
   };
 
-  if (loading) {
+  if (loading || (!loading && organizations.length === 0 && !showNoOrg)) {
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2",
@@ -78,7 +92,7 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
     );
   }
 
-  if (organizations.length === 0) {
+  if (organizations.length === 0 && showNoOrg) {
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-3 py-2",

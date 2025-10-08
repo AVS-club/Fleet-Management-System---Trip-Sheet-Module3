@@ -67,7 +67,7 @@ const App: React.FC = () => {
   useEffect(() => {
     // Set default language on app load - only if i18n is ready
     if (i18n.isInitialized) {
-      const savedLanguage = localStorage.getItem('language') || 'hi'; // Default to Hindi
+      const savedLanguage = localStorage.getItem('language') || 'en'; // Default to English
       i18n.changeLanguage(savedLanguage);
     }
   }, []);

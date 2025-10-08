@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Building2, ChevronDown, X } from 'lucide-react';
@@ -28,12 +28,25 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
   const { permissions } = usePermissions();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [showNoOrg, setShowNoOrg] = useState(false);
+
+  useEffect(() => {
+    if (!loading && organizations.length === 0) {
+      const timer = setTimeout(() => {
+        setShowNoOrg(true);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowNoOrg(false);
+    }
+  }, [loading, organizations.length]);
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
   
   // Use organization name from permissions if available
   const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
 
-  if (loading) {
+  if (loading || (!loading && organizations.length === 0 && !showNoOrg)) {
     return (
       <div className={cn(
         "flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2",
@@ -45,7 +58,7 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
     );
   }
 
-  if (organizations.length === 0) {
+  if (organizations.length === 0 && showNoOrg) {
     // Still show organization name from permissions if available
     if (permissions?.organizationName) {
       return (
