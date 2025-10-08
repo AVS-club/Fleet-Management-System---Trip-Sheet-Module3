@@ -16,6 +16,9 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n/config';
+import { useWebViewConfig } from './hooks/useWebViewConfig';
+import { isWebView } from './utils/mobileUtils';
+import './styles/webview.css';
 // import MobileBottomNav from './components/layout/MobileBottomNav';
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
@@ -59,12 +62,20 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const { isWebView: inWebView } = useWebViewConfig();
 
   useEffect(() => {
     // Set default language on app load - only if i18n is ready
     if (i18n.isInitialized) {
       const savedLanguage = localStorage.getItem('language') || 'hi'; // Default to Hindi
       i18n.changeLanguage(savedLanguage);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Add webview class to body if in WebView
+    if (isWebView()) {
+      document.body.classList.add('webview-app');
     }
   }, []);
 
@@ -130,8 +141,25 @@ const App: React.FC = () => {
   return (
     <I18nextProvider i18n={i18n}>
       <ErrorBoundary>
-        <Suspense fallback={<LoadingScreen isLoading={true} />}>
-          <Routes>
+        <div className={inWebView ? 'webview-app' : ''}>
+          {/* WebView Debug Indicator - Remove in production */}
+          {isWebView() && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              background: 'yellow',
+              padding: '5px',
+              textAlign: 'center',
+              zIndex: 9999,
+              fontSize: '12px'
+            }}>
+              🔧 Running in WebView/APK Mode
+            </div>
+          )}
+          <Suspense fallback={<LoadingScreen isLoading={true} />}>
+            <Routes>
             <Route path="/login" element={!session ? <LoginPage /> : <SmartRedirect />} />
             <Route path="/register" element={!session ? <RegisterPage /> : <SmartRedirect />} />
             <Route path="/reset-password" element={!session ? <ResetPasswordPage /> : <SmartRedirect />} />
@@ -166,23 +194,24 @@ const App: React.FC = () => {
             <Route path="/admin/company-settings" element={<ProtectedRoute session={session} loading={loading}><CompanySettings /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute session={session} loading={loading}><CompleteFixedReportingDashboard /></ProtectedRoute>} />
             <Route path="/doc/:shortId" element={<DocumentRedirect />} />
-          </Routes>
-        </Suspense>
-        
-        {/* Mobile Bottom Navigation - Shows only on mobile */}
-        {/* <MobileBottomNav /> */}
-        
-        <ToastContainer 
-          position="top-right" 
-          autoClose={3000} 
-          hideProgressBar={false} 
-          newestOnTop 
-          closeOnClick 
-          rtl={false} 
-          pauseOnFocusLoss 
-          draggable 
-          pauseOnHover 
-        />
+            </Routes>
+          </Suspense>
+          
+          {/* Mobile Bottom Navigation - Shows only on mobile */}
+          {/* <MobileBottomNav /> */}
+          
+          <ToastContainer 
+            position="top-right" 
+            autoClose={3000} 
+            hideProgressBar={false} 
+            newestOnTop 
+            closeOnClick 
+            rtl={false} 
+            pauseOnFocusLoss 
+            draggable 
+            pauseOnHover 
+          />
+        </div>
       </ErrorBoundary>
     </I18nextProvider>
   );

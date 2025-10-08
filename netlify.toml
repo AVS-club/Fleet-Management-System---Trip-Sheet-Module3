@@ -1,0 +1,15 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Environment variables for production
+# These will be set in Netlify dashboard under Site settings > Environment variables
+# Add VITE_YOUTUBE_API_KEY=your_actual_api_key_here
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

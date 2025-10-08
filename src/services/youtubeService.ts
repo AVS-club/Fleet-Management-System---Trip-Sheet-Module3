@@ -207,9 +207,15 @@ let youtubeServiceInstance: YouTubeService | null = null;
 export const getYouTubeService = (apiKey?: string): YouTubeService | null => {
   const key = apiKey || import.meta.env.VITE_YOUTUBE_API_KEY;
   
+  // BETTER ERROR HANDLING - Don't throw error, return empty service
   if (!key) {
-    console.warn('YouTube API key not found. Please set VITE_YOUTUBE_API_KEY in .env to enable dynamic video content');
-    return null;
+    console.warn('⚠️ YouTube API key not found. Videos will be disabled.');
+    // Return a dummy service that returns empty arrays
+    return {
+      searchShorts: async () => [],
+      getFleetShorts: async () => [],
+      clearCache: () => {}
+    } as any;
   }
 
   if (!youtubeServiceInstance || apiKey) {
