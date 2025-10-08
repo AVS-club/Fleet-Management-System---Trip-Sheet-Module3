@@ -1,0 +1,364 @@
+/* DocumentSummaryPanel UI Improvements */
+
+/* Remove sticky behavior from date range filter */
+.date-range-filter {
+  background: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+  /* Remove sticky positioning */
+  position: relative !important;
+}
+
+/* Make table header sticky */
+.document-table-wrapper {
+  position: relative;
+  overflow-x: auto;
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
+.document-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #f9fafb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.document-table thead th {
+  background: #f9fafb !important;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Sticky first column (Vehicle Number) */
+.document-table thead th:first-child,
+.document-table tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.document-table thead th:first-child {
+  z-index: 30 !important;
+  background: #f9fafb !important;
+}
+
+/* Improve date cell styling */
+.document-cell-date {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding: 8px 16px;
+  border-radius: 8px;
+  display: inline-block;
+  min-width: 100px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+/* Valid document styling */
+.document-cell-valid {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #86efac;
+}
+
+.document-cell-valid:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+/* Expired document styling */
+.document-cell-expired {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fca5a5;
+}
+
+.document-cell-expired:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+}
+
+/* Expiring soon styling */
+.document-cell-expiring {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1.5px solid #fde68a;
+}
+
+.document-cell-expiring:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(217, 119, 6, 0.1);
+}
+
+/* Missing document styling */
+.document-cell-missing {
+  background: #f9fafb;
+  color: #9ca3af;
+  border: 1.5px solid #e5e7eb;
+}
+
+/* Table row hover effect */
+.document-table tbody tr:hover {
+  background: #f9fafb;
+  transition: background 0.15s ease;
+}
+
+/* Improved table spacing */
+.document-table tbody td {
+  padding: 10px 16px;
+  vertical-align: middle;
+}
+
+/* Column sorting indicators */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.sortable-header:hover {
+  background: #f3f4f6 !important;
+}
+
+.sort-indicator {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Vehicle number column styling */
+.vehicle-number-cell {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+/* Responsive improvements */
+@media (max-width: 1024px) {
+  .document-table thead th {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .document-table tbody td {
+    padding: 8px 12px;
+  }
+
+  .document-cell-date {
+    font-size: 13px;
+    padding: 6px 12px;
+    min-width: 85px;
+  }
+}
+
+@media (max-width: 768px) {
+  .document-table-wrapper {
+    max-height: calc(100vh - 200px);
+  }
+
+  .document-table thead th {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .document-table tbody td {
+    padding: 6px 10px;
+  }
+
+  .document-cell-date {
+    font-size: 12px;
+    padding: 5px 10px;
+    min-width: 75px;
+  }
+
+  .vehicle-number-cell {
+    font-size: 13px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .date-range-filter {
+    display: none !important;
+  }
+
+  .document-table-wrapper {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .document-table thead th {
+    position: static !important;
+  }
+
+  .document-table thead th:first-child,
+  .document-table tbody td:first-child {
+    position: static !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Scrollbar styling for table */
+.document-table-wrapper::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.document-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.document-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 5px;
+}
+
+.document-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Loading state */
+.table-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+/* Empty state */
+.table-empty {
+  padding: 40px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Status badge improvements */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-badge-valid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-badge-expired {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge-expiring {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Improve filter section appearance */
+.filters-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #10b981;
+  ring: 2px;
+  ring-color: rgba(16, 185, 129, 0.2);
+}
+
+/* Animation for row updates */
+@keyframes rowUpdate {
+  0% {
+    background: #dbeafe;
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.row-updated {
+  animation: rowUpdate 1s ease;
+}
+
+/* Improved metrics section */
+.metrics-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  margin-bottom: 1.5rem;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.metric-value {
+  font-weight: 700;
+  color: #1f2937;
+  font-size: 16px;
+}
+
+.metric-icon {
+  width: 18px;
+  height: 18px;
+  color: #10b981;
+}

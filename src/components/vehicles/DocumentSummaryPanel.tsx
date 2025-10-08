@@ -4,6 +4,7 @@ import { X, User, Truck, Calendar, FileText, Shield, Download, Printer as Print,
 import { motion, AnimatePresence } from 'framer-motion';
 import { DocumentCell } from '../documents/DocumentCell';
 import { rowUrgency, daysTo, docScore, type DocKey } from '../../utils/urgency';
+import '../../styles/document-summary-improvements.css';
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
@@ -1397,8 +1398,8 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
             </div>
           ) : (
             <>
-              {/* Date Range Filter - Made Sticky */}
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 sticky top-0 z-10 no-print">
+              {/* Date Range Filter - No longer sticky */}
+              <div className="date-range-filter no-print">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <Select
@@ -1732,16 +1733,17 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                     </div>
                   ) : (
                     // Regular table for smaller datasets
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <div className="document-table-wrapper">
+                      <table className="min-w-full divide-y divide-gray-200 document-table">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[140px] sticky left-0 bg-gray-50 z-10 vehicle-number-cell">
                             Vehicle Number
                           </th>
                           {visibleColumns.includes('insurance') && (documentTypeFilter === 'all' || documentTypeFilter === 'insurance') && (
                             <th 
                               onClick={() => handleColumnSort("insurance")}
-                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sortable-header"
                               style={{
                                 textDecoration: 
                                   sort.kind === "column" && sort.column === "insurance" 
@@ -1760,7 +1762,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                           {visibleColumns.includes('fitness') && (documentTypeFilter === 'all' || documentTypeFilter === 'fitness') && (
                             <th 
                               onClick={() => handleColumnSort("fitness")}
-                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sortable-header"
                               style={{
                                 textDecoration: 
                                   sort.kind === "column" && sort.column === "fitness" 
@@ -1779,7 +1781,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                           {visibleColumns.includes('permit') && (documentTypeFilter === 'all' || documentTypeFilter === 'permit') && (
                             <th 
                               onClick={() => handleColumnSort("permit")}
-                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sortable-header"
                               style={{
                                 textDecoration: 
                                   sort.kind === "column" && sort.column === "permit" 
@@ -1798,7 +1800,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                           {visibleColumns.includes('puc') && (documentTypeFilter === 'all' || documentTypeFilter === 'puc') && (
                             <th 
                               onClick={() => handleColumnSort("puc")}
-                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sortable-header"
                               style={{
                                 textDecoration: 
                                   sort.kind === "column" && sort.column === "puc" 
@@ -1817,7 +1819,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                           {visibleColumns.includes('tax') && (documentTypeFilter === 'all' || documentTypeFilter === 'tax') && (
                             <th 
                               onClick={() => handleColumnSort("tax")}
-                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] cursor-pointer hover:bg-gray-100 transition-colors"
+                              className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px] sortable-header"
                               style={{
                                 textDecoration: 
                                   sort.kind === "column" && sort.column === "tax" 
@@ -2056,6 +2058,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
                         </AnimatePresence>
                       </tbody>
                     </table>
+                    </div>
                   )}
                 </div>
               </div>

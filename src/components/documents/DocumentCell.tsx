@@ -78,6 +78,9 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
   const handleCellClick = async () => {
     if (!expiryDate || formattedDate === "—") return;
     
+    // Only open popover if document exists
+    if (!hasDocument) return;
+    
     setIsPopoverOpen(!isPopoverOpen);
     
     if (!signedUrl && hasDocument && !isPopoverOpen) {
@@ -160,13 +163,14 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
         className={getCellClassName()}
         onClick={handleCellClick}
         disabled={!expiryDate || formattedDate === "—"}
-        title="Tap for actions"
+        title={hasDocument ? "Click for actions" : formattedDate}
         type="button"
+        style={{ cursor: hasDocument ? 'pointer' : 'default' }}
       >
         {formattedDate}
       </button>
 
-      {isPopoverOpen && (
+      {isPopoverOpen && hasDocument && (
         <div className="doc-popover" ref={popoverRef}>
           {isLoading && (
             <div className="doc-popover__loading">
@@ -229,15 +233,18 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
         }
 
         .doc-cell {
-          padding: 4px 12px;
-          border-radius: 12px;
-          border: 1px solid transparent;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
+          padding: 6px 14px;
+          border-radius: 8px;
+          border: 1.5px solid transparent;
+          font-size: 15px;
+          font-weight: 600;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          letter-spacing: -0.01em;
           transition: all 0.2s ease;
           background: transparent;
-          min-width: 80px;
+          min-width: 90px;
+          display: inline-block;
+          text-align: center;
         }
 
         .doc-cell:disabled {
@@ -246,43 +253,79 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
         }
 
         .doc-cell--valid {
-          color: #16a34a;
-          border-color: #bbf7d0;
+          color: #15803d;
+          border-color: #86efac;
           background: #f0fdf4;
+          font-weight: 600;
         }
 
         .doc-cell--valid:hover:not(:disabled) {
           background: #dcfce7;
+          border-color: #4ade80;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
         }
 
         .doc-cell--expired {
           color: #dc2626;
-          border-color: #fecaca;
+          border-color: #fca5a5;
           background: #fef2f2;
+          font-weight: 600;
         }
 
         .doc-cell--expired:hover:not(:disabled) {
           background: #fee2e2;
+          border-color: #f87171;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
         }
 
         .doc-cell--empty {
-          color: #6b7280;
+          color: #9ca3af;
           border-color: #e5e7eb;
           background: #f9fafb;
+          font-weight: 500;
         }
 
         .doc-popover {
           position: absolute;
-          top: calc(100% + 4px);
+          top: 100%;
           left: 50%;
           transform: translateX(-50%);
+          margin-top: 8px;
           background: white;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-          padding: 8px;
-          width: 280px;
-          z-index: 50;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+          padding: 12px;
+          z-index: 1000;
+          min-width: 200px;
+          animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+
+        .doc-popover::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 12px;
+          height: 12px;
+          background: white;
+          border-left: 1px solid #e5e7eb;
+          border-top: 1px solid #e5e7eb;
+          transform: translateX(-50%) rotate(45deg);
         }
 
         .doc-popover__loading,
@@ -290,7 +333,7 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
         .doc-popover__hint {
           padding: 8px;
           text-align: center;
-          font-size: 14px;
+          font-size: 13px;
           color: #6b7280;
         }
 
@@ -298,40 +341,52 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
           color: #dc2626;
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 4px;
+          gap: 6px;
         }
 
         .doc-popover__actions {
           display: flex;
-          gap: 4px;
+          flex-direction: column;
+          gap: 6px;
         }
 
         .doc-popover__btn {
-          flex: 1;
-          padding: 6px 8px;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          background: white;
-          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          border: none;
+          background: #f3f4f6;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
           font-weight: 500;
           color: #374151;
-          cursor: pointer;
           transition: all 0.2s ease;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 2px;
+          width: 100%;
         }
 
         .doc-popover__btn:hover:not(:disabled) {
-          background: #f9fafb;
-          border-color: #d1d5db;
+          background: #10b981;
+          color: white;
+          transform: translateX(2px);
         }
 
         .doc-popover__btn:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+          .doc-cell {
+            font-size: 13px;
+            padding: 5px 10px;
+            min-width: 75px;
+          }
+
+          .doc-popover {
+            min-width: 160px;
+          }
         }
       `}</style>
     </div>
