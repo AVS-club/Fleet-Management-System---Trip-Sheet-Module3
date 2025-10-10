@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { toast } from 'react-toastify';
-import '../styles/parts-health-mobile.css';
 
 const PartsHealthAnalyticsPage: React.FC = () => {
   const navigate = useNavigate();
