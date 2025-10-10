@@ -18,7 +18,7 @@ import DocumentsSection from "./DocumentsSection";
 import PartsReplacedSelector from "./PartsReplacedSelector";
 import ServiceGroupsSection from "./ServiceGroupsSection";
 import {
-  PenTool as PenToolIcon,
+  Gauge,
   Calendar,
   Truck,
   Clock,
@@ -275,7 +275,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     defaultValues: {
       task_type: "general_scheduled_service",
       priority: "medium",
-      status: "open",
+      status: "resolved",
       estimated_cost: 0,
       parts_required: [],
       start_date: new Date().toISOString().split("T")[0],
@@ -746,7 +746,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           <div className="maintenance-form-section vehicle-info-override">
             <div className="maintenance-form-section-header">
               <div className="icon">
-                <PenToolIcon className="h-5 w-5" />
+                <Gauge className="h-5 w-5" />
               </div>
               <h3>Vehicle Information</h3>
             </div>
@@ -754,7 +754,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               <Input
                 label="Odometer Reading"
                 type="number"
-                icon={<PenToolIcon className="h-4 w-4" />}
+                icon={odometerReading ? undefined : <Gauge className="h-4 w-4" />}
                 error={errors.odometer_reading?.message}
                 required
                 {...register("odometer_reading", {

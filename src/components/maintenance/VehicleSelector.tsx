@@ -19,6 +19,7 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isMenuAbove, setIsMenuAbove] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
@@ -65,6 +66,11 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
     }
   }, [isOpen]);
 
+  // Reset highlighted index when search term changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchTerm]);
+
   const filteredVehicles = vehicles.filter((vehicle) =>
     `${vehicle.registration_number} ${vehicle.make} ${vehicle.model}`
       .toLowerCase()
@@ -74,6 +80,40 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
   const selectedVehicleDetails = vehicles.find(
     (v) => v.id === selectedVehicle
   );
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setHighlightedIndex((prev) => 
+          prev < filteredVehicles.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setHighlightedIndex((prev) => 
+          prev > 0 ? prev - 1 : filteredVehicles.length - 1
+        );
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (highlightedIndex >= 0 && highlightedIndex < filteredVehicles.length) {
+          const selectedVehicle = filteredVehicles[highlightedIndex];
+          onChange(selectedVehicle.id);
+          setIsOpen(false);
+          setSearchTerm("");
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setIsOpen(false);
+        setSearchTerm("");
+        break;
+    }
+  };
 
   return (
     <div className="space-y-2 relative z-30">
@@ -107,7 +147,7 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                     />
                   )}
                 </div>
-                <span className="text-gray-500">
+                <span className="text-xs text-gray-500 truncate">
                   - {selectedVehicleDetails.make} {selectedVehicleDetails.model}
                 </span>
               </div>
@@ -154,22 +194,26 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                 placeholder="Search vehicles by registration, make, or model..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyDown}
                 onClick={(e) => e.stopPropagation()}
                 autoFocus
               />
             </div>
 
             <div className="max-h-[200px] overflow-y-auto">
-              {filteredVehicles.map((vehicle) => (
+              {filteredVehicles.map((vehicle, index) => (
                 <div
                   key={vehicle.id}
                   className={`p-4 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
                     selectedVehicle === vehicle.id ? "bg-primary-50" : ""
+                  } ${
+                    index === highlightedIndex ? "bg-gray-100" : ""
                   }`}
                   onClick={() => {
                     onChange(vehicle.id);
                     setIsOpen(false);
                   }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -188,7 +232,7 @@ const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                             />
                           )}
                         </div>
-                        <span className="text-gray-500 text-sm">
+                        <span className="text-xs text-gray-500 truncate">
                           {vehicle.make} {vehicle.model}
                         </span>
                       </div>

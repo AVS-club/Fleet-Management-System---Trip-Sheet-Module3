@@ -466,8 +466,8 @@ const MaintenanceTaskPage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="max-w-5xl mx-auto">
-          {/* ========== UPDATED STYLED HEADER ========== */}
+        <>
+          {/* ========== FULL WIDTH HEADER ========== */}
           <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
             <div className="flex items-center group">
               <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
@@ -498,8 +498,9 @@ const MaintenanceTaskPage: React.FC = () => {
               )}
             </div>
           </div>
-          {/* ========== END UPDATED HEADER ========== */}
+          {/* ========== END FULL WIDTH HEADER ========== */}
 
+          {/* ========== FORM - FULL WIDTH ========== */}
           {isViewMode ? (
             task ? (
               <div className="bg-white rounded-lg shadow-sm p-6">
@@ -571,7 +572,7 @@ const MaintenanceTaskPage: React.FC = () => {
               />
             </div>
           )}
-        </div>
+        </>
       )}
     </Layout>
   );
