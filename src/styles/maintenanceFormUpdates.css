@@ -1,0 +1,278 @@
+/* Main Container - Match Trip Form Width */
+.maintenance-page-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 12px 24px;
+  width: 100%;
+}
+
+/* Override any existing max-width constraints */
+.maintenance-page-container .max-w-7xl,
+.maintenance-page-container .max-w-5xl,
+.maintenance-page-container .max-w-6xl {
+  max-width: 1200px !important;
+}
+
+/* Header Section - Similar to Trip Management */
+.maintenance-page-header {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-left: 4px solid #10b981;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.maintenance-page-header h1 {
+  font-family: var(--font-display);
+  font-size: 1.125rem; /* 18px */
+  font-weight: var(--font-semibold);
+  color: #111827;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.015em; /* tracking-tight-plus */
+}
+
+.maintenance-page-header .subtitle {
+  font-family: var(--font-primary);
+  font-size: 0.625rem; /* 10px */
+  font-weight: var(--font-normal);
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Form Card - Dimmed Colors */
+.maintenance-form-card {
+  background: #ffffff;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+.maintenance-form-card .p-6 {
+  padding: 16px 20px !important;
+}
+
+/* Section Headers - Subtle Colors */
+.maintenance-form-section {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.maintenance-form-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.maintenance-form-section-header h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: #374151;
+  margin: 0;
+}
+
+.maintenance-form-section-header .icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-radius: 8px;
+  color: #10b981;
+}
+
+/* Basic Information Section - Dimmed Blue */
+.basic-information-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+.basic-information-section .icon {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #3b82f6;
+}
+
+/* Priority Buttons - Dimmed Colors */
+.priority-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.priority-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  font-family: var(--font-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.priority-button.low {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.priority-button.low.active {
+  background: #dcfce7;
+  border-color: #86efac;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.priority-button.medium {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.priority-button.medium.active {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
+}
+
+.priority-button.high {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.priority-button.high.active {
+  background: #ffedd5;
+  border-color: #fb923c;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.priority-button.critical {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.priority-button.critical.active {
+  background: #fee2e2;
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Override existing bright gradients with subtle ones */
+.maintenance-form-override {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.maintenance-form-override .bg-gradient-to-r {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.maintenance-form-override .from-blue-50 {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.maintenance-form-override .to-indigo-50 {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+}
+
+.maintenance-form-override .from-green-50 {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%) !important;
+}
+
+.maintenance-form-override .to-blue-50 {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%) !important;
+}
+
+/* Service Details Section Override - Dimmed 15% */
+.service-details-override {
+  background: linear-gradient(135deg, #f7fef9 0%, #f4fdf6 100%) !important;
+  border: 1px solid #e8f5e9 !important;
+}
+
+.service-details-override .from-green-50 {
+  background: linear-gradient(135deg, #f7fef9 0%, #f4fdf6 100%) !important;
+}
+
+.service-details-override .to-emerald-50 {
+  background: linear-gradient(135deg, #f7fef9 0%, #f4fdf6 100%) !important;
+}
+
+/* Downtime Summary Override - Dimmed 15% */
+.downtime-summary-override {
+  background: linear-gradient(135deg, #fdfcf7 0%, #fefdf9 100%) !important;
+  border: 1px solid #fef9e6 !important;
+}
+
+.downtime-summary-override .from-amber-50 {
+  background: linear-gradient(135deg, #fdfcf7 0%, #fefdf9 100%) !important;
+}
+
+.downtime-summary-override .to-yellow-50 {
+  background: linear-gradient(135deg, #fdfcf7 0%, #fefdf9 100%) !important;
+}
+
+/* Vehicle Information Override - Dimmed 15% */
+.vehicle-info-override {
+  background: linear-gradient(135deg, #faf9fc 0%, #f7f6fa 100%) !important;
+  border: 1px solid #f0edf5 !important;
+}
+
+.vehicle-info-override .from-purple-50 {
+  background: linear-gradient(135deg, #faf9fc 0%, #f7f6fa 100%) !important;
+}
+
+.vehicle-info-override .to-indigo-50 {
+  background: linear-gradient(135deg, #faf9fc 0%, #f7f6fa 100%) !important;
+}
+
+/* Status Section Override */
+.status-section-override {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Reduce overall spacing */
+.space-y-6 > * + * {
+  margin-top: 1rem !important;
+}
+
+.space-y-10 > * + * {
+  margin-top: 1.5rem !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .maintenance-page-container {
+    padding: 8px 16px;
+  }
+  
+  .maintenance-page-header {
+    padding: 12px 16px;
+  }
+  
+  .maintenance-form-section {
+    padding: 12px;
+  }
+  
+  .priority-buttons {
+    flex-direction: column;
+  }
+  
+  .priority-button {
+    width: 100%;
+  }
+}

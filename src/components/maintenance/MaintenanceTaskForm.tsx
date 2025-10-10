@@ -16,6 +16,7 @@ import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
 import PartsReplacedSelector from "./PartsReplacedSelector";
+import ServiceGroupsSection from "./ServiceGroupsSection";
 import {
   PenTool as PenToolIcon,
   Calendar,
@@ -25,6 +26,8 @@ import {
   AlertTriangle,
   Bell,
   Wrench,
+  FileText,
+  ChevronLeft,
 } from "lucide-react";
 import { predictNextService } from "../../utils/maintenancePredictor";
 import { getAuditLogs } from "../../utils/maintenanceStorage";
@@ -32,6 +35,7 @@ import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
+import "../../styles/maintenanceFormUpdates.css";
 
 // ServiceDetailsSection component
 const ServiceDetailsSection = () => {
@@ -94,13 +98,13 @@ const ServiceDetailsSection = () => {
   return (
     <>
       {/* Service Details Box */}
-      <div className="bg-gradient-to-r from-green-50/80 to-emerald-50/80 rounded-xl shadow-lg border border-green-100/70 p-6 space-y-6">
-        <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center mr-3">
-            <Calendar className="h-5 w-5 text-white" />
+      <div className="maintenance-form-section service-details-override">
+        <div className="maintenance-form-section-header">
+          <div className="icon">
+            <Calendar className="h-5 w-5" />
           </div>
-          Service Details
-        </h3>
+          <h3>Service Details</h3>
+        </div>
         
         {/* Quick Select */}
         <div>
@@ -201,11 +205,11 @@ const DowntimeSummary = () => {
   };
   
   return (
-    <div className="bg-gradient-to-r from-amber-50/80 to-yellow-50/80 border-2 border-amber-200/70 rounded-xl p-6 shadow-lg">
+    <div className="maintenance-form-section downtime-summary-override">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
-            <Clock className="h-6 w-6 text-white" />
+          <div className="icon">
+            <Clock className="h-6 w-6" />
           </div>
           <div>
             <span className="text-lg font-semibold text-gray-800">Downtime Tracking</span>
@@ -265,6 +269,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     confidence: 0,
   });
   const [selectedParts, setSelectedParts] = useState<any[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<any[]>([]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -623,10 +628,11 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         return;
       }
 
-      // Add parts_replaced data to the submission
+      // Add parts_replaced and service_groups data to the submission
       const formDataWithParts = {
         ...data,
-        parts_replaced: selectedParts.length > 0 ? selectedParts : undefined
+        parts_replaced: selectedParts.length > 0 ? selectedParts : undefined,
+        service_groups: serviceGroups.length > 0 ? serviceGroups : undefined
       };
 
       onSubmit(formDataWithParts);
@@ -640,30 +646,17 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-100 to-green-100 border-b-2 border-blue-200 px-8 py-6">
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-4 shadow-md">
-                <Wrench className="h-6 w-6 text-white" />
-              </div>
-              Maintenance Task
-            </h1>
-            <p className="text-gray-600 mt-2">Create and manage vehicle maintenance records</p>
-          </div>
-          
-          <div className="p-10">
-            <FormProvider {...methods}>
-              <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-10">
+    <div>
+      <FormProvider {...methods}>
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
         {/* Vehicle & Basic Info */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6 space-y-5">
-          <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
-              <Truck className="h-5 w-5 text-white" />
+        <div className="maintenance-form-section basic-information-section">
+          <div className="maintenance-form-section-header">
+            <div className="icon">
+              <Truck className="h-5 w-5" />
             </div>
-            Basic Information
-          </h3>
+            <h3 className="section-title">Basic Information</h3>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Controller
@@ -712,19 +705,20 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           />
         </div>
 
-        {/* Maintenance Tasks */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-lg border border-green-100 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <Wrench className="h-5 w-5 text-green-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Service Groups</h3>
-          </div>
-          <div className="text-sm text-gray-600">
-            Service groups functionality will be implemented here.
-          </div>
-        </div>
+        {/* Service Groups */}
+        <ServiceGroupsSection
+          serviceGroups={serviceGroups}
+          onChange={setServiceGroups}
+        />
 
         {/* Parts Replaced Section - NEW */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6">
+        <div className="maintenance-form-section">
+          <div className="maintenance-form-section-header">
+            <div className="icon">
+              <FileText className="h-5 w-5" />
+            </div>
+            <h3>Parts Replaced</h3>
+          </div>
           <PartsReplacedSelector
             selectedParts={selectedParts}
             onChange={setSelectedParts}
@@ -749,13 +743,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
           
           {/* Right side: Odometer Section */}
-          <div className="bg-gradient-to-r from-purple-50/80 to-indigo-50/80 rounded-xl shadow-lg border border-purple-100/70 p-6 space-y-6">
-            <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-              <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center mr-3">
-                <PenToolIcon className="h-5 w-5 text-white" />
+          <div className="maintenance-form-section vehicle-info-override">
+            <div className="maintenance-form-section-header">
+              <div className="icon">
+                <PenToolIcon className="h-5 w-5" />
               </div>
-              Vehicle Information
-            </h3>
+              <h3>Vehicle Information</h3>
+            </div>
             <div className="grid grid-cols-1 gap-5">
               <Input
                 label="Odometer Reading"
@@ -796,36 +790,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         {/* Status Section */}
-        <div className={`rounded-xl shadow-lg border p-6 ${
-          watch('status') === 'in_progress' 
-            ? 'bg-gradient-to-r from-blue-50/80 to-blue-100/80 border-blue-200/70'
-            : watch('status') === 'resolved'
-            ? 'bg-gradient-to-r from-green-50/80 to-green-100/80 border-green-200/70'
-            : watch('status') === 'escalated'
-            ? 'bg-gradient-to-r from-orange-50/80 to-orange-100/80 border-orange-200/70'
-            : watch('status') === 'rework'
-            ? 'bg-gradient-to-r from-red-50/80 to-red-100/80 border-red-200/70'
-            : 'bg-gradient-to-r from-gray-50/80 to-gray-100/80 border-gray-200/70'
-        }`}>
-          <label className="block text-lg font-semibold text-gray-800 mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                watch('status') === 'in_progress' 
-                  ? 'bg-blue-500'
-                  : watch('status') === 'resolved'
-                  ? 'bg-green-500'
-                  : watch('status') === 'escalated'
-                  ? 'bg-orange-500'
-                  : watch('status') === 'rework'
-                  ? 'bg-red-500'
-                  : 'bg-gray-500'
-              }`}>
-                <AlertTriangle className="h-5 w-5 text-white" />
-              </div>
-              Status
-              <span className="text-red-500 ml-1">*</span>
+        <div className="maintenance-form-section status-section-override">
+          <div className="maintenance-form-section-header">
+            <div className="icon">
+              <AlertTriangle className="h-5 w-5" />
             </div>
-          </label>
+            <h3>Status <span className="text-red-500 ml-1">*</span></h3>
+          </div>
           
           <div className="flex flex-wrap gap-2">
             {[
@@ -929,11 +900,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             {initialData ? "Update Task" : "Create Task"}
           </Button>
         </div>
-              </form>
-            </FormProvider>
-          </div>
-        </div>
-      </div>
+        </form>
+      </FormProvider>
     </div>
   );
 };

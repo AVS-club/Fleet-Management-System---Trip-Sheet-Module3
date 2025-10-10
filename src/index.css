@@ -6,8 +6,8 @@
 @import "./styles/mobile.css";
 /* Reports Styles */
 @import "./styles/reports.css";
-/* Rich SaaS Typography - Plus Jakarta Sans + Inter */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
+/* Unified Typography System */
+@import "./styles/typography.css";
 
 /* Aurora Background - Simple and Direct */
 :root {

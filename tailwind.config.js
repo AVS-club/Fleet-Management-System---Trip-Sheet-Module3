@@ -102,12 +102,12 @@ export default {
           950: '#030712',
         },
       },
-      // Rich SaaS Typography System
+      // Unified Typography System
       fontFamily: {
-        // Body/UI/Data - Inter as primary
-        sans: ["Inter", "ui-sans-serif", "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial"],
-        // Headers/Stats - Plus Jakarta Sans
-        display: ["Plus Jakarta Sans", "Inter", "ui-sans-serif", "system-ui"],
+        // Primary font for body text, UI elements, and data
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+        // Display font for headings and important titles
+        display: ["Plus Jakarta Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
         // Legacy support
         'brand': ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },

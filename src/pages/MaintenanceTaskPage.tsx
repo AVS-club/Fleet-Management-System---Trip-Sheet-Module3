@@ -15,9 +15,10 @@ import {
 import { getVehicles } from "../utils/storage";
 import { supabase } from "../utils/supabaseClient";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, Edit } from "lucide-react";
+import { ChevronLeft, Trash2, Edit, Wrench } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
+import "../styles/maintenanceFormUpdates.css";
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
   // Basic fields
@@ -456,35 +457,7 @@ const MaintenanceTaskPage: React.FC = () => {
   };
 
   return (
-    <Layout
-      title={
-        id === "new"
-          ? "New Maintenance Task"
-          : isViewMode
-          ? "Maintenance Task Details"
-          : "Edit Maintenance Task"
-      }
-      subtitle={
-        task
-          ? `Task #${task.id}`
-          : id === "new"
-          ? "Create a new maintenance task"
-          : "Loading maintenance task..."
-      }
-      actions={
-        !isViewMode && id !== "new"
-          ? (
-              <Button
-                variant="danger"
-                onClick={handleDelete}
-                icon={<Trash2 className="h-4 w-4" />}
-              >
-                Delete Task
-              </Button>
-            )
-          : undefined
-      }
-    >
+    <Layout>
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -494,16 +467,38 @@ const MaintenanceTaskPage: React.FC = () => {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto">
-          <div className="mb-6">
-            <Button
-              variant="outline"
-              inputSize="sm"
-              onClick={() => navigate("/maintenance") }
-              icon={<ChevronLeft className="h-4 w-4" />}
-            >
-              Back to Maintenance
-            </Button>
+          {/* ========== UPDATED STYLED HEADER ========== */}
+          <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+            <div className="flex items-center group">
+              <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+              <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+                Maintenance Task
+              </h1>
+            </div>
+            <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
+              Create and manage vehicle maintenance records
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/maintenance")}
+                icon={<ChevronLeft className="h-4 w-4" />}
+              >
+                Back to Maintenance
+              </Button>
+              {!isViewMode && id !== "new" && (
+                <Button
+                  variant="danger"
+                  onClick={handleDelete}
+                  icon={<Trash2 className="h-4 w-4" />}
+                >
+                  Delete Task
+                </Button>
+              )}
+            </div>
           </div>
+          {/* ========== END UPDATED HEADER ========== */}
 
           {isViewMode ? (
             task ? (
@@ -526,7 +521,7 @@ const MaintenanceTaskPage: React.FC = () => {
                   <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-2">Vehicle</h3>
                     <p className="text-gray-900">
-                      {vehicles.find((v) => v.id === task.vehicle_id)?.registrationNumber || 'Unknown'}
+                      {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
                     </p>
                   </div>
                   <div>
