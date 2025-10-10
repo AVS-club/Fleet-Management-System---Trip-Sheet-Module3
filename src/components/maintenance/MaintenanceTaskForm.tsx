@@ -7,11 +7,11 @@ import Select from "../ui/Select";
 import Button from "../ui/Button";
 import FileUpload from "../ui/FileUpload";
 import GarageSelector from "./GarageSelector";
-import RefactoredVehicleSelector from "./RefactoredVehicleSelector";
+import VehicleSelector from "./VehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
 import PriorityButtonSelector from "./PriorityButtonSelector";
 import MaintenanceAuditLog from "./MaintenanceAuditLog";
-import ServiceGroupsSection from "./ServiceGroupsSection";
+// ServiceGroupsSection removed - using inline service groups
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
@@ -674,7 +674,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 validate: (value) => value !== "" || "Please select a vehicle"
               }}
               render={({ field }) => (
-                <RefactoredVehicleSelector
+                <VehicleSelector
                   selectedVehicle={field.value}
                   onChange={field.onChange}
                   vehicles={vehicles}
@@ -713,7 +713,15 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         </div>
 
         {/* Maintenance Tasks */}
-        <ServiceGroupsSection />
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl shadow-lg border border-green-100 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Wrench className="h-5 w-5 text-green-600" />
+            <h3 className="text-lg font-semibold text-gray-900">Service Groups</h3>
+          </div>
+          <div className="text-sm text-gray-600">
+            Service groups functionality will be implemented here.
+          </div>
+        </div>
 
         {/* Parts Replaced Section - NEW */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-100 p-6">
