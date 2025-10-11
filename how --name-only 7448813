@@ -1,0 +1,32 @@
+[33mcommit 74488137d3fbc17c86c7912c3ac8e039a05af053[m
+Author: Your Name <your.email@example.com>
+Date:   Sat Oct 11 16:27:10 2025 +0530
+
+    feat: Complete vehicle tags system implementation
+    
+    - Add comprehensive vehicle tags API (src/utils/api/vehicleTags.ts)
+    - Create VehicleTagSelector component for tag management UI
+    - Fix database schema mismatches (assigned_by -> added_by, is_active -> active, color -> color_hex)
+    - Add proper junction table usage instead of non-existent vehicles.vehicle_tags column
+    - Include database migration for vehicle tags system
+    - Add testing scripts and comprehensive documentation
+    - Maintain backward compatibility with existing vehicle.tags text array
+    - All operations are organization-scoped with proper RLS policies
+    
+    Resolves: Vehicle tags system now uses proper junction table approach
+    Files: src/utils/api/vehicleTags.ts, src/components/vehicles/VehicleTagSelector.tsx, test scripts, documentation
+
+VEHICLE_TAGS_IMPLEMENTATION_SUMMARY.md
+scripts/apply-vehicle-tags-migration.sql
+src/components/maintenance/MaintenanceTaskForm.tsx
+src/components/maintenance/PartReplacement.tsx
+src/components/maintenance/ServiceGroupsSection.tsx
+src/components/vehicles/VehicleTagSelector.tsx
+src/pages/MaintenanceTaskPage.tsx
+src/types/maintenance.ts
+src/utils/api/vehicleTags.ts
+src/utils/api/vehicles.ts
+src/utils/storage.ts
+supabase/migrations/20250131000000_create_vehicle_tags_system.sql
+test_vehicle_tags_api.js
+test_vehicle_tags_setup.sql
