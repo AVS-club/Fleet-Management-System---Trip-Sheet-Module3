@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { Vehicle, Driver } from '@/types';
-import { Tag } from '../../types/tags';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { getReminderContacts, ReminderContact } from '../../utils/reminderService';
 import { getDrivers } from '../../utils/api/drivers';
@@ -14,7 +13,6 @@ import Button from '../ui/Button';
 import Textarea from '../ui/Textarea';
 import DocumentUploader from '../shared/DocumentUploader';
 import CollapsibleSection from '../ui/CollapsibleSection';
-import VehicleTagSelector from './VehicleTagSelector';
 import {
   Truck,
   Calendar,
@@ -44,13 +42,7 @@ import {
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 
-export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {
-  tagUpdates?: {
-    add: string[];
-    remove: string[];
-    nextTags: Tag[];
-  };
-}
+export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {}
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -71,8 +63,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
-  const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
-  const [initialVehicleTags, setInitialVehicleTags] = useState<Tag[]>([]);
 
   const {
     register,
@@ -110,12 +100,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
 
-  // Load vehicle tags when editing existing vehicle
-  useEffect(() => {
-    if (initialData?.id) {
-      loadVehicleTags();
-    }
-  }, [initialData?.id]);
 
   // Reset form when initialData changes (when entering edit mode)
   useEffect(() => {
@@ -137,25 +121,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   }, [initialData, reset]);
 
-  const loadVehicleTags = async () => {
-    if (!initialData?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('vehicle_tags')
-        .select(`
-          tags (*)
-        `)
-        .eq('vehicle_id', initialData.id);
-
-      if (error) throw error;
-      const tags = (data || []).map((item: any) => item.tags).filter(Boolean);
-      setVehicleTags(tags);
-      setInitialVehicleTags(tags);
-    } catch (error) {
-      console.error('Error loading vehicle tags:', error);
-    }
-  };
 
   // Fetch required data on component mount
   useEffect(() => {
@@ -358,9 +323,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  const handleTagSelectionChange = (tags: Tag[]) => {
-    setVehicleTags(tags);
-  };
 
   const handleCancel = () => {
     // Reset form to initial values
@@ -378,32 +340,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  const computeTagUpdates = (): VehicleFormSubmission['tagUpdates'] => {
-    if (!initialData?.id) {
-      return undefined;
-    }
-
-    const initialIds = new Map(initialVehicleTags.map(tag => [tag.id, tag]));
-    const currentIds = new Map(vehicleTags.map(tag => [tag.id, tag]));
-
-    const add = vehicleTags
-      .filter(tag => !initialIds.has(tag.id))
-      .map(tag => tag.id);
-
-    const remove = initialVehicleTags
-      .filter(tag => !currentIds.has(tag.id))
-      .map(tag => tag.id);
-
-    if (add.length === 0 && remove.length === 0) {
-      return undefined;
-    }
-
-    return {
-      add,
-      remove,
-      nextTags: vehicleTags.map(tag => ({ ...tag })),
-    };
-  };
 
   const onFormSubmit = (data: Vehicle) => {
     const formData = {
@@ -416,17 +352,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
     };
 
-    const tagUpdates = computeTagUpdates();
-
-    const submission: VehicleFormSubmission = {
-      ...formData,
-    };
-
-    if (tagUpdates) {
-      submission.tagUpdates = tagUpdates;
-    }
-
-    onSubmit(submission);
+    onSubmit(formData);
   };
 
   return (
@@ -624,25 +550,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         </div>
       </CollapsibleSection>
 
-      {/* Vehicle Tags */}
-      {initialData?.id && (
-        <CollapsibleSection
-          title="Vehicle Tags"
-          icon={<TagIcon className="h-5 w-5" />}
-          iconColor="text-indigo-600"
-          defaultExpanded={true}
-        >
-          <div className="space-y-4">
-            <VehicleTagSelector
-              vehicleId={initialData.id}
-              currentTags={vehicleTags}
-              onTagsChange={handleTagSelectionChange}
-              readOnly={false}
-              autoPersist={false}
-            />
-          </div>
-        </CollapsibleSection>
-      )}
 
       {/* Technical Details */}
       <CollapsibleSection
