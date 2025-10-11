@@ -626,7 +626,7 @@ const VehicleManagementPage: React.FC = () => {
 
     setIsEditSubmitting(true);
     try {
-      const updatedVehicle = await updateVehicle(editingVehicle.id, data, user?.id || 'unknown');
+      const updatedVehicle = await updateVehicle(editingVehicle.id, data);
       
       if (updatedVehicle) {
         // Update the vehicle in the local state

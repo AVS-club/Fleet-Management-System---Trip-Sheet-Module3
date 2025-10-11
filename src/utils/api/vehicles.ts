@@ -1,4 +1,4 @@
-import { supabase, isNetworkError } from '../supabaseClient';
+import { supabase, isNetworkError, filterVehicleUpdateData } from '../supabaseClient';
 import config from '../env';
 import { Vehicle } from '../../types';
 import { uploadVehicleDocument } from '../supabaseStorage';
@@ -184,6 +184,9 @@ export const createVehicle = async (vehicleData: Omit<Vehicle, 'id'>): Promise<V
 
 export const updateVehicle = async (id: string, values: any): Promise<Vehicle | null> => {
   try {
+    // ✅ CRITICAL FIX: Filter out vehicle_tags before processing
+    const filteredValues = filterVehicleUpdateData(values);
+    
     const {
       documents,
       selected,
@@ -191,7 +194,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
       odometer,
       odometer_km,
       ...rest
-    } = values || {};
+    } = filteredValues || {};
 
     const payload: any = {
       ...rest,

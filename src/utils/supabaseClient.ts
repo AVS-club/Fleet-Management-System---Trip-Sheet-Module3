@@ -300,3 +300,21 @@ export const isNetworkError = (error: any): boolean => {
   );
 };
 
+/**
+ * Filter out fields that don't exist in the vehicles table
+ * CRITICAL: Prevents "column vehicle_tags does not exist" errors
+ */
+export const filterVehicleUpdateData = (data: any) => {
+  if (!data || typeof data !== 'object') return data;
+  
+  const {
+    vehicle_tags,      // Remove - doesn't exist in vehicles table
+    vehicleTags,       // Remove - not a column
+    ...validData
+  } = data;
+  
+  console.log('🔧 Filtered vehicle update data (removed vehicle_tags):', validData);
+  
+  return validData;
+};
+
