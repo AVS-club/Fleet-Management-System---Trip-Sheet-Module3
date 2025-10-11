@@ -1,227 +1,116 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Tag, Plus, X, Check, Loader } from 'lucide-react';
-import { Tag as TagType } from '../../types/tags';
-import { getTags, assignTagToVehicle, removeTagFromVehicle } from '../../utils/api/tags';
+import React, { useState, useEffect } from 'react';
+import { Tag, getTags, assignTagToVehicle, removeTagFromVehicle } from '@/utils/api/vehicleTags';
+import { X, Plus } from 'lucide-react';
 import { toast } from 'react-toastify';
-import VehicleTagBadges from './VehicleTagBadges';
-import Button from '../ui/Button';
 
 interface VehicleTagSelectorProps {
   vehicleId: string;
-  currentTags: TagType[];
-  onTagsChange: (tags: TagType[]) => void;
-  readOnly?: boolean;
-  autoPersist?: boolean;
+  currentTags: Tag[];
+  onTagsChange: () => void;
 }
 
 const VehicleTagSelector: React.FC<VehicleTagSelectorProps> = ({
   vehicleId,
   currentTags,
-  onTagsChange,
-  readOnly = false,
-  autoPersist = true
+  onTagsChange
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [availableTags, setAvailableTags] = useState<TagType[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
     loadTags();
   }, []);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
   const loadTags = async () => {
-    try {
-      const tags = await getTags();
-      setAvailableTags(tags);
-    } catch (error) {
-      console.error('Error loading tags:', error);
-      toast.error('Failed to load tags');
-    }
+    const tags = await getTags();
+    setAvailableTags(tags);
   };
 
-  const handleAddTag = async (tag: TagType) => {
-    if (currentTags.some(t => t.id === tag.id)) {
-      toast.info('Tag already assigned');
-      return;
-    }
+  const handleAddTag = async (tagId: string) => {
+    setIsLoading(true);
+    const success = await assignTagToVehicle(vehicleId, tagId);
+    setIsLoading(false);
 
-    if (autoPersist) {
-      setLoading(true);
-      try {
-        await assignTagToVehicle(vehicleId, tag.id);
-        const updatedTags = [...currentTags, tag];
-        onTagsChange(updatedTags);
-        toast.success(`Tag "${tag.name}" added`);
-      } catch (error: any) {
-        console.error('Error assigning tag:', error);
-        if (error.message.includes('already assigned')) {
-          toast.info('Tag already assigned');
-        } else {
-          toast.error('Failed to assign tag');
-        }
-      } finally {
-        setLoading(false);
-      }
+    if (success) {
+      toast.success('Tag assigned successfully');
+      onTagsChange();
+      setShowDropdown(false);
     } else {
-      // Just update local state without persisting
-      const updatedTags = [...currentTags, tag];
-      onTagsChange(updatedTags);
+      toast.error('Failed to assign tag');
     }
   };
 
   const handleRemoveTag = async (tagId: string) => {
-    const tag = currentTags.find(t => t.id === tagId);
-    if (!tag) return;
+    setIsLoading(true);
+    const success = await removeTagFromVehicle(vehicleId, tagId);
+    setIsLoading(false);
 
-    if (autoPersist) {
-      setLoading(true);
-      try {
-        await removeTagFromVehicle(vehicleId, tagId);
-        const updatedTags = currentTags.filter(t => t.id !== tagId);
-        onTagsChange(updatedTags);
-        toast.success(`Tag "${tag.name}" removed`);
-      } catch (error) {
-        console.error('Error removing tag:', error);
-        toast.error('Failed to remove tag');
-      } finally {
-        setLoading(false);
-      }
+    if (success) {
+      toast.success('Tag removed successfully');
+      onTagsChange();
     } else {
-      // Just update local state without persisting
-      const updatedTags = currentTags.filter(t => t.id !== tagId);
-      onTagsChange(updatedTags);
+      toast.error('Failed to remove tag');
     }
   };
 
-  const filteredTags = availableTags.filter(tag => {
-    const matchesSearch = tag.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const notAssigned = !currentTags.some(t => t.id === tag.id);
-    return matchesSearch && notAssigned;
-  });
-
-  if (readOnly) {
-    return (
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">Tags</label>
-        {currentTags.length > 0 ? (
-          <VehicleTagBadges tags={currentTags} readOnly />
-        ) : (
-          <p className="text-sm text-gray-500">No tags assigned</p>
-        )}
-      </div>
-    );
-  }
+  const unassignedTags = availableTags.filter(
+    tag => !currentTags.some(ct => ct.id === tag.id)
+  );
 
   return (
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
-        Vehicle Tags
-      </label>
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {currentTags.map(tag => (
+          <span
+            key={tag.id}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+            style={{ backgroundColor: tag.color_hex + '20', color: tag.color_hex }}
+          >
+            {tag.name}
+            <button
+              onClick={() => handleRemoveTag(tag.id)}
+              disabled={isLoading}
+              className="hover:opacity-70"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        
+        {unassignedTags.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm border border-gray-300 hover:bg-gray-50"
+            >
+              <Plus className="w-3 h-3" />
+              Add Tag
+            </button>
 
-      {/* Current Tags */}
-      {currentTags.length > 0 && (
-        <div>
-          <VehicleTagBadges 
-            tags={currentTags} 
-            onRemove={handleRemoveTag}
-          />
-        </div>
-      )}
-
-      {/* Add Tag Dropdown */}
-      <div className="relative" ref={dropdownRef}>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setIsOpen(!isOpen)}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
-          )}
-          Add Tag
-        </Button>
-
-        {isOpen && (
-          <div className="absolute z-50 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-hidden"
-               style={{
-                 top: '100%',
-                 left: 0,
-                 right: 'auto',
-                 transform: 'translateY(0)',
-                 maxHeight: 'calc(100vh - 200px)'
-               }}>
-            {/* Search */}
-            <div className="p-3 border-b border-gray-200">
-              <input
-                type="text"
-                placeholder="Search tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                autoFocus
-              />
-            </div>
-
-            {/* Tag List */}
-            <div className="max-h-64 overflow-y-auto p-2">
-              {filteredTags.length === 0 ? (
-                <div className="px-3 py-8 text-center text-sm text-gray-500">
-                  {searchQuery ? 'No tags found' : 'All tags assigned'}
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {filteredTags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => {
-                        handleAddTag(tag);
-                        setIsOpen(false);
-                        setSearchQuery('');
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <div
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: tag.color_hex }}
-                        />
-                        <span className="text-gray-900">{tag.name}</span>
-                      </div>
-                      <Plus className="h-4 w-4 text-gray-400" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {showDropdown && (
+              <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                {unassignedTags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleAddTag(tag.id)}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: tag.color_hex }}
+                    />
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      <p className="text-xs text-gray-500">
-        Tags help categorize vehicles for performance comparison
-      </p>
     </div>
   );
 };
 
 export default VehicleTagSelector;
-

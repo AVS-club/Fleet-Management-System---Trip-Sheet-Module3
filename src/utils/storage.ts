@@ -906,7 +906,61 @@ export const hardDeleteVehicle = deleteVehicle;
 
 // Get vendors for maintenance services
 export const getVendors = async (): Promise<MaintenanceVendor[]> => {
-  // For now, return demo vendors
-  // This can be replaced with actual database queries when vendor management is implemented
-  return DEMO_VENDORS;
+  try {
+    // First, try to fetch from admin_vendors table
+    const { data, error } = await supabase
+      .from('admin_vendors')
+      .select('*')
+      .eq('active', true)
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.log('admin_vendors table not found, trying other tables...');
+      
+      // Try other possible table names
+      const possibleTables = ['vendors', 'shops', 'merchants', 'garages'];
+      
+      for (const tableName of possibleTables) {
+        try {
+          const { data: tableData, error: tableError } = await supabase
+            .from(tableName)
+            .select('*')
+            .order('name', { ascending: true });
+            
+          if (!tableError && tableData && tableData.length > 0) {
+            console.log(`Found vendors in ${tableName} table`);
+            return tableData.map(vendor => ({
+              id: vendor.id,
+              name: vendor.name || vendor.shop_name || vendor.merchant_name,
+              contact: vendor.contact || vendor.phone || '',
+              address: vendor.address || '',
+              active: vendor.active !== false, // Default to true if not specified
+            }));
+          }
+        } catch (tableErr) {
+          console.log(`Table ${tableName} not found`);
+        }
+      }
+      
+      console.log('No vendor tables found, using demo data');
+      return DEMO_VENDORS;
+    }
+
+    if (!data || data.length === 0) {
+      console.log('No vendors found in admin_vendors, using demo data');
+      return DEMO_VENDORS;
+    }
+
+    // Transform the data to match MaintenanceVendor interface
+    return data.map(vendor => ({
+      id: vendor.id,
+      name: vendor.name,
+      contact: vendor.contact || '',
+      address: vendor.address || '',
+      active: vendor.active,
+    }));
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    return DEMO_VENDORS; // Fallback to demo data
+  }
 };

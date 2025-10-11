@@ -3,17 +3,14 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import MaintenanceTaskForm from "../components/maintenance/MaintenanceTaskForm";
 import { Vehicle } from "@/types";
-import { MaintenanceTask, MaintenanceServiceGroup } from "@/types/maintenance";
-import { format } from "date-fns";
+import { MaintenanceTask } from "@/types/maintenance";
 import {
   getTask,
   createTask,
   updateTask,
   deleteTask,
-  uploadServiceBill,
 } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
-import { supabase } from "../utils/supabaseClient";
 import Button from "../components/ui/Button";
 import { ChevronLeft, Trash2, Edit, Wrench } from "lucide-react";
 import { toast } from "react-toastify";
@@ -28,7 +25,7 @@ interface MaintenanceFormData {
     | "wear_and_tear_replacement_repairs"
     | "accidental"
     | "others";
-  title?: string[] | string;
+  title?: string[];
   description?: string;
   status?: "open" | "in_progress" | "resolved" | "escalated" | "rework";
   priority?: "low" | "medium" | "high" | "critical";
@@ -41,11 +38,36 @@ interface MaintenanceFormData {
   service_groups?: Array<{
     id?: string;
     maintenance_task_id?: string;
-    vendor_id: string;
+    serviceType: 'purchase' | 'labor' | 'both' | '';
+    vendor: string;
     tasks: string[];
     cost: number;
-    bill_url?: string[];
-    bill_file?: File[];
+    notes?: string;
+    bills?: File[];
+    
+    // Parts tracking
+    batteryData?: {
+      serialNumber: string;
+      brand: string;
+    };
+    tyreData?: {
+      positions: string[];
+      brand: string;
+      serialNumbers: string;
+    };
+    partsData?: Array<{
+      partType: string;
+      partName: string;
+      brand: string;
+      serialNumber?: string;
+      quantity: number;
+      warrantyPeriod?: string;
+      warrantyDocument?: File;
+    }>;
+    
+    // Warranty uploads
+    batteryWarrantyFiles?: File[];
+    tyreWarrantyFiles?: File[];
   }>;
 
   // Other fields
@@ -176,9 +198,9 @@ const MaintenanceTaskPage: React.FC = () => {
 
   // CRASH-PROOF: Handle file uploads with compression and async processing
   const handleFileUploads = async (
-    serviceGroups: Array<Partial<MaintenanceServiceGroup>>,
+    serviceGroups: Array<any>,
     taskId: string
-  ): Promise<Array<MaintenanceServiceGroup>> => {
+  ): Promise<Array<any>> => {
     if (!serviceGroups || serviceGroups.length === 0) return [];
 
     const updatedGroups = [...serviceGroups];
@@ -188,89 +210,127 @@ const MaintenanceTaskPage: React.FC = () => {
       const group = updatedGroups[i];
 
       try {
-        if (group.bill_file && group.bill_file.length) {
-          // CRASH-PROOF: Compress images before upload
+        // Handle bill uploads
+        if (group.bills && group.bills.length) {
           const compressedFiles = await Promise.all(
-            group.bill_file.map(file => compressImage(file))
+            group.bills.map((file: File) => compressImage(file))
           );
           
-          let groupBillPublicUrls = [];
-          groupBillPublicUrls = await uploadFilesAndGetPublicUrls(
-            "maintenance",
-            `${taskId}/group${i}/bill`,
+          const billUrls = await uploadFilesAndGetPublicUrls(
+            "maintenance-bills",
+            `${taskId}/group${i}/bills`,
             compressedFiles
           );
 
-          // Update the group with the URL
-          updatedGroups[i].bill_url = groupBillPublicUrls;
-
-          // Remove the file object as we don't need it in the database
-          delete updatedGroups[i].bill_file;
+          updatedGroups[i].bill_url = billUrls;
+          delete updatedGroups[i].bills;
         }
 
-        if (group.battery_warranty_file && group.battery_warranty_file.length) {
-          // CRASH-PROOF: Compress images before upload
+        // Handle battery warranty uploads
+        if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length) {
           const compressedBatteryFiles = await Promise.all(
-            group.battery_warranty_file.map(file => compressImage(file))
+            group.batteryWarrantyFiles.map((file: File) => compressImage(file))
           );
           
-          let groupBatteryPublicUrls = [];
-          groupBatteryPublicUrls = await uploadFilesAndGetPublicUrls(
-            "maintenance",
-            `${taskId}/group${i}/battery`,
+          const batteryWarrantyUrls = await uploadFilesAndGetPublicUrls(
+            "battery-warranties",
+            `${taskId}/group${i}/battery-warranty`,
             compressedBatteryFiles
           );
 
-          // Update the group with the URL
-          updatedGroups[i].battery_waranty_url = groupBatteryPublicUrls;
-
-          // Remove the file object as we don't need it in the database
-          delete updatedGroups[i].battery_warranty_file;
+          updatedGroups[i].battery_warranty_url = batteryWarrantyUrls;
+          delete updatedGroups[i].batteryWarrantyFiles;
         }
 
-        if (group.tyre_warranty_file && group.tyre_warranty_file.length) {
-          // CRASH-PROOF: Compress images before upload
+        // Handle tyre warranty uploads
+        if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length) {
           const compressedTyreFiles = await Promise.all(
-            group.tyre_warranty_file.map(file => compressImage(file))
+            group.tyreWarrantyFiles.map((file: File) => compressImage(file))
           );
           
-          let groupTyrePublicUrls = [];
-          groupTyrePublicUrls = await uploadFilesAndGetPublicUrls(
-            "maintenance",
-            `${taskId}/group${i}/tyre`,
+          const tyreWarrantyUrls = await uploadFilesAndGetPublicUrls(
+            "tyre-warranties",
+            `${taskId}/group${i}/tyre-warranty`,
             compressedTyreFiles
           );
 
-          // Update the group with the URL
-          updatedGroups[i].tyre_waranty_url = groupTyrePublicUrls;
+          updatedGroups[i].tyre_warranty_url = tyreWarrantyUrls;
+          delete updatedGroups[i].tyreWarrantyFiles;
+        }
 
-          // Remove the file object as we don't need it in the database
-          delete updatedGroups[i].tyre_warranty_file;
+        // Handle parts warranty uploads
+        if (group.partsData && group.partsData.length) {
+          for (let j = 0; j < group.partsData.length; j++) {
+            const part = group.partsData[j];
+            if (part.warrantyDocument) {
+              const compressedWarrantyFile = await compressImage(part.warrantyDocument);
+              const warrantyUrls = await uploadFilesAndGetPublicUrls(
+                "part-warranties",
+                `${taskId}/group${i}/part${j}/warranty`,
+                [compressedWarrantyFile]
+              );
+              
+              updatedGroups[i].partsData[j].warrantyDocumentUrl = warrantyUrls[0];
+              delete updatedGroups[i].partsData[j].warrantyDocument;
+            }
+          }
         }
       } catch (error) {
-        console.error("Error uploading bill:", error);
-        toast.error(`Failed to upload bill for service group ${i + 1}`);
+        console.error("Error uploading files for service group:", error);
+        toast.error(`Failed to upload files for service group ${i + 1}`);
       }
     }
 
     return updatedGroups;
   };
 
-  // Clean service groups data for database insertion
-  const cleanServiceGroupsForDatabase = (
-    serviceGroups: Array<MaintenanceServiceGroup>
-  ): Array<Partial<MaintenanceServiceGroup>> => {
+  // Map new service group structure to database format
+  const mapServiceGroupsToDatabase = (serviceGroups: Array<any>) => {
     if (!serviceGroups || serviceGroups.length === 0) return [];
 
     return serviceGroups.map((group) => {
-      // Create a clean copy without the bill_file property
-      const cleanGroup = { ...group };
-      delete cleanGroup.bill_file;
-      return cleanGroup;
+      const dbGroup = {
+        maintenance_task_id: id !== "new" ? id : undefined,
+        service_type: group.serviceType,
+        vendor_id: group.vendor, // Store as text, not UUID
+        tasks: group.tasks || [],
+        cost: group.cost || 0,
+        bill_url: group.bill_url || [],
+        notes: group.notes || null,
+        
+        // Parts data as JSONB
+        battery_data: group.batteryData ? {
+          serialNumber: group.batteryData.serialNumber,
+          brand: group.batteryData.brand
+        } : undefined,
+        
+        tyre_data: group.tyreData ? {
+          positions: group.tyreData.positions,
+          brand: group.tyreData.brand,
+          serialNumbers: group.tyreData.serialNumbers
+        } : undefined,
+        
+        parts_data: group.partsData ? group.partsData.map((part: any) => ({
+          partType: part.partType,
+          partName: part.partName,
+          brand: part.brand,
+          serialNumber: part.serialNumber || null,
+          quantity: part.quantity,
+          warrantyPeriod: part.warrantyPeriod || null,
+          warrantyDocumentUrl: part.warrantyDocumentUrl || null
+        })) : [],
+        
+        // Warranty URLs
+        battery_warranty_url: group.battery_warranty_url || undefined,
+        tyre_warranty_url: group.tyre_warranty_url || undefined
+      };
+
+      return dbGroup;
     });
   };
 
-  const handleSubmit = async (formData: MaintenanceFormData) => {
+
+  const handleSubmit = async (formData: any) => {
     // CRASH-PROOF: Prevent multiple simultaneous submissions
     if (isSubmitting) {
       console.log('🚫 Already submitting, ignoring click to prevent crash...');
@@ -304,14 +364,14 @@ const MaintenanceTaskPage: React.FC = () => {
       // Extract service groups for separate handling
       const { service_groups, ...taskData } = formData;
 
-      // If garage_id is not provided, use vendor_id from the first service group
+      // If garage_id is not provided, use vendor from the first service group
       if (
         !taskData.garage_id &&
         service_groups &&
         service_groups.length > 0 &&
-        service_groups[0].vendor_id
+        service_groups[0].vendor
       ) {
-        taskData.garage_id = service_groups[0].vendor_id;
+        taskData.garage_id = service_groups[0].vendor;
       }
 
       if (id && id !== "new") {
@@ -328,17 +388,16 @@ const MaintenanceTaskPage: React.FC = () => {
           requestAnimationFrame(async () => {
             try {
               // Handle service group file uploads
-              let updatedServiceGroups: Array<Partial<MaintenanceServiceGroup>> = [];
+              let updatedServiceGroups: Array<any> = [];
               if (service_groups && service_groups.length > 0) {
                 console.log('📁 Starting file uploads for service groups...');
                 updatedServiceGroups = await handleFileUploads(service_groups, id);
-                // Clean the service groups data for database insertion
-                updatedServiceGroups =
-                  cleanServiceGroupsForDatabase(updatedServiceGroups);
+                // Map to database format
+                updatedServiceGroups = mapServiceGroupsToDatabase(updatedServiceGroups);
                 console.log('✅ File uploads completed');
               }
 
-              const updatePayload: Partial<MaintenanceTask> = {
+              const updatePayload: any = {
                 ...taskData,
                 service_groups: updatedServiceGroups,
               };
@@ -392,14 +451,13 @@ const MaintenanceTaskPage: React.FC = () => {
                     newTask.id
                   );
 
-                  // Clean the service groups data for database insertion
-                  // updatedServiceGroups =
-                  //   cleanServiceGroupsForDatabase(updatedServiceGroups);
+                  // Map to database format
+                  const mappedServiceGroups = mapServiceGroupsToDatabase(updatedServiceGroups);
 
                   // Update the task with the service groups
-                  if (updatedServiceGroups.length > 0) {
+                  if (mappedServiceGroups.length > 0) {
                     await updateTask(newTask.id, {
-                      service_groups: updatedServiceGroups,
+                      service_groups: mappedServiceGroups,
                     });
                   }
                   console.log('✅ File uploads completed for new task');

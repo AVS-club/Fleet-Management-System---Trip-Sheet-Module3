@@ -658,6 +658,34 @@ export const DEMO_VENDORS = [
     address: "789 Repair Lane, Service Block, City",
     active: true,
   },
+  {
+    id: "v4",
+    name: "Shree Durga Ent.",
+    contact: "+91 98765 43213",
+    address: "Pandri, Raipur, Chhattisgarh",
+    active: true,
+  },
+  {
+    id: "v5",
+    name: "Raipur Auto Service Center",
+    contact: "+91 98765 43214",
+    address: "Civil Lines, Raipur, Chhattisgarh",
+    active: true,
+  },
+  {
+    id: "v6",
+    name: "Bilaspur Motor Works",
+    contact: "+91 98765 43215",
+    address: "Station Road, Bilaspur, Chhattisgarh",
+    active: true,
+  },
+  {
+    id: "v7",
+    name: "Express Repair Center",
+    contact: "+91 98765 43216",
+    address: "GE Road, Raipur, Chhattisgarh",
+    active: true,
+  },
 ];
 
 // Define demo garages

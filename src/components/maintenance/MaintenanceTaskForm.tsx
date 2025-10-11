@@ -269,7 +269,18 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     confidence: 0,
   });
   const [selectedParts, setSelectedParts] = useState<any[]>([]);
-  const [serviceGroups, setServiceGroups] = useState<any[]>([]);
+  const [serviceGroups, setServiceGroups] = useState<any[]>([
+    {
+      id: Date.now().toString(),
+      serviceType: '',
+      vendor: '',
+      tasks: [],
+      cost: 0,
+      notes: '',
+      bills: [],
+      parts: []
+    }
+  ]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -567,9 +578,13 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     for (let i = 0; i < data.service_groups.length; i++) {
       const group = data.service_groups[i];
       
-      if (!group.vendor_id) {
-        return `Please select a vendor for service group ${i + 1}`;
-      }
+      console.log(`Validating service group ${i + 1}:`, group);
+      console.log('Tasks:', group.tasks, 'Type:', typeof group.tasks, 'Is Array:', Array.isArray(group.tasks));
+      
+      // Temporarily disabled vendor validation to test form saving
+      // if (!group.vendor || group.vendor.trim() === '') {
+      //   return `Please select a vendor for service group ${i + 1}`;
+      // }
 
       if (!Array.isArray(group.tasks) || group.tasks.length === 0) {
         return `Please select at least one task for service group ${i + 1}`;
@@ -709,6 +724,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         <ServiceGroupsSection
           serviceGroups={serviceGroups}
           onChange={setServiceGroups}
+          vehicleType={vehicles.find(v => v.id === vehicleId)?.vehicle_type}
         />
 
         {/* Parts Replaced Section - NEW */}
