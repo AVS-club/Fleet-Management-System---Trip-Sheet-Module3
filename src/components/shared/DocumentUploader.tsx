@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getSignedDriverDocumentUrl } from '../../utils/supabaseStorage';
 import { supabase } from '../../utils/supabaseClient';
 import config from '../../utils/env';
+import { toast } from 'react-toastify';
 
 interface DocumentUploaderProps {
   label: string;
@@ -123,17 +124,34 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }));
   };
 
-  const handleFileDelete = (filePath: string, index: number) => {
+  const handleFileDelete = async (filePath: string, index: number) => {
     if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-      // Remove from local state
-      setUploadState(prev => ({
-        ...prev,
-        uploadedPaths: prev.uploadedPaths.filter((_, i) => i !== index)
-      }));
+      try {
+        // Delete from storage first
+        const bucketName = bucketType === 'vehicle' ? 'vehicle-docs' : 'driver-docs';
+        const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+        
+        if (error) {
+          console.error('Error deleting file from storage:', error);
+          toast.error('Failed to delete document from storage');
+          return;
+        }
 
-      // Notify parent component about the deletion
-      if (onFileDelete) {
-        onFileDelete(filePath);
+        // Remove from local state
+        setUploadState(prev => ({
+          ...prev,
+          uploadedPaths: prev.uploadedPaths.filter((_, i) => i !== index)
+        }));
+
+        // Notify parent component about the deletion
+        if (onFileDelete) {
+          onFileDelete(filePath);
+        }
+
+        toast.success('Document deleted successfully');
+      } catch (error) {
+        console.error('Error deleting document:', error);
+        toast.error('Failed to delete document');
       }
     }
   };
@@ -324,7 +342,14 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                 const segments = filePath.split('/');
                 const fileName = segments[segments.length - 1];
                 
-                // If it's a timestamp-based filename, show a better document name
+                // Check if it's a new format with original name: docType_timestamp_originalName.ext
+                const newFormatMatch = fileName.match(/^(\w+)_\d+_(.+)$/);
+                if (newFormatMatch) {
+                  const [, docType, originalName] = newFormatMatch;
+                  return originalName; // Return the original file name
+                }
+                
+                // Check if it's old format: docType_timestamp.ext
                 if (fileName.includes('_') && /^\d+$/.test(fileName.split('_').pop()?.split('.')[0] || '')) {
                   const parts = fileName.split('_');
                   const extension = parts[parts.length - 1].split('.')[1] || '';

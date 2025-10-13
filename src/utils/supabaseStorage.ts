@@ -119,10 +119,12 @@ export const uploadVehicleDocument = async (
     throw new Error("No file provided");
   }
 
-  // Get file extension
+  // Get file extension and original name
   const fileExt = file.name.split(".").pop();
-  // Create a unique filename
-  const fileName = `${vehicleId}/${docType}_${Date.now()}.${fileExt}`;
+  const originalName = file.name;
+  
+  // Create a unique filename that preserves original name
+  const fileName = `${vehicleId}/${docType}_${Date.now()}_${originalName}`;
   const filePath = fileName;
 
 
@@ -238,10 +240,12 @@ export const uploadDriverDocument = async (
     throw new Error("No file provided");
   }
 
-  // Get file extension
+  // Get file extension and original name
   const fileExt = file.name.split(".").pop();
-  // Create a unique filename
-  const fileName = `${driverId}/${docType}_${Date.now()}.${fileExt}`;
+  const originalName = file.name;
+  
+  // Create a unique filename that preserves original name
+  const fileName = `${driverId}/${docType}_${Date.now()}_${originalName}`;
   const filePath = fileName;
 
   // Upload the file with progress if callback provided
