@@ -6,6 +6,7 @@ import { getReminderContacts, ReminderContact } from '../../utils/reminderServic
 import { getDrivers } from '../../utils/api/drivers';
 import { getTags } from '../../utils/api/tags';
 import { supabase } from '../../utils/supabaseClient';
+import { deleteVehicleDocument } from '../../utils/supabaseStorage';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -63,6 +64,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isFetching, setIsFetching] = useState(false);
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
+  const [deletedDocuments, setDeletedDocuments] = useState<Record<string, string[]>>({});
 
   const {
     register,
@@ -151,6 +153,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     
     const fieldName = `${docType}_document_url` as keyof Vehicle;
     setValue(fieldName, filePaths as any);
+  };
+
+  // Handle document deletion
+  const handleDocumentDelete = (docType: string, filePath: string) => {
+    setDeletedDocuments(prev => ({
+      ...prev,
+      [docType]: [...(prev[docType] || []), filePath]
+    }));
   };
 
   // Helper function to map fuel type
@@ -341,7 +351,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   };
 
 
-  const onFormSubmit = (data: Vehicle) => {
+  const onFormSubmit = async (data: Vehicle) => {
+    // Delete files from Supabase storage for deleted documents
+    for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
+      for (const filePath of deletedPaths) {
+        try {
+          await deleteVehicleDocument(filePath);
+          console.log(`Deleted ${docType} document:`, filePath);
+        } catch (error) {
+          console.error(`Failed to delete ${docType} document:`, filePath, error);
+        }
+      }
+    }
+
     const formData = {
       ...data,
       rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
@@ -980,6 +1002,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('rc', paths)}
+            onFileDelete={(path) => handleDocumentDelete('rc', path)}
             initialFilePaths={initialData?.rc_document_url || []}
             helperText="Upload RC copy"
           />
@@ -992,6 +1015,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('insurance', paths)}
+            onFileDelete={(path) => handleDocumentDelete('insurance', path)}
             initialFilePaths={initialData?.insurance_document_url || []}
             helperText="Upload insurance policy"
           />
@@ -1004,6 +1028,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('fitness', paths)}
+            onFileDelete={(path) => handleDocumentDelete('fitness', path)}
             initialFilePaths={initialData?.fitness_document_url || []}
             helperText="Upload fitness certificate"
           />
@@ -1016,6 +1041,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('tax', paths)}
+            onFileDelete={(path) => handleDocumentDelete('tax', path)}
             initialFilePaths={initialData?.tax_document_url || []}
             helperText="Upload tax receipt"
           />
@@ -1028,6 +1054,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('permit', paths)}
+            onFileDelete={(path) => handleDocumentDelete('permit', path)}
             initialFilePaths={initialData?.permit_document_url || []}
             helperText="Upload permit document"
           />
@@ -1040,6 +1067,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             accept=".jpg,.jpeg,.png,.pdf"
             multiple={true}
             onUploadComplete={(paths) => handleDocumentUpload('puc', paths)}
+            onFileDelete={(path) => handleDocumentDelete('puc', path)}
             initialFilePaths={initialData?.puc_document_url || []}
             helperText="Upload PUC certificate"
           />

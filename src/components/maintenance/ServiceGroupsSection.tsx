@@ -867,8 +867,8 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
         ))}
 
         <button
-          type="button"
-          onClick={addServiceGroup}
+            type="button"
+            onClick={addServiceGroup}
           className="w-full py-4 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-green-500 hover:text-green-600 hover:bg-green-50 flex items-center justify-center gap-2 font-semibold text-lg"
         >
           <Plus className="h-5 w-5" />

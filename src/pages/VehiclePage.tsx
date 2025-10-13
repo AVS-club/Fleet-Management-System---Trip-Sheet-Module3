@@ -316,11 +316,14 @@ const VehiclePage: React.FC = () => {
                       return updatedState;
                     });
 
-                    await generateSignedUrls({
+                    // Generate signed URLs with the updated vehicle data
+                    const updatedVehicleData = {
                       ...vehicle,
                       ...vehiclePayload,
                       tags: !tagUpdateError && tagUpdates ? nextTags : vehicle.tags,
-                    });
+                    };
+                    
+                    await generateSignedUrls(updatedVehicleData);
 
                     if (!tagUpdateError) {
                       toast.success('Vehicle updated successfully');

@@ -138,6 +138,34 @@ export const getSignedDocumentUrl = async (
 };
 
 /**
+ * Deletes a vehicle document from Supabase Storage
+ * @param filePath The path of the file to delete
+ * @returns Promise<boolean> - true if successful, false otherwise
+ */
+export const deleteVehicleDocument = async (filePath: string): Promise<boolean> => {
+  if (!filePath) {
+    console.warn('No file path provided for deletion');
+    return false;
+  }
+
+  try {
+    const { error } = await supabase.storage
+      .from("vehicle-docs")
+      .remove([filePath]);
+
+    if (error) {
+      handleSupabaseError('delete vehicle document', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    handleSupabaseError('delete vehicle document', error);
+    return false;
+  }
+};
+
+/**
  * Uploads a driver document to Supabase Storage
  * @param file The file to upload
  * @param driverId The ID of the driver

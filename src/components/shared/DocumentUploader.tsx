@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
-import { uploadVehicleDocument, uploadDriverDocument } from '../../utils/supabaseStorage';
+import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getSignedDriverDocumentUrl } from '../../utils/supabaseStorage';
+import { supabase } from '../../utils/supabaseClient';
 import config from '../../utils/env';
 
 interface DocumentUploaderProps {
@@ -14,6 +15,7 @@ interface DocumentUploaderProps {
   value?: File[];
   onChange?: (files: File[]) => void;
   onUploadComplete?: (filePaths: string[]) => void;
+  onFileDelete?: (filePath: string) => void;
   disabled?: boolean;
   className?: string;
   initialFilePaths?: string[];
@@ -26,6 +28,7 @@ interface UploadState {
   status: 'idle' | 'uploading' | 'success' | 'error';
   errorMessage?: string;
   uploadedPaths: string[];
+  viewingDocument?: string;
 }
 
 const DocumentUploader: React.FC<DocumentUploaderProps> = ({
@@ -38,6 +41,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   value = [],
   onChange,
   onUploadComplete,
+  onFileDelete,
   disabled = false,
   className,
   initialFilePaths = [],
@@ -117,6 +121,84 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       progress: 0,
       errorMessage: undefined
     }));
+  };
+
+  const handleFileDelete = (filePath: string, index: number) => {
+    if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      // Remove from local state
+      setUploadState(prev => ({
+        ...prev,
+        uploadedPaths: prev.uploadedPaths.filter((_, i) => i !== index)
+      }));
+
+      // Notify parent component about the deletion
+      if (onFileDelete) {
+        onFileDelete(filePath);
+      }
+    }
+  };
+
+  const handleViewDocument = async (filePath: string) => {
+    try {
+      // Set loading state
+      setUploadState(prev => ({
+        ...prev,
+        viewingDocument: filePath
+      }));
+
+      console.log('Attempting to view document:', filePath);
+      
+      // Check if filePath is already a full URL
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        console.log('File path is already a URL, opening directly');
+        window.open(filePath, '_blank');
+        return;
+      }
+
+      // Try multiple approaches to get the document URL
+      let documentUrl: string;
+      
+      try {
+        // Approach 1: Try to get signed URL
+        const cleanedPath = filePath
+          .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+          .replace(/^vehicle-docs\//, '')
+          .replace(/^driver-docs\//, '');
+
+        console.log('Cleaned file path:', cleanedPath);
+
+        if (bucketType === 'vehicle') {
+          documentUrl = await getSignedDocumentUrl(cleanedPath);
+        } else {
+          documentUrl = await getSignedDriverDocumentUrl(cleanedPath);
+        }
+        
+        console.log('Generated signed URL:', documentUrl);
+      } catch (signedUrlError) {
+        console.log('Signed URL failed, trying public URL approach');
+        
+        // Approach 2: Try to get public URL
+        const bucketName = bucketType === 'vehicle' ? 'vehicle-docs' : 'driver-docs';
+        const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+        documentUrl = data.publicUrl;
+        
+        console.log('Generated public URL:', documentUrl);
+      }
+      
+      // Open the document in a new tab
+      window.open(documentUrl, '_blank');
+    } catch (error) {
+      console.error('Error opening document:', error);
+      console.log('Falling back to direct file path:', filePath);
+      // Fallback: try to open the file path directly
+      window.open(filePath, '_blank');
+    } finally {
+      // Clear loading state
+      setUploadState(prev => ({
+        ...prev,
+        viewingDocument: undefined
+      }));
+    }
   };
 
   const getStatusIcon = () => {
@@ -230,28 +312,87 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         {/* Display uploaded files */}
         {hasExistingFiles && (
           <div className="mt-3 space-y-2">
-            {uploadState.uploadedPaths.map((path, index) => (
-              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                  Document {index + 1}
-                </span>
-                <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    className="text-primary-600 hover:text-primary-700"
-                    title="View document"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // In a real implementation, you'd generate a signed URL and open it
-                      if (config.isDev) console.log('View document:', path);
-                    }}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <CheckCircle className="h-4 w-4 text-success-500" />
+            {uploadState.uploadedPaths.map((path, index) => {
+              // Extract filename from path
+              const getFileName = (filePath: string) => {
+                // Handle different path formats
+                const segments = filePath.split('/');
+                const fileName = segments[segments.length - 1];
+                
+                // If it's a timestamp-based filename, try to extract original name
+                if (fileName.includes('_') && /^\d+$/.test(fileName.split('_').pop()?.split('.')[0] || '')) {
+                  // This looks like a timestamp-based filename, try to make it more readable
+                  const parts = fileName.split('_');
+                  const extension = parts[parts.length - 1].split('.')[1] || '';
+                  const docType = parts[0];
+                  return `${docType.toUpperCase()}_${index + 1}.${extension}`;
+                }
+                
+                return fileName;
+              };
+
+              // Get file extension for icon/type display
+              const getFileExtension = (filePath: string) => {
+                const fileName = getFileName(filePath);
+                return fileName.split('.').pop()?.toLowerCase() || '';
+              };
+
+              const fileName = getFileName(path);
+              const fileExtension = getFileExtension(path);
+              const totalFiles = uploadState.uploadedPaths.length;
+
+              return (
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                        {fileName}
+                      </span>
+                      {fileExtension && (
+                        <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full">
+                          {fileExtension.toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    {totalFiles > 1 && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {index + 1} of {totalFiles} files
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      className="text-primary-600 hover:text-primary-700 disabled:opacity-50"
+                      title="View document"
+                      disabled={uploadState.viewingDocument === path}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDocument(path);
+                      }}
+                    >
+                      {uploadState.viewingDocument === path ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="text-red-600 hover:text-red-700"
+                      title="Delete document"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileDelete(path, index);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <CheckCircle className="h-4 w-4 text-success-500" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
