@@ -40,6 +40,7 @@ import {
   User,
   Fuel,
   Gauge,
+  Search,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import VehicleForm from "../components/vehicles/VehicleForm";
@@ -71,6 +72,11 @@ const VehiclesPage: React.FC = () => {
   const [topDriverLogic, setTopDriverLogic] = useState<'cost_per_km' | 'mileage' | 'trips'>('mileage');
   const [currentPage, setCurrentPage] = useState(0);
   const ITEMS_PER_PAGE = 9;
+  
+  // Search functionality
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
+  const [shouldSearch, setShouldSearch] = useState(false);
 
   // Create a drivers lookup map for efficient driver assignment display
   const driversById = useMemo(() => {
@@ -238,6 +244,23 @@ const VehiclesPage: React.FC = () => {
   useEffect(() => {
     setCurrentPage(0);
   }, [showArchived]);
+
+  // Search logic - trigger search after 4 characters, then every 2 characters
+  useEffect(() => {
+    const length = searchTerm.length;
+    
+    if (length === 0) {
+      // Reset to show all vehicles
+      setShouldSearch(false);
+      setActiveSearch('');
+    } else if (length >= 4) {
+      // Search after 4 characters, then every 2 characters (4, 6, 8, 10...)
+      if (length === 4 || (length > 4 && (length - 4) % 2 === 0)) {
+        setShouldSearch(true);
+        setActiveSearch(searchTerm);
+      }
+    }
+  }, [searchTerm]);
 
   // Calculate Average Distance This Month
   const averageDistanceThisMonth = useMemo(() => {
@@ -607,8 +630,19 @@ const VehiclesPage: React.FC = () => {
 
 
 
-  // Filter vehicles based on archived status
-  const filteredVehicles = vehicles.filter((v) =>
+  // Search functionality - filter vehicles by registration number
+  const searchFilteredVehicles = useMemo(() => {
+    if (!activeSearch || !shouldSearch) {
+      return vehicles;
+    }
+    
+    return vehicles.filter(vehicle => 
+      vehicle.registration_number.toLowerCase().includes(activeSearch.toLowerCase())
+    );
+  }, [vehicles, activeSearch, shouldSearch]);
+
+  // Filter vehicles based on archived status and search
+  const filteredVehicles = searchFilteredVehicles.filter((v) =>
     showArchived ? v.status === "archived" : v.status !== "archived"
   );
 
@@ -637,7 +671,7 @@ const VehiclesPage: React.FC = () => {
         </div>
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">{t('vehicles.manageFleet', 'Manage your fleet vehicles')}</p>
         {!isAddingVehicle && (
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2 items-center">
             <Button
               variant="outline"
               onClick={() => setShowDocumentPanel(true)}
@@ -647,6 +681,37 @@ const VehiclesPage: React.FC = () => {
             >
 {t('vehicles.documentSummary', 'Document Summary')}
             </Button>
+
+            {/* Search Bar */}
+            <div className="relative flex-1 min-w-[200px] max-w-[300px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search vehicle (min 4 chars)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setActiveSearch('');
+                      setShouldSearch(false);
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {searchTerm && searchTerm.length < 4 && (
+                <div className="absolute left-0 top-full mt-1 text-xs text-gray-500">
+                  Type {4 - searchTerm.length} more character{4 - searchTerm.length !== 1 ? 's' : ''} to search
+                </div>
+              )}
+            </div>
 
             <Button
               onClick={() => setIsAddingVehicle(true)}
@@ -788,6 +853,16 @@ const VehiclesPage: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Search Results Info */}
+          {activeSearch && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800">
+                Showing {filteredVehicles.length} result{filteredVehicles.length !== 1 ? 's' : ''} for "<strong>{activeSearch}</strong>"
+                {filteredVehicles.length === 0 && " - No vehicles found"}
+              </p>
             </div>
           )}
 
