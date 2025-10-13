@@ -173,6 +173,11 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           documentUrl = await getSignedDriverDocumentUrl(cleanedPath);
         }
         
+        // Check if we got a valid URL
+        if (!documentUrl) {
+          throw new Error('Failed to generate signed URL');
+        }
+        
         console.log('Generated signed URL:', documentUrl);
       } catch (signedUrlError) {
         console.log('Signed URL failed, trying public URL approach');
@@ -319,13 +324,24 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                 const segments = filePath.split('/');
                 const fileName = segments[segments.length - 1];
                 
-                // If it's a timestamp-based filename, try to extract original name
+                // If it's a timestamp-based filename, show a better document name
                 if (fileName.includes('_') && /^\d+$/.test(fileName.split('_').pop()?.split('.')[0] || '')) {
-                  // This looks like a timestamp-based filename, try to make it more readable
                   const parts = fileName.split('_');
                   const extension = parts[parts.length - 1].split('.')[1] || '';
                   const docType = parts[0];
-                  return `${docType.toUpperCase()}_${index + 1}.${extension}`;
+                  
+                  // Map document types to better display names
+                  const docTypeNames: Record<string, string> = {
+                    'rc': 'Registration Certificate',
+                    'insurance': 'Insurance Policy',
+                    'fitness': 'Fitness Certificate',
+                    'tax': 'Tax Receipt',
+                    'permit': 'Permit Document',
+                    'puc': 'PUC Certificate'
+                  };
+                  
+                  const displayName = docTypeNames[docType] || docType.toUpperCase();
+                  return `${displayName} (${index + 1}).${extension}`;
                 }
                 
                 return fileName;

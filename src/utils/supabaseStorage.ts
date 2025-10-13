@@ -2,6 +2,50 @@ import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
 
 /**
+ * Clean and normalize file paths
+ */
+const cleanFilePath = (filePath: string): string => {
+  if (!filePath) return '';
+  
+  // If it's already a clean path (e.g., "vehicleId/docType_timestamp.ext"), return as is
+  if (!filePath.includes('http') && !filePath.includes('vehicle-docs') && !filePath.includes('driver-docs')) {
+    return filePath;
+  }
+  
+  // Remove any URL prefixes and bucket names
+  return filePath
+    .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+    .replace(/^vehicle-docs\//, '')
+    .replace(/^driver-docs\//, '')
+    .trim();
+};
+
+/**
+ * Check if a file exists in storage
+ */
+const checkFileExists = async (
+  bucketName: string,
+  filePath: string
+): Promise<boolean> => {
+  try {
+    const cleanPath = cleanFilePath(filePath);
+    if (!cleanPath) return false;
+
+    // Try to get file metadata
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .list(cleanPath.split('/')[0], {
+        search: cleanPath.split('/').pop()
+      });
+
+    return !error && data && data.length > 0;
+  } catch (error) {
+    console.warn(`File check failed for ${filePath}:`, error);
+    return false;
+  }
+};
+
+/**
  * Uploads a file with progress tracking using XMLHttpRequest
  * @param bucketName The Supabase storage bucket name
  * @param filePath The file path in the bucket
@@ -106,34 +150,45 @@ export const uploadVehicleDocument = async (
 };
 
 /**
- * Generates a signed URL for a vehicle document
- * @param filePath The path of the file in storage
- * @param expiresIn Expiration time in seconds (default: 7 days)
- * @returns The signed URL for the file
+ * Generates a signed URL for a vehicle document with validation
+ * Returns null instead of throwing errors for missing files
  */
 export const getSignedDocumentUrl = async (
   filePath: string,
   expiresIn: number = 604800 // 7 days in seconds
-): Promise<string> => {
+): Promise<string | null> => {
   if (!filePath) {
-    throw new Error("No file path provided");
+    console.warn("No file path provided");
+    return null;
   }
 
   try {
-
-    const { data, error } = await supabase.storage
-      .from("vehicle-docs")
-      .createSignedUrl(filePath, expiresIn);
-
-    if (error) {
-      handleSupabaseError('generate signed URL', error);
-      throw error;
+    const cleanedPath = cleanFilePath(filePath);
+    
+    if (!cleanedPath) {
+      console.warn("Invalid file path after cleaning:", filePath);
+      return null;
     }
 
-    return data.signedUrl;
+    // Generate signed URL without checking existence first (faster)
+    const { data, error } = await supabase.storage
+      .from("vehicle-docs")
+      .createSignedUrl(cleanedPath, expiresIn);
+
+    if (error) {
+      // Log but don't throw - return null for missing files
+      if (error.message?.includes('not found') || error.statusCode === 404) {
+        console.warn(`File not found in storage: ${cleanedPath}`);
+        return null;
+      }
+      console.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
+      return null;
+    }
+
+    return data?.signedUrl || null;
   } catch (error) {
-    handleSupabaseError('get signed document URL', error);
-    throw error;
+    console.error('Error generating signed document URL:', error);
+    return null;
   }
 };
 
@@ -212,37 +267,41 @@ export const uploadDriverDocument = async (
 
 /**
  * Generates a signed URL for a driver document
- * @param filePath The path of the file in storage
- * @param expiresIn Expiration time in seconds (default: 7 days)
- * @returns The signed URL for the file
  */
 export const getSignedDriverDocumentUrl = async (
   filePath: string,
-  expiresIn: number = 604800 // 7 days in seconds
-): Promise<string> => {
+  expiresIn: number = 604800
+): Promise<string | null> => {
   if (!filePath) {
-    throw new Error("No file path provided");
+    console.warn("No file path provided");
+    return null;
   }
 
   try {
-    // Clean the file path to remove any URL prefix and bucket name
-    const cleanedPath = filePath
-      .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-      .replace(/^driver-docs\//, '');
+    const cleanedPath = cleanFilePath(filePath);
+    
+    if (!cleanedPath) {
+      console.warn("Invalid file path after cleaning:", filePath);
+      return null;
+    }
 
     const { data, error } = await supabase.storage
       .from("driver-docs")
       .createSignedUrl(cleanedPath, expiresIn);
 
     if (error) {
-      handleSupabaseError('generate signed URL for driver document', error);
-      throw error;
+      if (error.message?.includes('not found') || error.statusCode === 404) {
+        console.warn(`File not found in storage: ${cleanedPath}`);
+        return null;
+      }
+      console.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
+      return null;
     }
 
-    return data.signedUrl;
+    return data?.signedUrl || null;
   } catch (error) {
-    handleSupabaseError('get signed driver document URL', error);
-    throw error;
+    console.error('Error generating signed driver document URL:', error);
+    return null;
   }
 };
 
@@ -354,3 +413,84 @@ export async function uploadFilesAndGetPublicUrls(
     );
   }
 }
+
+/**
+ * Batch generate signed URLs with graceful error handling
+ */
+export const generateSignedUrlsBatch = async (
+  filePaths: string[] | undefined,
+  bucketType: 'vehicle' | 'driver' = 'vehicle'
+): Promise<(string | null)[]> => {
+  if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
+    return [];
+  }
+
+  const urlPromises = filePaths.map(path => {
+    if (!path) return Promise.resolve(null);
+    
+    if (bucketType === 'vehicle') {
+      return getSignedDocumentUrl(path);
+    } else {
+      return getSignedDriverDocumentUrl(path);
+    }
+  });
+
+  // Use Promise.allSettled to handle individual failures gracefully
+  const results = await Promise.allSettled(urlPromises);
+  
+  return results.map((result, index) => {
+    if (result.status === 'fulfilled') {
+      return result.value;
+    } else {
+      console.warn(`Failed to generate URL for path ${filePaths[index]}:`, result.reason);
+      return null;
+    }
+  });
+};
+
+/**
+ * Safe wrapper for generating all vehicle document URLs
+ */
+export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
+  rc?: (string | null)[];
+  insurance?: (string | null)[];
+  fitness?: (string | null)[];
+  tax?: (string | null)[];
+  permit?: (string | null)[];
+  puc?: (string | null)[];
+  other: Record<string, string | null>;
+}> => {
+  const urls: any = { other: {} };
+  
+  // Process each document type
+  const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
+  
+  for (const type of docTypes) {
+    const fieldName = `${type}_document_url`;
+    const filePaths = vehicleData[fieldName];
+    
+    if (filePaths && Array.isArray(filePaths) && filePaths.length > 0) {
+      const generatedUrls = await generateSignedUrlsBatch(filePaths, 'vehicle');
+      // Only add if we have at least one valid URL
+      const validUrls = generatedUrls.filter(url => url !== null);
+      if (validUrls.length > 0) {
+        urls[type] = generatedUrls; // Keep nulls to maintain index alignment
+      }
+    }
+  }
+  
+  // Process other documents
+  if (vehicleData.other_documents && Array.isArray(vehicleData.other_documents)) {
+    for (let i = 0; i < vehicleData.other_documents.length; i++) {
+      const doc = vehicleData.other_documents[i];
+      if (doc.file_path) {
+        const url = await getSignedDocumentUrl(doc.file_path);
+        if (url) {
+          urls.other[`other_${i}`] = url;
+        }
+      }
+    }
+  }
+  
+  return urls;
+};

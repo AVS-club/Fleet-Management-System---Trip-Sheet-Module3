@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { usePermissions } from "../hooks/usePermissions";
 import { Permissions } from "../types/permissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
-import { getSignedDocumentUrl } from "../utils/supabaseStorage";
+import { generateVehicleDocumentUrls } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
 import { assignTagToVehicle, removeTagFromVehicle } from "../utils/api/tags";
 import { supabase } from "../utils/supabaseClient";
@@ -90,16 +90,20 @@ const VehiclePage: React.FC = () => {
 
   // State for signed document URLs
   const [signedDocUrls, setSignedDocUrls] = useState<{
-    rc?: string[];
-    insurance?: string[];
-    fitness?: string[];
-    tax?: string[];
-    permit?: string[];
-    puc?: string[];
-    other: Record<string, string>;
+    rc?: (string | null)[];
+    insurance?: (string | null)[];
+    fitness?: (string | null)[];
+    tax?: (string | null)[];
+    permit?: (string | null)[];
+    puc?: (string | null)[];
+    other: Record<string, string | null>;
   }>({
     other: {},
   });
+
+  // Add these refs to prevent duplicate calls
+  const urlGenerationRef = useRef<boolean>(false);
+  const lastVehicleId = useRef<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -122,97 +126,85 @@ const VehiclePage: React.FC = () => {
           tripAverage: 0
         });
 
-        // Generate signed URLs for documents
+        // Generate signed URLs only once when vehicle data is fetched
         if (vehicleData) {
           await generateSignedUrls(vehicleData);
         }
       } catch (error) {
         console.error("Error fetching vehicle data:", error);
+        toast.error("Failed to load vehicle details");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id]);
+  }, [id]); // Remove generateSignedUrls from dependencies - only depend on id
 
-  // Function to generate signed URLs for all documents
-  const generateSignedUrls = async (vehicleData: Vehicle) => {
-    const urls: {
-      rc?: string[];
-      insurance?: string[];
-      fitness?: string[];
-      tax?: string[];
-      permit?: string[];
-      puc?: string[];
-      other: Record<string, string>;
-    } = {
-      other: {},
-    };
+  // Memoized function to generate signed URLs
+  const generateSignedUrls = useCallback(async (vehicleData: Vehicle) => {
+    // Prevent duplicate calls
+    if (urlGenerationRef.current || lastVehicleId.current === vehicleData.id) {
+      console.log('Skipping duplicate URL generation for vehicle:', vehicleData.id);
+      return;
+    }
+
+    urlGenerationRef.current = true;
+    lastVehicleId.current = vehicleData.id;
 
     try {
-      // Generate signed URL for RC document
-      if (vehicleData.rc_document_url && Array.isArray(vehicleData.rc_document_url)) {
-        urls.rc = await Promise.all(
-          vehicleData.rc_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for insurance document
-      if (vehicleData.insurance_document_url && Array.isArray(vehicleData.insurance_document_url)) {
-        urls.insurance = await Promise.all(
-          vehicleData.insurance_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for fitness document
-      if (vehicleData.fitness_document_url && Array.isArray(vehicleData.fitness_document_url)) {
-        urls.fitness = await Promise.all(
-          vehicleData.fitness_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for tax document
-      if (vehicleData.tax_document_url && Array.isArray(vehicleData.tax_document_url)) {
-        urls.tax = await Promise.all(
-          vehicleData.tax_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for permit document
-      if (vehicleData.permit_document_url && Array.isArray(vehicleData.permit_document_url)) {
-        urls.permit = await Promise.all(
-          vehicleData.permit_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URL for PUC document
-      if (vehicleData.puc_document_url && Array.isArray(vehicleData.puc_document_url)) {
-        urls.puc = await Promise.all(
-          vehicleData.puc_document_url.map(path => getSignedDocumentUrl(path))
-        );
-      }
-
-      // Generate signed URLs for other documents
-      if (
-        vehicleData.other_documents &&
-        Array.isArray(vehicleData.other_documents)
-      ) {
-        for (let i = 0; i < vehicleData.other_documents.length; i++) {
-          const doc = vehicleData.other_documents[i];
-          if (doc.file_path) {
-            urls.other[`other_${i}`] = await getSignedDocumentUrl(
-              doc.file_path
-            );
-          }
-        }
-      }
-
+      console.log('Generating signed URLs for vehicle:', vehicleData.id);
+      
+      // Use the new safe batch generation function
+      const urls = await generateVehicleDocumentUrls(vehicleData);
+      
       setSignedDocUrls(urls);
+      
+      // Check if any documents are missing and show a single info message
+      const missingDocs = [];
+      if (!urls.rc || urls.rc.every(url => url === null)) missingDocs.push('RC');
+      if (!urls.insurance || urls.insurance.every(url => url === null)) missingDocs.push('Insurance');
+      if (!urls.fitness || urls.fitness.every(url => url === null)) missingDocs.push('Fitness');
+      if (!urls.tax || urls.tax.every(url => url === null)) missingDocs.push('Tax');
+      if (!urls.permit || urls.permit.every(url => url === null)) missingDocs.push('Permit');
+      if (!urls.puc || urls.puc.every(url => url === null)) missingDocs.push('PUC');
+      
+      if (missingDocs.length > 0) {
+        console.info(`Some documents could not be loaded: ${missingDocs.join(', ')}`);
+        // Don't show toast for missing documents - they're expected
+      }
+      
     } catch (error) {
       console.error("Error generating signed URLs:", error);
-      toast.error("Failed to generate document access links");
+      // Only show error toast for unexpected errors
+      if (error instanceof Error && !error.message.includes('not found')) {
+        toast.error("Some documents could not be loaded");
+      }
+    } finally {
+      urlGenerationRef.current = false;
     }
+  }, []);
+
+  // Function to refresh signed URLs (e.g., after document upload)
+  const refreshSignedUrls = async () => {
+    if (!vehicle) return;
+    
+    // Reset the ref to allow regeneration
+    lastVehicleId.current = null;
+    urlGenerationRef.current = false;
+    
+    await generateSignedUrls(vehicle);
+  };
+
+  // Function to safely get document URL with fallback
+  const getDocumentUrl = (urls: (string | null)[] | undefined, index: number = 0): string | null => {
+    if (!urls || urls.length === 0) return null;
+    return urls[index];
+  };
+
+  // Function to check if a document is available
+  const isDocumentAvailable = (urls: (string | null)[] | undefined): boolean => {
+    return urls ? urls.some(url => url !== null) : false;
   };
 
   // Simple compliance score calculation
@@ -301,28 +293,17 @@ const VehiclePage: React.FC = () => {
                       }
                     }
 
-                    setVehicle(prevVehicle => {
-                      if (!prevVehicle) return null;
-
-                      const updatedState: Vehicle = {
-                        ...prevVehicle,
-                        ...vehiclePayload,
-                      };
-
-                      if (!tagUpdateError && tagUpdates) {
-                        updatedState.tags = nextTags;
-                      }
-
-                      return updatedState;
-                    });
-
-                    // Generate signed URLs with the updated vehicle data
+                    // Create the updated vehicle data
                     const updatedVehicleData = {
                       ...vehicle,
                       ...vehiclePayload,
                       tags: !tagUpdateError && tagUpdates ? nextTags : vehicle.tags,
                     };
+
+                    // Update local state
+                    setVehicle(updatedVehicleData);
                     
+                    // Refresh signed URLs with the updated data
                     await generateSignedUrls(updatedVehicleData);
 
                     if (!tagUpdateError) {
