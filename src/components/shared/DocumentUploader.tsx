@@ -81,67 +81,10 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
-    // PREVENT DOUBLE UPLOADS: Check if already uploading
-    if (isUploading) {
-      console.log('⚠️ Upload already in progress, ignoring duplicate request');
-      toast.warning('Please wait for current upload to complete');
-      return;
-    }
-
-    // PREVENT RAPID UPLOADS: Check time since last upload
-    const now = Date.now();
-    const timeSinceLastUpload = now - lastUploadTimeRef.current;
-    if (timeSinceLastUpload < 3000) { // 3 second minimum between uploads
-      console.log('⚠️ Upload too soon after previous upload, ignoring');
-      toast.warning('Please wait a moment before uploading again');
-      return;
-    }
-    
     const fileArray = Array.from(files);
     
-    if (uploadMode === 'staged') {
-      // Stage files locally instead of uploading immediately
-      setStagedFiles(prev => [...prev, ...fileArray]);
-      
-      // Create preview URLs
-      const newPreviewUrls = fileArray.map(file => URL.createObjectURL(file));
-      setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
-      
-      // Notify parent with staged file info
-      if (onStagedFiles) {
-        onStagedFiles([...stagedFiles, ...fileArray]);
-      }
-      
-      toast.success(`${fileArray.length} file(s) staged for upload`);
-      return;
-    }
+    console.log('📤 File selected, starting upload:', fileArray.length, 'files');
     
-    // PREVENT DUPLICATE FILES: Check file hashes for immediate upload mode
-    if (uploadMode === 'immediate') {
-      const newHashes = await Promise.all(
-        fileArray.map(file => generateFileHash(file))
-      );
-      
-      const duplicates = newHashes.filter(hash => 
-        uploadedFileHashesRef.current.has(hash)
-      );
-      
-      if (duplicates.length > 0) {
-        console.log('⚠️ Duplicate files detected, skipping upload');
-        toast.warning('These files have already been uploaded');
-        return;
-      }
-    }
-    
-    // Update form state immediately
-    if (onChange) {
-      onChange(multiple ? [...value, ...fileArray] : fileArray.slice(0, 1));
-    }
-
-    // Set uploading flag
-    setIsUploading(true);
-    lastUploadTimeRef.current = now;
-
     // Start upload process
     setUploadState(prev => ({
       ...prev,
@@ -161,22 +104,22 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           }));
         };
 
+        console.log(`📤 Uploading file ${index + 1}/${fileArray.length}:`, file.name);
+        
+        let uploadedPath;
         if (bucketType === 'vehicle') {
-          return await uploadVehicleDocument(file, entityId, docType, onProgress);
+          uploadedPath = await uploadVehicleDocument(file, entityId, docType, onProgress);
         } else {
-          return await uploadDriverDocument(file, entityId, docType, onProgress);
+          uploadedPath = await uploadDriverDocument(file, entityId, docType, onProgress);
         }
+        
+        console.log(`✅ File uploaded successfully:`, uploadedPath);
+        return uploadedPath;
       });
 
       const uploadedPaths = await Promise.all(uploadPromises);
       
-      // Add file hashes to prevent future duplicates
-      if (uploadMode === 'immediate') {
-        const newHashes = await Promise.all(
-          fileArray.map(file => generateFileHash(file))
-        );
-        newHashes.forEach(hash => uploadedFileHashesRef.current.add(hash));
-      }
+      console.log('✅ All uploads complete! Paths:', uploadedPaths);
       
       setUploadState(prev => ({
         ...prev,
@@ -187,26 +130,22 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
       // Notify parent component
       if (onUploadComplete) {
+        console.log('📢 Calling onUploadComplete with paths:', uploadedPaths);
         onUploadComplete(uploadedPaths);
       }
 
       toast.success(`${fileArray.length} file(s) uploaded successfully`);
 
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
       setUploadState(prev => ({
         ...prev,
         status: 'error',
         errorMessage: error instanceof Error ? error.message : 'Upload failed'
       }));
-      toast.error('Upload failed. Please try again.');
-    } finally {
-      // Reset upload flag after 2 seconds
-      uploadTimeoutRef.current = setTimeout(() => {
-        setIsUploading(false);
-      }, 2000);
+      toast.error('Upload failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
-  }, [bucketType, entityId, docType, multiple, value, onChange, onUploadComplete, isUploading, uploadMode, onStagedFiles, stagedFiles]);
+  }, [bucketType, entityId, docType, multiple, onUploadComplete]);
 
   const handleRetry = () => {
     setUploadState(prev => ({
