@@ -235,6 +235,12 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       return;
     }
 
+    console.log(`🔍 VehicleDetailsTab - handleViewDocuments called for ${docType}:`, {
+      docPaths,
+      signedDocUrls: signedDocUrls[docType.toLowerCase() as keyof typeof signedDocUrls],
+      allSignedDocUrls: signedDocUrls
+    });
+
     setIsViewingDocuments(true);
 
     // Generate public URLs for all documents with proper encoding for spaces
@@ -301,7 +307,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       }
     } else if (urls.length > 1) {
       // Multiple documents - show viewer
-      setDocumentViewer({ show: true, urls, type: docType });
+      // Use the signed URLs directly instead of generating public URLs
+      const signedUrls = signedDocUrls[docType.toLowerCase() as keyof typeof signedDocUrls] || [];
+      console.log(`🔍 VehicleDetailsTab - Using signed URLs for ${docType}:`, signedUrls);
+      setDocumentViewer({ show: true, urls: signedUrls, type: docType });
       setIsViewingDocuments(false);
     }
   };
