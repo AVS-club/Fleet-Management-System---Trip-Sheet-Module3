@@ -21,10 +21,27 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const currentDocument = documents[currentIndex];
-  const isImage = currentDocument?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-  const isPDF = currentDocument?.match(/\.pdf$/i);
+  
+  // Better file type detection that handles URL-encoded filenames and tokens
+  const getFileType = (url: string) => {
+    // Decode URL and extract filename
+    const decodedUrl = decodeURIComponent(url);
+    const filename = decodedUrl.split('/').pop()?.split('?')[0] || '';
+    
+    if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return 'image';
+    if (filename.match(/\.pdf$/i)) return 'pdf';
+    if (filename.match(/\.(doc|docx)$/i)) return 'document';
+    if (filename.match(/\.(txt)$/i)) return 'text';
+    
+    return 'unknown';
+  };
+  
+  const fileType = getFileType(currentDocument || '');
+  const isImage = fileType === 'image';
+  const isPDF = fileType === 'pdf';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,12 +136,29 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   const handleImageLoad = () => {
     setIsLoading(false);
     setError(null);
+    setIsInitialLoad(false);
   };
 
   const handleImageError = () => {
     setIsLoading(false);
     setError('Failed to load document');
+    setIsInitialLoad(false);
   };
+
+  // Handle initial load timeout to prevent infinite loading
+  useEffect(() => {
+    if (isInitialLoad) {
+      const timeout = setTimeout(() => {
+        if (isLoading) {
+          setIsLoading(false);
+          setError('Document took too long to load');
+          setIsInitialLoad(false);
+        }
+      }, 10000); // 10 second timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isInitialLoad, isLoading]);
 
   const getFileName = (url: string) => {
     const segments = url.split('/');
@@ -132,28 +166,29 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
-      <div className="relative w-full h-full max-w-6xl max-h-full bg-white rounded-lg overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-2 sm:p-4">
+      <div className="relative w-full h-full max-w-6xl max-h-full bg-white rounded-lg overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
               {documentType} Documents - {vehicleNumber}
             </h3>
             {documents.length > 1 && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>{currentIndex + 1} of {documents.length}</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 flex-shrink-0">
+                <span className="hidden sm:inline">{currentIndex + 1} of {documents.length}</span>
+                <span className="sm:hidden">{currentIndex + 1}/{documents.length}</span>
                 <div className="flex gap-1">
                   <button
                     onClick={handlePrevious}
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    className="p-1 hover:bg-gray-100 rounded transition-colors touch-manipulation"
                     disabled={documents.length <= 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     onClick={handleNext}
-                    className="p-1 hover:bg-gray-100 rounded transition-colors"
+                    className="p-1 hover:bg-gray-100 rounded transition-colors touch-manipulation"
                     disabled={documents.length <= 1}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -163,12 +198,12 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* Zoom Controls */}
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {/* Zoom Controls - Hidden on mobile for space */}
+            <div className="hidden sm:flex items-center gap-1">
               <button
                 onClick={handleZoomOut}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
                 disabled={zoom <= 0.5}
               >
                 <ZoomOut className="h-4 w-4" />
@@ -178,27 +213,27 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
               </span>
               <button
                 onClick={handleZoomIn}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
                 disabled={zoom >= 3}
               >
                 <ZoomIn className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Rotate Button (for images) */}
+            {/* Rotate Button (for images) - Hidden on mobile */}
             {isImage && (
               <button
                 onClick={handleRotate}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
               >
                 <RotateCw className="h-4 w-4" />
               </button>
             )}
 
-            {/* Fullscreen Button */}
+            {/* Fullscreen Button - Hidden on mobile */}
             <button
               onClick={handleFullscreen}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
             >
               <Maximize2 className="h-4 w-4" />
             </button>
@@ -206,15 +241,17 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
             {/* Download Button */}
             <button
               onClick={handleDownload}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+              title="Download"
             >
               <Download className="h-4 w-4" />
             </button>
 
-            {/* Share Button */}
+            {/* Share Button - Hidden on mobile */}
             <button
               onClick={handleShare}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+              title="Share"
             >
               <Share2 className="h-4 w-4" />
             </button>
@@ -222,7 +259,8 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+              title="Close"
             >
               <X className="h-4 w-4" />
             </button>
@@ -258,20 +296,26 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
         )}
 
         {/* Document Content */}
-        <div className="flex-1 overflow-auto bg-gray-100">
+        <div className="flex-1 overflow-auto bg-gray-100 relative">
           {isLoading && (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                <p className="text-gray-600 text-sm">Loading document...</p>
+              </div>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-center p-4">
+                <div className="text-red-500 mb-4">
+                  <FileText className="h-12 w-12 mx-auto mb-2" />
+                  <p className="text-red-600 mb-2">{error}</p>
+                </div>
                 <button
                   onClick={() => window.open(currentDocument, '_blank')}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-manipulation"
                 >
                   Open in New Tab
                 </button>
@@ -279,8 +323,8 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
             </div>
           )}
 
-          {isImage && (
-            <div className="flex items-center justify-center p-4 min-h-full">
+          {isImage && !isLoading && !error && (
+            <div className="flex items-center justify-center p-2 sm:p-4 min-h-full">
               <img
                 src={currentDocument}
                 alt={`${documentType} document ${currentIndex + 1}`}
@@ -294,25 +338,29 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
             </div>
           )}
 
-          {isPDF && (
-            <div className="h-full">
+          {isPDF && !isLoading && !error && (
+            <div className="h-full w-full">
               <iframe
                 src={currentDocument}
                 className="w-full h-full border-0"
                 onLoad={handleImageLoad}
                 onError={handleImageError}
                 title={`${documentType} document ${currentIndex + 1}`}
+                style={{ minHeight: '500px' }}
               />
             </div>
           )}
 
-          {!isImage && !isPDF && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <p className="text-gray-600 mb-4">Unsupported document type</p>
+          {!isImage && !isPDF && !isLoading && !error && (
+            <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="text-center p-4">
+                <div className="text-gray-500 mb-4">
+                  <FileText className="h-12 w-12 mx-auto mb-2" />
+                  <p className="text-gray-600 mb-2">Unsupported document type</p>
+                </div>
                 <button
                   onClick={() => window.open(currentDocument, '_blank')}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-manipulation"
                 >
                   Open in New Tab
                 </button>
@@ -322,9 +370,9 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
         </div>
 
         {/* Mobile Touch Instructions */}
-        <div className="md:hidden p-4 bg-gray-50 border-t border-gray-200">
+        <div className="md:hidden p-3 bg-gray-50 border-t border-gray-200 flex-shrink-0">
           <p className="text-xs text-gray-500 text-center">
-            Pinch to zoom • Double tap to reset zoom • Swipe to close • Use arrow keys to navigate
+            Pinch to zoom • Double tap to reset zoom • Swipe to navigate • Tap to close
           </p>
         </div>
       </div>

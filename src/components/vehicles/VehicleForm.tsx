@@ -159,18 +159,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
     console.log(`Document upload completed for ${docType}:`, filePaths);
     
-    setUploadedDocuments(prev => {
-      const updated = {
-        ...prev,
-        [docType]: filePaths
-      };
-      console.log('Updated uploadedDocuments state:', updated);
-      return updated;
-    });
-    
+    // Get current paths from the form (not just uploadedDocuments)
     const fieldName = `${docType}_document_url` as keyof Vehicle;
-    setValue(fieldName, filePaths as any);
-    console.log(`Set form field ${fieldName} to:`, filePaths);
+    const currentFormValue = watch(fieldName) || [];
+    
+    // Combine with new paths, removing duplicates
+    const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
+    
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [docType]: combinedPaths
+    }));
+    
+    setValue(fieldName, combinedPaths as any);
+    console.log(`Combined ${docType} documents:`, combinedPaths);
     
     // Special logging for insurance documents
     if (docType === 'insurance') {
@@ -178,6 +180,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         docType,
         filePaths,
         fieldName,
+        currentFormValue,
+        combinedPaths,
         formValue: watch(fieldName),
         uploadedDocuments: uploadedDocuments
       });

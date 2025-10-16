@@ -53,6 +53,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     urls: string[];
     type: string;
   } | null>(null);
+  const [isViewingDocuments, setIsViewingDocuments] = useState(false);
   const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
   const [showTagHistory, setShowTagHistory] = useState(false);
 
@@ -225,10 +226,16 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
   // Function to view documents
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
+    if (isViewingDocuments) {
+      return; // Prevent multiple clicks
+    }
+    
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
     }
+
+    setIsViewingDocuments(true);
 
     // Generate public URLs for all documents with proper encoding for spaces
     const urls = docPaths.map(path => {
@@ -289,10 +296,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           name: error.name
         });
         toast.error('Unable to view document');
+      } finally {
+        setIsViewingDocuments(false);
       }
     } else if (urls.length > 1) {
       // Multiple documents - show viewer
       setDocumentViewer({ show: true, urls, type: docType });
+      setIsViewingDocuments(false);
     }
   };
 
@@ -484,10 +494,17 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       onClick={() => handleViewDocuments(doc.type, doc.urls)}
-                      className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                      disabled={isViewingDocuments}
+                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors ${
+                        isViewingDocuments 
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                      }`}
                     >
                       <Eye className="h-4 w-4" />
-                      <span className="text-sm">View ({doc.urls.length})</span>
+                      <span className="text-sm">
+                        {isViewingDocuments ? 'Loading...' : `View (${doc.urls.length})`}
+                      </span>
                     </button>
                     
                     <button
