@@ -23,6 +23,11 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
 
   const currentDocument = documents[currentIndex];
   
+  // Log document changes
+  useEffect(() => {
+    console.log(`📄 Loading document ${currentIndex + 1}/${documents.length}:`, currentDocument);
+  }, [currentIndex, currentDocument]);
+  
   const getFileType = (url: string) => {
     const decodedUrl = decodeURIComponent(url);
     const filename = decodedUrl.split('/').pop()?.split('?')[0] || '';
@@ -52,6 +57,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   }, []);
 
   const handlePrevious = () => {
+    console.log('⬅️ Previous document');
     setCurrentIndex(prev => (prev - 1 + documents.length) % documents.length);
     setZoom(1);
     setRotation(0);
@@ -60,12 +66,25 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   };
 
   const handleNext = () => {
+    console.log('➡️ Next document');
     setCurrentIndex(prev => (prev + 1) % documents.length);
     setZoom(1);
     setRotation(0);
     setIsLoading(true);
     setError(null);
   };
+
+  // Auto-clear loading state after timeout for each document
+  useEffect(() => {
+    if (isLoading) {
+      const timeout = setTimeout(() => {
+        console.log('⏰ Load timeout - clearing loading state');
+        setIsLoading(false);
+      }, 3000); // 3 second timeout per document
+
+      return () => clearTimeout(timeout);
+    }
+  }, [isLoading, currentIndex]); // Reset timeout when document changes
 
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
@@ -91,11 +110,13 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   };
 
   const handleImageLoad = () => {
+    console.log('✅ Document loaded successfully');
     setIsLoading(false);
     setError(null);
   };
 
   const handleImageError = () => {
+    console.error('❌ Document failed to load');
     setIsLoading(false);
     setError('Failed to load document');
   };
@@ -209,6 +230,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
         {isImage && !isLoading && !error && (
           <div className="h-full flex items-center justify-center p-4">
             <img
+              key={currentDocument} // Force remount when document changes
               src={currentDocument}
               alt={`${documentType} ${currentIndex + 1}`}
               className="max-w-full max-h-full object-contain"
@@ -224,6 +246,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
 
         {isPDF && !isLoading && !error && (
           <iframe
+            key={currentDocument} // Force remount when document changes
             src={currentDocument}
             className="w-full h-full border-0"
             onLoad={handleImageLoad}
