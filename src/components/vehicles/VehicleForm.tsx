@@ -102,6 +102,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     if (initialData?.id) setFieldsDisabled(false);
   }, [initialData]);
 
+  // Register all document URL fields to ensure they're included in form data
+  useEffect(() => {
+    // Register all document URL fields
+    register('rc_document_url');
+    register('insurance_document_url');
+    register('fitness_document_url');
+    register('tax_document_url');
+    register('permit_document_url');
+    register('puc_document_url');
+  }, [register]);
+
 
   // Reset form when initialData changes (when entering edit mode)
   useEffect(() => {
@@ -146,13 +157,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   // Handle document upload completion
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
-    setUploadedDocuments(prev => ({
-      ...prev,
-      [docType]: filePaths
-    }));
+    console.log(`Document upload completed for ${docType}:`, filePaths);
+    
+    setUploadedDocuments(prev => {
+      const updated = {
+        ...prev,
+        [docType]: filePaths
+      };
+      console.log('Updated uploadedDocuments state:', updated);
+      return updated;
+    });
     
     const fieldName = `${docType}_document_url` as keyof Vehicle;
     setValue(fieldName, filePaths as any);
+    console.log(`Set form field ${fieldName} to:`, filePaths);
+    
+    // Special logging for insurance documents
+    if (docType === 'insurance') {
+      console.log('🔍 INSURANCE UPLOAD DEBUG:', {
+        docType,
+        filePaths,
+        fieldName,
+        formValue: watch(fieldName),
+        uploadedDocuments: uploadedDocuments
+      });
+    }
   };
 
   // Handle document deletion
@@ -364,6 +393,24 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }
     }
 
+    // Debug logging
+    console.log('Form submit - uploadedDocuments:', uploadedDocuments);
+    console.log('Form submit - data document URLs:', {
+      rc: data.rc_document_url,
+      insurance: data.insurance_document_url,
+      fitness: data.fitness_document_url,
+      tax: data.tax_document_url,
+      permit: data.permit_document_url,
+      puc: data.puc_document_url,
+    });
+
+    // Special insurance debugging
+    console.log('🔍 INSURANCE SUBMIT DEBUG:', {
+      uploadedDocumentsInsurance: uploadedDocuments.insurance,
+      dataInsurance: data.insurance_document_url,
+      finalInsurance: uploadedDocuments.insurance || data.insurance_document_url || []
+    });
+
     const formData = {
       ...data,
       rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
@@ -373,6 +420,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
       puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
     };
+
+    console.log('Form submit - final formData document URLs:', {
+      rc: formData.rc_document_url,
+      insurance: formData.insurance_document_url,
+      fitness: formData.fitness_document_url,
+      tax: formData.tax_document_url,
+      permit: formData.permit_document_url,
+      puc: formData.puc_document_url,
+    });
 
     onSubmit(formData);
   };

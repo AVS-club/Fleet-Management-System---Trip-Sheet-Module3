@@ -26,13 +26,26 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleView = (url: string) => {
-    // Check if file is PDF (assume it's PDF if the URL includes .pdf)
-    if (url.toLowerCase().includes('.pdf')) {
+  const handleView = async (url: string) => {
+    try {
+      // Check if file is PDF (assume it's PDF if the URL includes .pdf)
+      if (url.toLowerCase().includes('.pdf')) {
+        // Use download-then-open approach for PDFs to handle spaces in filenames
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch document');
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, "_blank");
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      } else {
+        // Assume it's an image
+        setSelectedImage(url);
+      }
+    } catch (error) {
+      console.error('View error:', error);
+      // Fallback to direct open
       window.open(url, "_blank");
-    } else {
-      // Assume it's an image
-      setSelectedImage(url);
     }
   };
 

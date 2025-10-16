@@ -158,69 +158,31 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
   const handleViewDocument = async (filePath: string) => {
     try {
-      // Set loading state
-      setUploadState(prev => ({
-        ...prev,
-        viewingDocument: filePath
-      }));
-
-      console.log('Attempting to view document:', filePath);
+      console.log('Viewing document:', filePath);
       
-      // Check if filePath is already a full URL
-      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-        console.log('File path is already a URL, opening directly');
-        window.open(filePath, '_blank');
-        return;
-      }
-
-      // Try multiple approaches to get the document URL
-      let documentUrl: string;
+      // Clean the path and handle spaces
+      const cleanedPath = filePath
+        .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+        .replace(/^vehicle-docs\//, '')
+        .replace(/^driver-docs\//, '')
+        .trim();
       
-      try {
-        // Approach 1: Try to get signed URL
-        const cleanedPath = filePath
-          .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-          .replace(/^vehicle-docs\//, '')
-          .replace(/^driver-docs\//, '');
-
-        console.log('Cleaned file path:', cleanedPath);
-
-        if (bucketType === 'vehicle') {
-          documentUrl = await getSignedDocumentUrl(cleanedPath);
-        } else {
-          documentUrl = await getSignedDriverDocumentUrl(cleanedPath);
-        }
-        
-        // Check if we got a valid URL
-        if (!documentUrl) {
-          throw new Error('Failed to generate signed URL');
-        }
-        
-        console.log('Generated signed URL:', documentUrl);
-      } catch (signedUrlError) {
-        console.log('Signed URL failed, trying public URL approach');
-        
-        // Approach 2: Try to get public URL
-        const bucketName = bucketType === 'vehicle' ? 'vehicle-docs' : 'driver-docs';
-        const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
-        documentUrl = data.publicUrl;
-        
-        console.log('Generated public URL:', documentUrl);
-      }
+      // For public URLs, encode the path properly to handle spaces
+      const encodedPath = cleanedPath.split('/').map(segment => 
+        encodeURIComponent(segment.replace(/%20/g, ' '))
+      ).join('/');
       
-      // Open the document in a new tab
-      window.open(documentUrl, '_blank');
+      // Get the base URL without encoding
+      const bucketName = bucketType === 'vehicle' ? 'vehicle-docs' : 'driver-docs';
+      const baseUrl = `${supabase.storageUrl}/object/public/${bucketName}/`;
+      
+      // Construct the final URL
+      const publicUrl = `${baseUrl}${encodedPath}`;
+      
+      window.open(publicUrl, '_blank');
     } catch (error) {
-      console.error('Error opening document:', error);
-      console.log('Falling back to direct file path:', filePath);
-      // Fallback: try to open the file path directly
-      window.open(filePath, '_blank');
-    } finally {
-      // Clear loading state
-      setUploadState(prev => ({
-        ...prev,
-        viewingDocument: undefined
-      }));
+      console.error('Error viewing document:', error);
+      toast.error('Failed to view document');
     }
   };
 

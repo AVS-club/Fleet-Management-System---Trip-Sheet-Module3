@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
+import { supabase } from '../../utils/supabaseClient';
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -32,6 +33,12 @@ interface VehicleDetailsTabProps {
 
 const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, signedDocUrls }) => {
   const { t } = useTranslation();
+  
+  // Debug logging for insurance documents
+  console.log('🔍 VehicleDetailsTabMobile - received signedDocUrls:', signedDocUrls);
+  console.log('🔍 VehicleDetailsTabMobile - insurance URLs:', signedDocUrls.insurance);
+  console.log('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
+  console.log('🔍 Full vehicle object:', vehicle);
 
   // Helper function to format dates
   const formatDate = (date: string | null | undefined) => {
@@ -99,6 +106,10 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
       urls: signedDocUrls.tax || []
     }
   ];
+
+  // Debug the documents array
+  console.log('🔍 Mobile Documents array created:', documents);
+  console.log('🔍 Mobile Insurance document in array:', documents.find(doc => doc.type === 'insurance'));
 
   const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { 
@@ -193,6 +204,63 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
     } catch (error) {
       console.error('Failed to copy:', error);
       toast.error(t('messages.copyError'));
+    }
+  };
+
+  // Working view handler that uses download-then-open approach
+  const handleViewCompliance = async (docUrls: string[] | null, docType: string) => {
+    console.log(`🔍 handleViewCompliance called for ${docType}:`, docUrls);
+    
+    if (!docUrls || docUrls.length === 0) {
+      console.log(`❌ No ${docType} documents available`);
+      toast.info(`No ${docType} documents available`);
+      return;
+    }
+
+    try {
+      // Take the first document URL
+      const filePath = docUrls[0];
+      console.log(`🔍 Original filePath:`, filePath);
+      
+      // Clean the path
+      const cleanedPath = filePath
+        .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+        .replace(/^vehicle-docs\//, '')
+        .replace(/^driver-docs\//, '')
+        .trim();
+      
+      console.log(`🔍 Cleaned path:`, cleanedPath);
+      
+      // Download and open (this works like in edit mode)
+      console.log(`🔍 Attempting to download from vehicle-docs bucket:`, cleanedPath);
+      const { data, error } = await supabase.storage
+        .from('vehicle-docs')
+        .download(cleanedPath);
+      
+      if (error) {
+        console.error(`❌ Download error:`, error);
+        throw error;
+      }
+      
+      console.log(`✅ Download successful, data:`, data);
+      console.log(`🔍 Data type:`, typeof data, 'Size:', data?.size);
+      
+      // Create blob URL and open
+      const url = URL.createObjectURL(data);
+      console.log(`🔍 Created blob URL:`, url);
+      
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      
+    } catch (error) {
+      console.error('❌ View error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        code: error.code,
+        statusCode: error.statusCode,
+        name: error.name
+      });
+      toast.error('Unable to view document');
     }
   };
 
@@ -312,7 +380,7 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
                   <div className="grid grid-cols-2 gap-2 mt-4">
                     {/* View Button */}
                     <button
-                      onClick={() => window.open(doc.urls[0], '_blank')}
+                      onClick={() => handleViewCompliance(doc.urls, doc.type)}
                       className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md font-semibold text-sm md:text-base"
                     >
                       <Eye className="h-5 w-5" />

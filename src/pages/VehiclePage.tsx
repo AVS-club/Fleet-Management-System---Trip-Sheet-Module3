@@ -158,6 +158,9 @@ const VehiclePage: React.FC = () => {
       // Use the new safe batch generation function
       const urls = await generateVehicleDocumentUrls(vehicleData);
       
+      console.log('🔍 VehiclePage - Generated URLs:', urls);
+      console.log('🔍 VehiclePage - Insurance URLs specifically:', urls.insurance);
+      
       setSignedDocUrls(urls);
       
       // Check if any documents are missing and show a single info message

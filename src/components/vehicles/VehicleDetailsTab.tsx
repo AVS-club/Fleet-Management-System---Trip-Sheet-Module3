@@ -6,6 +6,7 @@ import {
 import { Vehicle } from '../../types';
 import { Tag } from '../../types/tags';
 import DocumentViewer from './DocumentViewer';
+import MultiDocumentViewer from './MultiDocumentViewer';
 import VehicleTagSelector from './VehicleTagSelector';
 import VehicleTagHistoryModal from '../admin/VehicleTagHistoryModal';
 import VehicleTagBadges from './VehicleTagBadges';
@@ -37,9 +38,20 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   signedDocUrls
 }) => {
   const { permissions } = usePermissions();
+  
+  // Debug logging for insurance documents
+  console.log('🔍 VehicleDetailsTab - received signedDocUrls:', signedDocUrls);
+  console.log('🔍 VehicleDetailsTab - insurance URLs:', signedDocUrls.insurance);
+  console.log('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
+  console.log('🔍 Full vehicle object:', vehicle);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     url: string;
+  } | null>(null);
+  const [documentViewer, setDocumentViewer] = useState<{
+    show: boolean;
+    urls: string[];
+    type: string;
   } | null>(null);
   const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
   const [showTagHistory, setShowTagHistory] = useState(false);
@@ -149,6 +161,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   ];
 
+  // Debug the documents array
+  console.log('🔍 Documents array created:', documents);
+  console.log('🔍 Insurance document in array:', documents.find(doc => doc.type === 'Insurance'));
+
   const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { status: 'unknown', color: 'gray', days: null };
     
@@ -204,6 +220,79 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     } catch (error) {
       console.error('Download failed:', error);
       toast.error('Failed to download document');
+    }
+  };
+
+  // Function to view documents
+  const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
+    if (!docPaths || docPaths.length === 0) {
+      toast.info(`No ${docType} documents available`);
+      return;
+    }
+
+    // Generate public URLs for all documents with proper encoding for spaces
+    const urls = docPaths.map(path => {
+      const cleanPath = path
+        .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+        .replace(/^vehicle-docs\//, '')
+        .trim();
+      
+      // Encode the path properly to handle spaces
+      const encodedPath = cleanPath.split('/').map(segment => 
+        encodeURIComponent(segment.replace(/%20/g, ' '))
+      ).join('/');
+      
+      // Get the base URL without encoding
+      const baseUrl = `${supabase.storageUrl}/object/public/vehicle-docs/`;
+      
+      // Construct the final URL
+      return `${baseUrl}${encodedPath}`;
+    }).filter(url => url);
+
+    if (urls.length === 1) {
+      // Single document - use download-then-open approach
+      try {
+        const filePath = docPaths[0];
+        console.log(`🔍 VehicleDetailsTab - Original filePath:`, filePath);
+        
+        const cleanedPath = filePath
+          .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+          .replace(/^vehicle-docs\//, '')
+          .trim();
+        
+        console.log(`🔍 VehicleDetailsTab - Cleaned path:`, cleanedPath);
+        console.log(`🔍 VehicleDetailsTab - Attempting download for ${docType}`);
+        
+        const { data, error } = await supabase.storage
+          .from('vehicle-docs')
+          .download(cleanedPath);
+        
+        if (error) {
+          console.error(`❌ VehicleDetailsTab - Download error:`, error);
+          throw error;
+        }
+        
+        console.log(`✅ VehicleDetailsTab - Download successful:`, data);
+        console.log(`🔍 VehicleDetailsTab - Data type:`, typeof data, 'Size:', data?.size);
+        
+        const url = URL.createObjectURL(data);
+        console.log(`🔍 VehicleDetailsTab - Created blob URL:`, url);
+        
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) {
+        console.error('❌ VehicleDetailsTab - View error:', error);
+        console.error('❌ VehicleDetailsTab - Error details:', {
+          message: error.message,
+          code: error.code,
+          statusCode: error.statusCode,
+          name: error.name
+        });
+        toast.error('Unable to view document');
+      }
+    } else if (urls.length > 1) {
+      // Multiple documents - show viewer
+      setDocumentViewer({ show: true, urls, type: docType });
     }
   };
 
@@ -394,11 +483,11 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                 {hasDocument ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
-                      onClick={() => window.open(doc.urls[0], '_blank')}
+                      onClick={() => handleViewDocuments(doc.type, doc.urls)}
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
                     >
                       <Eye className="h-4 w-4" />
-                      <span className="text-sm">View</span>
+                      <span className="text-sm">View ({doc.urls.length})</span>
                     </button>
                     
                     <button
@@ -476,6 +565,16 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         <DocumentViewer
           document={selectedDocument}
           onClose={() => setSelectedDocument(null)}
+        />
+      )}
+
+      {/* Multi Document Viewer Modal */}
+      {documentViewer?.show && (
+        <MultiDocumentViewer
+          documents={documentViewer.urls}
+          documentType={documentViewer.type}
+          vehicleNumber={vehicle.registration_number}
+          onClose={() => setDocumentViewer(null)}
         />
       )}
 

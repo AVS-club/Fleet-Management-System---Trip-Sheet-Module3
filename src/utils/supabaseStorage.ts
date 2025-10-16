@@ -119,13 +119,17 @@ export const uploadVehicleDocument = async (
     throw new Error("No file provided");
   }
 
-  // Get file extension and original name
-  const fileExt = file.name.split(".").pop();
-  const originalName = file.name;
+  // Clean filename
+  const cleanedFileName = file.name
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '');
   
-  // Create a unique filename that preserves original name
-  const fileName = `${vehicleId}/${docType}_${Date.now()}_${originalName}`;
-  const filePath = fileName;
+  const fileExt = cleanedFileName.split(".").pop();
+  const timestamp = Date.now();
+  
+  // CREATE SUBFOLDER STRUCTURE - This is the fix!
+  const filePath = `${vehicleId}/${docType}/${docType}_${timestamp}.${fileExt}`;
+  //                              ^^^^^^^^^ Add subfolder here
 
 
   // Upload the file with progress if callback provided
@@ -240,13 +244,17 @@ export const uploadDriverDocument = async (
     throw new Error("No file provided");
   }
 
-  // Get file extension and original name
-  const fileExt = file.name.split(".").pop();
-  const originalName = file.name;
+  // Clean filename
+  const cleanedFileName = file.name
+    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9._-]/g, '');
   
-  // Create a unique filename that preserves original name
-  const fileName = `${driverId}/${docType}_${Date.now()}_${originalName}`;
-  const filePath = fileName;
+  const fileExt = cleanedFileName.split(".").pop();
+  const timestamp = Date.now();
+  
+  // CREATE SUBFOLDER STRUCTURE - This is the fix!
+  const filePath = `${driverId}/${docType}/${docType}_${timestamp}.${fileExt}`;
+  //                              ^^^^^^^^^ Add subfolder here
 
   // Upload the file with progress if callback provided
   if (onProgress) {
@@ -466,6 +474,13 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
 }> => {
   const urls: any = { other: {} };
   
+  // Debug logging for insurance specifically
+  console.log('🔍 generateVehicleDocumentUrls - vehicleData:', {
+    insurance_document_url: vehicleData.insurance_document_url,
+    rc_document_url: vehicleData.rc_document_url,
+    fitness_document_url: vehicleData.fitness_document_url
+  });
+  
   // Process each document type
   const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
   
@@ -473,13 +488,23 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
     const fieldName = `${type}_document_url`;
     const filePaths = vehicleData[fieldName];
     
+    console.log(`🔍 Processing ${type}:`, { fieldName, filePaths });
+    
     if (filePaths && Array.isArray(filePaths) && filePaths.length > 0) {
+      console.log(`🔍 Generating URLs for ${type}:`, filePaths);
       const generatedUrls = await generateSignedUrlsBatch(filePaths, 'vehicle');
+      console.log(`🔍 Generated URLs for ${type}:`, generatedUrls);
+      
       // Only add if we have at least one valid URL
       const validUrls = generatedUrls.filter(url => url !== null);
       if (validUrls.length > 0) {
         urls[type] = generatedUrls; // Keep nulls to maintain index alignment
+        console.log(`✅ Added ${type} URLs to result:`, urls[type]);
+      } else {
+        console.log(`❌ No valid URLs for ${type}`);
       }
+    } else {
+      console.log(`❌ No file paths for ${type}:`, filePaths);
     }
   }
   
@@ -496,5 +521,6 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
     }
   }
   
+  console.log('🔍 Final generated URLs result:', urls);
   return urls;
 };
