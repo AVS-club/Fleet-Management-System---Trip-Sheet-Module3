@@ -57,11 +57,6 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
   const [showTagHistory, setShowTagHistory] = useState(false);
 
-  // DEBUG - Track documentViewer state changes
-  useEffect(() => {
-    console.log('🔍 documentViewer state changed:', documentViewer);
-  }, [documentViewer]);
-
   // Load vehicle tags
   useEffect(() => {
     if (vehicle?.id) {
@@ -292,8 +287,6 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         
       } else {
         // Multiple documents - show carousel viewer
-        console.log(`📸 Opening carousel for ${docPaths.length} documents`);
-        
         const urls = docPaths.map(path => {
           const cleanPath = path
             .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
@@ -307,16 +300,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           return `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
         }).filter(url => url);
         
-        console.log(`✅ Created ${urls.length} public URLs:`, urls);
-        
         setDocumentViewer({ show: true, urls, type: docType });
-        
-        console.log(`✅ DocumentViewer state set:`, {
-          show: true,
-          urlCount: urls.length,
-          type: docType
-        });
-        
         toast.success(`Loading ${urls.length} documents`);
       }
       
@@ -606,21 +590,6 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           onClose={() => setSelectedDocument(null)}
         />
       )}
-
-      {/* DEBUG BUTTON - Remove after fixing */}
-      <button
-        onClick={() => {
-          console.log('🧪 Test button clicked');
-          setDocumentViewer({
-            show: true,
-            urls: ['https://via.placeholder.com/800x600.png?text=Test+Image'],
-            type: 'test'
-          });
-        }}
-        className="fixed top-4 right-4 px-4 py-2 bg-red-500 text-white rounded z-50"
-      >
-        TEST VIEWER
-      </button>
 
       {/* Multi Document Viewer Modal */}
       {documentViewer?.show && (
