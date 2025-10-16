@@ -65,6 +65,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
   const [deletedDocuments, setDeletedDocuments] = useState<Record<string, string[]>>({});
+  
+  // Draft state management for document changes
+  const [draftState, setDraftState] = useState({
+    isDraft: false,
+    originalDocuments: {} as Record<string, string[]>,
+    pendingUploads: {} as Record<string, File[]>,
+    pendingDeletions: {} as Record<string, string[]>,
+    pendingNewUploads: {} as Record<string, string[]>
+  });
 
   const {
     register,
@@ -99,7 +108,23 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   // Enable fields if initialData is present (for edit mode)
   useEffect(() => {
-    if (initialData?.id) setFieldsDisabled(false);
+    if (initialData?.id) {
+      setFieldsDisabled(false);
+      // Initialize draft state with original documents
+      const originalDocs = {
+        rc: initialData.rc_document_url || [],
+        insurance: initialData.insurance_document_url || [],
+        fitness: initialData.fitness_document_url || [],
+        tax: initialData.tax_document_url || [],
+        permit: initialData.permit_document_url || [],
+        puc: initialData.puc_document_url || []
+      };
+      setDraftState(prev => ({
+        ...prev,
+        isDraft: true,
+        originalDocuments: originalDocs
+      }));
+    }
   }, [initialData]);
 
   // Register all document URL fields to ensure they're included in form data
@@ -155,45 +180,69 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     fetchData();
   }, []);
 
-  // Handle document upload completion
+  // Handle document upload completion - DRAFT MODE
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
     console.log(`Document upload completed for ${docType}:`, filePaths);
     
-    // Get current paths from the form (not just uploadedDocuments)
-    const fieldName = `${docType}_document_url` as keyof Vehicle;
-    const currentFormValue = watch(fieldName) || [];
-    
-    // Combine with new paths, removing duplicates
-    const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
-    
-    setUploadedDocuments(prev => ({
-      ...prev,
-      [docType]: combinedPaths
-    }));
-    
-    setValue(fieldName, combinedPaths as any);
-    console.log(`Combined ${docType} documents:`, combinedPaths);
-    
-    // Special logging for insurance documents
-    if (docType === 'insurance') {
-      console.log('🔍 INSURANCE UPLOAD DEBUG:', {
-        docType,
-        filePaths,
-        fieldName,
-        currentFormValue,
-        combinedPaths,
-        formValue: watch(fieldName),
-        uploadedDocuments: uploadedDocuments
-      });
+    if (draftState.isDraft) {
+      // In draft mode, store in pending uploads instead of immediate upload
+      setDraftState(prev => ({
+        ...prev,
+        pendingNewUploads: {
+          ...prev.pendingNewUploads,
+          [docType]: [...(prev.pendingNewUploads[docType] || []), ...filePaths]
+        }
+      }));
+      
+      // Update form display (but don't save to database yet)
+      const fieldName = `${docType}_document_url` as keyof Vehicle;
+      const currentFormValue = watch(fieldName) || [];
+      const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
+      setValue(fieldName, combinedPaths as any);
+      
+      console.log(`🔍 DRAFT MODE - Stored pending upload for ${docType}:`, filePaths);
+    } else {
+      // Original behavior for non-draft mode
+      const fieldName = `${docType}_document_url` as keyof Vehicle;
+      const currentFormValue = watch(fieldName) || [];
+      const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
+      
+      setUploadedDocuments(prev => ({
+        ...prev,
+        [docType]: combinedPaths
+      }));
+      
+      setValue(fieldName, combinedPaths as any);
+      console.log(`Combined ${docType} documents:`, combinedPaths);
     }
   };
 
-  // Handle document deletion
+  // Handle document deletion - DRAFT MODE
   const handleDocumentDelete = (docType: string, filePath: string) => {
-    setDeletedDocuments(prev => ({
-      ...prev,
-      [docType]: [...(prev[docType] || []), filePath]
-    }));
+    if (draftState.isDraft) {
+      // In draft mode, mark for deletion instead of immediate deletion
+      setDraftState(prev => ({
+        ...prev,
+        pendingDeletions: {
+          ...prev.pendingDeletions,
+          [docType]: [...(prev.pendingDeletions[docType] || []), filePath]
+        }
+      }));
+      
+      // Update form display (remove from form but don't delete from database yet)
+      const fieldName = `${docType}_document_url` as keyof Vehicle;
+      const currentFormValue = watch(fieldName) || [];
+      const updatedPaths = currentFormValue.filter(path => path !== filePath);
+      setValue(fieldName, updatedPaths as any);
+      
+      console.log(`🔍 DRAFT MODE - Marked for deletion: ${docType} - ${filePath}`);
+    } else {
+      // Original behavior for non-draft mode
+      setDeletedDocuments(prev => ({
+        ...prev,
+        [docType]: [...(prev[docType] || []), filePath]
+      }));
+    }
   };
 
   // Helper function to map fuel type
@@ -368,6 +417,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const handleCancel = () => {
+    if (draftState.isDraft) {
+      console.log('🔍 DRAFT MODE - Cancelling all changes');
+      
+      // Revert to original documents
+      const originalDocs = draftState.originalDocuments;
+      Object.entries(originalDocs).forEach(([docType, paths]) => {
+        const fieldName = `${docType}_document_url` as keyof Vehicle;
+        setValue(fieldName, paths as any);
+      });
+      
+      // Clear draft state
+      setDraftState({
+        isDraft: false,
+        originalDocuments: {},
+        pendingUploads: {},
+        pendingDeletions: {},
+        pendingNewUploads: {}
+      });
+      
+      console.log('🔍 DRAFT MODE - Reverted to original state');
+    }
+    
     // Reset form to initial values
     reset();
     
@@ -385,14 +456,43 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const onFormSubmit = async (data: Vehicle) => {
-    // Delete files from Supabase storage for deleted documents
-    for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
-      for (const filePath of deletedPaths) {
-        try {
-          await deleteVehicleDocument(filePath);
-          console.log(`Deleted ${docType} document:`, filePath);
-        } catch (error) {
-          console.error(`Failed to delete ${docType} document:`, filePath, error);
+    // Handle draft state changes
+    if (draftState.isDraft) {
+      console.log('🔍 DRAFT MODE - Processing all pending changes');
+      
+      // Process pending deletions
+      for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
+        for (const filePath of deletedPaths) {
+          try {
+            await deleteVehicleDocument(filePath);
+            console.log(`🔍 DRAFT MODE - Deleted ${docType} document:`, filePath);
+          } catch (error) {
+            console.error(`Failed to delete ${docType} document:`, filePath, error);
+          }
+        }
+      }
+      
+      // Process pending uploads (they're already uploaded, just need to update database)
+      console.log('🔍 DRAFT MODE - Pending uploads:', draftState.pendingNewUploads);
+      
+      // Clear draft state
+      setDraftState({
+        isDraft: false,
+        originalDocuments: {},
+        pendingUploads: {},
+        pendingDeletions: {},
+        pendingNewUploads: {}
+      });
+    } else {
+      // Original behavior for non-draft mode
+      for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
+        for (const filePath of deletedPaths) {
+          try {
+            await deleteVehicleDocument(filePath);
+            console.log(`Deleted ${docType} document:`, filePath);
+          } catch (error) {
+            console.error(`Failed to delete ${docType} document:`, filePath, error);
+          }
         }
       }
     }
@@ -415,14 +515,34 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       finalInsurance: uploadedDocuments.insurance || data.insurance_document_url || []
     });
 
+    // Handle document URLs based on draft state
+    let finalDocumentUrls = {};
+    
+    if (draftState.isDraft) {
+      // In draft mode, use the current form values (which include pending changes)
+      finalDocumentUrls = {
+        rc_document_url: data.rc_document_url || [],
+        insurance_document_url: data.insurance_document_url || [],
+        fitness_document_url: data.fitness_document_url || [],
+        tax_document_url: data.tax_document_url || [],
+        permit_document_url: data.permit_document_url || [],
+        puc_document_url: data.puc_document_url || [],
+      };
+    } else {
+      // Original behavior for non-draft mode
+      finalDocumentUrls = {
+        rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
+        insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
+        fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
+        tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
+        permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
+        puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
+      };
+    }
+
     const formData = {
       ...data,
-      rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
-      insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
-      fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
-      tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
-      permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
-      puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
+      ...finalDocumentUrls,
     };
 
     console.log('Form submit - final formData document URLs:', {
@@ -439,6 +559,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+      {/* Draft Status Indicator */}
+      {draftState.isDraft && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800">Draft Mode Active</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                Document changes are staged. Click "Update Vehicle" to save or "Cancel" to discard changes.
+              </p>
+              {Object.keys(draftState.pendingNewUploads).length > 0 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Pending uploads: {Object.keys(draftState.pendingNewUploads).join(', ')}
+                </p>
+              )}
+              {Object.keys(draftState.pendingDeletions).length > 0 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  Pending deletions: {Object.keys(draftState.pendingDeletions).join(', ')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* RC Fetch Section */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
         <p className="text-sm text-gray-700 font-medium mb-3">
