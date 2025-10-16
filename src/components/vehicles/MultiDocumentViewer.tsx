@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, Share2, ZoomIn, ZoomOut, RotateCw, Maximize2, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight, FileText, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 interface MultiDocumentViewerProps {
@@ -18,39 +18,17 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-
-  // Log when component mounts
-  useEffect(() => {
-    console.log('🎬 MultiDocumentViewer mounted:', {
-      documentCount: documents.length,
-      documentType,
-      documents
-    });
-    
-    // Set loading to false immediately if we have documents
-    if (documents && documents.length > 0) {
-      setIsLoading(false);
-      setError(null);
-    }
-  }, [documents, documentType]);
 
   const currentDocument = documents[currentIndex];
   
-  // Better file type detection that handles URL-encoded filenames and tokens
   const getFileType = (url: string) => {
-    // Decode URL and extract filename
     const decodedUrl = decodeURIComponent(url);
     const filename = decodedUrl.split('/').pop()?.split('?')[0] || '';
     
     if (filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return 'image';
     if (filename.match(/\.pdf$/i)) return 'pdf';
-    if (filename.match(/\.(doc|docx)$/i)) return 'document';
-    if (filename.match(/\.(txt)$/i)) return 'text';
-    
     return 'unknown';
   };
   
@@ -89,27 +67,9 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
     setError(null);
   };
 
-  const handleZoomIn = () => {
-    setZoom(prev => Math.min(prev + 0.25, 3));
-  };
-
-  const handleZoomOut = () => {
-    setZoom(prev => Math.max(prev - 0.25, 0.5));
-  };
-
-  const handleRotate = () => {
-    setRotation(prev => (prev + 90) % 360);
-  };
-
-  const handleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
+  const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
+  const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5));
+  const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
   const handleDownload = async () => {
     try {
@@ -130,260 +90,188 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
     }
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${documentType} Document - ${vehicleNumber}`,
-          text: `${documentType} document for vehicle ${vehicleNumber}`,
-          url: currentDocument
-        });
-      } catch (error) {
-        console.log('Share failed:', error);
-      }
-    } else {
-      // Fallback: Copy to clipboard
-      navigator.clipboard.writeText(currentDocument);
-      toast.success('Link copied to clipboard');
-    }
-  };
-
   const handleImageLoad = () => {
     setIsLoading(false);
     setError(null);
-    setIsInitialLoad(false);
   };
 
   const handleImageError = () => {
     setIsLoading(false);
     setError('Failed to load document');
-    setIsInitialLoad(false);
-  };
-
-  // Reset loading state when document changes
-  useEffect(() => {
-    setIsLoading(false);
-    setError(null);
-    console.log('📄 Document changed, index:', currentIndex);
-  }, [currentIndex]);
-
-  const getFileName = (url: string) => {
-    const segments = url.split('/');
-    return segments[segments.length - 1] || 'document';
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-0 sm:p-4">
-      <div className="relative w-full h-full max-w-6xl max-h-full bg-white rounded-none sm:rounded-lg overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 bg-white flex-shrink-0">
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <h3 className="text-sm sm:text-lg font-semibold text-gray-900 truncate">
-              {documentType} Documents - {vehicleNumber}
-            </h3>
-            {documents.length > 1 && (
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 flex-shrink-0">
-                <span className="hidden sm:inline">{currentIndex + 1} of {documents.length}</span>
-                <span className="sm:hidden">{currentIndex + 1}/{documents.length}</span>
-                <div className="flex gap-1">
-                  <button
-                    onClick={handlePrevious}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-                    disabled={documents.length <= 1}
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    className="p-2 hover:bg-gray-100 rounded transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-                    disabled={documents.length <= 1}
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* Zoom Controls - Hidden on mobile for space */}
-            <div className="hidden sm:flex items-center gap-1">
-              <button
-                onClick={handleZoomOut}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-                disabled={zoom <= 0.5}
-              >
-                <ZoomOut className="h-4 w-4" />
-              </button>
-              <span className="text-sm text-gray-600 min-w-[3rem] text-center">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={handleZoomIn}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-                disabled={zoom >= 3}
-              >
-                <ZoomIn className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Rotate Button (for images) - Hidden on mobile */}
-            {isImage && (
-              <button
-                onClick={handleRotate}
-                className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-              >
-                <RotateCw className="h-4 w-4" />
-              </button>
-            )}
-
-            {/* Fullscreen Button - Hidden on mobile */}
-            <button
-              onClick={handleFullscreen}
-              className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-
-            {/* Download Button */}
-            <button
-              onClick={handleDownload}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation min-w-[48px] min-h-[48px] flex items-center justify-center"
-              title="Download"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-
-            {/* Share Button - Hidden on mobile */}
-            <button
-              onClick={handleShare}
-              className="hidden sm:block p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-              title="Share"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
-
-            {/* Close Button */}
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
-              title="Close"
-            >
-              <X className="h-4 w-4" />
-            </button>
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
+      {/* Compact Header */}
+      <div className="bg-gray-900 text-white px-3 py-2 flex items-center justify-between flex-shrink-0">
+        {/* Left: Document Info */}
+        <div className="flex items-center gap-3">
+          <FileText className="h-5 w-5 text-blue-400" />
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold">{documentType}</span>
+            <span className="text-xs text-gray-400">{vehicleNumber}</span>
           </div>
         </div>
 
-        {/* Document Navigation (if multiple documents) */}
+        {/* Center: Navigation (if multiple docs) */}
         {documents.length > 1 && (
-          <div className="p-3 sm:p-4 bg-gray-50 border-b border-gray-200">
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 -mb-2">
-              {documents.map((doc, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    setZoom(1);
-                    setRotation(0);
-                    setIsLoading(true);
-                    setError(null);
-                  }}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap min-h-[48px] touch-manipulation ${
-                    index === currentIndex
-                      ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                  }`}
-                >
-                  <FileText className="h-4 w-4 flex-shrink-0" />
-                  <span className="truncate max-w-[120px] sm:max-w-none">{getFileName(doc)}</span>
-                </button>
-              ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrevious}
+              className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+              title="Previous (←)"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="text-sm px-2 py-1 bg-gray-800 rounded">
+              {currentIndex + 1} / {documents.length}
+            </span>
+            <button
+              onClick={handleNext}
+              className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+              title="Next (→)"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        )}
+
+        {/* Right: Controls */}
+        <div className="flex items-center gap-1">
+          {isImage && (
+            <>
+              <button
+                onClick={handleZoomOut}
+                className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+                title="Zoom Out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleZoomIn}
+                className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+                title="Zoom In"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleRotate}
+                className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+                title="Rotate"
+              >
+                <RotateCw className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleDownload}
+            className="p-1.5 hover:bg-gray-800 rounded transition-colors"
+            title="Download"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-red-600 rounded transition-colors ml-1"
+            title="Close (Esc)"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Document Content - Maximum Space */}
+      <div className="flex-1 overflow-auto bg-black relative">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-400 text-sm">Loading...</p>
             </div>
           </div>
         )}
 
-        {/* Document Content */}
-        <div className="flex-1 overflow-auto bg-gray-100 relative -webkit-overflow-scrolling-touch">
-          {console.log('🔍 Render state:', { isLoading, error, currentDocument })}
-          {isLoading && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-                <p className="text-gray-600 text-sm">Loading document...</p>
-              </div>
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-4">
+              <FileText className="h-12 w-12 mx-auto mb-2 text-red-500" />
+              <p className="text-red-400 mb-4">{error}</p>
+              <button
+                onClick={() => window.open(currentDocument, '_blank')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Open in New Tab
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {error && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-center p-4">
-                <div className="text-red-500 mb-4">
-                  <FileText className="h-12 w-12 mx-auto mb-2" />
-                  <p className="text-red-600 mb-2">{error}</p>
-                </div>
-                <button
-                  onClick={() => window.open(currentDocument, '_blank')}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-manipulation"
-                >
-                  Open in New Tab
-                </button>
-              </div>
+        {isImage && !isLoading && !error && (
+          <div className="h-full flex items-center justify-center p-4">
+            <img
+              src={currentDocument}
+              alt={`${documentType} ${currentIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              style={{
+                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                transition: 'transform 0.2s',
+              }}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          </div>
+        )}
+
+        {isPDF && !isLoading && !error && (
+          <iframe
+            src={currentDocument}
+            className="w-full h-full border-0"
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+            title={`${documentType} ${currentIndex + 1}`}
+          />
+        )}
+
+        {!isImage && !isPDF && !isLoading && !error && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center p-4">
+              <FileText className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p className="text-gray-400 mb-4">Unsupported file type</p>
+              <button
+                onClick={() => window.open(currentDocument, '_blank')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Open in New Tab
+              </button>
             </div>
-          )}
-
-          {isImage && !isLoading && !error && (
-            <div className="flex items-center justify-center p-2 sm:p-4 min-h-full">
-              <img
-                src={currentDocument}
-                alt={`${documentType} document ${currentIndex + 1}`}
-                className="max-w-full max-h-full object-contain transition-transform duration-200 touch-action-pan-x-pan-y-pinch-zoom"
-                style={{
-                  transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                }}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-              />
-            </div>
-          )}
-
-          {isPDF && !isLoading && !error && (
-            <div className="h-full w-full">
-              <iframe
-                src={currentDocument}
-                className="w-full h-full border-0"
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                title={`${documentType} document ${currentIndex + 1}`}
-                style={{ minHeight: '500px' }}
-              />
-            </div>
-          )}
-
-          {!isImage && !isPDF && !isLoading && !error && (
-            <div className="flex items-center justify-center h-full min-h-[400px]">
-              <div className="text-center p-4">
-                <div className="text-gray-500 mb-4">
-                  <FileText className="h-12 w-12 mx-auto mb-2" />
-                  <p className="text-gray-600 mb-2">Unsupported document type</p>
-                </div>
-                <button
-                  onClick={() => window.open(currentDocument, '_blank')}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-manipulation"
-                >
-                  Open in New Tab
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Touch Instructions */}
-        <div className="md:hidden p-3 bg-gray-50 border-t border-gray-200 flex-shrink-0 pb-safe">
-          <p className="text-xs text-gray-500 text-center">
-            Pinch to zoom • Double tap to reset zoom • Swipe to navigate • Tap to close
-          </p>
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Quick Document Switcher (if multiple docs) - Bottom */}
+      {documents.length > 1 && (
+        <div className="bg-gray-900 px-3 py-2 flex items-center gap-2 overflow-x-auto flex-shrink-0">
+          {documents.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setCurrentIndex(index);
+                setZoom(1);
+                setRotation(0);
+                setIsLoading(true);
+                setError(null);
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded text-sm transition-colors ${
+                index === currentIndex
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              }`}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
