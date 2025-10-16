@@ -23,11 +23,6 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Debug logging
-  console.log('🔍 MultiDocumentViewer - documents:', documents);
-  console.log('🔍 MultiDocumentViewer - documentType:', documentType);
-  console.log('🔍 MultiDocumentViewer - vehicleNumber:', vehicleNumber);
-
   const currentDocument = documents[currentIndex];
   
   // Better file type detection that handles URL-encoded filenames and tokens
@@ -103,41 +98,19 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
 
   const handleDownload = async () => {
     try {
-      console.log('🔍 Downloading document:', currentDocument);
-      
-      // Check if it's a signed URL or direct URL
-      if (currentDocument.includes('token=')) {
-        // It's a signed URL, use it directly
-        const response = await fetch(currentDocument);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const blob = await response.blob();
-        console.log('🔍 Downloaded blob:', blob.type, blob.size);
-        
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = `${vehicleNumber}_${documentType}_${currentIndex + 1}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(downloadUrl);
-        toast.success('Document downloaded successfully');
-      } else {
-        // It's a direct URL, use it as is
-        const link = document.createElement('a');
-        link.href = currentDocument;
-        link.download = `${vehicleNumber}_${documentType}_${currentIndex + 1}`;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success('Document download initiated');
-      }
+      const response = await fetch(currentDocument);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${vehicleNumber}_${documentType}_${currentIndex + 1}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success('Document downloaded successfully');
     } catch (error) {
-      console.error('❌ Download failed:', error);
+      console.error('Download failed:', error);
       toast.error('Failed to download document');
     }
   };
@@ -172,16 +145,6 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
     setIsInitialLoad(false);
   };
 
-  // Handle signed URLs differently - they don't need iframe loading
-  useEffect(() => {
-    if (currentDocument && currentDocument.includes('token=')) {
-      // For signed URLs, we don't need to wait for iframe loading
-      setIsLoading(false);
-      setError(null);
-      setIsInitialLoad(false);
-    }
-  }, [currentDocument]);
-
   // Handle initial load timeout to prevent infinite loading
   useEffect(() => {
     if (isInitialLoad) {
@@ -198,22 +161,8 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   }, [isInitialLoad, isLoading]);
 
   const getFileName = (url: string) => {
-    try {
-      // Handle URL-encoded filenames and tokens
-      const decodedUrl = decodeURIComponent(url);
-      const filename = decodedUrl.split('/').pop()?.split('?')[0] || '';
-      
-      // Clean up the filename
-      const cleanFilename = filename
-        .replace(/^[^_]*_/, '') // Remove timestamp prefix
-        .replace(/\.pdf$/, '.pdf') // Ensure .pdf extension
-        .replace(/%20/g, ' '); // Replace %20 with spaces
-      
-      return cleanFilename || 'document.pdf';
-    } catch (error) {
-      console.error('Error parsing filename:', error);
-      return 'document.pdf';
-    }
+    const segments = url.split('/');
+    return segments[segments.length - 1] || 'document';
   };
 
   return (
@@ -391,41 +340,14 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
 
           {isPDF && !isLoading && !error && (
             <div className="h-full w-full">
-              {currentDocument.includes('token=') ? (
-                // For signed URLs, use a different approach
-                <div className="h-full w-full flex items-center justify-center">
-                  <div className="text-center p-4">
-                    <div className="text-gray-500 mb-4">
-                      <FileText className="h-12 w-12 mx-auto mb-2" />
-                      <p className="text-gray-600 mb-2">PDF Document Ready</p>
-                    </div>
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => window.open(currentDocument, '_blank')}
-                        className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-manipulation"
-                      >
-                        Open PDF in New Tab
-                      </button>
-                      <button
-                        onClick={handleDownload}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors touch-manipulation"
-                      >
-                        Download PDF
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // For direct URLs, use iframe
-                <iframe
-                  src={currentDocument}
-                  className="w-full h-full border-0"
-                  onLoad={handleImageLoad}
-                  onError={handleImageError}
-                  title={`${documentType} document ${currentIndex + 1}`}
-                  style={{ minHeight: '500px' }}
-                />
-              )}
+              <iframe
+                src={currentDocument}
+                className="w-full h-full border-0"
+                onLoad={handleImageLoad}
+                onError={handleImageError}
+                title={`${documentType} document ${currentIndex + 1}`}
+                style={{ minHeight: '500px' }}
+              />
             </div>
           )}
 
