@@ -39,6 +39,7 @@ import {
   Clock,
   CreditCard,
   Tag as TagIcon,
+  Upload,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
