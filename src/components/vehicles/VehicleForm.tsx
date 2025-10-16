@@ -190,7 +190,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   // Handle document upload completion - DRAFT MODE
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
-    console.log(`Document upload completed for ${docType}:`, filePaths);
+    console.log(`📄 Document upload completed for ${docType}:`, filePaths);
+    
+    // Get current paths from form state
+    const fieldName = `${docType}_document_url` as keyof Vehicle;
+    const currentFormValue = watch(fieldName) || [];
+    
+    // Combine and deduplicate
+    const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
+    
+    console.log(`✅ Combined ${docType} paths (duplicates removed):`, {
+      before: currentFormValue,
+      new: filePaths,
+      after: combinedPaths,
+      duplicatesRemoved: (currentFormValue.length + filePaths.length) - combinedPaths.length
+    });
     
     if (draftState.isDraft) {
       // In draft mode, store in pending uploads instead of immediate upload
@@ -203,25 +217,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }));
       
       // Update form display (but don't save to database yet)
-      const fieldName = `${docType}_document_url` as keyof Vehicle;
-      const currentFormValue = watch(fieldName) || [];
-      const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
       setValue(fieldName, combinedPaths as any);
       
       console.log(`🔍 DRAFT MODE - Stored pending upload for ${docType}:`, filePaths);
     } else {
-      // Original behavior for non-draft mode
-      const fieldName = `${docType}_document_url` as keyof Vehicle;
-      const currentFormValue = watch(fieldName) || [];
-      const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
-      
+      // Original behavior for non-draft mode - update uploadedDocuments state
       setUploadedDocuments(prev => ({
         ...prev,
         [docType]: combinedPaths
       }));
       
-      setValue(fieldName, combinedPaths as any);
-      console.log(`Combined ${docType} documents:`, combinedPaths);
+      console.log(`📄 NON-DRAFT MODE - Updated ${docType} documents:`, combinedPaths);
     }
   };
 

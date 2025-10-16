@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getSignedDriverDocumentUrl } from '../../utils/supabaseStorage';
@@ -62,9 +62,40 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   // Staged files state for staged upload mode
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  
+  // Duplicate prevention state
+  const [isUploading, setIsUploading] = useState(false);
+  const uploadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUploadTimeRef = useRef<number>(0);
+  const uploadedFileHashesRef = useRef<Set<string>>(new Set());
+
+  // Helper function for file hashing to detect duplicates
+  const generateFileHash = async (file: File): Promise<string> => {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  };
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    
+    // PREVENT DOUBLE UPLOADS: Check if already uploading
+    if (isUploading) {
+      console.log('⚠️ Upload already in progress, ignoring duplicate request');
+      toast.warning('Please wait for current upload to complete');
+      return;
+    }
+
+    // PREVENT RAPID UPLOADS: Check time since last upload
+    const now = Date.now();
+    const timeSinceLastUpload = now - lastUploadTimeRef.current;
+    if (timeSinceLastUpload < 3000) { // 3 second minimum between uploads
+      console.log('⚠️ Upload too soon after previous upload, ignoring');
+      toast.warning('Please wait a moment before uploading again');
+      return;
+    }
     
     const fileArray = Array.from(files);
     
@@ -85,10 +116,31 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       return;
     }
     
+    // PREVENT DUPLICATE FILES: Check file hashes for immediate upload mode
+    if (uploadMode === 'immediate') {
+      const newHashes = await Promise.all(
+        fileArray.map(file => generateFileHash(file))
+      );
+      
+      const duplicates = newHashes.filter(hash => 
+        uploadedFileHashesRef.current.has(hash)
+      );
+      
+      if (duplicates.length > 0) {
+        console.log('⚠️ Duplicate files detected, skipping upload');
+        toast.warning('These files have already been uploaded');
+        return;
+      }
+    }
+    
     // Update form state immediately
     if (onChange) {
       onChange(multiple ? [...value, ...fileArray] : fileArray.slice(0, 1));
     }
+
+    // Set uploading flag
+    setIsUploading(true);
+    lastUploadTimeRef.current = now;
 
     // Start upload process
     setUploadState(prev => ({
@@ -118,6 +170,14 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
       const uploadedPaths = await Promise.all(uploadPromises);
       
+      // Add file hashes to prevent future duplicates
+      if (uploadMode === 'immediate') {
+        const newHashes = await Promise.all(
+          fileArray.map(file => generateFileHash(file))
+        );
+        newHashes.forEach(hash => uploadedFileHashesRef.current.add(hash));
+      }
+      
       setUploadState(prev => ({
         ...prev,
         status: 'success',
@@ -130,6 +190,8 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         onUploadComplete(uploadedPaths);
       }
 
+      toast.success(`${fileArray.length} file(s) uploaded successfully`);
+
     } catch (error) {
       console.error('Upload error:', error);
       setUploadState(prev => ({
@@ -137,8 +199,14 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         status: 'error',
         errorMessage: error instanceof Error ? error.message : 'Upload failed'
       }));
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      // Reset upload flag after 2 seconds
+      uploadTimeoutRef.current = setTimeout(() => {
+        setIsUploading(false);
+      }, 2000);
     }
-  }, [bucketType, entityId, docType, multiple, value, onChange, onUploadComplete]);
+  }, [bucketType, entityId, docType, multiple, value, onChange, onUploadComplete, isUploading, uploadMode, onStagedFiles, stagedFiles]);
 
   const handleRetry = () => {
     setUploadState(prev => ({
@@ -318,7 +386,16 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     uploadStagedFiles,
     clearStagedFiles,
     hasStagedFiles: stagedFiles.length > 0
-  }));
+  })  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className={cn('form-group', className)}>

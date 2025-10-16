@@ -224,84 +224,90 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   };
 
-  // Function to view documents
+  // Function to view documents with optimized loading
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    if (isViewingDocuments) {
-      return; // Prevent multiple clicks
-    }
+    console.log(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
     
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
     }
 
+    // Show loading state immediately
     setIsViewingDocuments(true);
+    toast.info('Loading document...', { autoClose: 2000 });
 
-    // Generate public URLs for all documents with proper encoding for spaces
-    const urls = docPaths.map(path => {
-      const cleanPath = path
-        .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-        .replace(/^vehicle-docs\//, '')
-        .trim();
-      
-      // Encode the path properly to handle spaces
-      const encodedPath = cleanPath.split('/').map(segment => 
-        encodeURIComponent(segment.replace(/%20/g, ' '))
-      ).join('/');
-      
-      // Get the base URL without encoding
-      const baseUrl = `${supabase.storageUrl}/object/public/vehicle-docs/`;
-      
-      // Construct the final URL
-      return `${baseUrl}${encodedPath}`;
-    }).filter(url => url);
-
-    if (urls.length === 1) {
-      // Single document - use download-then-open approach
-      try {
+    try {
+      if (docPaths.length === 1) {
+        // Single document - optimized download approach
         const filePath = docPaths[0];
-        console.log(`🔍 VehicleDetailsTab - Original filePath:`, filePath);
+        console.log(`📥 Starting download for: ${filePath}`);
         
+        // Clean the path
         const cleanedPath = filePath
           .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
           .replace(/^vehicle-docs\//, '')
           .trim();
         
-        console.log(`🔍 VehicleDetailsTab - Cleaned path:`, cleanedPath);
-        console.log(`🔍 VehicleDetailsTab - Attempting download for ${docType}`);
+        console.log(`✨ Cleaned path: ${cleanedPath}`);
         
-        const { data, error } = await supabase.storage
+        // Download with timeout
+        const downloadPromise = supabase.storage
           .from('vehicle-docs')
           .download(cleanedPath);
         
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Download timeout')), 10000) // 10 second timeout
+        );
+        
+        const { data, error } = await Promise.race([
+          downloadPromise,
+          timeoutPromise
+        ]) as any;
+        
         if (error) {
-          console.error(`❌ VehicleDetailsTab - Download error:`, error);
-          throw error;
+          console.error(`❌ Download error:`, error);
+          throw new Error('Failed to load document');
         }
         
-        console.log(`✅ VehicleDetailsTab - Download successful:`, data);
-        console.log(`🔍 VehicleDetailsTab - Data type:`, typeof data, 'Size:', data?.size);
+        console.log(`✅ Download successful, size: ${data.size} bytes`);
         
+        // Create blob URL and open
         const url = URL.createObjectURL(data);
-        console.log(`🔍 VehicleDetailsTab - Created blob URL:`, url);
+        const newWindow = window.open(url, '_blank');
         
-        window.open(url, '_blank');
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      } catch (error) {
-        console.error('❌ VehicleDetailsTab - View error:', error);
-        console.error('❌ VehicleDetailsTab - Error details:', {
-          message: error.message,
-          code: error.code,
-          statusCode: error.statusCode,
-          name: error.name
-        });
-        toast.error('Unable to view document');
-      } finally {
-        setIsViewingDocuments(false);
+        if (!newWindow) {
+          throw new Error('Pop-up blocked. Please allow pop-ups for this site.');
+        }
+        
+        // Cleanup after 5 seconds
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        
+        toast.success('Document loaded successfully');
+        
+      } else {
+        // Multiple documents - show carousel viewer
+        const urls = docPaths.map(path => {
+          const cleanPath = path
+            .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+            .replace(/^vehicle-docs\//, '')
+            .trim();
+          
+          const encodedPath = cleanPath.split('/').map(segment => 
+            encodeURIComponent(segment.replace(/%20/g, ' '))
+          ).join('/');
+          
+          return `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
+        }).filter(url => url);
+        
+        setDocumentViewer({ show: true, urls, type: docType });
+        toast.success(`Loading ${urls.length} documents`);
       }
-    } else if (urls.length > 1) {
-      // Multiple documents - show viewer
-      setDocumentViewer({ show: true, urls, type: docType });
+      
+    } catch (error) {
+      console.error('❌ View error:', error);
+      toast.error(error instanceof Error ? error.message : 'Unable to view document');
+    } finally {
       setIsViewingDocuments(false);
     }
   };
