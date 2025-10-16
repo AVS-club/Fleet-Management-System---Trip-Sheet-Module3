@@ -419,41 +419,7 @@ export const mobileGestures = {
   }
 };
 
-// Detect if running in WebView (APK wrapper)
-export const isWebView = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  
-  const userAgent = navigator.userAgent || '';
-  
-  // Check for common WebView indicators
-  const webViewIndicators = [
-    'wv',                    // Android WebView
-    'WebView',               // Generic WebView
-    '; wv)',                 // Android WebView with space
-    'Version/',              // Often present in WebView
-  ];
-  
-  // Check if NOT a full browser
-  const isNotFullBrowser = !userAgent.includes('Chrome/') || 
-                           !userAgent.includes('Safari/');
-  
-  // Check for WebView indicators
-  const hasWebViewIndicator = webViewIndicators.some(indicator => 
-    userAgent.includes(indicator)
-  );
-  
-  return hasWebViewIndicator || (isAndroidDevice() && isNotFullBrowser);
-};
 
-// Detect the wrapper type
-export const getWrapperType = (): 'cordova' | 'capacitor' | 'webview' | 'browser' => {
-  if (typeof window === 'undefined') return 'browser';
-  
-  if ((window as any).cordova) return 'cordova';
-  if ((window as any).Capacitor) return 'capacitor';
-  if (isWebView()) return 'webview';
-  return 'browser';
-};
 
 // Export all utilities
 export default {
@@ -481,7 +447,5 @@ export default {
   isLowEndDevice,
   mobileStorage,
   mobileFormUtils,
-  mobileGestures,
-  isWebView,
-  getWrapperType
+  mobileGestures
 };
