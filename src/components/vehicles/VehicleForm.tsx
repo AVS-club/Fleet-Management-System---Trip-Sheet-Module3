@@ -114,26 +114,30 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     name: 'other_documents',
   });
 
-  // Enable fields if initialData is present (for edit mode)
+  // Enable draft mode when editing existing vehicle
   useEffect(() => {
     if (initialData?.id) {
-      setFieldsDisabled(false);
-      // Initialize draft state with original documents
-      const originalDocs = {
-        rc: initialData.rc_document_url || [],
-        insurance: initialData.insurance_document_url || [],
-        fitness: initialData.fitness_document_url || [],
-        tax: initialData.tax_document_url || [],
-        permit: initialData.permit_document_url || [],
-        puc: initialData.puc_document_url || []
-      };
-      setDraftState(prev => ({
-        ...prev,
+      console.log('📝 Enabling draft mode for vehicle:', initialData.id);
+      
+      setDraftState({
         isDraft: true,
-        originalDocuments: originalDocs
-      }));
+        originalDocuments: {
+          rc: initialData?.rc_document_url || [],
+          insurance: initialData?.insurance_document_url || [],
+          fitness: initialData?.fitness_document_url || [],
+          tax: initialData?.tax_document_url || [],
+          permit: initialData?.permit_document_url || [],
+          puc: initialData?.puc_document_url || []
+        },
+        pendingUploads: {},
+        pendingDeletions: {},
+        pendingNewUploads: {}
+      });
+      
+      setFieldsDisabled(false);
+      console.log('✅ Draft mode enabled');
     }
-  }, [initialData]);
+  }, [initialData?.id]);
 
   // Register all document URL fields to ensure they're included in form data
   useEffect(() => {
@@ -490,63 +494,91 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const onFormSubmit = async (data: Vehicle) => {
-    setIsSubmitting(true);
-    
     try {
-      // Handle staged files upload first
-      if (Object.keys(stagedDocuments).length > 0) {
-        console.log('🔍 STAGED MODE - Uploading staged files');
+      console.log('🚀 Form submit started');
+      console.log('📋 Draft state:', draftState);
+      
+      // STEP 1: Delete files from storage if in draft mode
+      if (draftState.isDraft && Object.keys(draftState.pendingDeletions).length > 0) {
+        console.log('🗑️ Processing deletions...');
         
-        const uploadPromises = Object.entries(stagedDocuments).map(async ([docType, { files }]) => {
-          const uploadedPaths = [];
-          
-          for (const file of files) {
-            try {
-              const path = await uploadVehicleDocument(file, data.id || '', docType, (progress) => {
-                setUploadProgress(prev => ({ ...prev, [docType]: progress }));
-              });
-              uploadedPaths.push(path);
-            } catch (error) {
-              console.error(`Failed to upload ${docType} file:`, file.name, error);
-              throw error;
-            }
-          }
-          
-          return { docType, paths: uploadedPaths };
-        });
-
-        const uploadResults = await Promise.all(uploadPromises);
-        
-        // Merge uploaded paths with existing paths
-        const documentUrls = {};
-        uploadResults.forEach(({ docType, paths }) => {
-          const existingPaths = stagedDocuments[docType]?.existingPaths || [];
-          documentUrls[`${docType}_document_url`] = [...existingPaths, ...paths];
-        });
-
-        // Update form data with document URLs
-        Object.entries(documentUrls).forEach(([key, value]) => {
-          data[key as keyof Vehicle] = value as any;
-        });
-      }
-
-      // Handle draft state changes
-      if (draftState.isDraft) {
-        console.log('🔍 DRAFT MODE - Processing all pending changes');
-        
-        // Process pending deletions
         for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
+          console.log(`🗑️ Deleting ${deletedPaths.length} ${docType} files`);
+          
           for (const filePath of deletedPaths) {
             try {
-              await deleteVehicleDocument(filePath);
-              console.log(`🔍 DRAFT MODE - Deleted ${docType} document:`, filePath);
+              // Clean the path
+              const cleanPath = filePath
+                .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+                .replace(/^vehicle-docs\//, '')
+                .trim();
+              
+              console.log(`🗑️ Deleting: ${cleanPath}`);
+              
+              // Delete from storage
+              const { error } = await supabase.storage
+                .from('vehicle-docs')
+                .remove([cleanPath]);
+              
+              if (error) {
+                console.error('Delete error:', error);
+              } else {
+                console.log(`✅ Deleted: ${cleanPath}`);
+              }
             } catch (error) {
-              console.error(`Failed to delete ${docType} document:`, filePath, error);
+              console.error(`Failed to delete ${docType}:`, error);
             }
           }
         }
-        
-        // Clear draft state
+      }
+      
+      // STEP 2: Upload new files if in draft mode
+      if (draftState.isDraft && Object.keys(draftState.pendingNewUploads).length > 0) {
+        console.log('📤 Files already uploaded during selection');
+      }
+      
+      // STEP 3: Prepare final document URLs
+      let finalDocumentUrls = {};
+      
+      if (draftState.isDraft) {
+        // Use current form values (which already have deletions removed)
+        finalDocumentUrls = {
+          rc_document_url: data.rc_document_url || [],
+          insurance_document_url: data.insurance_document_url || [],
+          fitness_document_url: data.fitness_document_url || [],
+          tax_document_url: data.tax_document_url || [],
+          permit_document_url: data.permit_document_url || [],
+          puc_document_url: data.puc_document_url || [],
+        };
+      } else {
+        // Use uploadedDocuments for new vehicle
+        finalDocumentUrls = {
+          rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
+          insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
+          fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
+          tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
+          permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
+          puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
+        };
+      }
+
+      const formData = {
+        ...data,
+        ...finalDocumentUrls,
+      };
+
+      console.log('📋 Final form data:', formData);
+      console.log('📄 Final document URLs:', {
+        rc: formData.rc_document_url,
+        insurance: formData.insurance_document_url,
+        fitness: formData.fitness_document_url,
+        tax: formData.tax_document_url,
+        permit: formData.permit_document_url,
+        puc: formData.puc_document_url,
+      });
+
+      // Clear draft state
+      if (draftState.isDraft) {
         setDraftState({
           isDraft: false,
           originalDocuments: {},
@@ -554,83 +586,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           pendingDeletions: {},
           pendingNewUploads: {}
         });
-      } else {
-        // Original behavior for non-draft mode
-        for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
-          for (const filePath of deletedPaths) {
-            try {
-              await deleteVehicleDocument(filePath);
-              console.log(`Deleted ${docType} document:`, filePath);
-            } catch (error) {
-              console.error(`Failed to delete ${docType} document:`, filePath, error);
-            }
-          }
-        }
       }
 
-    // Debug logging
-    console.log('Form submit - uploadedDocuments:', uploadedDocuments);
-    console.log('Form submit - data document URLs:', {
-      rc: data.rc_document_url,
-      insurance: data.insurance_document_url,
-      fitness: data.fitness_document_url,
-      tax: data.tax_document_url,
-      permit: data.permit_document_url,
-      puc: data.puc_document_url,
-    });
-
-    // Special insurance debugging
-    console.log('🔍 INSURANCE SUBMIT DEBUG:', {
-      uploadedDocumentsInsurance: uploadedDocuments.insurance,
-      dataInsurance: data.insurance_document_url,
-      finalInsurance: uploadedDocuments.insurance || data.insurance_document_url || []
-    });
-
-    // Handle document URLs based on draft state
-    let finalDocumentUrls = {};
-    
-    if (draftState.isDraft) {
-      // In draft mode, use the current form values (which include pending changes)
-      finalDocumentUrls = {
-        rc_document_url: data.rc_document_url || [],
-        insurance_document_url: data.insurance_document_url || [],
-        fitness_document_url: data.fitness_document_url || [],
-        tax_document_url: data.tax_document_url || [],
-        permit_document_url: data.permit_document_url || [],
-        puc_document_url: data.puc_document_url || [],
-      };
-    } else {
-      // Original behavior for non-draft mode
-      finalDocumentUrls = {
-        rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
-        insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
-        fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
-        tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
-        permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
-        puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
-      };
-    }
-
-    const formData = {
-      ...data,
-      ...finalDocumentUrls,
-    };
-
-    console.log('Form submit - final formData document URLs:', {
-      rc: formData.rc_document_url,
-      insurance: formData.insurance_document_url,
-      fitness: formData.fitness_document_url,
-      tax: formData.tax_document_url,
-      permit: formData.permit_document_url,
-      puc: formData.puc_document_url,
-    });
-
-    onSubmit(formData);
+      // Submit to parent
+      onSubmit(formData);
+      
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('❌ Form submission error:', error);
       toast.error('Failed to update vehicle');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

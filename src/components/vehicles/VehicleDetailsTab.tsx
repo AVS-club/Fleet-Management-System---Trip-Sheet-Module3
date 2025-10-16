@@ -224,89 +224,48 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   };
 
-  // Function to view documents with optimized loading
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    console.log(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
+    console.log(`🔍 View clicked for ${docType}:`, docPaths);
     
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
     }
 
-    // Show loading state immediately
     setIsViewingDocuments(true);
-    toast.info('Loading document...', { autoClose: 2000 });
 
     try {
-      if (docPaths.length === 1) {
-        // Single document - optimized download approach
-        const filePath = docPaths[0];
-        console.log(`📥 Starting download for: ${filePath}`);
-        
+      // Create public URLs for all documents
+      const publicUrls = docPaths.map(path => {
         // Clean the path
-        const cleanedPath = filePath
+        const cleanPath = path
           .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
           .replace(/^vehicle-docs\//, '')
           .trim();
         
-        console.log(`✨ Cleaned path: ${cleanedPath}`);
+        // Encode properly
+        const encodedPath = cleanPath.split('/').map(segment => 
+          encodeURIComponent(segment)
+        ).join('/');
         
-        // Download with timeout
-        const downloadPromise = supabase.storage
-          .from('vehicle-docs')
-          .download(cleanedPath);
-        
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Download timeout')), 10000) // 10 second timeout
-        );
-        
-        const { data, error } = await Promise.race([
-          downloadPromise,
-          timeoutPromise
-        ]) as any;
-        
-        if (error) {
-          console.error(`❌ Download error:`, error);
-          throw new Error('Failed to load document');
-        }
-        
-        console.log(`✅ Download successful, size: ${data.size} bytes`);
-        
-        // Create blob URL and open
-        const url = URL.createObjectURL(data);
-        const newWindow = window.open(url, '_blank');
-        
-        if (!newWindow) {
-          throw new Error('Pop-up blocked. Please allow pop-ups for this site.');
-        }
-        
-        // Cleanup after 5 seconds
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        
-        toast.success('Document loaded successfully');
-        
-      } else {
-        // Multiple documents - show carousel viewer
-        const urls = docPaths.map(path => {
-          const cleanPath = path
-            .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-            .replace(/^vehicle-docs\//, '')
-            .trim();
-          
-          const encodedPath = cleanPath.split('/').map(segment => 
-            encodeURIComponent(segment.replace(/%20/g, ' '))
-          ).join('/');
-          
-          return `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
-        }).filter(url => url);
-        
-        setDocumentViewer({ show: true, urls, type: docType });
-        toast.success(`Loading ${urls.length} documents`);
-      }
+        // Create public URL
+        const publicUrl = `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
+        console.log(`📄 Created URL: ${publicUrl}`);
+        return publicUrl;
+      });
+      
+      console.log(`✅ Opening viewer with ${publicUrls.length} documents`);
+      
+      // Open the multi-document viewer
+      setDocumentViewer({
+        show: true,
+        urls: publicUrls,
+        type: docType
+      });
       
     } catch (error) {
       console.error('❌ View error:', error);
-      toast.error(error instanceof Error ? error.message : 'Unable to view document');
+      toast.error('Unable to view documents');
     } finally {
       setIsViewingDocuments(false);
     }

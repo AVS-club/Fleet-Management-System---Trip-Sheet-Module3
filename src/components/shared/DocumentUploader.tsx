@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2 } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2, FileText } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getSignedDriverDocumentUrl } from '../../utils/supabaseStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -218,34 +218,29 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   };
 
   const handleFileDelete = async (filePath: string, index: number) => {
-    if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-      try {
-        // Delete from storage first
-        const bucketName = bucketType === 'vehicle' ? 'vehicle-docs' : 'driver-docs';
-        const { error } = await supabase.storage.from(bucketName).remove([filePath]);
-        
-        if (error) {
-          console.error('Error deleting file from storage:', error);
-          toast.error('Failed to delete document from storage');
-          return;
-        }
+    if (!window.confirm('Remove this document? It will be deleted when you click "Update Vehicle".')) {
+      return;
+    }
 
-        // Remove from local state
-        setUploadState(prev => ({
-          ...prev,
-          uploadedPaths: prev.uploadedPaths.filter((_, i) => i !== index)
-        }));
+    try {
+      console.log('🗑️ Marking for deletion:', filePath);
+      
+      // Remove from local state (updates UI immediately)
+      setUploadState(prev => ({
+        ...prev,
+        uploadedPaths: prev.uploadedPaths.filter((_, i) => i !== index)
+      }));
 
-        // Notify parent component about the deletion
-        if (onFileDelete) {
-          onFileDelete(filePath);
-        }
-
-        toast.success('Document deleted successfully');
-      } catch (error) {
-        console.error('Error deleting document:', error);
-        toast.error('Failed to delete document');
+      // Notify parent component
+      if (onFileDelete) {
+        onFileDelete(filePath);
       }
+
+      toast.success('Document will be deleted when you click "Update Vehicle"');
+      
+    } catch (error) {
+      console.error('Error removing document:', error);
+      toast.error('Failed to remove document');
     }
   };
 
@@ -490,64 +485,35 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         {hasExistingFiles && (
           <div className="mt-3 space-y-2">
             {uploadState.uploadedPaths.map((path, index) => {
-              // Extract filename from path
+              // Extract clean filename
               const getFileName = (filePath: string) => {
-                // Handle different path formats
                 const segments = filePath.split('/');
                 const fileName = segments[segments.length - 1];
                 
-                // Check if it's a new format with original name: docType_timestamp_originalName.ext
+                // Check for format: docType_timestamp_originalName.ext
                 const newFormatMatch = fileName.match(/^(\w+)_\d+_(.+)$/);
                 if (newFormatMatch) {
-                  const [, docType, originalName] = newFormatMatch;
-                  return originalName; // Return the original file name
-                }
-                
-                // Check if it's old format: docType_timestamp.ext
-                if (fileName.includes('_') && /^\d+$/.test(fileName.split('_').pop()?.split('.')[0] || '')) {
-                  const parts = fileName.split('_');
-                  const extension = parts[parts.length - 1].split('.')[1] || '';
-                  const docType = parts[0];
-                  
-                  // Map document types to better display names
-                  const docTypeNames: Record<string, string> = {
-                    'rc': 'Registration Certificate',
-                    'insurance': 'Insurance Policy',
-                    'fitness': 'Fitness Certificate',
-                    'tax': 'Tax Receipt',
-                    'permit': 'Permit Document',
-                    'puc': 'PUC Certificate'
-                  };
-                  
-                  const displayName = docTypeNames[docType] || docType.toUpperCase();
-                  return `${displayName} (${index + 1}).${extension}`;
+                  return newFormatMatch[2]; // Return original name
                 }
                 
                 return fileName;
               };
 
-              // Get file extension for icon/type display
-              const getFileExtension = (filePath: string) => {
-                const fileName = getFileName(filePath);
-                return fileName.split('.').pop()?.toLowerCase() || '';
-              };
-
               const fileName = getFileName(path);
-              const fileExtension = getFileExtension(path);
+              const fileExtension = fileName.split('.').pop()?.toUpperCase() || 'FILE';
               const totalFiles = uploadState.uploadedPaths.length;
 
               return (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4 text-gray-400" />
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                         {fileName}
                       </span>
-                      {fileExtension && (
-                        <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full">
-                          {fileExtension.toUpperCase()}
-                        </span>
-                      )}
+                      <span className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-full">
+                        {fileExtension}
+                      </span>
                     </div>
                     {totalFiles > 1 && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
