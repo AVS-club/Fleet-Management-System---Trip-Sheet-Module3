@@ -75,6 +75,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     pendingNewUploads: {} as Record<string, string[]>
   });
 
+  // Staged documents state
+  const [stagedDocuments, setStagedDocuments] = useState<{
+    [key: string]: { files: File[], existingPaths: string[] }
+  }>({});
+
+  // Upload progress tracking
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
+
   const {
     register,
     handleSubmit,
@@ -243,6 +251,19 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         [docType]: [...(prev[docType] || []), filePath]
       }));
     }
+  };
+
+  // Handle staged document files
+  const handleDocumentStaging = (docType: string, files: File[]) => {
+    console.log(`🔍 STAGED MODE - Staging files for ${docType}:`, files);
+    
+    setStagedDocuments(prev => ({
+      ...prev,
+      [docType]: {
+        files: [...(prev[docType]?.files || []), ...files],
+        existingPaths: prev[docType]?.existingPaths || uploadedDocuments[docType] || []
+      }
+    }));
   };
 
   // Helper function to map fuel type
@@ -438,6 +459,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       
       console.log('🔍 DRAFT MODE - Reverted to original state');
     }
+
+    // Clear staged documents
+    if (Object.keys(stagedDocuments).length > 0) {
+      console.log('🔍 STAGED MODE - Clearing staged files');
+      setStagedDocuments({});
+      setUploadProgress({});
+    }
     
     // Reset form to initial values
     reset();
@@ -456,46 +484,83 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const onFormSubmit = async (data: Vehicle) => {
-    // Handle draft state changes
-    if (draftState.isDraft) {
-      console.log('🔍 DRAFT MODE - Processing all pending changes');
-      
-      // Process pending deletions
-      for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
-        for (const filePath of deletedPaths) {
-          try {
-            await deleteVehicleDocument(filePath);
-            console.log(`🔍 DRAFT MODE - Deleted ${docType} document:`, filePath);
-          } catch (error) {
-            console.error(`Failed to delete ${docType} document:`, filePath, error);
+    setIsSubmitting(true);
+    
+    try {
+      // Handle staged files upload first
+      if (Object.keys(stagedDocuments).length > 0) {
+        console.log('🔍 STAGED MODE - Uploading staged files');
+        
+        const uploadPromises = Object.entries(stagedDocuments).map(async ([docType, { files }]) => {
+          const uploadedPaths = [];
+          
+          for (const file of files) {
+            try {
+              const path = await uploadVehicleDocument(file, data.id || '', docType, (progress) => {
+                setUploadProgress(prev => ({ ...prev, [docType]: progress }));
+              });
+              uploadedPaths.push(path);
+            } catch (error) {
+              console.error(`Failed to upload ${docType} file:`, file.name, error);
+              throw error;
+            }
+          }
+          
+          return { docType, paths: uploadedPaths };
+        });
+
+        const uploadResults = await Promise.all(uploadPromises);
+        
+        // Merge uploaded paths with existing paths
+        const documentUrls = {};
+        uploadResults.forEach(({ docType, paths }) => {
+          const existingPaths = stagedDocuments[docType]?.existingPaths || [];
+          documentUrls[`${docType}_document_url`] = [...existingPaths, ...paths];
+        });
+
+        // Update form data with document URLs
+        Object.entries(documentUrls).forEach(([key, value]) => {
+          data[key as keyof Vehicle] = value as any;
+        });
+      }
+
+      // Handle draft state changes
+      if (draftState.isDraft) {
+        console.log('🔍 DRAFT MODE - Processing all pending changes');
+        
+        // Process pending deletions
+        for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
+          for (const filePath of deletedPaths) {
+            try {
+              await deleteVehicleDocument(filePath);
+              console.log(`🔍 DRAFT MODE - Deleted ${docType} document:`, filePath);
+            } catch (error) {
+              console.error(`Failed to delete ${docType} document:`, filePath, error);
+            }
+          }
+        }
+        
+        // Clear draft state
+        setDraftState({
+          isDraft: false,
+          originalDocuments: {},
+          pendingUploads: {},
+          pendingDeletions: {},
+          pendingNewUploads: {}
+        });
+      } else {
+        // Original behavior for non-draft mode
+        for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
+          for (const filePath of deletedPaths) {
+            try {
+              await deleteVehicleDocument(filePath);
+              console.log(`Deleted ${docType} document:`, filePath);
+            } catch (error) {
+              console.error(`Failed to delete ${docType} document:`, filePath, error);
+            }
           }
         }
       }
-      
-      // Process pending uploads (they're already uploaded, just need to update database)
-      console.log('🔍 DRAFT MODE - Pending uploads:', draftState.pendingNewUploads);
-      
-      // Clear draft state
-      setDraftState({
-        isDraft: false,
-        originalDocuments: {},
-        pendingUploads: {},
-        pendingDeletions: {},
-        pendingNewUploads: {}
-      });
-    } else {
-      // Original behavior for non-draft mode
-      for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
-        for (const filePath of deletedPaths) {
-          try {
-            await deleteVehicleDocument(filePath);
-            console.log(`Deleted ${docType} document:`, filePath);
-          } catch (error) {
-            console.error(`Failed to delete ${docType} document:`, filePath, error);
-          }
-        }
-      }
-    }
 
     // Debug logging
     console.log('Form submit - uploadedDocuments:', uploadedDocuments);
@@ -579,6 +644,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   Pending deletions: {Object.keys(draftState.pendingDeletions).join(', ')}
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staged Files Indicator */}
+      {Object.keys(stagedDocuments).length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <Upload className="h-5 w-5 text-blue-600 mr-2" />
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">Files Staged for Upload</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                Files are staged locally and will be uploaded when you click "Update Vehicle".
+              </p>
+              <div className="mt-2 space-y-1">
+                {Object.entries(stagedDocuments).map(([docType, { files }]) => (
+                  <div key={docType} className="text-xs text-blue-600">
+                    <span className="font-medium capitalize">{docType}:</span> {files.length} file(s) staged
+                    {uploadProgress[docType] && (
+                      <span className="ml-2">({uploadProgress[docType]}% uploaded)</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1209,6 +1299,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('rc', path)}
             initialFilePaths={initialData?.rc_document_url || []}
             helperText="Upload RC copy"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('rc', files)}
           />
 
           <DocumentUploader
@@ -1222,6 +1314,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('insurance', path)}
             initialFilePaths={initialData?.insurance_document_url || []}
             helperText="Upload insurance policy"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('insurance', files)}
           />
 
           <DocumentUploader
@@ -1235,6 +1329,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('fitness', path)}
             initialFilePaths={initialData?.fitness_document_url || []}
             helperText="Upload fitness certificate"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('fitness', files)}
           />
 
           <DocumentUploader
@@ -1248,6 +1344,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('tax', path)}
             initialFilePaths={initialData?.tax_document_url || []}
             helperText="Upload tax receipt"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('tax', files)}
           />
 
           <DocumentUploader
@@ -1261,6 +1359,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('permit', path)}
             initialFilePaths={initialData?.permit_document_url || []}
             helperText="Upload permit document"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('permit', files)}
           />
 
           <DocumentUploader
@@ -1274,6 +1374,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             onFileDelete={(path) => handleDocumentDelete('puc', path)}
             initialFilePaths={initialData?.puc_document_url || []}
             helperText="Upload PUC certificate"
+            uploadMode="staged"
+            onStagedFiles={(files) => handleDocumentStaging('puc', files)}
           />
         </div>
       </CollapsibleSection>

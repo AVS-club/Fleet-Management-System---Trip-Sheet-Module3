@@ -22,6 +22,8 @@ interface DocumentUploaderProps {
   initialFilePaths?: string[];
   required?: boolean;
   helperText?: string;
+  uploadMode?: 'immediate' | 'staged';
+  onStagedFiles?: (files: File[]) => void;
 }
 
 interface UploadState {
@@ -47,18 +49,41 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   className,
   initialFilePaths = [],
   required = false,
-  helperText
+  helperText,
+  uploadMode = 'immediate',
+  onStagedFiles
 }) => {
   const [uploadState, setUploadState] = useState<UploadState>({
     progress: 0,
     status: 'idle',
     uploadedPaths: initialFilePaths
   });
+  
+  // Staged files state for staged upload mode
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     
     const fileArray = Array.from(files);
+    
+    if (uploadMode === 'staged') {
+      // Stage files locally instead of uploading immediately
+      setStagedFiles(prev => [...prev, ...fileArray]);
+      
+      // Create preview URLs
+      const newPreviewUrls = fileArray.map(file => URL.createObjectURL(file));
+      setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+      
+      // Notify parent with staged file info
+      if (onStagedFiles) {
+        onStagedFiles([...stagedFiles, ...fileArray]);
+      }
+      
+      toast.success(`${fileArray.length} file(s) staged for upload`);
+      return;
+    }
     
     // Update form state immediately
     if (onChange) {
@@ -186,6 +211,69 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }
   };
 
+  // Method to upload staged files (called by parent on form submit)
+  const uploadStagedFiles = useCallback(async (): Promise<string[]> => {
+    if (stagedFiles.length === 0) return [];
+    
+    const uploadedPaths: string[] = [];
+    
+    try {
+      setUploadState(prev => ({ ...prev, status: 'uploading', progress: 0 }));
+      
+      for (let i = 0; i < stagedFiles.length; i++) {
+        const file = stagedFiles[i];
+        
+        const uploadFunction = bucketType === 'vehicle' 
+          ? uploadVehicleDocument 
+          : uploadDriverDocument;
+        
+        const path = await uploadFunction(file, entityId, docType, (progress) => {
+          const totalProgress = ((i + progress / 100) / stagedFiles.length) * 100;
+          setUploadState(prev => ({ ...prev, progress: totalProgress }));
+        });
+        
+        uploadedPaths.push(path);
+      }
+      
+      setUploadState(prev => ({ 
+        ...prev, 
+        status: 'success', 
+        progress: 100,
+        uploadedPaths: [...prev.uploadedPaths, ...uploadedPaths]
+      }));
+      
+      // Clear staged files after successful upload
+      setStagedFiles([]);
+      setPreviewUrls([]);
+      
+      return uploadedPaths;
+    } catch (error) {
+      console.error('Error uploading staged files:', error);
+      setUploadState(prev => ({ 
+        ...prev, 
+        status: 'error', 
+        errorMessage: 'Failed to upload files'
+      }));
+      throw error;
+    }
+  }, [stagedFiles, bucketType, entityId, docType]);
+
+  // Method to clear staged files (called by parent on cancel)
+  const clearStagedFiles = useCallback(() => {
+    // Clean up preview URLs
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    
+    setStagedFiles([]);
+    setPreviewUrls([]);
+  }, [previewUrls]);
+
+  // Clean up preview URLs on unmount
+  React.useEffect(() => {
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
   const getStatusIcon = () => {
     switch (uploadState.status) {
       case 'uploading':
@@ -225,6 +313,13 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
   const hasExistingFiles = uploadState.uploadedPaths.length > 0;
 
+  // Expose methods to parent component
+  React.useImperativeHandle(React.forwardRef(() => null), () => ({
+    uploadStagedFiles,
+    clearStagedFiles,
+    hasStagedFiles: stagedFiles.length > 0
+  }));
+
   return (
     <div className={cn('form-group', className)}>
       {label && (
@@ -232,6 +327,26 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           {label}
           {required && <span className="text-error-500 dark:text-error-400 ml-1">*</span>}
         </label>
+      )}
+
+      {/* Staged Files Preview */}
+      {uploadMode === 'staged' && stagedFiles.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+          <div className="flex items-center">
+            <Upload className="h-4 w-4 text-yellow-600 mr-2" />
+            <span className="text-sm font-medium text-yellow-800">
+              {stagedFiles.length} file(s) staged for upload
+            </span>
+          </div>
+          <div className="mt-2 space-y-1">
+            {stagedFiles.map((file, index) => (
+              <div key={index} className="text-xs text-yellow-700 flex items-center">
+                <span className="truncate">{file.name}</span>
+                <span className="ml-2 text-yellow-600">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div
