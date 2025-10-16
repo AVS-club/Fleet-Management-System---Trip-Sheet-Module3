@@ -225,41 +225,48 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   };
 
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    console.log(`🔍 handleViewDocuments called for ${docType}`, docPaths);
+    console.log(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
     
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
     }
 
-    // Don't show loading state - just open the viewer
+    setIsViewingDocuments(true);
+
     try {
-      // Create public URLs
-      const publicUrls = docPaths.map(path => {
-        const cleanPath = path
-          .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-          .replace(/^vehicle-docs\//, '')
-          .trim();
-        
-        const encodedPath = cleanPath.split('/').map(segment => 
-          encodeURIComponent(segment)
-        ).join('/');
-        
-        return `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
-      });
+      // CRITICAL: signedDocUrls already contains valid signed URLs
+      // We should NOT try to reconstruct them - just use them directly!
       
-      console.log(`✅ Opening viewer with ${publicUrls.length} documents:`, publicUrls);
+      // Filter out any null values
+      const validUrls = docPaths.filter(url => url != null) as string[];
       
-      // Open viewer immediately
-      setDocumentViewer({
-        show: true,
-        urls: publicUrls,
-        type: docType
-      });
+      if (validUrls.length === 0) {
+        toast.error('No valid document URLs available');
+        setIsViewingDocuments(false);
+        return;
+      }
+
+      console.log(`✅ Opening viewer with ${validUrls.length} documents:`, validUrls);
+      
+      // For single documents, open in new tab
+      if (validUrls.length === 1) {
+        window.open(validUrls[0], '_blank');
+        toast.success('Document opened in new tab');
+      } else {
+        // For multiple documents, use MultiDocumentViewer
+        setDocumentViewer({
+          show: true,
+          urls: validUrls,
+          type: docType
+        });
+      }
       
     } catch (error) {
       console.error('❌ View error:', error);
       toast.error('Unable to view documents');
+    } finally {
+      setIsViewingDocuments(false);
     }
   };
 
