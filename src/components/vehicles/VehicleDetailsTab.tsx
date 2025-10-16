@@ -225,38 +225,32 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   };
 
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    console.log(`🔍 View clicked for ${docType}:`, docPaths);
+    console.log(`🔍 handleViewDocuments called for ${docType}`, docPaths);
     
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
     }
 
-    setIsViewingDocuments(true);
-
+    // Don't show loading state - just open the viewer
     try {
-      // Create public URLs for all documents
+      // Create public URLs
       const publicUrls = docPaths.map(path => {
-        // Clean the path
         const cleanPath = path
           .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
           .replace(/^vehicle-docs\//, '')
           .trim();
         
-        // Encode properly
         const encodedPath = cleanPath.split('/').map(segment => 
           encodeURIComponent(segment)
         ).join('/');
         
-        // Create public URL
-        const publicUrl = `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
-        console.log(`📄 Created URL: ${publicUrl}`);
-        return publicUrl;
+        return `${supabase.storageUrl}/object/public/vehicle-docs/${encodedPath}`;
       });
       
-      console.log(`✅ Opening viewer with ${publicUrls.length} documents`);
+      console.log(`✅ Opening viewer with ${publicUrls.length} documents:`, publicUrls);
       
-      // Open the multi-document viewer
+      // Open viewer immediately
       setDocumentViewer({
         show: true,
         urls: publicUrls,
@@ -266,8 +260,6 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     } catch (error) {
       console.error('❌ View error:', error);
       toast.error('Unable to view documents');
-    } finally {
-      setIsViewingDocuments(false);
     }
   };
 

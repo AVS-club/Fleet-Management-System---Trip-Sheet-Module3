@@ -23,6 +23,21 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // Log when component mounts
+  useEffect(() => {
+    console.log('🎬 MultiDocumentViewer mounted:', {
+      documentCount: documents.length,
+      documentType,
+      documents
+    });
+    
+    // Set loading to false immediately if we have documents
+    if (documents && documents.length > 0) {
+      setIsLoading(false);
+      setError(null);
+    }
+  }, [documents, documentType]);
+
   const currentDocument = documents[currentIndex];
   
   // Better file type detection that handles URL-encoded filenames and tokens
@@ -145,20 +160,12 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
     setIsInitialLoad(false);
   };
 
-  // Handle initial load timeout to prevent infinite loading
+  // Reset loading state when document changes
   useEffect(() => {
-    if (isInitialLoad) {
-      const timeout = setTimeout(() => {
-        if (isLoading) {
-          setIsLoading(false);
-          setError('Document took too long to load');
-          setIsInitialLoad(false);
-        }
-      }, 10000); // 10 second timeout
-
-      return () => clearTimeout(timeout);
-    }
-  }, [isInitialLoad, isLoading]);
+    setIsLoading(false);
+    setError(null);
+    console.log('📄 Document changed, index:', currentIndex);
+  }, [currentIndex]);
 
   const getFileName = (url: string) => {
     const segments = url.split('/');
@@ -297,6 +304,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
 
         {/* Document Content */}
         <div className="flex-1 overflow-auto bg-gray-100 relative -webkit-overflow-scrolling-touch">
+          {console.log('🔍 Render state:', { isLoading, error, currentDocument })}
           {isLoading && (
             <div className="flex items-center justify-center h-full min-h-[400px]">
               <div className="text-center">
