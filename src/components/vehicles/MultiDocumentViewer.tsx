@@ -9,6 +9,59 @@ interface MultiDocumentViewerProps {
   onClose: () => void;
 }
 
+// Error Boundary for Document Viewer
+class DocumentViewerErrorBoundary extends React.Component<
+  { children: React.ReactNode; documentUrl: string; onClose: () => void },
+  { hasError: boolean; errorMessage: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMessage: error.message };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Document Viewer Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center">
+          <div className="bg-gray-900 rounded-lg p-8 max-w-md text-center">
+            <FileText className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Unable to Load Document
+            </h3>
+            <p className="text-gray-400 mb-6">
+              {this.state.errorMessage || 'An error occurred while loading the document'}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => window.open(this.props.documentUrl, '_blank')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Open in New Tab
+              </button>
+              <button
+                onClick={this.props.onClose}
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({ 
   documents, 
   documentType, 
@@ -122,7 +175,11 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
+    <DocumentViewerErrorBoundary 
+      documentUrl={currentDocument}
+      onClose={onClose}
+    >
+      <div className="fixed inset-0 z-50 bg-black bg-opacity-90 flex flex-col">
       {/* Compact Header */}
       <div className="bg-gray-900 text-white px-3 py-2 flex items-center justify-between flex-shrink-0">
         {/* Left: Document Info */}
@@ -295,7 +352,8 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </DocumentViewerErrorBoundary>
   );
 };
 

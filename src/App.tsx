@@ -181,7 +181,9 @@ const App: React.FC = () => {
             newestOnTop 
             closeOnClick 
             rtl={false} 
-            pauseOnFocusLoss 
+            pauseOnFocusLoss
+            style={{ top: '70px' }}
+            limit={3} 
             draggable 
             pauseOnHover 
           />

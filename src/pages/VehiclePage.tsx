@@ -145,10 +145,11 @@ const VehiclePage: React.FC = () => {
   const generateSignedUrls = useCallback(async (vehicleData: Vehicle) => {
     // Prevent duplicate calls
     if (urlGenerationRef.current || lastVehicleId.current === vehicleData.id) {
-      console.log('Skipping duplicate URL generation for vehicle:', vehicleData.id);
+      console.log('✅ Using cached URLs for vehicle:', vehicleData.id);
       return;
     }
 
+    console.log('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
     urlGenerationRef.current = true;
     lastVehicleId.current = vehicleData.id;
 

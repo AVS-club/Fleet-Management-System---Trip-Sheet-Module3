@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2, FileText } from 'lucide-react';
+import { Upload, CheckCircle, XCircle, RefreshCw, Eye, Download, Trash2, FileText, File, Image as ImageIcon } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getSignedDriverDocumentUrl } from '../../utils/supabaseStorage';
 import { supabase } from '../../utils/supabaseClient';
@@ -32,6 +32,9 @@ interface UploadState {
   errorMessage?: string;
   uploadedPaths: string[];
   viewingDocument?: string;
+  currentFileIndex?: number;
+  totalFiles?: number;
+  currentFileName?: string;
 }
 
 const DocumentUploader: React.FC<DocumentUploaderProps> = ({
@@ -69,13 +72,67 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   const lastUploadTimeRef = useRef<number>(0);
   const uploadedFileHashesRef = useRef<Set<string>>(new Set());
 
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ path: string; index: number } | null>(null);
+
+  // Load previously uploaded file hashes from localStorage
+  useEffect(() => {
+    const storageKey = `uploaded_hashes_${entityId}_${docType}`;
+    try {
+      const savedHashes = localStorage.getItem(storageKey);
+      if (savedHashes) {
+        const hashArray = JSON.parse(savedHashes);
+        uploadedFileHashesRef.current = new Set(hashArray);
+        console.log(`📦 Loaded ${hashArray.length} file hashes from storage`);
+      }
+    } catch (error) {
+      console.error('Error loading file hashes:', error);
+    }
+  }, [entityId, docType]);
+
+  // Helper function to save hashes to localStorage
+  const saveHashesToStorage = useCallback(() => {
+    const storageKey = `uploaded_hashes_${entityId}_${docType}`;
+    try {
+      const hashArray = Array.from(uploadedFileHashesRef.current);
+      localStorage.setItem(storageKey, JSON.stringify(hashArray));
+      console.log(`💾 Saved ${hashArray.length} file hashes to storage`);
+    } catch (error) {
+      console.error('Error saving file hashes:', error);
+    }
+  }, [entityId, docType]);
+
   // Helper function for file hashing to detect duplicates
   const generateFileHash = async (file: File): Promise<string> => {
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = async () => {
+        try {
+          const buffer = reader.result as ArrayBuffer;
+          
+          // Use requestIdleCallback if available for better performance
+          const processHash = async () => {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            resolve(hashHex);
+          };
+          
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => processHash());
+          } else {
+            setTimeout(() => processHash(), 0);
+          }
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
   };
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
@@ -84,6 +141,24 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     const fileArray = Array.from(files);
     
     console.log('📤 File selected, starting upload:', fileArray.length, 'files');
+    
+    // Show loading message during hash generation
+    toast.info('Preparing upload...', { autoClose: 1000 });
+    
+    // Check for duplicate files using hash comparison
+    const newHashes = await Promise.all(
+      fileArray.map(file => generateFileHash(file))
+    );
+    
+    const duplicates = newHashes.filter(hash => 
+      uploadedFileHashesRef.current.has(hash)
+    );
+    
+    if (duplicates.length > 0) {
+      console.log('⚠️ Duplicate files detected, skipping upload');
+      toast.warning('Some files have already been uploaded. Skipping duplicates.');
+      return;
+    }
     
     // Start upload process
     setUploadState(prev => ({
@@ -98,6 +173,9 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         const onProgress = (progress: number) => {
           setUploadState(prev => ({
             ...prev,
+            currentFileIndex: index,
+            totalFiles: fileArray.length,
+            currentFileName: file.name,
             progress: multiple ? 
               Math.round(((index + progress / 100) / fileArray.length) * 100) :
               progress
@@ -120,6 +198,10 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       const uploadedPaths = await Promise.all(uploadPromises);
       
       console.log('✅ All uploads complete! Paths:', uploadedPaths);
+      
+      // Add file hashes to prevent future duplicates
+      newHashes.forEach(hash => uploadedFileHashesRef.current.add(hash));
+      saveHashesToStorage();
       
       setUploadState(prev => ({
         ...prev,
@@ -147,6 +229,16 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     }
   }, [bucketType, entityId, docType, multiple, onUploadComplete]);
 
+  // Cleanup function to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+        console.log('🧹 Cleaned up upload timeout');
+      }
+    };
+  }, []);
+
   const handleRetry = () => {
     setUploadState(prev => ({
       ...prev,
@@ -157,10 +249,15 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   };
 
   const handleFileDelete = async (filePath: string, index: number) => {
-    if (!window.confirm('Remove this document? It will be deleted when you click "Update Vehicle".')) {
-      return;
-    }
+    setFileToDelete({ path: filePath, index });
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!fileToDelete) return;
+    
+    const { path: filePath, index } = fileToDelete;
+    
     try {
       console.log('🗑️ Marking for deletion:', filePath);
       
@@ -180,6 +277,9 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     } catch (error) {
       console.error('Error removing document:', error);
       toast.error('Failed to remove document');
+    } finally {
+      setShowDeleteModal(false);
+      setFileToDelete(null);
     }
   };
 
@@ -292,6 +392,9 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
   const getStatusText = () => {
     switch (uploadState.status) {
       case 'uploading':
+        if (uploadState.totalFiles && uploadState.totalFiles > 1) {
+          return `Uploading ${(uploadState.currentFileIndex || 0) + 1} of ${uploadState.totalFiles} files`;
+        }
         return `Uploading... ${uploadState.progress}%`;
       case 'success':
         return 'Uploaded';
@@ -330,6 +433,74 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       }
     };
   }, []);
+
+  // Helper function to extract clean filename
+  const getFileName = (filePath: string) => {
+    const segments = filePath.split('/');
+    const fileName = segments[segments.length - 1];
+    
+    // Check for format: docType_timestamp_originalName.ext
+    const newFormatMatch = fileName.match(/^(\w+)_\d+_(.+)$/);
+    if (newFormatMatch) {
+      return newFormatMatch[2]; // Return original name
+    }
+    
+    return fileName;
+  };
+
+  // Delete Confirmation Modal Component
+  const DeleteConfirmModal: React.FC<{
+    isOpen: boolean;
+    fileName: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }> = ({ isOpen, fileName, onConfirm, onCancel }) => {
+    if (!isOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div 
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={onCancel}
+        />
+        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-shrink-0">
+              <Trash2 className="h-6 w-6 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Delete Document?
+              </h3>
+              <p className="text-sm text-gray-600 mb-1">
+                Are you sure you want to delete:
+              </p>
+              <p className="text-sm font-mono text-gray-800 bg-gray-100 p-2 rounded mb-4">
+                {fileName}
+              </p>
+              <p className="text-sm text-red-600 font-medium">
+                ⚠️ This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end mt-6">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700"
+            >
+              Delete Document
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={cn('form-group', className)}>
@@ -391,12 +562,23 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
             
             {uploadState.status === 'uploading' && (
               <div className="mt-2">
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  {getStatusText()}
+                </p>
+                {uploadState.currentFileName && (
+                  <p className="text-xs text-gray-500 truncate mb-2">
+                    {uploadState.currentFileName}
+                  </p>
+                )}
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
                     className="bg-primary-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadState.progress}%` }}
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1 text-right">
+                  {uploadState.progress}%
+                </p>
               </div>
             )}
             
@@ -424,18 +606,15 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         {hasExistingFiles && (
           <div className="mt-3 space-y-2">
             {uploadState.uploadedPaths.map((path, index) => {
-              // Extract clean filename
-              const getFileName = (filePath: string) => {
-                const segments = filePath.split('/');
-                const fileName = segments[segments.length - 1];
-                
-                // Check for format: docType_timestamp_originalName.ext
-                const newFormatMatch = fileName.match(/^(\w+)_\d+_(.+)$/);
-                if (newFormatMatch) {
-                  return newFormatMatch[2]; // Return original name
+              const getFileIcon = (filename: string) => {
+                const ext = filename.split('.').pop()?.toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+                  return <ImageIcon className="h-5 w-5 text-blue-500" />;
                 }
-                
-                return fileName;
+                if (ext === 'pdf') {
+                  return <FileText className="h-5 w-5 text-red-500" />;
+                }
+                return <File className="h-5 w-5 text-gray-500" />;
               };
 
               const fileName = getFileName(path);
@@ -446,7 +625,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
                 <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <FileText className="h-4 w-4 text-gray-400" />
+                      {getFileIcon(fileName)}
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                         {fileName}
                       </span>
@@ -505,6 +684,17 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
         onChange={(e) => handleFileSelect(e.target.files)}
         className="hidden"
         disabled={disabled || uploadState.status === 'uploading'}
+      />
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        fileName={fileToDelete ? getFileName(fileToDelete.path) : ''}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          setFileToDelete(null);
+        }}
       />
     </div>
   );

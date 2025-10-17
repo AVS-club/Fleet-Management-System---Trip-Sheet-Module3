@@ -338,7 +338,7 @@ const VehiclesPage: React.FC = () => {
         const driver = drivers.find((d) => d.id === driverId);
         return {
           id: driverId,
-          name: driver?.name || "Unknown Driver",
+          name: driver?.name || "Driver Not Found",
           mileage: data.tripCount > 0 ? data.totalMileage / data.tripCount : 0,
         };
       }
@@ -448,6 +448,15 @@ const VehiclesPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Helper function to validate document paths
+  const isValidPath = (path: string): boolean => {
+    return path && 
+           typeof path === 'string' && 
+           path.trim() !== '' && 
+           path !== 'null' &&
+           path !== 'undefined';
   };
 
   // Helper function to count uploaded documents - updated to check for actual file paths
@@ -567,7 +576,7 @@ const VehiclesPage: React.FC = () => {
 
     let uploaded = documentFields.reduce((count, field) => {
       const entries = extractFileStrings((vehicle as Record<string, unknown>)[field]);
-      return count + (entries.some(isValidFile) ? 1 : 0);
+      return count + (entries.filter(path => isValidPath(path)).some(isValidFile) ? 1 : 0);
     }, 0);
 
     const otherDocuments = ensureArray<Record<string, unknown>>(vehicle.other_documents);
@@ -970,7 +979,7 @@ const VehiclesPage: React.FC = () => {
                     {/* Header: Registration, Status, Action Buttons */}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 truncate" 
+                        <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 truncate pr-20" 
                             title={`${vehicle.registration_number} - Current Odometer: ${vehicle.current_odometer?.toLocaleString()} km`}>
                           {vehicle.registration_number}
                         </h3>
@@ -1001,7 +1010,7 @@ const VehiclesPage: React.FC = () => {
                       
                       <div className="flex flex-col items-end gap-2">
                         <span
-                          className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize flex items-center gap-2 ${statusPillClasses}`}
+                          className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize flex items-center gap-2 z-10 ${statusPillClasses}`}
                         >
                           {vehicle.status === "active" && (
                             <span

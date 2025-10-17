@@ -6,7 +6,7 @@ import { getReminderContacts, ReminderContact } from '../../utils/reminderServic
 import { getDrivers } from '../../utils/api/drivers';
 import { getTags } from '../../utils/api/tags';
 import { supabase } from '../../utils/supabaseClient';
-import { deleteVehicleDocument } from '../../utils/supabaseStorage';
+import { deleteVehicleDocument, uploadVehicleDocument } from '../../utils/supabaseStorage';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Checkbox from '../ui/Checkbox';
@@ -40,11 +40,19 @@ import {
   CreditCard,
   Tag as TagIcon,
   Upload,
+  Loader,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 
 export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {}
+
+// Helper function to get max date (10 years from today)
+const getMaxDate = () => {
+  const today = new Date();
+  today.setFullYear(today.getFullYear() + 10);
+  return today.toISOString().split('T')[0];
+};
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -452,27 +460,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const handleCancel = () => {
-    if (draftState.isDraft) {
-      console.log('🔍 DRAFT MODE - Cancelling all changes');
-      
-      // Revert to original documents
-      const originalDocs = draftState.originalDocuments;
-      Object.entries(originalDocs).forEach(([docType, paths]) => {
-        const fieldName = `${docType}_document_url` as keyof Vehicle;
-        setValue(fieldName, paths as any);
-      });
-      
-      // Clear draft state
-      setDraftState({
-        isDraft: false,
-        originalDocuments: {},
-        pendingUploads: {},
-        pendingDeletions: {},
-        pendingNewUploads: {}
-      });
-      
-      console.log('🔍 DRAFT MODE - Reverted to original state');
-    }
+    console.log('🔄 Canceling form - resetting draft state');
+    
+    // Reset draft state completely
+    setDraftState({
+      isDraft: false,
+      originalDocuments: {},
+      pendingUploads: {},
+      pendingDeletions: {},
+      pendingNewUploads: {}
+    });
 
     // Clear staged documents
     if (Object.keys(stagedDocuments).length > 0) {
@@ -481,11 +478,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       setUploadProgress({});
     }
     
-    // Reset form to initial values
-    reset();
+    // Reset form to initial values (this is the key fix)
+    reset(initialData);
     
-    // Reset tag state to initial values
-    setVehicleTags(initialVehicleTags);
+    // Reset tag state to initial values (if tags are implemented)
+    // setVehicleTags(initialVehicleTags);
     
     // Reset uploaded documents
     setUploadedDocuments({});
@@ -499,105 +496,206 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const onFormSubmit = async (data: Vehicle) => {
     try {
-      console.log('🚀 Form submit started');
-      console.log('📋 Draft state:', draftState);
+      console.log('🚀 Form submission started');
+      console.log('📊 Initial data:', data);
+      console.log('📦 Staged documents:', stagedDocuments);
+      console.log('🗑️ Draft deletions:', draftState.pendingDeletions);
       
-      // STEP 1: Delete files from storage if in draft mode
-      if (draftState.isDraft && Object.keys(draftState.pendingDeletions).length > 0) {
-        console.log('🗑️ Processing deletions...');
+      // ========================================
+      // STEP 1: Upload all staged files
+      // ========================================
+      if (Object.keys(stagedDocuments).length > 0) {
+        console.log('📤 Uploading staged files for:', Object.keys(stagedDocuments));
         
+        const uploadPromises = Object.entries(stagedDocuments).map(async ([docType, { files, existingPaths }]) => {
+          console.log(`📂 Processing ${docType}: ${files.length} new files, ${existingPaths.length} existing`);
+          const uploadedPaths = [];
+          
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            try {
+              console.log(`⬆️ Uploading ${docType} file ${i + 1}/${files.length}: ${file.name}`);
+              
+              const path = await uploadVehicleDocument(
+                file, 
+                data.id || initialData?.id || '', 
+                docType, 
+                (progress) => {
+                  setUploadProgress(prev => ({ 
+                    ...prev, 
+                    [docType]: Math.round((i / files.length) * 100 + progress / files.length)
+                  }));
+                }
+              );
+              
+              uploadedPaths.push(path);
+              console.log(`✅ Uploaded ${docType} [${i + 1}/${files.length}]:`, path);
+              
+            } catch (error) {
+              console.error(`❌ Failed to upload ${docType} file: ${file.name}`, error);
+              toast.error(`Failed to upload ${file.name}`);
+              throw error;
+            }
+          }
+          
+          // Combine existing paths with newly uploaded paths
+          const allPaths = [...existingPaths, ...uploadedPaths];
+          console.log(`✅ ${docType} total paths after upload:`, allPaths);
+          
+          return { docType, paths: allPaths };
+        });
+
+        // Wait for all uploads to complete
+        const uploadResults = await Promise.all(uploadPromises);
+        
+        // Update data object with all uploaded file paths
+        uploadResults.forEach(({ docType, paths }) => {
+          const fieldName = `${docType}_document_url` as keyof Vehicle;
+          data[fieldName] = paths as any;
+          console.log(`✅ Updated ${fieldName}:`, paths);
+        });
+        
+        console.log('✅ All staged files uploaded successfully');
+      } else {
+        console.log('ℹ️ No staged files to upload');
+      }
+
+      // ========================================
+      // STEP 2: Handle draft mode deletions
+      // ========================================
+      if (draftState.isDraft && Object.keys(draftState.pendingDeletions).length > 0) {
+        console.log('🗑️ Processing draft deletions:', draftState.pendingDeletions);
+        
+        // Delete files from storage
         for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
-          console.log(`🗑️ Deleting ${deletedPaths.length} ${docType} files`);
+          console.log(`🗑️ Deleting ${deletedPaths.length} ${docType} file(s)`);
           
           for (const filePath of deletedPaths) {
             try {
-              // Clean the path
-              const cleanPath = filePath
-                .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
-                .replace(/^vehicle-docs\//, '')
-                .trim();
-              
-              console.log(`🗑️ Deleting: ${cleanPath}`);
-              
-              // Delete from storage
-              const { error } = await supabase.storage
-                .from('vehicle-docs')
-                .remove([cleanPath]);
-              
-              if (error) {
-                console.error('Delete error:', error);
-              } else {
-                console.log(`✅ Deleted: ${cleanPath}`);
-              }
+              console.log(`🗑️ Deleting from storage: ${filePath}`);
+              await deleteVehicleDocument(filePath);
+              console.log(`✅ Deleted from storage: ${filePath}`);
             } catch (error) {
-              console.error(`Failed to delete ${docType}:`, error);
+              console.error(`❌ Failed to delete ${filePath}:`, error);
+              // Continue with other deletions even if one fails
             }
           }
         }
-      }
-      
-      // STEP 2: Upload new files if in draft mode
-      if (draftState.isDraft && Object.keys(draftState.pendingNewUploads).length > 0) {
-        console.log('📤 Files already uploaded during selection');
-      }
-      
-      // STEP 3: Prepare final document URLs
-      let finalDocumentUrls = {};
-      
-      if (draftState.isDraft) {
-        // Use current form values (which already have deletions removed)
-        finalDocumentUrls = {
-          rc_document_url: data.rc_document_url || [],
-          insurance_document_url: data.insurance_document_url || [],
-          fitness_document_url: data.fitness_document_url || [],
-          tax_document_url: data.tax_document_url || [],
-          permit_document_url: data.permit_document_url || [],
-          puc_document_url: data.puc_document_url || [],
-        };
-      } else {
-        // Use uploadedDocuments for new vehicle
-        finalDocumentUrls = {
-          rc_document_url: uploadedDocuments.rc || data.rc_document_url || [],
-          insurance_document_url: uploadedDocuments.insurance || data.insurance_document_url || [],
-          fitness_document_url: uploadedDocuments.fitness || data.fitness_document_url || [],
-          tax_document_url: uploadedDocuments.tax || data.tax_document_url || [],
-          permit_document_url: uploadedDocuments.permit || data.permit_document_url || [],
-          puc_document_url: uploadedDocuments.puc || data.puc_document_url || [],
-        };
+        
+        // CRITICAL: Clean the document arrays to remove deleted file paths
+        const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
+        
+        console.log('🧹 Cleaning document arrays after deletions');
+        
+        for (const docType of docTypes) {
+          const fieldName = `${docType}_document_url` as keyof Vehicle;
+          const currentPaths = (data[fieldName] as string[]) || [];
+          const deletedPaths = draftState.pendingDeletions[docType] || [];
+          
+          if (deletedPaths.length > 0) {
+            // Filter out paths that were deleted
+            const remainingPaths = currentPaths.filter(path => !deletedPaths.includes(path));
+            data[fieldName] = remainingPaths as any;
+            
+            console.log(`✅ Cleaned ${docType}: ${currentPaths.length} → ${remainingPaths.length} files`);
+            console.log(`   Removed: ${deletedPaths.length} file(s)`);
+          }
+        }
+        
+        console.log('✅ All deletions processed');
       }
 
-      const formData = {
+      // ========================================
+      // STEP 3: Handle non-draft deletions
+      // ========================================
+      if (!draftState.isDraft && Object.keys(deletedDocuments).length > 0) {
+        console.log('🗑️ Processing non-draft deletions:', deletedDocuments);
+        
+        for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
+          for (const filePath of deletedPaths) {
+            try {
+              console.log(`🗑️ Deleting: ${filePath}`);
+              await deleteVehicleDocument(filePath);
+              console.log(`✅ Deleted: ${filePath}`);
+            } catch (error) {
+              console.error(`❌ Failed to delete ${filePath}:`, error);
+            }
+          }
+        }
+        
+        // Clean arrays for non-draft mode too
+        const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
+        
+        for (const docType of docTypes) {
+          const fieldName = `${docType}_document_url` as keyof Vehicle;
+          const currentPaths = (data[fieldName] as string[]) || [];
+          const deletedPaths = deletedDocuments[docType] || [];
+          
+          if (deletedPaths.length > 0) {
+            const remainingPaths = currentPaths.filter(path => !deletedPaths.includes(path));
+            data[fieldName] = remainingPaths as any;
+          }
+        }
+      }
+
+      // ========================================
+      // STEP 4: Ensure all document fields are arrays
+      // ========================================
+      console.log('🔍 Ensuring document fields are properly formatted');
+      
+      const finalData = {
         ...data,
-        ...finalDocumentUrls,
+        rc_document_url: Array.isArray(data.rc_document_url) ? data.rc_document_url : (data.rc_document_url ? [data.rc_document_url] : []),
+        insurance_document_url: Array.isArray(data.insurance_document_url) ? data.insurance_document_url : (data.insurance_document_url ? [data.insurance_document_url] : []),
+        fitness_document_url: Array.isArray(data.fitness_document_url) ? data.fitness_document_url : (data.fitness_document_url ? [data.fitness_document_url] : []),
+        tax_document_url: Array.isArray(data.tax_document_url) ? data.tax_document_url : (data.tax_document_url ? [data.tax_document_url] : []),
+        permit_document_url: Array.isArray(data.permit_document_url) ? data.permit_document_url : (data.permit_document_url ? [data.permit_document_url] : []),
+        puc_document_url: Array.isArray(data.puc_document_url) ? data.puc_document_url : (data.puc_document_url ? [data.puc_document_url] : []),
       };
 
-      console.log('📋 Final form data:', formData);
-      console.log('📄 Final document URLs:', {
-        rc: formData.rc_document_url,
-        insurance: formData.insurance_document_url,
-        fitness: formData.fitness_document_url,
-        tax: formData.tax_document_url,
-        permit: formData.permit_document_url,
-        puc: formData.puc_document_url,
+      console.log('📊 Final document counts:', {
+        rc: finalData.rc_document_url?.length || 0,
+        insurance: finalData.insurance_document_url?.length || 0,
+        fitness: finalData.fitness_document_url?.length || 0,
+        tax: finalData.tax_document_url?.length || 0,
+        permit: finalData.permit_document_url?.length || 0,
+        puc: finalData.puc_document_url?.length || 0,
       });
 
-      // Clear draft state
-      if (draftState.isDraft) {
-        setDraftState({
-          isDraft: false,
-          originalDocuments: {},
-          pendingUploads: {},
-          pendingDeletions: {},
-          pendingNewUploads: {}
-        });
-      }
-
-      // Submit to parent
-      onSubmit(formData);
+      // ========================================
+      // STEP 5: Submit to parent component
+      // ========================================
+      console.log('📤 Submitting to parent component');
+      await onSubmit(finalData);
+      
+      // ========================================
+      // STEP 6: Cleanup state after successful submission
+      // ========================================
+      console.log('🧹 Cleaning up component state');
+      
+      setStagedDocuments({});
+      setUploadProgress({});
+      setDeletedDocuments({});
+      setDraftState({
+        isDraft: false,
+        originalDocuments: {},
+        pendingUploads: {},
+        pendingDeletions: {},
+        pendingNewUploads: {}
+      });
+      
+      console.log('✅ Form submission completed successfully!');
+      toast.success('Vehicle updated successfully!');
       
     } catch (error) {
-      console.error('❌ Form submission error:', error);
-      toast.error('Failed to update vehicle');
+      console.error('❌ Form submission failed:', error);
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      
+      toast.error(`Failed to update vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
     }
   };
 
@@ -975,6 +1073,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Registration Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('registration_date')}
@@ -990,6 +1089,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="RC Expiry Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('rc_expiry_date')}
@@ -1036,6 +1136,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Start Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_start_date')}
@@ -1044,6 +1145,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Expiry Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_expiry_date')}
@@ -1085,6 +1187,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issue Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_issue_date')}
@@ -1093,6 +1196,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Expiry Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_expiry_date')}
@@ -1180,6 +1284,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issue Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_issue_date')}
@@ -1188,6 +1293,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Expiry Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_expiry_date')}
@@ -1236,6 +1342,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Issue Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_issue_date')}
@@ -1244,6 +1351,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Expiry Date"
             type="date"
+            max={getMaxDate()}
             icon={<Calendar className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_expiry_date')}
@@ -1645,8 +1753,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           type="submit"
           isLoading={isSubmitting}
           disabled={fieldsDisabled && !initialData?.id}
+          icon={isSubmitting ? <Loader className="h-4 w-4 animate-spin" /> : undefined}
         >
-          {initialData?.id ? 'Update Vehicle' : 'Add Vehicle'}
+          {isSubmitting 
+            ? (initialData?.id ? 'Updating Vehicle...' : 'Adding Vehicle...') 
+            : (initialData?.id ? 'Update Vehicle' : 'Add Vehicle')
+          }
         </Button>
       </div>
     </form>
