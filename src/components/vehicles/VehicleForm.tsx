@@ -701,55 +701,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
-      {/* Draft Status Indicator */}
-      {draftState.isDraft && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 mr-2" />
-            <div>
-              <h3 className="text-sm font-medium text-yellow-800">Draft Mode Active</h3>
-              <p className="text-sm text-yellow-700 mt-1">
-                Document changes are staged. Click "Update Vehicle" to save or "Cancel" to discard changes.
-              </p>
-              {Object.keys(draftState.pendingNewUploads).length > 0 && (
-                <p className="text-xs text-yellow-600 mt-1">
-                  Pending uploads: {Object.keys(draftState.pendingNewUploads).join(', ')}
-                </p>
-              )}
-              {Object.keys(draftState.pendingDeletions).length > 0 && (
-                <p className="text-xs text-yellow-600 mt-1">
-                  Pending deletions: {Object.keys(draftState.pendingDeletions).join(', ')}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Staged Files Indicator */}
-      {Object.keys(stagedDocuments).length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <Upload className="h-5 w-5 text-blue-600 mr-2" />
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">Files Staged for Upload</h3>
-              <p className="text-sm text-blue-700 mt-1">
-                Files are staged locally and will be uploaded when you click "Update Vehicle".
-              </p>
-              <div className="mt-2 space-y-1">
-                {Object.entries(stagedDocuments).map(([docType, { files }]) => (
-                  <div key={docType} className="text-xs text-blue-600">
-                    <span className="font-medium capitalize">{docType}:</span> {files.length} file(s) staged
-                    {uploadProgress[docType] && (
-                      <span className="ml-2">({uploadProgress[docType]}% uploaded)</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {/* RC Fetch Section */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
         <p className="text-sm text-gray-700 font-medium mb-3">
