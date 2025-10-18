@@ -142,6 +142,32 @@ const VehicleManagementPage: React.FC = () => {
   const [operationLoading, setOperationLoading] = useState(false);
 
   // Fetch vehicles and drivers data
+  // Extract vehicle loading logic into reusable function
+  const loadVehicles = async () => {
+    try {
+      console.log('🔄 Loading vehicles data...');
+      
+      // Fetch vehicles with their stats
+      const vehiclesData = await getVehicles();
+      console.log('📊 Vehicles fetched:', vehiclesData.length);
+
+      // Fetch stats for each vehicle
+      const vehiclesWithStats = await Promise.all(
+        vehiclesData.map(async (vehicle) => {
+          const stats = await getVehicleStats(vehicle.id);
+          return { ...vehicle, stats, selected: false };
+        })
+      );
+
+      setVehicles(vehiclesWithStats);
+      console.log('✅ Vehicles data refreshed');
+    } catch (error) {
+      console.error("Error loading vehicles:", error);
+      toast.error(`Failed to load vehicles: ${error.message || 'Unknown error'}`);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -180,19 +206,8 @@ const VehicleManagementPage: React.FC = () => {
         
         console.log('✅ Organization membership found:', orgMembership);
         
-        // Fetch vehicles with their stats
-        const vehiclesData = await getVehicles();
-        console.log('📊 Vehicles fetched:', vehiclesData.length);
-
-        // Fetch stats for each vehicle
-        const vehiclesWithStats = await Promise.all(
-          vehiclesData.map(async (vehicle) => {
-            const stats = await getVehicleStats(vehicle.id);
-            return { ...vehicle, stats, selected: false };
-          })
-        );
-
-        setVehicles(vehiclesWithStats);
+        // Load vehicles using the reusable function
+        await loadVehicles();
 
         // Fetch drivers for assignment dropdown
         const driversData = await getDrivers();
@@ -629,20 +644,19 @@ const VehicleManagementPage: React.FC = () => {
       const updatedVehicle = await updateVehicle(editingVehicle.id, data);
       
       if (updatedVehicle) {
-        // Update the vehicle in the local state
-        setVehicles(prevVehicles =>
-          prevVehicles.map(v => 
-            v.id === editingVehicle.id 
-              ? { ...updatedVehicle, stats: v.stats } // Preserve stats
-              : v
-          )
-        );
-        
+        // Close the modal first
         setEditingVehicle(null);
+        
+        // Show success message
         toast.success(`Vehicle ${updatedVehicle.registration_number} updated successfully`);
+        
+        // ===== KEY CHANGE: Refresh all data =====
+        await loadVehicles();
         
         // Refresh activity logs
         setRefreshTrigger(prev => prev + 1);
+        
+        console.log('✅ Page data refreshed after vehicle update');
       } else {
         toast.error('Failed to update vehicle');
       }
