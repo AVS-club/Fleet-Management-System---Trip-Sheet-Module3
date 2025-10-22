@@ -11,6 +11,9 @@ import { LogFilters as LogFiltersType, LogExportOptions } from '../types/logs'
 import { useState, useEffect } from 'react'
 import { getVehicles } from '../utils/storage'
 import { supabase } from '../utils/supabaseClient'
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('ActivityLogsPage');
 
 // Create a separate QueryClient for this page to avoid conflicts
 const queryClient = new QueryClient({
@@ -61,7 +64,7 @@ export default function ActivityLogsPage() {
         // Users will be displayed by their action_by field and user_id
         setUsers([])
       } catch (error) {
-        console.error('Error fetching data:', error)
+        logger.error('Error fetching data:', error)
       } finally {
         setLoading(false)
       }
@@ -101,7 +104,7 @@ export default function ActivityLogsPage() {
   const handleExport = async (options: LogExportOptions) => {
     // The export is now handled directly in the LogExport component
     // This function is kept for compatibility but not used
-    console.log('Export options:', options)
+    logger.debug('Export options:', options)
     return Promise.resolve()
   }
 

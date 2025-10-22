@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('reportDataFetchers');
 
 // Types for report data
 export interface WeeklyComparisonData {
@@ -320,7 +323,7 @@ export const fetchWeeklyComparisonData = async (
       metrics
     };
   } catch (error) {
-    console.error('Error fetching weekly comparison data:', error);
+    logger.error('Error fetching weekly comparison data:', error);
     throw error;
   }
 };
@@ -438,7 +441,7 @@ export const fetchMonthlyComparisonData = async (
       previousMonthComparison
     };
   } catch (error) {
-    console.error('Error fetching monthly comparison data:', error);
+    logger.error('Error fetching monthly comparison data:', error);
     throw error;
   }
 };
@@ -556,7 +559,7 @@ export const fetchTripSummaryData = async (
       }
     };
   } catch (error) {
-    console.error('Error fetching trip summary data:', error);
+    logger.error('Error fetching trip summary data:', error);
     throw error;
   }
 };
@@ -680,7 +683,7 @@ export const fetchVehicleUtilizationData = async (
       }
     };
   } catch (error) {
-    console.error('Error fetching vehicle utilization data:', error);
+    logger.error('Error fetching vehicle utilization data:', error);
     throw error;
   }
 };
@@ -819,7 +822,7 @@ export const fetchDriverPerformanceData = async (
       }
     };
   } catch (error) {
-    console.error('Error fetching driver performance data:', error);
+    logger.error('Error fetching driver performance data:', error);
     throw error;
   }
 };

@@ -4,6 +4,9 @@ import { getAlertSettings, updateAlertSettings, AlertSettings as AlertSettingsTy
 import Select from '../ui/Select';
 import Button from '../ui/Button';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AlertSettings');
 
 const frequencyOptions = [
   { value: 'always', label: 'Always Show' },
@@ -22,7 +25,7 @@ const AlertSettings: React.FC = () => {
         const settingsData = await getAlertSettings();
         setSettings(settingsData);
       } catch (error) {
-        console.error('Error loading alert settings:', error);
+        logger.error('Error loading alert settings:', error);
       }
     };
 
@@ -46,7 +49,7 @@ const AlertSettings: React.FC = () => {
       await updateAlertSettings(settings);
       toast.success('Alert settings saved successfully');
     } catch (error) {
-      console.error('Error saving alert settings:', error);
+      logger.error('Error saving alert settings:', error);
       toast.error('Failed to save alert settings');
     } finally {
       setSaving(false);

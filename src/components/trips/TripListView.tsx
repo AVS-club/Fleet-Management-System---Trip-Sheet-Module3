@@ -8,6 +8,9 @@ import {
   Activity, Target, IndianRupee, ArrowRight
 } from 'lucide-react';
 import { getWarehouse, getDestinationByAnyId } from '../../utils/storage';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripListView');
 
 interface TripListViewProps {
   trips: Trip[];
@@ -37,7 +40,7 @@ const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
             const warehouse = await getWarehouse(trip.warehouse_id);
             setWarehouseData(warehouse);
           } catch (error) {
-            console.error('Error fetching warehouse:', error);
+            logger.error('Error fetching warehouse:', error);
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
             } else {
@@ -55,7 +58,7 @@ const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
                 try {
                   return await getDestinationByAnyId(id);
                 } catch (error) {
-                  console.warn(`Destination ${id} not found or error fetching:`, error);
+                  logger.warn(`Destination ${id} not found or error fetching:`, error);
                   return null;
                 }
               })
@@ -67,7 +70,7 @@ const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
               setLoadingError('Unable to load trip destinations');
             }
           } catch (error) {
-            console.error('Error fetching destinations:', error);
+            logger.error('Error fetching destinations:', error);
             setLoadingError('Error loading trip destinations');
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load some trip locations');
@@ -75,7 +78,7 @@ const TripDestinationDisplay: React.FC<{ trip: Trip }> = ({ trip }) => {
           }
         }
       } catch (error) {
-        console.error('Error in fetchData:', error);
+        logger.error('Error in fetchData:', error);
         setLoadingError('Failed to load trip details');
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
           setLoadingError('Unable to load trip details');

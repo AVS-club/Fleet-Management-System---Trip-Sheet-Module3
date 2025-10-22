@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '../../utils/cn';
 import { Upload, X, CheckCircle, AlertCircle, FileText, Image } from 'lucide-react';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('FileUploadWithProgress');
 
 interface FileUploadState {
   id: string;
@@ -168,7 +171,7 @@ const FileUploadWithProgress: React.FC<FileUploadWithProgressProps> = ({
           ));
         }
       } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
+        logger.error(`Error processing file ${file.name}:`, error);
         setUploadStates(prev => prev.map((state, idx) => 
           idx === i ? { 
             ...state, 

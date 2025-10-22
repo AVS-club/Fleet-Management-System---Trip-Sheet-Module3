@@ -39,6 +39,9 @@ import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
 import VehicleDetailsTabMobile from "../components/vehicles/VehicleDetailsTabMobile";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VehiclePage');
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -131,7 +134,7 @@ const VehiclePage: React.FC = () => {
           await generateSignedUrls(vehicleData);
         }
       } catch (error) {
-        console.error("Error fetching vehicle data:", error);
+        logger.error("Error fetching vehicle data:", error);
         toast.error("Failed to load vehicle details");
       } finally {
         setLoading(false);
@@ -145,22 +148,22 @@ const VehiclePage: React.FC = () => {
   const generateSignedUrls = useCallback(async (vehicleData: Vehicle) => {
     // Prevent duplicate calls
     if (urlGenerationRef.current || lastVehicleId.current === vehicleData.id) {
-      console.log('✅ Using cached URLs for vehicle:', vehicleData.id);
+      logger.debug('✅ Using cached URLs for vehicle:', vehicleData.id);
       return;
     }
 
-    console.log('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
+    logger.debug('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
     urlGenerationRef.current = true;
     lastVehicleId.current = vehicleData.id;
 
     try {
-      console.log('Generating signed URLs for vehicle:', vehicleData.id);
+      logger.debug('Generating signed URLs for vehicle:', vehicleData.id);
       
       // Use the new safe batch generation function
       const urls = await generateVehicleDocumentUrls(vehicleData);
       
-      console.log('🔍 VehiclePage - Generated URLs:', urls);
-      console.log('🔍 VehiclePage - Insurance URLs specifically:', urls.insurance);
+      logger.debug('🔍 VehiclePage - Generated URLs:', urls);
+      logger.debug('🔍 VehiclePage - Insurance URLs specifically:', urls.insurance);
       
       setSignedDocUrls(urls);
       
@@ -174,12 +177,12 @@ const VehiclePage: React.FC = () => {
       if (!urls.puc || urls.puc.every(url => url === null)) missingDocs.push('PUC');
       
       if (missingDocs.length > 0) {
-        console.info(`Some documents could not be loaded: ${missingDocs.join(', ')}`);
+        logger.info(`Some documents could not be loaded: ${missingDocs.join(', ')}`);
         // Don't show toast for missing documents - they're expected
       }
       
     } catch (error) {
-      console.error("Error generating signed URLs:", error);
+      logger.error("Error generating signed URLs:", error);
       // Only show error toast for unexpected errors
       if (error instanceof Error && !error.message.includes('not found')) {
         toast.error("Some documents could not be loaded");
@@ -292,7 +295,7 @@ const VehiclePage: React.FC = () => {
                         nextTags = tagUpdates.nextTags;
                       } catch (tagError) {
                         tagUpdateError = true;
-                        console.error('Error updating vehicle tags:', tagError);
+                        logger.error('Error updating vehicle tags:', tagError);
                         toast.error('Vehicle updated, but tags could not be saved. Please try again.');
                       }
                     }
@@ -318,7 +321,7 @@ const VehiclePage: React.FC = () => {
                     toast.error('Failed to update vehicle');
                   }
                 } catch (error) {
-                  console.error('Error updating vehicle:', error);
+                  logger.error('Error updating vehicle:', error);
                   toast.error('Failed to update vehicle');
                 }
               }}
@@ -338,7 +341,7 @@ const VehiclePage: React.FC = () => {
       doc.save(`${vehicle.registration_number}_profile.pdf`);
       toast.success("Vehicle profile exported successfully");
     } catch (error) {
-      console.error("Error exporting vehicle profile:", error);
+      logger.error("Error exporting vehicle profile:", error);
       toast.error("Failed to export vehicle profile");
     } finally {
       setExportLoading(false);
@@ -360,7 +363,7 @@ const VehiclePage: React.FC = () => {
       await navigator.clipboard.writeText(link);
       toast.success("Shareable link copied to clipboard (valid for 7 days)");
     } catch (error) {
-      console.error("Error creating shareable link:", error);
+      logger.error("Error creating shareable link:", error);
       toast.error("Failed to create shareable link");
     } finally {
       setShareLoading(false);
@@ -423,7 +426,7 @@ const VehiclePage: React.FC = () => {
         toast.error(`❌ Failed to update ${vehicle.registration_number}`);
       }
     } catch (error: any) {
-      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
+      logger.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
       toast.error(`❌ Failed to refresh ${vehicle.registration_number}: ${error.message}`);
     } finally {
       setIsRefreshing(false);

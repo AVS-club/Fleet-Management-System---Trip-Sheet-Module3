@@ -1,5 +1,8 @@
 import { supabase } from '../utils/supabaseClient';
 import { PartReplacement, PartsAnalyticsData } from '../utils/partsAnalyticsV2';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('partsHealth');
 
 export const getPartsHealthData = async (): Promise<PartsAnalyticsData> => {
   try {
@@ -15,7 +18,7 @@ export const getPartsHealthData = async (): Promise<PartsAnalyticsData> => {
     
     return await response.json();
   } catch (error) {
-    console.error('Error fetching parts health data:', error);
+    logger.error('Error fetching parts health data:', error);
     throw error;
   }
 };
@@ -36,7 +39,7 @@ export const updatePartReplacement = async (data: Partial<PartReplacement>) => {
     
     return await response.json();
   } catch (error) {
-    console.error('Error updating part replacement:', error);
+    logger.error('Error updating part replacement:', error);
     throw error;
   }
 };
@@ -50,13 +53,13 @@ export const addPartReplacement = async (data: Omit<PartReplacement, 'id' | 'cre
       .single();
 
     if (error) {
-      console.error('Error adding part replacement:', error);
+      logger.error('Error adding part replacement:', error);
       throw error;
     }
 
     return result;
   } catch (error) {
-    console.error('Error adding part replacement:', error);
+    logger.error('Error adding part replacement:', error);
     throw error;
   }
 };
@@ -71,13 +74,13 @@ export const updatePartReplacementById = async (id: string, updates: Partial<Par
       .single();
 
     if (error) {
-      console.error('Error updating part replacement:', error);
+      logger.error('Error updating part replacement:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error updating part replacement:', error);
+    logger.error('Error updating part replacement:', error);
     throw error;
   }
 };
@@ -90,13 +93,13 @@ export const deletePartReplacement = async (id: string) => {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting part replacement:', error);
+      logger.error('Error deleting part replacement:', error);
       throw error;
     }
 
     return true;
   } catch (error) {
-    console.error('Error deleting part replacement:', error);
+    logger.error('Error deleting part replacement:', error);
     throw error;
   }
 };
@@ -110,13 +113,13 @@ export const getPartReplacementsByVehicle = async (vehicleId: string) => {
       .order('replacement_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching part replacements:', error);
+      logger.error('Error fetching part replacements:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error fetching part replacements:', error);
+    logger.error('Error fetching part replacements:', error);
     throw error;
   }
 };
@@ -130,13 +133,13 @@ export const getPartReplacementsByPartType = async (partType: string) => {
       .order('replacement_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching part replacements by type:', error);
+      logger.error('Error fetching part replacements by type:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error fetching part replacements by type:', error);
+    logger.error('Error fetching part replacements by type:', error);
     throw error;
   }
 };
@@ -202,7 +205,7 @@ export const getCriticalParts = async () => {
 
     return criticalParts.sort((a, b) => a.remainingLife - b.remainingLife);
   } catch (error) {
-    console.error('Error fetching critical parts:', error);
+    logger.error('Error fetching critical parts:', error);
     throw error;
   }
 };
@@ -285,7 +288,7 @@ export const getPartsAnalyticsSummary = async () => {
       averageCostPerReplacement: totalReplacements > 0 ? totalCost / totalReplacements : 0
     };
   } catch (error) {
-    console.error('Error fetching parts analytics summary:', error);
+    logger.error('Error fetching parts analytics summary:', error);
     throw error;
   }
 };

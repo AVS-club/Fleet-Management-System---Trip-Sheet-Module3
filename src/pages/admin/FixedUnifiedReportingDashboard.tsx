@@ -42,6 +42,9 @@ import { supabase } from '../../utils/supabaseClient';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('FixedUnifiedReportingDashboard');
 
 // Extend jsPDF type for autoTable
 declare module 'jspdf' {
@@ -163,9 +166,9 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         fetchExpenseBreakdown()
       ]);
 
-      console.log('Dashboard data fetched successfully');
+      logger.debug('Dashboard data fetched successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -181,7 +184,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (tripsError) {
-        console.error('Error fetching trips:', tripsError);
+        logger.error('Error fetching trips:', tripsError);
       }
 
       // Calculate revenue (using a simple formula - adjust based on your business logic)
@@ -230,7 +233,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchMetrics:', error);
+      logger.error('Error in fetchMetrics:', error);
       return false;
     }
   }, [dateRange]);
@@ -245,7 +248,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         .order('created_at');
 
       if (error) {
-        console.error('Error fetching trip trends:', error);
+        logger.error('Error fetching trip trends:', error);
         return;
       }
 
@@ -269,7 +272,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchTripTrends:', error);
+      logger.error('Error in fetchTripTrends:', error);
       return false;
     }
   }, [dateRange]);
@@ -283,7 +286,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching vehicles:', error);
+        logger.error('Error fetching vehicles:', error);
         return;
       }
 
@@ -312,7 +315,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchVehicleUtilization:', error);
+      logger.error('Error in fetchVehicleUtilization:', error);
       return false;
     }
   }, [dateRange]);
@@ -326,7 +329,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching drivers:', error);
+        logger.error('Error fetching drivers:', error);
         return;
       }
 
@@ -359,7 +362,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchDriverPerformance:', error);
+      logger.error('Error in fetchDriverPerformance:', error);
       return false;
     }
   }, [dateRange]);
@@ -373,7 +376,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (error) {
-        console.error('Error fetching expenses:', error);
+        logger.error('Error fetching expenses:', error);
         return;
       }
 
@@ -404,7 +407,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchExpenseBreakdown:', error);
+      logger.error('Error in fetchExpenseBreakdown:', error);
       return false;
     }
   }, [dateRange, metrics.maintenanceCosts]);
@@ -584,7 +587,7 @@ const FixedUnifiedReportingDashboard: React.FC = () => {
       pdf.save(`AVS-${reportType}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logger.error('Error generating PDF:', error);
       alert('Error generating report. Please try again.');
     } finally {
       setGeneratingReport(null);

@@ -1,6 +1,9 @@
 import { supabase } from '../supabaseClient';
 import { Tag, VehicleTag, TagFormData, VehicleWithTags } from '../../types/tags';
 import { Vehicle } from '../../types';
+import { createLogger } from '../logger';
+
+const logger = createLogger('tags');
 
 /**
  * Fetch all tags for the user's organization with vehicle counts
@@ -38,7 +41,7 @@ export async function getTags(): Promise<Tag[]> {
       vehicle_count: tag.vehicle_tags?.[0]?.count || 0
     }));
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    logger.error('Error fetching tags:', error);
     throw error;
   }
 }
@@ -84,7 +87,7 @@ export async function createTag(tagData: TagFormData): Promise<Tag> {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error creating tag:', error);
+    logger.error('Error creating tag:', error);
     throw error;
   }
 }
@@ -125,7 +128,7 @@ export async function updateTag(tagId: string, tagData: Partial<TagFormData>): P
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error updating tag:', error);
+    logger.error('Error updating tag:', error);
     throw error;
   }
 }
@@ -142,7 +145,7 @@ export async function deleteTag(tagId: string): Promise<void> {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting tag:', error);
+    logger.error('Error deleting tag:', error);
     throw error;
   }
 }
@@ -171,7 +174,7 @@ export async function getVehiclesWithTag(tagId: string): Promise<Vehicle[]> {
     
     return vehicles;
   } catch (error) {
-    console.error('Error fetching vehicles with tag:', error);
+    logger.error('Error fetching vehicles with tag:', error);
     throw error;
   }
 }
@@ -214,7 +217,7 @@ export async function assignTagToVehicle(vehicleId: string, tagId: string): Prom
 
     return data;
   } catch (error) {
-    console.error('Error assigning tag to vehicle:', error);
+    logger.error('Error assigning tag to vehicle:', error);
     throw error;
   }
 }
@@ -232,7 +235,7 @@ export async function removeTagFromVehicle(vehicleId: string, tagId: string): Pr
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error removing tag from vehicle:', error);
+    logger.error('Error removing tag from vehicle:', error);
     throw error;
   }
 }

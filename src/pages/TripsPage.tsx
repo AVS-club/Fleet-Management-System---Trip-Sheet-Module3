@@ -22,6 +22,9 @@ import { searchTrips, TripFilters, useDebounce, comprehensiveSearchTrips } from 
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('TripsPage');
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -123,7 +126,7 @@ const TripsPage: React.FC = () => {
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data:', error);
         toast.error('Failed to load data');
       } finally {
         setLoading(false);
@@ -150,7 +153,7 @@ const TripsPage: React.FC = () => {
       );
       setSearchResult(result);
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -223,7 +226,7 @@ const TripsPage: React.FC = () => {
         toast.success(`Found ${result.totalCount} trips${fieldName}`);
       }
     } catch (error) {
-      console.error('Smart search error:', error);
+      logger.error('Smart search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -267,9 +270,9 @@ const TripsPage: React.FC = () => {
             try {
               await updateTrip(fixedTrip.id, { calculated_kmpl: fixedTrip.calculated_kmpl });
               totalUpdated++;
-              console.log(`Updated trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl || 'N/A'} → ${fixedTrip.calculated_kmpl || 'N/A'} km/L`);
+              logger.debug(`Updated trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl || 'N/A'} → ${fixedTrip.calculated_kmpl || 'N/A'} km/L`);
             } catch (error) {
-              console.error(`Error updating trip ${fixedTrip.trip_serial_number}:`, error);
+              logger.error(`Error updating trip ${fixedTrip.trip_serial_number}:`, error);
             }
           }
         }
@@ -294,7 +297,7 @@ const TripsPage: React.FC = () => {
       setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       
     } catch (error) {
-      console.error('Error fixing mileage:', error);
+      logger.error('Error fixing mileage:', error);
       toast.error('Failed to fix mileage calculations');
     } finally {
       setFixingMileage(false);
@@ -376,7 +379,7 @@ const TripsPage: React.FC = () => {
               try {
                 await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
               } catch (error) {
-                console.error('Error updating related trip mileage:', error);
+                logger.error('Error updating related trip mileage:', error);
               }
             }
             
@@ -417,7 +420,7 @@ const TripsPage: React.FC = () => {
               try {
                 await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
               } catch (error) {
-                console.error('Error updating related trip mileage:', error);
+                logger.error('Error updating related trip mileage:', error);
               }
             }
             
@@ -449,7 +452,7 @@ const TripsPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error adding trip:', error);
+      logger.error('Error adding trip:', error);
       
       // Show user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Error adding trip';

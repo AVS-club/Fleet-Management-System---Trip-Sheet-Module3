@@ -2,6 +2,9 @@ import React from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { supabase } from './supabaseClient';
 import { format, parseISO, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, parse, isValid } from 'date-fns';
+import { createLogger } from './logger';
+
+const logger = createLogger('tripSearch');
 
 export interface TripFilters {
   search?: string;
@@ -413,7 +416,7 @@ export async function searchTripsDatabase(
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Database search error:', error);
+      logger.error('Database search error:', error);
       throw error;
     }
 
@@ -437,7 +440,7 @@ export async function searchTripsDatabase(
       searchTime
     };
   } catch (error) {
-    console.warn('Database search failed, will fallback to client-side search:', error);
+    logger.warn('Database search failed, will fallback to client-side search:', error);
     
     // Check if it's a network/CORS error
     if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
@@ -681,11 +684,11 @@ export async function searchTrips(
   try {
     return await searchTripsDatabase(filters, pagination, userId);
   } catch (error) {
-    console.warn('Database search unavailable, using client-side search:', error);
+    logger.warn('Database search unavailable, using client-side search:', error);
     
     // Show user-friendly message for network errors
     if (error instanceof Error && error.message.includes('NETWORK_ERROR')) {
-      console.error('CORS Configuration Required:', `
+      logger.error('CORS Configuration Required:', `
 Please configure CORS in your Supabase project:
 1. Go to https://supabase.com/dashboard
 2. Select your project  
@@ -968,7 +971,7 @@ function searchAllFields(
         }
       } catch (error) {
         // Log error for debugging but don't throw
-        console.warn(`Invalid date format: ${dateString}`, error);
+        logger.warn(`Invalid date format: ${dateString}`, error);
       }
       return '';
     };

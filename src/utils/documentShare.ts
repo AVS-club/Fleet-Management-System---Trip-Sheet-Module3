@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('documentShare');
 
 export const shareDocument = async (
   documentData: any,
@@ -37,7 +40,7 @@ export const shareDocument = async (
       window.open(whatsappUrl, '_blank');
     }
   } catch (error) {
-    console.error('Share failed:', error);
+    logger.error('Share failed:', error);
     // Fallback to download
     downloadDocument(documentData.url, `${vehicleNumber}_${documentType}`);
   }

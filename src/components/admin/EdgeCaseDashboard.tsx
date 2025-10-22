@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { EdgeCaseHandler, EdgeCaseDetection, DataRecoveryScenario } from '../../utils/edgeCaseHandler';
 import { AlertTriangle, Shield, Wrench, Zap, Database, Activity, RefreshCw, Eye, CheckCircle, XCircle, Clock, TrendingUp, FileQuestion } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EdgeCaseDashboard');
 
 interface EdgeCaseDashboardProps {
   className?: string;
@@ -24,7 +27,7 @@ const EdgeCaseDashboard: React.FC<EdgeCaseDashboardProps> = ({ className = '' })
       const analysis = await EdgeCaseHandler.getSystemWideEdgeCases();
       setSystemAnalysis(analysis);
     } catch (error) {
-      console.error('Error loading edge case analysis:', error);
+      logger.error('Error loading edge case analysis:', error);
       toast.error('Failed to load edge case analysis');
     } finally {
       setLoading(false);
@@ -51,7 +54,7 @@ const EdgeCaseDashboard: React.FC<EdgeCaseDashboardProps> = ({ className = '' })
       
       setRecoveryScenarios(allScenarios);
     } catch (error) {
-      console.error('Error loading recovery scenarios:', error);
+      logger.error('Error loading recovery scenarios:', error);
       toast.error('Failed to load recovery scenarios');
     }
   };

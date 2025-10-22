@@ -15,6 +15,9 @@ import {
   Upload
 } from 'lucide-react';
 import '../../styles/FileUploadWithProgress.css';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EnhancedMaintenanceForm');
 
 interface EnhancedMaintenanceFormProps {
   onSubmit: (data: Partial<MaintenanceTask>) => void;
@@ -125,7 +128,7 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
       setOverallProgress(100);
       setSubmitSuccess(true);
       
-      console.log('Task created successfully');
+      logger.debug('Task created successfully');
       
       // Show success for 2 seconds then reset
       setTimeout(() => {
@@ -136,7 +139,7 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
       }, 2000);
       
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.error('Submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create task');
       setIsSubmitting(false);
       setOverallProgress(0);

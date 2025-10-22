@@ -6,6 +6,9 @@ import { format, subDays, isAfter, isBefore, parseISO, startOfDay, endOfDay } fr
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/utils/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EnhancedMileageChart');
 
 interface EnhancedMileageChartProps {
   trips: Trip[];
@@ -208,7 +211,7 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
       });
 
       if (dbError) {
-        console.error('Error fetching anomalies from DB:', dbError);
+        logger.error('Error fetching anomalies from DB:', dbError);
       }
 
       // Also run client-side enhanced anomaly detection for more sensitive criteria

@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { AuditTrailLogger } from './auditTrailLogger';
+import { createLogger } from './logger';
+
+const logger = createLogger('fuelEfficiencyBaselineManager');
 
 export interface FuelEfficiencyBaseline {
   vehicle_id: string;
@@ -77,7 +80,7 @@ export class FuelEfficiencyBaselineManager {
         .single();
 
       if (vehicleError || !vehicle) {
-        console.error('Vehicle not found:', vehicleError);
+        logger.error('Vehicle not found:', vehicleError);
         return null;
       }
 
@@ -96,7 +99,7 @@ export class FuelEfficiencyBaselineManager {
         .order('trip_start_date');
 
       if (tripsError || !trips || trips.length < this.MIN_TRIPS_FOR_BASELINE) {
-        console.log(`Insufficient trip data for baseline calculation. Need ${this.MIN_TRIPS_FOR_BASELINE} trips, got ${trips?.length || 0}`);
+        logger.debug(`Insufficient trip data for baseline calculation. Need ${this.MIN_TRIPS_FOR_BASELINE} trips, got ${trips?.length || 0}`);
         return null;
       }
 
@@ -183,7 +186,7 @@ export class FuelEfficiencyBaselineManager {
 
       return baseline;
     } catch (error) {
-      console.error('Error calculating baseline:', error);
+      logger.error('Error calculating baseline:', error);
       return null;
     }
   }
@@ -201,7 +204,7 @@ export class FuelEfficiencyBaselineManager {
       // Get current user for RLS
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        console.error('Authentication error:', authError);
+        logger.error('Authentication error:', authError);
         return { success: false, error: 'Authentication failed - please log in again' };
       }
       
@@ -217,7 +220,7 @@ export class FuelEfficiencyBaselineManager {
         .single();
 
       if (existingError && existingError.code !== 'PGRST116') { // PGRST116 is "not found" which is expected
-        console.error('Error checking existing baseline:', existingError);
+        logger.error('Error checking existing baseline:', existingError);
         return { success: false, error: 'Database query failed - please check your permissions' };
       }
 
@@ -230,7 +233,7 @@ export class FuelEfficiencyBaselineManager {
           .single();
 
         if (fetchError) {
-          console.error('Error fetching existing baseline for audit:', fetchError);
+          logger.error('Error fetching existing baseline for audit:', fetchError);
         }
 
         // Update existing baseline
@@ -249,7 +252,7 @@ export class FuelEfficiencyBaselineManager {
           .eq('vehicle_id', baseline.vehicle_id);
 
         if (error) {
-          console.error('RLS UPDATE ERROR - User permissions or authentication issue:', error);
+          logger.error('RLS UPDATE ERROR - User permissions or authentication issue:', error);
           return { success: false, error: `Update failed: ${error.message}. Check user permissions.` };
         }
 
@@ -302,7 +305,7 @@ export class FuelEfficiencyBaselineManager {
           });
 
         if (error) {
-          console.error('RLS INSERT ERROR - User permissions or authentication issue:', error);
+          logger.error('RLS INSERT ERROR - User permissions or authentication issue:', error);
           return { success: false, error: `Insert failed: ${error.message}. Check user permissions and authentication.` };
         }
 
@@ -342,7 +345,7 @@ export class FuelEfficiencyBaselineManager {
 
       return { success: true };
     } catch (error) {
-      console.error('Unexpected error storing baseline:', error);
+      logger.error('Unexpected error storing baseline:', error);
       return { success: false, error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   }
@@ -364,7 +367,7 @@ export class FuelEfficiencyBaselineManager {
 
       return baseline;
     } catch (error) {
-      console.error('Error getting baseline:', error);
+      logger.error('Error getting baseline:', error);
       return null;
     }
   }
@@ -438,7 +441,7 @@ export class FuelEfficiencyBaselineManager {
 
       return deviation;
     } catch (error) {
-      console.error('Error analyzing trip:', error);
+      logger.error('Error analyzing trip:', error);
       return null;
     }
   }
@@ -535,7 +538,7 @@ export class FuelEfficiencyBaselineManager {
         .order('trip_start_date');
 
       if (tripsError) {
-        console.error('Error fetching recent trips:', tripsError);
+        logger.error('Error fetching recent trips:', tripsError);
         return null;
       }
 
@@ -612,7 +615,7 @@ export class FuelEfficiencyBaselineManager {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing vehicle:', error);
+      logger.error('Error analyzing vehicle:', error);
       return null;
     }
   }
@@ -692,7 +695,7 @@ export class FuelEfficiencyBaselineManager {
         .is('deleted_at', null);
 
       if (vehicleCountError) {
-        console.error('Error getting vehicle count:', vehicleCountError);
+        logger.error('Error getting vehicle count:', vehicleCountError);
         return {
           total_vehicles: 0,
           vehicles_with_baselines: 0,
@@ -710,7 +713,7 @@ export class FuelEfficiencyBaselineManager {
         .select('vehicle_id, confidence_score, last_updated');
 
       if (baselinesError) {
-        console.error('Error getting baselines:', baselinesError);
+        logger.error('Error getting baselines:', baselinesError);
         return {
           total_vehicles: totalVehicles || 0,
           vehicles_with_baselines: 0,
@@ -746,7 +749,7 @@ export class FuelEfficiencyBaselineManager {
         baseline_coverage_percent: Math.round(baselineCoveragePercent)
       };
     } catch (error) {
-      console.error('Unexpected error getting system-wide baseline status:', error);
+      logger.error('Unexpected error getting system-wide baseline status:', error);
       return {
         total_vehicles: 0,
         vehicles_with_baselines: 0,
@@ -849,7 +852,7 @@ export class FuelEfficiencyBaselineManager {
         results
       };
     } catch (error) {
-      console.error('Error establishing baselines for all vehicles:', error);
+      logger.error('Error establishing baselines for all vehicles:', error);
       throw error;
     }
   }

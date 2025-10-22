@@ -1,5 +1,8 @@
 import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
+import { createLogger } from './logger';
+
+const logger = createLogger('supabaseStorage');
 
 /**
  * Clean and normalize file paths
@@ -40,7 +43,7 @@ const checkFileExists = async (
 
     return !error && data && data.length > 0;
   } catch (error) {
-    console.warn(`File check failed for ${filePath}:`, error);
+    logger.warn(`File check failed for ${filePath}:`, error);
     return false;
   }
 };
@@ -164,7 +167,7 @@ export const getSignedDocumentUrl = async (
   expiresIn: number = 604800 // 7 days in seconds
 ): Promise<string | null> => {
   if (!filePath) {
-    console.warn("No file path provided");
+    logger.warn("No file path provided");
     return null;
   }
 
@@ -172,7 +175,7 @@ export const getSignedDocumentUrl = async (
     const cleanedPath = cleanFilePath(filePath);
     
     if (!cleanedPath) {
-      console.warn("Invalid file path after cleaning:", filePath);
+      logger.warn("Invalid file path after cleaning:", filePath);
       return null;
     }
 
@@ -184,16 +187,16 @@ export const getSignedDocumentUrl = async (
     if (error) {
       // Log but don't throw - return null for missing files
       if (error.message?.includes('not found') || error.statusCode === 404) {
-        console.warn(`File not found in storage: ${cleanedPath}`);
+        logger.warn(`File not found in storage: ${cleanedPath}`);
         return null;
       }
-      console.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
+      logger.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
       return null;
     }
 
     return data?.signedUrl || null;
   } catch (error) {
-    console.error('Error generating signed document URL:', error);
+    logger.error('Error generating signed document URL:', error);
     return null;
   }
 };
@@ -205,7 +208,7 @@ export const getSignedDocumentUrl = async (
  */
 export const deleteVehicleDocument = async (filePath: string): Promise<boolean> => {
   if (!filePath) {
-    console.warn('No file path provided for deletion');
+    logger.warn('No file path provided for deletion');
     return false;
   }
 
@@ -285,7 +288,7 @@ export const getSignedDriverDocumentUrl = async (
   expiresIn: number = 604800
 ): Promise<string | null> => {
   if (!filePath) {
-    console.warn("No file path provided");
+    logger.warn("No file path provided");
     return null;
   }
 
@@ -293,7 +296,7 @@ export const getSignedDriverDocumentUrl = async (
     const cleanedPath = cleanFilePath(filePath);
     
     if (!cleanedPath) {
-      console.warn("Invalid file path after cleaning:", filePath);
+      logger.warn("Invalid file path after cleaning:", filePath);
       return null;
     }
 
@@ -303,16 +306,16 @@ export const getSignedDriverDocumentUrl = async (
 
     if (error) {
       if (error.message?.includes('not found') || error.statusCode === 404) {
-        console.warn(`File not found in storage: ${cleanedPath}`);
+        logger.warn(`File not found in storage: ${cleanedPath}`);
         return null;
       }
-      console.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
+      logger.error(`Failed to generate signed URL for ${cleanedPath}:`, error);
       return null;
     }
 
     return data?.signedUrl || null;
   } catch (error) {
-    console.error('Error generating signed driver document URL:', error);
+    logger.error('Error generating signed driver document URL:', error);
     return null;
   }
 };
@@ -406,7 +409,7 @@ export async function uploadFilesAndGetPublicUrls(
           onProgress(progress);
         }
       } catch (error) {
-        console.error(`Error uploading file ${i}:`, error);
+        logger.error(`Error uploading file ${i}:`, error);
         throw error;
       }
     }
@@ -454,7 +457,7 @@ export const generateSignedUrlsBatch = async (
     if (result.status === 'fulfilled') {
       return result.value;
     } else {
-      console.warn(`Failed to generate URL for path ${filePaths[index]}:`, result.reason);
+      logger.warn(`Failed to generate URL for path ${filePaths[index]}:`, result.reason);
       return null;
     }
   });
@@ -475,7 +478,7 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
   const urls: any = { other: {} };
   
   // Debug logging for insurance specifically
-  console.log('🔍 generateVehicleDocumentUrls - vehicleData:', {
+  logger.debug('🔍 generateVehicleDocumentUrls - vehicleData:', {
     insurance_document_url: vehicleData.insurance_document_url,
     rc_document_url: vehicleData.rc_document_url,
     fitness_document_url: vehicleData.fitness_document_url
@@ -488,23 +491,23 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
     const fieldName = `${type}_document_url`;
     const filePaths = vehicleData[fieldName];
     
-    console.log(`🔍 Processing ${type}:`, { fieldName, filePaths });
+    logger.debug(`🔍 Processing ${type}:`, { fieldName, filePaths });
     
     if (filePaths && Array.isArray(filePaths) && filePaths.length > 0) {
-      console.log(`🔍 Generating URLs for ${type}:`, filePaths);
+      logger.debug(`🔍 Generating URLs for ${type}:`, filePaths);
       const generatedUrls = await generateSignedUrlsBatch(filePaths, 'vehicle');
-      console.log(`🔍 Generated URLs for ${type}:`, generatedUrls);
+      logger.debug(`🔍 Generated URLs for ${type}:`, generatedUrls);
       
       // Only add if we have at least one valid URL
       const validUrls = generatedUrls.filter(url => url !== null);
       if (validUrls.length > 0) {
         urls[type] = generatedUrls; // Keep nulls to maintain index alignment
-        console.log(`✅ Added ${type} URLs to result:`, urls[type]);
+        logger.debug(`✅ Added ${type} URLs to result:`, urls[type]);
       } else {
-        console.log(`❌ No valid URLs for ${type}`);
+        logger.debug(`❌ No valid URLs for ${type}`);
       }
     } else {
-      console.log(`❌ No file paths for ${type}:`, filePaths);
+      logger.debug(`❌ No file paths for ${type}:`, filePaths);
     }
   }
   
@@ -521,6 +524,6 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
     }
   }
   
-  console.log('🔍 Final generated URLs result:', urls);
+  logger.debug('🔍 Final generated URLs result:', urls);
   return urls;
 };

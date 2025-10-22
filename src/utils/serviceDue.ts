@@ -1,4 +1,7 @@
 import { addDays } from 'date-fns';
+import { createLogger } from './logger';
+
+const logger = createLogger('serviceDue');
 
 interface NextDueCalculation {
   nextDueOdo?: number;
@@ -43,7 +46,7 @@ export const computeNextDueFromLast = ({
         result.nextDueDate = nextDate.toISOString().split('T')[0]; // YYYY-MM-DD format
       }
     } catch (error) {
-      console.error('Error calculating next due date:', error);
+      logger.error('Error calculating next due date:', error);
     }
   }
 
@@ -105,7 +108,7 @@ export const computeDueStatus = ({
         }
       }
     } catch (error) {
-      console.error('Error parsing next due date:', error);
+      logger.error('Error parsing next due date:', error);
     }
   }
 

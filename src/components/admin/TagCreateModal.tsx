@@ -7,6 +7,9 @@ import TagColorPicker from './TagColorPicker';
 import { Tag, TagFormData } from '../../types/tags';
 import { createTag, updateTag } from '../../utils/api/tags';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TagCreateModal');
 
 // Helper function to check for duplicate colors
 const isColorTooSimilar = (color1: string, color2: string): boolean => {
@@ -119,7 +122,7 @@ const TagCreateModal: React.FC<TagCreateModalProps> = ({
       onSuccess();
       onClose();
     } catch (error: any) {
-      console.error('Error saving tag:', error);
+      logger.error('Error saving tag:', error);
       toast.error(error.message || 'Failed to save tag');
     } finally {
       setIsSubmitting(false);

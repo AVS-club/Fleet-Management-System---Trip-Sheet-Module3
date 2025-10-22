@@ -1,6 +1,9 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
+import { createLogger } from './logger';
+
+const logger = createLogger('reportGenerators');
 
 // PDF Generation Utility
 export const generatePDF = async (
@@ -85,7 +88,7 @@ export const generatePDF = async (
     // Save the PDF
     pdf.save(`${fileName}.pdf`);
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    logger.error('Error generating PDF:', error);
     throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
@@ -142,7 +145,7 @@ export const generateExcel = (
     // Save the Excel file
     XLSX.writeFile(workbook, `${fileName}.xlsx`);
   } catch (error) {
-    console.error('Error generating Excel:', error);
+    logger.error('Error generating Excel:', error);
     throw new Error(`Failed to generate Excel: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

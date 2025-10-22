@@ -6,6 +6,9 @@ import { searchOrCreateDestination } from '../../lib/destinationUtils';
 import { getMostUsedDestinations } from '../../utils/destinationAnalytics';
 import { Destination } from '@/types';
 import Input from '../ui/Input';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('SearchableDestinationInput');
 
 interface SearchableDestinationInputProps {
   onDestinationSelect: (destination: Destination) => void;
@@ -51,7 +54,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         }
       })
       .catch(err => {
-        console.error('Error loading Google Maps:', err);
+        logger.error('Error loading Google Maps:', err);
       });
   }, []);
 
@@ -62,7 +65,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         const frequentDestinations = await getMostUsedDestinations(5);
         setMostUsedDestinations(frequentDestinations);
       } catch (error) {
-        console.error('Error fetching most used destinations:', error);
+        logger.error('Error fetching most used destinations:', error);
         // Fallback to basic destinations if analytics fail
         try {
           const allDestinations = await getDestinations();
@@ -77,7 +80,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
             }));
           setMostUsedDestinations(frequent);
         } catch (fallbackError) {
-          console.error('Error fetching fallback destinations:', fallbackError);
+          logger.error('Error fetching fallback destinations:', fallbackError);
         }
       }
     };
@@ -128,7 +131,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         setActivePredictionIndex(response.predictions.length > 0 ? 0 : -1);
       }
     } catch (error) {
-      console.error('Error getting place predictions:', error);
+      logger.error('Error getting place predictions:', error);
       setPredictions([]);
       setActivePredictionIndex(-1);
     }
@@ -184,7 +187,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
       setShowAddAnother(false);
       setTimeout(() => inputRef.current?.blur(), 0);
     } catch (error) {
-      console.error('Error selecting place:', error);
+      logger.error('Error selecting place:', error);
       
       // Better error handling for destination operations
       const errorMessage = error instanceof Error 
@@ -212,7 +215,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         const { toast } = await import('react-toastify');
         toast.warning(`Destination "${prediction.description.split(',')[0]}" added but is inactive due to missing coordinates. Please update coordinates manually to enable route calculations.`);
       } catch (fallbackError) {
-        console.error('Fallback destination creation failed:', fallbackError);
+        logger.error('Fallback destination creation failed:', fallbackError);
         const { toast } = await import('react-toastify');
         toast.error('Failed to create destination. Please try again or contact support.');
       }
@@ -300,7 +303,7 @@ const SearchableDestinationInput: React.FC<SearchableDestinationInputProps> = ({
         inputRef.current?.blur();
       }
     } catch (error) {
-      console.error('Error selecting frequent destination:', error);
+      logger.error('Error selecting frequent destination:', error);
     }
   };
 

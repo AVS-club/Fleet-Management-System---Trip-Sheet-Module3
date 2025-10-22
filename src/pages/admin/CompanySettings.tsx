@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Building2, Upload, Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('CompanySettings');
 
 interface CompanyData {
   id?: string;
@@ -96,7 +99,7 @@ const CompanySettings: React.FC = () => {
       }
 
       if (import.meta.env.MODE === 'development') {
-        console.log('Loading company data for user:', user.id);
+        logger.debug('Loading company data for user:', user.id);
       }
 
       const { data, error } = await supabase
@@ -107,11 +110,11 @@ const CompanySettings: React.FC = () => {
         .limit(1);
 
       if (import.meta.env.MODE === 'development') {
-        console.log('Company data query result:', { data, error });
+        logger.debug('Company data query result:', { data, error });
       }
 
       if (error) {
-        console.error('Error fetching organization:', error);
+        logger.error('Error fetching organization:', error);
         return;
       }
 
@@ -120,7 +123,7 @@ const CompanySettings: React.FC = () => {
 
       if (companyData) {
         if (import.meta.env.MODE === 'development') {
-          console.log('Setting company data:', companyData);
+          logger.debug('Setting company data:', companyData);
         }
         setCompany(companyData);
         setIsEditMode(true);
@@ -131,13 +134,13 @@ const CompanySettings: React.FC = () => {
         }
       } else {
         if (import.meta.env.MODE === 'development') {
-          console.log('No company data found, setting up new company');
+          logger.debug('No company data found, setting up new company');
         }
         setIsEditMode(false);
         setIsEditing(true); // Start in edit mode for new company
       }
     } catch (error) {
-      console.error('Error loading company data:', error);
+      logger.error('Error loading company data:', error);
     } finally {
       setLoading(false);
     }
@@ -267,7 +270,7 @@ const CompanySettings: React.FC = () => {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading logo:', error);
+      logger.error('Error uploading logo:', error);
       throw error;
     }
   };
@@ -284,7 +287,7 @@ const CompanySettings: React.FC = () => {
         .from('company-logos')
         .remove([filePath]);
     } catch (error) {
-      console.error('Error deleting old logo:', error);
+      logger.error('Error deleting old logo:', error);
       // Non-critical error, continue
     }
   };
@@ -358,7 +361,7 @@ const CompanySettings: React.FC = () => {
             }]);
 
           if (orgUserError) {
-            console.error('Error creating organization_users record:', orgUserError);
+            logger.error('Error creating organization_users record:', orgUserError);
             // Don't throw error here as the organization was created successfully
           }
         }
@@ -376,7 +379,7 @@ const CompanySettings: React.FC = () => {
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
-      console.error('Error saving company data:', error);
+      logger.error('Error saving company data:', error);
       setErrors({ save: error.message || 'Failed to save company information' });
     } finally {
       setSaving(false);

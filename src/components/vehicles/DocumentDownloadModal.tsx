@@ -3,6 +3,9 @@ import { X, Download, Link as LinkIcon } from 'lucide-react';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import DocumentModalBase, { DocumentItemBase } from '../shared/DocumentModalBase';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentDownloadModal');
 
 interface DocumentDownloadModalProps {
   isOpen: boolean;
@@ -109,7 +112,7 @@ const DocumentDownloadModal: React.FC<DocumentDownloadModalProps> = ({
       await navigator.clipboard.writeText(url);
       toast.success(`${docName} link copied to clipboard`);
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
+      logger.error('Error copying to clipboard:', error);
       toast.error('Failed to copy link');
     }
   };

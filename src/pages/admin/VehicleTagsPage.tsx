@@ -12,6 +12,9 @@ import { Tag } from '../../types/tags';
 import { getTags, deleteTag } from '../../utils/api/tags';
 import { toast } from 'react-toastify';
 import LoadingScreen from '../../components/LoadingScreen';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleTagsPage');
 
 const VehicleTagsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -35,7 +38,7 @@ const VehicleTagsPage: React.FC = () => {
       const data = await getTags();
       setTags(data);
     } catch (error) {
-      console.error('Error loading tags:', error);
+      logger.error('Error loading tags:', error);
       toast.error('Failed to load tags');
     } finally {
       setLoading(false);
@@ -57,7 +60,7 @@ const VehicleTagsPage: React.FC = () => {
       toast.success('Tag deleted successfully');
       loadTags();
     } catch (error) {
-      console.error('Error deleting tag:', error);
+      logger.error('Error deleting tag:', error);
       toast.error('Failed to delete tag');
     }
   };

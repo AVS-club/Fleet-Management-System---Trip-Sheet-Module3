@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('auditTrailLogger');
 
 export interface AuditTrailEntry {
   id?: string;
@@ -86,7 +89,7 @@ export class AuditTrailLogger {
           userType = 'user';
         } else if (userError && !options.allowSystemFallback) {
           // Only fail if this is not a system operation
-          console.error(`Attempt ${attempt}: User authentication required for audit logging:`, userError);
+          logger.error(`Attempt ${attempt}: User authentication required for audit logging:`, userError);
           lastError = userError;
           
           if (attempt === maxRetries) {
@@ -122,7 +125,7 @@ export class AuditTrailLogger {
         });
 
         if (error) {
-          console.error(`Attempt ${attempt}: Failed to log audit trail:`, error);
+          logger.error(`Attempt ${attempt}: Failed to log audit trail:`, error);
           lastError = error;
           
           if (attempt === maxRetries) {
@@ -138,12 +141,12 @@ export class AuditTrailLogger {
 
         // Success - log completion
         if (attempt > 1) {
-          console.log(`Audit logging succeeded on attempt ${attempt} for ${operationType} on ${entityType} ${entityId}`);
+          logger.debug(`Audit logging succeeded on attempt ${attempt} for ${operationType} on ${entityType} ${entityId}`);
         }
 
         return data;
       } catch (error) {
-        console.error(`Attempt ${attempt}: Error logging audit trail:`, error);
+        logger.error(`Attempt ${attempt}: Error logging audit trail:`, error);
         lastError = error;
         
         if (attempt === maxRetries) {
@@ -191,7 +194,7 @@ export class AuditTrailLogger {
         fallback_reason: 'Primary audit logging failed - using fallback mechanism'
       };
 
-      console.warn('AUDIT TRAIL FALLBACK:', JSON.stringify(fallbackEntry, null, 2));
+      logger.warn('AUDIT TRAIL FALLBACK:', JSON.stringify(fallbackEntry, null, 2));
 
       // For critical operations, also try to store in localStorage as backup
       if (options.severityLevel === 'critical' || options.severityLevel === 'error') {
@@ -205,13 +208,13 @@ export class AuditTrailLogger {
           }
           
           localStorage.setItem('audit_fallback_logs', JSON.stringify(existingFallbackLogs));
-          console.log('Critical audit entry stored in localStorage fallback');
+          logger.debug('Critical audit entry stored in localStorage fallback');
         } catch (storageError) {
-          console.error('Failed to store fallback log in localStorage:', storageError);
+          logger.error('Failed to store fallback log in localStorage:', storageError);
         }
       }
     } catch (fallbackError) {
-      console.error('Fallback logging mechanism also failed:', fallbackError);
+      logger.error('Fallback logging mechanism also failed:', fallbackError);
     }
   }
 
@@ -422,13 +425,13 @@ export class AuditTrailLogger {
       });
 
       if (error) {
-        console.error('Failed to get entity audit trail:', error);
+        logger.error('Failed to get entity audit trail:', error);
         return [];
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error getting entity audit trail:', error);
+      logger.error('Error getting entity audit trail:', error);
       return [];
     }
   }
@@ -453,7 +456,7 @@ export class AuditTrailLogger {
       });
 
       if (error) {
-        console.error('Failed to search audit trail:', error);
+        logger.error('Failed to search audit trail:', error);
         return { entries: [], total: 0 };
       }
 
@@ -462,7 +465,7 @@ export class AuditTrailLogger {
 
       return { entries, total };
     } catch (error) {
-      console.error('Error searching audit trail:', error);
+      logger.error('Error searching audit trail:', error);
       return { entries: [], total: 0 };
     }
   }
@@ -480,7 +483,7 @@ export class AuditTrailLogger {
         .limit(1000);
 
       if (statsError) {
-        console.error('Failed to get audit trail stats:', statsError);
+        logger.error('Failed to get audit trail stats:', statsError);
         return this.getEmptyStats();
       }
 
@@ -496,7 +499,7 @@ export class AuditTrailLogger {
         .limit(20);
 
       if (recentError) {
-        console.error('Failed to get recent operations:', recentError);
+        logger.error('Failed to get recent operations:', recentError);
       }
 
       const now = new Date();
@@ -561,7 +564,7 @@ export class AuditTrailLogger {
         operations_this_week: operationsThisWeek
       };
     } catch (error) {
-      console.error('Error getting audit trail stats:', error);
+      logger.error('Error getting audit trail stats:', error);
       return this.getEmptyStats();
     }
   }
@@ -602,7 +605,7 @@ export class AuditTrailLogger {
         .gte('performed_at', startDate.toISOString());
 
       if (error) {
-        console.error('Failed to get audit summary:', error);
+        logger.error('Failed to get audit summary:', error);
         return {
           daily_counts: [],
           operation_breakdown: {},
@@ -645,7 +648,7 @@ export class AuditTrailLogger {
         top_entities: topEntities
       };
     } catch (error) {
-      console.error('Error getting audit summary:', error);
+      logger.error('Error getting audit summary:', error);
       return {
         daily_counts: [],
         operation_breakdown: {},

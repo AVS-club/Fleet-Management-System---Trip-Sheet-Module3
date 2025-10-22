@@ -41,6 +41,9 @@ import {
   VEHICLE_AUTHORIZATION
 } from "../../utils/indianValidation";
 import { checkDriverLicenseExpiry, getExpiryStatusColor } from "../../utils/documentExpiry";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DriverForm');
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -126,7 +129,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
         );
         setVehicles(activeVehicles);
       } catch (error) {
-        console.error("Error fetching vehicles:", error);
+        logger.error("Error fetching vehicles:", error);
         toast.error("Failed to load vehicles");
       }
     };

@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { AuditTrailLogger } from './auditTrailLogger';
+import { createLogger } from './logger';
+
+const logger = createLogger('returnTripValidator');
 
 export interface ReturnTripIssue {
   type: 'distance_mismatch' | 'fuel_inconsistency' | 'time_gap' | 'missing_return' | 'orphaned_return';
@@ -64,7 +67,7 @@ export class ReturnTripValidator {
         .single();
 
       if (tripError || !trip) {
-        console.error('Trip not found:', tripError);
+        logger.error('Trip not found:', tripError);
         return null;
       }
 
@@ -140,7 +143,7 @@ export class ReturnTripValidator {
 
       return analysis;
     } catch (error) {
-      console.error('Error validating return trip:', error);
+      logger.error('Error validating return trip:', error);
       return null;
     }
   }
@@ -231,7 +234,7 @@ export class ReturnTripValidator {
         .order('trip_start_date');
 
       if (error) {
-        console.error('Error finding return trips:', error);
+        logger.error('Error finding return trips:', error);
         return [];
       }
 
@@ -245,7 +248,7 @@ export class ReturnTripValidator {
 
       return relatedTrips;
     } catch (error) {
-      console.error('Error finding related return trips:', error);
+      logger.error('Error finding related return trips:', error);
       return [];
     }
   }
@@ -489,7 +492,7 @@ export class ReturnTripValidator {
         analyses
       };
     } catch (error) {
-      console.error('Error getting system-wide return trip issues:', error);
+      logger.error('Error getting system-wide return trip issues:', error);
       throw error;
     }
   }

@@ -51,6 +51,9 @@ import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppSha
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
 import ReactPaginate from "react-paginate";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VehiclesPage');
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -133,13 +136,13 @@ const VehiclesPage: React.FC = () => {
         }
 
         // Debug: Log driver count and any missing assignments
-        if (config.isDev) console.log('Fetched drivers count:', driversData.length);
+        if (config.isDev) logger.debug('Fetched drivers count:', driversData.length);
         const vehiclesWithDriverIds = vehiclesData.filter(v => v.primary_driver_id);
         const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
           !driversData.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
-          if (config.isDev) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
+          if (config.isDev) logger.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
             vehicle: v.registration_number,
             primary_driver_id: v.primary_driver_id
           })));
@@ -161,7 +164,7 @@ const VehiclesPage: React.FC = () => {
         
         // Performance logging for initial load
         const initialLoadTime = performance.now() - startTime;
-        console.log(`ðŸš€ Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
+        logger.debug(`ðŸš€ Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
         
         setLoading(false); // Show vehicles immediately
 
@@ -202,7 +205,7 @@ const VehiclesPage: React.FC = () => {
           const totalLoadTime = performance.now() - startTime;
           performance.mark('vehicles-load-end');
           performance.measure('vehicles-complete-load', 'vehicles-load-start', 'vehicles-load-end');
-          console.log(`ðŸ“Š Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
+          logger.debug(`ðŸ“Š Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
         }, 150); // Small delay to prevent glitchy updates
 
         // Calculate statistics
@@ -230,7 +233,7 @@ const VehiclesPage: React.FC = () => {
 
         setStatsLoading(false);
       } catch (error) {
-        console.error("Error fetching vehicles:", error);
+        logger.error("Error fetching vehicles:", error);
         toast.error("Failed to load vehicles");
         setStatsLoading(false);
       } finally {
@@ -409,7 +412,7 @@ const VehiclesPage: React.FC = () => {
             );
             payload[urlField] = [filePath]; // Ensure it's wrapped in an array
           } catch (err) {
-            console.error(`Failed to upload ${docType} document:`, err);
+            logger.error(`Failed to upload ${docType} document:`, err);
             toast.error(`Failed to upload ${docType} document`);
           }
         }
@@ -440,7 +443,7 @@ const VehiclesPage: React.FC = () => {
         toast.error("Failed to add vehicle");
       }
     } catch (error) {
-      console.error("Error adding vehicle:", error);
+      logger.error("Error adding vehicle:", error);
       toast.error(
         "Error adding vehicle: " +
           (error instanceof Error ? error.message : "Unknown error")

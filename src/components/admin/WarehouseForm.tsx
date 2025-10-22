@@ -6,6 +6,9 @@ import Select from '../ui/Select';
 import Button from '../ui/Button';
 import { loadGoogleMaps } from '../../utils/googleMapsLoader';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Import MaterialType
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('WarehouseForm');
 
 interface WarehouseFormData {
   name: string;
@@ -59,7 +62,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
         }
       })
       .catch(err => {
-        console.error('Error loading Google Maps:', err);
+        logger.error('Error loading Google Maps:', err);
       });
 
     // Fetch material types
@@ -68,7 +71,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
         const types = await getMaterialTypes();
         setMaterialTypes(Array.isArray(types) ? types : []);
       } catch (error) {
-        console.error("Error fetching material types:", error);
+        logger.error("Error fetching material types:", error);
         setMaterialTypes([]);
       }
     };
@@ -93,7 +96,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
         setPredictions(response.predictions);
       }
     } catch (error) {
-      console.error('Error getting place predictions:', error);
+      logger.error('Error getting place predictions:', error);
       setPredictions([]);
     }
   }, [autocompleteService, searchTerm]);
@@ -154,7 +157,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
       setSearchTerm('');
       setPredictions([]);
     } catch (error) {
-      console.error('Error selecting place:', error);
+      logger.error('Error selecting place:', error);
     }
   };
 

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(node scripts/cleanup-console-logs.js:*)",
+      "Bash(node scripts/cleanup-console-logs.cjs:*)",
+      "Bash(npm run build:*)",
+      "Bash(node scripts/fix-logger-imports.cjs:*)",
+      "Bash(wc:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

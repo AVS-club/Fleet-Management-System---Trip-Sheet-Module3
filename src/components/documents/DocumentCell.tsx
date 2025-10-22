@@ -2,12 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { signedUrlFromPath } from '@/utils/supaSignedUrl';
 import { fmtDateWithYear } from '@/utils/dateFmt';
 import { shareDocument } from '@/utils/documentShare';
-import { 
-  Share2, 
-  Download, 
-  Link, 
-  AlertCircle 
+import { createLogger } from '../../utils/logger';
+import {
+  Share2,
+  Download,
+  Link,
+  AlertCircle
 } from 'lucide-react';
+
+const logger = createLogger('DocumentCell');
 
 interface DocumentCellProps {
   vehicleId: string;
@@ -92,7 +95,7 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
         setSignedUrl(url);
       } catch (err) {
         setError('Failed to generate link. Please try again.');
-        console.error('Error generating signed URL:', err);
+        logger.error('Error generating signed URL:', err);
       } finally {
         setIsLoading(false);
       }

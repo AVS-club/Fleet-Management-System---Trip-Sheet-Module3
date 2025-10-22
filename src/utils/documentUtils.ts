@@ -2,6 +2,9 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { Vehicle } from '@/types';
 import { getSignedDocumentUrl } from './supabaseStorage';
+import { createLogger } from './logger';
+
+const logger = createLogger('documentUtils');
 
 export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> => {
   try {
@@ -20,7 +23,7 @@ export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> 
         const blob = await response.blob();
         folder.file(fileName, blob);
       } catch (error) {
-        console.error(`Error downloading ${fileName}:`, error);
+        logger.error(`Error downloading ${fileName}:`, error);
       }
     };
     if (vehicle.rc_document_url) {
@@ -49,7 +52,7 @@ export const downloadVehicleDocuments = async (vehicle: Vehicle): Promise<void> 
     const content = await zip.generateAsync({ type: 'blob' });
     saveAs(content, `${vehicle.registration_number}_documents.zip`);
   } catch (error) {
-    console.error('Error creating zip file:', error);
+    logger.error('Error creating zip file:', error);
     throw error;
   }
 };

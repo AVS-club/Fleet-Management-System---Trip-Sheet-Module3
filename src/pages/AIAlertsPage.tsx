@@ -17,6 +17,9 @@ import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('AIAlertsPage');
 
 const AIAlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
@@ -75,7 +78,7 @@ const AIAlertsPage: React.FC = () => {
         });
         setVehicleMap(vehicleMapData);
       } catch (error) {
-        console.error('Error fetching AI alerts data:', error);
+        logger.error('Error fetching AI alerts data:', error);
       } finally {
         setLoading(false);
       }
@@ -109,7 +112,7 @@ const AIAlertsPage: React.FC = () => {
         
         toast.success(`Alert ${actionModal.type === 'accept' ? 'accepted' : actionModal.type === 'deny' ? 'denied' : 'ignored'} successfully`);
       } catch (error) {
-        console.error('Error processing alert action:', error);
+        logger.error('Error processing alert action:', error);
         toast.error('Failed to process alert action');
       }
       setActionModal(null);
@@ -128,7 +131,7 @@ const AIAlertsPage: React.FC = () => {
       
       toast.success(`AI check complete: ${newAlertCount} new alert${newAlertCount !== 1 ? 's' : ''} generated`);
     } catch (error) {
-      console.error('Error running AI check:', error);
+      logger.error('Error running AI check:', error);
       toast.error('Failed to run AI check');
     } finally {
       setRunningCheck(false);

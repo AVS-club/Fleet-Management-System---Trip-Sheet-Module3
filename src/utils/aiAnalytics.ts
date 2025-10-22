@@ -8,6 +8,9 @@ import {
   isWithinInterval,
 } from "date-fns";
 import { handleSupabaseError } from "./errors";
+import { createLogger } from './logger';
+
+const logger = createLogger('aiAnalytics');
 
 /**
  * Check for mileage anomalies in a trip based on historical vehicle data
@@ -36,7 +39,7 @@ const checkMileageAnomaly = async (trip: Trip): Promise<AIAlert | null> => {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return null;
     }
     // Get all trips for this vehicle with valid mileage data
@@ -256,7 +259,7 @@ const checkFrequentMaintenance = async (
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return null;
     }
     // Check if we already created an alert for this vehicle and month
@@ -342,7 +345,7 @@ export const getAIAlerts = async () => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return [];
   }
   const { data, error } = await supabase
@@ -395,7 +398,7 @@ export const runAlertScan = async (): Promise<number> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return 0;
   }
   let alertCount = 0;

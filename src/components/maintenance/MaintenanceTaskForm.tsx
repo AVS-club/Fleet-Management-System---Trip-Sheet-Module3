@@ -16,7 +16,7 @@ import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
 import DocumentsSection from "./DocumentsSection";
 import PartsReplacedSelector from "./PartsReplacedSelector";
-import ServiceGroupsSection from "./ServiceGroupsSection";
+import ServiceGroupsSection, { convertServiceGroupsToDatabase } from "./ServiceGroupsSection";
 import {
   Gauge,
   Calendar,
@@ -35,7 +35,10 @@ import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
+import { createLogger } from '../../utils/logger';
 import "../../styles/maintenanceFormUpdates.css";
+
+const logger = createLogger('MaintenanceTaskForm');
 
 // ServiceDetailsSection component
 const ServiceDetailsSection = () => {
@@ -405,7 +408,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             setAuditLogs([]);
           }
         } catch (error) {
-          console.error("Error fetching audit logs:", error);
+          logger.error("Error fetching audit logs:", error);
           setAuditLogs([]);
         }
       } else {
@@ -482,7 +485,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           }
         }
       } catch (err) {
-        console.error("Failed to fetch latest odometer reading:", err);
+        logger.error("Failed to fetch latest odometer reading:", err);
         const fallback = vehicles.find((v) => v.id === vehicleId)?.current_odometer;
 
         if (isMounted && typeof fallback === "number") {
@@ -537,7 +540,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             setAiSuggestions(prediction);
           }
         } catch (error) {
-          console.error("Error getting AI predictions:", error);
+          logger.error("Error getting AI predictions:", error);
           setAiSuggestions({ confidence: 0 });
         }
       };
@@ -571,20 +574,25 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
     // Service groups validation
     if (!Array.isArray(data.service_groups) || data.service_groups.length === 0) {
+      logger.warn('No service groups found in data:', data.service_groups);
       return "Please add at least one service group";
     }
+
+    logger.debug('Service groups found:', data.service_groups.length);
 
     // Validate each service group
     for (let i = 0; i < data.service_groups.length; i++) {
       const group = data.service_groups[i];
+
+      logger.debug(`Validating service group ${i + 1}:`, group);
+      logger.debug('Tasks:', group.tasks, 'Type:', typeof group.tasks, 'Is Array:', Array.isArray(group.tasks));
+      logger.debug('Vendor ID:', group.vendor_id);
+      logger.debug('Cost:', group.cost);
       
-      console.log(`Validating service group ${i + 1}:`, group);
-      console.log('Tasks:', group.tasks, 'Type:', typeof group.tasks, 'Is Array:', Array.isArray(group.tasks));
-      
-      // Temporarily disabled vendor validation to test form saving
-      // if (!group.vendor || group.vendor.trim() === '') {
-      //   return `Please select a vendor for service group ${i + 1}`;
-      // }
+      // Check vendor (converted data uses vendor_id)
+      if (!group.vendor_id || group.vendor_id.trim() === '') {
+        return `Please select a vendor for service group ${i + 1}`;
+      }
 
       if (!Array.isArray(group.tasks) || group.tasks.length === 0) {
         return `Please select at least one task for service group ${i + 1}`;
@@ -636,23 +644,24 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
 
   const handleFormSubmit = (data: any) => {
     try {
-      // Comprehensive validation
-      const validationError = validateFormData(data);
-      if (validationError) {
-        toast.error(validationError);
-        return;
-      }
-
-      // Add parts_replaced and service_groups data to the submission
+      // Build form data with parts
       const formDataWithParts = {
         ...data,
         parts_replaced: selectedParts.length > 0 ? selectedParts : undefined,
         service_groups: serviceGroups.length > 0 ? serviceGroups : undefined
       };
 
+      // Validate form data
+      const validationError = validateFormData(formDataWithParts);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
+
+      // Submit form
       onSubmit(formDataWithParts);
     } catch (error) {
-      console.error("Error submitting form:", error);
+      logger.error("Error submitting form:", error);
       toast.error(
         "Form submission failed: " +
           (error instanceof Error ? error.message : "Unknown error")

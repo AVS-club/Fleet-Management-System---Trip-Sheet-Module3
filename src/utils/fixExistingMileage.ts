@@ -1,6 +1,9 @@
 import { supabase } from './supabaseClient';
 import { Trip } from '@/types';
 import { recalculateAllMileageForVehicle } from './mileageRecalculation';
+import { createLogger } from './logger';
+
+const logger = createLogger('fixExistingMileage');
 
 /**
  * Fixes mileage calculations for all existing trips in the database
@@ -8,7 +11,7 @@ import { recalculateAllMileageForVehicle } from './mileageRecalculation';
  */
 export async function fixAllExistingMileage(): Promise<{ success: boolean; message: string; updatedTrips: number }> {
   try {
-    console.log('Starting mileage fix for all existing trips...');
+    logger.debug('Starting mileage fix for all existing trips...');
     
     // Get all trips from the database
     const { data: allTrips, error: fetchError } = await supabase
@@ -24,7 +27,7 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
       return { success: true, message: 'No trips found to fix', updatedTrips: 0 };
     }
 
-    console.log(`Found ${allTrips.length} trips to process`);
+    logger.debug(`Found ${allTrips.length} trips to process`);
 
     // Group trips by vehicle
     const tripsByVehicle = allTrips.reduce((acc, trip) => {
@@ -40,7 +43,7 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
 
     // Process each vehicle's trips
     Object.entries(tripsByVehicle).forEach(([vehicleId, vehicleTrips]) => {
-      console.log(`Processing vehicle ${vehicleId} with ${vehicleTrips.length} trips`);
+      logger.debug(`Processing vehicle ${vehicleId} with ${vehicleTrips.length} trips`);
       
       // Recalculate mileage for this vehicle's trips
       const fixedTrips = recalculateAllMileageForVehicle(vehicleId, allTrips);
@@ -49,7 +52,7 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
       fixedTrips.forEach(fixedTrip => {
         const originalTrip = vehicleTrips.find(t => t.id === fixedTrip.id);
         if (originalTrip && originalTrip.calculated_kmpl !== fixedTrip.calculated_kmpl) {
-          console.log(`Updating trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl} -> ${fixedTrip.calculated_kmpl}`);
+          logger.debug(`Updating trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl} -> ${fixedTrip.calculated_kmpl}`);
           
           updatePromises.push(
             supabase
@@ -64,18 +67,18 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
 
     // Execute all updates
     if (updatePromises.length > 0) {
-      console.log(`Executing ${updatePromises.length} updates...`);
+      logger.debug(`Executing ${updatePromises.length} updates...`);
       const results = await Promise.all(updatePromises);
       
       // Check for any errors
       const errors = results.filter(result => result.error);
       if (errors.length > 0) {
-        console.error('Some updates failed:', errors);
+        logger.error('Some updates failed:', errors);
         throw new Error(`${errors.length} updates failed`);
       }
     }
 
-    console.log(`Successfully updated ${totalUpdated} trips`);
+    logger.debug(`Successfully updated ${totalUpdated} trips`);
     return { 
       success: true, 
       message: `Successfully updated mileage for ${totalUpdated} trips`, 
@@ -83,7 +86,7 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
     };
 
   } catch (error) {
-    console.error('Error fixing existing mileage:', error);
+    logger.error('Error fixing existing mileage:', error);
     return { 
       success: false, 
       message: `Error fixing mileage: ${error instanceof Error ? error.message : 'Unknown error'}`, 
@@ -97,7 +100,7 @@ export async function fixAllExistingMileage(): Promise<{ success: boolean; messa
  */
 export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{ success: boolean; message: string; updatedTrips: number }> {
   try {
-    console.log(`Starting mileage fix for vehicle ${vehicleId}...`);
+    logger.debug(`Starting mileage fix for vehicle ${vehicleId}...`);
     
     // Get all trips for this vehicle
     const { data: vehicleTrips, error: fetchError } = await supabase
@@ -130,7 +133,7 @@ export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{
     fixedTrips.forEach(fixedTrip => {
       const originalTrip = vehicleTrips.find(t => t.id === fixedTrip.id);
       if (originalTrip && originalTrip.calculated_kmpl !== fixedTrip.calculated_kmpl) {
-        console.log(`Updating trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl} -> ${fixedTrip.calculated_kmpl}`);
+        logger.debug(`Updating trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl} -> ${fixedTrip.calculated_kmpl}`);
         
         updatePromises.push(
           supabase
@@ -144,18 +147,18 @@ export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{
 
     // Execute all updates
     if (updatePromises.length > 0) {
-      console.log(`Executing ${updatePromises.length} updates for vehicle ${vehicleId}...`);
+      logger.debug(`Executing ${updatePromises.length} updates for vehicle ${vehicleId}...`);
       const results = await Promise.all(updatePromises);
       
       // Check for any errors
       const errors = results.filter(result => result.error);
       if (errors.length > 0) {
-        console.error('Some updates failed:', errors);
+        logger.error('Some updates failed:', errors);
         throw new Error(`${errors.length} updates failed`);
       }
     }
 
-    console.log(`Successfully updated ${totalUpdated} trips for vehicle ${vehicleId}`);
+    logger.debug(`Successfully updated ${totalUpdated} trips for vehicle ${vehicleId}`);
     return { 
       success: true, 
       message: `Successfully updated mileage for ${totalUpdated} trips in vehicle ${vehicleId}`, 
@@ -163,7 +166,7 @@ export async function fixMileageForSpecificVehicle(vehicleId: string): Promise<{
     };
 
   } catch (error) {
-    console.error('Error fixing mileage for vehicle:', error);
+    logger.error('Error fixing mileage for vehicle:', error);
     return { 
       success: false, 
       message: `Error fixing mileage for vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`, 

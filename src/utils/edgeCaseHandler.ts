@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { AuditTrailLogger } from './auditTrailLogger';
+import { createLogger } from './logger';
+
+const logger = createLogger('edgeCaseHandler');
 
 export interface EdgeCaseDetection {
   case_id: string;
@@ -207,7 +210,7 @@ export class EdgeCaseHandler {
         .single();
 
       if (tripError || !trip) {
-        console.error('Trip not found:', tripError);
+        logger.error('Trip not found:', tripError);
         return [];
       }
 
@@ -237,7 +240,7 @@ export class EdgeCaseHandler {
 
       return detections;
     } catch (error) {
-      console.error('Error analyzing trip for edge cases:', error);
+      logger.error('Error analyzing trip for edge cases:', error);
       return [];
     }
   }
@@ -559,7 +562,7 @@ export class EdgeCaseHandler {
 
       return scenarios;
     } catch (error) {
-      console.error('Error analyzing data recovery scenarios:', error);
+      logger.error('Error analyzing data recovery scenarios:', error);
       return [];
     }
   }
@@ -795,7 +798,7 @@ export class EdgeCaseHandler {
         recent_detections: allDetections.slice(0, 20) // Most recent 20
       };
     } catch (error) {
-      console.error('Error getting system-wide edge cases:', error);
+      logger.error('Error getting system-wide edge cases:', error);
       throw error;
     }
   }

@@ -43,6 +43,9 @@ import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, end
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import Layout from '../../components/layout/Layout';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('CompleteFixedReportingDashboard');
 
 // Extend jsPDF type for autoTable
 declare module 'jspdf' {
@@ -160,9 +163,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         fetchDriverPerformance(),
         fetchExpenseBreakdown()
       ]);
-      console.log('Dashboard data fetched successfully');
+      logger.debug('Dashboard data fetched successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -178,7 +181,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (tripsError) {
-        console.error('Error fetching trips:', tripsError);
+        logger.error('Error fetching trips:', tripsError);
       }
 
       // Calculate revenue (using a simple formula - adjust based on your business logic)
@@ -226,7 +229,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchMetrics:', error);
+      logger.error('Error in fetchMetrics:', error);
       return false;
     }
   }, [dateRange]);
@@ -241,7 +244,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .order('created_at');
 
       if (error) {
-        console.error('Error fetching trip trends:', error);
+        logger.error('Error fetching trip trends:', error);
         return;
       }
 
@@ -261,7 +264,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, tripTrends: trendData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchTripTrends:', error);
+      logger.error('Error in fetchTripTrends:', error);
       return false;
     }
   }, [dateRange]);
@@ -275,7 +278,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching vehicles:', error);
+        logger.error('Error fetching vehicles:', error);
         return;
       }
 
@@ -300,7 +303,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, vehicleUtilization: utilizationData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchVehicleUtilization:', error);
+      logger.error('Error in fetchVehicleUtilization:', error);
       return false;
     }
   }, [dateRange]);
@@ -314,7 +317,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching drivers:', error);
+        logger.error('Error fetching drivers:', error);
         return;
       }
 
@@ -342,7 +345,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, driverPerformance: performanceData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchDriverPerformance:', error);
+      logger.error('Error in fetchDriverPerformance:', error);
       return false;
     }
   }, [dateRange]);
@@ -356,7 +359,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (error) {
-        console.error('Error fetching expenses:', error);
+        logger.error('Error fetching expenses:', error);
         return;
       }
 
@@ -382,7 +385,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, expenseBreakdown: expenseData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchExpenseBreakdown:', error);
+      logger.error('Error in fetchExpenseBreakdown:', error);
       return false;
     }
   }, [dateRange, metrics.maintenanceCosts]);
@@ -543,7 +546,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       alert('Enhanced report generated successfully!');
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logger.error('Error generating PDF:', error);
       alert('Error generating report. Please try again.');
     } finally {
       setGeneratingReport(null);
@@ -621,7 +624,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No trip data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding trip summary:', error);
+      logger.error('Error adding trip summary:', error);
     }
   };
 
@@ -708,7 +711,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         alternateRowStyles: { fillColor: [249, 250, 251] }
       });
     } catch (error) {
-      console.error('Error adding comparison content:', error);
+      logger.error('Error adding comparison content:', error);
     }
   };
 
@@ -750,7 +753,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No fuel data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding fuel analysis:', error);
+      logger.error('Error adding fuel analysis:', error);
     }
   };
 
@@ -819,7 +822,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No expense data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding expense report:', error);
+      logger.error('Error adding expense report:', error);
     }
   };
 

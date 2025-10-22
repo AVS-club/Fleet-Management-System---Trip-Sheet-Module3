@@ -9,6 +9,9 @@ import { getLatestOdometer } from "./storage";
 import { handleSupabaseError } from "./errors";
 import { syncRemindersWithTracking } from "./reminderTracking";
 import { getAlertThreshold, shouldTriggerAlert } from "./alertThresholds";
+import { createLogger } from './logger';
+
+const logger = createLogger('reminders');
 
 // Define the reminder status types
 type ReminderStatus = "critical" | "warning" | "normal";
@@ -93,7 +96,7 @@ export const getRemindersForAll = async (): Promise<ReminderItem[]> => {
 
     return allReminders;
   } catch (error) {
-    console.error("Error in getRemindersForAll:", error);
+    logger.error("Error in getRemindersForAll:", error);
     return [];
   }
 };
@@ -108,7 +111,7 @@ const getRemindersForAIAlerts = async (): Promise<ReminderItem[]> => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return [];
     }
 
@@ -151,7 +154,7 @@ const getRemindersForAIAlerts = async (): Promise<ReminderItem[]> => {
             link = `/vehicles/${alert.affected_entity.id}`;
           }
         } catch (error) {
-          console.error('Error fetching vehicle for AI alert:', error);
+          logger.error('Error fetching vehicle for AI alert:', error);
         }
       } else if (alert.affected_entity?.type === 'driver' && alert.affected_entity.id) {
         try {
@@ -166,7 +169,7 @@ const getRemindersForAIAlerts = async (): Promise<ReminderItem[]> => {
             link = `/drivers/${alert.affected_entity.id}`;
           }
         } catch (error) {
-          console.error('Error fetching driver for AI alert:', error);
+          logger.error('Error fetching driver for AI alert:', error);
         }
       } else if (alert.affected_entity?.type === 'trip' && alert.metadata?.trip_id) {
         entityName = `Trip ${alert.metadata.trip_id}`;
@@ -207,7 +210,7 @@ const getRemindersForAIAlerts = async (): Promise<ReminderItem[]> => {
 
     return reminders;
   } catch (error) {
-    console.error("Error in getRemindersForAIAlerts:", error);
+    logger.error("Error in getRemindersForAIAlerts:", error);
     return [];
   }
 };
@@ -221,7 +224,7 @@ const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return [];
     }
 
@@ -233,7 +236,7 @@ const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
       .not("status", "eq", "archived");
 
     if (error) {
-      console.error("Error fetching vehicles for reminders:", error);
+      logger.error("Error fetching vehicles for reminders:", error);
       return [];
     }
 
@@ -445,7 +448,7 @@ const getRemindersForVehicles = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error("Error in getRemindersForVehicles:", error);
+    logger.error("Error in getRemindersForVehicles:", error);
     return [];
   }
 };
@@ -460,7 +463,7 @@ const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return [];
     }
     // Fetch drivers from Supabase
@@ -471,7 +474,7 @@ const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
       .not("status", "eq", "blacklisted");
 
     if (error) {
-      console.error("Error fetching drivers for reminders:", error);
+      logger.error("Error fetching drivers for reminders:", error);
       return [];
     }
 
@@ -557,7 +560,7 @@ const getRemindersForDrivers = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error("Error in getRemindersForDrivers:", error);
+    logger.error("Error in getRemindersForDrivers:", error);
     return [];
   }
 };
@@ -573,7 +576,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return [];
     }
     // Fetch maintenance tasks and vehicles from Supabase
@@ -595,7 +598,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
     ]);
 
     if (tasksError) {
-      console.error(
+      logger.error(
         "Error fetching maintenance tasks for reminders:",
         tasksError
       );
@@ -603,7 +606,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
     }
 
     if (vehiclesError) {
-      console.error(
+      logger.error(
         "Error fetching vehicles for maintenance reminders:",
         vehiclesError
       );
@@ -757,7 +760,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
             });
           }
         } catch (error) {
-          console.error('Error checking service interval due status:', error);
+          logger.error('Error checking service interval due status:', error);
         }
       }
 
@@ -814,7 +817,7 @@ const getRemindersForMaintenance = async (): Promise<ReminderItem[]> => {
       return (a.daysLeft || Infinity) - (b.daysLeft || Infinity);
     });
   } catch (error) {
-    console.error("Error in getRemindersForMaintenance:", error);
+    logger.error("Error in getRemindersForMaintenance:", error);
     return [];
   }
 };
@@ -830,7 +833,7 @@ const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.error("Error fetching user data");
+      logger.error("Error fetching user data");
       return [];
     }
     // Fetch trips from Supabase
@@ -842,7 +845,7 @@ const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
       .limit(100); // Limit to recent trips for performance
 
     if (error) {
-      console.error("Error fetching trips for reminders:", error);
+      logger.error("Error fetching trips for reminders:", error);
       return [];
     }
 
@@ -933,7 +936,7 @@ const getRemindersForTrips = async (): Promise<ReminderItem[]> => {
       return statusOrder[a.status] - statusOrder[b.status];
     });
   } catch (error) {
-    console.error("Error in getRemindersForTrips:", error);
+    logger.error("Error in getRemindersForTrips:", error);
     return [];
   }
 };

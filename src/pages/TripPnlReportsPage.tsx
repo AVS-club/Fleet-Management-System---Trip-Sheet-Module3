@@ -39,7 +39,8 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { toast } from 'react-toastify';
-import { 
+import { createLogger } from '../utils/logger';
+import {
   LineChart as RechartsLineChart, 
   Line, 
   XAxis, 
@@ -55,6 +56,8 @@ import {
   Area,
   AreaChart
 } from 'recharts';
+
+const logger = createLogger('TripPnlReportsPage');
 
 interface PnLSummary {
   totalTrips: number;
@@ -220,7 +223,7 @@ const TripPnlReportsPage: React.FC = () => {
       setError(null);
       setDebugInfo(null);
       
-      console.log('Loading PNL Reports data...');
+      logger.debug('Loading PNL Reports data...');
 
       const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
         getTrips(),
@@ -229,7 +232,7 @@ const TripPnlReportsPage: React.FC = () => {
         getWarehouses()
       ]);
       
-      console.log('Data loaded successfully:', {
+      logger.debug('Data loaded successfully:', {
         trips: tripsData.length,
         vehicles: vehiclesData.length,
         drivers: driversData.length,
@@ -241,7 +244,7 @@ const TripPnlReportsPage: React.FC = () => {
       setDrivers(driversData);
       setWarehouses(warehousesData);
     } catch (error) {
-      console.error("Error fetching PNL Reports data:", error);
+      logger.error("Error fetching PNL Reports data:", error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');
       setDebugInfo({
         error: error,
@@ -431,7 +434,7 @@ const TripPnlReportsPage: React.FC = () => {
     
     return filtered;
     } catch (error) {
-      console.error('Error filtering trips:', error);
+      logger.error('Error filtering trips:', error);
       return [];
     }
   }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
@@ -571,7 +574,7 @@ const TripPnlReportsPage: React.FC = () => {
         vehiclePerformance: vehiclePerformance.slice(0, 10) // Top 10 vehicles
       };
     } catch (error) {
-      console.error('Error preparing chart data:', error);
+      logger.error('Error preparing chart data:', error);
       // Return empty data structure to prevent crashes
       return {
         profitLossData: [],

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { PenTool as Tool, AlertTriangle, TrendingUp, Award, Clock } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleMaintenanceTab');
 
 interface VehicleMaintenanceTabProps {
   vehicleId: string;
@@ -74,7 +77,7 @@ const VehicleMaintenanceTab: React.FC<VehicleMaintenanceTabProps> = ({
         avgCostPerMonth: totalCost / 12 // Simple average
       });
     } catch (error) {
-      console.error('Error loading maintenance data:', error);
+      logger.error('Error loading maintenance data:', error);
     } finally {
       setLoading(false);
     }

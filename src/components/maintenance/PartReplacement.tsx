@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, Package, X, Check } from 'lucide-react';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('PartReplacement');
 
 // ===== CONSTANTS =====
 const PART_TYPES = [
@@ -378,7 +381,7 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
             onChange({ ...partData, partType: val });
             setShowTyreDetails(val === 'Tyre');
           }}
-          onAddNew={(newPart) => console.log('New part type added:', newPart)}
+          onAddNew={(newPart) => logger.debug('New part type added:', newPart)}
           icon={Package}
           required
         />

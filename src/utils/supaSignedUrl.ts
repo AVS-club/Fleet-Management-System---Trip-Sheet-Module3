@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { createLogger } from './logger';
+
+const logger = createLogger('supaSignedUrl');
 
 // Initialize Supabase client with environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -27,7 +30,7 @@ export async function signedUrlFromPath(
     .createSignedUrl(path, seconds);
   
   if (error) {
-    console.error('Error creating signed URL:', error);
+    logger.error('Error creating signed URL:', error);
     throw error;
   }
   

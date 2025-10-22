@@ -7,6 +7,9 @@ import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
 import { ReminderContactFormData, ReminderContactMode, ReminderAssignedType } from '@/types/reminders';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('ContactForm');
 
 interface ContactFormProps {
   initialData?: Partial<ReminderContactFormData>;
@@ -56,7 +59,7 @@ const ContactForm: React.FC<ContactFormProps> = ({
       await onSubmit(data);
     } catch (error) {
       toast.error('Failed to save contact');
-      console.error('Error saving contact:', error);
+      logger.error('Error saving contact:', error);
     }
   };
 

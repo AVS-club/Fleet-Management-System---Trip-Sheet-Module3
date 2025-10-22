@@ -35,6 +35,9 @@ import {
 } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('PartsHealthAnalyticsPage');
 
 const PartsHealthAnalyticsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -92,7 +95,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
         setAnalyticsMetrics(analyticsData);
         
       } catch (error) {
-        console.error('Error fetching parts health data:', error);
+        logger.error('Error fetching parts health data:', error);
         toast.error('Failed to load parts health data');
       } finally {
         setLoading(false);
@@ -132,7 +135,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
       
       toast.success('Data refreshed successfully');
     } catch (error) {
-      console.error('Error refreshing data:', error);
+      logger.error('Error refreshing data:', error);
       toast.error('Failed to refresh data');
     } finally {
       setRefreshing(false);

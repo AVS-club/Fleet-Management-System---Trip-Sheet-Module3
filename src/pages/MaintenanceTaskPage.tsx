@@ -16,6 +16,9 @@ import { ChevronLeft, Trash2, Edit, Wrench } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import "../styles/maintenanceFormUpdates.css";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('MaintenanceTaskPage');
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
   // Basic fields
@@ -125,7 +128,7 @@ const MaintenanceTaskPage: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error("Error loading maintenance task data:", error);
+        logger.error("Error loading maintenance task data:", error);
         toast.error("Failed to load data");
       } finally {
         setLoading(false);
@@ -178,7 +181,7 @@ const MaintenanceTaskPage: React.FC = () => {
                   type: 'image/jpeg',
                   lastModified: Date.now()
                 });
-                console.log(`📸 Image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+                logger.debug(`📸 Image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
                 resolve(compressedFile);
               } else {
                 resolve(file);
@@ -204,7 +207,7 @@ const MaintenanceTaskPage: React.FC = () => {
     if (!serviceGroups || serviceGroups.length === 0) return [];
 
     const updatedGroups = [...serviceGroups];
-    console.log(`📁 Starting file upload for ${serviceGroups.length} service groups`);
+    logger.debug(`📁 Starting file upload for ${serviceGroups.length} service groups`);
 
     for (let i = 0; i < updatedGroups.length; i++) {
       const group = updatedGroups[i];
@@ -276,7 +279,7 @@ const MaintenanceTaskPage: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error("Error uploading files for service group:", error);
+        logger.error("Error uploading files for service group:", error);
         toast.error(`Failed to upload files for service group ${i + 1}`);
       }
     }
@@ -333,12 +336,12 @@ const MaintenanceTaskPage: React.FC = () => {
   const handleSubmit = async (formData: any) => {
     // CRASH-PROOF: Prevent multiple simultaneous submissions
     if (isSubmitting) {
-      console.log('🚫 Already submitting, ignoring click to prevent crash...');
+      logger.debug('🚫 Already submitting, ignoring click to prevent crash...');
       return;
     }
     
     setIsSubmitting(true);
-    console.log('🎯 Starting maintenance task submission...');
+    logger.debug('🎯 Starting maintenance task submission...');
     
     try {
       // CRASH-PROOF: Allow UI to update before processing
@@ -390,11 +393,11 @@ const MaintenanceTaskPage: React.FC = () => {
               // Handle service group file uploads
               let updatedServiceGroups: Array<any> = [];
               if (service_groups && service_groups.length > 0) {
-                console.log('📁 Starting file uploads for service groups...');
+                logger.debug('📁 Starting file uploads for service groups...');
                 updatedServiceGroups = await handleFileUploads(service_groups, id);
                 // Map to database format
                 updatedServiceGroups = mapServiceGroupsToDatabase(updatedServiceGroups);
-                console.log('✅ File uploads completed');
+                logger.debug('✅ File uploads completed');
               }
 
               const updatePayload: any = {
@@ -413,7 +416,7 @@ const MaintenanceTaskPage: React.FC = () => {
                   toast.error("Failed to update task");
                 }
               } catch (error) {
-                console.error("Error updating task:", error);
+                logger.error("Error updating task:", error);
                 toast.error(
                   `Error updating task: ${
                     error instanceof Error ? error.message : "Unknown error"
@@ -421,7 +424,7 @@ const MaintenanceTaskPage: React.FC = () => {
                 );
               }
             } catch (error) {
-              console.error("Error in file upload processing:", error);
+              logger.error("Error in file upload processing:", error);
               toast.error("Error processing file uploads");
             } finally {
               resolve(undefined);
@@ -433,7 +436,7 @@ const MaintenanceTaskPage: React.FC = () => {
         await new Promise(resolve => {
           requestAnimationFrame(async () => {
             try {
-              console.log('🆕 Creating new maintenance task...');
+              logger.debug('🆕 Creating new maintenance task...');
               const newTask = await createTask(
                 taskData as Omit<
                   MaintenanceTask,
@@ -444,7 +447,7 @@ const MaintenanceTaskPage: React.FC = () => {
               if (newTask) {
                 // Handle service group file uploads
                 if (service_groups && service_groups.length > 0 && newTask.id) {
-                  console.log('📁 Starting file uploads for new task...');
+                  logger.debug('📁 Starting file uploads for new task...');
                   toast.info('Uploading files...', { autoClose: 2000 });
                   const updatedServiceGroups = await handleFileUploads(
                     service_groups,
@@ -460,7 +463,7 @@ const MaintenanceTaskPage: React.FC = () => {
                       service_groups: mappedServiceGroups,
                     });
                   }
-                  console.log('✅ File uploads completed for new task');
+                  logger.debug('✅ File uploads completed for new task');
                   toast.success('Files uploaded successfully!', { autoClose: 2000 });
                 }
 
@@ -470,7 +473,7 @@ const MaintenanceTaskPage: React.FC = () => {
                 toast.error("Task creation failed - no data returned");
               }
             } catch (error) {
-              console.error("Error creating task:", error);
+              logger.error("Error creating task:", error);
               toast.error(
                 `Error creating task: ${
                   error instanceof Error ? error.message : "Unknown error"
@@ -483,7 +486,7 @@ const MaintenanceTaskPage: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error("Error submitting maintenance task:", error);
+      logger.error("Error submitting maintenance task:", error);
       toast.error(
         `Failed to ${
           id && id !== "new" ? "update" : "create"
@@ -509,7 +512,7 @@ const MaintenanceTaskPage: React.FC = () => {
       toast.success("Maintenance task deleted successfully");
       navigate("/maintenance");
     } catch (error) {
-      console.error("Error deleting task:", error);
+      logger.error("Error deleting task:", error);
       toast.error("Failed to delete maintenance task");
     }
   };

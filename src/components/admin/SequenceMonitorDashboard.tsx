@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { SerialSequenceMonitor, SequenceAnalysis, SerialSequenceIssue } from '../../utils/serialSequenceMonitor';
 import { AlertTriangle, CheckCircle, XCircle, Eye, RefreshCw, Truck, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('SequenceMonitorDashboard');
 
 interface SequenceMonitorDashboardProps {
   className?: string;
@@ -23,7 +26,7 @@ const SequenceMonitorDashboard: React.FC<SequenceMonitorDashboardProps> = ({ cla
       const analysis = await SerialSequenceMonitor.getSystemWideSequenceIssues();
       setSystemAnalysis(analysis);
     } catch (error) {
-      console.error('Error loading sequence analysis:', error);
+      logger.error('Error loading sequence analysis:', error);
       toast.error('Failed to load sequence analysis');
     } finally {
       setLoading(false);

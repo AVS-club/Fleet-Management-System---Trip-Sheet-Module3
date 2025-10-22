@@ -432,7 +432,7 @@ const checkRisingCosts = async (
     .limit(1);
     
   if (checkError) {
-    console.error('Error checking for existing maintenance cost alerts:', checkError);
+    logger.error('Error checking for existing maintenance cost alerts:', checkError);
     return null;
   }
   
@@ -479,13 +479,13 @@ const checkRisingCosts = async (
       .single();
 
     if (error) {
-      console.error('Error creating rising maintenance costs alert:', error);
+      logger.error('Error creating rising maintenance costs alert:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Exception creating rising maintenance costs alert:', error);
+    logger.error('Exception creating rising maintenance costs alert:', error);
     return null;
   }
 };
@@ -618,7 +618,7 @@ const checkNonOptimalVendorRates = async (
     .limit(1);
     
   if (checkError) {
-    console.error('Error checking for existing vendor rate alerts:', checkError);
+    logger.error('Error checking for existing vendor rate alerts:', checkError);
     return null;
   }
   
@@ -663,13 +663,13 @@ const checkNonOptimalVendorRates = async (
       .single();
 
     if (error) {
-      console.error('Error creating non-optimal vendor rates alert:', error);
+      logger.error('Error creating non-optimal vendor rates alert:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Exception creating non-optimal vendor rates alert:', error);
+    logger.error('Exception creating non-optimal vendor rates alert:', error);
     return null;
   }
 };
@@ -712,7 +712,7 @@ export const getMaintenanceMetricsWithComparison = async (
         .gte('start_date', previousStart.toISOString());
         
       if (tasksError) {
-        console.error('Error fetching maintenance tasks:', tasksError);
+        logger.error('Error fetching maintenance tasks:', tasksError);
         throw tasksError;
       }
       
@@ -722,7 +722,7 @@ export const getMaintenanceMetricsWithComparison = async (
         .select('*');
         
       if (vehiclesError) {
-        console.error('Error fetching vehicles:', vehiclesError);
+        logger.error('Error fetching vehicles:', vehiclesError);
         throw vehiclesError;
       }
       
@@ -785,7 +785,7 @@ export const getMaintenanceMetricsWithComparison = async (
       }
     };
   } catch (error) {
-    console.error('Error calculating maintenance metrics with comparison:', error);
+    logger.error('Error calculating maintenance metrics with comparison:', error);
     throw error;
   }
 };
@@ -809,3 +809,6 @@ export const exportMaintenanceReport = (
 
 // Import MAINTENANCE_ITEMS and MAINTENANCE_GROUPS for task type distribution
 import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '@/types/maintenance';
+import { createLogger } from './logger';
+
+const logger = createLogger('maintenanceAnalytics');

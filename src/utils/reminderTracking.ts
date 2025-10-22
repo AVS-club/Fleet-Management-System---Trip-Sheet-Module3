@@ -1,6 +1,9 @@
 import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
 import { ReminderItem } from "./reminders";
+import { createLogger } from './logger';
+
+const logger = createLogger('reminderTracking');
 
 export interface ReminderTrackingRecord {
   id: string;
@@ -38,7 +41,7 @@ export const syncRemindersWithTracking = async (reminders: ReminderItem[]): Prom
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return;
     }
 
@@ -130,7 +133,7 @@ export const syncRemindersWithTracking = async (reminders: ReminderItem[]): Prom
     }
 
   } catch (error) {
-    console.error('Error syncing reminders with tracking:', error);
+    logger.error('Error syncing reminders with tracking:', error);
   }
 };
 
@@ -141,7 +144,7 @@ export const getTrackedReminders = async (): Promise<ReminderTrackingRecord[]> =
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return [];
     }
 
@@ -160,7 +163,7 @@ export const getTrackedReminders = async (): Promise<ReminderTrackingRecord[]> =
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching tracked reminders:', error);
+    logger.error('Error fetching tracked reminders:', error);
     return [];
   }
 };
@@ -175,7 +178,7 @@ export const performReminderAction = async (
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return false;
     }
 
@@ -198,7 +201,7 @@ export const performReminderAction = async (
       
       case 'snooze':
         if (!action.snooze_until) {
-          console.error('Snooze until date is required for snooze action');
+          logger.error('Snooze until date is required for snooze action');
           return false;
         }
         updates = {
@@ -208,7 +211,7 @@ export const performReminderAction = async (
         break;
       
       default:
-        console.error('Invalid reminder action:', action.action);
+        logger.error('Invalid reminder action:', action.action);
         return false;
     }
 
@@ -225,7 +228,7 @@ export const performReminderAction = async (
 
     return true;
   } catch (error) {
-    console.error('Error performing reminder action:', error);
+    logger.error('Error performing reminder action:', error);
     return false;
   }
 };
@@ -245,7 +248,7 @@ export const getReminderStats = async (): Promise<{
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return {
         total: 0,
         critical: 0,
@@ -302,7 +305,7 @@ export const getReminderStats = async (): Promise<{
 
     return stats;
   } catch (error) {
-    console.error('Error fetching reminder stats:', error);
+    logger.error('Error fetching reminder stats:', error);
     return {
       total: 0,
       critical: 0,
@@ -322,7 +325,7 @@ export const cleanupOldReminders = async (): Promise<number> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return 0;
     }
 
@@ -344,7 +347,7 @@ export const cleanupOldReminders = async (): Promise<number> => {
 
     return data?.length || 0;
   } catch (error) {
-    console.error('Error cleaning up old reminders:', error);
+    logger.error('Error cleaning up old reminders:', error);
     return 0;
   }
 };

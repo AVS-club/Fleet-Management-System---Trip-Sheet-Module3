@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../utils/themeContext';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { Eye, EyeOff, Truck, Lock } from 'lucide-react';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('LoginPage');
 
 const LoginPage: React.FC = () => {
   const { theme } = useTheme();
@@ -312,7 +315,7 @@ const LoginPage: React.FC = () => {
           
           {/* Decorative Clickable Truck Icon */}
           <button
-            onClick={() => console.log('Truck icon clicked - add your custom action here')}
+            onClick={() => logger.debug('Truck icon clicked - add your custom action here')}
             className="fixed bottom-8 right-8 group cursor-pointer"
             aria-label="Fleet icon"
           >

@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Mic, MicOff, Loader2, Download } from 'lucide-react';
 import { scannerService, ScannerResult } from '../utils/scannerService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('FleetIQScanner');
 
 // Voice recognition hook
 const useSpeechRecognition = () => {
@@ -221,7 +224,7 @@ export default function FleetIQScanner() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
     }
   };
   

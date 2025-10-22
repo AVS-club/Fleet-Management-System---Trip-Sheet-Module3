@@ -21,6 +21,9 @@ import { comprehensiveSearchTrips } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AdminTripsPage');
 
 interface TripSummaryMetrics {
   totalExpenses: number;
@@ -195,7 +198,7 @@ const AdminTripsPage: React.FC = () => {
         await fetchSummaryMetrics();
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        logger.error("Error fetching data:", error);
         setLoading(false);
         setSummaryLoading(false);
       }
@@ -210,7 +213,7 @@ const AdminTripsPage: React.FC = () => {
       setRefreshing(true);
       
       if (forceRefresh) {
-        console.log('Using force refresh...');
+        logger.debug('Using force refresh...');
         const result = await forceDataRefresh();
         
         if (result.success) {
@@ -252,7 +255,7 @@ const AdminTripsPage: React.FC = () => {
         toast.success("Data refreshed successfully");
       }
     } catch (error) {
-      console.error("Error refreshing data:", error);
+      logger.error("Error refreshing data:", error);
       toast.error("Failed to refresh data");
     } finally {
       setRefreshing(false);
@@ -311,7 +314,7 @@ const AdminTripsPage: React.FC = () => {
         toast.error(result.message);
       }
     } catch (error) {
-      console.error('Error fixing mileage:', error);
+      logger.error('Error fixing mileage:', error);
       toast.error('Failed to fix mileage calculations');
     } finally {
       setFixingMileage(false);
@@ -348,7 +351,7 @@ const AdminTripsPage: React.FC = () => {
         toast.success(`Found ${result.totalCount} trips${fieldName}`);
       }
     } catch (error) {
-      console.error('Smart search error:', error);
+      logger.error('Smart search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -470,7 +473,7 @@ const AdminTripsPage: React.FC = () => {
       });
       
       if (error) {
-        console.error("Error fetching summary metrics:", error);
+        logger.error("Error fetching summary metrics:", error);
         // Fallback to local calculation
         calculateMetricsLocally();
       } else if (data) {
@@ -500,7 +503,7 @@ const AdminTripsPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Exception fetching summary metrics:", error);
+      logger.error("Exception fetching summary metrics:", error);
       calculateMetricsLocally();
     } finally {
       setSummaryLoading(false);
@@ -628,7 +631,7 @@ const AdminTripsPage: React.FC = () => {
         setCurrentPage(currentPage - 1);
       }
     } catch (error) {
-      console.error("Error deleting trip:", error);
+      logger.error("Error deleting trip:", error);
       toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -675,7 +678,7 @@ const AdminTripsPage: React.FC = () => {
       const destinations = await getDestinations();
       const destinationMap = new Map(destinations.map(d => [d.id, d.name]));
       
-      console.log('Exporting trips:', tripsToExport.length);
+      logger.debug('Exporting trips:', tripsToExport.length);
       
       const exportData = tripsToExport.map(trip => {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
@@ -816,7 +819,7 @@ const AdminTripsPage: React.FC = () => {
       toast.success(`Successfully exported ${exportData.length} trips!`);
       
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
       toast.error('Failed to export trips. Please check console for details.');
     }
   };
@@ -830,7 +833,7 @@ const AdminTripsPage: React.FC = () => {
       // For now, we're just showing a success message
       toast.success(`Successfully processed ${data.length} trips`);
     } catch (error) {
-      console.error('Error importing file:', error);
+      logger.error('Error importing file:', error);
       toast.error('Failed to import trips');
     }
   };

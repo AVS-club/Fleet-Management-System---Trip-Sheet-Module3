@@ -12,7 +12,7 @@ try {
   const reactWindow = require('react-window');
   FixedSizeList = reactWindow.FixedSizeList;
 } catch (error) {
-  console.warn('react-window not available, using fallback table rendering');
+  logger.warn('react-window not available, using fallback table rendering');
 }
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
@@ -30,6 +30,9 @@ import jsPDF from 'jspdf';
 import { useReactToPrint } from 'react-to-print';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentSummaryPanel');
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;
@@ -433,7 +436,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       
       return true;
     } catch (error: any) {
-      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
+      logger.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
       setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'error' }));
       return false;
     }
@@ -622,7 +625,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
           const data = await getVehicles();
           setVehicles(Array.isArray(data) ? data : []);
         } catch (error) {
-          console.error('Error fetching vehicles:', error);
+          logger.error('Error fetching vehicles:', error);
         } finally {
           setLoading(false);
         }
@@ -1133,7 +1136,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       
       pdf.save('Vehicle_Document_Summary.pdf');
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logger.error('Error generating PDF:', error);
     }
   };
 
@@ -1175,7 +1178,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       XLSX.writeFile(wb, `Vehicle_Documents_${new Date().toISOString().split('T')[0]}.xlsx`);
       toast.success('Excel file exported successfully!');
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
+      logger.error('Error exporting to Excel:', error);
       toast.error('Failed to export Excel file');
     }
   };
@@ -1221,7 +1224,7 @@ const DocumentSummaryPanel: React.FC<DocumentSummaryPanelProps> = ({ isOpen, onC
       link.click();
       toast.success('CSV file exported successfully!');
     } catch (error) {
-      console.error('Error exporting to CSV:', error);
+      logger.error('Error exporting to CSV:', error);
       toast.error('Failed to export CSV file');
     }
   };

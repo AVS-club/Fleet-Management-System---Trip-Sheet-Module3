@@ -1,11 +1,14 @@
 import { toast } from 'react-toastify';
+import { createLogger } from './logger';
+
+const logger = createLogger('errors');
 
 export function handleSupabaseError(action: string, error: any) {
   // Show user-friendly toast
   toast.error(`Failed to ${action}. Please try again.`);
   
   // Developer console log with details
-  console.error(`[${action.toUpperCase()} ERROR]`, {
+  logger.error(`[${action.toUpperCase()} ERROR]`, {
     action,
     message: error?.message || 'Unknown error',
     details: error?.details || null,

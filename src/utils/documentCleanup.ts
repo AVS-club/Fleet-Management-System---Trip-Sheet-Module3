@@ -2,12 +2,15 @@
 // Utility functions for cleaning up document paths
 
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('documentCleanup');
 
 /**
  * Clean up document paths to ensure consistency
  */
 export const cleanupDocumentPaths = async () => {
-  console.log('Starting document path cleanup...');
+  logger.debug('Starting document path cleanup...');
   
   try {
     // Fetch all vehicles
@@ -16,16 +19,16 @@ export const cleanupDocumentPaths = async () => {
       .select('id, registration_number, rc_document_url, insurance_document_url, fitness_document_url, tax_document_url, permit_document_url, puc_document_url');
     
     if (vehicleError) {
-      console.error('Error fetching vehicles:', vehicleError);
+      logger.error('Error fetching vehicles:', vehicleError);
       return { success: false, error: vehicleError };
     }
     
     if (!vehicles || vehicles.length === 0) {
-      console.log('No vehicles found');
+      logger.debug('No vehicles found');
       return { success: true, updated: 0 };
     }
     
-    console.log(`Processing ${vehicles.length} vehicles...`);
+    logger.debug(`Processing ${vehicles.length} vehicles...`);
     let updatedCount = 0;
     
     for (const vehicle of vehicles) {
@@ -63,18 +66,18 @@ export const cleanupDocumentPaths = async () => {
           .eq('id', vehicle.id);
         
         if (updateError) {
-          console.error(`Error updating vehicle ${vehicle.registration_number}:`, updateError);
+          logger.error(`Error updating vehicle ${vehicle.registration_number}:`, updateError);
         } else {
-          console.log(`Updated vehicle ${vehicle.registration_number}`);
+          logger.debug(`Updated vehicle ${vehicle.registration_number}`);
           updatedCount++;
         }
       }
     }
     
-    console.log(`Document path cleanup completed. Updated ${updatedCount} vehicles.`);
+    logger.debug(`Document path cleanup completed. Updated ${updatedCount} vehicles.`);
     return { success: true, updated: updatedCount };
   } catch (error) {
-    console.error('Cleanup failed:', error);
+    logger.error('Cleanup failed:', error);
     return { success: false, error };
   }
 };
@@ -118,7 +121,7 @@ const cleanPath = (path: string): string | null => {
  * Verify all document paths are valid
  */
 export const verifyDocumentPaths = async () => {
-  console.log('Verifying document paths...');
+  logger.debug('Verifying document paths...');
   
   const { data: vehicles } = await supabase
     .from('vehicles')
@@ -152,10 +155,10 @@ export const verifyDocumentPaths = async () => {
   }
   
   if (issues.length > 0) {
-    console.log('Found issues:');
-    issues.forEach(issue => console.log(`  - ${issue}`));
+    logger.debug('Found issues:');
+    issues.forEach(issue => logger.debug(`  - ${issue}`));
   } else {
-    console.log('All document paths are valid');
+    logger.debug('All document paths are valid');
   }
   
   return issues;

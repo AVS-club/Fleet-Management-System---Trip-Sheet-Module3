@@ -17,6 +17,9 @@ import {
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import { supabase } from '../../utils/supabaseClient';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleDetailsTabMobile');
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -35,10 +38,10 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
   const { t } = useTranslation();
   
   // Debug logging for insurance documents
-  console.log('🔍 VehicleDetailsTabMobile - received signedDocUrls:', signedDocUrls);
-  console.log('🔍 VehicleDetailsTabMobile - insurance URLs:', signedDocUrls.insurance);
-  console.log('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
-  console.log('🔍 Full vehicle object:', vehicle);
+  logger.debug('🔍 VehicleDetailsTabMobile - received signedDocUrls:', signedDocUrls);
+  logger.debug('🔍 VehicleDetailsTabMobile - insurance URLs:', signedDocUrls.insurance);
+  logger.debug('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
+  logger.debug('🔍 Full vehicle object:', vehicle);
 
   // Helper function to format dates
   const formatDate = (date: string | null | undefined) => {
@@ -108,8 +111,8 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
   ];
 
   // Debug the documents array
-  console.log('🔍 Mobile Documents array created:', documents);
-  console.log('🔍 Mobile Insurance document in array:', documents.find(doc => doc.type === 'insurance'));
+  logger.debug('🔍 Mobile Documents array created:', documents);
+  logger.debug('🔍 Mobile Insurance document in array:', documents.find(doc => doc.type === 'insurance'));
 
   const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { 
@@ -192,7 +195,7 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
       
       toast.success(t('messages.downloadSuccess'));
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       toast.error(t('messages.downloadError'));
     }
   };
@@ -202,17 +205,17 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
       await navigator.clipboard.writeText(url);
       toast.success(t('messages.linkCopied'));
     } catch (error) {
-      console.error('Failed to copy:', error);
+      logger.error('Failed to copy:', error);
       toast.error(t('messages.copyError'));
     }
   };
 
   // Working view handler that uses download-then-open approach
   const handleViewCompliance = async (docUrls: string[] | null, docType: string) => {
-    console.log(`🔍 handleViewCompliance called for ${docType}:`, docUrls);
+    logger.debug(`🔍 handleViewCompliance called for ${docType}:`, docUrls);
     
     if (!docUrls || docUrls.length === 0) {
-      console.log(`❌ No ${docType} documents available`);
+      logger.debug(`❌ No ${docType} documents available`);
       toast.info(`No ${docType} documents available`);
       return;
     }
@@ -220,7 +223,7 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
     try {
       // Take the first document URL
       const filePath = docUrls[0];
-      console.log(`🔍 Original filePath:`, filePath);
+      logger.debug(`🔍 Original filePath:`, filePath);
       
       // Clean the path
       const cleanedPath = filePath
@@ -229,32 +232,32 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
         .replace(/^driver-docs\//, '')
         .trim();
       
-      console.log(`🔍 Cleaned path:`, cleanedPath);
+      logger.debug(`🔍 Cleaned path:`, cleanedPath);
       
       // Download and open (this works like in edit mode)
-      console.log(`🔍 Attempting to download from vehicle-docs bucket:`, cleanedPath);
+      logger.debug(`🔍 Attempting to download from vehicle-docs bucket:`, cleanedPath);
       const { data, error } = await supabase.storage
         .from('vehicle-docs')
         .download(cleanedPath);
       
       if (error) {
-        console.error(`❌ Download error:`, error);
+        logger.error(`❌ Download error:`, error);
         throw error;
       }
       
-      console.log(`✅ Download successful, data:`, data);
-      console.log(`🔍 Data type:`, typeof data, 'Size:', data?.size);
+      logger.debug(`✅ Download successful, data:`, data);
+      logger.debug(`🔍 Data type:`, typeof data, 'Size:', data?.size);
       
       // Create blob URL and open
       const url = URL.createObjectURL(data);
-      console.log(`🔍 Created blob URL:`, url);
+      logger.debug(`🔍 Created blob URL:`, url);
       
       window.open(url, '_blank');
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       
     } catch (error) {
-      console.error('❌ View error:', error);
-      console.error('❌ Error details:', {
+      logger.error('❌ View error:', error);
+      logger.error('❌ Error details:', {
         message: error.message,
         code: error.code,
         statusCode: error.statusCode,

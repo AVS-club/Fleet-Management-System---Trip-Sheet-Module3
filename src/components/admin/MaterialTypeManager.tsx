@@ -4,6 +4,9 @@ import { Plus, Edit2, Trash2, Package, X, Check } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('MaterialTypeManager');
 
 interface MaterialTypeManagerProps {
   onClose: () => void;
@@ -21,7 +24,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         const typesData = await getMaterialTypes();
         setMaterialTypes(Array.isArray(typesData) ? typesData : []);
       } catch (error) {
-        console.error('Error fetching material types:', error);
+        logger.error('Error fetching material types:', error);
         toast.error('Failed to load material types');
       } finally {
         setLoading(false);
@@ -45,7 +48,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         toast.success('Material type added successfully');
       }
     } catch (error) {
-      console.error('Error adding material type:', error);
+      logger.error('Error adding material type:', error);
       toast.error('Failed to add material type');
     }
   };
@@ -66,7 +69,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         toast.success('Material type updated successfully');
       }
     } catch (error) {
-      console.error('Error updating material type:', error);
+      logger.error('Error updating material type:', error);
       toast.error('Failed to update material type');
     }
   };
@@ -80,7 +83,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
           toast.success('Material type deleted successfully');
         }
       } catch (error) {
-        console.error('Error deleting material type:', error);
+        logger.error('Error deleting material type:', error);
         toast.error('Failed to delete material type');
       }
     }

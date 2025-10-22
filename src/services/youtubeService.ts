@@ -47,7 +47,7 @@ class YouTubeService {
     const cacheKey = `${query}-${maxResults}`;
     const cached = this.cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      console.log('Returning cached YouTube shorts for:', query);
+      logger.debug('Returning cached YouTube shorts for:', query);
       return cached.data;
     }
 
@@ -73,7 +73,7 @@ class YouTubeService {
       const searchData = await searchResponse.json();
       
       if (!searchData.items || searchData.items.length === 0) {
-        console.warn('No YouTube shorts found for query:', query);
+        logger.warn('No YouTube shorts found for query:', query);
         return [];
       }
 
@@ -113,7 +113,7 @@ class YouTubeService {
 
       return shorts;
     } catch (error) {
-      console.error('Error fetching YouTube shorts:', error);
+      logger.error('Error fetching YouTube shorts:', error);
       return [];
     }
   }
@@ -126,7 +126,7 @@ class YouTubeService {
     const shortsPerQuery = Math.ceil(count / 3); // Get from 3 different queries
     const selectedQueries = this.getRandomQueries(3);
 
-    console.log('Fetching YouTube shorts from queries:', selectedQueries);
+    logger.debug('Fetching YouTube shorts from queries:', selectedQueries);
 
     const results = await Promise.all(
       selectedQueries.map(query => this.searchShorts(query, shortsPerQuery))
@@ -136,7 +136,7 @@ class YouTubeService {
     const allShorts = results.flat();
     const shuffled = this.shuffleArray(allShorts).slice(0, count);
     
-    console.log(`Found ${shuffled.length} shorts from ${selectedQueries.length} queries`);
+    logger.debug(`Found ${shuffled.length} shorts from ${selectedQueries.length} queries`);
     return shuffled;
   }
 
@@ -209,7 +209,7 @@ export const getYouTubeService = (apiKey?: string): YouTubeService | null => {
   
   // BETTER ERROR HANDLING - Don't throw error, return empty service
   if (!key) {
-    console.warn('⚠️ YouTube API key not found. Videos will be disabled.');
+    logger.warn('⚠️ YouTube API key not found. Videos will be disabled.');
     // Return a dummy service that returns empty arrays
     return {
       searchShorts: async () => [],

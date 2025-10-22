@@ -7,6 +7,9 @@ import { uploadFuelBill } from '../../utils/supabaseStorage';
 import { Fuel, MapPin, Plus, Trash2, Calculator, Upload, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('RefuelingForm');
 
 interface RefuelingFormProps {
   refuelings: Refueling[];
@@ -201,7 +204,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                                 tripId,
                                 index,
                                 (progress) => {
-                                  console.log(`Upload progress: ${progress}%`);
+                                  logger.debug(`Upload progress: ${progress}%`);
                                 }
                               );
 
@@ -212,7 +215,7 @@ const RefuelingForm: React.FC<RefuelingFormProps> = ({
                               }));
                               toast.success(`Fuel bill uploaded successfully!`);
                             } catch (error) {
-                              console.error('Error uploading fuel bill:', error);
+                              logger.error('Error uploading fuel bill:', error);
                               setUploadStates(prev => ({
                                 ...prev,
                                 [index]: { uploading: false }

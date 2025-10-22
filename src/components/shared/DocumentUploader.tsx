@@ -5,6 +5,9 @@ import { uploadVehicleDocument, uploadDriverDocument, getSignedDocumentUrl, getS
 import { supabase } from '../../utils/supabaseClient';
 import config from '../../utils/env';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentUploader');
 
 interface DocumentUploaderProps {
   label: string;
@@ -84,10 +87,10 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       if (savedHashes) {
         const hashArray = JSON.parse(savedHashes);
         uploadedFileHashesRef.current = new Set(hashArray);
-        console.log(`📦 Loaded ${hashArray.length} file hashes from storage`);
+        logger.debug(`📦 Loaded ${hashArray.length} file hashes from storage`);
       }
     } catch (error) {
-      console.error('Error loading file hashes:', error);
+      logger.error('Error loading file hashes:', error);
     }
   }, [entityId, docType]);
 
@@ -97,9 +100,9 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     try {
       const hashArray = Array.from(uploadedFileHashesRef.current);
       localStorage.setItem(storageKey, JSON.stringify(hashArray));
-      console.log(`💾 Saved ${hashArray.length} file hashes to storage`);
+      logger.debug(`💾 Saved ${hashArray.length} file hashes to storage`);
     } catch (error) {
-      console.error('Error saving file hashes:', error);
+      logger.error('Error saving file hashes:', error);
     }
   }, [entityId, docType]);
 
@@ -140,7 +143,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     
     const fileArray = Array.from(files);
     
-    console.log('📤 File selected, starting upload:', fileArray.length, 'files');
+    logger.debug('📤 File selected, starting upload:', fileArray.length, 'files');
     
     // Show loading message during hash generation
     toast.info('Preparing upload...', { autoClose: 1000 });
@@ -155,7 +158,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     );
     
     if (duplicates.length > 0) {
-      console.log('⚠️ Duplicate files detected, skipping upload');
+      logger.debug('⚠️ Duplicate files detected, skipping upload');
       toast.warning('Some files have already been uploaded. Skipping duplicates.');
       return;
     }
@@ -182,7 +185,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           }));
         };
 
-        console.log(`📤 Uploading file ${index + 1}/${fileArray.length}:`, file.name);
+        logger.debug(`📤 Uploading file ${index + 1}/${fileArray.length}:`, file.name);
         
         let uploadedPath;
         if (bucketType === 'vehicle') {
@@ -191,13 +194,13 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
           uploadedPath = await uploadDriverDocument(file, entityId, docType, onProgress);
         }
         
-        console.log(`✅ File uploaded successfully:`, uploadedPath);
+        logger.debug(`✅ File uploaded successfully:`, uploadedPath);
         return uploadedPath;
       });
 
       const uploadedPaths = await Promise.all(uploadPromises);
       
-      console.log('✅ All uploads complete! Paths:', uploadedPaths);
+      logger.debug('✅ All uploads complete! Paths:', uploadedPaths);
       
       // Add file hashes to prevent future duplicates
       newHashes.forEach(hash => uploadedFileHashesRef.current.add(hash));
@@ -212,14 +215,14 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
       // Notify parent component
       if (onUploadComplete) {
-        console.log('📢 Calling onUploadComplete with paths:', uploadedPaths);
+        logger.debug('📢 Calling onUploadComplete with paths:', uploadedPaths);
         onUploadComplete(uploadedPaths);
       }
 
       toast.success(`${fileArray.length} file(s) uploaded successfully`);
 
     } catch (error) {
-      console.error('❌ Upload error:', error);
+      logger.error('❌ Upload error:', error);
       setUploadState(prev => ({
         ...prev,
         status: 'error',
@@ -234,7 +237,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     return () => {
       if (uploadTimeoutRef.current) {
         clearTimeout(uploadTimeoutRef.current);
-        console.log('🧹 Cleaned up upload timeout');
+        logger.debug('🧹 Cleaned up upload timeout');
       }
     };
   }, []);
@@ -259,7 +262,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     const { path: filePath, index } = fileToDelete;
     
     try {
-      console.log('🗑️ Marking for deletion:', filePath);
+      logger.debug('🗑️ Marking for deletion:', filePath);
       
       // Remove from local state (updates UI immediately)
       setUploadState(prev => ({
@@ -275,7 +278,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       toast.success('Document will be deleted when you click "Update Vehicle"');
       
     } catch (error) {
-      console.error('Error removing document:', error);
+      logger.error('Error removing document:', error);
       toast.error('Failed to remove document');
     } finally {
       setShowDeleteModal(false);
@@ -285,7 +288,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
   const handleViewDocument = async (filePath: string) => {
     try {
-      console.log('Viewing document:', filePath);
+      logger.debug('Viewing document:', filePath);
       
       // Clean the path and handle spaces
       const cleanedPath = filePath
@@ -308,7 +311,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       
       window.open(publicUrl, '_blank');
     } catch (error) {
-      console.error('Error viewing document:', error);
+      logger.error('Error viewing document:', error);
       toast.error('Failed to view document');
     }
   };
@@ -350,7 +353,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
       
       return uploadedPaths;
     } catch (error) {
-      console.error('Error uploading staged files:', error);
+      logger.error('Error uploading staged files:', error);
       setUploadState(prev => ({ 
         ...prev, 
         status: 'error', 

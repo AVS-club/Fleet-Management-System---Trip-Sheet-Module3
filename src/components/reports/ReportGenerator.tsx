@@ -28,6 +28,9 @@ import { VehicleUtilizationReport } from './templates/VehicleUtilizationReport';
 import { DriverPerformanceReport } from './templates/DriverPerformanceReport';
 
 import { Download, FileText, Table, X, Loader2, Calendar, Filter } from 'lucide-react';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ReportGenerator');
 
 export type ReportType = 
   | 'weekly-comparison'
@@ -135,7 +138,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       
       setReportData(data);
     } catch (err) {
-      console.error('Error fetching report data:', err);
+      logger.error('Error fetching report data:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch report data');
     } finally {
       setLoading(false);
@@ -163,7 +166,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
         scale: 2
       });
     } catch (err) {
-      console.error('Error generating PDF:', err);
+      logger.error('Error generating PDF:', err);
       setError('Failed to generate PDF');
     } finally {
       setLoading(false);
@@ -194,7 +197,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           throw new Error(`Unknown report type: ${reportType}`);
       }
     } catch (err) {
-      console.error('Error generating Excel:', err);
+      logger.error('Error generating Excel:', err);
       setError('Failed to generate Excel file');
     }
   };

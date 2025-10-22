@@ -10,6 +10,9 @@ import StatCard from '../../components/ui/StatCard';
 import { Driver } from '@/types';
 import { getDrivers } from '../../utils/api/drivers';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AdminDriversPage');
 
 const AdminDriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,7 +61,7 @@ const AdminDriversPage: React.FC = () => {
           }).length);
         }
       } catch (error) {
-        console.error("Error fetching drivers:", error);
+        logger.error("Error fetching drivers:", error);
         toast.error("Failed to load drivers");
       } finally {
         setLoading(false);
@@ -77,13 +80,13 @@ const AdminDriversPage: React.FC = () => {
         .in('id', driverIds);
       
       if (error) {
-        console.error('Supabase deletion error:', error);
+        logger.error('Supabase deletion error:', error);
         return { success: 0, failed: driverIds.length };
       }
       
       return { success: driverIds.length, failed: 0 };
     } catch (error) {
-      console.error('Error deleting drivers:', error);
+      logger.error('Error deleting drivers:', error);
       return { success: 0, failed: driverIds.length };
     }
   };
@@ -118,13 +121,13 @@ const AdminDriversPage: React.FC = () => {
         .in('id', driverIds);
       
       if (error) {
-        console.error('Supabase archive error:', error);
+        logger.error('Supabase archive error:', error);
         return { success: 0, failed: driverIds.length };
       }
       
       return { success: driverIds.length, failed: 0 };
     } catch (error) {
-      console.error('Error archiving drivers:', error);
+      logger.error('Error archiving drivers:', error);
       return { success: 0, failed: driverIds.length };
     }
   };
@@ -188,7 +191,7 @@ const AdminDriversPage: React.FC = () => {
             toast.error(`Failed to archive ${result.failed} driver(s). Please try again.`);
           }
         } catch (error) {
-          console.error('Error in bulk archive operation:', error);
+          logger.error('Error in bulk archive operation:', error);
           toast.error(`Error archiving drivers: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
           setOperationLoading(false);
@@ -232,7 +235,7 @@ const AdminDriversPage: React.FC = () => {
             toast.error(`Failed to delete ${result.failed} driver(s). Please try again.`);
           }
         } catch (error) {
-          console.error('Error in bulk delete operation:', error);
+          logger.error('Error in bulk delete operation:', error);
           toast.error(`Error deleting drivers: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
           setOperationLoading(false);

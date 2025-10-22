@@ -2,6 +2,9 @@ import { supabase } from "./supabaseClient";
 import { ReminderContact, ReminderTemplate } from "@/types/reminders";
 import { handleSupabaseError } from "./errors";
 import config from "./env";
+import { createLogger } from './logger';
+
+const logger = createLogger('reminderService');
 
 // Reminder Contacts CRUD operations
 export const getReminderContacts = async (): Promise<ReminderContact[]> => {
@@ -10,7 +13,7 @@ export const getReminderContacts = async (): Promise<ReminderContact[]> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return [];
   }
   const { data, error } = await supabase
@@ -115,7 +118,7 @@ export const getReminderTemplates = async (): Promise<ReminderTemplate[]> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return [];
   }
 
@@ -204,7 +207,7 @@ export const uploadContactPhoto = async (
   contactId: string
 ): Promise<string | undefined> => {
   if (!file || !file.name) {
-    if (config.isDev) console.warn("No photo uploaded — skipping uploadContactPhoto.");
+    if (config.isDev) logger.warn("No photo uploaded — skipping uploadContactPhoto.");
     return undefined;
   }
 

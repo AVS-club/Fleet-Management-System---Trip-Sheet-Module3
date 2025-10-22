@@ -50,6 +50,9 @@ import { cn } from "../../utils/cn";
 import { getTrips, getVehicles } from "../../utils/storage";
 import { getDrivers } from "../../utils/api/drivers";
 import type { Driver, Trip, Vehicle } from "@/types";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DriverInsightsPage');
 
 // Interface for driver performance metrics
 interface DriverPerformance {
@@ -108,7 +111,7 @@ const DriverInsightsPage: React.FC = () => {
         setTrips(tripsData);
         setVehicles(vehiclesData);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        logger.error("Error fetching data:", error);
         toast.error("Failed to load driver analytics data");
       } finally {
         setLoading(false);
@@ -429,7 +432,7 @@ const DriverInsightsPage: React.FC = () => {
       );
       toast.success("Export successful");
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error:", error);
       toast.error("Failed to export data");
     } finally {
       setExportLoading(false);

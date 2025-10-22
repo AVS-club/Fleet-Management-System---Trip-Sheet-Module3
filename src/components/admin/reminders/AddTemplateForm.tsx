@@ -7,6 +7,9 @@ import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
 import { ReminderTemplate, ReminderContact } from '@/types/reminders';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('AddTemplateForm');
 
 // Predefined reminder types with labels and internal values
 const REMINDER_TYPE_OPTIONS = [
@@ -71,7 +74,7 @@ const AddTemplateForm: React.FC<AddTemplateFormProps> = ({ contacts, onSubmit })
       toast.success('Reminder template added successfully');
     } catch (error) {
       toast.error('Failed to add reminder template');
-      console.error('Error adding template:', error);
+      logger.error('Error adding template:', error);
     } finally {
       setIsSubmitting(false);
     }

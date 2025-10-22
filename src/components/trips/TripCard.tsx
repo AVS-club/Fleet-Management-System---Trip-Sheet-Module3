@@ -8,6 +8,9 @@ import { uploadFilesAndGetPublicUrls } from '../../utils/supabaseStorage';
 import { toast } from 'react-toastify';
 import config from '../../utils/env';
 import SearchHighlightedText from './SearchHighlightedText';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripCard');
 
 interface TripCardProps {
   trip: Trip;
@@ -42,7 +45,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
             const warehouse = await getWarehouse(trip.warehouse_id);
             setWarehouseData(warehouse);
           } catch (error) {
-            console.error('Error fetching warehouse:', error);
+            logger.error('Error fetching warehouse:', error);
             // Set loading error for warehouse failures
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load warehouse data due to connection issues');
@@ -63,7 +66,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
                 try {
                   return await getDestinationByAnyId(id);
                 } catch (error) {
-                  if (config.isDev) console.warn(`Destination ${id} not found or error fetching:`, error);
+                  if (config.isDev) logger.warn(`Destination ${id} not found or error fetching:`, error);
                   return null;
                 }
               })
@@ -76,7 +79,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
               setLoadingError('Unable to load trip destinations');
             }
           } catch (error) {
-            console.error('Error fetching destinations:', error);
+            logger.error('Error fetching destinations:', error);
             setLoadingError('Error loading trip destinations');
             if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
               setLoadingError('Unable to load some trip locations');
@@ -84,7 +87,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
           }
         }
       } catch (error) {
-        console.error('Error in fetchData:', error);
+        logger.error('Error in fetchData:', error);
         setLoadingError('Failed to load trip details');
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
           setLoadingError('Unable to load trip details');
@@ -146,7 +149,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
         throw new Error('No URLs returned from upload');
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image:', error);
       toast.error('Failed to upload image');
     } finally {
       setIsUploading(false);

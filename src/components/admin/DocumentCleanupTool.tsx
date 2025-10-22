@@ -2,6 +2,9 @@
 import React, { useState } from 'react';
 import { cleanupDocumentPaths, verifyDocumentPaths } from '../../utils/documentCleanup';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentCleanupTool');
 
 export const DocumentCleanupTool: React.FC = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -40,7 +43,7 @@ export const DocumentCleanupTool: React.FC = () => {
         toast.info('No cleanup needed');
       }
     } catch (error) {
-      console.error('Cleanup failed:', error);
+      logger.error('Cleanup failed:', error);
       toast.error('Cleanup failed');
       setResults(prev => [...prev, 'Error: ' + error.message]);
     } finally {

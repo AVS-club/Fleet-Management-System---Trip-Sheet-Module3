@@ -34,7 +34,7 @@ export const standardizeDate = (dateString: string): string | null => {
     // Return standardized date string (YYYY-MM-DD)
     return date.toISOString().split('T')[0];
   } catch (error) {
-    console.error('Error standardizing date:', error);
+    logger.error('Error standardizing date:', error);
     return null;
   }
 };
@@ -145,7 +145,7 @@ export const formatDateForInput = (date: Date | string | null | undefined): stri
     
     return dateObj.toISOString().split('T')[0];
   } catch (error) {
-    console.error('Error formatting date:', error);
+    logger.error('Error formatting date:', error);
     return '';
   }
 };

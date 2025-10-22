@@ -17,6 +17,9 @@ import { vehicleColors } from '../../utils/vehicleColors';
 import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortener';
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleDetailsTab');
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -40,10 +43,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const { permissions } = usePermissions();
   
   // Debug logging for insurance documents
-  console.log('🔍 VehicleDetailsTab - received signedDocUrls:', signedDocUrls);
-  console.log('🔍 VehicleDetailsTab - insurance URLs:', signedDocUrls.insurance);
-  console.log('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
-  console.log('🔍 Full vehicle object:', vehicle);
+  logger.debug('🔍 VehicleDetailsTab - received signedDocUrls:', signedDocUrls);
+  logger.debug('🔍 VehicleDetailsTab - insurance URLs:', signedDocUrls.insurance);
+  logger.debug('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
+  logger.debug('🔍 Full vehicle object:', vehicle);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     url: string;
@@ -77,7 +80,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       const tags = (data || []).map(item => item.tags).filter(Boolean);
       setVehicleTags(tags);
     } catch (error) {
-      console.error('Error loading vehicle tags:', error);
+      logger.error('Error loading vehicle tags:', error);
     }
   };
 
@@ -163,8 +166,8 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   ];
 
   // Debug the documents array
-  console.log('🔍 Documents array created:', documents);
-  console.log('🔍 Insurance document in array:', documents.find(doc => doc.type === 'Insurance'));
+  logger.debug('🔍 Documents array created:', documents);
+  logger.debug('🔍 Insurance document in array:', documents.find(doc => doc.type === 'Insurance'));
 
   const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { status: 'unknown', color: 'gray', days: null };
@@ -187,7 +190,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           url: url
         });
       } catch (error) {
-        console.log('Share failed:', error);
+        logger.debug('Share failed:', error);
       }
     } else {
       // Fallback: Copy to clipboard
@@ -195,7 +198,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         await navigator.clipboard.writeText(url);
         toast.success('Link copied to clipboard');
       } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+        logger.error('Failed to copy to clipboard:', error);
         toast.error('Failed to copy link');
       }
     }
@@ -219,13 +222,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       
       toast.success('Document downloaded successfully');
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       toast.error('Failed to download document');
     }
   };
 
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    console.log(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
+    logger.debug(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
     
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
@@ -247,7 +250,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         return;
       }
 
-      console.log(`✅ Opening viewer with ${validUrls.length} documents:`, validUrls);
+      logger.debug(`✅ Opening viewer with ${validUrls.length} documents:`, validUrls);
       
       // For single documents, open in new tab
       if (validUrls.length === 1) {
@@ -263,7 +266,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       }
       
     } catch (error) {
-      console.error('❌ View error:', error);
+      logger.error('❌ View error:', error);
       toast.error('Unable to view documents');
     } finally {
       setIsViewingDocuments(false);
@@ -299,7 +302,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           onUpdate({ photo_url: publicUrl });
           toast.success('Vehicle photo updated successfully');
         } catch (error) {
-          console.error('Photo upload failed:', error);
+          logger.error('Photo upload failed:', error);
           toast.error('Failed to upload photo');
         }
       }
@@ -371,7 +374,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                           setVehicleTags(prev => prev.filter(t => t.id !== tagId));
                           toast.success('Tag removed');
                         } catch (error) {
-                          console.error('Error:', error);
+                          logger.error('Error:', error);
                           toast.error('Failed to remove tag');
                         }
                       }}
@@ -501,7 +504,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                           await navigator.clipboard.writeText(shortUrl);
                           toast.success('Short link copied to clipboard');
                         } catch (error) {
-                          console.error('Failed to copy to clipboard:', error);
+                          logger.error('Failed to copy to clipboard:', error);
                           toast.error('Failed to copy link');
                         }
                       }}

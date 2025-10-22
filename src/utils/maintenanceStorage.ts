@@ -9,6 +9,9 @@ import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
 import { clearVehiclePredictionCache } from "./maintenancePredictor";
+import { createLogger } from './logger';
+
+const logger = createLogger('maintenanceStorage');
 
 // CRASH-PROOF: Compress images before upload to prevent main thread blocking
 const compressImageForUpload = (file: File): Promise<File> => {
@@ -53,7 +56,7 @@ const compressImageForUpload = (file: File): Promise<File> => {
                 type: 'image/jpeg',
                 lastModified: Date.now()
               });
-              console.log(`📸 Odometer image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+              logger.debug(`📸 Odometer image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
               resolve(compressedFile);
             } else {
               resolve(file);
@@ -78,7 +81,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return [];
   }
   const { data, error } = await supabase
@@ -152,7 +155,7 @@ export const createTask = async (
 
   // Make sure start_date is not empty string
   if (taskData.start_date === "") {
-    console.error("Empty start_date detected in createTask");
+    logger.error("Empty start_date detected in createTask");
     throw new Error("Start date cannot be empty");
   }
 
@@ -168,7 +171,7 @@ export const createTask = async (
 
   // Make sure required fields are present
   if (!taskData.garage_id) {
-    console.error("Missing garage_id in createTask");
+    logger.error("Missing garage_id in createTask");
     throw new Error("Garage ID is required");
   }
 
@@ -205,7 +208,7 @@ export const createTask = async (
         data.odometer_image = odometerImageUrl;
       }
     } catch (uploadError) {
-      console.error("Failed to upload odometer image:", uploadError);
+      logger.error("Failed to upload odometer image:", uploadError);
       // Continue without failing the entire task creation
     }
   }
@@ -327,13 +330,13 @@ export const updateTask = async (
     .single();
 
   if (!oldTask) {
-    console.error("Task not found:", id);
+    logger.error("Task not found:", id);
     return null;
   }
 
   // Make sure start_date is not empty string
   if (updateData.start_date === "") {
-    console.error("Empty start_date detected in updateTask");
+    logger.error("Empty start_date detected in updateTask");
     throw new Error("Start date cannot be empty");
   }
 

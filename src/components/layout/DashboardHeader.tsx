@@ -4,6 +4,9 @@ import { differenceInDays } from 'date-fns';
 import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DashboardHeader');
 
 interface Organization {
   id: string;
@@ -116,7 +119,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         activeDays: activeDays
       }));
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      logger.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }

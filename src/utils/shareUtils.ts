@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('shareUtils');
 
 const uploadVehicleProfile = async (vehicleId: string, vehicleData: any): Promise<void> => {
   const profileData = {
@@ -57,7 +60,7 @@ export const createShareableVehicleLink = async (vehicleId: string): Promise<str
     if (error) throw error;
     return data.signedUrl;
   } catch (error) {
-    console.error('Error creating shareable link:', error);
+    logger.error('Error creating shareable link:', error);
     throw error;
   }
 };
@@ -110,7 +113,7 @@ export const createShareableDriverLink = async (driverId: string): Promise<strin
     if (error) throw error;
     return data.signedUrl;
   } catch (error) {
-    console.error('Error creating shareable link:', error);
+    logger.error('Error creating shareable link:', error);
     throw error;
   }
 };

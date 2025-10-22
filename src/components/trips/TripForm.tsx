@@ -43,6 +43,9 @@ import { toast } from 'react-toastify';
 
 // Import the new warehouse rules system
 import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripForm');
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -165,7 +168,7 @@ const TripForm: React.FC<TripFormProps> = ({
           const date = parseISO(dateString);
           return format(date, 'yyyy-MM-dd');
         } catch (error) {
-          console.error('Error formatting date:', error);
+          logger.error('Error formatting date:', error);
           return yesterdayDate;
         }
       };
@@ -299,7 +302,7 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching form data:', error);
+        logger.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
       } finally {
         setLoading(false);
@@ -380,7 +383,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error generating trip serial:', error);
+            logger.error('Error generating trip serial:', error);
             toast.error('Could not generate unique trip serial. Please try again or enter manually.');
           }
         }
@@ -405,7 +408,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error getting latest odometer:', error);
+            logger.error('Error getting latest odometer:', error);
           }
         }
       }
@@ -487,11 +490,11 @@ const TripForm: React.FC<TripFormProps> = ({
             const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
             setAiAlerts(alerts);
           } else {
-            if (config.isDev) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
+            if (config.isDev) logger.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
           }
         }
       } catch (error) {
-        console.error('Error analyzing route:', error);
+        logger.error('Error analyzing route:', error);
       } finally {
         setIsAnalyzing(false);
       }
@@ -550,7 +553,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error analyzing route:', error);
+            logger.error('Error analyzing route:', error);
             if (!abortController.signal.aborted) {
               setRouteAnalysis(null);
             }
@@ -675,7 +678,7 @@ const TripForm: React.FC<TripFormProps> = ({
             // Auto-selected warehouse based on vehicle assignment
           }
         } catch (error) {
-          console.error('Error auto-assigning warehouse:', error);
+          logger.error('Error auto-assigning warehouse:', error);
         }
       }
 
@@ -740,7 +743,7 @@ const TripForm: React.FC<TripFormProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error fetching last trip data:', error);
+      logger.error('Error fetching last trip data:', error);
     }
   };
 
@@ -988,7 +991,7 @@ const TripForm: React.FC<TripFormProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error previewing cascade impact:', error);
+      logger.error('Error previewing cascade impact:', error);
       toast.error('Could not preview cascade impact');
     }
   };
@@ -1028,7 +1031,7 @@ const TripForm: React.FC<TripFormProps> = ({
         toast.error(result.error || 'Failed to apply cascade corrections');
       }
     } catch (error) {
-      console.error('Error applying cascade:', error);
+      logger.error('Error applying cascade:', error);
       toast.error('Failed to apply cascade corrections');
     } finally {
       setCascadePreview(prev => ({ ...prev, loading: false }));

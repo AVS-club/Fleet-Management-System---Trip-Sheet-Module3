@@ -1,5 +1,8 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/utils/supabaseClient';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useHeroFeed');
 
 export interface FeedEvent {
   id: string;
@@ -58,7 +61,7 @@ export const useKPICards = () => {
         if (error) throw error;
         return data as KPICard[];
       } catch (error) {
-        console.warn('Database not available, using mock KPI data:', error);
+        logger.warn('Database not available, using mock KPI data:', error);
         return getMockKPICards();
       }
     }
@@ -91,7 +94,7 @@ export const useHeroFeed = (filters?: {
         if (error) throw error;
         return data as FeedEvent[];
       } catch (error) {
-        console.warn('Database not available, using mock data:', error);
+        logger.warn('Database not available, using mock data:', error);
         // Return mock data when database is not available
         return getMockFeedEvents(filters, pageParam);
       }

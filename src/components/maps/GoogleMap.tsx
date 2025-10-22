@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Loader } from '@googlemaps/js-api-loader';
 import { AlertTriangle } from 'lucide-react';
 import config from '../../utils/env';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('GoogleMap');
 
 interface GoogleMapProps {
   waypoints: Array<{ lat: number; lng: number }>;
@@ -121,11 +124,11 @@ const GoogleMap: React.FC<GoogleMapProps> = ({ waypoints, className = 'h-64' }) 
           });
         }
       } catch (err) {
-        console.error('Error initializing map:', err);
+        logger.error('Error initializing map:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize map');
       }
     }).catch((err) => {
-      console.error('Error loading Google Maps:', err);
+      logger.error('Error loading Google Maps:', err);
       setError('Failed to load Google Maps. Please check your API key and try again.');
     });
   }, [waypoints]);

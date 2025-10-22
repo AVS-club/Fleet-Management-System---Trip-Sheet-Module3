@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { getYouTubeService, YouTubeShort } from '../services/youtubeService';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useYouTubeShorts');
 
 interface UseYouTubeShortsOptions {
   count?: number;
@@ -12,11 +15,11 @@ export const useYouTubeShorts = (options: UseYouTubeShortsOptions = {}) => {
   return useQuery<YouTubeShort[], Error>({
     queryKey: ['youtube-shorts', count],
     queryFn: async () => {
-      console.log('Fetching YouTube shorts...');
+      logger.debug('Fetching YouTube shorts...');
       const service = getYouTubeService();
       
       if (!service) {
-        console.log('YouTube service not available - API key missing');
+        logger.debug('YouTube service not available - API key missing');
         return [];
       }
       
@@ -28,7 +31,7 @@ export const useYouTubeShorts = (options: UseYouTubeShortsOptions = {}) => {
     refetchOnWindowFocus: false,
     retry: 2,
     onError: (error) => {
-      console.error('Failed to fetch YouTube shorts:', error);
+      logger.error('Failed to fetch YouTube shorts:', error);
     }
   });
 };
@@ -41,7 +44,7 @@ export const useYouTubeShortsSearch = (query: string, maxResults: number = 10) =
       const service = getYouTubeService();
       
       if (!service) {
-        console.log('YouTube service not available - API key missing');
+        logger.debug('YouTube service not available - API key missing');
         return [];
       }
       
@@ -51,7 +54,7 @@ export const useYouTubeShortsSearch = (query: string, maxResults: number = 10) =
     staleTime: 1000 * 60 * 30,
     cacheTime: 1000 * 60 * 60,
     onError: (error) => {
-      console.error('Failed to search YouTube shorts:', error);
+      logger.error('Failed to search YouTube shorts:', error);
     }
   });
 };

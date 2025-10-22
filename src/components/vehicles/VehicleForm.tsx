@@ -44,6 +44,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleForm');
 
 export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {}
 
@@ -126,7 +129,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   // Enable draft mode when editing existing vehicle
   useEffect(() => {
     if (initialData?.id) {
-      console.log('📝 Enabling draft mode for vehicle:', initialData.id);
+      logger.debug('📝 Enabling draft mode for vehicle:', initialData.id);
       
       setDraftState({
         isDraft: true,
@@ -144,7 +147,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       });
       
       setFieldsDisabled(false);
-      console.log('✅ Draft mode enabled');
+      logger.debug('✅ Draft mode enabled');
     }
   }, [initialData?.id]);
 
@@ -193,7 +196,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         setReminderContacts(Array.isArray(contactsData) ? contactsData : []);
         setAvailableDrivers(Array.isArray(driversData) ? driversData : []);
       } catch (error) {
-        console.error('Error fetching form data:', error);
+        logger.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
       }
     };
@@ -202,7 +205,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   }, []);
 
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
-    console.log(`📥 Document upload completed for ${docType}:`, filePaths);
+    logger.debug(`📥 Document upload completed for ${docType}:`, filePaths);
     
     if (draftState.isDraft) {
       // In draft mode, COMBINE with existing files
@@ -212,7 +215,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // Combine existing + new, remove duplicates
       const combinedPaths = [...new Set([...currentFormValue, ...filePaths])];
       
-      console.log(`✅ Combined ${docType} documents:`, {
+      logger.debug(`✅ Combined ${docType} documents:`, {
         existing: currentFormValue,
         new: filePaths,
         combined: combinedPaths
@@ -230,7 +233,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         }
       }));
       
-      console.log(`🔍 DRAFT MODE - Stored pending upload for ${docType}`);
+      logger.debug(`🔍 DRAFT MODE - Stored pending upload for ${docType}`);
     } else {
       // Original behavior for non-draft mode
       const fieldName = `${docType}_document_url` as keyof Vehicle;
@@ -243,7 +246,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }));
       
       setValue(fieldName, combinedPaths as any);
-      console.log(`✅ Combined ${docType} documents:`, combinedPaths);
+      logger.debug(`✅ Combined ${docType} documents:`, combinedPaths);
     }
   };
 
@@ -265,7 +268,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       const updatedPaths = currentFormValue.filter(path => path !== filePath);
       setValue(fieldName, updatedPaths as any);
       
-      console.log(`🔍 DRAFT MODE - Marked for deletion: ${docType} - ${filePath}`);
+      logger.debug(`🔍 DRAFT MODE - Marked for deletion: ${docType} - ${filePath}`);
     } else {
       // Original behavior for non-draft mode
       setDeletedDocuments(prev => ({
@@ -277,7 +280,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   // Handle staged document files
   const handleDocumentStaging = (docType: string, files: File[]) => {
-    console.log(`🔍 STAGED MODE - Staging files for ${docType}:`, files);
+    logger.debug(`🔍 STAGED MODE - Staging files for ${docType}:`, files);
     
     setStagedDocuments(prev => ({
       ...prev,
@@ -352,7 +355,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // Extract the RC data - your API returns it in response field
       const rcData = result.data?.response || result.response || {};
       
-      console.log('API Response:', rcData);
+      logger.debug('API Response:', rcData);
       
       // Helper function to check if date is valid (not 1900-01-01 placeholder)
       const isValidDate = (dateStr: string | undefined): boolean => {
@@ -430,7 +433,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       };
 
       // Log the mapped data
-      console.log('Mapped data:', mappedData);
+      logger.debug('Mapped data:', mappedData);
 
       // Update form with fetched data - only set if value exists
       Object.entries(mappedData).forEach(([key, value]) => {
@@ -449,7 +452,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       toast.success('Vehicle details fetched successfully! Please verify and complete the form.');
       
     } catch (err: any) {
-      console.error('RC fetch error:', err);
+      logger.error('RC fetch error:', err);
       toast.error(err.message || 'Failed to fetch vehicle details. Please enter details manually.');
       setFieldsDisabled(false);
       setFetchStatus('error');
@@ -460,7 +463,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
 
   const handleCancel = () => {
-    console.log('🔄 Canceling form - resetting draft state');
+    logger.debug('🔄 Canceling form - resetting draft state');
     
     // Reset draft state completely
     setDraftState({
@@ -473,7 +476,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
     // Clear staged documents
     if (Object.keys(stagedDocuments).length > 0) {
-      console.log('🔍 STAGED MODE - Clearing staged files');
+      logger.debug('🔍 STAGED MODE - Clearing staged files');
       setStagedDocuments({});
       setUploadProgress({});
     }
@@ -496,25 +499,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const onFormSubmit = async (data: Vehicle) => {
     try {
-      console.log('🚀 Form submission started');
-      console.log('📊 Initial data:', data);
-      console.log('📦 Staged documents:', stagedDocuments);
-      console.log('🗑️ Draft deletions:', draftState.pendingDeletions);
+      logger.debug('🚀 Form submission started');
+      logger.debug('📊 Initial data:', data);
+      logger.debug('📦 Staged documents:', stagedDocuments);
+      logger.debug('🗑️ Draft deletions:', draftState.pendingDeletions);
       
       // ========================================
       // STEP 1: Upload all staged files
       // ========================================
       if (Object.keys(stagedDocuments).length > 0) {
-        console.log('📤 Uploading staged files for:', Object.keys(stagedDocuments));
+        logger.debug('📤 Uploading staged files for:', Object.keys(stagedDocuments));
         
         const uploadPromises = Object.entries(stagedDocuments).map(async ([docType, { files, existingPaths }]) => {
-          console.log(`📂 Processing ${docType}: ${files.length} new files, ${existingPaths.length} existing`);
+          logger.debug(`📂 Processing ${docType}: ${files.length} new files, ${existingPaths.length} existing`);
           const uploadedPaths = [];
           
           for (let i = 0; i < files.length; i++) {
             const file = files[i];
             try {
-              console.log(`⬆️ Uploading ${docType} file ${i + 1}/${files.length}: ${file.name}`);
+              logger.debug(`⬆️ Uploading ${docType} file ${i + 1}/${files.length}: ${file.name}`);
               
               const path = await uploadVehicleDocument(
                 file, 
@@ -529,10 +532,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               );
               
               uploadedPaths.push(path);
-              console.log(`✅ Uploaded ${docType} [${i + 1}/${files.length}]:`, path);
+              logger.debug(`✅ Uploaded ${docType} [${i + 1}/${files.length}]:`, path);
               
             } catch (error) {
-              console.error(`❌ Failed to upload ${docType} file: ${file.name}`, error);
+              logger.error(`❌ Failed to upload ${docType} file: ${file.name}`, error);
               toast.error(`Failed to upload ${file.name}`);
               throw error;
             }
@@ -540,7 +543,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           
           // Combine existing paths with newly uploaded paths
           const allPaths = [...existingPaths, ...uploadedPaths];
-          console.log(`✅ ${docType} total paths after upload:`, allPaths);
+          logger.debug(`✅ ${docType} total paths after upload:`, allPaths);
           
           return { docType, paths: allPaths };
         });
@@ -552,31 +555,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         uploadResults.forEach(({ docType, paths }) => {
           const fieldName = `${docType}_document_url` as keyof Vehicle;
           data[fieldName] = paths as any;
-          console.log(`✅ Updated ${fieldName}:`, paths);
+          logger.debug(`✅ Updated ${fieldName}:`, paths);
         });
         
-        console.log('✅ All staged files uploaded successfully');
+        logger.debug('✅ All staged files uploaded successfully');
       } else {
-        console.log('ℹ️ No staged files to upload');
+        logger.debug('ℹ️ No staged files to upload');
       }
 
       // ========================================
       // STEP 2: Handle draft mode deletions
       // ========================================
       if (draftState.isDraft && Object.keys(draftState.pendingDeletions).length > 0) {
-        console.log('🗑️ Processing draft deletions:', draftState.pendingDeletions);
+        logger.debug('🗑️ Processing draft deletions:', draftState.pendingDeletions);
         
         // Delete files from storage
         for (const [docType, deletedPaths] of Object.entries(draftState.pendingDeletions)) {
-          console.log(`🗑️ Deleting ${deletedPaths.length} ${docType} file(s)`);
+          logger.debug(`🗑️ Deleting ${deletedPaths.length} ${docType} file(s)`);
           
           for (const filePath of deletedPaths) {
             try {
-              console.log(`🗑️ Deleting from storage: ${filePath}`);
+              logger.debug(`🗑️ Deleting from storage: ${filePath}`);
               await deleteVehicleDocument(filePath);
-              console.log(`✅ Deleted from storage: ${filePath}`);
+              logger.debug(`✅ Deleted from storage: ${filePath}`);
             } catch (error) {
-              console.error(`❌ Failed to delete ${filePath}:`, error);
+              logger.error(`❌ Failed to delete ${filePath}:`, error);
               // Continue with other deletions even if one fails
             }
           }
@@ -585,7 +588,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         // CRITICAL: Clean the document arrays to remove deleted file paths
         const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
         
-        console.log('🧹 Cleaning document arrays after deletions');
+        logger.debug('🧹 Cleaning document arrays after deletions');
         
         for (const docType of docTypes) {
           const fieldName = `${docType}_document_url` as keyof Vehicle;
@@ -597,28 +600,28 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             const remainingPaths = currentPaths.filter(path => !deletedPaths.includes(path));
             data[fieldName] = remainingPaths as any;
             
-            console.log(`✅ Cleaned ${docType}: ${currentPaths.length} → ${remainingPaths.length} files`);
-            console.log(`   Removed: ${deletedPaths.length} file(s)`);
+            logger.debug(`✅ Cleaned ${docType}: ${currentPaths.length} → ${remainingPaths.length} files`);
+            logger.debug(`   Removed: ${deletedPaths.length} file(s)`);
           }
         }
         
-        console.log('✅ All deletions processed');
+        logger.debug('✅ All deletions processed');
       }
 
       // ========================================
       // STEP 3: Handle non-draft deletions
       // ========================================
       if (!draftState.isDraft && Object.keys(deletedDocuments).length > 0) {
-        console.log('🗑️ Processing non-draft deletions:', deletedDocuments);
+        logger.debug('🗑️ Processing non-draft deletions:', deletedDocuments);
         
         for (const [docType, deletedPaths] of Object.entries(deletedDocuments)) {
           for (const filePath of deletedPaths) {
             try {
-              console.log(`🗑️ Deleting: ${filePath}`);
+              logger.debug(`🗑️ Deleting: ${filePath}`);
               await deleteVehicleDocument(filePath);
-              console.log(`✅ Deleted: ${filePath}`);
+              logger.debug(`✅ Deleted: ${filePath}`);
             } catch (error) {
-              console.error(`❌ Failed to delete ${filePath}:`, error);
+              logger.error(`❌ Failed to delete ${filePath}:`, error);
             }
           }
         }
@@ -641,7 +644,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // ========================================
       // STEP 4: Ensure all document fields are arrays
       // ========================================
-      console.log('🔍 Ensuring document fields are properly formatted');
+      logger.debug('🔍 Ensuring document fields are properly formatted');
       
       const finalData = {
         ...data,
@@ -653,7 +656,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         puc_document_url: Array.isArray(data.puc_document_url) ? data.puc_document_url : (data.puc_document_url ? [data.puc_document_url] : []),
       };
 
-      console.log('📊 Final document counts:', {
+      logger.debug('📊 Final document counts:', {
         rc: finalData.rc_document_url?.length || 0,
         insurance: finalData.insurance_document_url?.length || 0,
         fitness: finalData.fitness_document_url?.length || 0,
@@ -665,13 +668,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // ========================================
       // STEP 5: Submit to parent component
       // ========================================
-      console.log('📤 Submitting to parent component');
+      logger.debug('📤 Submitting to parent component');
       await onSubmit(finalData);
       
       // ========================================
       // STEP 6: Cleanup state after successful submission
       // ========================================
-      console.log('🧹 Cleaning up component state');
+      logger.debug('🧹 Cleaning up component state');
       
       setStagedDocuments({});
       setUploadProgress({});
@@ -684,12 +687,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         pendingNewUploads: {}
       });
       
-      console.log('✅ Form submission completed successfully!');
+      logger.debug('✅ Form submission completed successfully!');
       toast.success('Vehicle updated successfully!');
       
     } catch (error) {
-      console.error('❌ Form submission failed:', error);
-      console.error('Error details:', {
+      logger.error('❌ Form submission failed:', error);
+      logger.error('Error details:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       });

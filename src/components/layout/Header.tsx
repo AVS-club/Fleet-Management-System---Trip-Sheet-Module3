@@ -10,6 +10,9 @@ import LanguageSwitcher from "../ui/LanguageSwitcher";
 import { toast } from 'react-toastify';
 import { usePermissions } from '../../hooks/usePermissions';
 import { LogOut, Truck } from 'lucide-react';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('Header');
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +26,7 @@ const Header: React.FC = () => {
       navigate('/login');
       toast.success('Logged out successfully');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out:', error);
       toast.error('Error signing out');
     }
   };

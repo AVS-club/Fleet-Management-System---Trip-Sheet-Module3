@@ -9,6 +9,9 @@ import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { NumberFormatter } from '@/utils/numberFormatter';
 import { getDestinationByAnyId } from '@/utils/storage';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripTable');
 
 interface TripTableProps {
   trips: Trip[];
@@ -67,7 +70,7 @@ const TripDestinationCell: React.FC<{
               const dest = await getDestinationByAnyId(id);
               return { id, name: dest ? dest.name : id };
             } catch (error) {
-              console.warn(`Destination ${id} not found:`, error);
+              logger.warn(`Destination ${id} not found:`, error);
               return { id, name: id };
             }
           })
@@ -81,7 +84,7 @@ const TripDestinationCell: React.FC<{
 
         setDestinationNames(allNames);
       } catch (error) {
-        console.error('Error resolving missing destinations:', error);
+        logger.error('Error resolving missing destinations:', error);
         // Fallback to cached names + missing IDs
         setDestinationNames([...cachedNames, ...missing]);
       } finally {
@@ -178,7 +181,7 @@ const TripTable: React.FC<TripTableProps> = ({
             const dest = await getDestinationByAnyId(id);
             return { id, name: dest ? dest.name : id };
           } catch (error) {
-            console.warn(`Destination ${id} not found:`, error);
+            logger.warn(`Destination ${id} not found:`, error);
             return { id, name: id }; // Fallback to ID if error
           }
         });
@@ -190,7 +193,7 @@ const TripTable: React.FC<TripTableProps> = ({
 
         setDestinationCache(newCache);
       } catch (error) {
-        console.error('Error fetching destinations:', error);
+        logger.error('Error fetching destinations:', error);
         // Fallback: create cache with IDs as names
         const fallbackCache = new Map<string, string>();
         uniqueDestinationIds.forEach(id => fallbackCache.set(id, id));
@@ -344,7 +347,7 @@ const TripTable: React.FC<TripTableProps> = ({
             );
             destinationNames = destinations.join(', ');
           } catch (error) {
-            console.error('Error resolving destinations for export:', error);
+            logger.error('Error resolving destinations for export:', error);
             destinationNames = trip.destinations.join(', '); // Fallback to IDs
           }
         }
@@ -373,7 +376,7 @@ const TripTable: React.FC<TripTableProps> = ({
       XLSX.writeFile(wb, `trips_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
       toast.success('Exported to Excel successfully');
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
+      logger.error('Error exporting to Excel:', error);
       toast.error('Failed to export to Excel');
     }
   };

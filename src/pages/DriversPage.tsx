@@ -35,6 +35,9 @@ import StatCard from "../components/ui/StatCard";
 import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Confirm field refactor here
 import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
 import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('DriversPage');
 
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
@@ -75,7 +78,7 @@ const DriversPage: React.FC = () => {
         // Get current user from Supabase auth instead of localStorage
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
-          console.error('Error getting user:', userError);
+          logger.error('Error getting user:', userError);
           setLoading(false);
           setStatsLoading(false);
           return;
@@ -131,7 +134,7 @@ const DriversPage: React.FC = () => {
         setStatsLoading(false);
 
       } catch (error) {
-        console.error("Error fetching drivers data:", error);
+        logger.error("Error fetching drivers data:", error);
         toast.error("Failed to load drivers");
         setStatsLoading(false);
       } finally {
@@ -154,7 +157,7 @@ const DriversPage: React.FC = () => {
           const tempId = editingDriver?.id || `temp-${Date.now()}`;
           photoUrl = await uploadDriverPhoto(data.photo, tempId);
         } catch (error) {
-          console.error("Error uploading photo:", error);
+          logger.error("Error uploading photo:", error);
           toast.error(
             "Failed to upload photo, but continuing with driver save"
           );
@@ -185,7 +188,7 @@ const DriversPage: React.FC = () => {
             driverData.aadhar_doc_url = uploadedUrls;
           }
         } catch (error) {
-          console.error("Error uploading Aadhaar documents:", error);
+          logger.error("Error uploading Aadhaar documents:", error);
         }
       }
       
@@ -204,7 +207,7 @@ const DriversPage: React.FC = () => {
             driverData.license_doc_url = uploadedUrls;
           }
         } catch (error) {
-          console.error("Error uploading license documents:", error);
+          logger.error("Error uploading license documents:", error);
         }
       }
 
@@ -223,7 +226,7 @@ const DriversPage: React.FC = () => {
             driverData.police_doc_url = uploadedUrls;
           }
         } catch (error) {
-          console.error("Error uploading police documents:", error);
+          logger.error("Error uploading police documents:", error);
         }
       }
 
@@ -242,7 +245,7 @@ const DriversPage: React.FC = () => {
             driverData.medical_doc_url = uploadedUrls;
           }
         } catch (error) {
-          console.error("Error uploading medical documents:", error);
+          logger.error("Error uploading medical documents:", error);
         }
       }
       // Remove the File object as it can't be stored in the database
@@ -270,7 +273,7 @@ const DriversPage: React.FC = () => {
               const filePath = await uploadDriverPhoto(doc.file_obj, fileId);
               processedDoc.file_path = filePath;
             } catch (error) {
-              console.error(`Error uploading document "${doc.name}":`, error);
+              logger.error(`Error uploading document "${doc.name}":`, error);
             }
           } else if (doc.file_path) {
             processedDoc.file_path = doc.file_path;
@@ -332,7 +335,7 @@ const DriversPage: React.FC = () => {
                     updatedDoc.file_path = finalFilePath;
                   }
                 } catch (error) {
-                  console.error(
+                  logger.error(
                     `Error updating document "${doc.name}" with final ID:`,
                     error
                   );
@@ -365,7 +368,7 @@ const DriversPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Error saving driver:", error);
+      logger.error("Error saving driver:", error);
       toast.error(`Failed to ${editingDriver ? "update" : "add"} driver`);
     } finally {
       setIsSubmitting(false);
@@ -429,7 +432,7 @@ const DriversPage: React.FC = () => {
       
       setSignedDocUrls(urls);
     } catch (error) {
-      console.error('Error generating signed URLs:', error);
+      logger.error('Error generating signed URLs:', error);
     }
     
     setShowShareModal(true);

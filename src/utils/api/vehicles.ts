@@ -5,6 +5,9 @@ import { uploadVehicleDocument } from '../supabaseStorage';
 import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { generateCSV, downloadCSV } from '../csvParser';
 import { handleSupabaseError } from '../errors';
+import { createLogger } from '../logger';
+
+const logger = createLogger('vehicles');
 
 // Helper function to check if a value is LTT (Lifetime Tax)
 const isLTT = (value: string | null | undefined): boolean => {
@@ -30,7 +33,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for vehicles, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for vehicles, returning empty array');
         return [];
       }
       handleSupabaseError('get user for vehicles', userError);
@@ -38,13 +41,13 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     }
 
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -82,7 +85,7 @@ export const getVehicles = async (): Promise<Vehicle[]> => {
     return vehiclesWithTags;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for vehicles, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for vehicles, returning empty array');
       return [];
     }
     handleSupabaseError('get user for vehicles', error);
@@ -188,7 +191,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
     const filteredValues = filterVehicleUpdateData(values);
     
     // Debug logging for document URLs
-    console.log('updateVehicle - received values:', {
+    logger.debug('updateVehicle - received values:', {
       rc_document_url: values.rc_document_url,
       insurance_document_url: values.insurance_document_url,
       fitness_document_url: values.fitness_document_url,
@@ -212,7 +215,7 @@ export const updateVehicle = async (id: string, values: any): Promise<Vehicle | 
     };
 
     // Debug logging for final payload
-    console.log('updateVehicle - final payload document URLs:', {
+    logger.debug('updateVehicle - final payload document URLs:', {
       rc_document_url: payload.rc_document_url,
       insurance_document_url: payload.insurance_document_url,
       fitness_document_url: payload.fitness_document_url,
@@ -381,7 +384,7 @@ export const bulkUnarchiveVehicles = async (vehicleIds: string[]): Promise<boole
 
 export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
   try {
-    console.log('🔍 Fetching trips for vehicle:', vehicleId);
+    logger.debug('🔍 Fetching trips for vehicle:', vehicleId);
     
     const { data: trips, error } = await supabase
       .from('trips')
@@ -402,11 +405,11 @@ export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
       .limit(limit);
 
     if (error) {
-      console.error('❌ Error fetching trips:', error);
+      logger.error('❌ Error fetching trips:', error);
       return { trips: [], stats: {} };
     }
 
-    console.log('📊 Raw trips data:', trips);
+    logger.debug('📊 Raw trips data:', trips);
 
     // Process trips - destinations are already in the table as arrays
     const processedTrips = trips?.map(trip => ({
@@ -425,7 +428,7 @@ export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
       profit: trip.net_profit || 0
     })) || [];
 
-    console.log('✅ Processed trips:', processedTrips);
+    logger.debug('✅ Processed trips:', processedTrips);
 
     // Calculate stats
     const stats = {
@@ -438,11 +441,11 @@ export const getVehicleTrips = async (vehicleId: string, limit = 10) => {
       totalProfit: processedTrips.reduce((sum, t) => sum + t.profit, 0)
     };
 
-    console.log('📈 Calculated stats:', stats);
+    logger.debug('📈 Calculated stats:', stats);
 
     return { trips: processedTrips, stats };
   } catch (error) {
-    console.error('❌ Error in getVehicleTrips:', error);
+    logger.error('❌ Error in getVehicleTrips:', error);
     return { trips: [], stats: {} };
   }
 };

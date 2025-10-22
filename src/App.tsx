@@ -53,6 +53,9 @@ import DocumentRedirect from "./pages/DocumentRedirect";
 import { isNetworkError } from "./utils/supabaseClient";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import SmartRedirect from "./components/auth/SmartRedirect";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('App');
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -85,7 +88,7 @@ const App: React.FC = () => {
         // Test Supabase connection on app start
         await testSupabaseConnection();
       } catch (connectionError) {
-        console.error('Supabase connection test failed:', connectionError);
+        logger.error('Supabase connection test failed:', connectionError);
         // Continue anyway, but log the issue
       }
 
@@ -95,17 +98,17 @@ const App: React.FC = () => {
         
         if (error) {
           if (isNetworkError(error)) {
-            if (config.isDev) console.warn('Network error getting session, continuing without session');
+            if (config.isDev) logger.warn('Network error getting session, continuing without session');
             setSession(null);
           } else {
-            console.error('Session error:', error);
+            logger.error('Session error:', error);
             setSession(null);
           }
         } else {
           setSession(session);
         }
       } catch (error) {
-        console.error('Failed to get session:', error);
+        logger.error('Failed to get session:', error);
         setSession(null);
       } finally {
         setLoading(false);

@@ -15,6 +15,9 @@ import { listWarehouses, createWarehouse, updateWarehouse, deleteWarehouse, hard
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes'; // Added MaterialType import
 import { Warehouse, Destination } from '@/types'; // Added Warehouse and Destination imports
 import Checkbox from '../../components/ui/Checkbox'; // Import Checkbox
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripLocationsPage');
 
 const TripLocationsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -60,7 +63,7 @@ const TripLocationsPage: React.FC = () => {
         setDestinationsWithAnalytics(destinationsAnalyticsData);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching location data:', error);
+        logger.error('Error fetching location data:', error);
         toast.error('Failed to load location data');
       } finally {
         setLoading(false);
@@ -78,7 +81,7 @@ const TripLocationsPage: React.FC = () => {
           const analyticsData = await getDestinationsWithAnalytics(currentPage, destinationsPerPage, destinationFilters);
           setDestinationsWithAnalytics(analyticsData);
         } catch (error) {
-          console.error('Error fetching destinations analytics:', error);
+          logger.error('Error fetching destinations analytics:', error);
         }
       }
     };
@@ -95,7 +98,7 @@ const TripLocationsPage: React.FC = () => {
       setIsAddingWarehouse(false);
       toast.success('Warehouse added successfully');
     } catch (error) {
-      console.error('Error adding warehouse:', error);
+      logger.error('Error adding warehouse:', error);
       toast.error('Failed to add warehouse');
     } finally {
       setIsSubmitting(false);
@@ -115,7 +118,7 @@ const TripLocationsPage: React.FC = () => {
       setEditingWarehouse(null);
       toast.success('Warehouse updated successfully');
     } catch (error) {
-      console.error('Error updating warehouse:', error);
+      logger.error('Error updating warehouse:', error);
       toast.error('Failed to update warehouse');
     } finally {
       setIsSubmitting(false);
@@ -132,7 +135,7 @@ const TripLocationsPage: React.FC = () => {
       setDeletingWarehouse(null);
       toast.success('Warehouse archived successfully');
     } catch (error) {
-      console.error('Error archiving warehouse:', error);
+      logger.error('Error archiving warehouse:', error);
       toast.error('Failed to archive warehouse');
     } finally {
       setIsSubmitting(false);
@@ -147,7 +150,7 @@ const TripLocationsPage: React.FC = () => {
       setWarehouses(prev => prev.map(w => w.id === warehouseId ? { ...w, is_active: true } : w));
       toast.success('Warehouse restored successfully');
     } catch (error) {
-      console.error('Error restoring warehouse:', error);
+      logger.error('Error restoring warehouse:', error);
       toast.error('Failed to restore warehouse');
     } finally {
       setIsSubmitting(false);
@@ -164,7 +167,7 @@ const TripLocationsPage: React.FC = () => {
       setHardDeletingWarehouse(null);
       toast.success('Warehouse permanently deleted');
     } catch (error) {
-      console.error('Error hard deleting warehouse:', error);
+      logger.error('Error hard deleting warehouse:', error);
       const errorMessage = (error as any)?.message || '';
       if (errorMessage.includes('23503') || errorMessage.includes('foreign key constraint')) {
         toast.error('Cannot delete warehouse: It is linked to existing trips. Consider archiving instead.');
@@ -194,7 +197,7 @@ const TripLocationsPage: React.FC = () => {
       setIsAddingDestination(false);
       toast.success('Destination added successfully');
     } catch (error) {
-      console.error('Error adding destination:', error);
+      logger.error('Error adding destination:', error);
       toast.error('Failed to add destination. Please try again.');
     }
   };

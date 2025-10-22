@@ -39,6 +39,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('UnifiedReportingDashboard');
 
 interface ReportMetrics {
   totalRevenue: number;
@@ -223,7 +226,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         fetchExpenseBreakdown()
       ]);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -275,7 +278,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         pendingMaintenance
       });
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      logger.error('Error fetching metrics:', error);
     }
   }, [dateRange]);
 
@@ -303,7 +306,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         tripTrends: Object.values(grouped || {})
       }));
     } catch (error) {
-      console.error('Error fetching trip trends:', error);
+      logger.error('Error fetching trip trends:', error);
     }
   }, [dateRange]);
 
@@ -337,7 +340,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         vehicleUtilization: utilizationData.sort((a, b) => b.utilization - a.utilization)
       }));
     } catch (error) {
-      console.error('Error fetching vehicle utilization:', error);
+      logger.error('Error fetching vehicle utilization:', error);
     }
   }, [dateRange]);
 
@@ -377,7 +380,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         driverPerformance: performanceData.sort((a, b) => b.efficiency - a.efficiency)
       }));
     } catch (error) {
-      console.error('Error fetching driver performance:', error);
+      logger.error('Error fetching driver performance:', error);
     }
   }, [dateRange]);
 
@@ -412,7 +415,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         }))
       }));
     } catch (error) {
-      console.error('Error fetching expense breakdown:', error);
+      logger.error('Error fetching expense breakdown:', error);
     }
   }, [dateRange, metrics.maintenanceCosts]);
 
@@ -547,7 +550,7 @@ const UnifiedReportingDashboard: React.FC = () => {
       a.click();
       
     } catch (error) {
-      console.error('Error generating report:', error);
+      logger.error('Error generating report:', error);
     } finally {
       setGeneratingReport(null);
     }

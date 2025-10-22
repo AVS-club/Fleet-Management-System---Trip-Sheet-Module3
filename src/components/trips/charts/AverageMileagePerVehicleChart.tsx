@@ -3,6 +3,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Trip, Vehicle } from '@/types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
 import config from '../../../utils/env';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('AverageMileagePerVehicleChart');
 
 interface AverageMileagePerVehicleChartProps {
   trips: Trip[];
@@ -21,7 +24,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
     
     // Safety check for date range validity
     if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      if (config.isDev) console.warn('Invalid date range:', dateRange);
+      if (config.isDev) logger.warn('Invalid date range:', dateRange);
       return [];
     }
 
@@ -35,7 +38,7 @@ const AverageMileagePerVehicleChart: React.FC<AverageMileagePerVehicleChartProps
         
         return isWithinInterval(tripDate, dateRange);
       } catch (error) {
-        if (config.isDev) console.warn('Error filtering trip by date:', error);
+        if (config.isDev) logger.warn('Error filtering trip by date:', error);
         return false;
       }
     });

@@ -14,6 +14,9 @@ import TripMap from '../components/maps/TripMap';
 import { MapPin, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('TripDetailsPage');
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +52,7 @@ const TripDetailsPage: React.FC = () => {
             const { data: { user } } = await supabase.auth.getUser();
             
             if (!user) {
-              console.error('No authenticated user found');
+              logger.error('No authenticated user found');
               navigate('/login');
               return;
             }
@@ -134,7 +137,7 @@ const TripDetailsPage: React.FC = () => {
                   }
                 }
               } catch (error) {
-                console.error('Error fetching destinations:', error);
+                logger.error('Error fetching destinations:', error);
                 setDestinations([]);
               }
             }
@@ -143,7 +146,7 @@ const TripDetailsPage: React.FC = () => {
             navigate('/trips');
           }
         } catch (error) {
-          console.error('Error loading trip details:', error);
+          logger.error('Error loading trip details:', error);
         } finally {
           setLoading(false);
         }
@@ -167,7 +170,7 @@ const TripDetailsPage: React.FC = () => {
         deleteTrip(trip.id);
         navigate('/trips');
       } catch (error) {
-        console.error('Error deleting trip:', error);
+        logger.error('Error deleting trip:', error);
       }
     }
   };
@@ -274,7 +277,7 @@ const TripDetailsPage: React.FC = () => {
       
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating trip:', error);
+      logger.error('Error updating trip:', error);
     } finally {
       setIsSubmitting(false);
     }

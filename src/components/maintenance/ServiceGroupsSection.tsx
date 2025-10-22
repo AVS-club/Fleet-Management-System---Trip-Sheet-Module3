@@ -2,9 +2,63 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
 import { getVendors } from '../../utils/storage';
+import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ServiceGroupsSection');
+
+/**
+ * Converts task names to task IDs by querying maintenance_tasks_catalog
+ * This allows the UI to use human-readable names while the database uses UUIDs
+ */
+const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => {
+  if (!Array.isArray(taskNames) || taskNames.length === 0) {
+    return [];
+  }
+
+  try {
+    // Query the catalog to get UUIDs for the task names
+    const { data, error } = await supabase
+      .from('maintenance_tasks_catalog')
+      .select('id, task_name')
+      .in('task_name', taskNames)
+      .eq('active', true);
+
+    if (error) {
+      logger.error('Error fetching task IDs:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn('No matching tasks found in catalog for:', taskNames);
+      return [];
+    }
+
+    // Create a map of task names to IDs
+    const nameToIdMap = new Map(
+      data.map(task => [task.task_name, task.id])
+    );
+
+    // Convert names to IDs, maintaining order
+    const taskIds = taskNames
+      .map(name => nameToIdMap.get(name))
+      .filter((id): id is string => id !== undefined);
+
+    logger.debug('Converted task names to IDs:', {
+      input: taskNames,
+      output: taskIds,
+      mapping: Object.fromEntries(nameToIdMap)
+    });
+
+    return taskIds;
+  } catch (error) {
+    logger.error('Error in convertTaskNamesToIds:', error);
+    return [];
+  }
+};
 
 // ===== CONSTANTS =====
 const MAINTENANCE_TASKS = [
@@ -447,7 +501,7 @@ const PartReplacement = ({ partData, onChange, onRemove, vehicleType }) => {
             onChange({ ...partData, partType: val });
             setShowTyreDetails(val === 'Tyre');
           }}
-          onAddNew={(newPart) => console.log('New part type added:', newPart)}
+          onAddNew={(newPart) => logger.debug('New part type added:', newPart)}
           icon={Package}
           required
         />
@@ -647,7 +701,7 @@ const ServiceGroup = ({
               value={groupData.vendor}
               onChange={(val) => onChange({ ...groupData, vendor: val })}
               onAddNew={(newVendor) => {
-                console.log('New vendor added:', newVendor);
+                logger.debug('New vendor added:', newVendor);
                 // Add the new vendor to the list
                 setVendors(prev => [...prev, newVendor]);
               }}
@@ -662,7 +716,7 @@ const ServiceGroup = ({
                 options={MAINTENANCE_TASKS}
                 value={groupData.tasks}
                 onChange={(val) => onChange({ ...groupData, tasks: val })}
-                onAddNew={(newTask) => console.log('New task added:', newTask)}
+                onAddNew={(newTask) => logger.debug('New task added:', newTask)}
                 icon={Wrench}
                 required
                 multiSelect
@@ -805,7 +859,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
         const vendorNames = vendorData.map(vendor => vendor.name);
         setVendors(vendorNames);
       } catch (error) {
-        console.error('Error fetching vendors:', error);
+        logger.error('Error fetching vendors:', error);
         // Fallback to hardcoded vendors
         setVendors(['ABC Auto Parts', 'XYZ Lubricants', 'Ravi Auto Works', 'Kumar Garage', 'City Service Center']);
       } finally {
@@ -903,6 +957,49 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
       )}
     </div>
   );
+};
+
+/**
+ * Converts service groups with task names to service groups with task IDs
+ * Call this function before submitting the form
+ */
+export const convertServiceGroupsToDatabase = async (
+  serviceGroups: any[]
+): Promise<any[]> => {
+  if (!Array.isArray(serviceGroups) || serviceGroups.length === 0) {
+    return [];
+  }
+
+  logger.debug('Converting service groups for database...', serviceGroups);
+
+  const convertedGroups = await Promise.all(
+    serviceGroups.map(async (group) => {
+      logger.debug('Converting group:', group);
+      logger.debug('Group tasks:', group.tasks);
+
+      // Convert task names to IDs
+      const taskIds = await convertTaskNamesToIds(group.tasks || []);
+      logger.debug('Converted task IDs:', taskIds);
+
+      const converted = {
+        vendor_id: group.vendor || '',
+        tasks: taskIds, // Now contains UUIDs
+        cost: group.cost || 0,
+        battery_tracking: false,
+        tyre_tracking: false,
+        service_type: group.serviceType || '',
+        notes: group.notes || '',
+        // Include any other fields you need
+      };
+
+      logger.debug('Converted group:', converted);
+      return converted;
+    })
+  );
+
+  logger.debug('Service groups converted for database:', convertedGroups);
+
+  return convertedGroups;
 };
 
 export default ServiceGroupsSection;

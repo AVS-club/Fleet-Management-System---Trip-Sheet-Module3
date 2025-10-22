@@ -35,6 +35,9 @@ import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
 import "../../styles/FileUploadWithProgress.css";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EnhancedMaintenanceTaskForm');
 
 const DOWNTIME_PRESETS = [
   { id: "2h", label: "2 h", days: 0, hours: 2 },
@@ -140,7 +143,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
           const logs = await getAuditLogs(vehicleId);
           setAuditLogs(logs || []);
         } catch (error) {
-          console.error("Error loading audit logs:", error);
+          logger.error("Error loading audit logs:", error);
           setAuditLogs([]);
         }
       };
@@ -158,7 +161,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
             setValue("odometer_reading", latest);
           }
         } catch (error) {
-          console.error("Error loading latest odometer:", error);
+          logger.error("Error loading latest odometer:", error);
         }
       };
       loadLatestOdometer();
@@ -176,7 +179,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
           );
           setAiSuggestions(suggestions);
         } catch (error) {
-          console.error("Error getting AI suggestions:", error);
+          logger.error("Error getting AI suggestions:", error);
           setAiSuggestions({ confidence: 0 });
         }
       };
@@ -226,7 +229,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
       setOverallProgress(100);
       setSubmitSuccess(true);
       
-      console.log('✅ Task created successfully');
+      logger.debug('✅ Task created successfully');
       
       // Show success for 2 seconds then reset
       setTimeout(() => {
@@ -236,7 +239,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
       }, 2000);
       
     } catch (error) {
-      console.error('❌ Submission error:', error);
+      logger.error('❌ Submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create task');
       setIsSubmitting(false);
       setOverallProgress(0);

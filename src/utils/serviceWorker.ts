@@ -2,7 +2,7 @@
 
 export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   if (!('serviceWorker' in navigator)) {
-    console.log('Service Worker not supported');
+    logger.debug('Service Worker not supported');
     return null;
   }
 
@@ -11,7 +11,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
       scope: '/'
     });
 
-    console.log('Service Worker registered successfully:', registration);
+    logger.debug('Service Worker registered successfully:', registration);
 
     // Handle updates
     registration.addEventListener('updatefound', () => {
@@ -28,7 +28,7 @@ export const registerServiceWorker = async (): Promise<ServiceWorkerRegistration
 
     return registration;
   } catch (error) {
-    console.error('Service Worker registration failed:', error);
+    logger.error('Service Worker registration failed:', error);
     return null;
   }
 };
@@ -41,9 +41,9 @@ export const unregisterServiceWorker = async (): Promise<void> => {
   try {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(registrations.map(registration => registration.unregister()));
-    console.log('Service Worker unregistered');
+    logger.debug('Service Worker unregistered');
   } catch (error) {
-    console.error('Service Worker unregistration failed:', error);
+    logger.error('Service Worker unregistration failed:', error);
   }
 };
 
@@ -58,7 +58,7 @@ export const checkForUpdates = async (): Promise<void> => {
       await registration.update();
     }
   } catch (error) {
-    console.error('Failed to check for updates:', error);
+    logger.error('Failed to check for updates:', error);
   }
 };
 
@@ -177,7 +177,7 @@ export const getServiceWorkerState = async (): Promise<string | null> => {
     }
     return null;
   } catch (error) {
-    console.error('Failed to get service worker state:', error);
+    logger.error('Failed to get service worker state:', error);
     return null;
   }
 };
@@ -185,7 +185,7 @@ export const getServiceWorkerState = async (): Promise<string | null> => {
 // Initialize service worker on app start
 export const initializeServiceWorker = async (): Promise<void> => {
   if (!isServiceWorkerSupported()) {
-    console.log('Service Worker not supported in this browser');
+    logger.debug('Service Worker not supported in this browser');
     return;
   }
 
@@ -195,9 +195,9 @@ export const initializeServiceWorker = async (): Promise<void> => {
     // Check for updates every 30 minutes
     setInterval(checkForUpdates, 30 * 60 * 1000);
     
-    console.log('Service Worker initialized successfully');
+    logger.debug('Service Worker initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize Service Worker:', error);
+    logger.error('Failed to initialize Service Worker:', error);
   }
 };
 
@@ -212,16 +212,16 @@ export const handleServiceWorkerMessages = (): void => {
     
     switch (data.type) {
       case 'CACHE_UPDATED':
-        console.log('Cache updated:', data.cacheName);
+        logger.debug('Cache updated:', data.cacheName);
         break;
       case 'OFFLINE_DATA_SYNCED':
-        console.log('Offline data synced:', data.count);
+        logger.debug('Offline data synced:', data.count);
         break;
       case 'NOTIFICATION_CLICKED':
-        console.log('Notification clicked:', data.action);
+        logger.debug('Notification clicked:', data.action);
         break;
       default:
-        console.log('Unknown service worker message:', data);
+        logger.debug('Unknown service worker message:', data);
     }
   });
 };
@@ -237,9 +237,9 @@ export const clearServiceWorkerCache = async (): Promise<void> => {
     await Promise.all(
       cacheNames.map(cacheName => caches.delete(cacheName))
     );
-    console.log('Service Worker cache cleared');
+    logger.debug('Service Worker cache cleared');
   } catch (error) {
-    console.error('Failed to clear service worker cache:', error);
+    logger.error('Failed to clear service worker cache:', error);
   }
 };
 
@@ -267,7 +267,7 @@ export const getCacheSize = async (): Promise<number> => {
 
     return totalSize;
   } catch (error) {
-    console.error('Failed to calculate cache size:', error);
+    logger.error('Failed to calculate cache size:', error);
     return 0;
   }
 };

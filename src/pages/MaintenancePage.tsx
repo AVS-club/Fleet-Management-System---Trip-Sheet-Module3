@@ -15,6 +15,9 @@ import KPIPanel from "../components/maintenance/KPIPanel";
 import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
 import MaintenanceTaskList from "../components/maintenance/MaintenanceTaskList";
 import { useQuery } from "@tanstack/react-query";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('MaintenancePage');
 const MaintenancePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +97,7 @@ const MaintenancePage = () => {
       );
       setMetrics(metricsData);
     } catch (error) {
-      console.error("Error calculating maintenance metrics:", error);
+      logger.error("Error calculating maintenance metrics:", error);
     }
   }, [customDateRange.start, customDateRange.end]);
 

@@ -10,6 +10,9 @@ import { isMobileDevice, triggerHapticFeedback } from '../utils/mobileUtils';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Wifi, WifiOff } from 'lucide-react';
 import '../styles/mobile.css';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('MobileTripPage');
 
 const MobileTripPage: React.FC = () => {
   const navigate = useNavigate();
@@ -52,7 +55,7 @@ const MobileTripPage: React.FC = () => {
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error loading form data:', error);
+        logger.error('Error loading form data:', error);
         toast.error('Failed to load form data');
       } finally {
         setLoading(false);
@@ -106,7 +109,7 @@ const MobileTripPage: React.FC = () => {
         navigate('/trips');
       }, 1500);
     } catch (error) {
-      console.error('Error saving trip:', error);
+      logger.error('Error saving trip:', error);
       toast.error('Failed to save trip. Please try again.');
       triggerHaptic('heavy');
     } finally {
