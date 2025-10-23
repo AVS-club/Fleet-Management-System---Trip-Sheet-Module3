@@ -705,8 +705,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
       {/* RC Fetch Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200 mb-6">
-        <p className="text-sm text-gray-700 font-medium mb-3">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 p-4 rounded-lg border border-blue-200 dark:border-gray-700 mb-6">
+        <p className="text-sm text-gray-700 dark:text-gray-200 font-medium mb-3">
           Fetch Vehicle Info from RC Details
         </p>
         <div className="flex flex-col md:flex-row items-center gap-4">

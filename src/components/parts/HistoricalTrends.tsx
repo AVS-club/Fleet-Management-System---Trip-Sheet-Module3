@@ -62,10 +62,10 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
 
   if (trends.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <Calendar className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Historical Data</h3>
-        <p className="text-sm text-gray-500 max-w-md mx-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <Calendar className="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Historical Data</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
           Maintenance history will appear here once you start recording tasks.
         </p>
       </div>
@@ -148,30 +148,30 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
       )}
 
       {/* Timeline Charts - White Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6 flex items-center gap-2">
-          <BarChart2 className="h-5 w-5 text-teal-600" />
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 sm:mb-6 flex items-center gap-2">
+          <BarChart2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
           12-Month Analysis
         </h3>
         
         {/* Cost Trend Chart - Brand color bars */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">Monthly Maintenance Cost</span>
-            <span className="text-xs sm:text-sm text-gray-500">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Maintenance Cost</span>
+            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               ₹{Math.round(maxCost / 1000)}K max
             </span>
           </div>
           <div className="space-y-2">
             {trends.map((trend, idx) => (
               <div key={idx} className="flex items-center gap-2 sm:gap-3">
-                <span className="text-[10px] sm:text-xs text-gray-500 w-12 sm:w-16 flex-shrink-0 text-right">
+                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-12 sm:w-16 flex-shrink-0 text-right">
                   {trend.month}
                 </span>
-                <div className="flex-1 bg-gray-100 rounded-full h-6 sm:h-8 relative overflow-hidden">
+                <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-6 sm:h-8 relative overflow-hidden">
                   <div
                     className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
-                    style={{ 
+                    style={{
                       width: `${(trend.totalCost / maxCost) * 100}%`,
                       background: 'linear-gradient(90deg, #0aa073 0%, #0db885 100%)'
                     }}
@@ -191,19 +191,19 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
         {/* Replacement Count Chart - Neutral gray bars */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">Monthly Part Replacements</span>
-            <span className="text-xs sm:text-sm text-gray-500">{maxReplacements} max</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Part Replacements</span>
+            <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{maxReplacements} max</span>
           </div>
           <div className="space-y-2">
             {trends.map((trend, idx) => (
               <div key={idx} className="flex items-center gap-2 sm:gap-3">
-                <span className="text-[10px] sm:text-xs text-gray-500 w-12 sm:w-16 flex-shrink-0 text-right">
+                <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 w-12 sm:w-16 flex-shrink-0 text-right">
                   {trend.month}
                 </span>
-                <div className="flex-1 bg-gray-100 rounded-full h-6 sm:h-8 relative overflow-hidden">
+                <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-6 sm:h-8 relative overflow-hidden">
                   <div
                     className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
-                    style={{ 
+                    style={{
                       width: `${(trend.replacementCount / maxReplacements) * 100}%`,
                       background: 'linear-gradient(90deg, #737373 0%, #a3a3a3 100%)'
                     }}
@@ -217,7 +217,7 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
                 </div>
                 {/* Critical issues - bright red indicator */}
                 {trend.criticalIssues > 0 && (
-                  <div className="flex items-center gap-1 text-red-600 flex-shrink-0">
+                  <div className="flex items-center gap-1 text-red-600 dark:text-red-400 flex-shrink-0">
                     <AlertTriangle className="h-3 w-3" />
                     <span className="text-[10px] sm:text-xs font-medium">{trend.criticalIssues}</span>
                   </div>
@@ -231,23 +231,23 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
         {selectedTags.length === 0 && trends[trends.length - 1]?.byTag && 
          trends[trends.length - 1].byTag!.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-3">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
               Current Month by Tag
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
               {trends[trends.length - 1]?.byTag?.map((tagData, idx) => (
-                <div 
-                  key={idx} 
-                  className="bg-gray-50 rounded-lg p-3 border border-gray-200 border-l-4"
+                <div
+                  key={idx}
+                  className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700 border-l-4"
                   style={{ borderLeftColor: tagData.tagColor }}
                 >
-                  <div className="text-[10px] sm:text-xs text-gray-600 mb-1 truncate" title={tagData.tagName}>
+                  <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 mb-1 truncate" title={tagData.tagName}>
                     {tagData.tagName}
                   </div>
-                  <div className="text-base sm:text-lg font-bold text-gray-900">
+                  <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
                     {tagData.count}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">
+                  <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">
                     ₹{Math.round(tagData.cost / 1000)}K
                   </div>
                 </div>
@@ -258,7 +258,7 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
       </div>
 
       {/* Pattern Analysis - Dark neutral with bright highlights */}
-      <div className="rounded-xl shadow-lg p-4 sm:p-6 text-white"
+      <div className="rounded-xl shadow-lg p-4 sm:p-6 text-white dark:text-gray-100"
            style={{ background: 'linear-gradient(135deg, #404040 0%, #262626 100%)' }}>
         <h3 className="text-base sm:text-lg font-semibold mb-4">Pattern Analysis</h3>
         <div className="space-y-3">

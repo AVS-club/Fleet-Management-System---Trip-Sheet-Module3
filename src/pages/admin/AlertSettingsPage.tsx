@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '../../components/layout/Layout';
-import AlertSettings from '../../components/alerts/AlertSettings'; 
+import AlertSettings from '../../components/alerts/AlertSettings';
 import { ChevronLeft, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
@@ -11,7 +11,7 @@ const AlertSettingsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">Alert Settings</h1>

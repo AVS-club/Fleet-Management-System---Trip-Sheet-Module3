@@ -28,9 +28,9 @@ export default function FeedCard({ event, onRefresh }: FeedCardProps) {
 
   const getPriorityColor = () => {
     switch (event.priority) {
-      case 'danger': return 'border-red-200 bg-red-50';
-      case 'warn': return 'border-yellow-200 bg-yellow-50';
-      default: return 'border-gray-200 bg-white';
+      case 'danger': return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950';
+      case 'warn': return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-950';
+      default: return 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800';
     }
   };
 
@@ -73,13 +73,13 @@ export default function FeedCard({ event, onRefresh }: FeedCardProps) {
             <div className="flex items-center gap-1 text-sm">
               {event.status === 'accepted' ? (
                 <>
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">Accepted</span>
+                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-green-600 dark:text-green-400">Accepted</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="w-4 h-4 text-red-600" />
-                  <span className="text-red-600">Rejected</span>
+                  <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <span className="text-red-600 dark:text-red-400">Rejected</span>
                 </>
               )}
             </div>
@@ -106,13 +106,13 @@ export default function FeedCard({ event, onRefresh }: FeedCardProps) {
     <div className={`p-4 rounded-lg border ${getPriorityColor()}`}>
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-3">
-          <div className={`mt-1 ${event.priority === 'danger' ? 'text-red-600' : event.priority === 'warn' ? 'text-yellow-600' : 'text-gray-600'}`}>
+          <div className={`mt-1 ${event.priority === 'danger' ? 'text-red-600 dark:text-red-400' : event.priority === 'warn' ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-600 dark:text-gray-400'}`}>
             {getIcon()}
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{event.title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{event.description}</p>
-            <p className="text-xs text-gray-500 mt-2">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{event.description}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
               {new Date(event.event_time).toLocaleString()}
             </p>
           </div>

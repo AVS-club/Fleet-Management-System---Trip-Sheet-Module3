@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, FileText, Link as LinkIcon } from 'lucide-react';
+import { X, FileText, Link as LinkIcon } from 'lucide-react';
 import Button from '../ui/Button';
 import { Driver } from '@/types';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 
 interface DriverWhatsAppShareModalProps {
   isOpen: boolean;
@@ -111,15 +112,15 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
             className="w-full justify-between"
           >
             <span>Driver Details</span>
-            <MessageSquare className="h-4 w-4 text-green-100" />
+            <WhatsAppIcon size={20} variant="light" />
           </Button>
-          
+
           <Button
             onClick={handleShareDocumentDates}
             className="w-full justify-between"
           >
             <span>Document Dates</span>
-            <MessageSquare className="h-4 w-4 text-green-100" />
+            <WhatsAppIcon size={20} variant="light" />
           </Button>
 
           <Button
@@ -149,14 +150,14 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('License Document', signedDocUrls.license![0])}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -178,14 +179,14 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('Medical Certificate', signedDocUrls.medical_doc_url![0])}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -207,14 +208,14 @@ const DriverWhatsAppShareModal: React.FC<DriverWhatsAppShareModalProps> = ({
                           className="p-1 text-primary-600 hover:text-primary-700"
                           title="Open document"
                         >
-                          <LinkIcon className="h-4 w-4" />
+                          <LinkIcon size={18} />
                         </a>
                         <button
                           onClick={() => handleShareDocumentFile(`Additional Document ${index + 1}`, url)}
                           className="p-1 text-green-600 hover:text-green-700"
                           title="Share on WhatsApp"
                         >
-                          <MessageSquare className="h-4 w-4" />
+                          <WhatsAppIcon size={20} variant="light" />
                         </button>
                       </div>
                     </div>

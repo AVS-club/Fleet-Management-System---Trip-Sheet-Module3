@@ -25,16 +25,16 @@ export const ReportTable: React.FC<ReportTableProps> = ({
   return (
     <div className={`report-table ${className}`}>
       {title && (
-        <h2 className="text-lg font-semibold mb-4 text-gray-900">{title}</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">{title}</h2>
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-100">
+          <thead className="bg-gray-100 dark:bg-gray-800">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`text-${column.align || 'left'} p-3 font-medium text-gray-700`}
+                  className={`text-${column.align || 'left'} p-3 font-medium text-gray-700 dark:text-gray-300`}
                 >
                   {column.label}
                 </th>
@@ -45,7 +45,11 @@ export const ReportTable: React.FC<ReportTableProps> = ({
             {data.map((row, index) => (
               <tr
                 key={index}
-                className={`border-b ${striped && index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                className={`border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 ${
+                  striped && index % 2 === 0
+                    ? 'bg-white dark:bg-gray-900'
+                    : 'bg-gray-50 dark:bg-gray-800'
+                }`}
               >
                 {columns.map((column) => (
                   <td

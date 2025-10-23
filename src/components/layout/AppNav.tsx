@@ -12,14 +12,14 @@ const AppNav: React.FC = () => {
   const { permissions, loading } = usePermissions();
   const { t } = useTranslation();
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
-  
+
   // Listen for window resize
   React.useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   const handleQuickAdd = (path: string) => {
     navigate(`${path}?action=new`);
   };
@@ -37,7 +37,7 @@ const AppNav: React.FC = () => {
           // While loading, show all items to prevent flickering
           if (loading) {
             const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
-            
+
             // Special handling for custom components (like AVS AI Button)
             if (CustomComponent) {
               return (
@@ -52,7 +52,7 @@ const AppNav: React.FC = () => {
                 </div>
               );
             }
-            
+
             return (
               <div key={to} className="relative group">
                 <NavLink
@@ -60,8 +60,8 @@ const AppNav: React.FC = () => {
                   className={({ isActive: navIsActive }) =>
                     cn(
                       "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all",
-                      "text-gray-600 hover:text-primary-700 hover:bg-primary-50",
-                      (navIsActive || isActive) ? "bg-primary-100 text-primary-700 font-semibold" : ""
+                      "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
+                      (navIsActive || isActive) ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
                     )
                   }
                   title={t(label)}
@@ -76,7 +76,7 @@ const AppNav: React.FC = () => {
                           e.stopPropagation();
                           handleQuickAdd(to);
                         }}
-                        className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                        className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
                         title={`Add new ${t(label).slice(0, -1)}`}
                       >
                         <Plus className="h-2.5 w-2.5" />
@@ -94,7 +94,7 @@ const AppNav: React.FC = () => {
             return null;
           }
           const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
-          
+
           // Special handling for custom components (like AVS AI Button)
           if (CustomComponent) {
             return (
@@ -109,7 +109,7 @@ const AppNav: React.FC = () => {
               </div>
             );
           }
-          
+
           return (
             <div key={to} className="relative group">
               <NavLink
@@ -117,8 +117,8 @@ const AppNav: React.FC = () => {
                 className={({ isActive: navIsActive }) =>
                   cn(
                     "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all",
-                    "text-gray-600 hover:text-primary-700 hover:bg-primary-50",
-                    (navIsActive || isActive) ? "bg-primary-100 text-primary-700 font-semibold" : ""
+                    "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
+                    (navIsActive || isActive) ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
                   )
                 }
                 title={t(label)}
@@ -134,7 +134,7 @@ const AppNav: React.FC = () => {
                         e.stopPropagation();
                         handleQuickAdd(to);
                       }}
-                      className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                      className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
                       title={`Add new ${t(label).slice(0, -1)}`}
                     >
                       <Plus className="h-2.5 w-2.5" />

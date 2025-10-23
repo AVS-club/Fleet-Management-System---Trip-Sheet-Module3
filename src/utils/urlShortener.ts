@@ -1,20 +1,13 @@
 /**
  * URL Shortening Utility for Document Links
  * Creates short, clean URLs that redirect to the actual Supabase signed URLs
+ * Now uses Supabase database for persistent storage
  */
 
-// In-memory store for URL mappings (in production, you'd use a database)
-const urlMappings = new Map<string, { originalUrl: string; expiresAt: number }>();
+import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
 
-// Clean up expired URLs periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [shortId, mapping] of urlMappings.entries()) {
-    if (mapping.expiresAt < now) {
-      urlMappings.delete(shortId);
-    }
-  }
-}, 60000); // Clean up every minute
+const logger = createLogger('URLShortener');
 
 /**
  * Generate a short ID for URL shortening
@@ -34,17 +27,34 @@ function generateShortId(): string {
  * @param expiresInHours How long the short URL should be valid (default: 24 hours)
  * @returns Short URL that redirects to the original
  */
-export function createShortUrl(originalUrl: string, expiresInHours: number = 24): string {
+export async function createShortUrl(originalUrl: string, expiresInHours: number = 24): Promise<string> {
   const shortId = generateShortId();
-  const expiresAt = Date.now() + (expiresInHours * 60 * 60 * 1000);
-  
-  urlMappings.set(shortId, {
-    originalUrl,
-    expiresAt
-  });
-  
-  // Return a short URL that can be handled by your app
-  return `${window.location.origin}/doc/${shortId}`;
+  const expiresAt = new Date(Date.now() + (expiresInHours * 60 * 60 * 1000)).toISOString();
+
+  try {
+    // Store in Supabase database
+    const { error } = await supabase
+      .from('short_urls')
+      .insert({
+        short_id: shortId,
+        original_url: originalUrl,
+        expires_at: expiresAt
+      });
+
+    if (error) {
+      logger.error('Failed to create short URL:', error);
+      // Fallback: return original URL if short URL creation fails
+      return originalUrl;
+    }
+
+    // Return a short URL that can be handled by your app
+    const shortUrl = `${window.location.origin}/doc/${shortId}`;
+    logger.debug('Created short URL:', shortUrl);
+    return shortUrl;
+  } catch (error) {
+    logger.error('Error creating short URL:', error);
+    return originalUrl; // Fallback to original URL
+  }
 }
 
 /**
@@ -52,19 +62,41 @@ export function createShortUrl(originalUrl: string, expiresInHours: number = 24)
  * @param shortId The short ID from the URL
  * @returns The original URL or null if not found/expired
  */
-export function resolveShortUrl(shortId: string): string | null {
-  const mapping = urlMappings.get(shortId);
-  
-  if (!mapping) {
+export async function resolveShortUrl(shortId: string): Promise<string | null> {
+  try {
+    // Query database for the short URL
+    const { data, error } = await supabase
+      .from('short_urls')
+      .select('original_url, expires_at, access_count')
+      .eq('short_id', shortId)
+      .single();
+
+    if (error || !data) {
+      logger.debug('Short URL not found:', shortId);
+      return null;
+    }
+
+    // Check if expired
+    if (new Date(data.expires_at) < new Date()) {
+      logger.debug('Short URL expired:', shortId);
+      return null;
+    }
+
+    // Update access count and last accessed timestamp
+    await supabase
+      .from('short_urls')
+      .update({
+        access_count: (data.access_count || 0) + 1,
+        last_accessed_at: new Date().toISOString()
+      })
+      .eq('short_id', shortId);
+
+    logger.debug('Resolved short URL:', shortId, '→', data.original_url);
+    return data.original_url;
+  } catch (error) {
+    logger.error('Error resolving short URL:', error);
     return null;
   }
-  
-  if (mapping.expiresAt < Date.now()) {
-    urlMappings.delete(shortId);
-    return null;
-  }
-  
-  return mapping.originalUrl;
 }
 
 /**
@@ -75,16 +107,16 @@ export function resolveShortUrl(shortId: string): string | null {
  * @param expiresInHours How long the link should be valid
  * @returns Object with short URL and shareable message
  */
-export function createShareableDocumentLink(
+export async function createShareableDocumentLink(
   documentType: string,
   vehicleNumber: string,
   originalUrl: string,
   expiresInHours: number = 24
-): { shortUrl: string; message: string } {
-  const shortUrl = createShortUrl(originalUrl, expiresInHours);
-  
+): Promise<{ shortUrl: string; message: string }> {
+  const shortUrl = await createShortUrl(originalUrl, expiresInHours);
+
   const message = `📄 ${documentType} Document\n🚗 Vehicle: ${vehicleNumber}\n🔗 Link: ${shortUrl}\n⏰ Valid for ${expiresInHours} hours`;
-  
+
   return { shortUrl, message };
 }
 
@@ -96,16 +128,16 @@ export function createShareableDocumentLink(
  * @param phoneNumber Optional phone number to send to specific contact
  * @returns WhatsApp URL with pre-filled message
  */
-export function createWhatsAppShareLink(
+export async function createWhatsAppShareLink(
   documentType: string,
   vehicleNumber: string,
   originalUrl: string,
   phoneNumber?: string
-): string {
-  const { shortUrl, message } = createShareableDocumentLink(documentType, vehicleNumber, originalUrl);
-  
+): Promise<string> {
+  const { shortUrl, message } = await createShareableDocumentLink(documentType, vehicleNumber, originalUrl);
+
   const encodedMessage = encodeURIComponent(message);
-  
+
   if (phoneNumber) {
     return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
   } else {

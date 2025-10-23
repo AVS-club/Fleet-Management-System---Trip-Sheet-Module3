@@ -479,7 +479,7 @@ const DriversPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Users className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('drivers.title')}</h1>
@@ -507,10 +507,10 @@ const DriversPage: React.FC = () => {
       </div>
 
       {isAddingDriver || editingDriver ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-900 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center">
-              <User className="h-5 w-5 mr-2 text-primary-500" />
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100 flex items-center">
+              <User className="h-5 w-5 mr-2 text-primary-500 dark:text-primary-400" />
               {editingDriver ? "Edit Driver" : "New Driver"}
             </h2>
 
@@ -533,10 +533,10 @@ const DriversPage: React.FC = () => {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
+                  className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 animate-pulse border border-gray-200 dark:border-gray-700"
                 >
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                  <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                  <div className="h-8 w-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
                 </div>
               ))}
             </div>
@@ -572,11 +572,11 @@ const DriversPage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="ml-3 font-sans text-gray-600">Loading drivers...</p>
+              <p className="ml-3 font-sans text-gray-600 dark:text-gray-300">Loading drivers...</p>
             </div>
           ) : drivers.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="font-sans text-gray-500">
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="font-sans text-gray-500 dark:text-gray-400">
                 No drivers found. Add your first driver to get started.
               </p>
             </div>
@@ -597,14 +597,14 @@ const DriversPage: React.FC = () => {
                 return (
                   <div
                     key={driver.id}
-                    className={`bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer ${
-                      driver.status === 'active' ? 'border-l-4 border-green-500' : ''
+                    className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer border border-gray-200 dark:border-gray-700 ${
+                      driver.status === 'active' ? 'border-l-4 border-green-500 dark:border-green-400' : ''
                     }`}
                     onClick={() => navigate(`/drivers/${driver.id}`)}
                   >
                     {/* Edit Button */}
                     <button
-                      className="absolute top-3 right-3 p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-colors z-10"
+                      className="absolute top-3 right-3 p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors z-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleEditDriver(driver);
@@ -630,16 +630,16 @@ const DriversPage: React.FC = () => {
                           />
                         ) : null}
                         <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
-                          <User className="w-8 h-8 text-gray-400" />
+                          <User className="w-8 h-8 text-gray-400 dark:text-gray-500" />
                         </div>
                       </div>
 
                       <div className="flex-1">
                         {/* Driver Name & License */}
-                        <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 pr-8">
+                        <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100 pr-8">
                           {driver.name}
                         </h3>
-                        <p className="text-sm font-sans text-gray-500">
+                        <p className="text-sm font-sans text-gray-500 dark:text-gray-400">
                           {driver.license_number || "No license"}
                         </p>
 
@@ -666,38 +666,38 @@ const DriversPage: React.FC = () => {
                         {/* Contact Number */}
                         {(driver.contact_number || driver.phone) && (
                           <div className="mt-2 flex items-center text-sm">
-                            <Phone className="h-4 w-4 text-gray-400 mr-1" />
-                            <span className="font-sans text-gray-600">{driver.contact_number || driver.phone}</span>
+                            <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-1" />
+                            <span className="font-sans text-gray-600 dark:text-gray-300">{driver.contact_number || driver.phone}</span>
                           </div>
                         )}
                       </div>
                     </div>
 
                     {/* Trip Stats Section */}
-                    <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                       <div className="grid grid-cols-3 gap-2">
                         <div className="text-center">
-                          <FileText className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 block">
+                          <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
                             Trips
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus">{driverTrips.length}</p>
+                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">{driverTrips.length}</p>
                         </div>
                         <div className="text-center">
-                          <MapPin className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 block">
+                          <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
                             Distance
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus">
+                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
                             {totalDistance.toLocaleString()}
                           </p>
                         </div>
                         <div className="text-center">
-                          <Truck className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 block">
+                          <Truck className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
+                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
                             Vehicle
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus">
+                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
                             {driver.primary_vehicle_id ? "Assigned" : "-"}
                           </p>
                         </div>
@@ -705,13 +705,13 @@ const DriversPage: React.FC = () => {
                     </div>
 
                     {/* View Details Link */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 flex justify-end">
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/drivers/${driver.id}`);
                         }}
-                        className="text-primary-600 hover:text-primary-800 text-sm font-sans font-medium"
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-sans font-medium"
                       >
                         View Details
                       </button>

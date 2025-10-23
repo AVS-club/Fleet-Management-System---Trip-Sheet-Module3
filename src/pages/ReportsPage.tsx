@@ -81,17 +81,17 @@ const ReportsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Activity className="w-8 h-8 text-green-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reports</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-500">Auto Vital Solution</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Auto Vital Solution</span>
             </div>
           </div>
         </div>
@@ -101,10 +101,10 @@ const ReportsPage: React.FC = () => {
         {/* Quick Downloads Section */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Quick Downloads</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Quick Downloads</h2>
             <div className="flex items-center space-x-2">
-              <Download className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-500">Generate reports instantly</span>
+              <Download className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">Generate reports instantly</span>
             </div>
           </div>
           
@@ -113,18 +113,18 @@ const ReportsPage: React.FC = () => {
               <div
                 key={report.id}
                 onClick={() => handleReportClick(report.id)}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-green-300 transition-all duration-200 group"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow-md hover:border-green-300 dark:hover:border-green-600 transition-all duration-200 group"
               >
                 <div className="flex items-start space-x-4">
                   <div className={`p-3 rounded-lg ${report.color} text-white group-hover:scale-110 transition-transform duration-200`}>
                     {report.icon}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-green-600 transition-colors">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-green-600 transition-colors">
                       {report.title}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-3">{report.description}</p>
-                    <div className="flex items-center text-green-600 text-sm font-medium">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{report.description}</p>
+                    <div className="flex items-center text-green-600 dark:text-green-500 text-sm font-medium">
                       <Download className="w-4 h-4 mr-1" />
                       Generate Report
                     </div>
@@ -138,7 +138,7 @@ const ReportsPage: React.FC = () => {
             <div className="text-center mt-6">
               <button
                 onClick={() => setShowLess(!showLess)}
-                className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 {showLess ? (
                   <>
@@ -163,66 +163,66 @@ const ReportsPage: React.FC = () => {
         {/* Categorized Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Smart Comparisons */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center mb-4">
               <TrendingUp className="w-6 h-6 text-green-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">Smart Comparisons</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Smart Comparisons</h3>
             </div>
             <div className="space-y-3">
               {comparisonReports.map((report) => (
                 <div
                   key={report.id}
                   onClick={() => handleReportClick(report.id)}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
                 >
-                  <span className="text-sm font-medium text-gray-900 group-hover:text-green-600">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-green-600">
                     {report.title}
                   </span>
-                  <Download className="w-4 h-4 text-gray-400 group-hover:text-green-600" />
+                  <Download className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-green-600" />
                 </div>
               ))}
             </div>
           </div>
 
           {/* Operations Reports */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center mb-4">
               <PieChart className="w-6 h-6 text-purple-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">Operations Reports</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Operations Reports</h3>
             </div>
             <div className="space-y-3">
               {summaryReports.map((report) => (
                 <div
                   key={report.id}
                   onClick={() => handleReportClick(report.id)}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
                 >
-                  <span className="text-sm font-medium text-gray-900 group-hover:text-purple-600">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-purple-600">
                     {report.title}
                   </span>
-                  <Download className="w-4 h-4 text-gray-400 group-hover:text-purple-600" />
+                  <Download className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-purple-600" />
                 </div>
               ))}
             </div>
           </div>
 
           {/* Performance Reports */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center mb-4">
               <BarChart3 className="w-6 h-6 text-blue-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900">Performance Reports</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Performance Reports</h3>
             </div>
             <div className="space-y-3">
               {performanceReports.map((report) => (
                 <div
                   key={report.id}
                   onClick={() => handleReportClick(report.id)}
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors group"
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
                 >
-                  <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600">
                     {report.title}
                   </span>
-                  <Download className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                  <Download className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-blue-600" />
                 </div>
               ))}
             </div>
@@ -230,35 +230,35 @@ const ReportsPage: React.FC = () => {
         </div>
 
         {/* Report Features */}
-        <div className="mt-12 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-8">
+        <div className="mt-12 bg-gradient-to-r from-green-50 to-blue-50 dark:from-gray-800 dark:to-gray-800 rounded-lg p-8 border border-gray-200 dark:border-gray-700">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Comprehensive Reporting</h2>
-            <p className="text-gray-600">Generate detailed reports with PDF and Excel export capabilities</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Comprehensive Reporting</h2>
+            <p className="text-gray-600 dark:text-gray-400">Generate detailed reports with PDF and Excel export capabilities</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">PDF Export</h3>
-              <p className="text-sm text-gray-600">High-quality PDF reports with professional formatting</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">PDF Export</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">High-quality PDF reports with professional formatting</p>
             </div>
-            
+
             <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <BarChart3 className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Excel Export</h3>
-              <p className="text-sm text-gray-600">Detailed data in Excel format for further analysis</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Excel Export</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Detailed data in Excel format for further analysis</p>
             </div>
-            
+
             <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mx-auto mb-4">
                 <TrendingUp className="w-6 h-6 text-purple-600" />
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Real-time Data</h3>
-              <p className="text-sm text-gray-600">Always up-to-date information from your fleet</p>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Real-time Data</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Always up-to-date information from your fleet</p>
             </div>
           </div>
         </div>

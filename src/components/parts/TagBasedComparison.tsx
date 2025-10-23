@@ -74,11 +74,11 @@ const TagBasedComparison: React.FC<TagBasedComparisonProps> = ({
 
   if (metricsByTag.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-        <BarChart3 className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">No Comparison Data</h3>
-        <p className="text-sm text-gray-500 max-w-md mx-auto">
-          {selectedTags.length > 0 
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <BarChart3 className="mx-auto h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Comparison Data</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          {selectedTags.length > 0
             ? 'No maintenance data found for vehicles with selected tags.'
             : 'Add tags to vehicles and record maintenance tasks to see comparisons.'
           }
@@ -124,33 +124,33 @@ const TagBasedComparison: React.FC<TagBasedComparisonProps> = ({
       {/* Tag Comparison Cards - Neutral with Color Accents */}
       <div className="space-y-4">
         {metricsByTag.map((tag, index) => (
-          <div 
-            key={tag.tagId} 
-            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+          <div
+            key={tag.tagId}
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             {/* Tag Header - Neutral with colored left strip */}
-            <div className="p-4 bg-gray-50 border-l-4 relative"
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 border-l-4 relative"
                  style={{ borderLeftColor: tag.tagColor }}>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                       {tag.tagName}
                     </h3>
                     {index === 0 && (
-                      <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 text-gray-700 text-xs font-medium rounded">
+                      <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium rounded">
                         Best
                       </span>
                     )}
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     <Users className="inline h-3 w-3 mr-1" />
                     {tag.vehicleCount} vehicle(s)
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">{tag.avgLife}%</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Avg Life</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">{tag.avgLife}%</div>
+                  <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Avg Life</div>
                 </div>
               </div>
             </div>
@@ -158,8 +158,8 @@ const TagBasedComparison: React.FC<TagBasedComparisonProps> = ({
             {/* Tag Body */}
             <div className="p-4 space-y-4">
               {/* Performance vs Fleet - Neutral */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <span className="text-sm font-medium text-gray-700">vs Fleet Average</span>
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">vs Fleet Average</span>
                 <div className="flex items-center gap-2">
                   {tag.avgLife > fleetAverage ? (
                     <>
@@ -212,52 +212,52 @@ const TagBasedComparison: React.FC<TagBasedComparisonProps> = ({
                 </div>
                 
                 {/* Good - Neutral */}
-                <div className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-xl sm:text-2xl font-bold text-gray-700">{tag.goodCount}</div>
-                  <div className="text-[10px] sm:text-xs text-gray-600">Good</div>
+                <div className="text-center p-2 sm:p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-700 dark:text-gray-300">{tag.goodCount}</div>
+                  <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400">Good</div>
                 </div>
               </div>
 
               {/* Best and Worst Performers - Neutral */}
               {tag.bestVehicle && (
                 <div className="space-y-2">
-                  <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-300 border-l-4"
+                  <div className="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 border-l-4"
                        style={{ borderLeftColor: tag.tagColor }}>
-                    <Award className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" />
+                    <Award className="h-5 w-5 text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-gray-700 mb-1">
+                      <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Best Performer
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-900 truncate">
+                        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                           {tag.bestVehicle.registration}
                         </span>
-                        <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 text-gray-800 text-xs font-mono rounded">
+                        <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono rounded">
                           {getLastFourDigits(tag.bestVehicle.registration)}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-600 mt-1">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                         {tag.bestVehicle.lifePercentage}% avg part life
                       </div>
                     </div>
                   </div>
 
                   {tag.worstVehicle && (
-                    <div className="flex items-start gap-2 p-3 bg-gray-50 rounded-lg border border-gray-300 border-l-4 border-l-gray-400">
-                      <AlertCircle className="h-5 w-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600 border-l-4 border-l-gray-400 dark:border-l-gray-500">
+                      <AlertCircle className="h-5 w-5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-700 mb-1">
+                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Needs Attention
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-gray-900 truncate">
+                          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                             {tag.worstVehicle.registration}
                           </span>
-                          <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 text-gray-800 text-xs font-mono rounded">
+                          <span className="flex-shrink-0 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono rounded">
                             {getLastFourDigits(tag.worstVehicle.registration)}
                           </span>
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                           {tag.worstVehicle.lifePercentage}% avg part life
                         </div>
                       </div>
@@ -267,9 +267,9 @@ const TagBasedComparison: React.FC<TagBasedComparisonProps> = ({
               )}
 
               {/* Estimated Cost - Neutral */}
-              <div className="p-3 bg-gray-50 rounded-lg border border-gray-300">
-                <div className="text-xs text-gray-600 mb-1">Est. Upcoming Cost</div>
-                <div className="text-lg sm:text-xl font-bold text-gray-900">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Est. Upcoming Cost</div>
+                <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                   ₹{Math.round(tag.totalCost).toLocaleString('en-IN')}
                 </div>
               </div>

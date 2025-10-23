@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Menu, 
-  X, 
-  Home, 
-  Truck, 
-  Users, 
+import {
+  Menu,
+  X,
+  Home,
+  Truck,
+  Users,
   MapPin,
-  FileText, 
-  Wrench, 
+  FileText,
+  Wrench,
   BarChart3,
   Settings,
   Bell,
@@ -53,42 +53,42 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'lg:hidden fixed top-4 left-3 z-[60] p-2 rounded-lg bg-white shadow-lg border border-gray-200',
+          'lg:hidden fixed top-4 left-3 z-[60] p-2 rounded-lg bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700',
           className
         )}
         aria-label="Open navigation menu"
       >
-        <Menu className="h-5 w-5 text-gray-600" />
+        <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
       </button>
 
       {/* Mobile Menu Overlay */}
       <div className={`lg:hidden fixed inset-0 z-50 ${isOpen ? '' : 'pointer-events-none'}`}>
         {/* Backdrop */}
-        <div 
+        <div
           className={`absolute inset-0 bg-black transition-opacity duration-300 ${
             isOpen ? 'opacity-50' : 'opacity-0'
           }`}
           onClick={() => setIsOpen(false)}
         />
-        
+
         {/* Menu Panel */}
-        <div className={`absolute left-0 top-0 h-full w-64 bg-white shadow-xl transform transition-transform duration-300 ${
+        <div className={`absolute left-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Navigation</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Navigation</h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 aria-label="Close navigation menu"
               >
-                <X className="h-5 w-5 text-gray-600" />
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
           </div>
-          
+
           {/* Navigation Items */}
           <nav className="flex-1 overflow-y-auto">
             <div className="py-4">
@@ -114,7 +114,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                       </div>
                     );
                   }
-                  
+
                   const Icon = item.icon;
                   return (
                     <Link
@@ -124,8 +124,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 transition-colors',
                         isActive(item.path)
-                          ? 'bg-blue-50 text-blue-600 border-r-3 border-blue-600'
-                          : 'hover:bg-gray-50'
+                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-3 border-blue-600 dark:border-blue-400'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                       )}
                     >
                       <Icon className="h-5 w-5" />
@@ -136,7 +136,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                 if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
                   return null;
                 }
-                
+
                 // Special handling for custom components (like AVS AI Button)
                 if (item.customComponent) {
                   const CustomComponent = item.customComponent;
@@ -155,7 +155,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                     </div>
                   );
                 }
-                
+
                 const Icon = item.icon;
                 return (
                   <Link
@@ -165,8 +165,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                     className={cn(
                       'flex items-center gap-3 px-4 py-3 transition-colors',
                       isActive(item.path)
-                        ? 'bg-blue-50 text-blue-600 border-r-3 border-blue-600'
-                        : 'hover:bg-gray-50'
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-3 border-blue-600 dark:border-blue-400'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     )}
                   >
                     <Icon className="h-5 w-5" />
@@ -178,8 +178,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
           </nav>
 
           {/* Footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
               Fleet Management System
             </p>
           </div>

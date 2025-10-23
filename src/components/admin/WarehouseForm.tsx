@@ -175,7 +175,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
   const longitude = watch('longitude');
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-50 rounded-lg p-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
       <div ref={placesRef} className="hidden"></div>
       
       {/* Always register pincode, but hide it if not in manual mode and Google search is active */}
@@ -193,11 +193,11 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
             />
             
             {predictions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
                 {predictions.map((prediction) => (
                   <div
                     key={prediction.place_id}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-gray-100"
                     onClick={() => handleSelectPlace(prediction)}
                   >
                     {prediction.description}
@@ -208,17 +208,17 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
           </div>
           
           {name && (
-            <div className="p-4 bg-primary-50 border border-primary-100 rounded-lg">
-              <h4 className="font-medium text-primary-800 mb-2">Selected Location</h4>
+            <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-lg">
+              <h4 className="font-medium text-primary-800 dark:text-primary-200 mb-2">Selected Location</h4>
               <div className="space-y-2">
                 <div className="flex items-center">
-                  <Building2 className="h-4 w-4 text-primary-600 mr-2" />
-                  <span className="text-primary-800 font-medium">{name}</span>
+                  <Building2 className="h-4 w-4 text-primary-600 dark:text-primary-400 mr-2" />
+                  <span className="text-primary-800 dark:text-primary-200 font-medium">{name}</span>
                 </div>
                 {latitude !== undefined && longitude !== undefined && (
                   <div className="flex items-center">
-                    <MapPin className="h-4 w-4 text-primary-600 mr-2" />
-                    <span className="text-primary-700">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
+                    <MapPin className="h-4 w-4 text-primary-600 dark:text-primary-400 mr-2" />
+                    <span className="text-primary-700 dark:text-primary-300">{latitude.toFixed(6)}, {longitude.toFixed(6)}</span>
                   </div>
                 )}
               </div>
@@ -263,19 +263,19 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
               name="materialTypeIds"
               render={({ field }) => (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Material Types
                   </label>
-                  <div className="space-y-2 border rounded-md p-3">
+                  <div className="space-y-2 border border-gray-200 dark:border-gray-700 rounded-md p-3 bg-white dark:bg-gray-900">
                     {materialTypes.length === 0 ? (
-                      <p className="text-sm text-gray-500">No material types available</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No material types available</p>
                     ) : (
                       materialTypes.map(type => (
                         <div key={type.id} className="flex items-center">
                           <input
                             type="checkbox"
                             id={`material-${type.id}`}
-                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                             checked={field.value?.includes(type.id) || false}
                             onChange={(e) => {
                               const currentValues = field.value || [];
@@ -285,7 +285,7 @@ const WarehouseForm: React.FC<WarehouseFormProps> = ({
                               field.onChange(newValues);
                             }}
                           />
-                          <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 capitalize">
+                          <label htmlFor={`material-${type.id}`} className="ml-2 text-sm text-gray-700 dark:text-gray-300 capitalize">
                             {type.name}
                           </label>
                         </div>

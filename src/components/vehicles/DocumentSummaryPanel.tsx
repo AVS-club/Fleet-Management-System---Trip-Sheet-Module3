@@ -5,6 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DocumentCell } from '../documents/DocumentCell';
 import { rowUrgency, daysTo, docScore, type DocKey } from '../../utils/urgency';
 import '../../styles/document-summary-improvements.css';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentSummaryPanel');
+
 // Import react-window with fallback
 let FixedSizeList: any = null;
 try {
@@ -14,6 +18,7 @@ try {
 } catch (error) {
   logger.warn('react-window not available, using fallback table rendering');
 }
+
 import { Vehicle } from '@/types';
 import { getVehicles } from '../../utils/storage';
 import { updateVehicle } from '../../utils/api/vehicles';
@@ -30,9 +35,6 @@ import jsPDF from 'jspdf';
 import { useReactToPrint } from 'react-to-print';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
-import { createLogger } from '../../utils/logger';
-
-const logger = createLogger('DocumentSummaryPanel');
 
 interface DocumentSummaryPanelProps {
   isOpen: boolean;

@@ -13,7 +13,7 @@ import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 const NotificationsPage: React.FC = () => {
   const { permissions, loading: permissionsLoading } = usePermissions();
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
-  
+
   // Video toggle state with localStorage persistence
   const [showVideos, setShowVideos] = useState(() => {
     const saved = localStorage.getItem('showVideos');
@@ -27,13 +27,13 @@ const NotificationsPage: React.FC = () => {
     return selectedFilters.filter(kind => kind !== 'media');
   }, [selectedFilters]);
 
-  const { 
-    data, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage, 
-    isLoading, 
-    refetch 
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch
   } = useHeroFeed({
     kinds: feedKinds,
     limit: 20
@@ -45,11 +45,11 @@ const NotificationsPage: React.FC = () => {
   const hasYouTubeAPIKey = !!import.meta.env.VITE_YOUTUBE_API_KEY;
 
   // Fetch dynamic YouTube shorts only if API key is available
-  const { 
-    data: youtubeShorts, 
+  const {
+    data: youtubeShorts,
     isLoading: shortsLoading,
-    refetch: refetchShorts 
-  } = useYouTubeShorts({ 
+    refetch: refetchShorts
+  } = useYouTubeShorts({
     count: 20,
     enabled: hasYouTubeAPIKey // Only fetch if API key is available
   });
@@ -119,7 +119,7 @@ const NotificationsPage: React.FC = () => {
       const newFilters = selectedFilters.includes(filterId)
         ? selectedFilters.filter(f => f !== filterId)
         : [...selectedFilters.filter(f => f !== 'all'), filterId];
-      
+
       setSelectedFilters(newFilters.length === 0 ? ['all'] : newFilters);
     }
     // Force refetch when changing filters
@@ -144,14 +144,14 @@ const NotificationsPage: React.FC = () => {
       "Fuel costs trending upward. Recommend reviewing driver behavior reports for optimization opportunities.",
       "Document renewals clustered in Q2. Start renewal process 60 days in advance to avoid downtime."
     ];
-    
+
     return (
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 my-6">
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6 my-6">
         <div className="flex items-start gap-3">
-          <Sparkles className="w-5 h-5 text-blue-600 mt-1" />
+          <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-1" />
           <div>
-            <h3 className="font-semibold text-gray-900 mb-2">AVS Intelligence Summary</h3>
-            <p className="text-gray-700">{summaries[index % summaries.length]}</p>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">AVS Intelligence Summary</h3>
+            <p className="text-gray-700 dark:text-gray-300">{summaries[index % summaries.length]}</p>
           </div>
         </div>
       </div>
@@ -168,9 +168,9 @@ const NotificationsPage: React.FC = () => {
         { label: 'Cost/KM', value: 'Rs 10.21' },
         { label: 'Distance', value: '12,450 km' }
       ].map((kpi, i) => (
-        <div key={i} className="bg-white p-2 rounded text-center border border-gray-200">
-          <p className="text-xs text-gray-600">{kpi.label}</p>
-          <p className="text-sm font-semibold">{kpi.value}</p>
+        <div key={i} className="bg-white dark:bg-gray-800 p-2 rounded text-center border border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-gray-600 dark:text-gray-400">{kpi.label}</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{kpi.value}</p>
         </div>
       ))}
     </div>
@@ -196,7 +196,7 @@ const NotificationsPage: React.FC = () => {
     // If no short available, show appropriate state
     if (!short) {
       return (
-        <div className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-gray-900 shadow-2xl my-6" 
+        <div className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-gray-900 shadow-2xl my-6"
              style={{ aspectRatio: '9/16', maxHeight: '650px' }}>
           <div className="flex items-center justify-center h-full">
             <div className="text-white text-center p-6">
@@ -263,9 +263,9 @@ const NotificationsPage: React.FC = () => {
       e.stopPropagation();
       setLiked(!liked);
     };
-    
+
     return (
-      <div 
+      <div
         ref={videoRef}
         data-video-id={videoId}
         className="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-black shadow-2xl my-6"
@@ -285,14 +285,14 @@ const NotificationsPage: React.FC = () => {
           />
 
           <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none">
-            
+
             <div className="absolute top-0 left-0 right-0 p-4 pointer-events-auto">
               <div className="flex items-center justify-between">
                 <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-2">
                   <span className="text-lg">🎬</span>
                   AVS Fleet Tips
                 </div>
-                
+
                 <div className="flex gap-2">
                   <button
                     onClick={toggleMute}
@@ -345,7 +345,7 @@ const NotificationsPage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col gap-4 items-center flex-shrink-0">
-                  <button 
+                  <button
                     onClick={handleLike}
                     className={`flex flex-col items-center gap-1 transition-all ${
                       liked ? 'text-red-500' : 'text-white hover:text-red-400'
@@ -401,8 +401,8 @@ const NotificationsPage: React.FC = () => {
 
       return (
         <React.Fragment key={`fragment-${event.id}`}>
-          <InlineReelCard 
-            videoId={`video-${index}`} 
+          <InlineReelCard
+            videoId={`video-${index}`}
             index={shortIndex}
             short={short}
           />
@@ -418,9 +418,9 @@ const NotificationsPage: React.FC = () => {
     // Your existing event card rendering logic here
     const getPriorityStyles = (priority: string) => {
       switch (priority) {
-        case 'danger': return 'border-red-200 bg-red-50';
-        case 'warn': return 'border-yellow-200 bg-yellow-50';
-        default: return 'border-gray-200 bg-white';
+        case 'danger': return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20';
+        case 'warn': return 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20';
+        default: return 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800';
       }
     };
 
@@ -428,14 +428,14 @@ const NotificationsPage: React.FC = () => {
       <div key={event.id} className={`p-4 rounded-lg border ${getPriorityStyles(event.priority)}`}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">{event.title}</h3>
-            <p className="text-sm text-gray-600 mt-1">{event.description}</p>
-            <p className="text-xs text-gray-500 mt-2">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{event.description}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
               {new Date(event.event_time).toLocaleString()}
             </p>
           </div>
           {event.kind === 'vehicle_doc' && (
-            <button className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+            <button className="px-3 py-1 bg-blue-600 dark:bg-blue-500 text-white rounded text-sm hover:bg-blue-700 dark:hover:bg-blue-600">
               Send Reminder
             </button>
           )}
@@ -449,18 +449,18 @@ const NotificationsPage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Compact KPIs */}
         <CompactKPIs />
-        
+
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Fleet Activity Feed</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Fleet Activity Feed</h1>
           <div className="flex items-center gap-3">
             {/* Video Toggle Button */}
             <button
               onClick={toggleVideos}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                showVideos 
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                showVideos
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
               title={showVideos ? 'Hide video reels' : 'Show video reels'}
             >
@@ -480,7 +480,7 @@ const NotificationsPage: React.FC = () => {
             {/* Refresh Button */}
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
@@ -490,29 +490,29 @@ const NotificationsPage: React.FC = () => {
 
         {/* Stats Grid - Updated to show real counts */}
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{counts.ai_alert}</span>
-            <p className="text-xs text-gray-600">AI Alerts</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{counts.ai_alert}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">AI Alerts</p>
           </div>
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{counts.vehicle_doc}</span>
-            <p className="text-xs text-gray-600">Documents</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{counts.vehicle_doc}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Documents</p>
           </div>
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{counts.maintenance}</span>
-            <p className="text-xs text-gray-600">Maintenance</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{counts.maintenance}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Maintenance</p>
           </div>
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{counts.trip}</span>
-            <p className="text-xs text-gray-600">Trips</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{counts.trip}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Trips</p>
           </div>
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{counts.kpi}</span>
-            <p className="text-xs text-gray-600">KPIs</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{counts.kpi}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">KPIs</p>
           </div>
-          <div className="bg-white p-3 rounded-lg border">
-            <span className="text-lg font-bold">{mediaCount}</span>
-            <p className="text-xs text-gray-600">Media</p>
+          <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{mediaCount}</span>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Media</p>
           </div>
         </div>
 
@@ -524,8 +524,8 @@ const NotificationsPage: React.FC = () => {
               onClick={() => handleFilterClick(filter)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 selectedFilters.includes(filter)
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 dark:bg-blue-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
               {filter === 'all' ? 'All' : filter.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
@@ -538,7 +538,7 @@ const NotificationsPage: React.FC = () => {
           {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading feed...</p>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading feed...</p>
             </div>
           ) : isMediaOnly ? (
             mediaCards.length > 0 || availableShorts.length > 0 ? (
@@ -556,20 +556,20 @@ const NotificationsPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-gray-50 rounded-lg">
-                <p className="text-gray-600">No media to display</p>
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <p className="text-gray-600 dark:text-gray-400">No media to display</p>
               </div>
             )
           ) : filteredEvents.length > 0 ? (
             <>
               {filteredEvents.map((event, index) => renderEventCard(event, index))}
-              
+
               {hasNextPage && (
                 <div className="text-center pt-4">
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200"
+                    className="px-6 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700"
                   >
                     {isFetchingNextPage ? 'Loading...' : 'Load More'}
                   </button>
@@ -577,8 +577,8 @@ const NotificationsPage: React.FC = () => {
               )}
             </>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-gray-600">No events to display</p>
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+              <p className="text-gray-600 dark:text-gray-400">No events to display</p>
             </div>
           )}
         </div>
@@ -588,5 +588,4 @@ const NotificationsPage: React.FC = () => {
 };
 
 export default NotificationsPage;
-
 

@@ -303,8 +303,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
       {/* Top-level Fetch Block */}
-      <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200 mb-6">
-        <p className="text-sm text-gray-600 mb-3">
+      <div className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
           Fetch Driver Info from Government Portal
         </p>
         <div className="flex flex-col md:flex-row items-center gap-3 sm:gap-4">
@@ -370,7 +370,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
       {/* Driver Photo */}
       <div className="flex justify-center mb-4">
         <div className="relative">
-          <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+          <div className="h-24 w-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-gray-200 dark:border-gray-700">
             {photoPreview ? (
               <img
                 src={photoPreview}
@@ -378,7 +378,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <User className="h-12 w-12 text-gray-400" />
+              <User className="h-12 w-12 text-gray-400 dark:text-gray-500" />
             )}
           </div>
           <Controller
@@ -640,11 +640,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
           />
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Experience
             </label>
-            <div className="px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-              <span className="text-sm text-gray-700">{experienceDisplay}</span>
+            <div className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-800">
+              <span className="text-sm text-gray-700 dark:text-gray-300">{experienceDisplay}</span>
             </div>
             <input
               type="hidden"
@@ -781,11 +781,11 @@ const DriverForm: React.FC<DriverFormProps> = ({
       >
         <div className="space-y-3 sm:space-y-4">
           <div className="form-group">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Remarks / Internal Notes
             </label>
             <textarea
-              className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-2 sm:px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
               rows={4}
               placeholder="Add any additional notes or remarks about this driver (for internal use only)"
               disabled={isSubmitting}

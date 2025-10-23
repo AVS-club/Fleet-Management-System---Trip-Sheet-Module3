@@ -437,20 +437,20 @@ const VehiclePage: React.FC = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 mb-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/vehicles')}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {vehicle.registration_number}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {vehicle.make} {vehicle.model} • {vehicle.year}
                 </p>
               </div>
@@ -483,7 +483,7 @@ const VehiclePage: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {/* Tab Navigation */}
-          <div className="bg-white rounded-lg shadow-sm border-b border-gray-200">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               {[
                 { id: 'details', name: 'Details & Documents', icon: <FileCheck className="h-4 w-4" /> },
@@ -538,49 +538,49 @@ const VehiclePage: React.FC = () => {
             <div className="space-y-6">
               {/* Simple Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Trips</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalTrips}</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Trips</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalTrips}</p>
                     </div>
-                    <div className="p-3 rounded-full bg-blue-100">
+                    <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
                       <Route className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Distance</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalDistance.toLocaleString()} km</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Distance</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDistance.toLocaleString()} km</p>
                     </div>
-                    <div className="p-3 rounded-full bg-green-100">
+                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
                       <MapPin className="h-6 w-6 text-green-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Avg Fuel Efficiency</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.averageKmpl?.toFixed(1) || 'N/A'}</p>
-                      <p className="text-xs text-gray-500">km/L</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Fuel Efficiency</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.averageKmpl?.toFixed(1) || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">km/L</p>
                     </div>
-                    <div className="p-3 rounded-full bg-yellow-100">
+                    <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
                       <Fuel className="h-6 w-6 text-yellow-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Compliance</p>
-                      <p className="text-3xl font-bold text-gray-900">{Math.round(complianceScore)}%</p>
-                      <p className="text-xs text-gray-500">Document compliance</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliance</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{Math.round(complianceScore)}%</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Document compliance</p>
                     </div>
                     <div className={`p-3 rounded-full ${
                       complianceScore >= 80 ? 'bg-green-100' : 

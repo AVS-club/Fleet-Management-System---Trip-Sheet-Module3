@@ -197,7 +197,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
   };
 
   return (
-    <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="relative bg-white rounded-xl border border-gray-200 overflow-visible hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">

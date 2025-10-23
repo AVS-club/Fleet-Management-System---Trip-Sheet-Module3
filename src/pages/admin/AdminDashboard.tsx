@@ -4,7 +4,7 @@ import Layout from '../../components/layout/Layout';
 import { usePermissions } from '../../hooks/usePermissions';
 import { Navigate } from 'react-router-dom';
 import LoadingScreen from '../../components/LoadingScreen';
-import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2 } from 'lucide-react'; 
+import { Settings, Users, Truck, PenTool as Tool, MapPin, Bell, FileText, Calendar, BarChart2, Database, Activity, ShieldCheck, Shield, Fuel, Building2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getVehicles } from '../../utils/storage';
 import { getDrivers } from '../../utils/api/drivers';
@@ -65,8 +65,8 @@ const AdminDashboard: React.FC = () => {
   ];
 
   const vehicleColumns = [
-    { 
-      key: 'registrationNumber', 
+    {
+      key: 'registrationNumber',
       label: 'Registration',
       render: (value: string, row: Vehicle) => (
         <button
@@ -80,12 +80,12 @@ const AdminDashboard: React.FC = () => {
     { key: 'type', label: 'Type' },
     { key: 'make', label: 'Make' },
     { key: 'model', label: 'Model' },
-    { key: 'status', label: 'Status', 
+    { key: 'status', label: 'Status',
       render: (value: string) => (
         <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
           value === 'active' ? 'bg-success-100 text-success-700' :
           value === 'maintenance' ? 'bg-warning-100 text-warning-700' :
-          'bg-gray-100 text-gray-700'
+          'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
         }`}>
           {value}
         </span>
@@ -113,7 +113,7 @@ const AdminDashboard: React.FC = () => {
         <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${
           value === 'active' ? 'bg-success-100 text-success-700' :
           value === 'onLeave' ? 'bg-warning-100 text-warning-700' :
-          'bg-gray-100 text-gray-700'
+          'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
         }`}>
           {value.replace('_', ' ')}
         </span>
@@ -124,7 +124,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <ShieldCheck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.title')}</h1>
@@ -138,15 +138,15 @@ const AdminDashboard: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <Link
                 to="/admin/trips"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <FileText className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <FileText className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.tripManagement')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.tripManagement')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.tripManagementDesc')}
                     </p>
                   </div>
@@ -155,15 +155,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/trip-locations"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <MapPin className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <MapPin className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.tripLocations')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.tripLocations')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.tripLocationsDesc')}
                     </p>
                   </div>
@@ -172,15 +172,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/vehicle-management"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Truck className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Truck className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.vehicleManagement')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.vehicleManagement')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.vehicleManagementDesc')}
                     </p>
                   </div>
@@ -189,15 +189,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/driver-management"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Users className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Users className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.driverManagement')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.driverManagement')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.driverManagementDesc')}
                     </p>
                   </div>
@@ -206,15 +206,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/maintenance-tasks"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Tool className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Tool className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.maintenanceTasks')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.maintenanceTasks')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.maintenanceTasksDesc')}
                     </p>
                   </div>
@@ -223,15 +223,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/alert-settings"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Bell className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Bell className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.alertSettings')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.alertSettings')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.alertSettingsDesc')}
                     </p>
                   </div>
@@ -240,15 +240,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/reminders"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Calendar className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Calendar className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.reminders')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.reminders')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.remindersDesc')}
                     </p>
                   </div>
@@ -258,15 +258,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/driver-ranking-settings"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <BarChart2 className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <BarChart2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.driverRanking')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.driverRanking')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.driverRankingDesc')}
                     </p>
                   </div>
@@ -276,15 +276,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/activity-logs"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Activity className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Activity className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.activityLogs')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.activityLogs')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.activityLogsDesc')}
                     </p>
                   </div>
@@ -293,15 +293,15 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/company-settings"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <Building2 className="h-5 w-5 text-primary-600" />
-                  </div> 
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <Building2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+                  </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">{t('admin.companySettings')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">{t('admin.companySettings')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.companySettingsDesc')}
                     </p>
                   </div>
@@ -310,31 +310,31 @@ const AdminDashboard: React.FC = () => {
 
               <Link
                 to="/admin/reports"
-                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow"
+                className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
               >
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-primary-50 p-2 sm:p-3 rounded-lg">
-                    <BarChart2 className="h-5 w-5 text-primary-600" />
+                  <div className="bg-primary-50 dark:bg-primary-900/20 p-2 sm:p-3 rounded-lg">
+                    <BarChart2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">
                       {t('admin.reportsAnalytics')}
                     </h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500">
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">
                       {t('admin.reportsAnalyticsDesc')}
                     </p>
                   </div>
                 </div>
               </Link>
 
-              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow cursor-not-allowed opacity-70 border border-gray-200 dark:border-gray-700">
                 <div className="flex items-start space-x-3 sm:space-x-4">
-                  <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
-                    <Database className="h-5 w-5 text-gray-400" />
+                  <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg">
+                    <Database className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-400">{t('admin.databaseBackup')}</h3>
-                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-400">
+                    <h3 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-400 dark:text-gray-500">{t('admin.databaseBackup')}</h3>
+                    <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm font-sans text-gray-400 dark:text-gray-500">
                       {t('admin.databaseBackupDesc')}
                     </p>
                   </div>
@@ -346,16 +346,16 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {activeTab !== 'overview' && (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            <div className="border-b border-gray-200">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+            <div className="border-b border-gray-200 dark:border-gray-700">
               <div className="flex flex-wrap gap-2 p-3 sm:p-4">
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
                     className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors text-sm font-sans ${
-                      activeTab === tab.id 
-                        ? 'bg-primary-50 text-primary-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-50'
+                      activeTab === tab.id
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                     onClick={() => setActiveTab(tab.id)}
                   >
@@ -371,8 +371,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h2 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900">Trip Management</h2>
-                      <p className="text-xs sm:text-sm font-sans text-gray-500">View and manage all trip records</p>
+                      <h2 className="text-base sm:text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Trip Management</h2>
+                      <p className="text-xs sm:text-sm font-sans text-gray-500 dark:text-gray-400">View and manage all trip records</p>
                     </div>
                     <Link to="/admin/trips">
                       <Button size="sm" className="w-full sm:w-auto">View All Trips</Button>
@@ -385,8 +385,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">Vehicle Management</h2>
-                      <p className="text-sm font-sans text-gray-500">Manage vehicle master data and configurations</p>
+                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Vehicle Management</h2>
+                      <p className="text-sm font-sans text-gray-500 dark:text-gray-400">Manage vehicle master data and configurations</p>
                     </div>
                     <div className="flex space-x-3">
                       <Link to="/vehicles">
@@ -409,8 +409,8 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">Driver Management</h2>
-                      <p className="text-sm font-sans text-gray-500">Manage driver master data and configurations</p>
+                      <h2 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">Driver Management</h2>
+                      <p className="text-sm font-sans text-gray-500 dark:text-gray-400">Manage driver master data and configurations</p>
                     </div>
                     <div className="flex space-x-3">
                       <Link to="/drivers">
@@ -433,21 +433,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">Maintenance Settings</h2>
-                      <p className="text-sm text-gray-500">Configure maintenance tasks and schedules</p>
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Maintenance Settings</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Configure maintenance tasks and schedules</p>
                     </div>
                     <Link to="/admin/maintenance-tasks">
                       <Button>Manage Tasks</Button>
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">Service Types</h3>
-                      <p className="text-sm text-gray-500 mt-1">Configure maintenance service types</p>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Service Types</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure maintenance service types</p>
                     </div>
-                    <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">Schedule Templates</h3>
-                      <p className="text-sm text-gray-500 mt-1">Manage maintenance schedule templates</p>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Schedule Templates</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage maintenance schedule templates</p>
                     </div>
                   </div>
                 </div>
@@ -481,21 +481,21 @@ const AdminDashboard: React.FC = () => {
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h2 className="text-lg font-medium text-gray-900">Alert Settings</h2>
-                      <p className="text-sm text-gray-500">Configure system-wide alert preferences</p>
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Alert Settings</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Configure system-wide alert preferences</p>
                     </div>
                     <Link to="/admin/alert-settings">
                       <Button>Configure Alerts</Button>
                     </Link>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">Notification Rules</h3>
-                      <p className="text-sm text-gray-500 mt-1">Set up alert notification rules</p>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Notification Rules</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Set up alert notification rules</p>
                     </div>
-                    <div className="bg-white rounded-lg border p-4">
-                      <h3 className="font-medium text-gray-900">Alert Thresholds</h3>
-                      <p className="text-sm text-gray-500 mt-1">Configure alert trigger thresholds</p>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">Alert Thresholds</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Configure alert trigger thresholds</p>
                     </div>
                   </div>
                 </div>

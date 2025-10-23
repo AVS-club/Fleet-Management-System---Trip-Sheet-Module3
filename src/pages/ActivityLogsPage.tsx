@@ -136,10 +136,10 @@ export default function ActivityLogsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading activity logs...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading activity logs...</p>
         </div>
       </div>
     )
@@ -147,12 +147,12 @@ export default function ActivityLogsPage() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Activity Logs</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Monitor all system activities and user actions with real-time updates
             </p>
           </div>
@@ -165,10 +165,10 @@ export default function ActivityLogsPage() {
           {/* Activity Logs */}
           <div className="space-y-6">
             {/* Vehicle Activity Logs */}
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Vehicle Activity Logs</h2>
-                <p className="text-sm text-gray-500 mt-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Vehicle Activity Logs</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Track all changes to vehicles including deletions, archiving, and driver assignments
                 </p>
               </div>
@@ -191,10 +191,10 @@ export default function ActivityLogsPage() {
             </div>
 
             {/* User Activity Logs */}
-            <div className="bg-white rounded-lg shadow-sm">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">User Activity Logs</h2>
-                <p className="text-sm text-gray-500 mt-1">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">User Activity Logs</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Monitor user actions, logins, and system interactions
                 </p>
               </div>
@@ -218,9 +218,9 @@ export default function ActivityLogsPage() {
           </div>
 
           {/* Performance Tips */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">Performance Tips</h3>
-            <ul className="text-sm text-blue-800 space-y-1">
+          <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Performance Tips</h3>
+            <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
               <li>• Use date filters to limit the data range for better performance</li>
               <li>• Search is debounced to avoid excessive API calls</li>
               <li>• Data is loaded lazily when panels are expanded</li>

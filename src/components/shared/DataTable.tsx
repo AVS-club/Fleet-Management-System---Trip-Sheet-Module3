@@ -110,14 +110,14 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       <div className="overflow-x-auto scroll-indicator" ref={tableContainerRef}>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
               {columns.map((column, index) => (
                 <th
                   key={index}
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
                 >
                   {column.label}
                 </th>
@@ -129,9 +129,9 @@ const DataTable: React.FC<DataTableProps> = ({
               )}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
             {paginatedData.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-gray-50">
+              <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100">
                 {columns.map((column, colIndex) => (
                   <td key={colIndex} className="px-6 py-4 whitespace-nowrap">
                     {column.render ? column.render(row[column.key], row) : row[column.key]}
@@ -141,7 +141,7 @@ const DataTable: React.FC<DataTableProps> = ({
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => handleDelete(row.id)}
-                      className="text-error-600 hover:text-error-900"
+                      className="text-error-600 dark:text-error-400 hover:text-error-900 dark:hover:text-error-300"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -154,7 +154,7 @@ const DataTable: React.FC<DataTableProps> = ({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-3 sm:px-4 py-2 sm:py-3">
+        <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex flex-1 justify-between sm:hidden">
             <Button
               onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
@@ -175,7 +175,7 @@ const DataTable: React.FC<DataTableProps> = ({
           </div>
           <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs sm:text-sm text-gray-700">
+              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                 Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
                 <span className="font-medium">
                   {Math.min(startIndex + itemsPerPage, filteredData.length)}
@@ -188,7 +188,7 @@ const DataTable: React.FC<DataTableProps> = ({
                 <button
                   onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
                   disabled={currentPage === 1}
-                  className="relative inline-flex items-center rounded-l-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  className="relative inline-flex items-center rounded-l-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0 bg-white dark:bg-gray-900"
                 >
                   <span className="sr-only">Previous</span>
                   <ChevronLeft className="h-5 w-5" />
@@ -196,7 +196,7 @@ const DataTable: React.FC<DataTableProps> = ({
                 <button
                   onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
                   disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center rounded-r-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                  className="relative inline-flex items-center rounded-r-md px-1.5 sm:px-2 py-1 sm:py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 focus:z-20 focus:outline-offset-0 bg-white dark:bg-gray-900"
                 >
                   <span className="sr-only">Next</span>
                   <ChevronRight className="h-5 w-5" />

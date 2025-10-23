@@ -421,33 +421,33 @@ const CompanySettings: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 py-6">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => navigate('/admin')}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             <span className="font-sans">Back to Admin</span>
           </button>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Building2 className="h-8 w-8 text-primary-600" />
+              <Building2 className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               <div>
-                <h1 className="text-2xl font-display font-bold tracking-tight-plus text-gray-900">
+                <h1 className="text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
                   {isEditMode ? (isEditing ? 'Edit Company Profile' : 'Company Profile') : 'Setup Company Profile'}
                 </h1>
-                <p className="text-sm font-sans text-gray-500">
+                <p className="text-sm font-sans text-gray-500 dark:text-gray-400">
                   {isEditMode ? 'View and manage your organization profile' : 'Set up your organization profile and branding'}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               {isEditMode && !isEditing && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-sans">
+                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm font-sans">
                   Profile Active
                 </span>
               )}
@@ -455,8 +455,8 @@ const CompanySettings: React.FC = () => {
                 <button
                   onClick={handleEditToggle}
                   className={`px-4 py-2 rounded-lg font-sans font-medium transition-colors ${
-                    isEditing 
-                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
+                    isEditing
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       : 'bg-primary-600 text-white hover:bg-primary-700'
                   }`}
                 >
@@ -469,30 +469,30 @@ const CompanySettings: React.FC = () => {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-            <span className="font-sans text-green-800">{successMessage}</span>
+          <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mr-2" />
+            <span className="font-sans text-green-800 dark:text-green-300">{successMessage}</span>
           </div>
         )}
 
         {/* Error Message */}
         {errors.save && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-            <span className="font-sans text-red-800">{errors.save}</span>
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2" />
+            <span className="font-sans text-red-800 dark:text-red-300">{errors.save}</span>
           </div>
         )}
 
         {/* Main Form */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="p-6 space-y-6">
             {/* Company Information Section */}
             <div>
-              <h2 className="text-lg font-display font-semibold tracking-tight-plus mb-4">Company Information</h2>
-              
+              <h2 className="text-lg font-display font-semibold tracking-tight-plus mb-4 text-gray-900 dark:text-gray-100">Company Information</h2>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-sans font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-sans font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Company Name *
                   </label>
                   <input
@@ -501,18 +501,18 @@ const CompanySettings: React.FC = () => {
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     readOnly={!isEditing && isEditMode}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    } ${!isEditing && isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      errors.name ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } ${!isEditing && isEditMode ? 'bg-gray-50 dark:bg-gray-800 cursor-not-allowed' : 'bg-white dark:bg-gray-900'} text-gray-900 dark:text-gray-100`}
                     placeholder="Enter company name"
                     maxLength={100}
                   />
                   {errors.name && (
-                    <p className="font-sans text-red-500 text-xs mt-1">{errors.name}</p>
+                    <p className="font-sans text-red-500 dark:text-red-400 text-xs mt-1">{errors.name}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-sans font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-sans font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Tagline
                   </label>
                   <input
@@ -521,8 +521,8 @@ const CompanySettings: React.FC = () => {
                     onChange={(e) => handleInputChange('tagline', e.target.value)}
                     readOnly={!isEditing && isEditMode}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.tagline ? 'border-red-500' : 'border-gray-300'
-                    } ${!isEditing && isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''}`}
+                      errors.tagline ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } ${!isEditing && isEditMode ? 'bg-gray-50 dark:bg-gray-800 cursor-not-allowed' : 'bg-white dark:bg-gray-900'} text-gray-900 dark:text-gray-100`}
                     placeholder="Your company slogan"
                     maxLength={100}
                   />
@@ -532,7 +532,7 @@ const CompanySettings: React.FC = () => {
 
             {/* Logo Upload Section */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Company Logo
               </label>
               <div className="flex items-start space-x-6">
@@ -541,18 +541,18 @@ const CompanySettings: React.FC = () => {
                     <img
                       src={previewUrl}
                       alt="Company Logo"
-                      className="h-24 w-24 object-contain border-2 border-gray-200 rounded-lg"
+                      className="h-24 w-24 object-contain border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800"
                     />
                   ) : (
-                    <div className="h-24 w-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                      <Building2 className="h-8 w-8 text-gray-400" />
+                    <div className="h-24 w-24 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                      <Building2 className="h-8 w-8 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                 </div>
                 <div className="flex-grow">
                   <div className="flex space-x-2">
                     <label className="cursor-pointer">
-                      <div className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center">
+                      <div className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center text-gray-700 dark:text-gray-300">
                         <Upload className="h-4 w-4 mr-2" />
                         {previewUrl && selectedFile ? 'Change Logo' : 'Upload Logo'}
                       </div>
@@ -568,23 +568,23 @@ const CompanySettings: React.FC = () => {
                       <button
                         type="button"
                         onClick={removeLogo}
-                        className="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center"
+                        className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Remove
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Maximum file size: 2MB. Supported formats: JPG, PNG, GIF, SVG
                   </p>
                   {selectedFile && (
-                    <p className="text-xs text-blue-600 mt-1">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                       New logo selected. Will be uploaded when you save.
                     </p>
                   )}
                   {errors.logo && (
-                    <p className="text-red-500 text-xs mt-1">{errors.logo}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.logo}</p>
                   )}
                 </div>
               </div>
@@ -592,11 +592,11 @@ const CompanySettings: React.FC = () => {
 
             {/* Contact Information */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
-              
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Contact Information</h2>
+
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Contact Email
                   </label>
                   <input
@@ -604,17 +604,17 @@ const CompanySettings: React.FC = () => {
                     value={company.contact_email}
                     onChange={(e) => handleInputChange('contact_email', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                      errors.email ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                     placeholder="contact@company.com"
                   />
                   {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.email}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Contact Phone
                   </label>
                   <input
@@ -622,12 +622,12 @@ const CompanySettings: React.FC = () => {
                     value={company.contact_phone}
                     onChange={(e) => handleInputChange('contact_phone', e.target.value)}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.phone ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                      errors.phone ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                     placeholder="+91 98765 43210"
                   />
                   {errors.phone && (
-                    <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.phone}</p>
                   )}
                 </div>
               </div>
@@ -635,17 +635,17 @@ const CompanySettings: React.FC = () => {
 
             {/* Address Information */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">Address Information</h2>
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Address Information</h2>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Address
                   </label>
                   <textarea
                     value={company.address || ''}
                     onChange={(e) => handleInputChange('address', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     rows={2}
                     placeholder="Enter complete address"
                   />
@@ -653,26 +653,26 @@ const CompanySettings: React.FC = () => {
 
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       City
                     </label>
                     <input
                       type="text"
                       value={company.city || ''}
                       onChange={(e) => handleInputChange('city', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                       placeholder="Enter city"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       State
                     </label>
                     <select
                       value={company.state || ''}
                       onChange={(e) => handleInputChange('state', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     >
                       <option value="">Select State</option>
                       {indianStates.map(state => (
@@ -682,7 +682,7 @@ const CompanySettings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       PIN Code
                     </label>
                     <input
@@ -695,13 +695,13 @@ const CompanySettings: React.FC = () => {
                         }
                       }}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                        errors.pincode ? 'border-red-500' : 'border-gray-300'
-                      }`}
+                        errors.pincode ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                      } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                       placeholder="123456"
                       maxLength={6}
                     />
                     {errors.pincode && (
-                      <p className="text-red-500 text-xs mt-1">{errors.pincode}</p>
+                      <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.pincode}</p>
                     )}
                   </div>
                 </div>
@@ -710,11 +710,11 @@ const CompanySettings: React.FC = () => {
 
             {/* Tax Information */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">Tax Information</h2>
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Tax Information</h2>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     GST Number
                   </label>
                   <input
@@ -722,18 +722,18 @@ const CompanySettings: React.FC = () => {
                     value={company.gst_number || ''}
                     onChange={(e) => handleInputChange('gst_number', e.target.value.toUpperCase())}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.gst ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                      errors.gst ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                     placeholder="22AAAAA0000A1Z5"
                     maxLength={15}
                   />
                   {errors.gst && (
-                    <p className="text-red-500 text-xs mt-1">{errors.gst}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.gst}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     PAN Number
                   </label>
                   <input
@@ -741,13 +741,13 @@ const CompanySettings: React.FC = () => {
                     value={company.pan_number || ''}
                     onChange={(e) => handleInputChange('pan_number', e.target.value.toUpperCase())}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.pan ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                      errors.pan ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                     placeholder="ABCDE1234F"
                     maxLength={10}
                   />
                   {errors.pan && (
-                    <p className="text-red-500 text-xs mt-1">{errors.pan}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.pan}</p>
                   )}
                 </div>
               </div>
@@ -755,37 +755,37 @@ const CompanySettings: React.FC = () => {
 
             {/* Banking Information */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">Banking Information</h2>
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Banking Information</h2>
               
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Bank Name
                   </label>
                   <input
                     type="text"
                     value={company.bank_name || ''}
                     onChange={(e) => handleInputChange('bank_name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     placeholder="State Bank of India"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Account Number
                   </label>
                   <input
                     type="text"
                     value={company.bank_account_number || ''}
                     onChange={(e) => handleInputChange('bank_account_number', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
                     placeholder="Enter account number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     IFSC Code
                   </label>
                   <input
@@ -793,13 +793,13 @@ const CompanySettings: React.FC = () => {
                     value={company.ifsc_code || ''}
                     onChange={(e) => handleInputChange('ifsc_code', e.target.value.toUpperCase())}
                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                      errors.ifsc ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                      errors.ifsc ? 'border-red-500 dark:border-red-400' : 'border-gray-300 dark:border-gray-700'
+                    } bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100`}
                     placeholder="SBIN0001234"
                     maxLength={11}
                   />
                   {errors.ifsc && (
-                    <p className="text-red-500 text-xs mt-1">{errors.ifsc}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.ifsc}</p>
                   )}
                 </div>
               </div>
@@ -808,7 +808,7 @@ const CompanySettings: React.FC = () => {
 
           {/* Action Buttons - Show when editing or creating new */}
           {(isEditing || !isEditMode) && (
-            <div className="px-6 py-4 bg-gray-50 border-t flex justify-between items-center rounded-b-lg">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center rounded-b-lg">
               <button
                 type="button"
                 onClick={() => {
@@ -818,7 +818,7 @@ const CompanySettings: React.FC = () => {
                     navigate('/admin'); // Cancel creation
                   }
                 }}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
               >
                 Cancel
               </button>

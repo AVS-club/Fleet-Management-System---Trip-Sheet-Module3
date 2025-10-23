@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, FileText, Link as LinkIcon } from 'lucide-react';
+import { X, FileText, Link as LinkIcon } from 'lucide-react';
 import { Vehicle } from '@/types';
 import Button from '../ui/Button';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 
 interface VehicleWhatsAppShareModalProps {
   isOpen: boolean;
@@ -123,7 +124,7 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
             className="w-full justify-between"
           >
             <span>Vehicle Details</span>
-            <MessageSquare className="h-4 w-4 text-green-100" />
+            <WhatsAppIcon size={20} variant="light" />
           </Button>
           
           <Button
@@ -131,7 +132,7 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
             className="w-full justify-between"
           >
             <span>Document Dates</span>
-            <MessageSquare className="h-4 w-4 text-green-100" />
+            <WhatsAppIcon size={20} variant="light" />
           </Button>
 
           <Button
@@ -139,7 +140,7 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
             className="w-full justify-between"
           >
             <span>Document Files</span>
-            <FileText className="h-4 w-4 text-green-100" />
+            <FileText size={18} />
           </Button>
           
           {showDocumentFiles && (
@@ -161,14 +162,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('RC Document', signedDocUrls.rc!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -190,14 +191,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('Insurance', signedDocUrls.insurance!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -219,14 +220,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('Fitness Certificate', signedDocUrls.fitness!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -248,14 +249,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('Permit', signedDocUrls.permit!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -277,14 +278,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('PUC Certificate', signedDocUrls.puc!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -306,14 +307,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                             className="p-1 text-primary-600 hover:text-primary-700"
                             title="Open document"
                           >
-                            <LinkIcon className="h-4 w-4" />
+                            <LinkIcon size={18} />
                           </a>
                           <button
                             onClick={() => handleShareDocumentFile('Tax Receipt', signedDocUrls.tax!)}
                             className="p-1 text-green-600 hover:text-green-700"
                             title="Share on WhatsApp"
                           >
-                            <MessageSquare className="h-4 w-4" />
+                            <WhatsAppIcon size={20} variant="light" />
                           </button>
                         </>
                       ) : (
@@ -334,14 +335,14 @@ const VehicleWhatsAppShareModal: React.FC<VehicleWhatsAppShareModalProps> = ({
                           className="p-1 text-primary-600 hover:text-primary-700"
                           title="Open document"
                         >
-                          <LinkIcon className="h-4 w-4" />
+                          <LinkIcon size={18} />
                         </a>
                         <button
                           onClick={() => handleShareDocumentFile(key, url)}
                           className="p-1 text-green-600 hover:text-green-700"
                           title="Share on WhatsApp"
                         >
-                          <MessageSquare className="h-4 w-4" />
+                          <WhatsAppIcon size={20} variant="light" />
                         </button>
                       </div>
                     </div>

@@ -9,22 +9,26 @@ const DocumentRedirect: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'redirecting' | 'error'>('loading');
 
   useEffect(() => {
-    if (!shortId) {
-      setStatus('error');
-      return;
-    }
+    const resolveAndRedirect = async () => {
+      if (!shortId) {
+        setStatus('error');
+        return;
+      }
 
-    const originalUrl = resolveShortUrl(shortId);
-    
-    if (!originalUrl) {
-      setStatus('error');
-      return;
-    }
+      const originalUrl = await resolveShortUrl(shortId);
 
-    setStatus('redirecting');
-    
-    // Redirect to the original URL
-    window.location.href = originalUrl;
+      if (!originalUrl) {
+        setStatus('error');
+        return;
+      }
+
+      setStatus('redirecting');
+
+      // Redirect to the original URL
+      window.location.href = originalUrl;
+    };
+
+    resolveAndRedirect();
   }, [shortId]);
 
   if (status === 'loading') {

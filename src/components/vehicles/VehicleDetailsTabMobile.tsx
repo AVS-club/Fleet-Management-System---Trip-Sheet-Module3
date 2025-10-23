@@ -1,19 +1,19 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  FileText, 
-  Calendar, 
-  MapPin, 
+import {
+  FileText,
+  Calendar,
+  MapPin,
   Settings,
   Download,
   Eye,
-  MessageCircle,
   Link,
   AlertCircle,
   CheckCircle,
   XCircle,
   Clock
 } from 'lucide-react';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import { supabase } from '../../utils/supabaseClient';
@@ -407,7 +407,7 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md font-semibold text-sm md:text-base"
                     >
-                      <MessageCircle className="h-5 w-5" />
+                      <WhatsAppIcon size={22} variant="dark" />
                       <span>WhatsApp</span>
                     </button>
                     

@@ -5,16 +5,14 @@ import { MaintenanceTask } from "@/types/maintenance";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
 import Button from "../ui/Button";
-import FileUpload from "../ui/FileUpload";
+import FileUploadWithProgress from "../ui/FileUploadWithProgress";
 import GarageSelector from "./GarageSelector";
 import VehicleSelector from "./VehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
 import PriorityButtonSelector from "./PriorityButtonSelector";
-import MaintenanceAuditLog from "./MaintenanceAuditLog";
 // ServiceGroupsSection removed - using inline service groups
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
-import DocumentsSection from "./DocumentsSection";
 import PartsReplacedSelector from "./PartsReplacedSelector";
 import ServiceGroupsSection, { convertServiceGroupsToDatabase } from "./ServiceGroupsSection";
 import {
@@ -30,13 +28,13 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { predictNextService } from "../../utils/maintenancePredictor";
-import { getAuditLogs } from "../../utils/maintenanceStorage";
 import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
 import { createLogger } from '../../utils/logger';
 import "../../styles/maintenanceFormUpdates.css";
+import "../../styles/FileUploadWithProgress.css";
 
 const logger = createLogger('MaintenanceTaskForm');
 
@@ -101,17 +99,17 @@ const ServiceDetailsSection = () => {
   return (
     <>
       {/* Service Details Box */}
-      <div className="maintenance-form-section service-details-override">
+      <div className="maintenance-form-section service-details-override bg-white dark:bg-gray-900">
         <div className="maintenance-form-section-header">
           <div className="icon">
             <Calendar className="h-5 w-5" />
           </div>
           <h3>Service Details</h3>
         </div>
-        
+
         {/* Quick Select */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Quick Select
           </label>
                   <div className="grid grid-cols-7 gap-3">
@@ -147,7 +145,7 @@ const ServiceDetailsSection = () => {
         {/* Date Display Fields */}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Start Date *
             </label>
             <div className="relative">
@@ -155,7 +153,7 @@ const ServiceDetailsSection = () => {
                 type="text"
                 value={formatDisplay(startDate)}
                 readOnly
-                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-gray-700 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+                className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 <Calendar className="h-5 w-5 text-green-500" />
@@ -164,7 +162,7 @@ const ServiceDetailsSection = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               End Date
             </label>
             <div className="relative">
@@ -172,7 +170,7 @@ const ServiceDetailsSection = () => {
                 type="text"
                 value={formatDisplay(endDate, true)}
                 readOnly
-                className="w-full px-4 py-3 border-2 border-green-200 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 text-gray-700 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
+                className="w-full px-4 py-3 border-2 border-green-200 dark:border-gray-700 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800 text-gray-700 dark:text-gray-100 font-medium shadow-sm focus:border-green-400 focus:ring-2 focus:ring-green-200"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                 <Calendar className="h-5 w-5 text-green-500" />
@@ -208,25 +206,25 @@ const DowntimeSummary = () => {
   };
   
   return (
-    <div className="maintenance-form-section downtime-summary-override">
+    <div className="maintenance-form-section downtime-summary-override bg-white dark:bg-gray-900">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <div className="icon">
             <Clock className="h-6 w-6" />
           </div>
           <div>
-            <span className="text-lg font-semibold text-gray-800">Downtime Tracking</span>
-            <p className="text-sm text-gray-600">Service duration monitoring</p>
+            <span className="text-lg font-semibold text-gray-800 dark:text-gray-100">Downtime Tracking</span>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Service duration monitoring</p>
           </div>
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-3xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
             {getTotalDisplay()}
           </div>
-          <div className="text-sm text-gray-600 mt-1 flex flex-wrap justify-end gap-1">
-            <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-xs font-medium">{downtimeDays}d {downtimeHours}h</span>
-            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">Maintenance</span>
-            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">Medium Impact</span>
+          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 flex flex-wrap justify-end gap-1">
+            <span className="bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 px-2 py-1 rounded-full text-xs font-medium">{downtimeDays}d {downtimeHours}h</span>
+            <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">Maintenance</span>
+            <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full text-xs font-medium">Medium Impact</span>
           </div>
         </div>
       </div>
@@ -259,10 +257,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   onSubmit,
   vehicles,
   initialData,
-  isSubmitting,
+  isSubmitting: externalIsSubmitting,
 }) => {
   const [setReminder, setSetReminder] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<{
     averageReplacementKm?: number;
@@ -284,6 +281,16 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       parts: []
     }
   ]);
+
+  // Enhanced submission states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [overallProgress, setOverallProgress] = useState(0);
+
+  // File upload states
+  const [odometerPhoto, setOdometerPhoto] = useState<File[]>([]);
+  const [documents, setDocuments] = useState<File[]>([]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -395,29 +402,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       return `${remainingHours} hr${remainingHours === 1 ? "" : "s"}`;
     }
   }, [downtimeDays, downtimeHours]);
-
-  // Fetch audit logs asynchronously
-  useEffect(() => {
-    const fetchAuditLogs = async () => {
-      if (initialData?.id) {
-        try {
-          const logs = await getAuditLogs();
-          if (Array.isArray(logs)) {
-            setAuditLogs(logs.filter((log) => log.task_id === initialData.id));
-          } else {
-            setAuditLogs([]);
-          }
-        } catch (error) {
-          logger.error("Error fetching audit logs:", error);
-          setAuditLogs([]);
-        }
-      } else {
-        setAuditLogs([]);
-      }
-    };
-
-    fetchAuditLogs();
-  }, [initialData?.id]);
 
   // Controlled downtime handler to prevent infinite loops
   const handleDowntimeQuickSelect = useCallback((days: number, hours: number) => {
@@ -587,10 +571,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       logger.debug(`Validating service group ${i + 1}:`, group);
       logger.debug('Tasks:', group.tasks, 'Type:', typeof group.tasks, 'Is Array:', Array.isArray(group.tasks));
       logger.debug('Vendor ID:', group.vendor_id);
+      logger.debug('Vendor:', group.vendor);
       logger.debug('Cost:', group.cost);
-      
-      // Check vendor (converted data uses vendor_id)
-      if (!group.vendor_id || group.vendor_id.trim() === '') {
+
+      // Check vendor (supports both vendor_id and vendor fields)
+      const vendorValue = group.vendor_id || group.vendor;
+      if (!vendorValue || vendorValue.trim() === '') {
         return `Please select a vendor for service group ${i + 1}`;
       }
 
@@ -642,30 +628,72 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     return null; // No validation errors
   };
 
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = async (data: any) => {
+    if (isSubmitting || externalIsSubmitting) return;
+
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    setIsSubmitting(true);
+    setOverallProgress(0);
+
     try {
-      // Build form data with parts
+      // Build form data with parts and files
       const formDataWithParts = {
         ...data,
         parts_replaced: selectedParts.length > 0 ? selectedParts : undefined,
-        service_groups: serviceGroups.length > 0 ? serviceGroups : undefined
+        service_groups: serviceGroups.length > 0 ? serviceGroups : undefined,
+        odometer_image: odometerPhoto,
+        attachments: documents,
       };
 
       // Validate form data
       const validationError = validateFormData(formDataWithParts);
       if (validationError) {
         toast.error(validationError);
+        setIsSubmitting(false);
         return;
       }
 
+      setOverallProgress(10);
+
+      // Simulate upload progress
+      const uploadProgress = setInterval(() => {
+        setOverallProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(uploadProgress);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
       // Submit form
-      onSubmit(formDataWithParts);
+      await onSubmit(formDataWithParts);
+
+      clearInterval(uploadProgress);
+      setOverallProgress(100);
+      setSubmitSuccess(true);
+
+      logger.debug('✅ Task created successfully');
+
+      // Show success for 2 seconds then reset
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setIsSubmitting(false);
+        setOverallProgress(0);
+      }, 2000);
+
     } catch (error) {
-      logger.error("Error submitting form:", error);
+      logger.error("❌ Error submitting form:", error);
+      setSubmitError(
+        error instanceof Error ? error.message : "Form submission failed"
+      );
       toast.error(
         "Form submission failed: " +
           (error instanceof Error ? error.message : "Unknown error")
       );
+      setIsSubmitting(false);
+      setOverallProgress(0);
     }
   };
 
@@ -674,12 +702,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       <FormProvider {...methods}>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
         {/* Vehicle & Basic Info */}
-        <div className="maintenance-form-section basic-information-section">
+        <div className="maintenance-form-section basic-information-section bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
             <div className="icon">
               <Truck className="h-5 w-5" />
             </div>
-            <h3 className="section-title">Basic Information</h3>
+            <h3 className="section-title text-gray-900 dark:text-gray-100">Basic Information</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -737,12 +765,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         />
 
         {/* Parts Replaced Section - NEW */}
-        <div className="maintenance-form-section">
+        <div className="maintenance-form-section bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
             <div className="icon">
               <FileText className="h-5 w-5" />
             </div>
-            <h3>Parts Replaced</h3>
+            <h3 className="text-gray-900 dark:text-gray-100">Parts Replaced</h3>
           </div>
           <PartsReplacedSelector
             selectedParts={selectedParts}
@@ -768,12 +796,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
           
           {/* Right side: Odometer Section */}
-          <div className="maintenance-form-section vehicle-info-override">
+          <div className="maintenance-form-section vehicle-info-override bg-white dark:bg-gray-900">
             <div className="maintenance-form-section-header">
               <div className="icon">
                 <Gauge className="h-5 w-5" />
               </div>
-              <h3>Vehicle Information</h3>
+              <h3 className="text-gray-900 dark:text-gray-100">Vehicle Information</h3>
             </div>
             <div className="grid grid-cols-1 gap-5">
               <Input
@@ -795,32 +823,27 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 })}
               />
               
-              <Controller
-                control={control}
-                name="odometer_image"
-                render={({ field: { value, onChange } }) => (
-                  <FileUpload
-                    label="Odometer Photo"
-                    value={value as File[] || []}
-                    onChange={onChange}
-                    accept=".jpg,.jpeg,.png"
-                    helperText="Upload photo of odometer reading"
-                    variant="compact"
-                    size="sm"
-                  />
-                )}
+              <FileUploadWithProgress
+                id="odometerPhoto"
+                label="Odometer Photo"
+                accept="image/jpeg,image/jpg,image/png"
+                multiple={false}
+                compress={true}
+                maxSize={5 * 1024 * 1024}
+                onFilesChange={setOdometerPhoto}
+                helperText="Upload a clear photo of the odometer reading"
               />
             </div>
           </div>
         </div>
 
         {/* Status Section */}
-        <div className="maintenance-form-section status-section-override">
+        <div className="maintenance-form-section status-section-override bg-white dark:bg-gray-900">
           <div className="maintenance-form-section-header">
             <div className="icon">
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <h3>Status <span className="text-red-500 ml-1">*</span></h3>
+            <h3 className="text-gray-900 dark:text-gray-100">Status <span className="text-red-500 ml-1">*</span></h3>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -869,22 +892,39 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         />
 
         {/* Documents */}
-        <DocumentsSection />
+        <div className="maintenance-form-section bg-white dark:bg-gray-900">
+          <div className="maintenance-form-section-header">
+            <div className="icon">
+              <FileText className="h-5 w-5" />
+            </div>
+            <h3 className="text-gray-900 dark:text-gray-100">Supporting Documents</h3>
+          </div>
+          <FileUploadWithProgress
+            id="documents"
+            label="Documents"
+            accept=".jpg,.jpeg,.png,.pdf"
+            multiple={true}
+            compress={false}
+            maxSize={10 * 1024 * 1024}
+            onFilesChange={setDocuments}
+            helperText="Upload warranty cards, bills, or other relevant documents"
+          />
+        </div>
 
         {/* AI Suggestions */}
         {aiSuggestions.averageReplacementKm && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
             <div className="flex items-start">
               <AlertTriangle className="h-5 w-5 text-blue-500 mt-0.5 mr-2" />
               <div>
-                <h4 className="text-blue-700 font-medium">
+                <h4 className="text-blue-700 dark:text-blue-300 font-medium">
                   AI-Suggested Maintenance Intervals
                 </h4>
-                <p className="text-blue-600 text-sm mt-1">
+                <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">
                   Based on historical data, this maintenance is typically
                   needed:
                 </p>
-                <ul className="mt-2 space-y-1 text-sm text-blue-700">
+                <ul className="mt-2 space-y-1 text-sm text-blue-700 dark:text-blue-300">
                   <li>
                     Every{" "}
                     {Math.round(
@@ -899,7 +939,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                     </li>
                   )}
                 </ul>
-                <p className="text-blue-500 text-xs mt-2">
+                <p className="text-blue-500 dark:text-blue-400 text-xs mt-2">
                   Confidence: {Math.round(aiSuggestions.confidence)}%
                 </p>
               </div>
@@ -907,10 +947,34 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           </div>
         )}
 
-        {/* Audit Log */}
-        {initialData?.id && auditLogs && auditLogs.length > 0 && (
-          <div className="mt-8">
-            <MaintenanceAuditLog taskId={initialData.id} logs={auditLogs} />
+        {/* Error Message */}
+        {submitError && (
+          <div className="alert alert-error">
+            <AlertTriangle className="h-5 w-5" />
+            {submitError}
+          </div>
+        )}
+
+        {/* Success Message */}
+        {submitSuccess && (
+          <div className="alert alert-success">
+            <CheckCircle className="h-5 w-5" />
+            Task {initialData ? 'updated' : 'created'} successfully!
+          </div>
+        )}
+
+        {/* Overall Progress Bar (during submission) */}
+        {isSubmitting && (
+          <div className="overall-progress">
+            <div className="progress-bar-container">
+              <div
+                className="progress-bar-fill"
+                style={{ width: `${overallProgress}%` }}
+              />
+            </div>
+            <div className="progress-text">
+              {initialData ? 'Updating' : 'Creating'} task... {overallProgress}%
+            </div>
           </div>
         )}
 
@@ -919,10 +983,18 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           <Button
             type="submit"
             isLoading={isSubmitting}
-            icon={<CheckCircle className="h-5 w-5" />}
-            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+            disabled={isSubmitting || externalIsSubmitting || submitSuccess}
+            icon={submitSuccess ? <CheckCircle className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+            className={cn(
+              "bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold px-8 py-3 rounded-lg shadow-lg transform hover:scale-105 transition-all duration-200",
+              submitSuccess && "bg-green-600 hover:bg-green-700"
+            )}
           >
-            {initialData ? "Update Task" : "Create Task"}
+            {submitSuccess
+              ? `Task ${initialData ? 'Updated' : 'Created'}!`
+              : isSubmitting
+              ? `${initialData ? 'Updating' : 'Creating'} Task... ${overallProgress}%`
+              : initialData ? "Update Task" : "Create Task"}
           </Button>
         </div>
         </form>

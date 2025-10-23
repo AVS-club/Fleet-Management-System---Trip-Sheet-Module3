@@ -70,7 +70,7 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           onChange={(e) => setEmail(e.target.value)}
           required
           placeholder="Enter your email"
-          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
+          className="rounded-xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:shadow-md transition-all"
         />
       </div>
       <div className="relative">
@@ -83,11 +83,11 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           onChange={(e) => setPassword(e.target.value)}
           required
           placeholder="Create a password"
-          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
+          className="rounded-xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:shadow-md transition-all"
         />
         <button
           type="button"
-          className="absolute right-3 top-9 text-gray-400 hover:text-primary-600 transition-colors"
+          className="absolute right-3 top-9 text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
           onClick={() => setShowPassword(!showPassword)}
         >
           {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -103,15 +103,15 @@ const RegisterForm: React.FC<RegisterFormProps> = ({
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           placeholder="Confirm your password"
-          className="rounded-xl bg-gray-50 focus:bg-white focus:shadow-md transition-all"
+          className="rounded-xl bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:shadow-md transition-all"
         />
       </div>
-      <Button 
-        type="submit" 
-        disabled={loading} 
-        fullWidth 
-        isLoading={loading} 
-        inputSize="md" 
+      <Button
+        type="submit"
+        disabled={loading}
+        fullWidth
+        isLoading={loading}
+        inputSize="md"
         className="py-3 text-base font-semibold rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-md transition-all"
       >
         {loading ? 'Creating account...' : 'Create Account'}

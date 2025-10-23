@@ -60,9 +60,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         .eq('owner_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
-      
+
       const org = Array.isArray(orgData) && orgData.length > 0 ? orgData[0] : null;
-      
+
       if (org) {
         setOrganization(org);
         setLogoError(false);
@@ -88,9 +88,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         .eq('created_by', user.id);
 
       const totalTrips = tripStats?.length || 0;
-      const earliestTripDate = tripStats && tripStats.length > 0 
-        ? tripStats.reduce((earliest: string, trip: { created_at: string }) => 
-            new Date(trip.created_at) < new Date(earliest) ? trip.created_at : earliest, 
+      const earliestTripDate = tripStats && tripStats.length > 0
+        ? tripStats.reduce((earliest: string, trip: { created_at: string }) =>
+            new Date(trip.created_at) < new Date(earliest) ? trip.created_at : earliest,
             tripStats[0].created_at
           )
         : null;
@@ -131,12 +131,12 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
 
   if (loading) {
     return (
-      <div className={`rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6 ${className}`}>
+      <div className={`rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6 ${className}`}>
         <div className="flex items-center space-x-3 mb-2">
-          <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+          <div className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           <div>
-            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-1"></div>
-            <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-6 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-1"></div>
+            <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           </div>
         </div>
       </div>
@@ -146,13 +146,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
   return (
     <div className={`mb-3 ${className}`}>
       {/* Company branding header */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sm:p-6 mb-3 sm:mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-3 sm:p-6 mb-3 sm:mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
           <div className="flex items-center space-x-4">
             {organization?.logo_url && !logoError && (
-              <div className="relative flex items-center justify-center h-14 w-14 bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all duration-200">
-                <img 
-                  src={organization.logo_url} 
+              <div className="relative flex items-center justify-center h-14 w-14 bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-200">
+                <img
+                  src={organization.logo_url}
                   alt={organization.name}
                   className="h-13 w-13 object-contain p-0.5 filter drop-shadow-sm"
                   onError={() => {
@@ -160,43 +160,43 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
                   }}
                 />
                 {/* Subtle client company indicator */}
-                <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full border border-white shadow-sm"></div>
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full border border-white dark:border-gray-900 shadow-sm"></div>
               </div>
             )}
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {organization?.name || permissions?.organizationName || 'Dashboard'}
                 </h1>
                 {/* Subtle "Powered by AVS" indicator */}
-                <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 rounded-full border border-primary-200">
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full border border-primary-200 dark:border-primary-700">
                   <div className="h-1.5 w-1.5 bg-primary-500 rounded-full"></div>
-                  <span className="text-[10px] font-medium text-primary-700">Powered by AVS</span>
+                  <span className="text-[10px] font-medium text-primary-700 dark:text-primary-300">Powered by AVS</span>
                 </div>
               </div>
               {organization?.tagline && (
-                <p className="text-sm text-gray-600 mt-1">{organization.tagline}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{organization.tagline}</p>
               )}
             </div>
           </div>
-          
+
           {/* Motivational metrics */}
           <div className="hidden md:flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
-              <Truck className="h-4 w-4 text-primary-600" />
-              <span className="text-gray-600">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
+            <div className="flex items-center space-x-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg px-2 py-1">
+              <Truck className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+              <span className="text-gray-600 dark:text-gray-400">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
             </div>
-            <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-gray-600">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
+            <div className="flex items-center space-x-2 bg-green-50 dark:bg-green-900/30 rounded-lg px-2 py-1">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <span className="text-gray-600 dark:text-gray-400">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
             </div>
-            <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-              <span className="text-gray-600">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
+            <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg px-2 py-1">
+              <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-gray-600 dark:text-gray-400">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
             </div>
-            <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
-              <Award className="h-4 w-4 text-yellow-600" />
-              <span className="text-gray-600">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
+            <div className="flex items-center space-x-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg px-2 py-1">
+              <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+              <span className="text-gray-600 dark:text-gray-400">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
             </div>
           </div>
         </div>
@@ -204,21 +204,21 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
 
       {/* Mobile metrics */}
       <div className="md:hidden grid grid-cols-2 gap-2 text-sm">
-        <div className="flex items-center space-x-2 bg-primary-50 rounded-lg px-2 py-1">
-          <Truck className="h-4 w-4 text-primary-600" />
-          <span className="font-medium">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
+        <div className="flex items-center space-x-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg px-2 py-1">
+          <Truck className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
         </div>
-        <div className="flex items-center space-x-2 bg-green-50 rounded-lg px-2 py-1">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <span className="font-medium">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
+        <div className="flex items-center space-x-2 bg-green-50 dark:bg-green-900/30 rounded-lg px-2 py-1">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{t('dashboard.todayTrips', { count: metrics.tripsToday })}</span>
         </div>
-        <div className="flex items-center space-x-2 bg-blue-50 rounded-lg px-2 py-1">
-          <TrendingUp className="h-4 w-4 text-blue-600" />
-          <span className="font-medium">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
+        <div className="flex items-center space-x-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg px-2 py-1">
+          <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{t('dashboard.totalTrips', { count: metrics.totalTrips })}</span>
         </div>
-        <div className="flex items-center space-x-2 bg-yellow-50 rounded-lg px-2 py-1">
-          <Award className="h-4 w-4 text-yellow-600" />
-          <span className="font-medium">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
+        <div className="flex items-center space-x-2 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg px-2 py-1">
+          <Award className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+          <span className="font-medium text-gray-700 dark:text-gray-300">{t('dashboard.activeDays', { count: metrics.activeDays })}</span>
         </div>
       </div>
     </div>

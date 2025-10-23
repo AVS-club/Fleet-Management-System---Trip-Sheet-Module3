@@ -5,6 +5,7 @@ import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling 
 import { getVehicles, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getDrivers } from '../../utils/api/drivers';
 import { supabase } from '../../utils/supabaseClient';
+import { getUserActiveOrganization } from '../../utils/supaHelpers';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
@@ -682,11 +683,20 @@ const TripForm: React.FC<TripFormProps> = ({
         }
       }
 
+      // Get the user's organization to query trips from all org users
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (!organizationId) {
+        logger.error('No organization found for user');
+        return;
+      }
+
+      // Get trips from ALL users in the organization (not just current user)
+      // This matches the database validation trigger behavior
       const { data: lastTrip, error } = await supabase
         .from('trips')
         .select('end_km, trip_end_date, created_at')
         .eq('vehicle_id', vehicleId)
-        .eq('created_by', user.id)
+        .eq('organization_id', organizationId)
         .not('end_km', 'is', null)
         .order('trip_end_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false, nullsFirst: false })
@@ -702,11 +712,12 @@ const TripForm: React.FC<TripFormProps> = ({
         setValue('start_km', latestTripRecord.end_km);
         
         // Get previous refueling trip for mileage window calculation
+        // Also query from ALL org users to match validation behavior
         const { data: prevRefuelTrip } = await supabase
           .from('trips')
           .select('end_km, trip_end_date, created_at')
           .eq('vehicle_id', vehicleId)
-          .eq('created_by', user.id)
+          .eq('organization_id', organizationId)
           .or('fuel_quantity.gt.0,total_fuel_cost.gt.0')
           .not('end_km', 'is', null)
           .order('trip_end_date', { ascending: false, nullsFirst: false })
@@ -894,14 +905,18 @@ const TripForm: React.FC<TripFormProps> = ({
       const { updatedTrip } = recalculateMileageForRefuelingTrip(tempTrip, trips);
       data.calculated_kmpl = updatedTrip.calculated_kmpl;
       
-      // Validate mileage after calculation
+      // Validate mileage after calculation - ALL WARNINGS ONLY (no blocking)
       const mileage = data.calculated_kmpl || 0;
-      if (mileage > 30) {
-        toast.error('Mileage exceeds 30 km/L - please verify fuel quantity and distance');
-        return;
+      // Changed all to warnings - transport business needs flexibility
+      if (mileage > 100) {
+        toast.warning('Very high mileage: ' + mileage.toFixed(2) + ' km/L - please verify fuel quantity');
+      } else if (mileage > 50) {
+        toast.info('High mileage: ' + mileage.toFixed(2) + ' km/L - excellent efficiency!');
       }
-      if (mileage < 3 && mileage > 0) {
-        toast.warning('Mileage below 3 km/L - possible fuel leak or calculation error');
+      if (mileage < 2 && mileage > 0) {
+        toast.warning('Very low mileage: ' + mileage.toFixed(2) + ' km/L - check for fuel leak or heavy load');
+      } else if (mileage < 4 && mileage > 0) {
+        toast.info('Low mileage: ' + mileage.toFixed(2) + ' km/L - verify if carrying heavy load');
       }
     }
     
@@ -1581,9 +1596,14 @@ const TripForm: React.FC<TripFormProps> = ({
                     )}
                   />
                 </div>
-                {startKm !== undefined && endKm !== undefined && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Distance: {computedDistance} km
+                {/* Suggested End KM based on route analysis */}
+                {routeAnalysis && routeAnalysis.total_distance > 0 && startKm !== undefined && startKm > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Suggested based on route: {
+                      Math.round(startKm + (watchedValues.is_return_trip
+                        ? routeAnalysis.total_distance * 2
+                        : routeAnalysis.total_distance))
+                    } km ({watchedValues.is_return_trip ? 'round trip' : 'one way'})
                   </p>
                 )}
                 {errors.end_km && (
@@ -1594,7 +1614,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 )}
               </div>
 
-              {/* Distance */}
+              {/* Distance summary box */}
               <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Distance:</span>

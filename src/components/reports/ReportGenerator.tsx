@@ -232,16 +232,16 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-7xl w-full max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-gray-50">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${config.color} text-white`}>
               {config.icon}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{config.title}</h2>
-              <p className="text-sm text-gray-600">{config.description}</p>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{config.title}</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{config.description}</p>
             </div>
           </div>
           
@@ -249,20 +249,20 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             {/* Date Range Selector for applicable reports */}
             {needsDateRange && (
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
+                <Filter className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <div className="flex items-center gap-2">
                   <input
                     type="date"
                     value={dateRange.start}
                     onChange={(e) => handleDateRangeChange('start', e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm"
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
-                  <span className="text-gray-500">to</span>
+                  <span className="text-gray-500 dark:text-gray-400">to</span>
                   <input
                     type="date"
                     value={dateRange.end}
                     onChange={(e) => handleDateRangeChange('end', e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-sm"
+                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
@@ -302,17 +302,17 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
-                <p className="text-gray-600">Generating report...</p>
+                <p className="text-gray-600 dark:text-gray-300">Generating report...</p>
               </div>
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <X className="w-8 h-8 text-red-600" />
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X className="w-8 h-8 text-red-600 dark:text-red-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Report</h3>
-                <p className="text-gray-600 mb-4">{error}</p>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Error Loading Report</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">{error}</p>
                 <button
                   onClick={fetchReportData}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -322,7 +322,7 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
               </div>
             </div>
           ) : (
-            <div id="report-content" className="p-6">
+            <div id="report-content" className="p-6 bg-white dark:bg-gray-900">
               {renderReport()}
             </div>
           )}

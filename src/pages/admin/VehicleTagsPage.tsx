@@ -95,7 +95,7 @@ const VehicleTagsPage: React.FC = () => {
         <div className="mb-6">
           <button
             onClick={() => navigate('/admin/vehicle-management')}
-            className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4 transition-colors"
+            className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Vehicle Management
@@ -104,14 +104,14 @@ const VehicleTagsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <div className="flex items-center space-x-3">
-                <div className="bg-primary-50 p-3 rounded-lg">
-                  <TagIcon className="h-6 w-6 text-primary-600" />
+                <div className="bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
+                  <TagIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-display font-medium tracking-tight-plus text-gray-900">
+                  <h1 className="text-2xl font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">
                     Vehicle Tags Management
                   </h1>
-                  <p className="mt-1 text-sm font-sans text-gray-500">
+                  <p className="mt-1 text-sm font-sans text-gray-500 dark:text-gray-400">
                     Create and manage tags to categorize vehicles for peer-to-peer performance comparison
                   </p>
                 </div>
@@ -133,20 +133,20 @@ const VehicleTagsPage: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-600">Total Tags</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{tags.length}</p>
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Total Tags</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{tags.length}</p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-600">Tagged Vehicles</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Tagged Vehicles</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
               {tags.reduce((sum, tag) => sum + (tag.vehicle_count || 0), 0)}
             </p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-600">Avg. Vehicles/Tag</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">
-              {tags.length > 0 
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">Avg. Vehicles/Tag</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+              {tags.length > 0
                 ? Math.round(tags.reduce((sum, tag) => sum + (tag.vehicle_count || 0), 0) / tags.length)
                 : 0}
             </p>
@@ -155,10 +155,10 @@ const VehicleTagsPage: React.FC = () => {
 
         {/* Tags Grid */}
         {tags.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-            <TagIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No tags yet</h3>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <TagIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No tags yet</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Get started by creating your first vehicle tag
             </p>
             <div className="mt-6">

@@ -10,7 +10,7 @@ const isDevelopment = import.meta.env.DEV;
  */
 export const log = (...args: any[]): void => {
   if (isDevelopment) {
-    logger.debug(...args);
+    console.log(...args);
   }
 };
 
@@ -19,7 +19,7 @@ export const log = (...args: any[]): void => {
  */
 export const warn = (...args: any[]): void => {
   if (isDevelopment) {
-    logger.warn(...args);
+    console.warn(...args);
   }
 };
 
@@ -28,7 +28,7 @@ export const warn = (...args: any[]): void => {
  * Use sparingly - only for critical errors that need monitoring
  */
 export const error = (...args: any[]): void => {
-  logger.error(...args);
+  console.error(...args);
 };
 
 /**
@@ -36,7 +36,7 @@ export const error = (...args: any[]): void => {
  */
 export const debug = (context: string, ...args: any[]): void => {
   if (isDevelopment) {
-    logger.debug(`[DEBUG:${context}]`, ...args);
+    console.debug(`[DEBUG:${context}]`, ...args);
   }
 };
 
@@ -50,20 +50,20 @@ export const debug = (context: string, ...args: any[]): void => {
 export const createLogger = (namespace: string) => ({
   info: (...args: any[]) => {
     if (isDevelopment) {
-      logger.debug(`[${namespace}]`, ...args);
+      console.debug(`[${namespace}]`, ...args);
     }
   },
   warn: (...args: any[]) => {
     if (isDevelopment) {
-      logger.warn(`[${namespace}]`, ...args);
+      console.warn(`[${namespace}]`, ...args);
     }
   },
   error: (...args: any[]) => {
-    logger.error(`[${namespace}]`, ...args);
+    console.error(`[${namespace}]`, ...args);
   },
   debug: (...args: any[]) => {
     if (isDevelopment) {
-      logger.debug(`[${namespace}:DEBUG]`, ...args);
+      console.debug(`[${namespace}:DEBUG]`, ...args);
     }
   }
 });

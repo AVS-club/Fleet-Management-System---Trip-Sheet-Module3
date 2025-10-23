@@ -453,69 +453,6 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
-  const fetchSummaryMetrics = useCallback(async () => {
-    try {
-      setSummaryLoading(true);
-      
-      // Ensure dates are properly formatted
-      const startDate = filters.dateRange.start ? 
-        new Date(filters.dateRange.start).toISOString() : null;
-      const endDate = filters.dateRange.end ? 
-        new Date(filters.dateRange.end + 'T23:59:59').toISOString() : null;
-      
-      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
-        start_date: startDate,
-        end_date: endDate,
-        p_vehicle_id: filters.vehicleId || null,
-        p_driver_id: filters.driverId || null,
-        p_warehouse_id: filters.warehouseId || null,
-        p_trip_type: filters.tripType || null
-      });
-      
-      if (error) {
-        logger.error("Error fetching summary metrics:", error);
-        // Fallback to local calculation
-        calculateMetricsLocally();
-      } else if (data) {
-        // Handle both array and object responses
-        const metricsData = Array.isArray(data) ? data[0] : data;
-        
-        if (metricsData) {
-          setSummaryMetrics({
-            totalExpenses: metricsData.total_expenses || 0,
-            avgDistance: metricsData.avg_distance || 0,
-            tripCount: metricsData.trip_count || 0,
-            meanMileage: metricsData.mean_mileage || 0,
-            topDriver: metricsData.top_driver ? {
-              id: metricsData.top_driver.id,
-              name: metricsData.top_driver.name,
-              totalDistance: metricsData.top_driver.totalDistance || 0,
-              tripCount: metricsData.top_driver.tripCount || 0
-            } : null,
-            topVehicle: metricsData.top_vehicle ? {
-              id: metricsData.top_vehicle.id,
-              registrationNumber: metricsData.top_vehicle.registrationNumber,
-              tripCount: metricsData.top_vehicle.tripCount || 0
-            } : null
-          });
-        } else {
-          calculateMetricsLocally();
-        }
-      }
-    } catch (error) {
-      logger.error("Exception fetching summary metrics:", error);
-      calculateMetricsLocally();
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [filters, calculateMetricsLocally]);
-
-  useEffect(() => {
-    fetchSummaryMetrics();
-    setCurrentPage(1);
-  }, [fetchSummaryMetrics, filters]);
-
-
   const calculateMetricsLocally = useCallback(() => {
     const filtered = filteredTrips;
     
@@ -593,6 +530,68 @@ const AdminTripsPage: React.FC = () => {
       topVehicle
     });
   }, [filteredTrips, driversMap, vehiclesMap]);
+
+  const fetchSummaryMetrics = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      
+      // Ensure dates are properly formatted
+      const startDate = filters.dateRange.start ? 
+        new Date(filters.dateRange.start).toISOString() : null;
+      const endDate = filters.dateRange.end ? 
+        new Date(filters.dateRange.end + 'T23:59:59').toISOString() : null;
+      
+      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
+        start_date: startDate,
+        end_date: endDate,
+        p_vehicle_id: filters.vehicleId || null,
+        p_driver_id: filters.driverId || null,
+        p_warehouse_id: filters.warehouseId || null,
+        p_trip_type: filters.tripType || null
+      });
+      
+      if (error) {
+        logger.error("Error fetching summary metrics:", error);
+        // Fallback to local calculation
+        calculateMetricsLocally();
+      } else if (data) {
+        // Handle both array and object responses
+        const metricsData = Array.isArray(data) ? data[0] : data;
+        
+        if (metricsData) {
+          setSummaryMetrics({
+            totalExpenses: metricsData.total_expenses || 0,
+            avgDistance: metricsData.avg_distance || 0,
+            tripCount: metricsData.trip_count || 0,
+            meanMileage: metricsData.mean_mileage || 0,
+            topDriver: metricsData.top_driver ? {
+              id: metricsData.top_driver.id,
+              name: metricsData.top_driver.name,
+              totalDistance: metricsData.top_driver.totalDistance || 0,
+              tripCount: metricsData.top_driver.tripCount || 0
+            } : null,
+            topVehicle: metricsData.top_vehicle ? {
+              id: metricsData.top_vehicle.id,
+              registrationNumber: metricsData.top_vehicle.registrationNumber,
+              tripCount: metricsData.top_vehicle.tripCount || 0
+            } : null
+          });
+        } else {
+          calculateMetricsLocally();
+        }
+      }
+    } catch (error) {
+      logger.error("Exception fetching summary metrics:", error);
+      calculateMetricsLocally();
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [filters, calculateMetricsLocally]);
+
+  useEffect(() => {
+    fetchSummaryMetrics();
+    setCurrentPage(1);
+  }, [fetchSummaryMetrics, filters]);
 
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);

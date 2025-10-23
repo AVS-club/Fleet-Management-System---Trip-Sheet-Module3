@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
 import { getVendors } from '../../utils/storage';
@@ -136,11 +136,11 @@ interface ServiceGroupsSectionProps {
 // ===== HELPER COMPONENTS =====
 
 // Inline Searchable Dropdown with Add functionality
-const InlineSearchableDropdown = ({ 
-  label, 
-  options, 
-  value, 
-  onChange, 
+const InlineSearchableDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
   onAddNew,
   placeholder = "Select or type to search...",
   required = false,
@@ -150,14 +150,35 @@ const InlineSearchableDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [customOptions, setCustomOptions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const optionRefs = useRef([]);
+
+  // Get recently used tasks from localStorage
+  const recentTasks = useMemo(() => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      return recent.slice(0, 3); // Top 3 recent tasks
+    } catch {
+      return [];
+    }
+  }, []);
 
   const allOptions = useMemo(() => {
-    return [...options, ...customOptions];
-  }, [options, customOptions]);
+    const combined = [...options, ...customOptions];
+    // Put recent tasks at top if not searching
+    if (!searchTerm && recentTasks.length > 0) {
+      const recent = recentTasks.filter(task => combined.includes(task));
+      const remaining = combined.filter(opt => !recentTasks.includes(opt));
+      return [...recent, ...remaining];
+    }
+    return combined;
+  }, [options, customOptions, recentTasks, searchTerm]);
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return allOptions;
-    return allOptions.filter(opt => 
+    return allOptions.filter(opt =>
       opt.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, allOptions]);
@@ -177,7 +198,19 @@ const InlineSearchableDropdown = ({
     return selectedValues[0];
   }, [selectedValues, multiSelect]);
 
+  // Save to recent tasks
+  const saveToRecent = (task) => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      const updated = [task, ...recent.filter(t => t !== task)].slice(0, 10);
+      localStorage.setItem('recentMaintenanceTasks', JSON.stringify(updated));
+    } catch (error) {
+      logger.warn('Could not save recent task:', error);
+    }
+  };
+
   const handleSelect = (option) => {
+    saveToRecent(option);
     if (multiSelect) {
       const newValue = selectedValues.includes(option)
         ? selectedValues.filter(v => v !== option)
@@ -189,6 +222,66 @@ const InlineSearchableDropdown = ({
       setSearchTerm('');
     }
   };
+
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < filteredOptions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredOptions[highlightedIndex]) {
+          handleSelect(filteredOptions[highlightedIndex]);
+          if (!multiSelect) {
+            setIsOpen(false);
+          }
+        } else if (showAddButton) {
+          handleAddNew();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        setSearchTerm('');
+        break;
+      case 'Tab':
+        if (!multiSelect) {
+          setIsOpen(false);
+        }
+        break;
+    }
+  };
+
+  // Reset highlighted index when options change
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [filteredOptions]);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isOpen && optionRefs.current[highlightedIndex]) {
+      optionRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [highlightedIndex, isOpen]);
 
   const handleAddNew = () => {
     if (searchTerm && !allOptions.includes(searchTerm)) {
@@ -215,39 +308,68 @@ const InlineSearchableDropdown = ({
         )}
         
         <input
+          ref={inputRef}
           type="text"
           value={isOpen ? searchTerm : displayText}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent`}
+          className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all`}
+          aria-label={label}
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
         />
         
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+        >
           {filteredOptions.length > 0 ? (
-            filteredOptions.map((option, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleSelect(option)}
-                className={`px-3 py-2 cursor-pointer hover:bg-green-50 flex items-center justify-between ${
-                  selectedValues.includes(option) ? 'bg-green-100' : ''
-                }`}
-              >
-                <span className="text-sm text-gray-700">{option}</span>
-                {selectedValues.includes(option) && (
-                  <Check className="h-4 w-4 text-green-600" />
-                )}
-              </div>
-            ))
+            filteredOptions.map((option, idx) => {
+              const isSelected = selectedValues.includes(option);
+              const isHighlighted = idx === highlightedIndex;
+              const isRecent = !searchTerm && recentTasks.includes(option);
+
+              return (
+                <div
+                  key={idx}
+                  ref={(el) => (optionRefs.current[idx] = el)}
+                  onClick={() => handleSelect(option)}
+                  className={`px-3 py-2 cursor-pointer flex items-center justify-between transition-colors ${
+                    isHighlighted ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+                  } ${
+                    isSelected ? 'bg-green-100 font-medium' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    {isRecent && (
+                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                        RECENT
+                      </span>
+                    )}
+                    <span className={`text-sm ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                      {option}
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
           ) : showAddButton ? (
             <div
+              ref={(el) => (optionRefs.current[0] = el)}
               onClick={handleAddNew}
-              className="px-3 py-2 cursor-pointer hover:bg-green-50 flex items-center gap-2 text-green-600"
+              className={`px-3 py-2 cursor-pointer flex items-center gap-2 text-green-600 ${
+                highlightedIndex === 0 ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+              }`}
             >
               <Plus className="h-4 w-4" />
               <span className="text-sm font-medium">Add "{searchTerm}"</span>
@@ -647,7 +769,7 @@ const ServiceGroup = ({
   };
 
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-visible shadow-sm">
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">

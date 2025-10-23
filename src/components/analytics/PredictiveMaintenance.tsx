@@ -238,7 +238,7 @@ const PredictiveMaintenance: React.FC = () => {
           <select
             value={selectedVehicle}
             onChange={(e) => setSelectedVehicle(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="all">All Vehicles</option>
             {vehicles.map(vehicle => (
@@ -250,7 +250,7 @@ const PredictiveMaintenance: React.FC = () => {
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value as any)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="30d">Next 30 days</option>
             <option value="90d">Next 90 days</option>

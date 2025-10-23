@@ -230,23 +230,23 @@ const LoginPage: React.FC = () => {
 
             {/* Static Brand Name */}
             <h1 className="font-bold tracking-tight mb-1.5 text-[1.85rem] sm:text-[2.06rem]">
-              <span className="text-gray-900">Auto Vital</span>
-              <span className="text-emerald-600"> Solution</span>
+              <span className="text-gray-900 dark:text-gray-100">Auto Vital</span>
+              <span className="text-emerald-600 dark:text-emerald-400"> Solution</span>
             </h1>
-            
+
             {/* Divider Line */}
             <div className="flex items-center justify-center mb-2">
-              <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-emerald-600 to-transparent"></div>
+              <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-emerald-600 dark:via-emerald-400 to-transparent"></div>
             </div>
-            
+
             {/* Static Tagline - No Language Changes */}
-            <p className="text-sm text-gray-600 font-medium">
+            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
               Smarter Fleet. Less Stress.
             </p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-6 sm:p-8 border border-gray-100 transform hover:shadow-3xl hover:shadow-gray-400/50 transition-all duration-300" style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 10px 20px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05)' }}>
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 dark:shadow-gray-900/60 p-6 sm:p-8 border border-gray-100 dark:border-gray-700 transform hover:shadow-3xl hover:shadow-gray-400/50 dark:hover:shadow-gray-900/50 transition-all duration-300">
             {/* Animated Welcome Message - Fixed Height */}
             <div className="mb-6">
               <div className="min-h-[3.65rem] sm:min-h-[4rem] flex items-start justify-center overflow-visible px-3 pt-1">
@@ -274,7 +274,7 @@ const LoginPage: React.FC = () => {
                 />
                 <span className="h-[2px] w-4 rounded-full bg-gradient-to-r from-emerald-500/70 via-emerald-300/50 to-transparent" />
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Sign in to manage your fleet like a pro
               </p>
             </div>
@@ -285,21 +285,21 @@ const LoginPage: React.FC = () => {
             <div className="mt-6 text-center text-sm space-y-2">
               <Link
                 to="/reset-password"
-                className="block text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                className="block text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors"
               >
                 Forgot password?
               </Link>
-              <p className="text-gray-500 hover:text-gray-700 font-medium transition-colors">
+              <p className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium transition-colors">
                 Don't have an account?{' '}
-                <Link to="/register" className="text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
+                <Link to="/register" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors">
                   Register your organization
                 </Link>
               </p>
             </div>
 
             {/* Security Badge */}
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <div className="flex items-center justify-center gap-2 text-gray-400">
+            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500">
                 <Lock className="w-4 h-4" />
                 <span className="text-xs font-medium">
                   Your credentials are encrypted and secure
@@ -309,7 +309,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-gray-400 mt-6">
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
             &copy; {new Date().getFullYear()} Auto Vital Solution. All rights reserved. &bull; Built with &#10084;&#65039;
           </p>
           
@@ -319,11 +319,11 @@ const LoginPage: React.FC = () => {
             className="fixed bottom-8 right-8 group cursor-pointer"
             aria-label="Fleet icon"
           >
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4 rounded-2xl shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-110 transition-all duration-300 border border-emerald-400/20">
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 p-4 rounded-2xl shadow-lg shadow-emerald-500/30 dark:shadow-emerald-600/30 hover:shadow-emerald-500/50 dark:hover:shadow-emerald-600/50 hover:scale-110 transition-all duration-300 border border-emerald-400/20 dark:border-emerald-500/20">
               <Truck className="w-7 h-7 text-white" strokeWidth={2.5} fill="white" />
             </div>
             <div className="absolute -bottom-8 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Fleet Manager</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">Fleet Manager</span>
             </div>
           </button>
         </div>

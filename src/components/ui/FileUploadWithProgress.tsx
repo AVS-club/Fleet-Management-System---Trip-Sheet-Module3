@@ -37,7 +37,7 @@ const compressImage = (file: File, onProgress?: (progress: number) => void): Pro
     reader.readAsDataURL(file);
     
     reader.onload = (event) => {
-      const img = new Image();
+      const img = document.createElement('img');
       img.src = event.target?.result as string;
       
       img.onload = () => {
