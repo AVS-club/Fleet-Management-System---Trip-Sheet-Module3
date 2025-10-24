@@ -1,12 +1,12 @@
 import React from "react";
 
 /**
- * AVS AI Button — animated, accessible, and brand-colored
+ * AI Alerts Button — animated, accessible, and brand-colored
  * Restored previous version before font-size change (original balanced layout)
  */
 export default function AvsAiButton({
   onClick,
-  label = "AVS AI",
+  label = "AI Alerts",
   className = "",
   isActive = false,
   variant = "full", // "full" | "compact"
@@ -47,7 +47,7 @@ export default function AvsAiButton({
         <span className="relative mt-0.5 h-[12px] sm:h-[14px] overflow-hidden">
           <span className="block animate-swapY">
             <span className="block text-[10px] sm:text-xs leading-none">AI</span>
-            <span className="block text-[10px] sm:text-xs leading-none">AVS</span>
+            <span className="block text-[10px] sm:text-xs leading-none">Alerts</span>
           </span>
         </span>
 
@@ -118,7 +118,7 @@ export default function AvsAiButton({
       <span className="relative overflow-hidden h-[20px]">
         <span className="block animate-swapY">
           <span className="block text-lg font-semibold leading-none tracking-wide">AI</span>
-          <span className="block text-lg font-semibold leading-none tracking-wide">AVS</span>
+          <span className="block text-lg font-semibold leading-none tracking-wide">Alerts</span>
         </span>
       </span>
 

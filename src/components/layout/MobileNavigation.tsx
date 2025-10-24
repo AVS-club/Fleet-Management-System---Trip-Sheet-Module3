@@ -36,7 +36,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
     { path: '/trips', label: 'Trips', icon: MapPin },
     { path: '/trip-pnl-reports', label: 'Reports', icon: BarChart3, requiresPermission: 'canAccessReports' },
     { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-    { path: '/notifications', label: 'Alerts', icon: Bell, customComponent: AvsAiButton, requiresPermission: 'canAccessAlerts' },
+    { path: '/ai-alerts', label: 'AI Alerts', icon: Bell, customComponent: AvsAiButton, requiresPermission: 'canAccessAlerts' },
     { path: '/admin', label: 'Settings', icon: Settings, requiresPermission: 'canAccessAdmin' },
   ];
 
@@ -96,7 +96,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                 // Check if user has permission to view this nav item
                 // While loading, show all items to prevent flickering
                 if (loading) {
-                  // Special handling for custom components (like AVS AI Button)
+                  // Special handling for custom components (like AI Alerts Button)
                   if (item.customComponent) {
                     const CustomComponent = item.customComponent;
                     return (
@@ -137,7 +137,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                   return null;
                 }
 
-                // Special handling for custom components (like AVS AI Button)
+                // Special handling for custom components (like AI Alerts Button)
                 if (item.customComponent) {
                   const CustomComponent = item.customComponent;
                   return (

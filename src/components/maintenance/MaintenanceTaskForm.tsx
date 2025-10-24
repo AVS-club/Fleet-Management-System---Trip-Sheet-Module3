@@ -13,7 +13,6 @@ import PriorityButtonSelector from "./PriorityButtonSelector";
 // ServiceGroupsSection removed - using inline service groups
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
-import PartsReplacedSelector from "./PartsReplacedSelector";
 import ServiceGroupsSection, { convertServiceGroupsToDatabase } from "./ServiceGroupsSection";
 import {
   Gauge,
@@ -268,7 +267,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   }>({
     confidence: 0,
   });
-  const [selectedParts, setSelectedParts] = useState<any[]>([]);
   const [serviceGroups, setServiceGroups] = useState<any[]>([
     {
       id: Date.now().toString(),
@@ -637,10 +635,9 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     setOverallProgress(0);
 
     try {
-      // Build form data with parts and files
+      // Build form data with service groups and files
       const formDataWithParts = {
         ...data,
-        parts_replaced: selectedParts.length > 0 ? selectedParts : undefined,
         service_groups: serviceGroups.length > 0 ? serviceGroups : undefined,
         odometer_image: odometerPhoto,
         attachments: documents,
@@ -761,25 +758,8 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
         <ServiceGroupsSection
           serviceGroups={serviceGroups}
           onChange={setServiceGroups}
-          vehicleType={vehicles.find(v => v.id === vehicleId)?.vehicle_type}
+          vehicleType={vehicles.find(v => v.id === vehicleId)?.type}
         />
-
-        {/* Parts Replaced Section - NEW */}
-        <div className="maintenance-form-section bg-white dark:bg-gray-900">
-          <div className="maintenance-form-section-header">
-            <div className="icon">
-              <FileText className="h-5 w-5" />
-            </div>
-            <h3 className="text-gray-900 dark:text-gray-100">Parts Replaced</h3>
-          </div>
-          <PartsReplacedSelector
-            selectedParts={selectedParts}
-            onChange={setSelectedParts}
-            vehicleOdometer={vehicles.find(v => v.id === vehicleId)?.current_odometer}
-            disabled={isSubmitting}
-          />
-        </div>
-
 
         {/* Complaint & Resolution */}
         <ComplaintResolutionSection

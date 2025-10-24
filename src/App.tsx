@@ -31,8 +31,8 @@ import TripPnlReportsPage from "./pages/TripPnlReportsPage";
 import MobileTripPage from "./pages/MobileTripPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";
-import NotificationsPage from "./pages/NotificationsPage";
 import AIAlertsPage from "./pages/AIAlertsPage";
+import UnifiedAIAlertsPage from "./pages/UnifiedAIAlertsPage";
 import DriverInsightsPage from "./pages/drivers/DriverInsightsPage";
 import PartsHealthAnalyticsPage from "./pages/PartsHealthAnalyticsPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -56,6 +56,12 @@ import SmartRedirect from "./components/auth/SmartRedirect";
 import { createLogger } from './utils/logger';
 
 const logger = createLogger('App');
+
+// Feature flag for unified alerts view
+const AIAlertsPageWrapper: React.FC = () => {
+  const enableUnifiedView = localStorage.getItem('unified_alerts') === 'true';
+  return enableUnifiedView ? <UnifiedAIAlertsPage /> : <AIAlertsPage />;
+};
 
 const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -152,8 +158,7 @@ const App: React.FC = () => {
             <Route path="/trip-pnl-reports" element={<ProtectedRoute session={session} loading={loading}><TripPnlReportsPage /></ProtectedRoute>} />
             <Route path="/maintenance" element={<ProtectedRoute session={session} loading={loading}><MaintenancePage /></ProtectedRoute>} />
             <Route path="/maintenance/:id" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTaskPage /></ProtectedRoute>} />
-            <Route path="/notifications" element={<ProtectedRoute session={session} loading={loading}><NotificationsPage /></ProtectedRoute>} />
-            <Route path="/alerts" element={<ProtectedRoute session={session} loading={loading}><AIAlertsPage /></ProtectedRoute>} />
+            <Route path="/ai-alerts" element={<ProtectedRoute session={session} loading={loading}><AIAlertsPageWrapper /></ProtectedRoute>} />
             <Route path="/drivers/insights" element={<ProtectedRoute session={session} loading={loading}><DriverInsightsPage /></ProtectedRoute>} />
             <Route path="/parts-health-analytics" element={<ProtectedRoute session={session} loading={loading}><PartsHealthAnalyticsPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute session={session} loading={loading}><AdminDashboard /></ProtectedRoute>} />

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Trash2, Package, X, Check } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
+import FileUploadWithProgress from '../ui/FileUploadWithProgress';
 
 const logger = createLogger('PartReplacement');
 
@@ -203,12 +204,23 @@ const TyrePositionSelector = ({ vehicleType, selectedPositions, onChange }) => {
       tyreCount: 3,
       positions: ['F', 'RL', 'RR'],
       labels: ['Front', 'Rear Left', 'Rear Right']
+    },
+    TRUCK_6TYRE: {
+      name: 'Truck (6 Tyre)',
+      tyreCount: 6,
+      positions: ['FL', 'FR', 'RLO', 'RLI', 'RRO', 'RRI'],
+      labels: ['Front Left', 'Front Right', 'Rear Left Outer', 'Rear Left Inner', 'Rear Right Outer', 'Rear Right Inner']
+    },
+    DEFAULT: {
+      name: 'Standard (4 Tyre)',
+      tyreCount: 4,
+      positions: ['FL', 'FR', 'RL', 'RR'],
+      labels: ['Front Left', 'Front Right', 'Rear Left', 'Rear Right']
     }
   };
 
-  const config = VEHICLE_TYPES[vehicleType];
-  
-  if (!config) return null;
+  // FIXED: Use DEFAULT config if vehicle type not found
+  const config = VEHICLE_TYPES[vehicleType] || VEHICLE_TYPES.DEFAULT;
 
   const togglePosition = (position) => {
     const newPositions = selectedPositions.includes(position)
@@ -222,85 +234,153 @@ const TyrePositionSelector = ({ vehicleType, selectedPositions, onChange }) => {
       return (
         <div className="relative w-32 h-48 border-2 border-gray-300 rounded-lg bg-gray-50">
           <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-sm" title="Driver" />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('FL')}
             className={`absolute top-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('FL') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('FL')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Front Left"
           />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('FR')}
             className={`absolute top-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('FR') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('FR')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Front Right"
           />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('RL')}
             className={`absolute bottom-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RL') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('RL')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Rear Left"
           />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('RR')}
             className={`absolute bottom-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RR') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('RR')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Rear Right"
           />
         </div>
       );
-    } else {
+    } else if (vehicleType === 'TEMPO_3TYRE') {
       return (
         <div className="relative w-32 h-48 border-2 border-gray-300 rounded-lg bg-gray-50">
           <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-sm" title="Driver" />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('F')}
             className={`absolute top-4 left-1/2 -translate-x-1/2 w-10 h-12 rounded-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('F') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('F')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Front"
           />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('RL')}
             className={`absolute bottom-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RL') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('RL')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Rear Left"
           />
-          
-          <div 
+
+          <div
             onClick={() => togglePosition('RR')}
             className={`absolute bottom-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RR') 
-                ? 'bg-green-500 border-green-600' 
+              selectedPositions.includes('RR')
+                ? 'bg-green-500 border-green-600'
                 : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
             }`}
             title="Rear Right"
           />
         </div>
       );
+    } else if (vehicleType === 'TRUCK_6TYRE') {
+      return (
+        <div className="relative w-32 h-48 border-2 border-gray-300 rounded-lg bg-gray-50">
+          <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-sm" title="Driver" />
+
+          {/* Front tyres */}
+          <div
+            onClick={() => togglePosition('FL')}
+            className={`absolute top-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('FL')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Front Left"
+          />
+
+          <div
+            onClick={() => togglePosition('FR')}
+            className={`absolute top-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('FR')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Front Right"
+          />
+
+          {/* Rear Left - Outer and Inner */}
+          <div
+            onClick={() => togglePosition('RLO')}
+            className={`absolute bottom-4 left-0 w-6 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('RLO')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Rear Left Outer"
+          />
+          <div
+            onClick={() => togglePosition('RLI')}
+            className={`absolute bottom-4 left-6 w-6 h-12 cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('RLI')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Rear Left Inner"
+          />
+
+          {/* Rear Right - Inner and Outer */}
+          <div
+            onClick={() => togglePosition('RRI')}
+            className={`absolute bottom-4 right-6 w-6 h-12 cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('RRI')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Rear Right Inner"
+          />
+          <div
+            onClick={() => togglePosition('RRO')}
+            className={`absolute bottom-4 right-0 w-6 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
+              selectedPositions.includes('RRO')
+                ? 'bg-green-500 border-green-600'
+                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
+            }`}
+            title="Rear Right Outer"
+          />
+        </div>
+      );
     }
+    return null;
   };
 
   return (
@@ -348,21 +428,48 @@ interface PartReplacementProps {
   partData: PartData;
   onChange: (updatedPart: PartData) => void;
   onRemove: () => void;
-  vehicleType?: 'PICKUP_4TYRE' | 'TEMPO_3TYRE';
+  vehicleType?: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van' | string;
 }
 
-const PartReplacement: React.FC<PartReplacementProps> = ({ 
-  partData, 
-  onChange, 
-  onRemove, 
-  vehicleType 
+// Map database vehicle types to tyre diagram configurations
+const mapVehicleTypeToDiagramConfig = (dbType?: string): 'PICKUP_4TYRE' | 'TEMPO_3TYRE' | 'TRUCK_6TYRE' | 'DEFAULT' => {
+  if (!dbType) return 'DEFAULT';
+
+  const typeMap: Record<string, 'PICKUP_4TYRE' | 'TEMPO_3TYRE' | 'TRUCK_6TYRE' | 'DEFAULT'> = {
+    'pickup': 'PICKUP_4TYRE',
+    'van': 'PICKUP_4TYRE',      // Van uses 4-wheel config
+    'tempo': 'TEMPO_3TYRE',
+    'truck': 'TRUCK_6TYRE',
+    'trailer': 'TRUCK_6TYRE',   // Trailer uses 6-wheel config
+  };
+
+  return typeMap[dbType.toLowerCase()] || 'DEFAULT';
+};
+
+const PartReplacement: React.FC<PartReplacementProps> = ({
+  partData,
+  onChange,
+  onRemove,
+  vehicleType
 }) => {
-  const [showTyreDetails, setShowTyreDetails] = useState(partData.partType === 'Tyre');
+  // FIXED: Directly check partData.partType instead of using state
+  const shouldShowTyreSelector = partData.partType === 'Tyre';
+
+  // Map database vehicle type to diagram configuration
+  const diagramConfig = mapVehicleTypeToDiagramConfig(vehicleType);
 
   return (
     <div className="border border-red-200 bg-red-50 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-red-900">Part Details</h4>
+        <h4 className="text-sm font-semibold text-red-900 flex items-center gap-2">
+          <Package className="h-4 w-4" />
+          Part Details
+          {partData.partType && (
+            <span className="text-xs bg-red-100 px-2 py-0.5 rounded">
+              {partData.partType}
+            </span>
+          )}
+        </h4>
         <button
           type="button"
           onClick={onRemove}
@@ -379,19 +486,21 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
           value={partData.partType}
           onChange={(val) => {
             onChange({ ...partData, partType: val });
-            setShowTyreDetails(val === 'Tyre');
           }}
           onAddNew={(newPart) => logger.debug('New part type added:', newPart)}
           icon={Package}
           required
         />
 
-        {showTyreDetails && vehicleType && (
-          <TyrePositionSelector
-            vehicleType={vehicleType}
-            selectedPositions={partData.tyrePositions || []}
-            onChange={(positions) => onChange({ ...partData, tyrePositions: positions })}
-          />
+        {/* FIXED: Show tyre diagram when part type is Tyre */}
+        {shouldShowTyreSelector && (
+          <div className="animate-in fade-in duration-300">
+            <TyrePositionSelector
+              vehicleType={diagramConfig}
+              selectedPositions={partData.tyrePositions || []}
+              onChange={(positions) => onChange({ ...partData, tyrePositions: positions })}
+            />
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-3">
@@ -453,16 +562,17 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
           onChange={(val) => onChange({ ...partData, warrantyPeriod: val })}
         />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Warranty Paper/Photo
-          </label>
-          <input
-            type="file"
-            onChange={(e) => onChange({ ...partData, warrantyDocument: e.target.files?.[0] })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-        </div>
+        <FileUploadWithProgress
+          id={`warranty-doc-${partData.id}`}
+          label="Warranty Paper/Photo"
+          accept="image/*,.pdf"
+          multiple={false}
+          onFilesChange={(files) => onChange({ ...partData, warrantyDocument: files[0] })}
+          maxSize={10 * 1024 * 1024}
+          compress={true}
+          helperText="Upload warranty document (max 10MB)"
+          variant="compact"
+        />
       </div>
     </div>
   );

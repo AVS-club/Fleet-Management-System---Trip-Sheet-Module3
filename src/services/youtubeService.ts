@@ -1,3 +1,7 @@
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('YouTubeService');
+
 export interface YouTubeShort {
   id: string;
   title: string;
@@ -9,23 +13,23 @@ export interface YouTubeShort {
   likeCount?: string;
 }
 
-// Indian fleet-related search queries
+// Fleet-related search queries focused on pickup trucks, maintenance, and safety
 const SEARCH_QUERIES = [
-  'Indian truck driving',
-  'Indian truck test',
-  'RTO truck test India',
-  'Indian pickup truck',
-  'commercial vehicle India',
-  'truck maintenance India',
-  'Indian truck safety',
-  'truck driver India',
-  'Indian transport tips',
-  'fleet management India',
-  'truck fuel saving India',
-  'Indian truck route',
-  'truck inspection India',
-  'Indian commercial vehicle',
-  'truck driver training India'
+  'pickup truck maintenance tips',
+  'pickup truck safety guidelines',
+  'pickup truck driving tips',
+  'truck maintenance shorts',
+  'vehicle safety tips',
+  'fleet maintenance best practices',
+  'pickup truck inspection',
+  'commercial vehicle safety',
+  'truck driver safety training',
+  'fleet management tips',
+  'vehicle maintenance shorts',
+  'truck safety protocols',
+  'pickup truck care tips',
+  'fleet safety guidelines',
+  'commercial vehicle maintenance'
 ];
 
 class YouTubeService {

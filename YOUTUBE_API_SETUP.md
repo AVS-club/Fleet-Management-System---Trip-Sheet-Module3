@@ -15,7 +15,7 @@ npm run dev
 ```
 
 ### 3. Test the integration
-- Go to `http://localhost:3005/notifications`
+- Go to `http://localhost:3005/ai-alerts`
 - Check browser console for "Fetching YouTube shorts..."
 - Videos should load with real Indian fleet content
 

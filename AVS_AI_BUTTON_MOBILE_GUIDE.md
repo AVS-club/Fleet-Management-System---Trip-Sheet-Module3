@@ -1,11 +1,11 @@
-# 📱 AVS AI Button - Mobile Behavior Guide
+# 📱 AI Alerts Button - Mobile Behavior Guide
 
 ## 🎯 Overview
-This guide explains how the AVS AI Button appears and behaves across different mobile devices and screen sizes in the Auto Vital Solution Fleet Management System.
+This guide explains how the AI Alerts Button appears and behaves across different mobile devices and screen sizes in the Auto Vital Solution Fleet Management System.
 
 ## 📱 Mobile Navigation Structure
 
-The AVS AI Button appears in **two different mobile contexts**:
+The AI Alerts Button appears in **two different mobile contexts**:
 
 ### 1. **Main Header Navigation** (Horizontal Scroll)
 - **Location**: Top navigation bar, horizontally scrollable
@@ -51,7 +51,7 @@ The AVS AI Button appears in **two different mobile contexts**:
 ├─────────────────────────────────┤
 │ [🏠] [🚛] [👥] [🛣️] [📊] [🔧] │
 │ [🤖] [⚙️]                    │
-│  ↑ AVS AI Button (compact)     │
+│  ↑ AI Alerts Button (compact)     │
 └─────────────────────────────────┘
 ```
 
@@ -67,7 +67,7 @@ The AVS AI Button appears in **two different mobile contexts**:
 │ [≡] Auto Vital Solution        [🌙] │
 ├─────────────────────────────────────┤
 │ [🏠] [🚛] [👥] [🛣️] [📊] [🔧] [🤖] │
-│  ↑ AVS AI Button (compact)         │
+│  ↑ AI Alerts Button (compact)         │
 └─────────────────────────────────────┘
 ```
 
@@ -83,7 +83,7 @@ The AVS AI Button appears in **two different mobile contexts**:
 │ [≡] Auto Vital Solution            [🌙] │
 ├─────────────────────────────────────────┤
 │ [🏠] [🚛] [👥] [🛣️] [📊] [🔧] [🤖] [⚙️] │
-│  ↑ AVS AI Button (compact)             │
+│  ↑ AI Alerts Button (compact)             │
 └─────────────────────────────────────────┘
 ```
 
@@ -109,7 +109,7 @@ The AVS AI Button appears in **two different mobile contexts**:
 │ 📊 Reports      │
 │ 🔧 Maintenance  │
 │ ┌─────────────┐ │
-│ │ 🤖 AVS AI   │ │ ← Full-width button
+│ │ 🤖 AI Alerts   │ │ ← Full-width button
 │ │    Alerts   │ │
 │ └─────────────┘ │
 │ ⚙️ Settings     │
@@ -118,11 +118,11 @@ The AVS AI Button appears in **two different mobile contexts**:
 └─────────────────┘
 ```
 
-### **AVS AI Button in Hamburger Menu**
+### **AI Alerts Button in Hamburger Menu**
 - **Width**: Full width (`w-full`)
 - **Padding**: 16px horizontal, 8px vertical
 - **Variant**: `compact` with enhanced styling
-- **Behavior**: Closes menu on tap and navigates to `/notifications`
+- **Behavior**: Closes menu on tap and navigates to `/ai-alerts`
 
 ---
 
@@ -214,7 +214,7 @@ The AVS AI Button appears in **two different mobile contexts**:
 
 ### **Interaction Testing**
 - [ ] **Tap Response**: Button responds within 100ms
-- [ ] **Navigation**: Correctly navigates to `/notifications`
+- [ ] **Navigation**: Correctly navigates to `/ai-alerts`
 - [ ] **Active State**: Shows active when on alerts page
 - [ ] **Animation**: Text swapping works smoothly
 - [ ] **Accessibility**: Screen reader announces correctly
@@ -275,7 +275,7 @@ Add `?debug=true` to URL to see:
 ## 📊 Analytics & Monitoring
 
 ### **Key Metrics to Track**
-- **Click-through Rate**: How often users tap the AVS AI Button
+- **Click-through Rate**: How often users tap the AI Alerts Button
 - **Navigation Success**: Successful navigation to alerts page
 - **Animation Performance**: FPS during text swapping
 - **Error Rates**: Failed navigation attempts
@@ -302,14 +302,14 @@ Add `?debug=true` to URL to see:
 ### **Advanced Features**
 - [ ] **Smart Suggestions**: AI-powered alert recommendations
 - [ ] **Context Awareness**: Show relevant alerts based on location
-- [ ] **Integration**: Connect with other AVS AI features
+- [ ] **Integration**: Connect with other AI Alerts features
 - [ ] **Analytics**: Advanced user behavior tracking
 
 ---
 
 ## 🎉 Conclusion
 
-The AVS AI Button provides a **seamless, branded experience** across all mobile devices with:
+The AI Alerts Button provides a **seamless, branded experience** across all mobile devices with:
 
 ✅ **Consistent Branding** - AVS colors and styling  
 ✅ **Touch-Optimized** - 48px minimum touch targets  

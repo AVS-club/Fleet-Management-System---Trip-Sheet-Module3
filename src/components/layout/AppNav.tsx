@@ -38,7 +38,7 @@ const AppNav: React.FC = () => {
           if (loading) {
             const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
 
-            // Special handling for custom components (like AVS AI Button)
+            // Special handling for custom components (like AI Alerts Button)
             if (CustomComponent) {
               return (
                 <div key={to} className="relative group">
@@ -95,7 +95,7 @@ const AppNav: React.FC = () => {
           }
           const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
 
-          // Special handling for custom components (like AVS AI Button)
+          // Special handling for custom components (like AI Alerts Button)
           if (CustomComponent) {
             return (
               <div key={to} className="relative group">
