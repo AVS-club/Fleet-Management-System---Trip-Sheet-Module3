@@ -46,7 +46,6 @@ export const WarehouseDriversSection: React.FC<WarehouseDriversSectionProps> = (
           setWarehouses(warehousesData);
         }
       } catch (error) {
-        console.error('Failed to load warehouses:', error);
       }
 
       // Load drivers
@@ -54,7 +53,6 @@ export const WarehouseDriversSection: React.FC<WarehouseDriversSectionProps> = (
         const drivers = await getDrivers();
         setAvailableDrivers(drivers);
       } catch (error) {
-        console.error('Failed to load drivers:', error);
       }
     };
 

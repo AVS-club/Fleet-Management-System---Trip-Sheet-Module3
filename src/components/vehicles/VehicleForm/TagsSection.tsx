@@ -34,7 +34,6 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
         const tags = await getTags();
         setAvailableTags(tags.map(t => t.name));
       } catch (error) {
-        console.error('Failed to load tags:', error);
       }
 
       // Load reminder contacts

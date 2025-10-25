@@ -183,15 +183,6 @@ const AIAlertsPage: React.FC = () => {
     enabled: hasYouTubeAPIKey
   });
 
-  // Debug YouTube data
-  useEffect(() => {
-    if (shortsError) {
-      console.error('YouTube Shorts Error:', shortsError);
-    }
-    if (youtubeShorts) {
-      console.log('YouTube Shorts Data:', youtubeShorts);
-    }
-  }, [youtubeShorts, shortsError]);
 
   const availableShorts = youtubeShorts || [];
   const events = useMemo(() => (heroFeedData?.pages ?? []).flat(), [heroFeedData]);

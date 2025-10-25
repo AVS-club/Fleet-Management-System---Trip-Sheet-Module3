@@ -30,7 +30,7 @@ import {
   MessageSquare,
   MoreVertical,
   IndianRupee,
-  Star,
+  Activity,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverForm from "../components/drivers/DriverForm";
@@ -41,7 +41,7 @@ import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Con
 import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
 import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 import { createLogger } from '../utils/logger';
-import { DriverStats, getDisplayRating, getDocumentStatus, formatDistance, formatMileage } from '../utils/driverRating';
+import { DriverStats, getDocumentStatus, formatDistance, formatMileage } from '../utils/driverRating';
 import { Vehicle } from '../types';
 import { getUserActiveOrganization } from '../utils/supaHelpers';
 
@@ -81,7 +81,7 @@ const DriversPage: React.FC = () => {
   // Enhanced data state
   const [driverStats, setDriverStats] = useState<Record<string, DriverStats>>({});
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [avgRating, setAvgRating] = useState(0);
+  const [activeDriversCount, setActiveDriversCount] = useState(0);
   const [totalSalary, setTotalSalary] = useState(0);
   const [assignedVehicles, setAssignedVehicles] = useState(0);
 
@@ -190,16 +190,11 @@ const DriversPage: React.FC = () => {
 
         setDriversWithExpiringLicense(expiringLicenses);
 
-        // Calculate average rating
-        const ratingsWithData = driversArray
-          .filter(d => statsMap[d.id!] && statsMap[d.id!].total_trips >= 5)
-          .map(d => getDisplayRating(d, statsMap[d.id!]).value)
-          .filter((rating): rating is number => rating !== null);
-
-        const averageRating = ratingsWithData.length > 0
-          ? ratingsWithData.reduce((sum, rating) => sum + rating, 0) / ratingsWithData.length
-          : 0;
-        setAvgRating(Number(averageRating.toFixed(1)));
+        // Calculate active drivers (drivers with 10+ trips in last 30 days)
+        const activeDriversWithTrips = driversArray.filter(d =>
+          statsMap[d.id!] && statsMap[d.id!].total_trips >= 10
+        ).length;
+        setActiveDriversCount(activeDriversWithTrips);
 
         // Calculate total salary
         const salary = driversArray.reduce(
@@ -631,10 +626,10 @@ const DriversPage: React.FC = () => {
               />
 
               <StatCard
-                title="Avg Rating"
-                value={avgRating > 0 ? `⭐ ${avgRating}/5` : 'N/A'}
-                subtitle={`${driversWithExpiringLicense > 0 ? `${driversWithExpiringLicense} drivers` : 'All rated'}`}
-                icon={<Star className="h-5 w-5 text-yellow-500" />}
+                title="Active Drivers"
+                value={activeDriversCount}
+                subtitle="10+ trips/month"
+                icon={<Activity className="h-5 w-5 text-success-600" />}
               />
 
               <StatCard
@@ -685,7 +680,6 @@ const DriversPage: React.FC = () => {
                 const stats = driverStats[driver.id!] || null;
                 const vehicle = vehicles.find(v => v.id === driver.primary_vehicle_id);
                 const docStatus = getDocumentStatus(driver);
-                const rating = getDisplayRating(driver, stats);
 
                 // Status ring color
                 const statusRingColor =
@@ -733,15 +727,12 @@ const DriversPage: React.FC = () => {
                           <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
                             {driver.experience_years || 0} years exp
                           </span>
-                          {/* Performance Rating Badge */}
-                          <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                            rating.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
-                            rating.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
-                            rating.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' :
-                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                          }`}>
-                            {rating.display}
-                          </span>
+                          {/* Activity Badge - Optional */}
+                          {stats && stats.total_trips >= 15 && (
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                              Active Driver
+                            </span>
+                          )}
                         </div>
                       </div>
 

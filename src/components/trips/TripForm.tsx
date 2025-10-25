@@ -122,8 +122,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const [formValidationErrors, setFormValidationErrors] = useState<string[]>([]);
   const [autoTieDriver, setAutoTieDriver] = useState(true);
   
-  // Debug mode for testing
-  const DEBUG_MODE = process.env.NODE_ENV === 'development';
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -1953,32 +1951,6 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </CollapsibleSection>
 
-      {/* Debug Panel */}
-      {DEBUG_MODE && (
-        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs">
-          <h4 className="font-bold mb-2 text-gray-800 dark:text-gray-200">Debug Info:</h4>
-          <div className="grid grid-cols-2 gap-2 text-gray-700 dark:text-gray-300">
-            <p>Vehicle ID: {selectedVehicleId || 'None'}</p>
-            <p>Primary Driver ID: {vehicles.find(v => v.id === selectedVehicleId)?.primary_driver_id || 'None'}</p>
-            <p>Selected Driver ID: {watch('driver_id') || 'None'}</p>
-            <p>Auto-tie Active: {autoTieDriver ? 'Yes' : 'No'}</p>
-            <p>Refueling Mode: {isRefuelingTrip ? 'Yes' : 'No'}</p>
-            <p>Total Expenses: ₹{watchedValues.total_road_expenses || 0}</p>
-            <p>Start KM: {watchedValues.start_km || 0}</p>
-            <p>End KM: {watchedValues.end_km || 0}</p>
-            <p>Distance: {(watchedValues.end_km || 0) - (watchedValues.start_km || 0)} km</p>
-            <p>Gross Weight: {watchedValues.gross_weight || 0} kg</p>
-            <p>Return Trip: {watchedValues.is_return_trip ? 'Yes' : 'No'}</p>
-            <p>Vehicle Just Changed: {vehicleJustChanged.current ? 'Yes' : 'No'}</p>
-          </div>
-          <details className="mt-2">
-            <summary className="cursor-pointer font-medium text-gray-800 dark:text-gray-200">All Form Values</summary>
-            <pre className="mt-2 p-2 bg-gray-200 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
-              {JSON.stringify(watch(), null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
 
             </div>
           </div>

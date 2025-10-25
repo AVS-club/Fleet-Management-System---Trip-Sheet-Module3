@@ -23,7 +23,10 @@
       "Bash(timeout 5 sleep:*)",
       "Bash(where:*)",
       "Bash(node apply_migration_now.js:*)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(node:*)",
+      "Bash(move apply_short_urls_migration.js apply_short_urls_migration.cjs)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []
