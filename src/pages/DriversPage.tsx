@@ -26,6 +26,11 @@ import {
   Phone,
   Calendar, // ⚠️ Confirm field refactor here
   FileText,
+  AlertTriangle,
+  MessageSquare,
+  MoreVertical,
+  IndianRupee,
+  Star,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverForm from "../components/drivers/DriverForm";
@@ -36,6 +41,9 @@ import WhatsAppButton from '../components/drivers/WhatsAppButton'; // ⚠️ Con
 import DriverWhatsAppShareModal from '../components/drivers/DriverWhatsAppShareModal';
 import { getSignedDriverDocumentUrl } from '../utils/supabaseStorage';
 import { createLogger } from '../utils/logger';
+import { DriverStats, getDisplayRating, getDocumentStatus, formatDistance, formatMileage } from '../utils/driverRating';
+import { Vehicle } from '../types';
+import { getUserActiveOrganization } from '../utils/supaHelpers';
 
 const logger = createLogger('DriversPage');
 
@@ -70,6 +78,13 @@ const DriversPage: React.FC = () => {
   const [driversWithExpiringLicense, setDriversWithExpiringLicense] =
     useState(0);
 
+  // Enhanced data state
+  const [driverStats, setDriverStats] = useState<Record<string, DriverStats>>({});
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [avgRating, setAvgRating] = useState(0);
+  const [totalSalary, setTotalSalary] = useState(0);
+  const [assignedVehicles, setAssignedVehicles] = useState(0);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -84,15 +99,59 @@ const DriversPage: React.FC = () => {
           return;
         }
         setUser(user);
-        
-        const [driversData, tripsData] = await Promise.all([
+
+        // Get organization ID
+        const organizationId = await getUserActiveOrganization(user.id);
+        if (!organizationId) {
+          logger.warn('No organization selected for user');
+          setLoading(false);
+          setStatsLoading(false);
+          return;
+        }
+
+        // Fetch drivers, trips, and driver stats in parallel
+        const [driversData, tripsData, statsResult] = await Promise.all([
           getDrivers(),
           getTrips(),
+          supabase.rpc('get_driver_stats', {
+            p_organization_id: organizationId,
+            p_days_back: 30
+          }),
         ]);
 
         const driversArray = Array.isArray(driversData) ? driversData : [];
         setDrivers(driversArray);
         setTrips(Array.isArray(tripsData) ? tripsData : []);
+
+        // Process driver stats into a map
+        const statsMap: Record<string, DriverStats> = {};
+        if (statsResult.data && Array.isArray(statsResult.data)) {
+          statsResult.data.forEach((stat: any) => {
+            statsMap[stat.driver_id] = {
+              total_trips: stat.total_trips || 0,
+              total_distance: stat.total_distance || 0,
+              total_fuel: stat.total_fuel || 0,
+              avg_mileage: stat.avg_mileage || 0,
+              active_days: stat.active_days || 0,
+              last_trip_date: stat.last_trip_date,
+            };
+          });
+        }
+        setDriverStats(statsMap);
+
+        // Fetch vehicles for drivers with primary_vehicle_id
+        const vehicleIds = driversArray
+          .filter(d => d.primary_vehicle_id)
+          .map(d => d.primary_vehicle_id);
+
+        if (vehicleIds.length > 0) {
+          const { data: vehiclesData } = await supabase
+            .from('vehicles')
+            .select('id, registration_number, make, model, type')
+            .in('id', vehicleIds);
+
+          setVehicles(vehiclesData || []);
+        }
 
         // Calculate statistics
         setTotalDrivers(driversArray.length);
@@ -130,6 +189,28 @@ const DriversPage: React.FC = () => {
         }).length;
 
         setDriversWithExpiringLicense(expiringLicenses);
+
+        // Calculate average rating
+        const ratingsWithData = driversArray
+          .filter(d => statsMap[d.id!] && statsMap[d.id!].total_trips >= 5)
+          .map(d => getDisplayRating(d, statsMap[d.id!]).value)
+          .filter((rating): rating is number => rating !== null);
+
+        const averageRating = ratingsWithData.length > 0
+          ? ratingsWithData.reduce((sum, rating) => sum + rating, 0) / ratingsWithData.length
+          : 0;
+        setAvgRating(Number(averageRating.toFixed(1)));
+
+        // Calculate total salary
+        const salary = driversArray.reduce(
+          (sum, driver) => sum + (driver.salary || 0),
+          0
+        );
+        setTotalSalary(salary);
+
+        // Calculate assigned vehicles
+        const assigned = driversArray.filter(d => d.primary_vehicle_id).length;
+        setAssignedVehicles(assigned);
 
         setStatsLoading(false);
 
@@ -529,8 +610,8 @@ const DriversPage: React.FC = () => {
         <>
           {/* Driver Stats Section */}
           {statsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {[...Array(4)].map((_, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
+              {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
                   className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 animate-pulse border border-gray-200 dark:border-gray-700"
@@ -541,30 +622,47 @@ const DriversPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
               <StatCard
                 title="Total Drivers"
                 value={totalDrivers}
+                subtitle={`Active: ${activeDrivers}`}
                 icon={<Users className="h-5 w-5 text-primary-600" />}
               />
 
               <StatCard
-                title="Active Drivers"
-                value={activeDrivers}
-                icon={<UserCheck className="h-5 w-5 text-success-600" />}
+                title="Avg Rating"
+                value={avgRating > 0 ? `⭐ ${avgRating}/5` : 'N/A'}
+                subtitle={`${driversWithExpiringLicense > 0 ? `${driversWithExpiringLicense} drivers` : 'All rated'}`}
+                icon={<Star className="h-5 w-5 text-yellow-500" />}
               />
 
               <StatCard
-                title="Inactive Drivers"
-                value={inactiveDrivers}
-                icon={<UserX className="h-5 w-5 text-gray-600" />}
+                title="Documents Expiring"
+                value={driversWithExpiringLicense}
+                subtitle="This month"
+                icon={<AlertTriangle className={`h-5 w-5 ${driversWithExpiringLicense > 0 ? 'text-warning-600' : 'text-success-600'}`} />}
               />
 
               <StatCard
-                title="Avg. Experience"
-                value={avgExperience}
-                subtitle="years"
+                title="Avg Experience"
+                value={`${avgExperience} years`}
+                subtitle="All drivers"
                 icon={<Clock className="h-5 w-5 text-primary-600" />}
+              />
+
+              <StatCard
+                title="Total Salary"
+                value={`₹${(totalSalary/100000).toFixed(1)}L`}
+                subtitle="Per month"
+                icon={<IndianRupee className="h-5 w-5 text-success-600" />}
+              />
+
+              <StatCard
+                title="Vehicles Assigned"
+                value={`${assignedVehicles}/${totalDrivers}`}
+                subtitle={`${((assignedVehicles/Math.max(totalDrivers,1))*100).toFixed(0)}% assigned`}
+                icon={<Truck className="h-5 w-5 text-primary-600" />}
               />
             </div>
           )}
@@ -583,146 +681,169 @@ const DriversPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {drivers.map((driver: Driver) => {
-                const driverTrips = Array.isArray(trips)
-                  ? trips.filter((trip) => trip.driver_id === driver.id)
-                  : [];
-                const totalDistance = driverTrips.reduce(
-                  (sum, trip) => sum + (trip.end_km - trip.start_km),
-                  0
-                );
-                const licenseStatus = getLicenseStatus(
-                  driver.license_expiry || driver.license_expiry_date
-                );
+                // Get driver stats and vehicle
+                const stats = driverStats[driver.id!] || null;
+                const vehicle = vehicles.find(v => v.id === driver.primary_vehicle_id);
+                const docStatus = getDocumentStatus(driver);
+                const rating = getDisplayRating(driver, stats);
+
+                // Status ring color
+                const statusRingColor =
+                  driver.status === 'active' ? 'ring-green-400' :
+                  driver.status === 'onLeave' ? 'ring-yellow-400' :
+                  driver.status === 'suspended' ? 'ring-red-400' : 'ring-gray-400';
 
                 return (
                   <div
                     key={driver.id}
-                    className={`bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 hover:shadow-md transition-shadow relative cursor-pointer border border-gray-200 dark:border-gray-700 ${
-                      driver.status === 'active' ? 'border-l-4 border-green-500 dark:border-green-400' : ''
-                    }`}
-                    onClick={() => navigate(`/drivers/${driver.id}`)}
+                    className="bg-white dark:bg-gray-900 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-400 hover:shadow-lg transition-all duration-200 p-5"
                   >
-                    {/* Edit Button */}
-                    <button
-                      className="absolute top-3 right-3 p-1.5 text-gray-400 dark:text-gray-500 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-full transition-colors z-10"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditDriver(driver);
-                      }}
-                      title="Edit Driver"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-
-                    <div className="flex items-start gap-3">
-                      {/* Driver Photo */}
-                      <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-                        {driver.driver_photo_url ? (
-                          <img
-                            src={driver.driver_photo_url}
-                            alt={driver.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              // Fallback to default avatar on image load error
-                              e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
-                          <User className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                    {/* Header Section with Photo and Basic Info */}
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="relative">
+                        <div className={`w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-4 ${statusRingColor}`}>
+                          {driver.driver_photo_url ? (
+                            <img
+                              src={driver.driver_photo_url}
+                              alt={driver.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
+                            />
+                          ) : null}
+                          <div className={`${driver.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
+                            <User className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                          </div>
                         </div>
+                        {/* Status Indicator */}
+                        <span className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${
+                          driver.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                        }`}>
+                          {driver.status === 'active' ? '✓' : '−'}
+                        </span>
                       </div>
 
                       <div className="flex-1">
-                        {/* Driver Name & License */}
-                        <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100 pr-8">
-                          {driver.name}
-                        </h3>
-                        <p className="text-sm font-sans text-gray-500 dark:text-gray-400">
-                          {driver.license_number || "No license"}
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{driver.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{driver.license_number || 'No license'}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
+                            {driver.experience_years || 0} years exp
+                          </span>
+                          {/* Performance Rating Badge */}
+                          <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            rating.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                            rating.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                            rating.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' :
+                            'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                          }`}>
+                            {rating.display}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Document Alert Icon */}
+                      {docStatus.status !== 'valid' && (
+                        <div className={`p-2 rounded-full ${
+                          docStatus.color === 'red' ? 'bg-red-50 dark:bg-red-900/30' :
+                          docStatus.color === 'yellow' ? 'bg-yellow-50 dark:bg-yellow-900/30' :
+                          'bg-gray-50 dark:bg-gray-800'
+                        }`}>
+                          <AlertTriangle className={`h-5 w-5 ${
+                            docStatus.color === 'red' ? 'text-red-500' :
+                            docStatus.color === 'yellow' ? 'text-yellow-500' :
+                            'text-gray-500'
+                          }`} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact & Vehicle Info */}
+                    <div className="space-y-2 mb-4">
+                      {(driver.phone || driver.contact_number) && (
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <Phone className="h-4 w-4 mr-2" />
+                          <span>{driver.phone || driver.contact_number}</span>
+                        </div>
+                      )}
+
+                      {vehicle && (
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <Truck className="h-4 w-4 mr-2" />
+                          <span>{vehicle.registration_number} • {vehicle.make}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Trip Statistics */}
+                    <div className="grid grid-cols-3 gap-2 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Trips</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{stats?.total_trips || 0}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Distance</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                          {stats ? formatDistance(stats.total_distance) : '0 km'}
                         </p>
-
-                        {/* License Status & Experience */}
-                        <div className="mt-2 flex gap-2 flex-wrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-sans font-medium ${
-                              licenseStatus.status === "expired"
-                                ? "bg-error-100 text-error-800"
-                                : licenseStatus.status === "expiring"
-                                ? "bg-warning-100 text-warning-800"
-                                : "bg-success-100 text-success-800"
-                            }`}
-                          >
-                            {licenseStatus.label}
-                          </span>
-                          
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-sans font-medium bg-primary-100 text-primary-800">
-                            <Calendar className="h-3 w-3 mr-1" /> {/* ⚠️ Confirm field refactor here */}
-                            {driver.experience_years} years
-                          </span>
-                        </div>
-                        
-                        {/* Contact Number */}
-                        {(driver.contact_number || driver.phone) && (
-                          <div className="mt-2 flex items-center text-sm">
-                            <Phone className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-1" />
-                            <span className="font-sans text-gray-600 dark:text-gray-300">{driver.contact_number || driver.phone}</span>
-                          </div>
-                        )}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Fuel Eff.</p>
+                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                          {stats ? formatMileage(stats.avg_mileage) : 'N/A'}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Trip Stats Section */}
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="text-center">
-                          <FileText className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
-                            Trips
-                          </span>
-                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">{driverTrips.length}</p>
-                        </div>
-                        <div className="text-center">
-                          <MapPin className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
-                            Distance
-                          </span>
-                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
-                            {totalDistance.toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <Truck className="h-4 w-4 text-gray-400 dark:text-gray-500 mx-auto mb-1" />
-                          <span className="text-sm font-sans text-gray-500 dark:text-gray-400 block">
-                            Vehicle
-                          </span>
-                          <p className="font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
-                            {driver.primary_vehicle_id ? "Assigned" : "-"}
-                          </p>
-                        </div>
-                      </div>
+                    {/* Document Status Bar */}
+                    <div className={`p-2 mb-3 rounded-md border ${
+                      docStatus.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                      docStatus.color === 'yellow' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+                      docStatus.color === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                      'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    }`}>
+                      <p className={`text-xs font-medium text-center ${
+                        docStatus.color === 'green' ? 'text-green-700 dark:text-green-300' :
+                        docStatus.color === 'yellow' ? 'text-yellow-700 dark:text-yellow-300' :
+                        docStatus.color === 'red' ? 'text-red-700 dark:text-red-300' :
+                        'text-gray-600 dark:text-gray-400'
+                      }`}>
+                        {docStatus.text}
+                      </p>
                     </div>
 
-                    {/* View Details Link */}
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      {driver.phone && (
+                        <button
+                          onClick={() => window.location.href = `tel:${driver.phone}`}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
+                        >
+                          <Phone className="h-4 w-4" />
+                          Call
+                        </button>
+                      )}
+
+                      {driver.phone && (
+                        <button
+                          onClick={() => window.open(`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`)}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors text-sm font-medium"
+                        >
+                          <MessageSquare className="h-4 w-4" />
+                          WhatsApp
+                        </button>
+                      )}
+
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/drivers/${driver.id}`);
-                        }}
-                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 text-sm font-sans font-medium"
+                        onClick={() => navigate(`/drivers/${driver.id}`)}
+                        className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                        title="View Details"
                       >
-                        View Details
+                        <MoreVertical className="h-4 w-4" />
                       </button>
-                      <WhatsAppButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenShareModal(driver, e);
-                        }}
-                        className="ml-2 text-green-600 hover:text-green-800"
-                        message={`Driver details for ${driver.name} (License: ${driver.license_number}) from Auto Vital Solution.`}
-                      />
                     </div>
                   </div>
                 );

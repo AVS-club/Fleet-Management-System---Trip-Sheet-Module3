@@ -7,7 +7,7 @@ import DriverAIInsights from '../components/ai/DriverAIInsights';
 import MediaCard from '../components/HeroFeed/MediaCard';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -702,47 +702,49 @@ const AIAlertsPage: React.FC = () => {
 
                 {/* Social Media Scroller Layout */}
                 <div className="max-w-4xl mx-auto">
-                  {/* Debug Info */}
-                  <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
-                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                      <strong>Debug Info:</strong> Videos: {showVideos ? 'ON' : 'OFF'} | 
-                      Available Shorts: {availableShorts.length} | 
-                      YouTube API Key: {hasYouTubeAPIKey ? 'Present' : 'Missing'} | 
-                      Loading: {shortsLoading ? 'Yes' : 'No'} |
-                      Error: {shortsError ? 'Yes' : 'No'}
-                    </p>
-                    {shortsError && (
-                      <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                        Error: {shortsError.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{events.filter(e => e.kind === 'ai_alert').length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">AI Alerts</p>
+                  {/* Stats Grid - Colorful Cards */}
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-xl border border-red-200 dark:border-red-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-red-700 dark:text-red-300">{events.filter(e => e.kind === 'ai_alert').length}</span>
+                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">AI Alerts</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{events.filter(e => e.kind === 'vehicle_doc').length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Documents</p>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{events.filter(e => e.kind === 'vehicle_doc').length}</span>
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Documents</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{events.filter(e => e.kind === 'maintenance').length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Maintenance</p>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{events.filter(e => e.kind === 'maintenance').length}</span>
+                      <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-1">Maintenance</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{events.filter(e => e.kind === 'trip').length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Trips</p>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-xl border border-green-200 dark:border-green-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-green-700 dark:text-green-300">{events.filter(e => e.kind === 'trip').length}</span>
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">Trips</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{events.filter(e => e.kind === 'kpi').length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">KPIs</p>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-xl border border-purple-200 dark:border-purple-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">{events.filter(e => e.kind === 'kpi').length}</span>
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-1">KPIs</p>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <span className="text-lg font-bold text-gray-900 dark:text-gray-100">{availableShorts.length}</span>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Videos</p>
+                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20 p-4 rounded-xl border border-pink-200 dark:border-pink-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Play className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-pink-700 dark:text-pink-300">{availableShorts.length}</span>
+                      <p className="text-xs font-medium text-pink-600 dark:text-pink-400 mt-1">Videos</p>
                     </div>
                   </div>
 
@@ -832,24 +834,64 @@ const AIAlertsPage: React.FC = () => {
                                     />
                                   )}
                                   
-                                  {/* Event Card */}
-                                  <div key={`${event.id}-${index}`} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-sm transition-shadow">
+                                  {/* Event Card - Colorful by Type */}
+                                  <div
+                                    key={`${event.id}-${index}`}
+                                    className={`
+                                      rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4
+                                      ${event.kind === 'ai_alert' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}
+                                      ${event.kind === 'vehicle_doc' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
+                                      ${event.kind === 'maintenance' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30' : ''}
+                                      ${event.kind === 'trip' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-900/30' : ''}
+                                      ${event.kind === 'kpi' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30' : ''}
+                                      ${event.kind === 'vehicle_activity' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' : ''}
+                                      ${event.kind === 'activity' ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30' : ''}
+                                      ${!['ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity'].includes(event.kind) ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700' : ''}
+                                    `}
+                                  >
                                     <div className="flex items-start gap-3">
                                       <div className="flex-shrink-0">
-                                        {event.kind === 'ai_alert' && <Bell className="h-5 w-5 text-red-500" />}
-                                        {event.kind === 'vehicle_doc' && <FileX className="h-5 w-5 text-blue-500" />}
-                                        {event.kind === 'maintenance' && <Tool className="h-5 w-5 text-orange-500" />}
-                                        {event.kind === 'trip' && <Truck className="h-5 w-5 text-green-500" />}
-                                        {event.kind === 'kpi' && <BarChart2 className="h-5 w-5 text-purple-500" />}
-                                        {event.kind === 'vehicle_activity' && <Truck className="h-5 w-5 text-indigo-500" />}
-                                        {event.kind === 'activity' && <Sparkles className="h-5 w-5 text-pink-500" />}
+                                        <div className={`p-2 rounded-lg ${
+                                          event.kind === 'ai_alert' ? 'bg-red-100 dark:bg-red-800/50' :
+                                          event.kind === 'vehicle_doc' ? 'bg-blue-100 dark:bg-blue-800/50' :
+                                          event.kind === 'maintenance' ? 'bg-orange-100 dark:bg-orange-800/50' :
+                                          event.kind === 'trip' ? 'bg-green-100 dark:bg-green-800/50' :
+                                          event.kind === 'kpi' ? 'bg-purple-100 dark:bg-purple-800/50' :
+                                          event.kind === 'vehicle_activity' ? 'bg-indigo-100 dark:bg-indigo-800/50' :
+                                          event.kind === 'activity' ? 'bg-pink-100 dark:bg-pink-800/50' :
+                                          'bg-gray-100 dark:bg-gray-700'
+                                        }`}>
+                                          {event.kind === 'ai_alert' && <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />}
+                                          {event.kind === 'vehicle_doc' && <FileX className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+                                          {event.kind === 'maintenance' && <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
+                                          {event.kind === 'trip' && <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />}
+                                          {event.kind === 'kpi' && <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
+                                          {event.kind === 'vehicle_activity' && <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
+                                          {event.kind === 'activity' && <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />}
+                                        </div>
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">{event.title}</h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{event.description}</p>
-                                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                                          <span>{new Date(event.created_at).toLocaleDateString()}</span>
-                                          <span className="capitalize">{event.kind.replace('_', ' ')}</span>
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
+                                          <span className={`
+                                            inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                            ${event.kind === 'ai_alert' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : ''}
+                                            ${event.kind === 'vehicle_doc' ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : ''}
+                                            ${event.kind === 'maintenance' ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200' : ''}
+                                            ${event.kind === 'trip' ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : ''}
+                                            ${event.kind === 'kpi' ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : ''}
+                                            ${event.kind === 'vehicle_activity' ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200' : ''}
+                                            ${event.kind === 'activity' ? 'bg-pink-200 dark:bg-pink-800 text-pink-800 dark:text-pink-200' : ''}
+                                          `}>
+                                            {event.kind.replace('_', ' ')}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{event.description}</p>
+                                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                          <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            {new Date(event.created_at).toLocaleDateString()}
+                                          </span>
                                         </div>
                                       </div>
                                     </div>
