@@ -4,6 +4,9 @@ import Button from '../ui/Button';
 import { Vehicle } from '../../types';
 import { getVehiclesWithTag } from '../../utils/api/tags';
 import LoadingScreen from '../LoadingScreen';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TagVehicleListModal');
 
 interface TagVehicleListModalProps {
   isOpen: boolean;
@@ -35,7 +38,7 @@ const TagVehicleListModal: React.FC<TagVehicleListModalProps> = ({
       const data = await getVehiclesWithTag(tagId);
       setVehicles(data);
     } catch (error) {
-      console.error('Error loading vehicles:', error);
+      logger.error('Error loading vehicles:', error);
     } finally {
       setLoading(false);
     }

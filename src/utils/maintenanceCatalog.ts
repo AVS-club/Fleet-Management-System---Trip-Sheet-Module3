@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('maintenanceCatalog');
 
 interface MaintenanceTaskCatalog {
   id: string;
@@ -32,7 +35,7 @@ export const getMaintenanceTasksCatalog = async (): Promise<MaintenanceTaskCatal
     .order('task_name');
 
   if (error) {
-    console.error('Error fetching maintenance tasks catalog:', error);
+    logger.error('Error fetching maintenance tasks catalog:', error);
     return [];
   }
 

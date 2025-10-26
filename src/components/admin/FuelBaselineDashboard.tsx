@@ -3,6 +3,9 @@ import { FuelEfficiencyBaselineManager, FuelEfficiencyBaseline, BaselineAnalysis
 import { Fuel, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, RefreshCw, Target, BarChart3, Activity } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { supabase } from '../../utils/supabaseClient';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('FuelBaselineDashboard');
 
 interface FuelBaselineDashboardProps {
   className?: string;
@@ -30,7 +33,7 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
         toast.error(`Baseline status error: ${status.error}`);
       }
     } catch (error) {
-      console.error('Error loading system status:', error);
+      logger.error('Error loading system status:', error);
       toast.error('Failed to load baseline status');
     }
   };
@@ -46,13 +49,13 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
         .order('registration_number');
 
       if (vehiclesError) {
-        console.error('Error fetching vehicles:', vehiclesError);
+        logger.error('Error fetching vehicles:', vehiclesError);
         toast.error('Failed to fetch vehicle list');
         return;
       }
 
       if (!vehicles || vehicles.length === 0) {
-        console.log('No vehicles found in database');
+        logger.debug('No vehicles found in database');
         setVehicleAnalyses([]);
         toast.info('No vehicles found. Please add vehicles first.');
         return;
@@ -66,7 +69,7 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
             analyses.push(analysis);
           }
         } catch (error) {
-          console.error(`Error analyzing vehicle ${vehicle.registration_number} (${vehicle.id}):`, error);
+          logger.error(`Error analyzing vehicle ${vehicle.registration_number} (${vehicle.id}):`, error);
           // Continue with other vehicles even if one fails
         }
       }
@@ -77,7 +80,7 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
         toast.info('No vehicle analysis data available. Vehicles may need more trip data for baseline calculations.');
       }
     } catch (error) {
-      console.error('Error loading vehicle analyses:', error);
+      logger.error('Error loading vehicle analyses:', error);
       toast.error('Failed to load vehicle analyses');
     } finally {
       setLoading(false);
@@ -103,7 +106,7 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
       // Show detailed error information
       const failedResults = result.results.filter(r => r.status === 'failed');
       if (failedResults.length > 0) {
-        console.log('Failed baseline establishments:', failedResults);
+        logger.debug('Failed baseline establishments:', failedResults);
         const errorMessages = failedResults.map(r => `${r.registration}: ${r.reason}`).join(', ');
         if (errorMessages.length < 200) { // Keep toast message reasonable
           toast.error(`Failures: ${errorMessages}`);
@@ -114,7 +117,7 @@ const FuelBaselineDashboard: React.FC<FuelBaselineDashboardProps> = ({ className
       await loadSystemStatus();
       await loadVehicleAnalyses();
     } catch (error) {
-      console.error('Error establishing baselines:', error);
+      logger.error('Error establishing baselines:', error);
       if (error instanceof Error) {
         toast.error(`Failed to establish baselines: ${error.message}`);
       } else {

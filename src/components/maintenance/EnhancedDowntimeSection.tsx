@@ -5,6 +5,9 @@ import { ANIMATIONS } from '@/utils/animations';
 import { MaintenanceTask } from '@/types/maintenance';
 import AnimatedButton from '../ui/AnimatedButton';
 import AnimatedError from '../ui/AnimatedError';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EnhancedDowntimeSection');
 
 interface EnhancedDowntimeSectionProps {
   className?: string;
@@ -91,19 +94,19 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
     
     // CRITICAL: Prevent rapid clicks that cause main thread blocking
     if (isProcessing) {
-      console.log('🚫 Still processing previous click, ignoring to prevent RESULT_CODE_HUNG crash...');
+      logger.debug('🚫 Still processing previous click, ignoring to prevent RESULT_CODE_HUNG crash...');
       return;
     }
     
     // CRITICAL: Prevent clicks too close together (less than 100ms apart)
     if (currentTime - lastClickTimeRef.current < 100) {
-      console.log('🚫 Click too rapid, ignoring to prevent crash...');
+      logger.debug('🚫 Click too rapid, ignoring to prevent crash...');
       return;
     }
     
     // CRITICAL: Prevent excessive clicking that can overwhelm the main thread
     if (clickCount > 10) {
-      console.log('🚫 Too many clicks detected, temporarily blocking to prevent crash...');
+      logger.debug('🚫 Too many clicks detected, temporarily blocking to prevent crash...');
       setTimeout(() => setClickCount(0), 2000); // Reset after 2 seconds
       return;
     }
@@ -113,7 +116,7 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
     setClickCount(prev => prev + 1);
     setIsProcessing(true);
     
-    console.log(`🎯 Quick select clicked: ${preset.id} (${preset.days}d ${preset.hours}h) - Click #${clickCount + 1}`);
+    logger.debug(`🎯 Quick select clicked: ${preset.id} (${preset.days}d ${preset.hours}h) - Click #${clickCount + 1}`);
     
     // Use requestAnimationFrame to defer state updates and prevent main thread blocking
     // This is CRITICAL to prevent RESULT_CODE_HUNG crashes
@@ -124,7 +127,7 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
         setValue('downtime_hours', preset.hours, { shouldDirty: true, shouldValidate: false });
         setSelectedPreset(preset.id);
         
-        console.log(`✅ Successfully updated downtime: ${preset.days}d ${preset.hours}h`);
+        logger.debug(`✅ Successfully updated downtime: ${preset.days}d ${preset.hours}h`);
         
         // Add success animation with error handling
         timeoutRef.current = setTimeout(() => {
@@ -132,7 +135,7 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
         }, 1000);
         
       } catch (error) {
-        console.error('❌ Error updating downtime (preventing crash):', error);
+        logger.error('❌ Error updating downtime (preventing crash):', error);
         setSelectedPreset(null);
       } finally {
         // Reset processing state after a delay to prevent rapid successive clicks
@@ -155,7 +158,7 @@ const EnhancedDowntimeSection: React.FC<EnhancedDowntimeSectionProps> = ({ class
       setValue(field, Math.max(0, value));
       setSelectedPreset(null);
     } catch (error) {
-      console.error('Error in handleCustomDowntimeChange:', error);
+      logger.error('Error in handleCustomDowntimeChange:', error);
     }
   };
 

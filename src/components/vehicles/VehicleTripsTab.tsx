@@ -9,6 +9,9 @@ import { formatDate } from '../../utils/dateUtils';
 import { getMileageBadge, vehicleColors } from '../../utils/vehicleColors';
 import { getVehicleTrips } from '../../utils/api/vehicles';
 import { supabase } from '../../utils/supabaseClient';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleTripsTab');
 
 interface VehicleTripsTabProps {
   vehicleId: string;
@@ -46,7 +49,7 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
   const [error, setError] = useState<string | null>(null);
 
   const loadVehicleTrips = useCallback(async () => {
-    console.log('🔍 Loading trips for vehicle:', vehicleId);
+    logger.debug('🔍 Loading trips for vehicle:', vehicleId);
     
     try {
       setLoading(true);
@@ -59,10 +62,10 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
         .eq('id', vehicleId)
         .single();
       
-      console.log('Vehicle found:', vehicleCheck);
+      logger.debug('Vehicle found:', vehicleCheck);
       
       if (!vehicleCheck) {
-        console.warn('⚠️ Vehicle not found:', vehicleId);
+        logger.warn('⚠️ Vehicle not found:', vehicleId);
         setError('Vehicle not found');
         return;
       }
@@ -74,17 +77,17 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
         .eq('vehicle_id', vehicleId)
         .limit(10);
       
-      console.log('Raw trips data:', rawTrips);
-      console.log('Raw trips error:', rawError);
+      logger.debug('Raw trips data:', rawTrips);
+      logger.debug('Raw trips error:', rawError);
       
       if (rawError) {
-        console.error('❌ Error fetching raw trips:', rawError);
+        logger.error('❌ Error fetching raw trips:', rawError);
         setError(`Database error: ${rawError.message}`);
         return;
       }
       
       if (!rawTrips || rawTrips.length === 0) {
-        console.log('📭 No trips found for vehicle:', vehicleId);
+        logger.debug('📭 No trips found for vehicle:', vehicleId);
         setTrips([]);
         setStats({
           totalTrips: 0,
@@ -98,13 +101,13 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
       
       // Now get processed data with relations
       const processedData = await getVehicleTrips(vehicleId, 10);
-      console.log('Processed trips data:', processedData);
+      logger.debug('Processed trips data:', processedData);
       
       setTrips(processedData.trips);
       setStats(processedData.stats);
       
     } catch (err) {
-      console.error('❌ Error loading trips:', err);
+      logger.error('❌ Error loading trips:', err);
       setError('Failed to load trip data');
     } finally {
       setLoading(false);

@@ -5,6 +5,9 @@ import { VehicleActivityLog } from './VehicleActivityLog'
 import { UserActivityLog } from './UserActivityLog'
 import { logVehicleActivity, logUserActivity, getClientInfo } from '../../utils/activityLogger'
 import { VehicleAction, UserAction } from '../../types/logs'
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ActivityLogIntegration');
 
 /**
  * Integration component showing how to use the activity log system
@@ -31,9 +34,9 @@ export function ActivityLogIntegration() {
         }
       )
       
-      console.log('Vehicle deletion logged successfully')
+      logger.debug('Vehicle deletion logged successfully')
     } catch (error) {
-      console.error('Failed to log vehicle deletion:', error)
+      logger.error('Failed to log vehicle deletion:', error)
     }
   }
 
@@ -56,9 +59,9 @@ export function ActivityLogIntegration() {
         }
       )
       
-      console.log('User login logged successfully')
+      logger.debug('User login logged successfully')
     } catch (error) {
-      console.error('Failed to log user login:', error)
+      logger.error('Failed to log user login:', error)
     }
   }
 
@@ -83,9 +86,9 @@ export function ActivityLogIntegration() {
         }
       )
       
-      console.log('Data export logged successfully')
+      logger.debug('Data export logged successfully')
     } catch (error) {
-      console.error('Failed to log data export:', error)
+      logger.error('Failed to log data export:', error)
     }
   }
 
@@ -176,7 +179,7 @@ export function useActivityLogging(userId: string) {
         }
       })
     } catch (error) {
-      console.error('Failed to log activity:', error)
+      logger.error('Failed to log activity:', error)
     }
   }, [userId])
 

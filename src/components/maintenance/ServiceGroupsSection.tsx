@@ -1,43 +1,203 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
 import { getVendors } from '../../utils/storage';
+import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import { createLogger } from '../../utils/logger';
+import PartReplacement from './PartReplacement';
+
+const logger = createLogger('ServiceGroupsSection');
+
+/**
+ * Converts task names to task IDs by querying maintenance_tasks_catalog
+ * This allows the UI to use human-readable names while the database uses UUIDs
+ */
+const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => {
+  if (!Array.isArray(taskNames) || taskNames.length === 0) {
+    return [];
+  }
+
+  try {
+    // Query the catalog to get UUIDs for the task names
+    const { data, error } = await supabase
+      .from('maintenance_tasks_catalog')
+      .select('id, task_name')
+      .in('task_name', taskNames)
+      .eq('active', true);
+
+    if (error) {
+      logger.error('Error fetching task IDs:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      logger.warn('No matching tasks found in catalog for:', taskNames);
+      return [];
+    }
+
+    // Create a map of task names to IDs
+    const nameToIdMap = new Map(
+      data.map(task => [task.task_name, task.id])
+    );
+
+    // Convert names to IDs, maintaining order
+    const taskIds = taskNames
+      .map(name => nameToIdMap.get(name))
+      .filter((id): id is string => id !== undefined);
+
+    logger.debug('Converted task names to IDs:', {
+      input: taskNames,
+      output: taskIds,
+      mapping: Object.fromEntries(nameToIdMap)
+    });
+
+    return taskIds;
+  } catch (error) {
+    logger.error('Error in convertTaskNamesToIds:', error);
+    return [];
+  }
+};
 
 // ===== CONSTANTS =====
+// UPDATED: Split tasks into Purchase (buying parts) vs Labor (installation/service)
 const MAINTENANCE_TASKS = [
-  'Engine Oil Change', 'Oil Filter Replacement', 'Air Filter Cleaning', 'Air Filter Replacement',
-  'Fuel Filter Replacement', 'Chassis Greasing', 'Tyre Rotation', 'Tyre Pressure Check',
-  'Wheel Alignment', 'Wheel Balancing', 'Brake Pad Replacement', 'Brake Shoe Replacement',
-  'Brake Fluid Replacement', 'Brake Bleeding', 'Brake Adjustment', 'Brake Disc Resurfacing',
-  'Handbrake Adjustment', 'Clutch Adjustment', 'Clutch Plate Replacement', 'Clutch Cable Replacement',
-  'Battery Charging', 'Battery Replacement', 'Battery Terminal Cleaning', 'Coolant Flush/Radiator Flush',
-  'Coolant Top-up', 'Radiator Cleaning', 'Radiator Hose Replacement', 'Thermostat Replacement',
-  'Water Pump Replacement', 'Tappet Adjustment', 'Engine Tune-up', 'Injector Cleaning',
-  'Belt Tensioning', 'Transmission Oil Change', 'Differential Oil Change', 'Shock Absorber Replacement',
-  'Spring Replacement', 'Ball Joint Replacement', 'Tie Rod End Replacement', 'Wheel Bearing Service',
-  'Steering Adjustment', 'Power Steering Fluid Check', 'Alternator Check', 'Starter Motor Service',
-  'Wiring Repairs', 'Light Bulb Replacement', 'Fuse Replacement', 'Windshield Wiper Replacement',
-  'AC Service/Gas Filling', 'Underbody Wash',
+  // ===== PURCHASE TASKS (When buying parts) =====
+  'Engine Oil Purchase',
+  'Oil Filter Purchase',
+  'Air Filter Purchase',
+  'Fuel Filter Purchase',
+  'Battery Purchase',
+  'Tyre Purchase',
+  'Brake Pad Purchase',
+  'Brake Shoe Purchase',
+  'Brake Disc Purchase',
+  'Brake Drum Purchase',
+  'Brake Oil Purchase',
+  'Clutch Plate Purchase',
+  'Clutch Assembly Purchase',
+  'Coolant Purchase',
+  'Radiator Hose Purchase',
+  'Water Pump Purchase',
+  'Thermostat Purchase',
+  'Alternator Purchase',
+  'Starter Motor Purchase',
+  'Shock Absorber Purchase',
+  'Spring Purchase',
+  'Ball Joint Purchase',
+  'Tie Rod End Purchase',
+  'Wheel Bearing Purchase',
+  'Spark Plug Purchase',
+  'Glow Plug Purchase',
+  'Timing Belt Purchase',
+  'Drive Belt Purchase',
+  'Windshield Wiper Purchase',
+  'Light Bulb Purchase',
+  'Fuse Purchase',
+  'Parts Purchase', // Generic option
+
+  // ===== LABOR/SERVICE TASKS (When getting work done) =====
+  'Engine Oil Change',
+  'Oil Filter Replacement',
+  'Air Filter Cleaning',
+  'Air Filter Replacement',
+  'Fuel Filter Replacement',
+  'Battery Installation',
+  'Battery Charging',
+  'Battery Terminal Cleaning',
+  'Tyre Installation',
+  'Tyre Rotation',
+  'Tyre Puncture Repair',
+  'Tyre Pressure Check',
+  'Wheel Alignment',
+  'Wheel Balancing',
+  'Brake Pad Replacement',
+  'Brake Shoe Replacement',
+  'Brake Disc Resurfacing',
+  'Brake Drum Turning',
+  'Brake Fluid Replacement',
+  'Brake Bleeding',
+  'Brake Adjustment',
+  'Handbrake Adjustment',
+  'Clutch Plate Replacement',
+  'Clutch Assembly Replacement',
+  'Clutch Adjustment',
+  'Clutch Cable Replacement',
+  'Coolant Flush/Radiator Flush',
+  'Coolant Top-up',
+  'Radiator Cleaning',
+  'Radiator Hose Replacement',
+  'Thermostat Replacement',
+  'Water Pump Replacement',
+  'Tappet Adjustment',
+  'Engine Tune-up',
+  'Injector Cleaning',
+  'Belt Tensioning',
+  'Belt Replacement',
+  'Transmission Oil Change',
+  'Differential Oil Change',
+  'Shock Absorber Replacement',
+  'Spring Replacement',
+  'Ball Joint Replacement',
+  'Tie Rod End Replacement',
+  'Wheel Bearing Service',
+  'Wheel Bearing Replacement',
+  'Steering Adjustment',
+  'Power Steering Fluid Check',
+  'Alternator Check',
+  'Alternator Replacement',
+  'Starter Motor Service',
+  'Starter Motor Replacement',
+  'Wiring Repairs',
+  'Light Bulb Replacement',
+  'Fuse Replacement',
+  'Windshield Wiper Replacement',
+  'AC Service/Gas Filling',
+  'AC Compressor Replacement',
+  'Underbody Wash',
+  'Chassis Greasing',
+  'Engine Decarbonization',
+  'DPF Cleaning',
+  'EGR Valve Cleaning',
+  'General Service',
+  'Periodic Maintenance',
+  'Repair Work', // Generic option
 ];
 
-const PART_TYPES = [
-  'Battery', 'Tyre', 'Clutch Plate', 'Clutch Assembly', 'Gearbox', 'Timing Belt', 'Drive Belt',
-  'Leaf Spring', 'Engine Oil', 'Engine Oil Filter', 'Air Filter', 'Fuel Filter', 'Brake Pad',
-  'Brake Shoe', 'Brake Disc', 'Brake Drum', 'Radiator', 'Radiator Hose', 'Water Pump',
-  'Thermostat', 'Alternator', 'Starter Motor', 'Shock Absorber', 'Ball Joint', 'Tie Rod End',
-  'Wheel Bearing', 'Spark Plug', 'Glow Plug', 'EGR Valve', 'DPF Filter', 'Catalytic Converter',
-  'Muffler/Silencer', 'Universal Joint', 'Propeller Shaft', 'Wheel Cylinder', 'Brake Caliper',
-  'Master Cylinder', 'Engine Mount', 'Transmission Mount', 'Door Seal', 'Windshield', 'Side Mirror',
-];
-
-const WARRANTY_QUICK_OPTIONS = [
-  { label: '12m', value: '12 months', months: 12 },
-  { label: '36m', value: '36 months', months: 36 },
-  { label: '48m', value: '48 months', months: 48 },
-];
+// ===== MAPPING OF PURCHASE TASKS TO PART TYPES =====
+const TASK_TO_PART_MAPPING: Record<string, string> = {
+  'Engine Oil Purchase': 'Engine Oil',
+  'Oil Filter Purchase': 'Oil Filter',
+  'Air Filter Purchase': 'Air Filter',
+  'Fuel Filter Purchase': 'Fuel Filter',
+  'Battery Purchase': 'Battery',
+  'Tyre Purchase': 'Tyre',
+  'Brake Pad Purchase': 'Brake Pad',
+  'Brake Shoe Purchase': 'Brake Shoe',
+  'Brake Disc Purchase': 'Brake Disc',
+  'Brake Drum Purchase': 'Brake Drum',
+  'Brake Oil Purchase': 'Brake Oil',
+  'Clutch Plate Purchase': 'Clutch Plate',
+  'Coolant Purchase': 'Coolant',
+  'Radiator Hose Purchase': 'Radiator Hose',
+  'Water Pump Purchase': 'Water Pump',
+  'Thermostat Purchase': 'Thermostat',
+  'Alternator Purchase': 'Alternator',
+  'Starter Motor Purchase': 'Starter Motor',
+  'Shock Absorber Purchase': 'Shock Absorber',
+  'Spring Purchase': 'Leaf Spring',
+  'Ball Joint Purchase': 'Ball Joint',
+  'Tie Rod End Purchase': 'Tie Rod End',
+  'Wheel Bearing Purchase': 'Wheel Bearing',
+  'Spark Plug Purchase': 'Spark Plug',
+  'Glow Plug Purchase': 'Glow Plug',
+  'Belt Purchase': 'Drive Belt',
+  'Windshield Wiper Purchase': 'Windshield Wiper',
+  'Light Bulb Purchase': 'Light Bulb',
+  'Fuse Purchase': 'Fuse',
+};
 
 interface ServiceGroup {
   id: string;
@@ -82,11 +242,11 @@ interface ServiceGroupsSectionProps {
 // ===== HELPER COMPONENTS =====
 
 // Inline Searchable Dropdown with Add functionality
-const InlineSearchableDropdown = ({ 
-  label, 
-  options, 
-  value, 
-  onChange, 
+const InlineSearchableDropdown = ({
+  label,
+  options,
+  value,
+  onChange,
   onAddNew,
   placeholder = "Select or type to search...",
   required = false,
@@ -96,14 +256,35 @@ const InlineSearchableDropdown = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [customOptions, setCustomOptions] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const optionRefs = useRef([]);
+
+  // Get recently used tasks from localStorage
+  const recentTasks = useMemo(() => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      return recent.slice(0, 3); // Top 3 recent tasks
+    } catch {
+      return [];
+    }
+  }, []);
 
   const allOptions = useMemo(() => {
-    return [...options, ...customOptions];
-  }, [options, customOptions]);
+    const combined = [...options, ...customOptions];
+    // Put recent tasks at top if not searching
+    if (!searchTerm && recentTasks.length > 0) {
+      const recent = recentTasks.filter(task => combined.includes(task));
+      const remaining = combined.filter(opt => !recentTasks.includes(opt));
+      return [...recent, ...remaining];
+    }
+    return combined;
+  }, [options, customOptions, recentTasks, searchTerm]);
 
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return allOptions;
-    return allOptions.filter(opt => 
+    return allOptions.filter(opt =>
       opt.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [searchTerm, allOptions]);
@@ -123,7 +304,19 @@ const InlineSearchableDropdown = ({
     return selectedValues[0];
   }, [selectedValues, multiSelect]);
 
+  // Save to recent tasks
+  const saveToRecent = (task) => {
+    try {
+      const recent = JSON.parse(localStorage.getItem('recentMaintenanceTasks') || '[]');
+      const updated = [task, ...recent.filter(t => t !== task)].slice(0, 10);
+      localStorage.setItem('recentMaintenanceTasks', JSON.stringify(updated));
+    } catch (error) {
+      logger.warn('Could not save recent task:', error);
+    }
+  };
+
   const handleSelect = (option) => {
+    saveToRecent(option);
     if (multiSelect) {
       const newValue = selectedValues.includes(option)
         ? selectedValues.filter(v => v !== option)
@@ -135,6 +328,66 @@ const InlineSearchableDropdown = ({
       setSearchTerm('');
     }
   };
+
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!isOpen) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < filteredOptions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredOptions[highlightedIndex]) {
+          handleSelect(filteredOptions[highlightedIndex]);
+          if (!multiSelect) {
+            setIsOpen(false);
+          }
+        } else if (showAddButton) {
+          handleAddNew();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setIsOpen(false);
+        setSearchTerm('');
+        break;
+      case 'Tab':
+        if (!multiSelect) {
+          setIsOpen(false);
+        }
+        break;
+    }
+  };
+
+  // Reset highlighted index when options change
+  useEffect(() => {
+    setHighlightedIndex(0);
+  }, [filteredOptions]);
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isOpen && optionRefs.current[highlightedIndex]) {
+      optionRefs.current[highlightedIndex]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }, [highlightedIndex, isOpen]);
 
   const handleAddNew = () => {
     if (searchTerm && !allOptions.includes(searchTerm)) {
@@ -161,39 +414,68 @@ const InlineSearchableDropdown = ({
         )}
         
         <input
+          ref={inputRef}
           type="text"
           value={isOpen ? searchTerm : displayText}
           onChange={(e) => setSearchTerm(e.target.value)}
           onFocus={() => setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent`}
+          className={`w-full ${Icon ? 'pl-9' : 'pl-3'} pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all`}
+          aria-label={label}
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
         />
         
         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <div
+          ref={dropdownRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto"
+        >
           {filteredOptions.length > 0 ? (
-            filteredOptions.map((option, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleSelect(option)}
-                className={`px-3 py-2 cursor-pointer hover:bg-green-50 flex items-center justify-between ${
-                  selectedValues.includes(option) ? 'bg-green-100' : ''
-                }`}
-              >
-                <span className="text-sm text-gray-700">{option}</span>
-                {selectedValues.includes(option) && (
-                  <Check className="h-4 w-4 text-green-600" />
-                )}
-              </div>
-            ))
+            filteredOptions.map((option, idx) => {
+              const isSelected = selectedValues.includes(option);
+              const isHighlighted = idx === highlightedIndex;
+              const isRecent = !searchTerm && recentTasks.includes(option);
+
+              return (
+                <div
+                  key={idx}
+                  ref={(el) => (optionRefs.current[idx] = el)}
+                  onClick={() => handleSelect(option)}
+                  className={`px-3 py-2 cursor-pointer flex items-center justify-between transition-colors ${
+                    isHighlighted ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+                  } ${
+                    isSelected ? 'bg-green-100 font-medium' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-1">
+                    {isRecent && (
+                      <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                        RECENT
+                      </span>
+                    )}
+                    <span className={`text-sm ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+                      {option}
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
+                  )}
+                </div>
+              );
+            })
           ) : showAddButton ? (
             <div
+              ref={(el) => (optionRefs.current[0] = el)}
               onClick={handleAddNew}
-              className="px-3 py-2 cursor-pointer hover:bg-green-50 flex items-center gap-2 text-green-600"
+              className={`px-3 py-2 cursor-pointer flex items-center gap-2 text-green-600 ${
+                highlightedIndex === 0 ? 'bg-blue-100 border-l-4 border-blue-500' : 'hover:bg-green-50'
+              }`}
             >
               <Plus className="h-4 w-4" />
               <span className="text-sm font-medium">Add "{searchTerm}"</span>
@@ -244,296 +526,6 @@ const SelectedTasksTags = ({ tasks, onRemove }) => {
   );
 };
 
-// Warranty Period Quick Select
-const WarrantyQuickSelect = ({ value, onChange }) => {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Warranty Period
-      </label>
-      <div className="flex gap-2">
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-          {WARRANTY_QUICK_OPTIONS.map((option) => (
-            <button
-              key={option.label}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                value === option.value
-                  ? 'bg-green-600 text-white shadow-sm'
-                  : 'text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <input
-          type="text"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="or type custom..."
-          className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-        />
-      </div>
-    </div>
-  );
-};
-
-// Tyre Position Selector with Visual
-const TyrePositionSelector = ({ vehicleType, selectedPositions, onChange }) => {
-  const VEHICLE_TYPES = {
-    PICKUP_4TYRE: {
-      name: 'Pickup (4 Tyre)',
-      tyreCount: 4,
-      positions: ['FL', 'FR', 'RL', 'RR'],
-      labels: ['Front Left', 'Front Right', 'Rear Left', 'Rear Right']
-    },
-    TEMPO_3TYRE: {
-      name: 'Tempo (3 Tyre)',
-      tyreCount: 3,
-      positions: ['F', 'RL', 'RR'],
-      labels: ['Front', 'Rear Left', 'Rear Right']
-    }
-  };
-
-  const config = VEHICLE_TYPES[vehicleType];
-  
-  if (!config) return null;
-
-  const togglePosition = (position) => {
-    const newPositions = selectedPositions.includes(position)
-      ? selectedPositions.filter(p => p !== position)
-      : [...selectedPositions, position];
-    onChange(newPositions);
-  };
-
-  const renderDiagram = () => {
-    if (vehicleType === 'PICKUP_4TYRE') {
-      return (
-        <div className="relative w-32 h-48 border-2 border-gray-300 rounded-lg bg-gray-50">
-          <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-sm" title="Driver" />
-          
-          <div 
-            onClick={() => togglePosition('FL')}
-            className={`absolute top-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('FL') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Front Left"
-          />
-          
-          <div 
-            onClick={() => togglePosition('FR')}
-            className={`absolute top-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('FR') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Front Right"
-          />
-          
-          <div 
-            onClick={() => togglePosition('RL')}
-            className={`absolute bottom-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RL') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Rear Left"
-          />
-          
-          <div 
-            onClick={() => togglePosition('RR')}
-            className={`absolute bottom-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RR') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Rear Right"
-          />
-        </div>
-      );
-    } else {
-      return (
-        <div className="relative w-32 h-48 border-2 border-gray-300 rounded-lg bg-gray-50">
-          <div className="absolute top-2 right-2 w-4 h-4 bg-blue-500 rounded-sm" title="Driver" />
-          
-          <div 
-            onClick={() => togglePosition('F')}
-            className={`absolute top-4 left-1/2 -translate-x-1/2 w-10 h-12 rounded-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('F') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Front"
-          />
-          
-          <div 
-            onClick={() => togglePosition('RL')}
-            className={`absolute bottom-4 left-0 w-8 h-12 rounded-l-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RL') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Rear Left"
-          />
-          
-          <div 
-            onClick={() => togglePosition('RR')}
-            className={`absolute bottom-4 right-0 w-8 h-12 rounded-r-lg cursor-pointer border-2 transition-colors ${
-              selectedPositions.includes('RR') 
-                ? 'bg-green-500 border-green-600' 
-                : 'bg-gray-200 border-gray-300 hover:bg-gray-300'
-            }`}
-            title="Rear Right"
-          />
-        </div>
-      );
-    }
-  };
-
-  return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <h4 className="text-sm font-medium text-gray-700 mb-3">Which Tyres?</h4>
-      
-      <div className="flex gap-4">
-        {renderDiagram()}
-        
-        <div className="flex-1 space-y-2">
-          {config.positions.map((pos, idx) => (
-            <label key={pos} className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedPositions.includes(pos)}
-                onChange={() => togglePosition(pos)}
-                className="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-              />
-              <span className="text-sm text-gray-700">
-                <span className="font-medium">{pos}</span> - {config.labels[idx]}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Part Replacement Component
-const PartReplacement = ({ partData, onChange, onRemove, vehicleType }) => {
-  const [showTyreDetails, setShowTyreDetails] = useState(partData.partType === 'Tyre');
-
-  return (
-    <div className="border border-red-200 bg-red-50 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-sm font-semibold text-red-900">Part Details</h4>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-red-600 hover:text-red-800"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="space-y-3">
-        <InlineSearchableDropdown
-          label="What part?"
-          options={PART_TYPES}
-          value={partData.partType}
-          onChange={(val) => {
-            onChange({ ...partData, partType: val });
-            setShowTyreDetails(val === 'Tyre');
-          }}
-          onAddNew={(newPart) => console.log('New part type added:', newPart)}
-          icon={Package}
-          required
-        />
-
-        {showTyreDetails && vehicleType && (
-          <TyrePositionSelector
-            vehicleType={vehicleType}
-            selectedPositions={partData.tyrePositions || []}
-            onChange={(positions) => onChange({ ...partData, tyrePositions: positions })}
-          />
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Part Name/Model
-            </label>
-            <input
-              type="text"
-              value={partData.partName || ''}
-              onChange={(e) => onChange({ ...partData, partName: e.target.value })}
-              placeholder="e.g., Exide FHP0-DIN60"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Brand
-            </label>
-            <input
-              type="text"
-              value={partData.brand || ''}
-              onChange={(e) => onChange({ ...partData, brand: e.target.value })}
-              placeholder="e.g., Exide"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Serial Number
-            </label>
-            <input
-              type="text"
-              value={partData.serialNumber || ''}
-              onChange={(e) => onChange({ ...partData, serialNumber: e.target.value })}
-              placeholder="Optional"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              How many?
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={partData.quantity || 1}
-              onChange={(e) => onChange({ ...partData, quantity: parseInt(e.target.value) || 1 })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        <WarrantyQuickSelect
-          value={partData.warrantyPeriod}
-          onChange={(val) => onChange({ ...partData, warrantyPeriod: val })}
-        />
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Warranty Paper/Photo
-          </label>
-          <input
-            type="file"
-            onChange={(e) => onChange({ ...partData, warrantyDocument: e.target.files[0] })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Service Group Component
 const ServiceGroup = ({ 
   groupData, 
@@ -546,6 +538,40 @@ const ServiceGroup = ({
   loadingVendors
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // AUTO-CREATE PARTS BASED ON PURCHASE TASKS
+  useEffect(() => {
+    if (groupData.serviceType === 'purchase' || groupData.serviceType === 'both') {
+      const purchaseTasks = groupData.tasks.filter(task => task.includes('Purchase'));
+      const existingPartTypes = (groupData.parts || []).map(p => p.partType);
+
+      // Create parts for purchase tasks that don't have corresponding parts yet
+      const newParts: any[] = [];
+      purchaseTasks.forEach(task => {
+        const partType = TASK_TO_PART_MAPPING[task];
+        if (partType && !existingPartTypes.includes(partType)) {
+          newParts.push({
+            id: `part-${Date.now()}-${Math.random()}`,
+            partType: partType,
+            quantity: 1,
+            partName: '',
+            brand: '',
+            serialNumber: '',
+            warrantyPeriod: '',
+            warrantyDocument: null,
+            tyrePositions: []
+          });
+        }
+      });
+
+      if (newParts.length > 0) {
+        onChange({
+          ...groupData,
+          parts: [...(groupData.parts || []), ...newParts],
+        });
+      }
+    }
+  }, [groupData.tasks, groupData.serviceType]);
 
   const handleTaskRemove = (taskToRemove) => {
     const newTasks = (groupData.tasks || []).filter(task => task !== taskToRemove);
@@ -592,8 +618,22 @@ const ServiceGroup = ({
     }
   };
 
+  // Filter tasks based on service type
+  const getFilteredTasks = (serviceType: string) => {
+    if (serviceType === 'purchase') {
+      // Show only purchase tasks (tasks ending with "Purchase")
+      return MAINTENANCE_TASKS.filter(task => task.includes('Purchase'));
+    }
+    if (serviceType === 'labor') {
+      // Show only labor/service tasks (tasks NOT ending with "Purchase")
+      return MAINTENANCE_TASKS.filter(task => !task.includes('Purchase'));
+    }
+    // For 'both' or empty, show all tasks
+    return MAINTENANCE_TASKS;
+  };
+
   return (
-    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm">
+    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-visible shadow-sm">
       {/* Header */}
       <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
         <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
@@ -647,7 +687,7 @@ const ServiceGroup = ({
               value={groupData.vendor}
               onChange={(val) => onChange({ ...groupData, vendor: val })}
               onAddNew={(newVendor) => {
-                console.log('New vendor added:', newVendor);
+                logger.debug('New vendor added:', newVendor);
                 // Add the new vendor to the list
                 setVendors(prev => [...prev, newVendor]);
               }}
@@ -659,17 +699,17 @@ const ServiceGroup = ({
             <div>
               <InlineSearchableDropdown
                 label="What work was done?"
-                options={MAINTENANCE_TASKS}
+                options={getFilteredTasks(groupData.serviceType)}
                 value={groupData.tasks}
                 onChange={(val) => onChange({ ...groupData, tasks: val })}
-                onAddNew={(newTask) => console.log('New task added:', newTask)}
+                onAddNew={(newTask) => logger.debug('New task added:', newTask)}
                 icon={Wrench}
                 required
                 multiSelect
                 placeholder="Select work done or type new..."
               />
-              <SelectedTasksTags 
-                tasks={groupData.tasks} 
+              <SelectedTasksTags
+                tasks={groupData.tasks}
                 onRemove={handleTaskRemove}
               />
             </div>
@@ -715,19 +755,6 @@ const ServiceGroup = ({
 
           {isExpanded && (
             <div className="mt-4 space-y-4 pl-6 border-l-3 border-yellow-400">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Extra Notes
-                </label>
-                <textarea
-                  value={groupData.notes || ''}
-                  onChange={(e) => onChange({ ...groupData, notes: e.target.value })}
-                  rows={3}
-                  placeholder="Any additional information..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Upload Bills/Receipts
@@ -781,6 +808,21 @@ const ServiceGroup = ({
                   </p>
                 </div>
               )}
+
+              {/* Extra Notes - MOVED TO END AND MADE SMALLER (70% reduction) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Extra Notes
+                </label>
+                <textarea
+                  value={groupData.notes || ''}
+                  onChange={(e) => onChange({ ...groupData, notes: e.target.value })}
+                  rows={1}
+                  placeholder="Any additional information..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                  style={{ minHeight: '36px', resize: 'vertical' }}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -805,7 +847,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
         const vendorNames = vendorData.map(vendor => vendor.name);
         setVendors(vendorNames);
       } catch (error) {
-        console.error('Error fetching vendors:', error);
+        logger.error('Error fetching vendors:', error);
         // Fallback to hardcoded vendors
         setVendors(['ABC Auto Parts', 'XYZ Lubricants', 'Ravi Auto Works', 'Kumar Garage', 'City Service Center']);
       } finally {
@@ -903,6 +945,49 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
       )}
     </div>
   );
+};
+
+/**
+ * Converts service groups with task names to service groups with task IDs
+ * Call this function before submitting the form
+ */
+export const convertServiceGroupsToDatabase = async (
+  serviceGroups: any[]
+): Promise<any[]> => {
+  if (!Array.isArray(serviceGroups) || serviceGroups.length === 0) {
+    return [];
+  }
+
+  logger.debug('Converting service groups for database...', serviceGroups);
+
+  const convertedGroups = await Promise.all(
+    serviceGroups.map(async (group) => {
+      logger.debug('Converting group:', group);
+      logger.debug('Group tasks:', group.tasks);
+
+      // Convert task names to IDs
+      const taskIds = await convertTaskNamesToIds(group.tasks || []);
+      logger.debug('Converted task IDs:', taskIds);
+
+      const converted = {
+        vendor_id: group.vendor || '',
+        tasks: taskIds, // Now contains UUIDs
+        cost: group.cost || 0,
+        battery_tracking: false,
+        tyre_tracking: false,
+        service_type: group.serviceType || '',
+        notes: group.notes || '',
+        // Include any other fields you need
+      };
+
+      logger.debug('Converted group:', converted);
+      return converted;
+    })
+  );
+
+  logger.debug('Service groups converted for database:', convertedGroups);
+
+  return convertedGroups;
 };
 
 export default ServiceGroupsSection;

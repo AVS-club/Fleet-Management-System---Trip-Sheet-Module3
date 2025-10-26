@@ -25,7 +25,7 @@ class SimpleCache {
         JSON.stringify(entry)
       );
     } catch (error) {
-      console.warn('Failed to store cache in sessionStorage:', error);
+      logger.warn('Failed to store cache in sessionStorage:', error);
     }
   }
 
@@ -43,7 +43,7 @@ class SimpleCache {
           this.cache.set(key, entry);
         }
       } catch (error) {
-        console.warn('Failed to retrieve cache from sessionStorage:', error);
+        logger.warn('Failed to retrieve cache from sessionStorage:', error);
       }
     }
 
@@ -69,7 +69,7 @@ class SimpleCache {
         }
       });
     } catch (error) {
-      console.warn('Failed to clear sessionStorage cache:', error);
+      logger.warn('Failed to clear sessionStorage cache:', error);
     }
   }
 
@@ -78,7 +78,7 @@ class SimpleCache {
     try {
       sessionStorage.removeItem(`${this.STORAGE_PREFIX}${key}`);
     } catch (error) {
-      console.warn('Failed to delete cache from sessionStorage:', error);
+      logger.warn('Failed to delete cache from sessionStorage:', error);
     }
   }
 }

@@ -15,6 +15,9 @@ import KPIPanel from "../components/maintenance/KPIPanel";
 import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
 import MaintenanceTaskList from "../components/maintenance/MaintenanceTaskList";
 import { useQuery } from "@tanstack/react-query";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('MaintenancePage');
 const MaintenancePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +97,7 @@ const MaintenancePage = () => {
       );
       setMetrics(metricsData);
     } catch (error) {
-      console.error("Error calculating maintenance metrics:", error);
+      logger.error("Error calculating maintenance metrics:", error);
     }
   }, [customDateRange.start, customDateRange.end]);
 
@@ -124,7 +127,7 @@ const MaintenancePage = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
@@ -151,7 +154,7 @@ const MaintenancePage = () => {
             {t("maintenance.partsHealthAnalytics")}
           </Button>
           {/* View Toggle */}
-          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
             <Button
               onClick={() => setViewMode("calendar")}
               variant={viewMode === "calendar" ? "default" : "outline"}
@@ -176,7 +179,7 @@ const MaintenancePage = () => {
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          <p className="ml-3 font-sans text-gray-600">
+          <p className="ml-3 font-sans text-gray-600 dark:text-gray-400">
             Loading maintenance analytics...
           </p>
         </div>

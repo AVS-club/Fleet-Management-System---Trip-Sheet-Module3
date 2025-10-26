@@ -21,6 +21,9 @@ import { getMileageInsights } from '../utils/mileageCalculator';
 import { useQuery } from '@tanstack/react-query';
 import { NumberFormatter } from '@/utils/numberFormatter';
 import FleetIQScanner from '../components/FleetIQScanner';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('DashboardPage');
 
 const DashboardPage: React.FC = () => {
   // ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
@@ -195,7 +198,7 @@ const DashboardPage: React.FC = () => {
         latestTripDate
       };
     } catch (error) {
-      console.error('Error calculating dashboard stats:', error);
+      logger.error('Error calculating dashboard stats:', error);
       return {
         totalTrips: 0,
         totalDistance: 0,

@@ -32,7 +32,7 @@ const DestinationForm: React.FC<DestinationFormProps> = ({
   });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-50 rounded-lg p-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Input
           label="Destination Name"

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { Permissions, OrganizationUser, UserRole } from '../types/permissions';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('usePermissions');
 
 export const usePermissions = (): {
   permissions: Permissions | null;
@@ -38,7 +41,7 @@ export const usePermissions = (): {
       let organizationId: string | null = null;
 
       if (orgError) {
-        console.error('Error fetching organization user:', orgError);
+        logger.error('Error fetching organization user:', orgError);
         
         // ✅ FALLBACK: If no organization_users record, check if user owns any organizations directly
         const { data: ownedOrg, error: ownedError } = await supabase
@@ -62,7 +65,7 @@ export const usePermissions = (): {
             }]);
 
           if (createError) {
-            console.error('Error auto-creating organization_users record:', createError);
+            logger.error('Error auto-creating organization_users record:', createError);
           }
         }
       } else {
@@ -92,11 +95,11 @@ export const usePermissions = (): {
       
       // Only log in development
       if (import.meta.env.DEV) {
-        console.log(`✅ Permissions loaded in ${duration.toFixed(2)}ms`);
+        logger.debug(`✅ Permissions loaded in ${duration.toFixed(2)}ms`);
       }
       
     } catch (error) {
-      console.error('Failed to fetch user permissions:', error);
+      logger.error('Failed to fetch user permissions:', error);
       
       // Set safe defaults on error
       setPermissions({

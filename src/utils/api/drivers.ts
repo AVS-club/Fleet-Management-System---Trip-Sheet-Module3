@@ -3,9 +3,12 @@ import config from '../env';
 import { Driver, DriverSummary } from '../../types';
 import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';
+import { createLogger } from '../logger';
+
+const logger = createLogger('drivers');
 
 // Define allowed columns for drivers table (matching actual database schema)
-const DRIVER_COLS = 'id,name,license_number,phone,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,organization_id,created_at,updated_at';
+const DRIVER_COLS = 'id,name,license_number,contact_number,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,organization_id,created_at,updated_at,driver_photo_url,primary_vehicle_id,documents_verified';
 
 export const getDrivers = async (): Promise<Driver[]> => {
   try {
@@ -13,7 +16,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for drivers, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for drivers, returning empty array');
         return [];
       }
       handleSupabaseError('get user for drivers', userError);
@@ -21,13 +24,13 @@ export const getDrivers = async (): Promise<Driver[]> => {
     }
 
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -45,7 +48,7 @@ export const getDrivers = async (): Promise<Driver[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for drivers, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for drivers, returning empty array');
       return [];
     }
     handleSupabaseError('get user for drivers', error);
@@ -59,7 +62,7 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for driver summaries, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for driver summaries, returning empty array');
         return [];
       }
       handleSupabaseError('get user for driver summaries', userError);
@@ -67,13 +70,13 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
     }
 
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -91,7 +94,7 @@ export const getDriverSummaries = async (): Promise<DriverSummary[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for driver summaries, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for driver summaries, returning empty array');
       return [];
     }
     handleSupabaseError('get user for driver summaries', error);
@@ -105,7 +108,7 @@ export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for all drivers, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for all drivers, returning empty array');
         return [];
       }
       handleSupabaseError('get user for all drivers', userError);
@@ -113,13 +116,13 @@ export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
     }
 
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -137,7 +140,7 @@ export const getAllDriversIncludingInactive = async (): Promise<Driver[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for all drivers, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for all drivers, returning empty array');
       return [];
     }
     handleSupabaseError('get user for all drivers', error);
@@ -175,7 +178,7 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
     const payload = withOwner(driverData as any, userId, organizationId);
 
     // Debug: Log the payload before processing
-    console.log('Driver creation payload before processing:', payload);
+    logger.debug('Driver creation payload before processing:', payload);
 
     for (const k of Object.keys(payload)) {
       if (k.endsWith('_file')) {
@@ -190,7 +193,7 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
     }
 
     // Debug: Log the final payload
-    console.log('Driver creation payload after processing:', payload);
+    logger.debug('Driver creation payload after processing:', payload);
 
     const { data, error } = await supabase
       .from('drivers')
@@ -199,8 +202,8 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
       .single();
 
     if (error) {
-      console.error('Supabase driver creation error:', error);
-      console.error('Error details:', {
+      logger.error('Supabase driver creation error:', error);
+      logger.error('Error details:', {
         message: error.message,
         details: error.details,
         hint: error.hint,

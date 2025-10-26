@@ -3,6 +3,9 @@ import config from '../env';
 import { Trip } from '../../types';
 import { getCurrentUserId, withOwner, getUserActiveOrganization } from '../supaHelpers';
 import { handleSupabaseError } from '../errors';
+import { createLogger } from '../logger';
+
+const logger = createLogger('trips');
 
 export const getTrips = async (): Promise<Trip[]> => {
   try {
@@ -10,7 +13,7 @@ export const getTrips = async (): Promise<Trip[]> => {
 
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for trips, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for trips, returning empty array');
         return [];
       }
       handleSupabaseError('get user for trips', userError);
@@ -18,13 +21,13 @@ export const getTrips = async (): Promise<Trip[]> => {
     }
 
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -42,7 +45,7 @@ export const getTrips = async (): Promise<Trip[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for trips, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for trips, returning empty array');
       return [];
     }
     handleSupabaseError('get user for trips', error);

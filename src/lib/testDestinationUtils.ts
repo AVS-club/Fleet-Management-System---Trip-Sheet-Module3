@@ -2,13 +2,16 @@
 // This file can be used to test the destination functionality
 
 import { searchOrCreateDestination, findDestinationByPlaceId } from './destinationUtils';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('testDestinationUtils');
 
 /**
  * Test function to verify destination utilities work correctly
  * This should be called from browser console for testing
  */
 export async function testDestinationUtils() {
-  console.log('Testing destination utilities...');
+  logger.debug('Testing destination utilities...');
   
   try {
     // Test data
@@ -20,22 +23,22 @@ export async function testDestinationUtils() {
       longitude: 72.5714
     };
 
-    console.log('1. Testing searchOrCreateDestination...');
+    logger.debug('1. Testing searchOrCreateDestination...');
     const destination = await searchOrCreateDestination(testPlaceDetails);
-    console.log('✅ Created/found destination:', destination);
+    logger.debug('✅ Created/found destination:', destination);
 
-    console.log('2. Testing findDestinationByPlaceId...');
+    logger.debug('2. Testing findDestinationByPlaceId...');
     const foundDestination = await findDestinationByPlaceId(testPlaceDetails.place_id, destination.organization_id);
-    console.log('✅ Found destination:', foundDestination);
+    logger.debug('✅ Found destination:', foundDestination);
 
-    console.log('3. Testing duplicate handling...');
+    logger.debug('3. Testing duplicate handling...');
     const duplicateDestination = await searchOrCreateDestination(testPlaceDetails);
-    console.log('✅ Duplicate handling:', duplicateDestination.id === destination.id ? 'SUCCESS - Same destination returned' : 'FAILED - Different destination created');
+    logger.debug('✅ Duplicate handling:', duplicateDestination.id === destination.id ? 'SUCCESS - Same destination returned' : 'FAILED - Different destination created');
 
-    console.log('🎉 All tests passed!');
+    logger.debug('🎉 All tests passed!');
     return true;
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    logger.error('❌ Test failed:', error);
     return false;
   }
 }

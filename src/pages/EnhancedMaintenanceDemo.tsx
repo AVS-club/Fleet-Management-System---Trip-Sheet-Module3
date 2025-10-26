@@ -6,6 +6,9 @@ import { Vehicle } from '@/types';
 import { MaintenanceTask } from '@/types/maintenance';
 import { toast } from 'react-toastify';
 import { Button } from 'lucide-react';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('EnhancedMaintenanceDemo');
 
 const EnhancedMaintenanceDemo: React.FC = () => {
   const [vehicles] = useState<Vehicle[]>([
@@ -42,7 +45,7 @@ const EnhancedMaintenanceDemo: React.FC = () => {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Form submitted with data:', data);
+      logger.debug('Form submitted with data:', data);
       toast.success('Maintenance task created successfully!');
       
       // Reset form or navigate
@@ -51,7 +54,7 @@ const EnhancedMaintenanceDemo: React.FC = () => {
       }, 1000);
       
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
       toast.error('Failed to create maintenance task');
       setIsSubmitting(false);
     }

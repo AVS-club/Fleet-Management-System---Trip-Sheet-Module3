@@ -21,6 +21,9 @@ import { comprehensiveSearchTrips } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AdminTripsPage');
 
 interface TripSummaryMetrics {
   totalExpenses: number;
@@ -195,7 +198,7 @@ const AdminTripsPage: React.FC = () => {
         await fetchSummaryMetrics();
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        logger.error("Error fetching data:", error);
         setLoading(false);
         setSummaryLoading(false);
       }
@@ -210,7 +213,7 @@ const AdminTripsPage: React.FC = () => {
       setRefreshing(true);
       
       if (forceRefresh) {
-        console.log('Using force refresh...');
+        logger.debug('Using force refresh...');
         const result = await forceDataRefresh();
         
         if (result.success) {
@@ -252,7 +255,7 @@ const AdminTripsPage: React.FC = () => {
         toast.success("Data refreshed successfully");
       }
     } catch (error) {
-      console.error("Error refreshing data:", error);
+      logger.error("Error refreshing data:", error);
       toast.error("Failed to refresh data");
     } finally {
       setRefreshing(false);
@@ -311,7 +314,7 @@ const AdminTripsPage: React.FC = () => {
         toast.error(result.message);
       }
     } catch (error) {
-      console.error('Error fixing mileage:', error);
+      logger.error('Error fixing mileage:', error);
       toast.error('Failed to fix mileage calculations');
     } finally {
       setFixingMileage(false);
@@ -348,7 +351,7 @@ const AdminTripsPage: React.FC = () => {
         toast.success(`Found ${result.totalCount} trips${fieldName}`);
       }
     } catch (error) {
-      console.error('Smart search error:', error);
+      logger.error('Smart search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -450,69 +453,6 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
-  const fetchSummaryMetrics = useCallback(async () => {
-    try {
-      setSummaryLoading(true);
-      
-      // Ensure dates are properly formatted
-      const startDate = filters.dateRange.start ? 
-        new Date(filters.dateRange.start).toISOString() : null;
-      const endDate = filters.dateRange.end ? 
-        new Date(filters.dateRange.end + 'T23:59:59').toISOString() : null;
-      
-      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
-        start_date: startDate,
-        end_date: endDate,
-        p_vehicle_id: filters.vehicleId || null,
-        p_driver_id: filters.driverId || null,
-        p_warehouse_id: filters.warehouseId || null,
-        p_trip_type: filters.tripType || null
-      });
-      
-      if (error) {
-        console.error("Error fetching summary metrics:", error);
-        // Fallback to local calculation
-        calculateMetricsLocally();
-      } else if (data) {
-        // Handle both array and object responses
-        const metricsData = Array.isArray(data) ? data[0] : data;
-        
-        if (metricsData) {
-          setSummaryMetrics({
-            totalExpenses: metricsData.total_expenses || 0,
-            avgDistance: metricsData.avg_distance || 0,
-            tripCount: metricsData.trip_count || 0,
-            meanMileage: metricsData.mean_mileage || 0,
-            topDriver: metricsData.top_driver ? {
-              id: metricsData.top_driver.id,
-              name: metricsData.top_driver.name,
-              totalDistance: metricsData.top_driver.totalDistance || 0,
-              tripCount: metricsData.top_driver.tripCount || 0
-            } : null,
-            topVehicle: metricsData.top_vehicle ? {
-              id: metricsData.top_vehicle.id,
-              registrationNumber: metricsData.top_vehicle.registrationNumber,
-              tripCount: metricsData.top_vehicle.tripCount || 0
-            } : null
-          });
-        } else {
-          calculateMetricsLocally();
-        }
-      }
-    } catch (error) {
-      console.error("Exception fetching summary metrics:", error);
-      calculateMetricsLocally();
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [filters, calculateMetricsLocally]);
-
-  useEffect(() => {
-    fetchSummaryMetrics();
-    setCurrentPage(1);
-  }, [fetchSummaryMetrics, filters]);
-
-
   const calculateMetricsLocally = useCallback(() => {
     const filtered = filteredTrips;
     
@@ -591,6 +531,68 @@ const AdminTripsPage: React.FC = () => {
     });
   }, [filteredTrips, driversMap, vehiclesMap]);
 
+  const fetchSummaryMetrics = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      
+      // Ensure dates are properly formatted
+      const startDate = filters.dateRange.start ? 
+        new Date(filters.dateRange.start).toISOString() : null;
+      const endDate = filters.dateRange.end ? 
+        new Date(filters.dateRange.end + 'T23:59:59').toISOString() : null;
+      
+      const { data, error } = await supabase.rpc('get_trip_summary_metrics', {
+        start_date: startDate,
+        end_date: endDate,
+        p_vehicle_id: filters.vehicleId || null,
+        p_driver_id: filters.driverId || null,
+        p_warehouse_id: filters.warehouseId || null,
+        p_trip_type: filters.tripType || null
+      });
+      
+      if (error) {
+        logger.error("Error fetching summary metrics:", error);
+        // Fallback to local calculation
+        calculateMetricsLocally();
+      } else if (data) {
+        // Handle both array and object responses
+        const metricsData = Array.isArray(data) ? data[0] : data;
+        
+        if (metricsData) {
+          setSummaryMetrics({
+            totalExpenses: metricsData.total_expenses || 0,
+            avgDistance: metricsData.avg_distance || 0,
+            tripCount: metricsData.trip_count || 0,
+            meanMileage: metricsData.mean_mileage || 0,
+            topDriver: metricsData.top_driver ? {
+              id: metricsData.top_driver.id,
+              name: metricsData.top_driver.name,
+              totalDistance: metricsData.top_driver.totalDistance || 0,
+              tripCount: metricsData.top_driver.tripCount || 0
+            } : null,
+            topVehicle: metricsData.top_vehicle ? {
+              id: metricsData.top_vehicle.id,
+              registrationNumber: metricsData.top_vehicle.registrationNumber,
+              tripCount: metricsData.top_vehicle.tripCount || 0
+            } : null
+          });
+        } else {
+          calculateMetricsLocally();
+        }
+      }
+    } catch (error) {
+      logger.error("Exception fetching summary metrics:", error);
+      calculateMetricsLocally();
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [filters, calculateMetricsLocally]);
+
+  useEffect(() => {
+    fetchSummaryMetrics();
+    setCurrentPage(1);
+  }, [fetchSummaryMetrics, filters]);
+
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);
     if (updatedTrip) {
@@ -628,7 +630,7 @@ const AdminTripsPage: React.FC = () => {
         setCurrentPage(currentPage - 1);
       }
     } catch (error) {
-      console.error("Error deleting trip:", error);
+      logger.error("Error deleting trip:", error);
       toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -675,7 +677,7 @@ const AdminTripsPage: React.FC = () => {
       const destinations = await getDestinations();
       const destinationMap = new Map(destinations.map(d => [d.id, d.name]));
       
-      console.log('Exporting trips:', tripsToExport.length);
+      logger.debug('Exporting trips:', tripsToExport.length);
       
       const exportData = tripsToExport.map(trip => {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
@@ -816,7 +818,7 @@ const AdminTripsPage: React.FC = () => {
       toast.success(`Successfully exported ${exportData.length} trips!`);
       
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed:', error);
       toast.error('Failed to export trips. Please check console for details.');
     }
   };
@@ -830,7 +832,7 @@ const AdminTripsPage: React.FC = () => {
       // For now, we're just showing a success message
       toast.success(`Successfully processed ${data.length} trips`);
     } catch (error) {
-      console.error('Error importing file:', error);
+      logger.error('Error importing file:', error);
       toast.error('Failed to import trips');
     }
   };

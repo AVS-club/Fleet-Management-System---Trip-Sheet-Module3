@@ -1,6 +1,9 @@
 import { MaintenanceTask } from '@/types/maintenance';
 import { Vehicle } from '@/types';
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('partsAnalyticsV2');
 
 export interface PartReplacement {
   id: string;
@@ -67,7 +70,7 @@ export const fetchPartsData = async (): Promise<PartsAnalyticsData> => {
       .order('registration_number');
 
     if (vehiclesError) {
-      console.error('Error fetching vehicles:', vehiclesError);
+      logger.error('Error fetching vehicles:', vehiclesError);
       throw vehiclesError;
     }
 
@@ -78,7 +81,7 @@ export const fetchPartsData = async (): Promise<PartsAnalyticsData> => {
       .order('start_date', { ascending: false });
 
     if (tasksError) {
-      console.error('Error fetching maintenance tasks:', tasksError);
+      logger.error('Error fetching maintenance tasks:', tasksError);
       // Continue without tasks data
     }
 
@@ -89,7 +92,7 @@ export const fetchPartsData = async (): Promise<PartsAnalyticsData> => {
       .order('replacement_date', { ascending: false });
 
     if (replacementsError) {
-      console.error('Error fetching parts replacements:', replacementsError);
+      logger.error('Error fetching parts replacements:', replacementsError);
       // Continue without replacements data
     }
 
@@ -99,7 +102,7 @@ export const fetchPartsData = async (): Promise<PartsAnalyticsData> => {
       partsData: processPartsData(vehicles || [], tasks || [], replacements || [])
     };
   } catch (error) {
-    console.error('Error fetching parts data:', error);
+    logger.error('Error fetching parts data:', error);
     return {
       vehicles: [],
       partTypes: getPartTypes(),
@@ -365,13 +368,13 @@ export const addPartReplacement = async (replacementData: Omit<PartReplacement, 
       .single();
 
     if (error) {
-      console.error('Error adding part replacement:', error);
+      logger.error('Error adding part replacement:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error adding part replacement:', error);
+    logger.error('Error adding part replacement:', error);
     throw error;
   }
 };
@@ -386,13 +389,13 @@ export const updatePartReplacement = async (id: string, updates: Partial<PartRep
       .single();
 
     if (error) {
-      console.error('Error updating part replacement:', error);
+      logger.error('Error updating part replacement:', error);
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error updating part replacement:', error);
+    logger.error('Error updating part replacement:', error);
     throw error;
   }
 };
@@ -405,13 +408,13 @@ export const deletePartReplacement = async (id: string) => {
       .eq('id', id);
 
     if (error) {
-      console.error('Error deleting part replacement:', error);
+      logger.error('Error deleting part replacement:', error);
       throw error;
     }
 
     return true;
   } catch (error) {
-    console.error('Error deleting part replacement:', error);
+    logger.error('Error deleting part replacement:', error);
     throw error;
   }
 };

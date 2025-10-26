@@ -14,6 +14,9 @@ import { DataIntegrityValidator, ValidationResult } from '../../utils/dataIntegr
 import { getVehicles } from '../../utils/storage';
 import { Vehicle } from '@/types';
 import Button from '../ui/Button';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DataIntegrityDashboard');
 
 interface DataQualitySummary {
   totalTrips: number;
@@ -49,7 +52,7 @@ const DataIntegrityDashboard: React.FC = () => {
       const summary = await DataIntegrityValidator.getDataQualitySummary();
       setSummary(summary);
     } catch (error) {
-      console.error('Error loading data quality summary:', error);
+      logger.error('Error loading data quality summary:', error);
     }
   };
 
@@ -76,13 +79,13 @@ const DataIntegrityDashboard: React.FC = () => {
             totalIssues
           });
         } catch (error) {
-          console.error(`Error validating trips for vehicle ${vehicle.registration_number}:`, error);
+          logger.error(`Error validating trips for vehicle ${vehicle.registration_number}:`, error);
         }
       }
 
       setVehicleResults(results);
     } catch (error) {
-      console.error('Error loading vehicle results:', error);
+      logger.error('Error loading vehicle results:', error);
     } finally {
       setLoading(false);
     }

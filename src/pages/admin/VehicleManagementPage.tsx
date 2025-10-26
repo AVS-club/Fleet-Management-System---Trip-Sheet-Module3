@@ -43,6 +43,9 @@ import VehicleForm from "../../components/vehicles/VehicleForm";
 import { toast } from "react-toastify";
 import { saveAs } from "file-saver";
 import { supabase } from "../../utils/supabaseClient";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleManagementPage');
 
 interface VehicleWithStats extends Vehicle {
   stats?: {
@@ -145,11 +148,11 @@ const VehicleManagementPage: React.FC = () => {
   // Extract vehicle loading logic into reusable function
   const loadVehicles = async () => {
     try {
-      console.log('🔄 Loading vehicles data...');
+      logger.debug('🔄 Loading vehicles data...');
       
       // Fetch vehicles with their stats
       const vehiclesData = await getVehicles();
-      console.log('📊 Vehicles fetched:', vehiclesData.length);
+      logger.debug('📊 Vehicles fetched:', vehiclesData.length);
 
       // Fetch stats for each vehicle
       const vehiclesWithStats = await Promise.all(
@@ -160,9 +163,9 @@ const VehicleManagementPage: React.FC = () => {
       );
 
       setVehicles(vehiclesWithStats);
-      console.log('✅ Vehicles data refreshed');
+      logger.debug('✅ Vehicles data refreshed');
     } catch (error) {
-      console.error("Error loading vehicles:", error);
+      logger.error("Error loading vehicles:", error);
       toast.error(`Failed to load vehicles: ${error.message || 'Unknown error'}`);
       throw error;
     }
@@ -175,14 +178,14 @@ const VehicleManagementPage: React.FC = () => {
         // Get current user from Supabase auth instead of localStorage
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
-          console.error('Error getting user:', userError);
+          logger.error('Error getting user:', userError);
           toast.error("Authentication error. Please log in again.");
           setLoading(false);
           return;
         }
         setUser(user);
         
-        console.log('🔍 Fetching vehicles for user:', user.id);
+        logger.debug('🔍 Fetching vehicles for user:', user.id);
         
         // Check user's organization membership first
         const { data: orgMembership, error: orgError } = await supabase
@@ -191,20 +194,20 @@ const VehicleManagementPage: React.FC = () => {
           .eq('user_id', user.id);
           
         if (orgError) {
-          console.error('Error checking organization membership:', orgError);
+          logger.error('Error checking organization membership:', orgError);
           toast.error("Error checking organization access. Please contact support.");
           setLoading(false);
           return;
         }
         
         if (!orgMembership || orgMembership.length === 0) {
-          console.error('No organization membership found for user');
+          logger.error('No organization membership found for user');
           toast.error("No organization access found. Please contact your administrator.");
           setLoading(false);
           return;
         }
         
-        console.log('✅ Organization membership found:', orgMembership);
+        logger.debug('✅ Organization membership found:', orgMembership);
         
         // Load vehicles using the reusable function
         await loadVehicles();
@@ -213,9 +216,9 @@ const VehicleManagementPage: React.FC = () => {
         const driversData = await getDrivers();
         setDrivers(driversData);
         
-        console.log('✅ Data loading completed successfully');
+        logger.debug('✅ Data loading completed successfully');
       } catch (error) {
-        console.error("Error fetching data:", error);
+        logger.error("Error fetching data:", error);
         toast.error(`Failed to load vehicle data: ${error.message || 'Unknown error'}`);
       } finally {
         setLoading(false);
@@ -292,7 +295,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.error(`Failed to archive vehicle ${archiveModal.registrationNumber}`);
       }
     } catch (error) {
-      console.error("Error archiving vehicle:", error);
+      logger.error("Error archiving vehicle:", error);
       toast.error(
         `Error archiving vehicle: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -334,7 +337,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.error(`Failed to unarchive vehicle ${unarchiveModal.registrationNumber}`);
       }
     } catch (error) {
-      console.error("Error unarchiving vehicle:", error);
+      logger.error("Error unarchiving vehicle:", error);
       toast.error(
         `Error unarchiving vehicle: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -374,7 +377,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.error(`Failed to archive vehicle ${deleteModal.registrationNumber}`);
       }
     } catch (error) {
-      console.error("Error archiving vehicle:", error);
+      logger.error("Error archiving vehicle:", error);
       toast.error(
         `Error archiving vehicle: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -413,7 +416,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.error(`Failed to permanently delete vehicle: ${result.error}`);
       }
     } catch (error) {
-      console.error('Error permanently deleting vehicle:', error);
+      logger.error('Error permanently deleting vehicle:', error);
       toast.error(`Error permanently deleting vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setOperationLoading(false);
@@ -449,7 +452,7 @@ const VehicleManagementPage: React.FC = () => {
         relatedData
       });
     } catch (error) {
-      console.error('Error fetching vehicle dependencies:', error);
+      logger.error('Error fetching vehicle dependencies:', error);
       toast.error('Failed to check vehicle dependencies');
     }
   };
@@ -486,7 +489,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.warning(`Failed to archive ${result.failed} vehicles`);
       }
     } catch (error) {
-      console.error("Error archiving vehicles:", error);
+      logger.error("Error archiving vehicles:", error);
       toast.error(
         `Error archiving vehicles: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -529,7 +532,7 @@ const VehicleManagementPage: React.FC = () => {
         toast.warning(`Failed to unarchive ${result.failed} vehicles`);
       }
     } catch (error) {
-      console.error("Error unarchiving vehicles:", error);
+      logger.error("Error unarchiving vehicles:", error);
       toast.error(
         `Error unarchiving vehicles: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -582,7 +585,7 @@ const VehicleManagementPage: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error("Error assigning driver:", error);
+      logger.error("Error assigning driver:", error);
       toast.error(
         `Error assigning driver: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -619,7 +622,7 @@ const VehicleManagementPage: React.FC = () => {
       // Refresh activity logs
       setRefreshTrigger((prev) => prev + 1);
     } catch (error) {
-      console.error("Error exporting vehicle data:", error);
+      logger.error("Error exporting vehicle data:", error);
       toast.error(
         `Error exporting data: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -656,12 +659,12 @@ const VehicleManagementPage: React.FC = () => {
         // Refresh activity logs
         setRefreshTrigger(prev => prev + 1);
         
-        console.log('✅ Page data refreshed after vehicle update');
+        logger.debug('✅ Page data refreshed after vehicle update');
       } else {
         toast.error('Failed to update vehicle');
       }
     } catch (error) {
-      console.error('Error updating vehicle:', error);
+      logger.error('Error updating vehicle:', error);
       toast.error(`Error updating vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsEditSubmitting(false);

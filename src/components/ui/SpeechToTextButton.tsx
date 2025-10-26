@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Loader } from 'lucide-react';
 import config from '../../utils/env';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('SpeechToTextButton');
 
 interface SpeechToTextButtonProps {
   onTranscript: (text: string) => void;
@@ -47,7 +50,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        logger.error('Speech recognition error:', event.error);
         setIsListening(false);
       };
 
@@ -56,7 +59,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
     } else {
       setIsSupported(false);
-      if (config.isDev) console.warn('Speech recognition is not supported in this browser');
+      if (config.isDev) logger.warn('Speech recognition is not supported in this browser');
     }
 
     return () => {
@@ -69,7 +72,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
           try {
             recognitionRef.current.stop();
           } catch (err) {
-            console.error('Error stopping speech recognition:', err);
+            logger.error('Error stopping speech recognition:', err);
           }
         }
       }
@@ -86,7 +89,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
-        console.error('Error starting speech recognition:', err);
+        logger.error('Error starting speech recognition:', err);
       }
     }
   };

@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('alertSettings');
 
 export interface AlertSettings {
   auto_popup: boolean;
@@ -58,7 +61,7 @@ export const updateAlertSettings = async (settings: AlertSettings): Promise<void
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    console.error('No user found, cannot update alert settings');
+    logger.error('No user found, cannot update alert settings');
     return;
   }
   
@@ -71,6 +74,6 @@ export const updateAlertSettings = async (settings: AlertSettings): Promise<void
     .eq('user_id', user.id);
   
   if (error) {
-    console.error('Error updating alert settings:', error);
+    logger.error('Error updating alert settings:', error);
   }
 };

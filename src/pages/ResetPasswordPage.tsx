@@ -15,11 +15,11 @@ const ResetPasswordPage: React.FC = () => {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       // TODO: Implement actual password reset logic
       await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-      
+
       setEmailSent(true);
       toast.success('Password reset email sent! Check your inbox.');
     } catch (error) {
@@ -34,37 +34,37 @@ const ResetPasswordPage: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
         {/* Aurora Background */}
         <AuroraBackground />
-        
+
         <div className="absolute top-4 right-4 z-20">
           <ThemeToggle />
         </div>
-        
+
         <div className="w-full max-w-md relative z-10">
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-8 border border-gray-100">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 dark:shadow-gray-900/60 p-8 border border-gray-100 dark:border-gray-700">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl mb-6 shadow-xl shadow-emerald-600/40">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 rounded-2xl mb-6 shadow-xl shadow-emerald-600/40 dark:shadow-emerald-500/40">
                 <Mail className="w-8 h-8 text-white" strokeWidth={2.5} />
               </div>
-              
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h1>
-              <p className="text-gray-600 mb-6">
-                We've sent a password reset link to <strong>{email}</strong>
+
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check Your Email</h1>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                We've sent a password reset link to <strong className="text-gray-900 dark:text-gray-100">{email}</strong>
               </p>
-              
+
               <div className="space-y-4">
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Didn't receive the email? Check your spam folder or{' '}
-                  <button 
+                  <button
                     onClick={() => setEmailSent(false)}
-                    className="text-emerald-600 hover:text-emerald-700 font-medium"
+                    className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium"
                   >
                     try again
                   </button>
                 </p>
-                
-                <Link 
+
+                <Link
                   to="/login"
-                  className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+                  className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back to Login
@@ -72,8 +72,8 @@ const ResetPasswordPage: React.FC = () => {
               </div>
             </div>
           </div>
-          
-          <p className="text-center text-xs text-gray-400 mt-6">
+
+          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
             © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with ❤️
           </p>
         </div>
@@ -85,51 +85,51 @@ const ResetPasswordPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Aurora Background */}
       <AuroraBackground />
-      
+
       <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>
-      
+
       <div className="w-full max-w-md relative z-10">
         {/* Logo and Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl mb-5 shadow-xl shadow-emerald-600/40">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 rounded-2xl mb-5 shadow-xl shadow-emerald-600/40 dark:shadow-emerald-500/40">
             <Truck className="w-11 h-11 text-white" strokeWidth={2.5} fill="white" />
           </div>
-          
+
           <h1 className="text-3xl font-bold tracking-tight mb-1.5">
-            <span className="text-gray-900">Auto Vital</span>
-            <span className="text-emerald-600"> Solution</span>
+            <span className="text-gray-900 dark:text-white">Auto Vital</span>
+            <span className="text-emerald-600 dark:text-emerald-400"> Solution</span>
           </h1>
-          
+
           <div className="flex items-center justify-center mb-2">
-            <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-emerald-600 to-transparent"></div>
+            <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-emerald-600 dark:via-emerald-400 to-transparent"></div>
           </div>
-          
-          <p className="text-sm text-gray-600 font-medium">
+
+          <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
             Smarter Fleet. Less Stress.
           </p>
         </div>
 
         {/* Reset Password Card */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 p-8 border border-gray-100">
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-3xl shadow-2xl shadow-gray-300/60 dark:shadow-gray-900/60 p-8 border border-gray-100 dark:border-gray-700">
           <div className="mb-6 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Password</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Reset Password</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Enter your email address and we'll send you a link to reset your password
             </p>
           </div>
 
           <form onSubmit={handleResetPassword} className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                 Email Address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent transition-all"
                 placeholder="Enter your email address"
                 required
               />
@@ -138,24 +138,24 @@ const ResetPasswordPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600 hover:from-emerald-700 hover:to-emerald-800 dark:hover:from-emerald-600 dark:hover:to-emerald-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-600/30 dark:shadow-emerald-500/30 hover:shadow-emerald-600/50 dark:hover:shadow-emerald-500/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Sending..." : "Send Reset Link"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link 
+            <Link
               to="/login"
-              className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Login
             </Link>
           </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-100">
-            <div className="flex items-center justify-center gap-2 text-gray-400">
+          <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500">
               <Mail className="w-4 h-4" />
               <span className="text-xs font-medium">
                 We'll send you a secure reset link
@@ -164,7 +164,7 @@ const ResetPasswordPage: React.FC = () => {
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
+        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-6">
           © {new Date().getFullYear()} Auto Vital Solution. All rights reserved. • Built with ❤️
         </p>
       </div>

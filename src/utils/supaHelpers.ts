@@ -1,6 +1,9 @@
 // src/utils/supaHelpers.ts
 
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('supaHelpers');
 
 // Updated helper to use created_by and organization_id for multi-tenant architecture
 export function withOwner<T extends Record<string, any>>(
@@ -49,7 +52,7 @@ export async function getUserActiveOrganization(userId: string): Promise<string 
     
     return null;
   } catch (error) {
-    console.error('Error getting user active organization:', error);
+    logger.error('Error getting user active organization:', error);
     return null;
   }
 }

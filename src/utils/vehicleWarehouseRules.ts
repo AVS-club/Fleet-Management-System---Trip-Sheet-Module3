@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { getCurrentOrganizationId } from './auth';
+import { createLogger } from './logger';
+
+const logger = createLogger('vehicleWarehouseRules');
 
 interface WarehouseRule {
   id: string;
@@ -39,7 +42,7 @@ export const getWarehouseRules = async (organizationId?: string): Promise<Wareho
       isActive: rule.is_active
     }));
   } catch (error) {
-    console.error('Error fetching warehouse rules:', error);
+    logger.error('Error fetching warehouse rules:', error);
     return [];
   }
 };
@@ -101,7 +104,7 @@ export const createWarehouseRule = async (
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error creating warehouse rule:', error);
+    logger.error('Error creating warehouse rule:', error);
     throw error;
   }
 };
@@ -130,7 +133,7 @@ export const updateWarehouseRule = async (
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error updating warehouse rule:', error);
+    logger.error('Error updating warehouse rule:', error);
     throw error;
   }
 };
@@ -144,7 +147,7 @@ export const deleteWarehouseRule = async (ruleId: string) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting warehouse rule:', error);
+    logger.error('Error deleting warehouse rule:', error);
     throw error;
   }
 };

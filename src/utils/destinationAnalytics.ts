@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { getCurrentUserId } from './storage';
+import { createLogger } from './logger';
+
+const logger = createLogger('destinationAnalytics');
 
 export interface DestinationUsageStats {
   id: string;
@@ -93,7 +96,7 @@ export const getDestinationsWithAnalytics = async (
     const { data, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching destinations with analytics:', error);
+      logger.error('Error fetching destinations with analytics:', error);
       throw error;
     }
 
@@ -151,7 +154,7 @@ export const getDestinationsWithAnalytics = async (
       hasPreviousPage: page > 1
     };
   } catch (error) {
-    console.error('Error in getDestinationsWithAnalytics:', error);
+    logger.error('Error in getDestinationsWithAnalytics:', error);
     throw error;
   }
 };
@@ -208,7 +211,7 @@ export const getMostUsedDestinations = async (limit: number = 10): Promise<Desti
       .sort((a, b) => b.usage_count - a.usage_count)
       .slice(0, limit);
   } catch (error) {
-    console.error('Error in getMostUsedDestinations:', error);
+    logger.error('Error in getMostUsedDestinations:', error);
     throw error;
   }
 };
@@ -221,9 +224,9 @@ export const updateDestinationUsage = async (destinationIds: string[]): Promise<
     // This function can be called when trips are created/updated
     // For now, we'll rely on the real-time queries above
     // In the future, we could implement a more efficient caching mechanism
-    console.log('Destination usage updated for:', destinationIds);
+    logger.debug('Destination usage updated for:', destinationIds);
   } catch (error) {
-    console.error('Error updating destination usage:', error);
+    logger.error('Error updating destination usage:', error);
   }
 };
 
@@ -270,7 +273,7 @@ export const getDestinationStats = async (): Promise<{
       recentlyUsedDestinations: recentlyUsed
     };
   } catch (error) {
-    console.error('Error in getDestinationStats:', error);
+    logger.error('Error in getDestinationStats:', error);
     throw error;
   }
 };

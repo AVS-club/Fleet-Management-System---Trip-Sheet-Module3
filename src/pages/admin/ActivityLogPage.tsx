@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '../../components/layout/Layout'; 
+import Layout from '../../components/layout/Layout';
 import { ChevronLeft, ActivitySquare, Calendar, User, Search, Filter } from 'lucide-react';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -13,7 +13,7 @@ const ActivityLogPage: React.FC = () => {
   const [dateRange, setDateRange] = useState('last7');
   const [actionType, setActionType] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   const refreshLogs = () => {
     setRefreshTrigger(prev => prev + 1);
   };
@@ -21,7 +21,7 @@ const ActivityLogPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <ActivitySquare className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Activity Logs</h1>
@@ -40,8 +40,8 @@ const ActivityLogPage: React.FC = () => {
 
       <div className="space-y-6">
         {/* Filters */}
-        <div className="bg-white p-4 rounded-lg shadow-sm">
-          <div className="flex flex-wrap gap-4 justify-between border-l-2 border-blue-500 pl-2">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex flex-wrap gap-4 justify-between border-l-2 border-blue-500 dark:border-blue-400 pl-2">
             <div className="flex flex-wrap gap-4 flex-1">
               <div className="w-full sm:w-auto flex-1 min-w-[200px]">
                 <Input
@@ -51,7 +51,7 @@ const ActivityLogPage: React.FC = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
+
               <div className="w-40">
                 <Select
                   options={[
@@ -67,7 +67,7 @@ const ActivityLogPage: React.FC = () => {
                   onChange={(e) => setActionType(e.target.value)}
                 />
               </div>
-              
+
               <div className="w-40">
                 <Select
                   options={[
@@ -82,7 +82,7 @@ const ActivityLogPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div>
               <Button
                 variant="outline"
@@ -94,31 +94,31 @@ const ActivityLogPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Vehicle Activity Logs */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <ActivitySquare className="h-5 w-5 text-primary-600 mr-2" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
+              <ActivitySquare className="h-5 w-5 text-primary-600 dark:text-primary-400 mr-2" />
               Vehicle Activity Logs
             </h3>
           </div>
-          
+
           <VehicleActivityLogTable refreshTrigger={refreshTrigger} />
         </div>
-        
+
         {/* Other Log Sections - Coming Soon */}
-        <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center mb-4">
-            <User className="h-5 w-5 text-primary-600 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900">User Activity Logs</h2>
+            <User className="h-5 w-5 text-primary-600 dark:text-primary-400 mr-2" />
+            <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">User Activity Logs</h2>
           </div>
-          <p className="text-gray-500 mb-4">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
             View user login, logout, and system access events.
           </p>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <p className="text-blue-700">
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md p-4">
+            <p className="text-blue-700 dark:text-blue-300">
               This feature is coming soon. Check back later for updates.
             </p>
           </div>

@@ -5,6 +5,9 @@ import { AIAlert, Vehicle, Driver } from '@/types';
 import { getVehicle, getDriver } from '../../utils/storage';
 import { format, isValid } from 'date-fns';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AlertDetailsModal');
 
 interface AlertDetailsModalProps {
   alert: AIAlert;
@@ -36,7 +39,7 @@ const AlertDetailsModal: React.FC<AlertDetailsModalProps> = ({ alert, onClose })
         // Mock similar alerts - in a real app, you would fetch these from the API
         setSimilarAlerts([]); // For now, just use an empty array
       } catch (error) {
-        console.error('Error fetching related data:', error);
+        logger.error('Error fetching related data:', error);
       } finally {
         setLoading(false);
       }

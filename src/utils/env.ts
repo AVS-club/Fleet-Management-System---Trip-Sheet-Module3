@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { createLogger } from './logger';
+
+const logger = createLogger('env');
 
 // Combine environment variables from Vite and Node.js for flexibility
 const rawEnv = {
@@ -19,8 +22,8 @@ if (!parsed.success) {
   const message = parsed.error.errors
     .map(err => `${err.path.join('.')}: ${err.message}`)
     .join('; ');
-  console.warn(`Environment variable validation warnings: ${message}`);
-  console.warn('Using development fallbacks where possible...');
+  logger.warn(`Environment variable validation warnings: ${message}`);
+  logger.warn('Using development fallbacks where possible...');
 }
 
 const data = parsed.success ? parsed.data : rawEnv;

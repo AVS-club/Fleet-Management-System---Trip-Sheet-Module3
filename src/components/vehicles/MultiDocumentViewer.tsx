@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, ChevronLeft, ChevronRight, FileText, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('MultiDocumentViewer');
 
 interface MultiDocumentViewerProps {
   documents: string[];
@@ -24,7 +27,7 @@ class DocumentViewerErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Document Viewer Error:', error, errorInfo);
+    logger.error('Document Viewer Error:', error, errorInfo);
   }
 
   render() {
@@ -78,7 +81,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   
   // Log document changes
   useEffect(() => {
-    console.log(`📄 Loading document ${currentIndex + 1}/${documents.length}:`, currentDocument);
+    logger.debug(`📄 Loading document ${currentIndex + 1}/${documents.length}:`, currentDocument);
   }, [currentIndex, currentDocument]);
   
   const getFileType = (url: string) => {
@@ -110,7 +113,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   }, []);
 
   const handlePrevious = () => {
-    console.log('⬅️ Previous document');
+    logger.debug('⬅️ Previous document');
     setCurrentIndex(prev => (prev - 1 + documents.length) % documents.length);
     setZoom(1);
     setRotation(0);
@@ -119,7 +122,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   };
 
   const handleNext = () => {
-    console.log('➡️ Next document');
+    logger.debug('➡️ Next document');
     setCurrentIndex(prev => (prev + 1) % documents.length);
     setZoom(1);
     setRotation(0);
@@ -131,7 +134,7 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
   useEffect(() => {
     if (isLoading) {
       const timeout = setTimeout(() => {
-        console.log('⏰ Load timeout - clearing loading state');
+        logger.debug('⏰ Load timeout - clearing loading state');
         setIsLoading(false);
       }, 3000); // 3 second timeout per document
 
@@ -157,19 +160,19 @@ const MultiDocumentViewer: React.FC<MultiDocumentViewerProps> = ({
       window.URL.revokeObjectURL(downloadUrl);
       toast.success('Document downloaded successfully');
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       toast.error('Failed to download document');
     }
   };
 
   const handleImageLoad = () => {
-    console.log('✅ Document loaded successfully');
+    logger.debug('✅ Document loaded successfully');
     setIsLoading(false);
     setError(null);
   };
 
   const handleImageError = () => {
-    console.error('❌ Document failed to load');
+    logger.error('❌ Document failed to load');
     setIsLoading(false);
     setError('Failed to load document');
   };

@@ -55,7 +55,7 @@ CREATE TABLE public.events_feed (
 
 ### Event Types (kind field)
 
-- `ai_alert`: AI-generated alerts and recommendations
+- `ai_alert`: AI alerts and recommendations
 - `activity`: General system activities
 - `vehicle_activity`: Vehicle-specific activities
 - `vehicle_doc`: Vehicle document reminders

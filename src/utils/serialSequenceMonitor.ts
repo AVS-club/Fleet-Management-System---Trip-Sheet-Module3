@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { AuditTrailLogger } from './auditTrailLogger';
+import { createLogger } from './logger';
+
+const logger = createLogger('serialSequenceMonitor');
 
 export interface SerialSequenceIssue {
   type: 'gap' | 'duplicate';
@@ -46,7 +49,7 @@ export class SerialSequenceMonitor {
         .single();
 
       if (vehicleError || !vehicleData) {
-        console.error('Vehicle not found:', vehicleError);
+        logger.error('Vehicle not found:', vehicleError);
         return null;
       }
 
@@ -66,7 +69,7 @@ export class SerialSequenceMonitor {
       }
 
       if (tripsError) {
-        console.error('Error fetching trips:', tripsError);
+        logger.error('Error fetching trips:', tripsError);
         return null;
       }
 
@@ -102,7 +105,7 @@ export class SerialSequenceMonitor {
 
       return analysis;
     } catch (error) {
-      console.error('Error analyzing vehicle sequence:', error);
+      logger.error('Error analyzing vehicle sequence:', error);
       return null;
     }
   }
@@ -307,7 +310,7 @@ export class SerialSequenceMonitor {
         vehicle_analyses: analyses
       };
     } catch (error) {
-      console.error('Error getting system-wide sequence issues:', error);
+      logger.error('Error getting system-wide sequence issues:', error);
       throw error;
     }
   }
@@ -349,7 +352,7 @@ export class SerialSequenceMonitor {
         hasGaps: false
       };
     } catch (error) {
-      console.error('Error generating serial with gap check:', error);
+      logger.error('Error generating serial with gap check:', error);
       const basicSerial = await this.generateBasicSerial(vehicleRegistration, tripDate);
       return { serial: basicSerial, hasGaps: false };
     }

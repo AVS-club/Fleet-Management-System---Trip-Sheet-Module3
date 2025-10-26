@@ -325,7 +325,7 @@ export const mobileStorage = {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.warn('Failed to save to localStorage:', error);
+      logger.warn('Failed to save to localStorage:', error);
     }
   },
   
@@ -334,7 +334,7 @@ export const mobileStorage = {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : (defaultValue ?? null);
     } catch (error) {
-      console.warn('Failed to read from localStorage:', error);
+      logger.warn('Failed to read from localStorage:', error);
       return defaultValue ?? null;
     }
   },
@@ -343,7 +343,7 @@ export const mobileStorage = {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.warn('Failed to remove from localStorage:', error);
+      logger.warn('Failed to remove from localStorage:', error);
     }
   },
   
@@ -351,7 +351,7 @@ export const mobileStorage = {
     try {
       localStorage.clear();
     } catch (error) {
-      console.warn('Failed to clear localStorage:', error);
+      logger.warn('Failed to clear localStorage:', error);
     }
   }
 };

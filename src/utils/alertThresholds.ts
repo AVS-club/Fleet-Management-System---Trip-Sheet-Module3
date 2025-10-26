@@ -1,5 +1,8 @@
 import { supabase } from "./supabaseClient";
 import { handleSupabaseError } from "./errors";
+import { createLogger } from './logger';
+
+const logger = createLogger('alertThresholds');
 
 export interface AlertThreshold {
   id: string;
@@ -32,7 +35,7 @@ export const getAlertThresholds = async (): Promise<AlertThreshold[]> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return [];
     }
 
@@ -50,7 +53,7 @@ export const getAlertThresholds = async (): Promise<AlertThreshold[]> => {
 
     return data || [];
   } catch (error) {
-    console.error('Error fetching alert thresholds:', error);
+    logger.error('Error fetching alert thresholds:', error);
     return [];
   }
 };
@@ -65,7 +68,7 @@ export const getAlertThreshold = async (
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return null;
     }
 
@@ -84,7 +87,7 @@ export const getAlertThreshold = async (
 
     return data;
   } catch (error) {
-    console.error('Error fetching alert threshold:', error);
+    logger.error('Error fetching alert threshold:', error);
     return null;
   }
 };
@@ -98,7 +101,7 @@ export const upsertAlertThreshold = async (
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return false;
     }
 
@@ -124,7 +127,7 @@ export const upsertAlertThreshold = async (
 
     return true;
   } catch (error) {
-    console.error('Error upserting alert threshold:', error);
+    logger.error('Error upserting alert threshold:', error);
     return false;
   }
 };
@@ -139,7 +142,7 @@ export const deleteAlertThreshold = async (
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return false;
     }
 
@@ -157,7 +160,7 @@ export const deleteAlertThreshold = async (
 
     return true;
   } catch (error) {
-    console.error('Error deleting alert threshold:', error);
+    logger.error('Error deleting alert threshold:', error);
     return false;
   }
 };
@@ -169,7 +172,7 @@ export const resetAlertThresholdsToDefault = async (): Promise<boolean> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      console.error("No authenticated user found");
+      logger.error("No authenticated user found");
       return false;
     }
 
@@ -225,7 +228,7 @@ export const resetAlertThresholdsToDefault = async (): Promise<boolean> => {
 
     return true;
   } catch (error) {
-    console.error('Error resetting alert thresholds to default:', error);
+    logger.error('Error resetting alert thresholds to default:', error);
     return false;
   }
 };

@@ -9,6 +9,9 @@ import { computeNextDueFromLast } from "./serviceDue";
 import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
 import { clearVehiclePredictionCache } from "./maintenancePredictor";
+import { createLogger } from './logger';
+
+const logger = createLogger('maintenanceStorage');
 
 // CRASH-PROOF: Compress images before upload to prevent main thread blocking
 const compressImageForUpload = (file: File): Promise<File> => {
@@ -53,7 +56,7 @@ const compressImageForUpload = (file: File): Promise<File> => {
                 type: 'image/jpeg',
                 lastModified: Date.now()
               });
-              console.log(`📸 Odometer image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+              logger.debug(`📸 Odometer image compressed: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
               resolve(compressedFile);
             } else {
               resolve(file);
@@ -78,7 +81,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    console.error("Error fetching user data");
+    logger.error("Error fetching user data");
     return [];
   }
   const { data, error } = await supabase
@@ -152,7 +155,7 @@ export const createTask = async (
 
   // Make sure start_date is not empty string
   if (taskData.start_date === "") {
-    console.error("Empty start_date detected in createTask");
+    logger.error("Empty start_date detected in createTask");
     throw new Error("Start date cannot be empty");
   }
 
@@ -168,7 +171,7 @@ export const createTask = async (
 
   // Make sure required fields are present
   if (!taskData.garage_id) {
-    console.error("Missing garage_id in createTask");
+    logger.error("Missing garage_id in createTask");
     throw new Error("Garage ID is required");
   }
 
@@ -205,29 +208,13 @@ export const createTask = async (
         data.odometer_image = odometerImageUrl;
       }
     } catch (uploadError) {
-      console.error("Failed to upload odometer image:", uploadError);
+      logger.error("Failed to upload odometer image:", uploadError);
       // Continue without failing the entire task creation
     }
   }
 
-  // Create audit log for task creation
+  // Compute and update next due dates/odometer
   if (data) {
-    try {
-      await createAuditLog({
-        task_id: data.id,
-        changes: {
-          status: {
-            previousValue: null,
-            updatedValue: data.status,
-          },
-        },
-      });
-    } catch (error) {
-      handleSupabaseError('create audit log', error);
-      // Continue even if audit log creation fails
-    }
-
-    // Compute and update next due dates/odometer
     try {
       await updateNextDueForTask(data.id, data.vehicle_id, data.odometer_reading, data.start_date);
     } catch (error) {
@@ -327,13 +314,13 @@ export const updateTask = async (
     .single();
 
   if (!oldTask) {
-    console.error("Task not found:", id);
+    logger.error("Task not found:", id);
     return null;
   }
 
   // Make sure start_date is not empty string
   if (updateData.start_date === "") {
-    console.error("Empty start_date detected in updateTask");
+    logger.error("Empty start_date detected in updateTask");
     throw new Error("Start date cannot be empty");
   }
 
@@ -375,30 +362,6 @@ export const updateTask = async (
   if (error) {
     handleSupabaseError('update maintenance task', error);
     throw new Error(`Error updating maintenance task: ${error.message}`);
-  }
-
-  // Create audit log for changes
-  const changes: Record<string, { previousValue: any; updatedValue: any }> = {};
-  Object.keys(updateData).forEach((key) => {
-    const updateKey = key as keyof MaintenanceTask;
-    if (updateData[updateKey] !== oldTask[updateKey]) {
-      changes[key] = {
-        previousValue: oldTask[updateKey],
-        updatedValue: updateData[updateKey],
-      };
-    }
-  });
-
-  if (Object.keys(changes).length > 0) {
-    try {
-      await createAuditLog({
-        task_id: id,
-        changes,
-      });
-    } catch (error) {
-      handleSupabaseError('create audit log', error);
-      // Continue even if audit log creation fails
-    }
   }
 
   // Compute and update next due dates/odometer if relevant fields changed
@@ -567,43 +530,6 @@ const updateNextDueForTask = async (
   } catch (error) {
     handleSupabaseError('update next due for task', error);
   }
-};
-
-// Audit log operations
-export const getAuditLogs = async (): Promise<MaintenanceAuditLog[]> => {
-  const { data, error } = await supabase
-    .from("maintenance_audit_logs")
-    .select("*")
-    .order("timestamp", { ascending: false });
-
-  if (error) {
-    handleSupabaseError('fetch audit logs', error);
-    return [];
-  }
-
-  return data || [];
-};
-
-const createAuditLog = async (
-  log: Omit<MaintenanceAuditLog, "id" | "timestamp">
-): Promise<MaintenanceAuditLog | null> => {
-  const { data, error } = await supabase
-    .from("maintenance_audit_logs")
-    .insert({
-      task_id: log.task_id,
-      admin_user: log.admin_user,
-      changes: log.changes,
-      timestamp: new Date().toISOString(),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    handleSupabaseError('create audit log', error);
-    throw new Error(`Error creating audit log: ${error.message}`);
-  }
-
-  return data;
 };
 
 // Service groups operations

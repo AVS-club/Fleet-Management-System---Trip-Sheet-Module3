@@ -14,23 +14,23 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
+        <div className="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" aria-hidden="true" onClick={onClose}></div>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+          <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
               <div className="flex items-center w-full sm:w-auto">
-                <div className="bg-primary-100 rounded-lg p-1.5 sm:p-2">
-                  <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
+                <div className="bg-primary-100 dark:bg-primary-900/30 rounded-lg p-1.5 sm:p-2">
+                  <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div className="ml-2 sm:ml-3">
-                  <h3 className="text-base sm:text-lg font-medium text-gray-900">{driver.name}</h3>
-                  <p className="text-xs sm:text-sm text-gray-500">{driver.license_number}</p>
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-gray-100">{driver.name}</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{driver.license_number}</p>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="rounded-md text-gray-400 hover:text-gray-500 focus:outline-none mt-1 sm:mt-0"
+                className="rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 focus:outline-none mt-1 sm:mt-0"
               >
                 <X className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
@@ -38,37 +38,37 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
 
             <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-6">
               <div>
-                <h4 className="text-xs sm:text-sm font-medium text-gray-900">Driver Details</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">Driver Details</h4>
                 <dl className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <dt className="text-sm text-gray-500">Experience</dt>
-                    <dd className="text-xs sm:text-sm font-medium text-gray-900">{driver.experience_years} years</dd>
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Experience</dt>
+                    <dd className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{driver.experience_years} years</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Join Date</dt>
-                    <dd className="text-xs sm:text-sm font-medium text-gray-900">
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Join Date</dt>
+                    <dd className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">
                       {new Date(driver.join_date).toLocaleDateString()}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Contact</dt>
-                    <dd className="text-xs sm:text-sm font-medium text-gray-900">{driver.contact_number}</dd>
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Contact</dt>
+                    <dd className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{driver.contact_number}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm text-gray-500">Email</dt>
-                    <dd className="text-xs sm:text-sm font-medium text-gray-900">{driver.email || '-'}</dd>
+                    <dt className="text-sm text-gray-500 dark:text-gray-400">Email</dt>
+                    <dd className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{driver.email || '-'}</dd>
                   </div>
                 </dl>
               </div>
 
               {primaryVehicle && (
                 <div>
-                  <h4 className="text-xs sm:text-sm font-medium text-gray-900">Primary Vehicle</h4>
-                  <div className="mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg flex items-center">
-                    <Truck className="h-5 w-5 text-gray-400" />
+                  <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">Primary Vehicle</h4>
+                  <div className="mt-2 p-2 sm:p-3 bg-gray-50 dark:bg-gray-900 rounded-lg flex items-center">
+                    <Truck className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                     <div className="ml-2 sm:ml-3">
-                      <p className="text-xs sm:text-sm font-medium text-gray-900">{primaryVehicle.registration_number}</p>
-                      <p className="text-xs sm:text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">{primaryVehicle.registration_number}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         {primaryVehicle.make} {primaryVehicle.model}
                       </p>
                     </div>
@@ -77,28 +77,28 @@ const DriverProfileModal: React.FC<DriverProfileModalProps> = ({ driver, onClose
               )}
 
               <div>
-                <h4 className="text-xs sm:text-sm font-medium text-gray-900">Documents</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">Documents</h4>
                 <div className="mt-1 sm:mt-2 space-y-1 sm:space-y-2">
-                  <div className="flex items-center p-1.5 sm:p-2 bg-gray-50 rounded-lg">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <span className="ml-2 text-xs sm:text-sm text-gray-900">Driver's License</span>
-                    <span className="ml-auto text-xs sm:text-sm text-gray-500">Valid till 2025</span>
+                  <div className="flex items-center p-1.5 sm:p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <FileText className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    <span className="ml-2 text-xs sm:text-sm text-gray-900 dark:text-gray-100">Driver's License</span>
+                    <span className="ml-auto text-xs sm:text-sm text-gray-500 dark:text-gray-400">Valid till 2025</span>
                   </div>
-                  <div className="flex items-center p-1.5 sm:p-2 bg-gray-50 rounded-lg">
-                    <FileText className="h-5 w-5 text-gray-400" />
-                    <span className="ml-2 text-xs sm:text-sm text-gray-900">Aadhar Card</span>
+                  <div className="flex items-center p-1.5 sm:p-2 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <FileText className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                    <span className="ml-2 text-xs sm:text-sm text-gray-900 dark:text-gray-100">Aadhar Card</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-xs sm:text-sm font-medium text-gray-900">Recent Activity</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100">Recent Activity</h4>
                 <div className="mt-1 sm:mt-2 space-y-1 sm:space-y-2">
-                  <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+                  <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <div className="flex items-center">
-                      <Calendar className="h-5 w-5 text-gray-400" />
-                      <span className="ml-2 text-xs sm:text-sm text-gray-900">Last Trip</span>
-                      <span className="ml-auto text-xs sm:text-sm text-gray-500">2 days ago</span>
+                      <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <span className="ml-2 text-xs sm:text-sm text-gray-900 dark:text-gray-100">Last Trip</span>
+                      <span className="ml-auto text-xs sm:text-sm text-gray-500 dark:text-gray-400">2 days ago</span>
                     </div>
                   </div>
                 </div>

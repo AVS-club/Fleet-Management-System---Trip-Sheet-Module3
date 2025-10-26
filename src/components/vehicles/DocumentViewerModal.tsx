@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { X, Eye, Download, FileText, Image as ImageIcon, Check, AlertCircle } from 'lucide-react';
 import Button from '../ui/Button';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentViewerModal');
 
 interface DocumentFile {
   type: string;
@@ -43,7 +46,7 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         setSelectedImage(url);
       }
     } catch (error) {
-      console.error('View error:', error);
+      logger.error('View error:', error);
       // Fallback to direct open
       window.open(url, "_blank");
     }

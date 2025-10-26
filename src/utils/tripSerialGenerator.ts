@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { handleSupabaseError } from './errors';
+import { createLogger } from './logger';
+
+const logger = createLogger('tripSerialGenerator');
 
 /**
  * Generates a trip serial number in the format TYY-####-XXXX
@@ -41,11 +44,11 @@ export const generateTripSerialNumber = async (
       .single();
 
     if (orgError || !orgUser) {
-      console.error('Error fetching user organization for serial generation:', orgError);
+      logger.error('Error fetching user organization for serial generation:', orgError);
       throw new Error('User not associated with any organization');
     }
 
-    console.log('User organization ID for serial generation:', orgUser.organization_id);
+    logger.debug('User organization ID for serial generation:', orgUser.organization_id);
 
     // Query to find ALL existing serial numbers for THIS specific vehicle and year
     // This ensures we get the complete picture of what sequences exist
@@ -62,8 +65,8 @@ export const generateTripSerialNumber = async (
       throw error;
     }
 
-    console.log(`Found ${existingTrips?.length || 0} existing trips for prefix ${prefix}`);
-    console.log('Existing trips:', existingTrips);
+    logger.debug(`Found ${existingTrips?.length || 0} existing trips for prefix ${prefix}`);
+    logger.debug('Existing trips:', existingTrips);
 
     // Extract all existing sequence numbers to find gaps or the next available
     const existingSequences = new Set<number>();
@@ -79,15 +82,15 @@ export const generateTripSerialNumber = async (
             if (!isNaN(parsedSequence)) {
               existingSequences.add(parsedSequence);
               maxSequence = Math.max(maxSequence, parsedSequence);
-              console.log(`Found existing serial: ${trip.trip_serial_number}, sequence: ${parsedSequence}`);
+              logger.debug(`Found existing serial: ${trip.trip_serial_number}, sequence: ${parsedSequence}`);
             }
           }
         }
       });
     }
 
-    console.log(`Max sequence found: ${maxSequence}`);
-    console.log(`Existing sequences:`, Array.from(existingSequences).sort((a, b) => a - b));
+    logger.debug(`Max sequence found: ${maxSequence}`);
+    logger.debug(`Existing sequences:`, Array.from(existingSequences).sort((a, b) => a - b));
     
     // Find the next available sequence number
     // Start from max + 1 + attempt number to ensure we try different numbers
@@ -104,11 +107,11 @@ export const generateTripSerialNumber = async (
     // Construct the final trip serial number
     const tripSerialNumber = `${prefix}-${sequenceStr}`;
     
-    console.log(`Generated trip serial: ${tripSerialNumber} for vehicle ${vehicleId} (${vehicleRegistration}), attempt ${attemptNumber}`);
+    logger.debug(`Generated trip serial: ${tripSerialNumber} for vehicle ${vehicleId} (${vehicleRegistration}), attempt ${attemptNumber}`);
     
     return tripSerialNumber;
   } catch (error) {
-    console.error('Error generating trip serial number:', error);
+    logger.error('Error generating trip serial number:', error);
     throw error;
   }
 };
@@ -138,7 +141,7 @@ export const validateTripSerialUniqueness = async (
       .single();
 
     if (orgError || !orgUser) {
-      console.error('Error fetching user organization for validation:', orgError);
+      logger.error('Error fetching user organization for validation:', orgError);
       throw new Error('User not associated with any organization');
     }
 
@@ -162,13 +165,13 @@ export const validateTripSerialUniqueness = async (
 
     // Log for debugging
     if (data && data.length > 0) {
-      console.log(`Trip serial ${tripSerialNumber} already exists:`, data);
+      logger.debug(`Trip serial ${tripSerialNumber} already exists:`, data);
     }
 
     // Return true if no existing trip found (unique)
     return !data || data.length === 0;
   } catch (error) {
-    console.error('Error validating trip serial uniqueness:', error);
+    logger.error('Error validating trip serial uniqueness:', error);
     throw error;
   }
 };
@@ -195,11 +198,11 @@ export const ensureUniqueTripSerial = async (
     const isUnique = await validateTripSerialUniqueness(serialNumber);
     
     if (isUnique) {
-      console.log(`Successfully generated unique serial: ${serialNumber}`);
+      logger.debug(`Successfully generated unique serial: ${serialNumber}`);
       return serialNumber;
     }
     
-    console.warn(`Serial ${serialNumber} not unique, attempt ${attempt + 1}/${maxAttempts}`);
+    logger.warn(`Serial ${serialNumber} not unique, attempt ${attempt + 1}/${maxAttempts}`);
   }
   
   // If all attempts fail, generate a serial with timestamp to ensure uniqueness
@@ -208,6 +211,6 @@ export const ensureUniqueTripSerial = async (
   const vehicleDigits = vehicleRegistration.replace(/[^0-9]/g, '').slice(-4).padStart(4, '0');
   const fallbackSerial = `T${year}-${vehicleDigits}-${timestamp}`;
   
-  console.log(`Using fallback serial with timestamp: ${fallbackSerial}`);
+  logger.debug(`Using fallback serial with timestamp: ${fallbackSerial}`);
   return fallbackSerial;
 };

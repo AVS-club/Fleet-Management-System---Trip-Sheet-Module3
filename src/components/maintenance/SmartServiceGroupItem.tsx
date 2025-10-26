@@ -16,6 +16,9 @@ import { MAINTENANCE_ITEMS, MAINTENANCE_GROUPS } from '@/types/maintenance';
 import { getVendors } from '@/utils/storage';
 import InlineSearchableSelect from '../ui/InlineSearchableSelect';
 import { VendorHistoryManager } from '@/utils/vendorHistory';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('SmartServiceGroupItem');
 
 interface SmartServiceGroupItemProps {
   index: number;
@@ -61,7 +64,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
         setVendors(vendorData || []);
         setVendorHistory(historyData);
       } catch (error) {
-        console.error('Error loading vendors:', error);
+        logger.error('Error loading vendors:', error);
       } finally {
         setIsLoadingVendors(false);
       }
@@ -107,7 +110,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
             setIsUploading(false);
             setUploadedBillFiles(files);
             setValue(`service_groups.${index}.bill_file`, files);
-            console.log(`📁 Bill files uploaded for service group ${index}:`, files.map(f => f.name));
+            logger.debug(`📁 Bill files uploaded for service group ${index}:`, files.map(f => f.name));
             return 100;
           }
           return prev + 10;
@@ -194,7 +197,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
   };
 
   return (
-    <div className="relative bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="relative bg-white rounded-xl border border-gray-200 overflow-visible hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary-50 to-blue-50 px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">

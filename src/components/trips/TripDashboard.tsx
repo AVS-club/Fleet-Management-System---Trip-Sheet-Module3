@@ -12,6 +12,9 @@ import MonthlyFuelConsumptionChart from './charts/MonthlyFuelConsumptionChart';
 import FuelConsumedByVehicleChart from './charts/FuelConsumedByVehicleChart';
 import AverageMileagePerVehicleChart from './charts/AverageMileagePerVehicleChart';
 import { NumberFormatter } from '@/utils/numberFormatter';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripDashboard');
 
 interface TripDashboardProps {
   trips: Trip[];
@@ -92,7 +95,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
             end = temp;
           }
         } catch (error) {
-          console.error("Error parsing custom dates:", error);
+          logger.error("Error parsing custom dates:", error);
           start = subMonths(now, 3); // Default fallback on error
         }
         break;
@@ -127,7 +130,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
         
         return isWithinInterval(tripDate, effectiveDateRange);
       } catch (error) {
-        console.error("Error filtering trip:", error);
+        logger.error("Error filtering trip:", error);
         return false;
       }
     });

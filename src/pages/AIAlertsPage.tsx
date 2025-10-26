@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from '../components/layout/Layout';
 import { AIAlert } from '@/types'; 
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, PenTool as Tool } from 'lucide-react';
+import MediaCard from '../components/HeroFeed/MediaCard';
+import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
+import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -17,10 +20,13 @@ import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
 import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('AIAlertsPage');
 
 const AIAlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
-  const [activeTab, setActiveTab] = useState<'alerts' | 'driver-insights'>('alerts');
+  const [activeTab, setActiveTab] = useState<'all-feed' | 'alerts' | 'driver-insights'>('all-feed');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -41,6 +47,21 @@ const AIAlertsPage: React.FC = () => {
   } | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<AIAlert | null>(null);
   const [runningCheck, setRunningCheck] = useState(false);
+
+  // Hero Feed state
+  const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
+  const [showVideos, setShowVideos] = useState(() => {
+    const saved = localStorage.getItem('showVideos');
+    return saved !== null ? JSON.parse(saved) : true; // Default to true
+  });
+
+  // YouTube video state
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [liked, setLiked] = useState(false);
+  const videoRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   // Fetch alerts and vehicles data
   useEffect(() => {
@@ -75,7 +96,7 @@ const AIAlertsPage: React.FC = () => {
         });
         setVehicleMap(vehicleMapData);
       } catch (error) {
-        console.error('Error fetching AI alerts data:', error);
+        logger.error('Error fetching AI alerts data:', error);
       } finally {
         setLoading(false);
       }
@@ -83,6 +104,102 @@ const AIAlertsPage: React.FC = () => {
     
     fetchData();
   }, []);
+
+  // YouTube video intersection observer
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            setIsPlaying(true);
+            // Force autoplay when video comes into view
+            const iframe = entry.target.querySelector('iframe');
+            if (iframe) {
+              const newSrc = iframe.src.replace('autoplay=0', 'autoplay=1');
+              iframe.src = newSrc;
+            }
+          } else if (entry.intersectionRatio < 0.3) {
+            setIsPlaying(false);
+          }
+        });
+      },
+      {
+        threshold: [0, 0.3, 0.5, 1],
+        rootMargin: '0px'
+      }
+    );
+
+    if (videoRef.current) {
+      observerRef.current.observe(videoRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [currentVideoIndex]);
+
+  // Toggle video visibility
+  const toggleVideos = () => {
+    const newValue = !showVideos;
+    setShowVideos(newValue);
+    localStorage.setItem('showVideos', JSON.stringify(newValue));
+  };
+
+  // Hero Feed logic
+  const feedKinds = useMemo(() => {
+    if (selectedFilters.includes('all')) {
+      return [];
+    }
+    return selectedFilters.filter(kind => kind !== 'media');
+  }, [selectedFilters]);
+
+  const {
+    data: heroFeedData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: heroFeedLoading,
+    refetch: refetchHeroFeed
+  } = useHeroFeed({
+    kinds: feedKinds,
+    limit: 20
+  });
+
+  const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
+
+  // Check if YouTube API key is available
+  const hasYouTubeAPIKey = !!import.meta.env.VITE_YOUTUBE_API_KEY;
+
+  // Fetch dynamic YouTube shorts only if API key is available
+  const {
+    data: youtubeShorts,
+    isLoading: shortsLoading,
+    error: shortsError,
+    refetch: refetchShorts
+  } = useYouTubeShorts({
+    count: 20,
+    enabled: hasYouTubeAPIKey
+  });
+
+
+  const availableShorts = youtubeShorts || [];
+  const events = useMemo(() => (heroFeedData?.pages ?? []).flat(), [heroFeedData]);
+
+  // Media cards for YouTube content
+  const mediaCards = useMemo(() => {
+    if (!kpiCards) {
+      return [];
+    }
+    return kpiCards.filter(card => {
+      const type = card.kpi_payload?.type;
+      return type === 'youtube' || type === 'image' || type === 'playlist';
+    });
+  }, [kpiCards]);
+
+  const mediaCount = mediaCards.length;
+  const isMediaOnly = selectedFilters.length === 1 && selectedFilters[0] === 'media';
 
   // Handle alert action modal submission
   const handleActionSubmit = async (reason: string, duration?: 'week' | 'permanent') => {
@@ -109,7 +226,7 @@ const AIAlertsPage: React.FC = () => {
         
         toast.success(`Alert ${actionModal.type === 'accept' ? 'accepted' : actionModal.type === 'deny' ? 'denied' : 'ignored'} successfully`);
       } catch (error) {
-        console.error('Error processing alert action:', error);
+        logger.error('Error processing alert action:', error);
         toast.error('Failed to process alert action');
       }
       setActionModal(null);
@@ -128,7 +245,7 @@ const AIAlertsPage: React.FC = () => {
       
       toast.success(`AI check complete: ${newAlertCount} new alert${newAlertCount !== 1 ? 's' : ''} generated`);
     } catch (error) {
-      console.error('Error running AI check:', error);
+      logger.error('Error running AI check:', error);
       toast.error('Failed to run AI check');
     } finally {
       setRunningCheck(false);
@@ -320,6 +437,131 @@ const AIAlertsPage: React.FC = () => {
     setActionModal({ type: action, alert });
   };
 
+  // YouTube Video Component
+  const YouTubeVideoCard = ({ short, index }: { short: YouTubeShort; index: number }) => {
+    const videoId = short.id;
+    
+    if (!showVideos) {
+      return null;
+    }
+
+    if (shortsLoading) {
+      return (
+        <div className="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-black shadow-2xl my-6"
+             style={{ aspectRatio: '9/16', maxHeight: '650px' }}>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-white text-center p-6">
+              {!hasYouTubeAPIKey ? (
+                <div>
+                  <div className="text-4xl mb-4">🎬</div>
+                  <div className="text-lg font-semibold mb-2">YouTube API Key Required</div>
+                  <div className="text-sm text-gray-300">
+                    Add VITE_YOUTUBE_API_KEY to .env file to enable dynamic video content
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                  <div>Loading videos...</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const toggleMute = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsMuted(!isMuted);
+    };
+
+    const togglePlay = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsPlaying(!isPlaying);
+    };
+
+    const handleLike = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setLiked(!liked);
+    };
+
+    return (
+      <div
+        ref={videoRef}
+        data-video-id={videoId}
+        className="relative w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-black shadow-2xl my-6"
+        style={{ aspectRatio: '9/16', maxHeight: '650px' }}
+      >
+        <div className="relative w-full h-full">
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            src={`https://www.youtube.com/embed/${short.id}?autoplay=1&mute=${isMuted ? 1 : 0}&controls=0&loop=1&playlist=${short.id}&playsinline=1&modestbranding=1&rel=0&fs=0&disablekb=1&start=0&enablejsapi=1`}
+            title={short.title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            loading="lazy"
+          />
+
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80 pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 p-4 pointer-events-auto">
+              <div className="flex items-center justify-between">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1.5 rounded-full text-xs font-bold inline-flex items-center gap-2">
+                  <span className="text-lg">🎬</span>
+                  AVS Fleet Tips
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={toggleMute}
+                    className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-all active:scale-95"
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="absolute bottom-0 left-0 right-0 p-4 pointer-events-auto">
+              <div className="flex items-end justify-between">
+                <div className="flex-1">
+                  <h3 className="text-white font-semibold text-lg mb-2 line-clamp-2">
+                    {short.title}
+                  </h3>
+                  <p className="text-gray-200 text-sm mb-3 line-clamp-2">
+                    {short.description}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={handleLike}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-all ${
+                        liked ? 'bg-red-500 text-white' : 'bg-black/60 text-white hover:bg-black/80'
+                      }`}
+                    >
+                      <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
+                      <span className="text-xs font-medium">Like</span>
+                    </button>
+                    
+                    <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all">
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-xs font-medium">Comment</span>
+                    </button>
+                    
+                    <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 text-white hover:bg-black/80 transition-all">
+                      <Share2 className="w-4 h-4" />
+                      <span className="text-xs font-medium">Share</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Layout>
       {/* Page Header */}
@@ -327,12 +569,14 @@ const AIAlertsPage: React.FC = () => {
         <div className="flex items-center group">
           <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
-            {activeTab === 'alerts' ? 'AI AVS Alerts' : 'Driver AI Insights'}
+            {activeTab === 'all-feed' ? 'AI Alerts & Feed' : activeTab === 'alerts' ? 'AI Alerts' : 'Driver AI Insights'}
           </h1>
         </div>
         <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
-          {activeTab === 'alerts' 
-            ? 'Review and manage AI-generated alerts' 
+          {activeTab === 'all-feed' 
+            ? 'Complete feed with AI alerts, media, and insights' 
+            : activeTab === 'alerts' 
+            ? 'Review and manage AI alerts for your fleet' 
             : 'AI-powered driver performance insights'}
         </p>
       </div>
@@ -341,6 +585,20 @@ const AIAlertsPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
         <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6">
+            <button
+              className={`py-4 text-sm font-sans font-medium border-b-2 transition-colors ${
+                activeTab === 'all-feed'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              onClick={() => setActiveTab('all-feed')}
+            >
+              <div className="flex items-center gap-2">
+                <Home className="h-4 w-4" />
+                <span>All Feed</span>
+              </div>
+            </button>
+            
             <button
               className={`py-4 text-sm font-sans font-medium border-b-2 transition-colors ${
                 activeTab === 'alerts'
@@ -381,7 +639,284 @@ const AIAlertsPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {activeTab === 'driver-insights' ? (
+          {activeTab === 'all-feed' ? (
+            <div className="space-y-6">
+              {/* Hero Feed Content */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900">Complete Feed</h2>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        refetchHeroFeed();
+                        refetchKPIs();
+                        if (hasYouTubeAPIKey) refetchShorts();
+                      }}
+                      icon={<RefreshCw className="h-4 w-4" />}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Feed Filters */}
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-2">
+                    {['all', 'ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity', 'media'].map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => {
+                          if (filter === 'all') {
+                            setSelectedFilters(['all']);
+                          } else {
+                            setSelectedFilters(prev => 
+                              prev.includes('all') 
+                                ? [filter]
+                                : prev.includes(filter)
+                                ? prev.filter(f => f !== filter)
+                                : [...prev, filter]
+                            );
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          selectedFilters.includes(filter)
+                            ? 'bg-primary-100 text-primary-700 border border-primary-200'
+                            : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        {filter === 'all' ? 'All' : filter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Social Media Scroller Layout */}
+                <div className="max-w-4xl mx-auto">
+                  {/* Stats Grid - Colorful Cards */}
+                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-xl border border-red-200 dark:border-red-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-red-700 dark:text-red-300">{events.filter(e => e.kind === 'ai_alert').length}</span>
+                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">AI Alerts</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{events.filter(e => e.kind === 'vehicle_doc').length}</span>
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Documents</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{events.filter(e => e.kind === 'maintenance').length}</span>
+                      <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-1">Maintenance</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-xl border border-green-200 dark:border-green-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-green-700 dark:text-green-300">{events.filter(e => e.kind === 'trip').length}</span>
+                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">Trips</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-xl border border-purple-200 dark:border-purple-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">{events.filter(e => e.kind === 'kpi').length}</span>
+                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-1">KPIs</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20 p-4 rounded-xl border border-pink-200 dark:border-pink-700 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <Play className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                      </div>
+                      <span className="text-2xl font-bold text-pink-700 dark:text-pink-300">{availableShorts.length}</span>
+                      <p className="text-xs font-medium text-pink-600 dark:text-pink-400 mt-1">Videos</p>
+                    </div>
+                  </div>
+
+                  {/* Video Toggle */}
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Fleet Activity Feed</h2>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={toggleVideos}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                          showVideos
+                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                        title={showVideos ? 'Hide video reels' : 'Show video reels'}
+                      >
+                        {showVideos ? (
+                          <>
+                            <Video className="w-4 h-4" />
+                            <span className="text-sm font-medium">Videos ON</span>
+                          </>
+                        ) : (
+                          <>
+                            <VideoOff className="w-4 h-4" />
+                            <span className="text-sm font-medium">Videos OFF</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          refetchHeroFeed();
+                          refetchKPIs();
+                          if (hasYouTubeAPIKey) refetchShorts();
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Refresh
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Social Media Scroller */}
+                  <div className="space-y-4">
+                    {heroFeedLoading ? (
+                      <div className="text-center py-8">
+                        <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary-600" />
+                        <p className="text-gray-500">Loading feed...</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Show videos even if no events */}
+                        {showVideos && availableShorts.length > 0 && (
+                          <div className="mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                              <Play className="h-5 w-5 text-primary-600" />
+                              Fleet Tips & Insights
+                            </h3>
+                            <div className="space-y-6">
+                              {availableShorts.slice(0, 3).map((short, index) => (
+                                <YouTubeVideoCard key={short.id} short={short} index={index} />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {events.length > 0 ? (
+                          <>
+                            {events.map((event, index) => {
+                              // Intersperse videos every 3-4 events
+                              const shouldShowVideo = showVideos && 
+                                availableShorts.length > 0 && 
+                                index > 0 && 
+                                index % 4 === 0;
+                              
+                              const videoIndex = Math.floor(index / 4) % availableShorts.length;
+                              const short = availableShorts[videoIndex];
+
+                              return (
+                                <React.Fragment key={`fragment-${event.id}`}>
+                                  {shouldShowVideo && (
+                                    <YouTubeVideoCard
+                                      key={`video-${short.id}`}
+                                      short={short}
+                                      index={videoIndex}
+                                    />
+                                  )}
+                                  
+                                  {/* Event Card - Colorful by Type */}
+                                  <div
+                                    key={`${event.id}-${index}`}
+                                    className={`
+                                      rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4
+                                      ${event.kind === 'ai_alert' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}
+                                      ${event.kind === 'vehicle_doc' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
+                                      ${event.kind === 'maintenance' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30' : ''}
+                                      ${event.kind === 'trip' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-900/30' : ''}
+                                      ${event.kind === 'kpi' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30' : ''}
+                                      ${event.kind === 'vehicle_activity' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' : ''}
+                                      ${event.kind === 'activity' ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30' : ''}
+                                      ${!['ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity'].includes(event.kind) ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700' : ''}
+                                    `}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <div className="flex-shrink-0">
+                                        <div className={`p-2 rounded-lg ${
+                                          event.kind === 'ai_alert' ? 'bg-red-100 dark:bg-red-800/50' :
+                                          event.kind === 'vehicle_doc' ? 'bg-blue-100 dark:bg-blue-800/50' :
+                                          event.kind === 'maintenance' ? 'bg-orange-100 dark:bg-orange-800/50' :
+                                          event.kind === 'trip' ? 'bg-green-100 dark:bg-green-800/50' :
+                                          event.kind === 'kpi' ? 'bg-purple-100 dark:bg-purple-800/50' :
+                                          event.kind === 'vehicle_activity' ? 'bg-indigo-100 dark:bg-indigo-800/50' :
+                                          event.kind === 'activity' ? 'bg-pink-100 dark:bg-pink-800/50' :
+                                          'bg-gray-100 dark:bg-gray-700'
+                                        }`}>
+                                          {event.kind === 'ai_alert' && <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />}
+                                          {event.kind === 'vehicle_doc' && <FileX className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
+                                          {event.kind === 'maintenance' && <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
+                                          {event.kind === 'trip' && <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />}
+                                          {event.kind === 'kpi' && <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
+                                          {event.kind === 'vehicle_activity' && <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
+                                          {event.kind === 'activity' && <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />}
+                                        </div>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
+                                          <span className={`
+                                            inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                            ${event.kind === 'ai_alert' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : ''}
+                                            ${event.kind === 'vehicle_doc' ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : ''}
+                                            ${event.kind === 'maintenance' ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200' : ''}
+                                            ${event.kind === 'trip' ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : ''}
+                                            ${event.kind === 'kpi' ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : ''}
+                                            ${event.kind === 'vehicle_activity' ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200' : ''}
+                                            ${event.kind === 'activity' ? 'bg-pink-200 dark:bg-pink-800 text-pink-800 dark:text-pink-200' : ''}
+                                          `}>
+                                            {event.kind.replace('_', ' ')}
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{event.description}</p>
+                                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                                          <span className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            {new Date(event.created_at).toLocaleDateString()}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </React.Fragment>
+                              );
+                            })}
+                            
+                            {hasNextPage && (
+                              <div className="text-center pt-4">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => fetchNextPage()}
+                                  disabled={isFetchingNextPage}
+                                  icon={isFetchingNextPage ? <RefreshCw className="h-4 w-4 animate-spin" /> : undefined}
+                                >
+                                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="text-center py-8 text-gray-500">
+                            <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                            <p className="font-sans">No feed items available</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : activeTab === 'driver-insights' ? (
             <div className="space-y-6">
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-center mb-6">

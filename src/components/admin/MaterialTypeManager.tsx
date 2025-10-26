@@ -4,6 +4,9 @@ import { Plus, Edit2, Trash2, Package, X, Check } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('MaterialTypeManager');
 
 interface MaterialTypeManagerProps {
   onClose: () => void;
@@ -21,7 +24,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         const typesData = await getMaterialTypes();
         setMaterialTypes(Array.isArray(typesData) ? typesData : []);
       } catch (error) {
-        console.error('Error fetching material types:', error);
+        logger.error('Error fetching material types:', error);
         toast.error('Failed to load material types');
       } finally {
         setLoading(false);
@@ -45,7 +48,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         toast.success('Material type added successfully');
       }
     } catch (error) {
-      console.error('Error adding material type:', error);
+      logger.error('Error adding material type:', error);
       toast.error('Failed to add material type');
     }
   };
@@ -66,7 +69,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
         toast.success('Material type updated successfully');
       }
     } catch (error) {
-      console.error('Error updating material type:', error);
+      logger.error('Error updating material type:', error);
       toast.error('Failed to update material type');
     }
   };
@@ -80,7 +83,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
           toast.success('Material type deleted successfully');
         }
       } catch (error) {
-        console.error('Error deleting material type:', error);
+        logger.error('Error deleting material type:', error);
         toast.error('Failed to delete material type');
       }
     }
@@ -88,12 +91,12 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Manage Material Types</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Manage Material Types</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
           >
             <X className="h-5 w-5" />
           </button>
@@ -103,7 +106,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
           {loading && (
             <div className="text-center py-4">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              <p className="mt-2 text-gray-500">Loading material types...</p>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">Loading material types...</p>
             </div>
           )}
 
@@ -122,7 +125,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
             </Button>
           </div>
 
-          <div className="border rounded-lg divide-y min-h-[200px]">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg divide-y divide-gray-200 dark:divide-gray-700 min-h-[200px]">
             {materialTypes && Array.isArray(materialTypes) && materialTypes.length > 0 ? (
               materialTypes.map((type) => (
                 <div key={type.id} className="p-3 flex items-center justify-between">
@@ -135,13 +138,13 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
                       />
                       <button
                         onClick={handleUpdateType}
-                        className="p-1 text-success-600 hover:text-success-700"
+                        className="p-1 text-success-600 dark:text-success-400 hover:text-success-700 dark:hover:text-success-300"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => setEditingType(null)}
-                        className="p-1 text-gray-400 hover:text-gray-600"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                       >
                         <X className="h-4 w-4" />
                       </button>
@@ -149,19 +152,19 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
                   ) : (
                     <>
                       <div className="flex items-center">
-                        <Package className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="capitalize">{type.name}</span>
+                        <Package className="h-4 w-4 text-gray-400 dark:text-gray-500 mr-2" />
+                        <span className="capitalize text-gray-900 dark:text-gray-100">{type.name}</span>
                       </div>
                       <div className="flex space-x-2">
                         <button
                           onClick={() => setEditingType({ id: type.id, name: type.name })}
-                          className="p-1 text-gray-400 hover:text-gray-600"
+                          className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteType(type.id)}
-                          className="p-1 text-gray-400 hover:text-error-600"
+                          className="p-1 text-gray-400 dark:text-gray-500 hover:text-error-600 dark:hover:text-error-400"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -171,7 +174,7 @@ const MaterialTypeManager: React.FC<MaterialTypeManagerProps> = ({ onClose }) =>
                 </div>
               ))
             ) : (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 No material types defined. Add some above.
               </div>
             )}

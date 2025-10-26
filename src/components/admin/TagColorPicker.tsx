@@ -34,11 +34,11 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
         </label>
       )}
-      
+
       <div className="space-y-3">
         {/* Preset Colors */}
         <div className="grid grid-cols-6 gap-2">
@@ -48,14 +48,19 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
               type="button"
               onClick={() => onChange(color)}
               className={`
-                w-10 h-10 rounded-lg border-2 transition-all
-                ${value === color 
-                  ? 'border-gray-900 ring-2 ring-offset-2 ring-gray-900' 
-                  : 'border-gray-200 hover:border-gray-400'}
+                w-10 h-10 rounded-lg border-2 transition-all relative
+                ${value === color
+                  ? 'border-gray-900 dark:border-gray-100 ring-2 ring-offset-2 ring-gray-900 dark:ring-gray-100 dark:ring-offset-gray-800'
+                  : 'border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}
               `}
               style={{ backgroundColor: color }}
               title={color}
-            />
+            >
+              {/* Add a subtle border around the color swatch to make it visible in dark mode */}
+              <div
+                className="absolute inset-0 rounded-lg border border-black/10 dark:border-white/20 pointer-events-none"
+              />
+            </button>
           ))}
         </div>
 
@@ -64,7 +69,7 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
           <button
             type="button"
             onClick={() => setShowCustom(!showCustom)}
-            className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900"
+            className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
           >
             <Palette className="h-4 w-4" />
             <span>Custom Color</span>
@@ -72,12 +77,16 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
 
           {showCustom && (
             <div className="mt-2 flex items-center space-x-2">
-              <input
-                type="color"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className="h-10 w-16 rounded border border-gray-300 cursor-pointer"
-              />
+              <div className="relative">
+                <input
+                  type="color"
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
+                  className="h-10 w-16 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+                />
+                {/* Overlay to ensure color picker is visible in both modes */}
+                <div className="absolute inset-0 rounded border border-black/10 dark:border-white/20 pointer-events-none" />
+              </div>
               <input
                 type="text"
                 value={value}
@@ -88,7 +97,7 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
                   }
                 }}
                 placeholder="#RRGGBB"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm uppercase bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 maxLength={7}
               />
             </div>
@@ -96,20 +105,24 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
         </div>
 
         {/* Selected Color Preview */}
-        <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-          <div 
-            className="w-12 h-12 rounded-lg border border-gray-300"
-            style={{ backgroundColor: value }}
-          />
+        <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="relative">
+            <div
+              className="w-12 h-12 rounded-lg border border-gray-300 dark:border-gray-600"
+              style={{ backgroundColor: value }}
+            />
+            {/* Overlay for better visibility */}
+            <div className="absolute inset-0 rounded-lg border border-black/10 dark:border-white/20 pointer-events-none" />
+          </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">Selected Color</p>
-            <p className="text-xs text-gray-500 uppercase">{value}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Selected Color</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">{value}</p>
           </div>
         </div>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600">{error}</p>
+        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
     </div>
   );

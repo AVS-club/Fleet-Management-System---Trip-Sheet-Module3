@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Share2, ZoomIn, ZoomOut, RotateCw, Maximize2 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentViewer');
 
 interface DocumentViewerProps {
   document: {
@@ -67,7 +70,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
       window.URL.revokeObjectURL(downloadUrl);
       toast.success('Document downloaded successfully');
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       toast.error('Failed to download document');
     }
   };
@@ -81,7 +84,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ document, onClose }) =>
           url: document.url
         });
       } catch (error) {
-        console.log('Share failed:', error);
+        logger.debug('Share failed:', error);
       }
     } else {
       // Fallback: Copy to clipboard

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useChallanInfo');
 
 export interface Challan {
   challan_no: string;
@@ -47,10 +50,10 @@ export const useChallanInfo = () => {
       if (error) throw error;
 
       // Debug: Log the actual API response
-      console.log('Challan API Response:', data);
+      logger.debug('Challan API Response:', data);
       
       if (data.status === 'success' && data.response) {
-        console.log('Challan Data:', data.response);
+        logger.debug('Challan Data:', data.response);
         
         // Check if response contains mock data
         const hasMockData = data.response.challans?.some(challan => 
@@ -62,7 +65,7 @@ export const useChallanInfo = () => {
         
         if (hasMockData) {
           toast.warning('⚠️ API returned sample data. Check API configuration for real challan data.');
-          console.warn('Mock data detected in challan response');
+          logger.warn('Mock data detected in challan response');
         }
         
         setChallans(data.response);
@@ -80,12 +83,12 @@ export const useChallanInfo = () => {
         
         return data.response;
       } else {
-        console.log('API Error Response:', data);
+        logger.debug('API Error Response:', data);
         toast.error(data.message || 'Failed to fetch challan information');
         return null;
       }
     } catch (error) {
-      console.error('Error fetching challan info:', error);
+      logger.error('Error fetching challan info:', error);
       toast.error('Failed to fetch challan information');
       return null;
     } finally {

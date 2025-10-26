@@ -9,6 +9,9 @@ import { format } from 'date-fns'
 import { toast } from 'react-toastify'
 import { VehicleActivityLog, VehicleAction } from '../../types/logs'
 import { getVehicles } from '../../utils/storage'
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleActivityLog');
 
 interface VehicleActivityLogProps {
   limit?: number
@@ -65,7 +68,7 @@ export function VehicleActivityLog({
             }))
           )
         } catch (error) {
-          console.error('Error fetching vehicles:', error)
+          logger.error('Error fetching vehicles:', error)
         }
       }
       fetchVehicles()

@@ -39,6 +39,9 @@ import VehicleDetailsTab from "../components/vehicles/VehicleDetailsTab";
 import VehicleDetailsTabMobile from "../components/vehicles/VehicleDetailsTabMobile";
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VehiclePage');
 
 const VehiclePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -131,7 +134,7 @@ const VehiclePage: React.FC = () => {
           await generateSignedUrls(vehicleData);
         }
       } catch (error) {
-        console.error("Error fetching vehicle data:", error);
+        logger.error("Error fetching vehicle data:", error);
         toast.error("Failed to load vehicle details");
       } finally {
         setLoading(false);
@@ -145,22 +148,22 @@ const VehiclePage: React.FC = () => {
   const generateSignedUrls = useCallback(async (vehicleData: Vehicle) => {
     // Prevent duplicate calls
     if (urlGenerationRef.current || lastVehicleId.current === vehicleData.id) {
-      console.log('✅ Using cached URLs for vehicle:', vehicleData.id);
+      logger.debug('✅ Using cached URLs for vehicle:', vehicleData.id);
       return;
     }
 
-    console.log('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
+    logger.debug('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
     urlGenerationRef.current = true;
     lastVehicleId.current = vehicleData.id;
 
     try {
-      console.log('Generating signed URLs for vehicle:', vehicleData.id);
+      logger.debug('Generating signed URLs for vehicle:', vehicleData.id);
       
       // Use the new safe batch generation function
       const urls = await generateVehicleDocumentUrls(vehicleData);
       
-      console.log('🔍 VehiclePage - Generated URLs:', urls);
-      console.log('🔍 VehiclePage - Insurance URLs specifically:', urls.insurance);
+      logger.debug('🔍 VehiclePage - Generated URLs:', urls);
+      logger.debug('🔍 VehiclePage - Insurance URLs specifically:', urls.insurance);
       
       setSignedDocUrls(urls);
       
@@ -174,12 +177,12 @@ const VehiclePage: React.FC = () => {
       if (!urls.puc || urls.puc.every(url => url === null)) missingDocs.push('PUC');
       
       if (missingDocs.length > 0) {
-        console.info(`Some documents could not be loaded: ${missingDocs.join(', ')}`);
+        logger.info(`Some documents could not be loaded: ${missingDocs.join(', ')}`);
         // Don't show toast for missing documents - they're expected
       }
       
     } catch (error) {
-      console.error("Error generating signed URLs:", error);
+      logger.error("Error generating signed URLs:", error);
       // Only show error toast for unexpected errors
       if (error instanceof Error && !error.message.includes('not found')) {
         toast.error("Some documents could not be loaded");
@@ -292,7 +295,7 @@ const VehiclePage: React.FC = () => {
                         nextTags = tagUpdates.nextTags;
                       } catch (tagError) {
                         tagUpdateError = true;
-                        console.error('Error updating vehicle tags:', tagError);
+                        logger.error('Error updating vehicle tags:', tagError);
                         toast.error('Vehicle updated, but tags could not be saved. Please try again.');
                       }
                     }
@@ -318,7 +321,7 @@ const VehiclePage: React.FC = () => {
                     toast.error('Failed to update vehicle');
                   }
                 } catch (error) {
-                  console.error('Error updating vehicle:', error);
+                  logger.error('Error updating vehicle:', error);
                   toast.error('Failed to update vehicle');
                 }
               }}
@@ -338,7 +341,7 @@ const VehiclePage: React.FC = () => {
       doc.save(`${vehicle.registration_number}_profile.pdf`);
       toast.success("Vehicle profile exported successfully");
     } catch (error) {
-      console.error("Error exporting vehicle profile:", error);
+      logger.error("Error exporting vehicle profile:", error);
       toast.error("Failed to export vehicle profile");
     } finally {
       setExportLoading(false);
@@ -360,7 +363,7 @@ const VehiclePage: React.FC = () => {
       await navigator.clipboard.writeText(link);
       toast.success("Shareable link copied to clipboard (valid for 7 days)");
     } catch (error) {
-      console.error("Error creating shareable link:", error);
+      logger.error("Error creating shareable link:", error);
       toast.error("Failed to create shareable link");
     } finally {
       setShareLoading(false);
@@ -423,7 +426,7 @@ const VehiclePage: React.FC = () => {
         toast.error(`❌ Failed to update ${vehicle.registration_number}`);
       }
     } catch (error: any) {
-      console.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
+      logger.error(`Error refreshing vehicle ${vehicle.registration_number}:`, error);
       toast.error(`❌ Failed to refresh ${vehicle.registration_number}: ${error.message}`);
     } finally {
       setIsRefreshing(false);
@@ -434,20 +437,20 @@ const VehiclePage: React.FC = () => {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 mb-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/vehicles')}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {vehicle.registration_number}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {vehicle.make} {vehicle.model} • {vehicle.year}
                 </p>
               </div>
@@ -480,7 +483,7 @@ const VehiclePage: React.FC = () => {
       ) : (
         <div className="space-y-6">
           {/* Tab Navigation */}
-          <div className="bg-white rounded-lg shadow-sm border-b border-gray-200">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border-b border-gray-200 dark:border-gray-700">
             <nav className="flex space-x-8 px-6" aria-label="Tabs">
               {[
                 { id: 'details', name: 'Details & Documents', icon: <FileCheck className="h-4 w-4" /> },
@@ -535,49 +538,49 @@ const VehiclePage: React.FC = () => {
             <div className="space-y-6">
               {/* Simple Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Trips</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalTrips}</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Trips</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalTrips}</p>
                     </div>
-                    <div className="p-3 rounded-full bg-blue-100">
+                    <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900/30">
                       <Route className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Distance</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalDistance.toLocaleString()} km</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Distance</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDistance.toLocaleString()} km</p>
                     </div>
-                    <div className="p-3 rounded-full bg-green-100">
+                    <div className="p-3 rounded-full bg-green-100 dark:bg-green-900/30">
                       <MapPin className="h-6 w-6 text-green-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Avg Fuel Efficiency</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.averageKmpl?.toFixed(1) || 'N/A'}</p>
-                      <p className="text-xs text-gray-500">km/L</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Avg Fuel Efficiency</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{stats.averageKmpl?.toFixed(1) || 'N/A'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">km/L</p>
                     </div>
-                    <div className="p-3 rounded-full bg-yellow-100">
+                    <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/30">
                       <Fuel className="h-6 w-6 text-yellow-600" />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Compliance</p>
-                      <p className="text-3xl font-bold text-gray-900">{Math.round(complianceScore)}%</p>
-                      <p className="text-xs text-gray-500">Document compliance</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Compliance</p>
+                      <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">{Math.round(complianceScore)}%</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Document compliance</p>
                     </div>
                     <div className={`p-3 rounded-full ${
                       complianceScore >= 80 ? 'bg-green-100' : 

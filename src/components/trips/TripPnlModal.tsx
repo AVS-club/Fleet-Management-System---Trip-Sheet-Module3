@@ -6,6 +6,9 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { updateTrip } from '../../utils/storage';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripPnlModal');
 
 interface TripPnlModalProps {
   isOpen: boolean;
@@ -106,7 +109,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
         toast.error('Failed to save P&L data');
       }
     } catch (error) {
-      console.error('Error saving P&L data:', error);
+      logger.error('Error saving P&L data:', error);
       toast.error('Error saving P&L data');
     } finally {
       setIsSubmitting(false);

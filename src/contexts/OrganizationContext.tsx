@@ -1,6 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import { getCurrentUserId } from '@/utils/supaHelpers';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('OrganizationContext');
 
 interface OrganizationContextType {
   currentOrganizationId: string | null;
@@ -35,7 +38,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         .eq('user_id', userId);
 
       if (error) {
-        console.error('Error fetching organizations:', error);
+        logger.error('Error fetching organizations:', error);
         setLoading(false);
         return;
       }
@@ -71,7 +74,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
             }]);
 
           if (createError) {
-            console.error('Error auto-creating organization_users record:', createError);
+            logger.error('Error auto-creating organization_users record:', createError);
           }
         }
       }
@@ -87,7 +90,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       
       setCurrentOrganizationId(profile?.active_organization_id || formattedOrgs[0]?.id || null);
     } catch (error) {
-      console.error('Error loading user organizations:', error);
+      logger.error('Error loading user organizations:', error);
     } finally {
       setLoading(false);
     }
@@ -105,7 +108,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       
       setCurrentOrganizationId(orgId);
     } catch (error) {
-      console.error('Error setting current organization:', error);
+      logger.error('Error setting current organization:', error);
     }
   };
 

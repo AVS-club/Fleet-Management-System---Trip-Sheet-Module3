@@ -4,6 +4,9 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { toast } from 'react-toastify';
 import Button from '../ui/Button';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('DocumentModalBase');
 
 export interface DocumentItemBase {
   id: string;
@@ -80,7 +83,7 @@ const DocumentModalBase = <T extends DocumentItemBase>(
             const fileName = `${safeName}.${fileExt}`;
             folder.file(fileName, blob);
           } catch (error) {
-            console.error(`Error downloading ${doc.name}:`, error);
+            logger.error(`Error downloading ${doc.name}:`, error);
           }
         })
       );
@@ -88,7 +91,7 @@ const DocumentModalBase = <T extends DocumentItemBase>(
       const content = await zip.generateAsync({ type: 'blob' });
       saveAs(content, `${entityName}_documents.zip`);
     } catch (error) {
-      console.error('Error creating zip file:', error);
+      logger.error('Error creating zip file:', error);
       toast.error('Failed to download documents');
     } finally {
       setIsDownloading(false);

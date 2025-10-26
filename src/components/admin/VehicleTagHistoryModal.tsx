@@ -5,6 +5,9 @@ import { TagHistory } from '../../types/tags';
 import { supabase } from '../../utils/supabaseClient';
 import LoadingScreen from '../LoadingScreen';
 import { format } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleTagHistoryModal');
 
 interface VehicleTagHistoryModalProps {
   isOpen: boolean;
@@ -46,7 +49,7 @@ const VehicleTagHistoryModal: React.FC<VehicleTagHistoryModalProps> = ({
       if (error) throw error;
       setHistory(data || []);
     } catch (error) {
-      console.error('Error loading tag history:', error);
+      logger.error('Error loading tag history:', error);
     } finally {
       setLoading(false);
     }

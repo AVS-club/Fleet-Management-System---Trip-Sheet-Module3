@@ -6,6 +6,9 @@ import Select from '../ui/Select';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { format, isValid } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleActivityLogTable');
 
 interface VehicleActivityLogTableProps {
   limit?: number;
@@ -59,7 +62,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
       
       setLogs(fetchedLogs);
     } catch (error) {
-      console.error('Error fetching vehicle activity logs:', error);
+      logger.error('Error fetching vehicle activity logs:', error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +78,7 @@ const VehicleActivityLogTable: React.FC<VehicleActivityLogTableProps> = ({
         }))
       );
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
+      logger.error('Error fetching vehicles:', error);
     }
   }, []);
 

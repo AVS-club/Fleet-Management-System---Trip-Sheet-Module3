@@ -1,6 +1,6 @@
 import React from 'react';
-import { MessageSquare } from 'lucide-react';
 import Button from '../ui/Button';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 
 interface WhatsAppButtonProps {
   /** Message to share. Used when no custom onClick is provided */
@@ -11,6 +11,10 @@ interface WhatsAppButtonProps {
   className?: string;
   /** Button appearance variant */
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'warning';
+  /** Icon variant: 'light' (green), 'dark' (white), or 'auto' */
+  iconVariant?: 'light' | 'dark' | 'auto';
+  /** Icon size in pixels */
+  iconSize?: number;
 }
 
 const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
@@ -18,6 +22,8 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
   onClick,
   className = '',
   variant = 'outline',
+  iconVariant = 'auto',
+  iconSize = 20,
 }) => {
   const handleClick = () => {
     if (onClick) {
@@ -37,7 +43,7 @@ const WhatsAppButton: React.FC<WhatsAppButtonProps> = ({
       className={`text-green-600 hover:text-green-800 ${className}`}
       title="Share on WhatsApp"
     >
-      <MessageSquare className="h-4 w-4" />
+      <WhatsAppIcon size={iconSize} variant={iconVariant} />
     </Button>
   );
 };

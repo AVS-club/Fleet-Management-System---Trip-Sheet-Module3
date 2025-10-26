@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, MessageSquare, Eye } from 'lucide-react';
+import { X, Download, Eye } from 'lucide-react';
 import Button from '../ui/Button';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { Driver } from '@/types';
 import DocumentModalBase, { DocumentItemBase } from '../shared/DocumentModalBase';
 
@@ -210,7 +211,7 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
                           className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100"
                           title="Share via WhatsApp"
                         >
-                          <MessageSquare className="h-4 w-4" />
+                          <WhatsAppIcon size={20} variant="light" />
                         </button>
                         <a
                           href={doc.url}
@@ -254,7 +255,7 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
                       className="text-green-600 hover:text-green-900"
                       title="Share via WhatsApp"
                     >
-                      <MessageSquare className="h-4 w-4" />
+                      <WhatsAppIcon size={18} />
                     </button>
                   </>
                 ) : (
@@ -263,7 +264,7 @@ const DriverDocumentManagerModal: React.FC<DriverDocumentManagerModalProps> = ({
                       <Eye className="h-4 w-4" />
                     </span>
                     <span className="text-gray-300 opacity-50">
-                      <MessageSquare className="h-4 w-4" />
+                      <WhatsAppIcon size={18} />
                     </span>
                   </>
                 )

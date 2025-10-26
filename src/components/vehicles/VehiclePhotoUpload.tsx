@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import { Camera, Upload, X, Check, Loader } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehiclePhotoUpload');
 
 interface VehiclePhotoUploadProps {
   vehicleId: string;
@@ -92,7 +95,7 @@ const VehiclePhotoUpload: React.FC<VehiclePhotoUploadProps> = ({
       onPhotoUpdate(publicUrl);
       toast.success('Vehicle photo updated successfully');
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       toast.error('Failed to upload photo');
       setPreview(currentPhotoUrl || '');
     } finally {

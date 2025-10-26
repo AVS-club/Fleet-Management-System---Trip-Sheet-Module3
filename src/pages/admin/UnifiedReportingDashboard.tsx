@@ -39,6 +39,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('UnifiedReportingDashboard');
 
 interface ReportMetrics {
   totalRevenue: number;
@@ -223,7 +226,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         fetchExpenseBreakdown()
       ]);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -275,7 +278,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         pendingMaintenance
       });
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      logger.error('Error fetching metrics:', error);
     }
   }, [dateRange]);
 
@@ -303,7 +306,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         tripTrends: Object.values(grouped || {})
       }));
     } catch (error) {
-      console.error('Error fetching trip trends:', error);
+      logger.error('Error fetching trip trends:', error);
     }
   }, [dateRange]);
 
@@ -337,7 +340,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         vehicleUtilization: utilizationData.sort((a, b) => b.utilization - a.utilization)
       }));
     } catch (error) {
-      console.error('Error fetching vehicle utilization:', error);
+      logger.error('Error fetching vehicle utilization:', error);
     }
   }, [dateRange]);
 
@@ -377,7 +380,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         driverPerformance: performanceData.sort((a, b) => b.efficiency - a.efficiency)
       }));
     } catch (error) {
-      console.error('Error fetching driver performance:', error);
+      logger.error('Error fetching driver performance:', error);
     }
   }, [dateRange]);
 
@@ -412,7 +415,7 @@ const UnifiedReportingDashboard: React.FC = () => {
         }))
       }));
     } catch (error) {
-      console.error('Error fetching expense breakdown:', error);
+      logger.error('Error fetching expense breakdown:', error);
     }
   }, [dateRange, metrics.maintenanceCosts]);
 
@@ -547,7 +550,7 @@ const UnifiedReportingDashboard: React.FC = () => {
       a.click();
       
     } catch (error) {
-      console.error('Error generating report:', error);
+      logger.error('Error generating report:', error);
     } finally {
       setGeneratingReport(null);
     }
@@ -561,18 +564,18 @@ const UnifiedReportingDashboard: React.FC = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reporting & Analytics</h1>
-            <p className="text-gray-600">Visual insights and downloadable reports</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Reporting & Analytics</h1>
+            <p className="text-gray-600 dark:text-gray-300">Visual insights and downloadable reports</p>
           </div>
-          
+
           {/* Tab Switcher */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`px-4 py-2 rounded-md transition-colors ${
-                activeTab === 'dashboard' 
-                  ? 'bg-white text-blue-600 shadow' 
-                  : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'dashboard'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
               <Eye className="h-4 w-4 inline mr-2" />
@@ -581,9 +584,9 @@ const UnifiedReportingDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('reports')}
               className={`px-4 py-2 rounded-md transition-colors ${
-                activeTab === 'reports' 
-                  ? 'bg-white text-blue-600 shadow' 
-                  : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'reports'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
               <Download className="h-4 w-4 inline mr-2" />
@@ -594,9 +597,9 @@ const UnifiedReportingDashboard: React.FC = () => {
       </div>
 
       {/* Date Range Selector (Common for both tabs) */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 mb-6 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-4">
-          <Calendar className="h-5 w-5 text-gray-500" />
+          <Calendar className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           <select
             value={selectedDateRange}
             onChange={(e) => {
@@ -606,7 +609,7 @@ const UnifiedReportingDashboard: React.FC = () => {
                 setDateRange({ startDate: start, endDate: end });
               }
             }}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -632,9 +635,9 @@ const UnifiedReportingDashboard: React.FC = () => {
                     });
                   }
                 }}
-                className="px-3 py-2 border rounded"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
-              <span className="self-center">to</span>
+              <span className="self-center text-gray-600 dark:text-gray-300">to</span>
               <input
                 type="date"
                 value={customEndDate}
@@ -647,7 +650,7 @@ const UnifiedReportingDashboard: React.FC = () => {
                     });
                   }
                 }}
-                className="px-3 py-2 border rounded"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
           )}
@@ -669,43 +672,43 @@ const UnifiedReportingDashboard: React.FC = () => {
         <>
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                     ${metrics.totalRevenue.toLocaleString()}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500" />
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Trips</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics.totalTrips}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Total Trips</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{metrics.totalTrips}</p>
                 </div>
                 <Package className="h-8 w-8 text-blue-500" />
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active Vehicles</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics.activeVehicles}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Active Vehicles</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{metrics.activeVehicles}</p>
                 </div>
                 <Truck className="h-8 w-8 text-purple-500" />
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Active Drivers</p>
-                  <p className="text-2xl font-bold text-gray-900">{metrics.activeDrivers}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Active Drivers</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{metrics.activeDrivers}</p>
                 </div>
                 <Users className="h-8 w-8 text-orange-500" />
               </div>
@@ -715,8 +718,8 @@ const UnifiedReportingDashboard: React.FC = () => {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trip Trends */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Trip Trends</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Trip Trends</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData.tripTrends}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -731,8 +734,8 @@ const UnifiedReportingDashboard: React.FC = () => {
             </div>
 
             {/* Vehicle Utilization */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Vehicle Utilization</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Vehicle Utilization</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData.vehicleUtilization.slice(0, 5)}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -745,8 +748,8 @@ const UnifiedReportingDashboard: React.FC = () => {
             </div>
 
             {/* Driver Performance */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Top Driver Performance</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Top Driver Performance</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData.driverPerformance.slice(0, 5)}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -759,8 +762,8 @@ const UnifiedReportingDashboard: React.FC = () => {
             </div>
 
             {/* Expense Breakdown */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4">Expense Breakdown</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Expense Breakdown</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
@@ -789,22 +792,22 @@ const UnifiedReportingDashboard: React.FC = () => {
       {activeTab === 'reports' && (
         <div>
           {/* Quick Download Section */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Downloads</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 mb-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Quick Downloads</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {reportTypes.slice(0, showAllReports ? reportTypes.length : 5).map((report) => (
                 <button
                   key={report.id}
                   onClick={() => generateReport(report.id)}
                   disabled={generatingReport === report.id}
-                  className="flex flex-col items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 border border-gray-200 dark:border-gray-700"
                 >
                   <div className={`p-2 rounded-lg mb-2 ${
-                    report.category === 'comparison' ? 'bg-green-100 text-green-600' :
-                    report.category === 'financial' ? 'bg-blue-100 text-blue-600' :
-                    report.category === 'operations' ? 'bg-purple-100 text-purple-600' :
-                    report.category === 'maintenance' ? 'bg-orange-100 text-orange-600' :
-                    'bg-gray-100 text-gray-600'
+                    report.category === 'comparison' ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400' :
+                    report.category === 'financial' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' :
+                    report.category === 'operations' ? 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400' :
+                    report.category === 'maintenance' ? 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400' :
+                    'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                   }`}>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-5 w-5 animate-spin" />
@@ -812,8 +815,8 @@ const UnifiedReportingDashboard: React.FC = () => {
                       report.icon
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{report.name}</span>
-                  <span className="text-xs text-gray-500 mt-1">{report.description}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{report.name}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{report.description}</span>
                 </button>
               ))}
             </div>
@@ -839,8 +842,8 @@ const UnifiedReportingDashboard: React.FC = () => {
 
           {/* Comparison Reports Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-gray-100">
                 <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
                 Smart Comparisons
               </h3>
@@ -850,9 +853,9 @@ const UnifiedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generateReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center border border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm">{report.name}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
                     ) : (
@@ -863,8 +866,8 @@ const UnifiedReportingDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-gray-100">
                 <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
                 Financial Reports
               </h3>
@@ -874,9 +877,9 @@ const UnifiedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generateReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center border border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm">{report.name}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
                     ) : (
@@ -887,8 +890,8 @@ const UnifiedReportingDashboard: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-gray-100">
                 <Package className="h-5 w-5 mr-2 text-purple-600" />
                 Operations Reports
               </h3>
@@ -898,9 +901,9 @@ const UnifiedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generateReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center border border-gray-200 dark:border-gray-700"
                   >
-                    <span className="text-sm">{report.name}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
                     ) : (

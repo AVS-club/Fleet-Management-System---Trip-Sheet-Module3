@@ -11,6 +11,9 @@ import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import config from "./utils/env";
+import { createLogger } from './utils/logger';
+
+const logger = createLogger('main');
 
 // Create a client
 const queryClient = new QueryClient({
@@ -36,11 +39,11 @@ const queryClient = new QueryClient({
 
 // Add global error handlers for debugging
 window.onerror = (message, source, lineno, colno, error) => {
-  console.error('Global error:', { message, source, lineno, colno, error });
+  logger.error('Global error:', { message, source, lineno, colno, error });
 };
 
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
+  logger.error('Unhandled promise rejection:', event.reason);
 });
 
 const rootElement = document.getElementById("root")!;

@@ -6,6 +6,9 @@ import config from './env';
 import { getVehicle, deleteVehicle } from './api';
 import { getTrips } from './api/trips';
 import { MaintenanceVendor, DEMO_VENDORS } from '@/types/maintenance';
+import { createLogger } from './logger';
+
+const logger = createLogger('storage');
 export * from './api';
 export { getTrips, getCurrentUserId };
 
@@ -16,7 +19,7 @@ async function getUserData() {
     if (error) {
       // Handle network errors gracefully
       if (isNetworkError(error)) {
-        if (config.isDev) console.warn('Network error getting user data, returning null user');
+        if (config.isDev) logger.warn('Network error getting user data, returning null user');
         return { user: null, error: null };
       }
       handleSupabaseError('get user data', error);
@@ -27,7 +30,7 @@ async function getUserData() {
   } catch (error) {
     // Handle network errors gracefully
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error getting user data, returning null user');
+      if (config.isDev) logger.warn('Network error getting user data, returning null user');
       return { user: null, error: null };
     }
     handleSupabaseError('get user data', error);
@@ -37,7 +40,7 @@ async function getUserData() {
 // Photo upload function for drivers
 export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string | undefined> => {
   if (!file || !file.name) { // ⚠️ Confirm field refactor here
-    if (config.isDev) console.warn('No photo uploaded — skipping uploadDriverPhoto.'); // ⚠️ Confirm field refactor here
+    if (config.isDev) logger.warn('No photo uploaded — skipping uploadDriverPhoto.'); // ⚠️ Confirm field refactor here
     return undefined;
   }
 
@@ -68,7 +71,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for warehouses, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for warehouses, returning empty array');
         return [];
       }
       handleSupabaseError('get user for warehouses', userError);
@@ -76,13 +79,13 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     }
     
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -101,7 +104,7 @@ export const getWarehouses = async (): Promise<Warehouse[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for warehouses, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for warehouses, returning empty array');
       return [];
     }
     handleSupabaseError('get user for warehouses', error);
@@ -131,7 +134,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for destinations, returning empty array');
+        if (config.isDev) logger.warn('Network error fetching user for destinations, returning empty array');
         return [];
       }
       handleSupabaseError('get user for destinations', userError);
@@ -139,13 +142,13 @@ export const getDestinations = async (): Promise<Destination[]> => {
     }
     
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return [];
     }
 
     const organizationId = await getUserActiveOrganization(user.id);
     if (!organizationId) {
-      console.warn('No organization selected for user');
+      logger.warn('No organization selected for user');
       return [];
     }
 
@@ -164,7 +167,7 @@ export const getDestinations = async (): Promise<Destination[]> => {
     return data || [];
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching user for destinations, returning empty array');
+      if (config.isDev) logger.warn('Network error fetching user for destinations, returning empty array');
       return [];
     }
     handleSupabaseError('get user for destinations', error);
@@ -178,7 +181,7 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for destination, returning null');
+        if (config.isDev) logger.warn('Network error fetching user for destination, returning null');
         return null;
       }
       handleSupabaseError('get user for destination', userError);
@@ -186,14 +189,14 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
     }
     
     if (!user && !ignoreOwnership) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return null;
     }
 
     // Validate that id is a proper UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(id)) {
-      console.error('Invalid UUID format for destination id:', id);
+      logger.error('Invalid UUID format for destination id:', id);
       return null;
     }
 
@@ -219,7 +222,7 @@ export const getDestination = async (id: string, ignoreOwnership: boolean = fals
     return data;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching destination, returning null');
+      if (config.isDev) logger.warn('Network error fetching destination, returning null');
       return null;
     }
     handleSupabaseError('fetch destination', error);
@@ -233,7 +236,7 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for destination by any id, returning null');
+        if (config.isDev) logger.warn('Network error fetching user for destination by any id, returning null');
         return null;
       }
       handleSupabaseError('get user for destination by any id', userError);
@@ -241,12 +244,12 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
     }
     
     if (!user && !ignoreOwnership) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return null;
     }
 
     if (typeof id !== 'string' || id.trim().length === 0) {
-      if (config.isDev) console.warn('Invalid destination identifier received:', id);
+      if (config.isDev) logger.warn('Invalid destination identifier received:', id);
       return null;
     }
 
@@ -285,7 +288,7 @@ export const getDestinationByAnyId = async (id: string, ignoreOwnership: boolean
     return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error fetching destination by any id, returning null');
+      if (config.isDev) logger.warn('Network error fetching destination by any id, returning null');
       return null;
     }
     handleSupabaseError('fetch destination by any id', error);
@@ -431,7 +434,7 @@ export const getAllVehicleStats = async (
 
       if (userError) {
         if (isNetworkError(userError)) {
-          if (config.isDev) console.warn(
+          if (config.isDev) logger.warn(
             'Network error fetching user for vehicle stats, returning empty object'
           );
           return {};
@@ -441,7 +444,7 @@ export const getAllVehicleStats = async (
       }
 
       if (!user) {
-        console.error('No user authenticated');
+        logger.error('No user authenticated');
         return {};
       }
 
@@ -500,7 +503,7 @@ export const getAllVehicleStats = async (
     return result;
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn(
+      if (config.isDev) logger.warn(
         'Network error calculating vehicle stats, returning empty object'
       );
       return {};
@@ -516,7 +519,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for vehicle stats, returning defaults');
+        if (config.isDev) logger.warn('Network error fetching user for vehicle stats, returning defaults');
         return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
       }
       handleSupabaseError('get user for vehicle stats', userError);
@@ -524,7 +527,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     }
     
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return { totalTrips: 0, totalDistance: 0, averageKmpl: undefined };
     }
 
@@ -617,7 +620,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
 
     // Log cost analytics for debugging
     if (config.isDev) {
-      console.log('💰 Vehicle Cost Analytics:', {
+      logger.debug('💰 Vehicle Cost Analytics:', {
         vehicleId,
         totalTrips,
         totalDistance,
@@ -640,7 +643,7 @@ export const getVehicleStats = async (vehicleId: string): Promise<any> => {
     };
   } catch (error) {
     if (isNetworkError(error)) {
-      if (config.isDev) console.warn('Network error calculating vehicle stats, returning defaults');
+      if (config.isDev) logger.warn('Network error calculating vehicle stats, returning defaults');
       return { 
         totalTrips: 0, 
         totalDistance: 0, 
@@ -780,7 +783,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
       waypoints
     };
   } catch (error) {
-    console.error('Error in analyzeRoute:', error);
+    logger.error('Error in analyzeRoute:', error);
     handleSupabaseError('analyze route', error);
     
     // Return fallback with waypoints for map but no distance/time data
@@ -802,7 +805,7 @@ export const analyzeRoute = async (warehouseId: string, destinationIds: string[]
         };
       }
     } catch (fallbackError) {
-      console.error('Error in analyzeRoute fallback:', fallbackError);
+      logger.error('Error in analyzeRoute fallback:', fallbackError);
     }
     
     return null;
@@ -816,7 +819,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     
     if (userError) {
       if (isNetworkError(userError)) {
-        if (config.isDev) console.warn('Network error fetching user for odometer, returning default');
+        if (config.isDev) logger.warn('Network error fetching user for odometer, returning default');
         return { value: 0, fromTrip: false };
       }
       handleSupabaseError('get user for odometer', userError);
@@ -824,7 +827,7 @@ export const getLatestOdometer = async (vehicleId: string): Promise<{ value: num
     }
     
     if (!user) {
-      console.error('No user authenticated');
+      logger.error('No user authenticated');
       return { value: 0, fromTrip: false };
     }
 
@@ -915,7 +918,7 @@ export const getVendors = async (): Promise<MaintenanceVendor[]> => {
       .order('name', { ascending: true });
 
     if (error) {
-      console.log('admin_vendors table not found, trying other tables...');
+      logger.debug('admin_vendors table not found, trying other tables...');
       
       // Try other possible table names
       const possibleTables = ['vendors', 'shops', 'merchants', 'garages'];
@@ -928,7 +931,7 @@ export const getVendors = async (): Promise<MaintenanceVendor[]> => {
             .order('name', { ascending: true });
             
           if (!tableError && tableData && tableData.length > 0) {
-            console.log(`Found vendors in ${tableName} table`);
+            logger.debug(`Found vendors in ${tableName} table`);
             return tableData.map(vendor => ({
               id: vendor.id,
               name: vendor.name || vendor.shop_name || vendor.merchant_name,
@@ -938,16 +941,16 @@ export const getVendors = async (): Promise<MaintenanceVendor[]> => {
             }));
           }
         } catch (tableErr) {
-          console.log(`Table ${tableName} not found`);
+          logger.debug(`Table ${tableName} not found`);
         }
       }
       
-      console.log('No vendor tables found, using demo data');
+      logger.debug('No vendor tables found, using demo data');
       return DEMO_VENDORS;
     }
 
     if (!data || data.length === 0) {
-      console.log('No vendors found in admin_vendors, using demo data');
+      logger.debug('No vendors found in admin_vendors, using demo data');
       return DEMO_VENDORS;
     }
 
@@ -960,7 +963,7 @@ export const getVendors = async (): Promise<MaintenanceVendor[]> => {
       active: vendor.active,
     }));
   } catch (error) {
-    console.error('Error fetching vendors:', error);
+    logger.error('Error fetching vendors:', error);
     return DEMO_VENDORS; // Fallback to demo data
   }
 };

@@ -19,7 +19,8 @@ describe('fmtDateWithYear', () => {
 
     testCases.forEach(({ day, expected }) => {
       it(`should format day ${day} as ${expected}`, () => {
-        const date = new Date(2025, 8, day); // September 2025
+        // Use a month that has 31 days (January = month 0)
+        const date = new Date(2025, 0, day); // January 2025
         const result = fmtDateWithYear(date, 'long');
         expect(result).toContain(expected);
       });

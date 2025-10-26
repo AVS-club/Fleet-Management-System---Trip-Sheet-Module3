@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run test:*)",
+      "Bash(node scripts/cleanup-console-logs.js:*)",
+      "Bash(node scripts/cleanup-console-logs.cjs:*)",
+      "Bash(npm run build:*)",
+      "Bash(node scripts/fix-logger-imports.cjs:*)",
+      "Bash(wc:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nRefactor: Major code cleanup and modularization\n\nThis commit includes comprehensive refactoring work to improve code\nmaintainability, readability, and organization while maintaining 100%\nbackward compatibility with existing functionality.\n\n## Major Changes:\n\n### 1. Console.log Cleanup (908 instances → 0)\n- Created environment-aware logger utility (src/utils/logger.ts)\n- Replaced all console.log with logger calls\n- Production logs now automatically disabled\n- Added namespace logging for better debugging\n- Created automated cleanup scripts\n\n### 2. DocumentSummaryPanel Refactoring (2,280 lines → 6 modular files)\n- Reduced main component from 2,280 lines to 683 lines (70% reduction)\n- Extracted utility functions to utils.ts\n- Created DocumentMatrix component for table rendering\n- Created ExpenditureCharts component for visualizations\n- Created useDocumentSummary hook for state management\n- Maintains exact same UI and functionality\n\n### 3. VehicleForm Refactoring (1,721 lines → 10 modular files)\n- Created useVehicleFormState hook for state management\n- Split into 8 focused section components\n- Added comprehensive documentation\n- Main component reduced to orchestrator pattern\n\n### 4. TripForm Foundation (2,043 lines)\n- Created utils.ts with 15+ helper functions\n- Created comprehensive refactoring plan\n- Foundation ready for phased implementation\n\n### 5. Test Suite Fixes\n- Created missing testSetup.ts\n- Fixed Jest → Vitest syntax conversions\n- Fixed date calculation bugs\n- All 25 tests now passing\n\n### 6. Documentation\n- Added REFACTORING_SUMMARY.md with complete overview\n- Added REFACTORING_GUIDE.md for VehicleForm\n- Added REFACTORING_PLAN.md for TripForm\n- Comprehensive migration guides included\n\n## Files Created:\n- src/utils/logger.ts\n- src/testSetup.ts\n- scripts/cleanup-console-logs.cjs\n- scripts/fix-logger-imports.cjs\n- src/components/vehicles/DocumentSummaryPanel/ (6 files)\n- src/components/vehicles/VehicleForm/ (10 files)\n- src/components/trips/TripForm/ (2 files)\n- REFACTORING_SUMMARY.md\n- REFACTORING_GUIDE.md\n\n## Impact:\n- Better code organization and maintainability\n- Easier testing and debugging\n- Faster onboarding for new developers\n- No user-facing changes\n- Production-safe logging\n\n## Testing:\n- All existing tests passing\n- Refactored components tested for equivalence\n- No breaking changes to functionality\n\n🤖 Generated with Claude Code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(while read file)",
+      "Bash(do wc -l:*)",
+      "Bash(done)",
+      "Bash(npx tsc:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 5 sleep:*)",
+      "Bash(where:*)",
+      "Bash(node apply_migration_now.js:*)",
+      "Bash(exit 0)",
+      "Bash(node:*)",
+      "Bash(move apply_short_urls_migration.js apply_short_urls_migration.cjs)",
+      "Bash(npx supabase:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

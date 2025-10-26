@@ -19,19 +19,19 @@ export const StatCard: React.FC<StatCardProps> = ({
   className = ""
 }) => {
   return (
-    <div className={`stat-card bg-gray-50 p-4 rounded-lg border-l-4 border-green-500 ${className}`}>
+    <div className={`stat-card bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border-l-4 border-green-500 ${className}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs text-gray-500 mb-1">{title}</p>
-          <p className="text-lg font-semibold text-gray-900">{value}</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{title}</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</p>
           {change && (
-            <p className={`text-sm ${change.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+            <p className={`text-sm ${change.isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               {change.isPositive ? '↑' : '↓'} {Math.abs(change.value)}%
             </p>
           )}
         </div>
         {icon && (
-          <div className="text-2xl text-green-600">
+          <div className="text-2xl text-green-600 dark:text-green-400">
             {icon}
           </div>
         )}

@@ -32,7 +32,7 @@ export const VendorHistoryManager = {
         return map;
       }
     } catch (error) {
-      console.error('Error loading vendor history:', error);
+      logger.error('Error loading vendor history:', error);
     }
     return new Map();
   },
@@ -50,7 +50,7 @@ export const VendorHistoryManager = {
       
       localStorage.setItem('vendor_history', JSON.stringify(plainObject));
     } catch (error) {
-      console.error('Error saving vendor history:', error);
+      logger.error('Error saving vendor history:', error);
     }
   },
 
@@ -108,7 +108,7 @@ export const VendorHistoryManager = {
     try {
       localStorage.removeItem('vendor_history');
     } catch (error) {
-      console.error('Error clearing vendor history:', error);
+      logger.error('Error clearing vendor history:', error);
     }
   },
 

@@ -7,6 +7,9 @@ import Input from "../ui/Input";
 import Select from "../ui/Select";
 import Switch from "../ui/Switch";
 import { toast } from "react-toastify";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AlertThresholdsManager');
 
 const AlertThresholdsManager: React.FC = () => {
   const [thresholds, setThresholds] = useState<AlertThreshold[]>([]);
@@ -24,7 +27,7 @@ const AlertThresholdsManager: React.FC = () => {
       const data = await getAlertThresholds();
       setThresholds(data);
     } catch (error) {
-      console.error("Error loading alert thresholds:", error);
+      logger.error("Error loading alert thresholds:", error);
       toast.error("Failed to load alert thresholds");
     } finally {
       setLoading(false);
@@ -64,7 +67,7 @@ const AlertThresholdsManager: React.FC = () => {
       
       toast.success("Alert thresholds updated successfully");
     } catch (error) {
-      console.error("Error saving alert thresholds:", error);
+      logger.error("Error saving alert thresholds:", error);
       toast.error("Failed to save alert thresholds");
     } finally {
       setSaving(false);
@@ -79,7 +82,7 @@ const AlertThresholdsManager: React.FC = () => {
         await loadThresholds();
         toast.success("Alert thresholds reset to default values");
       } catch (error) {
-        console.error("Error resetting alert thresholds:", error);
+        logger.error("Error resetting alert thresholds:", error);
         toast.error("Failed to reset alert thresholds");
       } finally {
         setSaving(false);

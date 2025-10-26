@@ -17,6 +17,9 @@ import {
   uploadContactPhoto
 } from '../../../utils/reminderService';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('ReminderManager');
 
 const ReminderManager: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'contacts' | 'templates'>('contacts');
@@ -38,7 +41,7 @@ const ReminderManager: React.FC = () => {
         setContacts(contactsData);
         setTemplates(templatesData);
       } catch (error) {
-        console.error('Error fetching reminder data:', error);
+        logger.error('Error fetching reminder data:', error);
         toast.error('Failed to load reminders data');
       } finally {
         setLoading(false);
@@ -58,7 +61,7 @@ const ReminderManager: React.FC = () => {
           const tempId = `temp-${Date.now()}`;
           photoUrl = await uploadContactPhoto(data.photo, tempId);
         } catch (photoError) {
-          if (config.isDev) console.warn('Photo upload failed, proceeding without photo:', photoError);
+          if (config.isDev) logger.warn('Photo upload failed, proceeding without photo:', photoError);
           toast.warning('Contact created successfully, but photo upload failed. Please ensure the storage bucket exists.');
         }
       }
@@ -85,7 +88,7 @@ const ReminderManager: React.FC = () => {
             newContact.photo_url = updatedPhotoUrl;
           }
         } catch (photoError) {
-          if (config.isDev) console.warn('Photo update failed, but contact was created:', photoError);
+          if (config.isDev) logger.warn('Photo update failed, but contact was created:', photoError);
         }
       }
 
@@ -93,7 +96,7 @@ const ReminderManager: React.FC = () => {
       setShowContactForm(false);
       toast.success('Contact added successfully');
     } catch (error) {
-      console.error('Error adding contact:', error);
+      logger.error('Error adding contact:', error);
       toast.error('Failed to add contact');
     } finally {
       setIsSubmitting(false);
@@ -113,7 +116,7 @@ const ReminderManager: React.FC = () => {
             photoUrl = uploadedPhotoUrl;
           }
         } catch (photoError) {
-          if (config.isDev) console.warn('Photo upload failed during update:', photoError);
+          if (config.isDev) logger.warn('Photo upload failed during update:', photoError);
           toast.warning('Contact updated successfully, but photo upload failed. Please ensure the storage bucket exists.');
         }
       }
@@ -135,7 +138,7 @@ const ReminderManager: React.FC = () => {
       setEditingContact(null);
       toast.success('Contact updated successfully');
     } catch (error) {
-      console.error('Error updating contact:', error);
+      logger.error('Error updating contact:', error);
       toast.error('Failed to update contact');
     } finally {
       setIsSubmitting(false);
@@ -147,7 +150,7 @@ const ReminderManager: React.FC = () => {
       await deleteReminderContact(id);
       setContacts(contacts.filter(c => c.id !== id));
     } catch (error) {
-      console.error('Error deleting contact:', error);
+      logger.error('Error deleting contact:', error);
       throw error;
     }
   };
@@ -157,7 +160,7 @@ const ReminderManager: React.FC = () => {
       const newTemplate = await createReminderTemplate(template);
       setTemplates([...templates, newTemplate]);
     } catch (error) {
-      console.error('Error adding template:', error);
+      logger.error('Error adding template:', error);
       throw error;
     }
   };
@@ -167,7 +170,7 @@ const ReminderManager: React.FC = () => {
       const updatedTemplate = await updateReminderTemplate(template.id, template);
       setTemplates(templates.map(t => t.id === template.id ? updatedTemplate : t));
     } catch (error) {
-      console.error('Error updating template:', error);
+      logger.error('Error updating template:', error);
       throw error;
     }
   };
@@ -177,7 +180,7 @@ const ReminderManager: React.FC = () => {
       await deleteReminderTemplate(id);
       setTemplates(templates.filter(t => t.id !== id));
     } catch (error) {
-      console.error('Error deleting template:', error);
+      logger.error('Error deleting template:', error);
       throw error;
     }
   };

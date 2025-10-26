@@ -34,6 +34,9 @@ import { toast } from "react-toastify";
 import WhatsAppButton from "../components/drivers/WhatsAppButton";
 import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDownloadModal";
 import DriverAIInsights from "../components/ai/DriverAIInsights";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('DriverPage');
 
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -117,7 +120,7 @@ const DriverPage: React.FC = () => {
           await generateSignedUrls(driverData);
         }
       } catch (error) {
-        console.error("Error fetching driver data:", error);
+        logger.error("Error fetching driver data:", error);
       } finally {
         setLoading(false);
       }
@@ -189,7 +192,7 @@ const DriverPage: React.FC = () => {
 
       setSignedDocUrls(urls);
     } catch (error) {
-      console.error("Error generating signed URLs:", error);
+      logger.error("Error generating signed URLs:", error);
       toast.error("Failed to generate document access links");
     }
   }; 
@@ -204,7 +207,7 @@ const DriverPage: React.FC = () => {
       doc.save(`${driver.name.replace(/\s+/g, "_")}_profile.pdf`);
       toast.success("Driver profile exported successfully");
     } catch (error) {
-      console.error("Error exporting driver profile:", error);
+      logger.error("Error exporting driver profile:", error);
       toast.error("Failed to export driver profile");
     } finally {
       setExportLoading(false);
@@ -234,7 +237,7 @@ const DriverPage: React.FC = () => {
       await navigator.clipboard.writeText(link);
       toast.success("Shareable link copied to clipboard (valid for 7 days)");
     } catch (error) {
-      console.error("Error creating shareable link:", error);
+      logger.error("Error creating shareable link:", error);
       toast.error("Failed to create shareable link");
     } finally {
       setShareLoading(false);
@@ -258,7 +261,7 @@ const DriverPage: React.FC = () => {
       // This would be replaced with actual update logic
       window.location.reload();
     } catch (error) {
-      console.error('Error updating driver:', error);
+      logger.error('Error updating driver:', error);
       toast.error('Failed to update driver');
     }
   };

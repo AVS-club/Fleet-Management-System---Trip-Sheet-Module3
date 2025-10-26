@@ -6,6 +6,9 @@ import Input from '../../ui/Input';
 import Select from '../../ui/Select';
 import Checkbox from '../../ui/Checkbox';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('TemplateTable');
 
 // Map internal values to display labels
 const REMINDER_TYPE_LABELS: Record<string, string> = {
@@ -86,7 +89,7 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
       toast.success('Template updated successfully');
     } catch (error) {
       toast.error('Failed to update template');
-      console.error('Error updating template:', error);
+      logger.error('Error updating template:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +102,7 @@ const TemplateTable: React.FC<TemplateTableProps> = ({
       toast.success('Template deleted successfully');
     } catch (error) {
       toast.error('Failed to delete template');
-      console.error('Error deleting template:', error);
+      logger.error('Error deleting template:', error);
     } finally {
       setDeletingId(null);
     }

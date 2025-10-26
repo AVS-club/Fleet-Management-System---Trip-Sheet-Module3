@@ -43,6 +43,9 @@ import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, end
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import Layout from '../../components/layout/Layout';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('CompleteFixedReportingDashboard');
 
 // Extend jsPDF type for autoTable
 declare module 'jspdf' {
@@ -91,18 +94,6 @@ const CompleteFixedReportingDashboard: React.FC = () => {
   const [generatingReport, setGeneratingReport] = useState<string | null>(null);
   const [showAllReports, setShowAllReports] = useState(false);
 
-  // Initialize date range properly
-  useEffect(() => {
-    updateDateRange(selectedDateRange);
-  }, [updateDateRange, selectedDateRange]);
-
-  // Fetch data when date range changes
-  useEffect(() => {
-    if (activeTab === 'dashboard') {
-      fetchDashboardData();
-    }
-  }, [dateRange, activeTab, fetchDashboardData]);
-
   const updateDateRange = useCallback((rangeType: string) => {
     const now = new Date();
     let start: Date, end: Date;
@@ -149,6 +140,18 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     setSelectedDateRange(rangeType);
   }, [customStartDate, customEndDate]);
 
+  // Initialize date range properly
+  useEffect(() => {
+    updateDateRange(selectedDateRange);
+  }, [updateDateRange, selectedDateRange]);
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [dateRange, activeTab, fetchDashboardData]);
+
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
@@ -160,9 +163,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         fetchDriverPerformance(),
         fetchExpenseBreakdown()
       ]);
-      console.log('Dashboard data fetched successfully');
+      logger.debug('Dashboard data fetched successfully');
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -178,7 +181,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (tripsError) {
-        console.error('Error fetching trips:', tripsError);
+        logger.error('Error fetching trips:', tripsError);
       }
 
       // Calculate revenue (using a simple formula - adjust based on your business logic)
@@ -226,7 +229,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
 
       return true;
     } catch (error) {
-      console.error('Error in fetchMetrics:', error);
+      logger.error('Error in fetchMetrics:', error);
       return false;
     }
   }, [dateRange]);
@@ -241,7 +244,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .order('created_at');
 
       if (error) {
-        console.error('Error fetching trip trends:', error);
+        logger.error('Error fetching trip trends:', error);
         return;
       }
 
@@ -261,7 +264,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, tripTrends: trendData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchTripTrends:', error);
+      logger.error('Error in fetchTripTrends:', error);
       return false;
     }
   }, [dateRange]);
@@ -275,7 +278,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching vehicles:', error);
+        logger.error('Error fetching vehicles:', error);
         return;
       }
 
@@ -300,7 +303,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, vehicleUtilization: utilizationData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchVehicleUtilization:', error);
+      logger.error('Error in fetchVehicleUtilization:', error);
       return false;
     }
   }, [dateRange]);
@@ -314,7 +317,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .limit(5);
 
       if (error) {
-        console.error('Error fetching drivers:', error);
+        logger.error('Error fetching drivers:', error);
         return;
       }
 
@@ -342,7 +345,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, driverPerformance: performanceData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchDriverPerformance:', error);
+      logger.error('Error in fetchDriverPerformance:', error);
       return false;
     }
   }, [dateRange]);
@@ -356,7 +359,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         .lte('created_at', dateRange.endDate.toISOString());
 
       if (error) {
-        console.error('Error fetching expenses:', error);
+        logger.error('Error fetching expenses:', error);
         return;
       }
 
@@ -382,7 +385,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setChartData((prev: any) => ({ ...prev, expenseBreakdown: expenseData }));
       return true;
     } catch (error) {
-      console.error('Error in fetchExpenseBreakdown:', error);
+      logger.error('Error in fetchExpenseBreakdown:', error);
       return false;
     }
   }, [dateRange, metrics.maintenanceCosts]);
@@ -543,7 +546,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       alert('Enhanced report generated successfully!');
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      logger.error('Error generating PDF:', error);
       alert('Error generating report. Please try again.');
     } finally {
       setGeneratingReport(null);
@@ -621,7 +624,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No trip data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding trip summary:', error);
+      logger.error('Error adding trip summary:', error);
     }
   };
 
@@ -708,7 +711,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         alternateRowStyles: { fillColor: [249, 250, 251] }
       });
     } catch (error) {
-      console.error('Error adding comparison content:', error);
+      logger.error('Error adding comparison content:', error);
     }
   };
 
@@ -750,7 +753,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No fuel data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding fuel analysis:', error);
+      logger.error('Error adding fuel analysis:', error);
     }
   };
 
@@ -819,7 +822,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         pdf.text('No expense data available for the selected period.', 14, yPosition);
       }
     } catch (error) {
-      console.error('Error adding expense report:', error);
+      logger.error('Error adding expense report:', error);
     }
   };
 
@@ -920,24 +923,24 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     <Layout>
       <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header - Fixed to match AVS style */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 mb-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900 flex items-center">
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <Activity className="h-6 w-6 mr-2 text-primary-600" />
               Reporting & Analytics
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Visual insights and downloadable reports</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Visual insights and downloadable reports</p>
           </div>
-          
+
           {/* Tab Switcher */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setActiveTab('dashboard')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === 'dashboard' 
-                  ? 'bg-primary-600 text-white shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'dashboard'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
               <Eye className="h-4 w-4 inline mr-2" />
@@ -946,9 +949,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('reports')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                activeTab === 'reports' 
-                  ? 'bg-primary-600 text-white shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
+                activeTab === 'reports'
+                  ? 'bg-primary-600 text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
               <Download className="h-4 w-4 inline mr-2" />
@@ -959,13 +962,13 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       </div>
 
       {/* Date Range Selector */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 mb-6">
         <div className="flex flex-wrap items-center gap-4">
-          <Calendar className="h-5 w-5 text-gray-400" />
+          <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           <select
             value={selectedDateRange}
             onChange={(e) => updateDateRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
@@ -988,9 +991,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                     updateDateRange('custom');
                   }
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
-              <span className="text-gray-500">to</span>
+              <span className="text-gray-500 dark:text-gray-400">to</span>
               <input
                 type="date"
                 value={customEndDate}
@@ -1000,7 +1003,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                     updateDateRange('custom');
                   }
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
           )}
@@ -1023,52 +1026,52 @@ const CompleteFixedReportingDashboard: React.FC = () => {
         <>
           {/* Metrics Grid - Updated with Rupees */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Revenue</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Revenue</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
                     ₹{metrics.totalRevenue.toLocaleString('en-IN')}
                   </p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600" />
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Trips</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">{metrics.totalTrips}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Trips</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{metrics.totalTrips}</p>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <Package className="h-6 w-6 text-blue-600" />
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Vehicles</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">{metrics.activeVehicles}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Vehicles</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{metrics.activeVehicles}</p>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Truck className="h-6 w-6 text-purple-600" />
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                  <Truck className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm p-4">
+
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Active Drivers</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">{metrics.activeDrivers}</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Active Drivers</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">{metrics.activeDrivers}</p>
                 </div>
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <Users className="h-6 w-6 text-orange-600" />
+                <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                  <Users className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
               </div>
             </div>
@@ -1077,8 +1080,8 @@ const CompleteFixedReportingDashboard: React.FC = () => {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Trip Trends */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Trip Trends</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Trip Trends</h3>
               {chartData.tripTrends.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={chartData.tripTrends}>
@@ -1094,15 +1097,15 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                <div className="h-[300px] flex items-center justify-center text-gray-500 dark:text-gray-400">
                   No data available for the selected period
                 </div>
               )}
             </div>
 
             {/* Vehicle Utilization */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Vehicle Utilization</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Vehicle Utilization</h3>
               {chartData.vehicleUtilization.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData.vehicleUtilization}>
@@ -1114,15 +1117,15 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                <div className="h-[300px] flex items-center justify-center text-gray-500 dark:text-gray-400">
                   No vehicle data available
                 </div>
               )}
             </div>
 
             {/* Driver Performance */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Driver Performance</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Top Driver Performance</h3>
               {chartData.driverPerformance.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData.driverPerformance}>
@@ -1134,15 +1137,15 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                <div className="h-[300px] flex items-center justify-center text-gray-500 dark:text-gray-400">
                   No driver data available
                 </div>
               )}
             </div>
 
             {/* Expense Breakdown */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Expense Breakdown</h3>
               {chartData.expenseBreakdown.length > 0 ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -1164,7 +1167,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[300px] flex items-center justify-center text-gray-500">
+                <div className="h-[300px] flex items-center justify-center text-gray-500 dark:text-gray-400">
                   No expense data available
                 </div>
               )}
@@ -1177,22 +1180,22 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       {activeTab === 'reports' && (
         <div>
           {/* Quick Downloads */}
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Downloads</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Downloads</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {reportTypes.slice(0, showAllReports ? reportTypes.length : 5).map((report) => (
                 <button
                   key={report.id}
                   onClick={() => generatePDFReport(report.id)}
                   disabled={generatingReport === report.id}
-                  className="flex flex-col items-center p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all hover:shadow-md disabled:opacity-50"
+                  className="flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all hover:shadow-md disabled:opacity-50"
                 >
                   <div className={`p-3 rounded-lg mb-2 ${
-                    report.category === 'comparison' ? 'bg-green-100 text-green-600' :
-                    report.category === 'financial' ? 'bg-blue-100 text-blue-600' :
-                    report.category === 'operations' ? 'bg-purple-100 text-purple-600' :
-                    report.category === 'maintenance' ? 'bg-orange-100 text-orange-600' :
-                    'bg-gray-100 text-gray-600'
+                    report.category === 'comparison' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                    report.category === 'financial' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' :
+                    report.category === 'operations' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                    report.category === 'maintenance' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                    'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                   }`}>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-5 w-5 animate-spin" />
@@ -1200,8 +1203,8 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                       report.icon
                     )}
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{report.name}</span>
-                  <span className="text-xs text-gray-500 mt-1 text-center">{report.description}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{report.name}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">{report.description}</span>
                 </button>
               ))}
             </div>
@@ -1230,9 +1233,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
           {/* Categorized Reports */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Smart Comparisons */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <TrendingUp className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
                 Smart Comparisons
               </h3>
               <div className="space-y-2">
@@ -1241,13 +1244,13 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generatePDFReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center group"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center group"
                   >
-                    <span className="text-sm text-gray-700">{report.name}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-primary-600" />
                     ) : (
-                      <Download className="h-4 w-4 text-gray-400 group-hover:text-primary-600" />
+                      <Download className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-primary-600" />
                     )}
                   </button>
                 ))}
@@ -1255,9 +1258,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
             </div>
 
             {/* Financial Reports */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <DollarSign className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                 Financial Reports
               </h3>
               <div className="space-y-2">
@@ -1266,13 +1269,13 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generatePDFReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center group"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center group"
                   >
-                    <span className="text-sm text-gray-700">{report.name}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-primary-600" />
                     ) : (
-                      <Download className="h-4 w-4 text-gray-400 group-hover:text-primary-600" />
+                      <Download className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-primary-600" />
                     )}
                   </button>
                 ))}
@@ -1280,9 +1283,9 @@ const CompleteFixedReportingDashboard: React.FC = () => {
             </div>
 
             {/* Operations Reports */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Package className="h-5 w-5 mr-2 text-purple-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <Package className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
                 Operations Reports
               </h3>
               <div className="space-y-2">
@@ -1291,13 +1294,13 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                     key={report.id}
                     onClick={() => generatePDFReport(report.id)}
                     disabled={generatingReport === report.id}
-                    className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors flex justify-between items-center group"
+                    className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex justify-between items-center group"
                   >
-                    <span className="text-sm text-gray-700">{report.name}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-200">{report.name}</span>
                     {generatingReport === report.id ? (
                       <RefreshCw className="h-4 w-4 animate-spin text-primary-600" />
                     ) : (
-                      <Download className="h-4 w-4 text-gray-400 group-hover:text-primary-600" />
+                      <Download className="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-primary-600" />
                     )}
                   </button>
                 ))}

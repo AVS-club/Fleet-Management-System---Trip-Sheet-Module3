@@ -51,6 +51,9 @@ import VehicleWhatsAppShareModal from "../components/vehicles/VehicleWhatsAppSha
 import TopDriversModal from "../components/vehicles/TopDriversModal";
 import VehicleActivityLogTable from "../components/admin/VehicleActivityLogTable";
 import ReactPaginate from "react-paginate";
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('VehiclesPage');
 
 const VehiclesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -72,7 +75,7 @@ const VehiclesPage: React.FC = () => {
   const [topDriverLogic, setTopDriverLogic] = useState<'cost_per_km' | 'mileage' | 'trips'>('mileage');
   const [currentPage, setCurrentPage] = useState(0);
   const ITEMS_PER_PAGE = 9;
-  
+
   // Search functionality
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
@@ -102,7 +105,7 @@ const VehiclesPage: React.FC = () => {
       // Performance monitoring
       const startTime = performance.now();
       performance.mark('vehicles-load-start');
-      
+
       setLoading(true);
       setStatsLoading(true);
       try {
@@ -133,13 +136,13 @@ const VehiclesPage: React.FC = () => {
         }
 
         // Debug: Log driver count and any missing assignments
-        if (config.isDev) console.log('Fetched drivers count:', driversData.length);
+        if (config.isDev) logger.debug('Fetched drivers count:', driversData.length);
         const vehiclesWithDriverIds = vehiclesData.filter(v => v.primary_driver_id);
-        const missingDriverAssignments = vehiclesWithDriverIds.filter(v => 
+        const missingDriverAssignments = vehiclesWithDriverIds.filter(v =>
           !driversData.find(d => d.id === v.primary_driver_id)
         );
         if (missingDriverAssignments.length > 0) {
-          if (config.isDev) console.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
+          if (config.isDev) logger.warn('Vehicles with missing driver assignments:', missingDriverAssignments.map(v => ({
             vehicle: v.registration_number,
             primary_driver_id: v.primary_driver_id
           })));
@@ -158,11 +161,11 @@ const VehiclesPage: React.FC = () => {
         }));
 
         setVehicles(vehiclesWithDefaultStats);
-        
+
         // Performance logging for initial load
         const initialLoadTime = performance.now() - startTime;
-        console.log(`ðŸš€ Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
-        
+        logger.debug(`🚀 Vehicles loaded in ${initialLoadTime.toFixed(2)}ms`);
+
         setLoading(false); // Show vehicles immediately
 
         // Phase 2: Load trips and calculate stats in background
@@ -197,12 +200,12 @@ const VehiclesPage: React.FC = () => {
         setTimeout(() => {
           setVehicles(vehiclesWithStats);
           setIsCalculatingStats(false);
-          
+
           // Performance logging for complete load
           const totalLoadTime = performance.now() - startTime;
           performance.mark('vehicles-load-end');
           performance.measure('vehicles-complete-load', 'vehicles-load-start', 'vehicles-load-end');
-          console.log(`ðŸ“Š Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
+          logger.debug(`📊 Complete vehicles load with stats in ${totalLoadTime.toFixed(2)}ms`);
         }, 150); // Small delay to prevent glitchy updates
 
         // Calculate statistics
@@ -230,7 +233,7 @@ const VehiclesPage: React.FC = () => {
 
         setStatsLoading(false);
       } catch (error) {
-        console.error("Error fetching vehicles:", error);
+        logger.error("Error fetching vehicles:", error);
         toast.error("Failed to load vehicles");
         setStatsLoading(false);
       } finally {
@@ -248,7 +251,7 @@ const VehiclesPage: React.FC = () => {
   // Search logic - trigger search after 4 characters, then every 2 characters
   useEffect(() => {
     const length = searchTerm.length;
-    
+
     if (length === 0) {
       // Reset to show all vehicles
       setShouldSearch(false);
@@ -368,7 +371,7 @@ const VehiclesPage: React.FC = () => {
       const duplicateVehicle = existingVehicles.find(
         vehicle => vehicle.registration_number.toLowerCase() === data.registration_number.toLowerCase()
       );
-      
+
       if (duplicateVehicle) {
         toast.error(`A vehicle with registration number "${data.registration_number}" already exists.`);
         setIsSubmitting(false);
@@ -409,7 +412,7 @@ const VehiclesPage: React.FC = () => {
             );
             payload[urlField] = [filePath]; // Ensure it's wrapped in an array
           } catch (err) {
-            console.error(`Failed to upload ${docType} document:`, err);
+            logger.error(`Failed to upload ${docType} document:`, err);
             toast.error(`Failed to upload ${docType} document`);
           }
         }
@@ -433,14 +436,14 @@ const VehiclesPage: React.FC = () => {
         setTotalVehicles((prev) => prev + 1);
         setIsAddingVehicle(false);
         toast.success("Vehicle added successfully");
-        
+
         // Clear cache to ensure fresh data on next load
         invalidateVehicleCache();
       } else {
         toast.error("Failed to add vehicle");
       }
     } catch (error) {
-      console.error("Error adding vehicle:", error);
+      logger.error("Error adding vehicle:", error);
       toast.error(
         "Error adding vehicle: " +
           (error instanceof Error ? error.message : "Unknown error")
@@ -452,9 +455,9 @@ const VehiclesPage: React.FC = () => {
 
   // Helper function to validate document paths
   const isValidPath = (path: string): boolean => {
-    return path && 
-           typeof path === 'string' && 
-           path.trim() !== '' && 
+    return path &&
+           typeof path === 'string' &&
+           path.trim() !== '' &&
            path !== 'null' &&
            path !== 'undefined';
   };
@@ -644,8 +647,8 @@ const VehiclesPage: React.FC = () => {
     if (!activeSearch || !shouldSearch) {
       return vehicles;
     }
-    
-    return vehicles.filter(vehicle => 
+
+    return vehicles.filter(vehicle =>
       vehicle.registration_number.toLowerCase().includes(activeSearch.toLowerCase())
     );
   }, [vehicles, activeSearch, shouldSearch]);
@@ -667,14 +670,14 @@ const VehiclesPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Truck className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('vehicles.title')}</h1>
           {isCalculatingStats && (
             <div className="ml-3 flex items-center">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-              <span className="ml-2 text-xs text-gray-500">Updating stats...</span>
+              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">Updating stats...</span>
             </div>
           )}
         </div>
@@ -700,7 +703,7 @@ const VehiclesPage: React.FC = () => {
                   placeholder="Search vehicle (min 4 chars)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value.toUpperCase())}
-                  className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 {searchTerm && (
                   <button
@@ -709,14 +712,14 @@ const VehiclesPage: React.FC = () => {
                       setActiveSearch('');
                       setShouldSearch(false);
                     }}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
               {searchTerm && searchTerm.length < 4 && (
-                <div className="absolute left-0 top-full mt-1 text-xs text-gray-500">
+                <div className="absolute left-0 top-full mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Type {4 - searchTerm.length} more character{4 - searchTerm.length !== 1 ? 's' : ''} to search
                 </div>
               )}
@@ -733,9 +736,9 @@ const VehiclesPage: React.FC = () => {
       </div>
 
       {isAddingVehicle ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-900 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100 flex items-center">
               <Truck className="h-5 w-5 mr-2 text-primary-500" />
               New Vehicle
             </h2>
@@ -761,10 +764,10 @@ const VehiclesPage: React.FC = () => {
                   {[...Array(4)].map((_, i) => (
                     <div
                       key={i}
-                      className="bg-white rounded-lg shadow-sm p-6 animate-pulse"
+                      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6 animate-pulse"
                     >
-                      <div className="h-4 w-24 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-8 w-16 bg-gray-300 rounded"></div>
+                      <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                      <div className="h-8 w-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
                     </div>
                   ))}
                 </div>
@@ -803,9 +806,9 @@ const VehiclesPage: React.FC = () => {
                               <option value="trips">Most Trips</option>
                             </select>
                           </div>
-                          <span className="text-xs text-gray-500 block">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 block">
                             {topDriverLogic === 'mileage' && `${topDriver.mileage.toFixed(1)} km/L`}
-                            {topDriverLogic === 'cost_per_km' && `â‚¹0.00/km`}
+                            {topDriverLogic === 'cost_per_km' && `₹0.00/km`}
                             {topDriverLogic === 'trips' && `0 trips`}
                           </span>
                         </div>
@@ -849,14 +852,14 @@ const VehiclesPage: React.FC = () => {
           )}
 
           {showArchived && (
-            <div className="bg-gray-100 border-l-4 border-warning-500 p-4 mb-6">
+            <div className="bg-gray-100 dark:bg-gray-800 border-l-4 border-warning-500 p-4 mb-6">
               <div className="flex">
                 <AlertTriangle className="h-6 w-6 text-warning-500 mr-2" />
                 <div>
-                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">
+                  <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">
                     Viewing Archived Vehicles
                   </h3>
-                  <p className="font-sans text-warning-700">
+                  <p className="font-sans text-warning-700 dark:text-warning-400">
                     You are currently viewing archived vehicles. These vehicles
                     are hidden from other parts of the system.
                   </p>
@@ -867,8 +870,8 @@ const VehiclesPage: React.FC = () => {
 
           {/* Search Results Info */}
           {activeSearch && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3 mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
                 Showing {filteredVehicles.length} result{filteredVehicles.length !== 1 ? 's' : ''} for "<strong>{activeSearch}</strong>"
                 {filteredVehicles.length === 0 && " - No vehicles found"}
               </p>
@@ -882,8 +885,8 @@ const VehiclesPage: React.FC = () => {
               ))}
             </div>
           ) : filteredVehicles.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="font-sans text-gray-500">
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="font-sans text-gray-500 dark:text-gray-400">
                 {showArchived
                   ? "No archived vehicles found."
                   : "No vehicles found. Add your first vehicle to get started."}
@@ -897,18 +900,18 @@ const VehiclesPage: React.FC = () => {
                 const { uploaded, total, status: uploadStatus } = countDocuments(vehicle);
 
                 // Get the assigned driver using the driversById lookup
-                const assignedDriver = vehicle.primary_driver_id 
-                  ? driversById[vehicle.primary_driver_id] 
+                const assignedDriver = vehicle.primary_driver_id
+                  ? driversById[vehicle.primary_driver_id]
                   : undefined;
 
                 const statusPillClasses =
                   vehicle.status === "active"
-                    ? "bg-success-100 text-success-800"
+                    ? "bg-success-100 dark:bg-success-900/30 text-success-800 dark:text-success-300"
                     : vehicle.status === "maintenance"
-                    ? "bg-warning-100 text-warning-800"
+                    ? "bg-warning-100 dark:bg-warning-900/30 text-warning-800 dark:text-warning-300"
                     : vehicle.status === "archived"
-                    ? "bg-gray-100 text-gray-600"
-                    : "bg-gray-100 text-gray-800";
+                    ? "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300";
 
                 const photoRingClasses =
                   vehicle.status === "active"
@@ -971,7 +974,7 @@ const VehiclesPage: React.FC = () => {
                 return (
                   <div
                     key={vehicle.id}
-                    className={`bg-white rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative cursor-pointer ${
+                    className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative cursor-pointer ${
                       vehicle.status === "archived" ? "opacity-75" : ""
                     }`}
                     onClick={() => navigate(`/vehicles/${vehicle.id}`)}
@@ -979,26 +982,26 @@ const VehiclesPage: React.FC = () => {
                     {/* Header: Registration, Status, Action Buttons */}
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 truncate pr-20" 
+                        <h3 className="text-base font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100 truncate pr-20"
                             title={`${vehicle.registration_number} - Current Odometer: ${vehicle.current_odometer?.toLocaleString()} km`}>
                           {vehicle.registration_number}
                         </h3>
-                        <p className="text-sm font-sans text-gray-500 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
+                        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 truncate" title={`${vehicle.make} ${vehicle.model} (${vehicle.year})`}>
                           {vehicle.make} {vehicle.model}
-                          {vehicle.tax_scope && 
-                           (vehicle.tax_scope.toLowerCase().includes('ltt') || 
+                          {vehicle.tax_scope &&
+                           (vehicle.tax_scope.toLowerCase().includes('ltt') ||
                             vehicle.tax_scope.toLowerCase().includes('lifetime')) && (
-                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-sans font-medium rounded-full dark:bg-green-900 dark:text-green-200" title="This vehicle has lifetime tax paid">
+                            <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs font-sans font-medium rounded-full dark:bg-green-900/30 dark:text-green-300" title="This vehicle has lifetime tax paid">
                               Lifetime Tax
                             </span>
                           )}
                         </p>
                         {metaItems.length > 0 && (
-                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-sans text-gray-500">
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-sans text-gray-500 dark:text-gray-400">
                             {metaItems.map((item, index) => (
                               <span
                                 key={`vehicle-meta-${vehicle.id}-${index}`}
-                                className="flex items-center gap-1 text-gray-600"
+                                className="flex items-center gap-1 text-gray-600 dark:text-gray-400"
                               >
                                 {item.icon}
                                 <span className="max-w-[8rem] truncate">{item.label}</span>
@@ -1007,7 +1010,7 @@ const VehiclesPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex flex-col items-end gap-2">
                         <span
                           className={`px-2 py-0.5 text-xs font-sans font-medium rounded-full capitalize flex items-center gap-2 z-10 ${statusPillClasses}`}
@@ -1021,7 +1024,7 @@ const VehiclesPage: React.FC = () => {
                           {vehicle.status}
                         </span>
                         <div
-                          className={`relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200 ${photoRingClasses}`}
+                          className={`relative w-16 h-16 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${photoRingClasses}`}
                         >
                           {vehicle.photo_url ? (
                             <img
@@ -1036,7 +1039,7 @@ const VehiclesPage: React.FC = () => {
                           )}
                           {vehicle.status === "active" && (
                             <span
-                              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-success-500"
+                              className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white dark:border-gray-900 bg-success-500"
                               aria-hidden="true"
                             />
                           )}
@@ -1046,11 +1049,11 @@ const VehiclesPage: React.FC = () => {
 
                     {/* Pills Row: Year + Fuel */}
                     <div className="flex gap-1 mb-2">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-blue-50 text-blue-700">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
                         <Calendar className="h-3 w-3 mr-1" />
                         {vehicle.year}
                       </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-amber-50 text-amber-700 capitalize">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-sans font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 capitalize">
                         <Fuel className="h-3 w-3 mr-1" />
                         {vehicle.fuel_type}
                       </span>
@@ -1062,7 +1065,7 @@ const VehiclesPage: React.FC = () => {
                         {assignedDriver ? (
                           <>
                             <span className="mr-1" role="img" aria-label="Driver">{"\u{1F464}"}</span>
-                            <span className="font-sans text-gray-700 truncate">{assignedDriver.name}</span>
+                            <span className="font-sans text-gray-700 dark:text-gray-300 truncate">{assignedDriver.name}</span>
                           </>
                         ) : (
                           <>
@@ -1076,9 +1079,9 @@ const VehiclesPage: React.FC = () => {
                     {/* Vehicle Tags */}
                     {vehicle.tags && vehicle.tags.length > 0 && (
                       <div className="mb-2">
-                        <VehicleTagBadges 
-                          tags={vehicle.tags} 
-                          readOnly 
+                        <VehicleTagBadges
+                          tags={vehicle.tags}
+                          readOnly
                           size="sm"
                           maxDisplay={3}
                         />
@@ -1088,71 +1091,71 @@ const VehiclesPage: React.FC = () => {
                     {/* Metrics Row */}
                     <div className="grid grid-cols-3 gap-2 mb-2">
                         <div className="text-center">
-                          <span className="text-xs font-sans text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 dark:text-gray-400 block">
                             Trips
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus text-sm">{vehicle.stats.totalTrips}</p>
+                          <p className="font-display font-bold tracking-tight-plus text-sm text-gray-900 dark:text-gray-100">{vehicle.stats.totalTrips}</p>
                         </div>
 
                         <div className="text-center">
-                          <span className="text-xs font-sans text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 dark:text-gray-400 block">
                             Distance
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus text-sm">
+                          <p className="font-display font-bold tracking-tight-plus text-sm text-gray-900 dark:text-gray-100">
                             {displayTotalDistance}
                           </p>
                         </div>
 
                         <div className="text-center">
-                          <span className="text-xs font-sans text-gray-500 block">
+                          <span className="text-xs font-sans text-gray-500 dark:text-gray-400 block">
                             Avg KMPL
                           </span>
-                          <p className="font-display font-bold tracking-tight-plus text-sm">
+                          <p className="font-display font-bold tracking-tight-plus text-sm text-gray-900 dark:text-gray-100">
                             {displayAverageKmpl}
                           </p>
                         </div>
                     </div>
 
                     {/* Documents Status */}
-                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
                       <div className="flex items-center">
                         <FileText className="h-3 w-3 text-gray-400 mr-1" />
-                        <span className="text-xs font-sans text-gray-500">Docs:</span>
+                        <span className="text-xs font-sans text-gray-500 dark:text-gray-400">Docs:</span>
                         <span
                           className={`ml-1 text-xs font-sans font-medium px-1.5 py-0.5 rounded-full ${
                             uploadStatus === 'complete'
-                              ? 'bg-success-100 text-success-800'
+                              ? 'bg-success-100 dark:bg-success-900/30 text-success-800 dark:text-success-300'
                               : uploadStatus === 'none'
-                              ? 'bg-error-100 text-error-800'
-                              : 'bg-warning-100 text-warning-800'
+                              ? 'bg-error-100 dark:bg-error-900/30 text-error-800 dark:text-error-300'
+                              : 'bg-warning-100 dark:bg-warning-900/30 text-warning-800 dark:text-warning-300'
                           }`}
                         >
                           {uploaded}/{total}
                         </span>
                       </div>
-                      
+
                       {/* Action Buttons */}
                       <div className="flex items-center gap-1">
                         <button
-                          className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                          className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                           onClick={(e) => handleOpenLog(vehicle, e)}
                           aria-label="View activity log"
                           title="View activity log"
                         >
                           <NotebookTabs className="h-4 w-4" />
                         </button>
-                        
+
                         <button
-                          className="p-1.5 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="p-1.5 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
                           onClick={(e) => handleAddTrip(vehicle, e)}
                           aria-label="Add trip with this vehicle"
                           title="Add trip with this vehicle"
                         >
                           <Route className="h-4 w-4" />
                         </button>
-                        
+
                         <button
-                          className="p-1.5 rounded-full text-gray-400 hover:text-green-600 hover:bg-green-50 transition-colors"
+                          className="p-1.5 rounded-full text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
                           onClick={(e) => handleOpenShareModal(vehicle, e)}
                           aria-label="Share vehicle via WhatsApp"
                           title="Share vehicle via WhatsApp"
@@ -1171,10 +1174,10 @@ const VehiclesPage: React.FC = () => {
                 onPageChange={handlePageClick}
                 forcePage={currentPage}
                 className="flex justify-center mt-6 gap-2"
-                pageLinkClassName="px-3 py-1 border rounded"
-                previousLinkClassName="px-3 py-1 border rounded"
-                nextLinkClassName="px-3 py-1 border rounded"
-                activeLinkClassName="bg-primary-100 text-primary-700"
+                pageLinkClassName="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800"
+                previousLinkClassName="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800"
+                nextLinkClassName="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800"
+                activeLinkClassName="bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
                 disabledLinkClassName="opacity-50"
                 previousLabel="<"
                 nextLabel=">"
@@ -1211,9 +1214,9 @@ const VehiclesPage: React.FC = () => {
       {/* Activity Log Modal */}
       {showActivityLogModal && selectedVehicleForLog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-display font-medium tracking-tight-plus text-gray-900 dark:text-gray-100">
                 Activity Log - {selectedVehicleForLog.registration_number}
               </h3>
               <button
@@ -1221,7 +1224,7 @@ const VehiclesPage: React.FC = () => {
                   setShowActivityLogModal(false);
                   setSelectedVehicleForLog(null);
                 }}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
               >
                 <X className="h-5 w-5" />
               </button>

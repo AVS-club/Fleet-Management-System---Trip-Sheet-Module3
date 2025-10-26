@@ -3,6 +3,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Trip, Vehicle } from '@/types';
 import { parseISO, isValid, isWithinInterval, format, isBefore } from 'date-fns';
 import config from '../../../utils/env';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('FuelConsumedByVehicleChart');
 
 interface FuelConsumedByVehicleChartProps {
   trips: Trip[];
@@ -26,7 +29,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
 
     // Safety check for date range validity
     if (!isValid(dateRange.start) || !isValid(dateRange.end) || !isBefore(dateRange.start, dateRange.end)) {
-      if (config.isDev) console.warn('Invalid date range:', dateRange);
+      if (config.isDev) logger.warn('Invalid date range:', dateRange);
       return [];
     }
 
@@ -40,7 +43,7 @@ const FuelConsumedByVehicleChart: React.FC<FuelConsumedByVehicleChartProps> = ({
         
         return isWithinInterval(tripDate, dateRange);
       } catch (error) {
-        if (config.isDev) console.warn('Error filtering trip by date:', error);
+        if (config.isDev) logger.warn('Error filtering trip by date:', error);
         return false;
       }
     });

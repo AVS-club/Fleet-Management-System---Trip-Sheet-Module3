@@ -14,6 +14,9 @@ import TripMap from '../components/maps/TripMap';
 import { MapPin, X } from 'lucide-react';
 import Button from '../components/ui/Button';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('TripDetailsPage');
 
 const TripDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -49,7 +52,7 @@ const TripDetailsPage: React.FC = () => {
             const { data: { user } } = await supabase.auth.getUser();
             
             if (!user) {
-              console.error('No authenticated user found');
+              logger.error('No authenticated user found');
               navigate('/login');
               return;
             }
@@ -134,7 +137,7 @@ const TripDetailsPage: React.FC = () => {
                   }
                 }
               } catch (error) {
-                console.error('Error fetching destinations:', error);
+                logger.error('Error fetching destinations:', error);
                 setDestinations([]);
               }
             }
@@ -143,7 +146,7 @@ const TripDetailsPage: React.FC = () => {
             navigate('/trips');
           }
         } catch (error) {
-          console.error('Error loading trip details:', error);
+          logger.error('Error loading trip details:', error);
         } finally {
           setLoading(false);
         }
@@ -167,7 +170,7 @@ const TripDetailsPage: React.FC = () => {
         deleteTrip(trip.id);
         navigate('/trips');
       } catch (error) {
-        console.error('Error deleting trip:', error);
+        logger.error('Error deleting trip:', error);
       }
     }
   };
@@ -274,7 +277,7 @@ const TripDetailsPage: React.FC = () => {
       
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating trip:', error);
+      logger.error('Error updating trip:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -313,11 +316,11 @@ const TripDetailsPage: React.FC = () => {
       subtitle={`Created on ${new Date(trip.created_at || '').toLocaleDateString()}`}
     >
       {isEditing ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-900 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Trip</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Edit Trip</h2>
             <button
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               onClick={() => setIsEditing(false)}
             >
               Cancel
@@ -380,8 +383,8 @@ const TripDetailsPage: React.FC = () => {
           
           {/* Route Overview Section */}
           {warehouse && destinations.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center mb-4">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6 mt-6 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center mb-4">
                 <MapPin className="h-5 w-5 mr-2 text-primary-500" />
                 Route Overview
               </h3>
@@ -407,12 +410,12 @@ const TripDetailsPage: React.FC = () => {
           {/* Full Map Modal */}
           {showMapModal && (
             <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col">
-                <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="text-lg font-medium text-gray-900">Route Map</h3>
+              <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-6xl max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Route Map</h3>
                   <button
                     onClick={() => setShowMapModal(false)}
-                    className="text-gray-400 hover:text-gray-500"
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                   >
                     <X className="h-5 w-5" />
                   </button>

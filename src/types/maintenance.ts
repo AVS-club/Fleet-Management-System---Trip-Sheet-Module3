@@ -1,18 +1,3 @@
-// Add audit log interfaces
-interface MaintenanceAuditLogChange {
-  previous_value: any;
-  updated_value: any;
-}
-
-export interface MaintenanceAuditLog {
-  id: string;
-  task_id: string;
-  timestamp: string;
-  admin_user?: string;
-  changes: Record<string, MaintenanceAuditLogChange>;
-  created_at?: string;
-}
-
 // Add service group interface
 export interface MaintenanceServiceGroup {
   id?: string;

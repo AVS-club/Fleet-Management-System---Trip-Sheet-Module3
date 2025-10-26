@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enable Improved Alerts</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+        .status.disabled {
+            background: #fee;
+            color: #c33;
+            border: 2px solid #fcc;
+        }
+        .status.enabled {
+            background: #efe;
+            color: #3c3;
+            border: 2px solid #cfc;
+        }
+        button {
+            background: #0066ff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0052cc;
+        }
+        button.danger {
+            background: #ff4444;
+        }
+        button.danger:hover {
+            background: #cc0000;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .warning {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ff9800;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 Enable Improved Alerts</h1>
+
+        <div id="status" class="status disabled">
+            ❌ Improved Alerts: <strong>DISABLED</strong>
+        </div>
+
+        <div class="info">
+            <strong>📍 Current Page:</strong> You're seeing the OLD version<br>
+            <strong>📅 Issue:</strong> Documents showing 2028-2030 dates<br>
+            <strong>✨ New Version:</strong> Only shows next 30 days
+        </div>
+
+        <button onclick="enableImprovedAlerts()">
+            ✅ Enable Improved Alerts
+        </button>
+
+        <button class="danger" onclick="disableImprovedAlerts()">
+            ❌ Disable (Go Back to Old)
+        </button>
+
+        <div class="warning">
+            <strong>⚠️ After clicking:</strong><br>
+            The page will automatically reload and you'll see the new improved version with:
+            <ul>
+                <li>Only documents from next 30 days</li>
+                <li>Clean compact header</li>
+                <li>Separated upcoming/past sections</li>
+                <li>Route deviation alerts</li>
+                <li>Images on all cards</li>
+            </ul>
+        </div>
+
+        <div class="info" style="margin-top: 20px;">
+            <strong>Manual Method (if button doesn't work):</strong><br>
+            1. Press <code>F12</code> to open browser console<br>
+            2. Paste this command:<br>
+            <code style="display: block; margin: 10px 0;">localStorage.setItem('unified_alerts', 'true');</code>
+            3. Press <code>F5</code> to reload page
+        </div>
+    </div>
+
+    <script>
+        // Check current status
+        function checkStatus() {
+            const isEnabled = localStorage.getItem('unified_alerts') === 'true';
+            const statusEl = document.getElementById('status');
+
+            if (isEnabled) {
+                statusEl.className = 'status enabled';
+                statusEl.innerHTML = '✅ Improved Alerts: <strong>ENABLED</strong>';
+            } else {
+                statusEl.className = 'status disabled';
+                statusEl.innerHTML = '❌ Improved Alerts: <strong>DISABLED</strong>';
+            }
+        }
+
+        // Enable improved alerts
+        function enableImprovedAlerts() {
+            localStorage.setItem('unified_alerts', 'true');
+            alert('✅ Improved Alerts ENABLED!\n\nThe page will now reload to show the new version.');
+
+            // Redirect to the alerts page
+            window.location.href = 'http://localhost:3000/ai-alerts';
+        }
+
+        // Disable improved alerts
+        function disableImprovedAlerts() {
+            localStorage.setItem('unified_alerts', 'false');
+            alert('❌ Improved Alerts DISABLED!\n\nThe page will now reload to show the old version.');
+
+            // Redirect to the alerts page
+            window.location.href = 'http://localhost:3000/ai-alerts';
+        }
+
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>

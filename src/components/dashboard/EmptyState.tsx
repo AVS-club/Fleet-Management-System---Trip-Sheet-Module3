@@ -19,13 +19,13 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   const getIcon = () => {
     switch (type) {
       case 'vehicles':
-        return <Truck className="h-16 w-16 text-gray-300 mb-4" />;
+        return <Truck className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />;
       case 'trips':
-        return <FileText className="h-16 w-16 text-gray-300 mb-4" />;
+        return <FileText className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />;
       case 'mileage':
-        return <MapPin className="h-16 w-16 text-gray-300 mb-4" />;
+        return <MapPin className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />;
       default:
-        return <Info className="h-16 w-16 text-gray-300 mb-4" />;
+        return <Info className="h-16 w-16 text-gray-300 dark:text-gray-600 mb-4" />;
     }
   };
 

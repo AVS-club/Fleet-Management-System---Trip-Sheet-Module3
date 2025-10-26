@@ -5,6 +5,7 @@ import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling 
 import { getVehicles, getDestinations, getWarehouses, analyzeRoute, getLatestOdometer } from '../../utils/storage';
 import { getDrivers } from '../../utils/api/drivers';
 import { supabase } from '../../utils/supabaseClient';
+import { getUserActiveOrganization } from '../../utils/supaHelpers';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { ensureUniqueTripSerial } from '../../utils/tripSerialGenerator';
 import { subDays, format, parseISO } from 'date-fns';
@@ -43,6 +44,9 @@ import { toast } from 'react-toastify';
 
 // Import the new warehouse rules system
 import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('TripForm');
 
 interface TripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -118,8 +122,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const [formValidationErrors, setFormValidationErrors] = useState<string[]>([]);
   const [autoTieDriver, setAutoTieDriver] = useState(true);
   
-  // Debug mode for testing
-  const DEBUG_MODE = process.env.NODE_ENV === 'development';
 
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -165,7 +167,7 @@ const TripForm: React.FC<TripFormProps> = ({
           const date = parseISO(dateString);
           return format(date, 'yyyy-MM-dd');
         } catch (error) {
-          console.error('Error formatting date:', error);
+          logger.error('Error formatting date:', error);
           return yesterdayDate;
         }
       };
@@ -299,7 +301,7 @@ const TripForm: React.FC<TripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching form data:', error);
+        logger.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
       } finally {
         setLoading(false);
@@ -380,7 +382,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error generating trip serial:', error);
+            logger.error('Error generating trip serial:', error);
             toast.error('Could not generate unique trip serial. Please try again or enter manually.');
           }
         }
@@ -405,7 +407,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error getting latest odometer:', error);
+            logger.error('Error getting latest odometer:', error);
           }
         }
       }
@@ -487,11 +489,11 @@ const TripForm: React.FC<TripFormProps> = ({
             const alerts = await analyzeTripAndGenerateAlerts(tempTripData, analysis, trips);
             setAiAlerts(alerts);
           } else {
-            if (config.isDev) console.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
+            if (config.isDev) logger.warn('Cannot calculate route deviation: invalid distance values', { standardDistance, actualDistance });
           }
         }
       } catch (error) {
-        console.error('Error analyzing route:', error);
+        logger.error('Error analyzing route:', error);
       } finally {
         setIsAnalyzing(false);
       }
@@ -550,7 +552,7 @@ const TripForm: React.FC<TripFormProps> = ({
           }
         } catch (error) {
           if (error.name !== 'AbortError') {
-            console.error('Error analyzing route:', error);
+            logger.error('Error analyzing route:', error);
             if (!abortController.signal.aborted) {
               setRouteAnalysis(null);
             }
@@ -675,15 +677,24 @@ const TripForm: React.FC<TripFormProps> = ({
             // Auto-selected warehouse based on vehicle assignment
           }
         } catch (error) {
-          console.error('Error auto-assigning warehouse:', error);
+          logger.error('Error auto-assigning warehouse:', error);
         }
       }
 
+      // Get the user's organization to query trips from all org users
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (!organizationId) {
+        logger.error('No organization found for user');
+        return;
+      }
+
+      // Get trips from ALL users in the organization (not just current user)
+      // This matches the database validation trigger behavior
       const { data: lastTrip, error } = await supabase
         .from('trips')
         .select('end_km, trip_end_date, created_at')
         .eq('vehicle_id', vehicleId)
-        .eq('created_by', user.id)
+        .eq('organization_id', organizationId)
         .not('end_km', 'is', null)
         .order('trip_end_date', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false, nullsFirst: false })
@@ -699,11 +710,12 @@ const TripForm: React.FC<TripFormProps> = ({
         setValue('start_km', latestTripRecord.end_km);
         
         // Get previous refueling trip for mileage window calculation
+        // Also query from ALL org users to match validation behavior
         const { data: prevRefuelTrip } = await supabase
           .from('trips')
           .select('end_km, trip_end_date, created_at')
           .eq('vehicle_id', vehicleId)
-          .eq('created_by', user.id)
+          .eq('organization_id', organizationId)
           .or('fuel_quantity.gt.0,total_fuel_cost.gt.0')
           .not('end_km', 'is', null)
           .order('trip_end_date', { ascending: false, nullsFirst: false })
@@ -740,7 +752,7 @@ const TripForm: React.FC<TripFormProps> = ({
         }
       }
     } catch (error) {
-      console.error('Error fetching last trip data:', error);
+      logger.error('Error fetching last trip data:', error);
     }
   };
 
@@ -891,14 +903,18 @@ const TripForm: React.FC<TripFormProps> = ({
       const { updatedTrip } = recalculateMileageForRefuelingTrip(tempTrip, trips);
       data.calculated_kmpl = updatedTrip.calculated_kmpl;
       
-      // Validate mileage after calculation
+      // Validate mileage after calculation - ALL WARNINGS ONLY (no blocking)
       const mileage = data.calculated_kmpl || 0;
-      if (mileage > 30) {
-        toast.error('Mileage exceeds 30 km/L - please verify fuel quantity and distance');
-        return;
+      // Changed all to warnings - transport business needs flexibility
+      if (mileage > 100) {
+        toast.warning('Very high mileage: ' + mileage.toFixed(2) + ' km/L - please verify fuel quantity');
+      } else if (mileage > 50) {
+        toast.info('High mileage: ' + mileage.toFixed(2) + ' km/L - excellent efficiency!');
       }
-      if (mileage < 3 && mileage > 0) {
-        toast.warning('Mileage below 3 km/L - possible fuel leak or calculation error');
+      if (mileage < 2 && mileage > 0) {
+        toast.warning('Very low mileage: ' + mileage.toFixed(2) + ' km/L - check for fuel leak or heavy load');
+      } else if (mileage < 4 && mileage > 0) {
+        toast.info('Low mileage: ' + mileage.toFixed(2) + ' km/L - verify if carrying heavy load');
       }
     }
     
@@ -988,7 +1004,7 @@ const TripForm: React.FC<TripFormProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error previewing cascade impact:', error);
+      logger.error('Error previewing cascade impact:', error);
       toast.error('Could not preview cascade impact');
     }
   };
@@ -1028,7 +1044,7 @@ const TripForm: React.FC<TripFormProps> = ({
         toast.error(result.error || 'Failed to apply cascade corrections');
       }
     } catch (error) {
-      console.error('Error applying cascade:', error);
+      logger.error('Error applying cascade:', error);
       toast.error('Failed to apply cascade corrections');
     } finally {
       setCascadePreview(prev => ({ ...prev, loading: false }));
@@ -1578,9 +1594,14 @@ const TripForm: React.FC<TripFormProps> = ({
                     )}
                   />
                 </div>
-                {startKm !== undefined && endKm !== undefined && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Distance: {computedDistance} km
+                {/* Suggested End KM based on route analysis */}
+                {routeAnalysis && routeAnalysis.total_distance > 0 && startKm !== undefined && startKm > 0 && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Suggested based on route: {
+                      Math.round(startKm + (watchedValues.is_return_trip
+                        ? routeAnalysis.total_distance * 2
+                        : routeAnalysis.total_distance))
+                    } km ({watchedValues.is_return_trip ? 'round trip' : 'one way'})
                   </p>
                 )}
                 {errors.end_km && (
@@ -1591,7 +1612,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 )}
               </div>
 
-              {/* Distance */}
+              {/* Distance summary box */}
               <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Distance:</span>
@@ -1930,32 +1951,6 @@ const TripForm: React.FC<TripFormProps> = ({
         </div>
       </CollapsibleSection>
 
-      {/* Debug Panel */}
-      {DEBUG_MODE && (
-        <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs">
-          <h4 className="font-bold mb-2 text-gray-800 dark:text-gray-200">Debug Info:</h4>
-          <div className="grid grid-cols-2 gap-2 text-gray-700 dark:text-gray-300">
-            <p>Vehicle ID: {selectedVehicleId || 'None'}</p>
-            <p>Primary Driver ID: {vehicles.find(v => v.id === selectedVehicleId)?.primary_driver_id || 'None'}</p>
-            <p>Selected Driver ID: {watch('driver_id') || 'None'}</p>
-            <p>Auto-tie Active: {autoTieDriver ? 'Yes' : 'No'}</p>
-            <p>Refueling Mode: {isRefuelingTrip ? 'Yes' : 'No'}</p>
-            <p>Total Expenses: ₹{watchedValues.total_road_expenses || 0}</p>
-            <p>Start KM: {watchedValues.start_km || 0}</p>
-            <p>End KM: {watchedValues.end_km || 0}</p>
-            <p>Distance: {(watchedValues.end_km || 0) - (watchedValues.start_km || 0)} km</p>
-            <p>Gross Weight: {watchedValues.gross_weight || 0} kg</p>
-            <p>Return Trip: {watchedValues.is_return_trip ? 'Yes' : 'No'}</p>
-            <p>Vehicle Just Changed: {vehicleJustChanged.current ? 'Yes' : 'No'}</p>
-          </div>
-          <details className="mt-2">
-            <summary className="cursor-pointer font-medium text-gray-800 dark:text-gray-200">All Form Values</summary>
-            <pre className="mt-2 p-2 bg-gray-200 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
-              {JSON.stringify(watch(), null, 2)}
-            </pre>
-          </details>
-        </div>
-      )}
 
             </div>
           </div>

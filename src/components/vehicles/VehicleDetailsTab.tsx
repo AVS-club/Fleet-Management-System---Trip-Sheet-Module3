@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   FileText, Download, Eye, Calendar, AlertTriangle,
-  Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, MessageCircle, Link, Tag as TagIcon
+  Truck, Settings, User, MapPin, Fuel, Hash, Car, Camera, Link, Tag as TagIcon, Loader2
 } from 'lucide-react';
+import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { Vehicle } from '../../types';
 import { Tag } from '../../types/tags';
 import DocumentViewer from './DocumentViewer';
@@ -17,6 +18,9 @@ import { vehicleColors } from '../../utils/vehicleColors';
 import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortener';
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('VehicleDetailsTab');
 
 interface VehicleDetailsTabProps {
   vehicle: Vehicle;
@@ -40,10 +44,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const { permissions } = usePermissions();
   
   // Debug logging for insurance documents
-  console.log('🔍 VehicleDetailsTab - received signedDocUrls:', signedDocUrls);
-  console.log('🔍 VehicleDetailsTab - insurance URLs:', signedDocUrls.insurance);
-  console.log('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
-  console.log('🔍 Full vehicle object:', vehicle);
+  logger.debug('🔍 VehicleDetailsTab - received signedDocUrls:', signedDocUrls);
+  logger.debug('🔍 VehicleDetailsTab - insurance URLs:', signedDocUrls.insurance);
+  logger.debug('🔍 Insurance URLs from vehicle:', vehicle.insurance_document_url);
+  logger.debug('🔍 Full vehicle object:', vehicle);
   const [selectedDocument, setSelectedDocument] = useState<{
     type: string;
     url: string;
@@ -56,6 +60,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const [isViewingDocuments, setIsViewingDocuments] = useState(false);
   const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
   const [showTagHistory, setShowTagHistory] = useState(false);
+  const [downloadingDocs, setDownloadingDocs] = useState<Set<string>>(new Set());
 
   // Load vehicle tags
   useEffect(() => {
@@ -77,7 +82,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       const tags = (data || []).map(item => item.tags).filter(Boolean);
       setVehicleTags(tags);
     } catch (error) {
-      console.error('Error loading vehicle tags:', error);
+      logger.error('Error loading vehicle tags:', error);
     }
   };
 
@@ -163,8 +168,8 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   ];
 
   // Debug the documents array
-  console.log('🔍 Documents array created:', documents);
-  console.log('🔍 Insurance document in array:', documents.find(doc => doc.type === 'Insurance'));
+  logger.debug('🔍 Documents array created:', documents);
+  logger.debug('🔍 Insurance document in array:', documents.find(doc => doc.type === 'Insurance'));
 
   const getExpiryStatus = (expiryDate: string | null | undefined) => {
     if (!expiryDate) return { status: 'unknown', color: 'gray', days: null };
@@ -187,7 +192,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           url: url
         });
       } catch (error) {
-        console.log('Share failed:', error);
+        logger.debug('Share failed:', error);
       }
     } else {
       // Fallback: Copy to clipboard
@@ -195,18 +200,21 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
         await navigator.clipboard.writeText(url);
         toast.success('Link copied to clipboard');
       } catch (error) {
-        console.error('Failed to copy to clipboard:', error);
+        logger.error('Failed to copy to clipboard:', error);
         toast.error('Failed to copy link');
       }
     }
   };
 
-  const handleDownload = async (url: string, filename: string) => {
+  const handleDownload = async (url: string, filename: string, docType: string) => {
+    // Add document type to downloading set
+    setDownloadingDocs(prev => new Set(prev).add(docType));
+
     try {
       // Use fetch to download the file
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch document');
-      
+
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -216,17 +224,24 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(downloadUrl);
-      
+
       toast.success('Document downloaded successfully');
     } catch (error) {
-      console.error('Download failed:', error);
+      logger.error('Download failed:', error);
       toast.error('Failed to download document');
+    } finally {
+      // Remove document type from downloading set
+      setDownloadingDocs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(docType);
+        return newSet;
+      });
     }
   };
 
   const handleViewDocuments = async (docType: string, docPaths: string[] | null) => {
-    console.log(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
-    
+    logger.debug(`🔍 handleViewDocuments called for ${docType}:`, docPaths);
+
     if (!docPaths || docPaths.length === 0) {
       toast.info(`No ${docType} documents available`);
       return;
@@ -237,33 +252,27 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     try {
       // CRITICAL: signedDocUrls already contains valid signed URLs
       // We should NOT try to reconstruct them - just use them directly!
-      
+
       // Filter out any null values
       const validUrls = docPaths.filter(url => url != null) as string[];
-      
+
       if (validUrls.length === 0) {
         toast.error('No valid document URLs available');
         setIsViewingDocuments(false);
         return;
       }
 
-      console.log(`✅ Opening viewer with ${validUrls.length} documents:`, validUrls);
-      
-      // For single documents, open in new tab
-      if (validUrls.length === 1) {
-        window.open(validUrls[0], '_blank');
-        toast.success('Document opened in new tab');
-      } else {
-        // For multiple documents, use MultiDocumentViewer
-        setDocumentViewer({
-          show: true,
-          urls: validUrls,
-          type: docType
-        });
-      }
-      
+      logger.debug(`✅ Opening viewer with ${validUrls.length} documents:`, validUrls);
+
+      // Always use MultiDocumentViewer modal (keeps URL hidden in browser)
+      setDocumentViewer({
+        show: true,
+        urls: validUrls,
+        type: docType
+      });
+
     } catch (error) {
-      console.error('❌ View error:', error);
+      logger.error('❌ View error:', error);
       toast.error('Unable to view documents');
     } finally {
       setIsViewingDocuments(false);
@@ -299,7 +308,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           onUpdate({ photo_url: publicUrl });
           toast.success('Vehicle photo updated successfully');
         } catch (error) {
-          console.error('Photo upload failed:', error);
+          logger.error('Photo upload failed:', error);
           toast.error('Failed to upload photo');
         }
       }
@@ -311,11 +320,11 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     <div className="space-y-4 sm:space-y-6">
 
       {/* Vehicle Profile Section - Mobile Responsive */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row items-start gap-4">
           {/* Small Circular Photo */}
           <div className="relative flex-shrink-0 self-center sm:self-start">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700">
               {vehicle.photo_url ? (
                 <img
                   src={vehicle.photo_url}
@@ -324,7 +333,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
+                  <Truck className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400 dark:text-gray-500" />
                 </div>
               )}
             </div>
@@ -338,7 +347,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
 
           {/* Vehicle Information Grid - Mobile Responsive */}
           <div className="flex-1">
-            <h3 className="text-lg font-semibold mb-3">Vehicle Information</h3>
+            <h3 className="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Vehicle Information</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {/* Always show these main fields with colors */}
               <InfoField label="Registration" value={vehicle.registration_number} icon={<Hash />} required color="registration" />
@@ -358,10 +367,10 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
               {vehicle.number_of_tyres && <InfoField label="No. of Tyres" value={vehicle.number_of_tyres} icon={<Settings />} color="technical" />}
               
               {/* Compact Tags Row */}
-              <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                <TagIcon className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <TagIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 mb-1">Tags</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tags</p>
                   {vehicleTags.length > 0 ? (
                     <VehicleTagBadges 
                       tags={vehicleTags} 
@@ -371,7 +380,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                           setVehicleTags(prev => prev.filter(t => t.id !== tagId));
                           toast.success('Tag removed');
                         } catch (error) {
-                          console.error('Error:', error);
+                          logger.error('Error:', error);
                           toast.error('Failed to remove tag');
                         }
                       }}
@@ -395,9 +404,9 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
       </div>
 
       {/* Documents Section - Mobile Responsive */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <FileText className="h-5 w-5 text-gray-600" />
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+          <FileText className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           Compliance Documents
         </h3>
 
@@ -409,19 +418,19 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
             return (
               <div
                 key={doc.type}
-                className="border rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
               >
                 {/* Document Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">{doc.label}</h4>
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">{doc.label}</h4>
                     
                     {/* Expiry Status - Always show if expiry date exists */}
                     {doc.expiryDate && (
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2">
                         <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
                             {doc.expiryField}: {formatDate(doc.expiryDate)}
                           </span>
                         </div>
@@ -438,7 +447,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                       <div className="mt-2 space-y-1">
                         {doc.additionalInfo.map((info, idx) => (
                           info.value && (
-                            <p key={idx} className="text-sm text-gray-600">
+                            <p key={idx} className="text-sm text-gray-600 dark:text-gray-400">
                               <span className="font-medium">{info.label}:</span> {info.value}
                             </p>
                           )
@@ -472,36 +481,54 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                     </button>
                     
                     <button
-                      onClick={() => handleDownload(doc.urls[0], `${vehicle.registration_number}_${doc.type}`)}
-                      className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
+                      onClick={() => handleDownload(doc.urls[0], `${vehicle.registration_number}_${doc.type}`, doc.type)}
+                      disabled={downloadingDocs.has(doc.type)}
+                      className={`flex items-center justify-center gap-2 px-3 py-2 rounded transition-colors ${
+                        downloadingDocs.has(doc.type)
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                      }`}
                     >
-                      <Download className="h-4 w-4" />
-                      <span className="text-sm">Download</span>
+                      {downloadingDocs.has(doc.type) ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4" />
+                      )}
+                      <span className="text-sm">
+                        {downloadingDocs.has(doc.type) ? 'Downloading...' : 'Download'}
+                      </span>
                     </button>
                     
                     <button
-                      onClick={() => {
-                        const whatsappUrl = createWhatsAppShareLink(
-                          doc.label,
-                          vehicle.registration_number,
-                          doc.urls[0]
-                        );
-                        window.open(whatsappUrl, '_blank');
+                      onClick={async () => {
+                        try {
+                          const whatsappUrl = await createWhatsAppShareLink(
+                            doc.label,
+                            vehicle.registration_number,
+                            doc.urls[0]
+                          );
+                          window.open(whatsappUrl, '_blank');
+                        } catch (error) {
+                          logger.error('Failed to create WhatsApp link:', error);
+                          toast.error('Failed to create share link');
+                        }
                       }}
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100 transition-colors"
                     >
-                      <MessageCircle className="h-4 w-4" />
+                      <WhatsAppIcon size={20} variant="light" />
                       <span className="text-sm">WhatsApp</span>
                     </button>
                     
                     <button
                       onClick={async () => {
                         try {
-                          const shortUrl = createShortUrl(doc.urls[0]);
+                          const shortUrl = await createShortUrl(doc.urls[0]);
                           await navigator.clipboard.writeText(shortUrl);
-                          toast.success('Short link copied to clipboard');
+                          toast.success('Link copied! Valid for 24 hours', {
+                            autoClose: 3000
+                          });
                         } catch (error) {
-                          console.error('Failed to copy to clipboard:', error);
+                          logger.error('Failed to copy to clipboard:', error);
                           toast.error('Failed to copy link');
                         }
                       }}
@@ -512,13 +539,13 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-gray-50 rounded p-3">
-                    <div className="text-center text-sm text-gray-500 mb-2">
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded p-3">
+                    <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
                       No document uploaded
                     </div>
                     {/* Show expiry info even when no document */}
                     {doc.expiryDate && (
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-1 sm:gap-2 text-xs text-gray-400">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-1 sm:gap-2 text-xs text-gray-400 dark:text-gray-500">
                         <div className="flex items-center justify-center gap-2">
                           <Calendar className="h-3 w-3" />
                           <span>

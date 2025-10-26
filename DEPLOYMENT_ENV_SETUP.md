@@ -74,7 +74,7 @@ export const getYouTubeService = (apiKey?: string): YouTubeService | null => {
 After setting up environment variables:
 
 1. **Redeploy your site**
-2. **Visit your production URL + `/notifications`**
+2. **Visit your production URL + `/ai-alerts`**
 3. **Check browser console for "Fetching YouTube shorts..."**
 4. **Videos should load properly**
 

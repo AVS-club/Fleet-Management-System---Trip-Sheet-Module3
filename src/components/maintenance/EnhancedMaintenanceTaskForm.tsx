@@ -10,7 +10,6 @@ import GarageSelector from "./GarageSelector";
 import RefactoredVehicleSelector from "./RefactoredVehicleSelector";
 import TaskTypeSelector from "./TaskTypeSelector";
 import PriorityButtonSelector from "./PriorityButtonSelector";
-import MaintenanceAuditLog from "./MaintenanceAuditLog";
 import ServiceGroupsSection from "./ServiceGroupsSection";
 import ComplaintResolutionSection from "./ComplaintResolutionSection";
 import NextServiceReminderSection from "./NextServiceReminderSection";
@@ -29,12 +28,14 @@ import {
   Image
 } from "lucide-react";
 import { predictNextService } from "../../utils/maintenancePredictor";
-import { getAuditLogs } from "../../utils/maintenanceStorage";
 import { toast } from "react-toastify";
 import { getLatestOdometer } from "../../utils/storage";
 import { cn } from "../../utils/cn";
 import { standardizeDate, validateDate, validateDateRange, formatDateForInput } from "../../utils/dateValidation";
 import "../../styles/FileUploadWithProgress.css";
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('EnhancedMaintenanceTaskForm');
 
 const DOWNTIME_PRESETS = [
   { id: "2h", label: "2 h", days: 0, hours: 2 },
@@ -63,7 +64,6 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
   isSubmitting: externalIsSubmitting,
 }) => {
   const [setReminder, setSetReminder] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [aiSuggestions, setAiSuggestions] = useState<{
     averageReplacementKm?: number;
     averageReplacementDays?: number;
@@ -132,22 +132,6 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
   const title = watch("title");
   const serviceGroupsWatch = watch("service_groups");
 
-  // Load audit logs when vehicle changes
-  useEffect(() => {
-    if (vehicleId) {
-      const loadAuditLogs = async () => {
-        try {
-          const logs = await getAuditLogs(vehicleId);
-          setAuditLogs(logs || []);
-        } catch (error) {
-          console.error("Error loading audit logs:", error);
-          setAuditLogs([]);
-        }
-      };
-      loadAuditLogs();
-    }
-  }, [vehicleId]);
-
   // Load latest odometer reading when vehicle changes
   useEffect(() => {
     if (vehicleId && !odometerReading) {
@@ -158,7 +142,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
             setValue("odometer_reading", latest);
           }
         } catch (error) {
-          console.error("Error loading latest odometer:", error);
+          logger.error("Error loading latest odometer:", error);
         }
       };
       loadLatestOdometer();
@@ -176,7 +160,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
           );
           setAiSuggestions(suggestions);
         } catch (error) {
-          console.error("Error getting AI suggestions:", error);
+          logger.error("Error getting AI suggestions:", error);
           setAiSuggestions({ confidence: 0 });
         }
       };
@@ -226,7 +210,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
       setOverallProgress(100);
       setSubmitSuccess(true);
       
-      console.log('✅ Task created successfully');
+      logger.debug('✅ Task created successfully');
       
       // Show success for 2 seconds then reset
       setTimeout(() => {
@@ -236,7 +220,7 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
       }, 2000);
       
     } catch (error) {
-      console.error('❌ Submission error:', error);
+      logger.error('❌ Submission error:', error);
       setSubmitError(error instanceof Error ? error.message : 'Failed to create task');
       setIsSubmitting(false);
       setOverallProgress(0);
@@ -276,8 +260,8 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5">
         {/* Vehicle & Basic Info */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 space-y-5 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Truck className="h-5 w-5 mr-2 text-primary-500" />
             Basic Information
           </h3>
@@ -297,8 +281,8 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
         </div>
 
         {/* Service Period */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 space-y-5 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-primary-500" />
             Service Period
           </h3>
@@ -327,8 +311,8 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
         <EnhancedDowntimeSection />
 
         {/* Odometer Reading with Enhanced File Upload */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 space-y-5 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <Truck className="h-5 w-5 mr-2 text-primary-500" />
             Vehicle Information
           </h3>
@@ -367,8 +351,8 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
         </div>
 
         {/* Enhanced Documents Section */}
-        <div className="bg-white rounded-lg shadow-sm p-5 space-y-5">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-5 space-y-5 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 flex items-center">
             <FileText className="h-5 w-5 mr-2 text-primary-500" />
             Supporting Documents
           </h3>
@@ -397,11 +381,6 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
           setSetReminder={setSetReminder}
           aiSuggestions={aiSuggestions}
         />
-
-        {/* Audit Log */}
-        {auditLogs.length > 0 && (
-          <MaintenanceAuditLog auditLogs={auditLogs} />
-        )}
 
         {/* Error Message */}
         {submitError && (

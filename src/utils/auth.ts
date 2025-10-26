@@ -1,4 +1,7 @@
 import { supabase } from './supabaseClient';
+import { createLogger } from './logger';
+
+const logger = createLogger('auth');
 
 interface LoginCredentials {
   organizationUsername: string;
@@ -56,7 +59,7 @@ export const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error);
     throw error;
   }
 };
@@ -83,7 +86,7 @@ export const getUserOrganization = async (userId: string): Promise<Organization 
       owner_email: data.organizations.owner_email
     };
   } catch (error) {
-    console.error('Error getting user organization:', error);
+    logger.error('Error getting user organization:', error);
     return null;
   }
 };

@@ -4,6 +4,9 @@ import { getAlertSettings, updateAlertSettings, AlertSettings as AlertSettingsTy
 import Select from '../ui/Select';
 import Button from '../ui/Button';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AlertSettings');
 
 const frequencyOptions = [
   { value: 'always', label: 'Always Show' },
@@ -22,7 +25,7 @@ const AlertSettings: React.FC = () => {
         const settingsData = await getAlertSettings();
         setSettings(settingsData);
       } catch (error) {
-        console.error('Error loading alert settings:', error);
+        logger.error('Error loading alert settings:', error);
       }
     };
 
@@ -46,7 +49,7 @@ const AlertSettings: React.FC = () => {
       await updateAlertSettings(settings);
       toast.success('Alert settings saved successfully');
     } catch (error) {
-      console.error('Error saving alert settings:', error);
+      logger.error('Error saving alert settings:', error);
       toast.error('Failed to save alert settings');
     } finally {
       setSaving(false);
@@ -61,8 +64,8 @@ const AlertSettings: React.FC = () => {
     <div className="max-w-xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900">Alert Settings</h3>
-          <p className="text-sm text-gray-500">Configure how you want to receive alerts</p>
+          <h3 className="text-lg font-medium text-gray-900">AI Alert Settings</h3>
+          <p className="text-sm text-gray-500">Configure how you want to receive AI alerts</p>
         </div>
         <div className="flex items-center">
           <Bell className="h-5 w-5 text-primary-600" />
@@ -71,7 +74,7 @@ const AlertSettings: React.FC = () => {
 
       <div className="space-y-4">
         <div>
-          <label className="block mb-2 font-medium text-gray-700">Notification Popup Frequency</label>
+          <label className="block mb-2 font-medium text-gray-700">AI Alert Popup Frequency</label>
           <Select
             options={frequencyOptions}
             value={settings.popup_display_frequency || 'always'}
@@ -79,7 +82,7 @@ const AlertSettings: React.FC = () => {
             className="w-full"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Controls how often notification popups appear when you open the dashboard
+            Controls how often AI alert popups appear when you open the dashboard
           </p>
         </div>
 

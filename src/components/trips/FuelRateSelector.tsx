@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { IndianRupee, ChevronDown, MapPin } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('FuelRateSelector');
 
 interface FuelRateOption {
   id: string;
@@ -44,7 +47,7 @@ const FuelRateSelector: React.FC<FuelRateSelectorProps> = ({
         });
         setRates(sorted);
       } catch (error) {
-        console.error('Error loading fuel rates:', error);
+        logger.error('Error loading fuel rates:', error);
       }
     }
   }, []);

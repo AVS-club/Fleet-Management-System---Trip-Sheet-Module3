@@ -6,6 +6,9 @@ import {
   FileText, Settings, TrendingUp, AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('AuditTrailDashboard');
 
 interface AuditTrailDashboardProps {
   className?: string;
@@ -36,7 +39,7 @@ const AuditTrailDashboard: React.FC<AuditTrailDashboardProps> = ({ className = '
       const stats = await AuditTrailLogger.getAuditTrailStats();
       setAuditStats(stats);
     } catch (error) {
-      console.error('Error loading audit stats:', error);
+      logger.error('Error loading audit stats:', error);
       toast.error('Failed to load audit trail statistics');
     }
   }, []);
@@ -48,7 +51,7 @@ const AuditTrailDashboard: React.FC<AuditTrailDashboardProps> = ({ className = '
       setAuditEntries(entries);
       setTotalEntries(total);
     } catch (error) {
-      console.error('Error searching audit trail:', error);
+      logger.error('Error searching audit trail:', error);
       toast.error('Failed to search audit trail');
     } finally {
       setLoading(false);

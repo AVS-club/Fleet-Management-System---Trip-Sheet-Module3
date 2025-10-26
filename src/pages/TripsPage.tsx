@@ -22,6 +22,9 @@ import { searchTrips, TripFilters, useDebounce, comprehensiveSearchTrips } from 
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('TripsPage');
 
 const TripsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -123,7 +126,7 @@ const TripsPage: React.FC = () => {
         setDestinations(Array.isArray(destinationsData) ? destinationsData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        logger.error('Error fetching data:', error);
         toast.error('Failed to load data');
       } finally {
         setLoading(false);
@@ -150,7 +153,7 @@ const TripsPage: React.FC = () => {
       );
       setSearchResult(result);
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -223,7 +226,7 @@ const TripsPage: React.FC = () => {
         toast.success(`Found ${result.totalCount} trips${fieldName}`);
       }
     } catch (error) {
-      console.error('Smart search error:', error);
+      logger.error('Smart search error:', error);
       toast.error('Search failed. Please try again.');
     } finally {
       setIsSearching(false);
@@ -267,9 +270,9 @@ const TripsPage: React.FC = () => {
             try {
               await updateTrip(fixedTrip.id, { calculated_kmpl: fixedTrip.calculated_kmpl });
               totalUpdated++;
-              console.log(`Updated trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl || 'N/A'} → ${fixedTrip.calculated_kmpl || 'N/A'} km/L`);
+              logger.debug(`Updated trip ${fixedTrip.trip_serial_number}: ${originalTrip.calculated_kmpl || 'N/A'} → ${fixedTrip.calculated_kmpl || 'N/A'} km/L`);
             } catch (error) {
-              console.error(`Error updating trip ${fixedTrip.trip_serial_number}:`, error);
+              logger.error(`Error updating trip ${fixedTrip.trip_serial_number}:`, error);
             }
           }
         }
@@ -294,7 +297,7 @@ const TripsPage: React.FC = () => {
       setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       
     } catch (error) {
-      console.error('Error fixing mileage:', error);
+      logger.error('Error fixing mileage:', error);
       toast.error('Failed to fix mileage calculations');
     } finally {
       setFixingMileage(false);
@@ -376,7 +379,7 @@ const TripsPage: React.FC = () => {
               try {
                 await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
               } catch (error) {
-                console.error('Error updating related trip mileage:', error);
+                logger.error('Error updating related trip mileage:', error);
               }
             }
             
@@ -417,7 +420,7 @@ const TripsPage: React.FC = () => {
               try {
                 await updateTrip(affectedTrip.id, { calculated_kmpl: affectedTrip.calculated_kmpl });
               } catch (error) {
-                console.error('Error updating related trip mileage:', error);
+                logger.error('Error updating related trip mileage:', error);
               }
             }
             
@@ -449,7 +452,7 @@ const TripsPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error adding trip:', error);
+      logger.error('Error adding trip:', error);
       
       // Show user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Error adding trip';
@@ -485,7 +488,7 @@ const TripsPage: React.FC = () => {
   return (
     <Layout>
       {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
         <div className="flex items-center group">
           <Route className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
           <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">{t('trips.tripManagement')}</h1>
@@ -530,9 +533,9 @@ const TripsPage: React.FC = () => {
       </div>
 
       {isAddingTrip ? (
-        <div className="bg-white shadow-sm rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 flex items-center border-l-2 border-blue-500 pl-2">
+            <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100 flex items-center border-l-2 border-blue-500 pl-2">
               <FileText className="h-5 w-5 mr-2 text-primary-500" />
               {t('trips.newTripSheet')}
             </h2>
@@ -659,7 +662,7 @@ const TripsPage: React.FC = () => {
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              <span className="ml-3 font-sans text-gray-600">Loading trips...</span>
+              <span className="ml-3 font-sans text-gray-600 dark:text-gray-400">Loading trips...</span>
             </div>
           ) : (
             <>
@@ -701,10 +704,10 @@ const TripsPage: React.FC = () => {
               
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="bg-white rounded-lg shadow-sm p-4">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
                   <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                     {/* Page Info */}
-                    <div className="text-sm font-sans text-gray-600">
+                    <div className="text-sm font-sans text-gray-600 dark:text-gray-400">
                       Page {currentPage} of {totalPages} • {totalTrips} total trips
                     </div>
                     
@@ -743,7 +746,7 @@ const TripsPage: React.FC = () => {
                               className={`px-3 py-1 text-sm font-sans rounded-md transition-colors ${
                                 currentPage === pageNum
                                   ? 'bg-primary-600 text-white'
-                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                               }`}
                             >
                               {pageNum}
@@ -765,11 +768,11 @@ const TripsPage: React.FC = () => {
                     
                     {/* Page Size Selector */}
                     <div className="flex items-center gap-2">
-                      <label className="text-sm font-sans text-gray-600">Trips per page:</label>
+                      <label className="text-sm font-sans text-gray-600 dark:text-gray-400">Trips per page:</label>
                       <select
                         value={tripsPerPage}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className="px-3 py-1.5 text-sm font-sans border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                        className="px-3 py-1.5 text-sm font-sans border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       >
                         <option value={10}>10</option>
                         <option value={25}>25</option>

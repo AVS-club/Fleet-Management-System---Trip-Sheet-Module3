@@ -2,6 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import config, { isSupabaseConfigured } from "./env";
 import { createMockClient } from "./supabase/mockClient";
 import { toast } from "react-toastify";
+import { createLogger } from './logger';
+
+const logger = createLogger('supabaseClient');
 
 // Load required environment variables from central config
 const supabaseUrl = config.supabaseUrl;
@@ -17,12 +20,12 @@ let corsErrorShown = false;
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
   if (!isConfigured) {
-    console.error("Supabase is not properly configured. Using mock client.");
-    console.error("Environment variables:", {
+    logger.error("Supabase is not properly configured. Using mock client.");
+    logger.error("Environment variables:", {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? "Present" : "Missing",
     });
-    console.error("Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials");
+    logger.error("Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials");
     return createMockClient() as any;
   }
 
@@ -57,7 +60,7 @@ const createSupabaseClient = () => {
 
     return client;
   } catch (error) {
-    console.error("Error initializing Supabase client:", error);
+    logger.error("Error initializing Supabase client:", error);
     connectionStatus = 'failed';
     return createMockClient() as any;
   }
@@ -116,7 +119,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     const { error: authError } = await Promise.race([sessionPromise, timeoutPromise]) as any;
     
     if (authError) {
-      console.error("Supabase connection test failed (auth):", authError.message);
+      logger.error("Supabase connection test failed (auth):", authError.message);
       connectionStatus = 'failed';
       
       // Check if it's a CORS error specifically
@@ -145,7 +148,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     const { error: countError } = await Promise.race([queryPromise, queryTimeoutPromise]) as any;
 
     if (countError) {
-      console.error("Supabase connection test failed (count query):", countError.message);
+      logger.error("Supabase connection test failed (count query):", countError.message);
       connectionStatus = 'failed';
       
       // Check if it's a CORS error specifically
@@ -163,10 +166,10 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
     }
 
     connectionStatus = 'connected';
-    if (config.isDev) console.log("Supabase connection test passed (database query)");
+    if (config.isDev) logger.debug("Supabase connection test passed (database query)");
     return true;
   } catch (error) {
-    console.error("Supabase connection test error:", error);
+    logger.error("Supabase connection test error:", error);
     connectionStatus = 'failed';
     
     // Handle CORS-specific errors
@@ -259,7 +262,7 @@ Please configure CORS in your Supabase project:
 
 The app will use offline mode until connected.`;
 
-  console.error(message);
+  logger.error(message);
   
   // Show toast notification if available
   if (typeof toast !== 'undefined') {
@@ -313,7 +316,7 @@ export const filterVehicleUpdateData = (data: any) => {
     ...validData
   } = data;
   
-  console.log('🔧 Filtered vehicle update data (removed vehicle_tags):', validData);
+  logger.debug('🔧 Filtered vehicle update data (removed vehicle_tags):', validData);
   
   return validData;
 };

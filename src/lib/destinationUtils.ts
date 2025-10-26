@@ -4,6 +4,9 @@ import { getCurrentUserId, getUserActiveOrganization } from '../utils/supaHelper
 import { handleSupabaseError } from '../utils/errors';
 import { isNetworkError } from '../utils/supabaseClient';
 import config from '../utils/env';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('destinationUtils');
 
 export interface PlaceDetails {
   place_id: string;
@@ -38,7 +41,7 @@ export async function searchOrCreateDestination(
     }
 
     // Step 1: Try to find existing destination
-    console.log('Searching for destination:', { place_id, organizationId: orgId });
+    logger.debug('Searching for destination:', { place_id, organizationId: orgId });
     
     const { data: existingDestinations, error: searchError } = await supabase
       .from('destinations')
@@ -48,9 +51,9 @@ export async function searchOrCreateDestination(
       .limit(1); // Only get first match if duplicates somehow exist
 
     if (searchError) {
-      console.error('Search error:', searchError);
+      logger.error('Search error:', searchError);
       if (isNetworkError(searchError)) {
-        if (config.isDev) console.warn('Network error searching destination, will try to create new one');
+        if (config.isDev) logger.warn('Network error searching destination, will try to create new one');
       } else {
         handleSupabaseError('search destination', searchError);
       }
@@ -59,12 +62,12 @@ export async function searchOrCreateDestination(
 
     // If found, return it
     if (existingDestinations && existingDestinations.length > 0) {
-      console.log('Found existing destination:', existingDestinations[0]);
+      logger.debug('Found existing destination:', existingDestinations[0]);
       return existingDestinations[0] as Destination;
     }
 
     // Step 2: Not found, create new destination
-    console.log('Creating new destination:', { place_id, name, organizationId: orgId });
+    logger.debug('Creating new destination:', { place_id, name, organizationId: orgId });
     
     const userId = await getCurrentUserId();
     if (!userId) {
@@ -96,9 +99,9 @@ export async function searchOrCreateDestination(
       .single(); // Safe to use .single() on INSERT
 
     if (createError) {
-      console.error('Create error:', createError);
+      logger.error('Create error:', createError);
       if (isNetworkError(createError)) {
-        if (config.isDev) console.warn('Network error creating destination');
+        if (config.isDev) logger.warn('Network error creating destination');
       } else {
         handleSupabaseError('create destination', createError);
       }
@@ -109,11 +112,11 @@ export async function searchOrCreateDestination(
       throw new Error('Destination created but no data returned');
     }
 
-    console.log('Successfully created destination:', newDestination);
+    logger.debug('Successfully created destination:', newDestination);
     return newDestination as Destination;
 
   } catch (error) {
-    console.error('searchOrCreateDestination failed:', error);
+    logger.error('searchOrCreateDestination failed:', error);
     throw error;
   }
 }
@@ -134,9 +137,9 @@ export async function findDestinationByPlaceId(
       .limit(1);
 
     if (error) {
-      console.error('Error finding destination:', error);
+      logger.error('Error finding destination:', error);
       if (isNetworkError(error)) {
-        if (config.isDev) console.warn('Network error finding destination, returning null');
+        if (config.isDev) logger.warn('Network error finding destination, returning null');
         return null;
       }
       handleSupabaseError('find destination by place_id', error);
@@ -145,7 +148,7 @@ export async function findDestinationByPlaceId(
 
     return data && data.length > 0 ? (data[0] as Destination) : null;
   } catch (error) {
-    console.error('findDestinationByPlaceId failed:', error);
+    logger.error('findDestinationByPlaceId failed:', error);
     return null;
   }
 }
@@ -179,9 +182,9 @@ export async function findOrCreateDestinationByPlaceIdEnhanced(
       .limit(1); // Use limit(1) instead of maybeSingle() for better duplicate handling
 
     if (searchError) {
-      console.error('Search error:', searchError);
+      logger.error('Search error:', searchError);
       if (isNetworkError(searchError)) {
-        if (config.isDev) console.warn('Network error searching destination, will try to create new one');
+        if (config.isDev) logger.warn('Network error searching destination, will try to create new one');
       } else {
         handleSupabaseError('search destination by place_id', searchError);
       }
@@ -190,7 +193,7 @@ export async function findOrCreateDestinationByPlaceIdEnhanced(
 
     // If destination exists, return its UUID
     if (existingDestinations && existingDestinations.length > 0) {
-      console.log('Found existing destination:', existingDestinations[0].id);
+      logger.debug('Found existing destination:', existingDestinations[0].id);
       return existingDestinations[0].id;
     }
 
@@ -209,19 +212,19 @@ export async function findOrCreateDestinationByPlaceIdEnhanced(
       .single();
 
     if (createError) {
-      console.error('Create error:', createError);
+      logger.error('Create error:', createError);
       if (isNetworkError(createError)) {
-        if (config.isDev) console.warn('Network error creating destination');
+        if (config.isDev) logger.warn('Network error creating destination');
       } else {
         handleSupabaseError('create destination', createError);
       }
       return null;
     }
 
-    console.log('Successfully created destination:', newDestination.id);
+    logger.debug('Successfully created destination:', newDestination.id);
     return newDestination.id;
   } catch (error) {
-    console.error('findOrCreateDestinationByPlaceIdEnhanced failed:', error);
+    logger.error('findOrCreateDestinationByPlaceIdEnhanced failed:', error);
     return null;
   }
 }

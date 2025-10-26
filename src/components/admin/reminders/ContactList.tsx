@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { User, Edit, Trash2, Mail, Phone, Check, X, Globe } from 'lucide-react';
 import { ReminderContact, ReminderContactMode } from '@/types/reminders';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('ContactList');
 
 interface ContactListProps {
   contacts: ReminderContact[];
@@ -19,7 +22,7 @@ const ContactList: React.FC<ContactListProps> = ({ contacts, onEdit, onDelete })
       toast.success('Contact deleted successfully');
     } catch (error) {
       toast.error('Failed to delete contact');
-      console.error('Error deleting contact:', error);
+      logger.error('Error deleting contact:', error);
     } finally {
       setDeletingId(null);
     }

@@ -1,5 +1,8 @@
 import { supabase } from './supabaseClient';
 import { AuditTrailLogger } from './auditTrailLogger';
+import { createLogger } from './logger';
+
+const logger = createLogger('correctionCascadeManager');
 
 interface CascadeCorrection {
   tripId: string;
@@ -101,7 +104,7 @@ export class CorrectionCascadeManager {
 
       return result;
     } catch (error) {
-      console.error('Cascade correction failed:', error);
+      logger.error('Cascade correction failed:', error);
       return {
         success: false,
         affectedTrips: [],
@@ -144,7 +147,7 @@ export class CorrectionCascadeManager {
           .eq('id', refuelTrip.id);
       }
     } catch (error) {
-      console.error('Error recalculating affected mileage:', error);
+      logger.error('Error recalculating affected mileage:', error);
     }
   }
   
@@ -168,7 +171,7 @@ export class CorrectionCascadeManager {
           affects_subsequent_trips: affectsSubsequent
         });
     } catch (error) {
-      console.error('Error logging correction:', error);
+      logger.error('Error logging correction:', error);
     }
   }
   
@@ -181,7 +184,7 @@ export class CorrectionCascadeManager {
         .order('corrected_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching correction history:', error);
+        logger.error('Error fetching correction history:', error);
         return [];
       }
       
@@ -193,7 +196,7 @@ export class CorrectionCascadeManager {
         reason: correction.correction_reason
       }));
     } catch (error) {
-      console.error('Error fetching correction history:', error);
+      logger.error('Error fetching correction history:', error);
       return [];
     }
   }
@@ -211,13 +214,13 @@ export class CorrectionCascadeManager {
         });
       
       if (error) {
-        console.error('Error previewing cascade impact:', error);
+        logger.error('Error previewing cascade impact:', error);
         return [];
       }
       
       return previewTrips || [];
     } catch (error) {
-      console.error('Error previewing cascade impact:', error);
+      logger.error('Error previewing cascade impact:', error);
       return [];
     }
   }

@@ -17,6 +17,9 @@ import '../../styles/mobile.css';
 
 // Import the new warehouse rules system
 import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('MobileTripForm');
 
 interface MobileTripFormProps {
   onSubmit: (data: TripFormData) => void;
@@ -138,7 +141,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
         setWarehouses(Array.isArray(warehousesData) ? warehousesData : []);
         setMaterialTypes(Array.isArray(materialTypesData) ? materialTypesData : []);
       } catch (error) {
-        console.error('Error fetching form data:', error);
+        logger.error('Error fetching form data:', error);
         toast.error('Failed to load form data');
       } finally {
         setLoading(false);
@@ -224,7 +227,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
           }
         }
       } catch (error) {
-        console.error('Error auto-assigning warehouse:', error);
+        logger.error('Error auto-assigning warehouse:', error);
       }
     }
     
@@ -314,7 +317,7 @@ const MobileTripForm: React.FC<MobileTripFormProps> = ({
         end_km: endKmValue,
       });
     } catch (error) {
-      console.error('Error submitting form:', error);
+      logger.error('Error submitting form:', error);
       toast.error('An error occurred while submitting the form');
     }
   };

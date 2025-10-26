@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { ReturnTripValidator, ReturnTripAnalysis, ReturnTripIssue } from '../../utils/returnTripValidator';
 import { AlertTriangle, CheckCircle, XCircle, ArrowRight, Clock, Fuel, Route, RefreshCw, Calendar, TrendingUp } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('ReturnTripValidationDashboard');
 
 interface ReturnTripValidationDashboardProps {
   className?: string;
@@ -23,7 +26,7 @@ const ReturnTripValidationDashboard: React.FC<ReturnTripValidationDashboardProps
       const analysis = await ReturnTripValidator.getSystemWideReturnTripIssues();
       setSystemAnalysis(analysis);
     } catch (error) {
-      console.error('Error loading return trip analysis:', error);
+      logger.error('Error loading return trip analysis:', error);
       toast.error('Failed to load return trip analysis');
     } finally {
       setLoading(false);
