@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling } from '@/types';
@@ -235,21 +235,6 @@ const TripForm: React.FC<TripFormProps> = ({
   const refuelings = watch('refuelings') || [];
   const totalFuelCost = watch('total_fuel_cost');
   const fuelRatePerLiter = watch('fuel_rate_per_liter');
-  const fuelWarningToastRef = useRef<React.ReactText | null>(null);
-  const fuelWarningTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (fuelWarningTimeoutRef.current) {
-        clearTimeout(fuelWarningTimeoutRef.current);
-        fuelWarningTimeoutRef.current = null;
-      }
-      if (fuelWarningToastRef.current) {
-        toast.dismiss(fuelWarningToastRef.current);
-        fuelWarningToastRef.current = null;
-      }
-    };
-  }, []);
 
   // Filter vehicles based on search query - now includes all vehicles for dropdown filtering
   const filteredVehicles = useMemo(() => {
@@ -894,122 +879,6 @@ const TripForm: React.FC<TripFormProps> = ({
     return errors.length > 0 ? errors[0] : null;
   };
 
-
-  const showNonFuelWarningAndAutoSubmit = useCallback(
-    (submitData: any) => {
-      return new Promise<void>((resolve, reject) => {
-        const isEditing = Boolean(initialData?.id);
-        const hasManualOverride = manualToggle;
-        const hasFuelEntries =
-          Array.isArray(submitData.refuelings) &&
-          submitData.refuelings.some(
-            (r: any) =>
-              (r?.fuel_quantity ?? 0) > 0 || (r?.total_fuel_cost ?? 0) > 0
-          );
-        const refuelingDone = Boolean(submitData.refueling_done);
-
-        if (isEditing || hasManualOverride || refuelingDone || hasFuelEntries) {
-          onSubmit(submitData).then(resolve).catch(reject);
-          return;
-        }
-
-        if (fuelWarningTimeoutRef.current) {
-          clearTimeout(fuelWarningTimeoutRef.current);
-          fuelWarningTimeoutRef.current = null;
-        }
-        if (fuelWarningToastRef.current) {
-          toast.dismiss(fuelWarningToastRef.current);
-          fuelWarningToastRef.current = null;
-        }
-
-        const handleCancel = (event?: React.MouseEvent<HTMLButtonElement>) => {
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
-          if (fuelWarningTimeoutRef.current) {
-            clearTimeout(fuelWarningTimeoutRef.current);
-            fuelWarningTimeoutRef.current = null;
-          }
-          if (fuelWarningToastRef.current) {
-            toast.dismiss(fuelWarningToastRef.current);
-            fuelWarningToastRef.current = null;
-          }
-          setManualToggle(true);
-          setIsRefuelingTrip(true);
-          setShowRefuelingDetails(true);
-          setValue('refueling_done', true);
-          if (!refuelings || refuelings.length === 0) {
-            setValue('refuelings', [
-              {
-                location: '',
-                fuel_quantity: 0,
-                fuel_rate_per_liter: 0,
-                total_fuel_cost: 0
-              }
-            ]);
-          }
-          resolve();
-        };
-
-        const toastId = toast.warning(
-          <div className="space-y-2">
-            <div className="flex items-start gap-2">
-              <div className="mt-1 h-5 w-5 rounded-full bg-warning-500/15 flex items-center justify-center text-warning-700 dark:text-warning-200">
-                !
-              </div>
-              <div className="space-y-1">
-                <p className="font-semibold text-warning-700 dark:text-warning-100">
-                  Fuel details missing
-                </p>
-                <p className="text-xs text-warning-600 dark:text-warning-300 leading-snug">
-                  We'll save this trip in 2.5 seconds. Tap below to cancel and add fuel information.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleCancel}
-              className="inline-flex items-center justify-center gap-1 rounded-md border border-warning-300 bg-white/95 px-3 py-1.5 text-xs font-semibold text-warning-700 shadow-sm hover:bg-warning-50 dark:border-warning-700 dark:bg-warning-900/40 dark:text-warning-100 dark:hover:bg-warning-900/60"
-            >
-              Cancel &amp; add fuel
-            </button>
-          </div>,
-          {
-            position: 'top-center',
-            autoClose: 2500,
-            closeOnClick: false,
-            pauseOnHover: false,
-            pauseOnFocusLoss: false,
-            draggable: false,
-            closeButton: false,
-            hideProgressBar: false,
-            className: 'w-[92vw] max-w-md shadow-xl border border-warning-300/70 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm text-left',
-            progressClassName: 'bg-warning-500'
-          }
-        );
-
-        fuelWarningToastRef.current = toastId;
-
-        fuelWarningTimeoutRef.current = setTimeout(() => {
-          (async () => {
-            try {
-              if (fuelWarningToastRef.current) {
-                toast.dismiss(fuelWarningToastRef.current);
-                fuelWarningToastRef.current = null;
-              }
-              fuelWarningTimeoutRef.current = null;
-              await onSubmit(submitData);
-              resolve();
-            } catch (error) {
-              reject(error);
-            }
-          })();
-        }, 2500);
-      });
-    },
-    [onSubmit, refuelings, setManualToggle, setShowRefuelingDetails, setValue, setIsRefuelingTrip]
-  );
-
   const handleFormSubmit = async (data: TripFormData) => {
     // Validate form data with enhanced validation
     const validationError = validateFormData(data);
@@ -1109,16 +978,6 @@ const TripForm: React.FC<TripFormProps> = ({
     delete submitData.toll_expense; // Database uses breakdown_expense instead
 
     // Submit trip data
-    const hasFuelEntries =
-      Array.isArray(data.refuelings) &&
-      data.refuelings.some(
-        (r) => (r?.fuel_quantity ?? 0) > 0 || (r?.total_fuel_cost ?? 0) > 0
-      );
-
-    if (!data.refueling_done && !hasFuelEntries) {
-      await showNonFuelWarningAndAutoSubmit(submitData);
-      return;
-    }
 
     await onSubmit(submitData);
   };

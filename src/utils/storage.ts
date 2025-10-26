@@ -37,62 +37,6 @@ async function getUserData() {
     throw error;
   }
 }
-// Helper function to convert base64 data URL to File object
-export const base64ToFile = (dataUrl: string, filename: string = 'photo.jpg'): File | null => {
-  try {
-    // Check if it's a valid data URL
-    if (!dataUrl.startsWith('data:')) {
-      return null;
-    }
-
-    // Extract the base64 data and mime type
-    const arr = dataUrl.split(',');
-    if (arr.length !== 2) {
-      return null;
-    }
-
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    if (!mimeMatch) {
-      return null;
-    }
-
-    const mime = mimeMatch[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-
-    return new File([u8arr], filename, { type: mime });
-  } catch (error) {
-    logger.error('Error converting base64 to file:', error);
-    return null;
-  }
-};
-
-// Helper function to get public URL from storage path
-export const getDriverPhotoPublicUrl = (filePath: string): string | null => {
-  try {
-    if (!filePath) return null;
-
-    // If it's already a data URL or full URL, return it
-    if (filePath.startsWith('data:') || filePath.startsWith('http')) {
-      return filePath;
-    }
-
-    const { data } = supabase.storage
-      .from('driver-photos')
-      .getPublicUrl(filePath);
-
-    return data?.publicUrl || null;
-  } catch (error) {
-    logger.error('Error getting public URL:', error);
-    return null;
-  }
-};
-
 // Photo upload function for drivers
 export const uploadDriverPhoto = async (file: File, driverId: string): Promise<string | undefined> => {
   if (!file || !file.name) { // ⚠️ Confirm field refactor here
@@ -107,7 +51,7 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
     const { error } = await supabase.storage // ⚠️ Confirm field refactor here
       .from('driver-photos') // ⚠️ Confirm field refactor here
       .upload(filePath, file, { upsert: true });
-
+      
     if (error) {
       handleSupabaseError('upload driver photo', error);
       return undefined;

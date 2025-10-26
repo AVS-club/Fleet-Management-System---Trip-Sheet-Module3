@@ -3,11 +3,10 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { usePermissions } from "../hooks/usePermissions";
-import {
-  getTrips,
-  uploadDriverPhoto,
-  getDriverPhotoPublicUrl
-} from "../utils/storage";
+import { 
+  getTrips, 
+  uploadDriverPhoto 
+} from "../utils/storage"; // ⚠️ Confirm field refactor here
 import { 
   getDrivers, 
   createDriver, 
@@ -140,42 +139,19 @@ const DriversPage: React.FC = () => {
         }
         setDriverStats(statsMap);
 
-        // Fetch vehicles for drivers - check both primary_vehicle_id and vehicles with primary_driver_id
+        // Fetch vehicles for drivers with primary_vehicle_id
         const vehicleIds = driversArray
           .filter(d => d.primary_vehicle_id)
           .map(d => d.primary_vehicle_id);
 
-        // Also get all vehicles to check for primary_driver_id assignments
-        const { data: allVehiclesData } = await supabase
-          .from('vehicles')
-          .select('id, registration_number, make, model, type, primary_driver_id');
-
-        // Combine vehicles from both sources
-        const allVehicles = allVehiclesData || [];
-        const vehiclesWithDriverAssignments = allVehicles.filter(v => v.primary_driver_id);
-        
-        // Create a map of driver_id -> vehicle for quick lookup
-        const driverVehicleMap = new Map();
-        vehiclesWithDriverAssignments.forEach(vehicle => {
-          driverVehicleMap.set(vehicle.primary_driver_id, vehicle);
-        });
-
-        // Get vehicles for drivers with primary_vehicle_id
-        let vehiclesToShow = [];
         if (vehicleIds.length > 0) {
           const { data: vehiclesData } = await supabase
             .from('vehicles')
             .select('id, registration_number, make, model, type')
             .in('id', vehicleIds);
-          vehiclesToShow = vehiclesData || [];
+
+          setVehicles(vehiclesData || []);
         }
-
-        // Add vehicles assigned via primary_driver_id
-        const additionalVehicles = driversArray
-          .filter(d => !d.primary_vehicle_id && driverVehicleMap.has(d.id))
-          .map(d => driverVehicleMap.get(d.id));
-
-        setVehicles([...vehiclesToShow, ...additionalVehicles]);
 
         // Calculate statistics
         setTotalDrivers(driversArray.length);
@@ -248,56 +224,27 @@ const DriversPage: React.FC = () => {
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
-      let photoStoragePath = undefined;
+      let photoUrl = data.driver_photo_url; // Start with the URL from form data (includes API fetched URL)
 
       // Handle photo upload if a new photo is provided
       if (data.photo && data.photo instanceof File) {
         try {
           // For new drivers, we'll use a temporary ID until we get the real one
           const tempId = editingDriver?.id || `temp-${Date.now()}`;
-          photoStoragePath = await uploadDriverPhoto(data.photo, tempId);
-          logger.debug("Photo uploaded to storage path:", photoStoragePath);
+          photoUrl = await uploadDriverPhoto(data.photo, tempId);
         } catch (error) {
           logger.error("Error uploading photo:", error);
           toast.error(
             "Failed to upload photo, but continuing with driver save"
           );
         }
-      } else if (data.driver_photo_url && !data.driver_photo_url.startsWith('data:')) {
-        // If driver_photo_url exists and is not a data URL, it's already a storage path
-        photoStoragePath = data.driver_photo_url;
       }
 
-      // Prepare driver data with photo storage path (not data URL)
-      // Map form fields to database column names
+      // Prepare driver data with photo URL
       const driverData: Partial<Driver> = {
         ...data,
-        // Photo
-        driver_photo_url: photoStoragePath,
-        // Field name mappings (form field → database column)
-        // Database has 'contact_number' column
-        contact_number: data.contact_number,
-        // Date fields - use the primary database columns
-        date_of_birth: data.date_of_birth || (data as any).dob,
-        date_of_joining: data.date_of_joining || (data as any).join_date,
-        license_expiry: data.license_expiry || (data as any).license_expiry_date,
-        license_expiry_date: data.license_expiry_date || (data as any).license_expiry,
-        license_issue_date: data.license_issue_date || (data as any).issue_date,
+        driver_photo_url: photoUrl,
       };
-
-      // Log data being saved for debugging
-      logger.debug("Saving driver data:", {
-        id: editingDriver?.id,
-        name: driverData.name,
-        contact_number: driverData.contact_number,
-        email: driverData.email,
-        date_of_birth: driverData.date_of_birth,
-        date_of_joining: driverData.date_of_joining,
-        license_expiry: driverData.license_expiry,
-        license_expiry_date: driverData.license_expiry_date,
-        license_issue_date: driverData.license_issue_date,
-        driver_photo_url: driverData.driver_photo_url,
-      });
 
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).photo;
@@ -731,12 +678,7 @@ const DriversPage: React.FC = () => {
               {drivers.map((driver: Driver) => {
                 // Get driver stats and vehicle
                 const stats = driverStats[driver.id!] || null;
-                // Look for vehicle assigned via primary_vehicle_id or primary_driver_id
-                let vehicle = vehicles.find(v => v.id === driver.primary_vehicle_id);
-                if (!vehicle) {
-                  // Check if any vehicle has this driver as primary_driver_id
-                  vehicle = vehicles.find(v => v.primary_driver_id === driver.id);
-                }
+                const vehicle = vehicles.find(v => v.id === driver.primary_vehicle_id);
                 const docStatus = getDocumentStatus(driver);
 
                 // Status ring color
@@ -744,9 +686,6 @@ const DriversPage: React.FC = () => {
                   driver.status === 'active' ? 'ring-green-400' :
                   driver.status === 'onLeave' ? 'ring-yellow-400' :
                   driver.status === 'suspended' ? 'ring-red-400' : 'ring-gray-400';
-
-                // Get public URL for photo
-                const photoUrl = driver.driver_photo_url ? getDriverPhotoPublicUrl(driver.driver_photo_url) : null;
 
                 return (
                   <div
@@ -757,9 +696,9 @@ const DriversPage: React.FC = () => {
                     <div className="flex items-start gap-4 mb-4">
                       <div className="relative">
                         <div className={`w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-4 ${statusRingColor}`}>
-                          {photoUrl ? (
+                          {driver.driver_photo_url ? (
                             <img
-                              src={photoUrl}
+                              src={driver.driver_photo_url}
                               alt={driver.name}
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -769,7 +708,7 @@ const DriversPage: React.FC = () => {
                               }}
                             />
                           ) : null}
-                          <div className={`${photoUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
+                          <div className={`${driver.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center`}>
                             <User className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                           </div>
                         </div>
@@ -815,10 +754,10 @@ const DriversPage: React.FC = () => {
 
                     {/* Contact & Vehicle Info */}
                     <div className="space-y-2 mb-4">
-                      {driver.contact_number && (
+                      {(driver.phone || driver.contact_number) && (
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                           <Phone className="h-4 w-4 mr-2" />
-                          <span>{driver.contact_number}</span>
+                          <span>{driver.phone || driver.contact_number}</span>
                         </div>
                       )}
 
@@ -850,30 +789,28 @@ const DriversPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Document Status Bar - Only show for expired/expiring */}
-                    {(docStatus.status === 'expired' || docStatus.status === 'expiring') && (
-                      <div className={`p-2 mb-3 rounded-md border ${
-                        docStatus.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
-                        docStatus.color === 'yellow' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
-                        docStatus.color === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
-                        'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    {/* Document Status Bar */}
+                    <div className={`p-2 mb-3 rounded-md border ${
+                      docStatus.color === 'green' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' :
+                      docStatus.color === 'yellow' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800' :
+                      docStatus.color === 'red' ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
+                      'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    }`}>
+                      <p className={`text-xs font-medium text-center ${
+                        docStatus.color === 'green' ? 'text-green-700 dark:text-green-300' :
+                        docStatus.color === 'yellow' ? 'text-yellow-700 dark:text-yellow-300' :
+                        docStatus.color === 'red' ? 'text-red-700 dark:text-red-300' :
+                        'text-gray-600 dark:text-gray-400'
                       }`}>
-                        <p className={`text-xs font-medium text-center ${
-                          docStatus.color === 'green' ? 'text-green-700 dark:text-green-300' :
-                          docStatus.color === 'yellow' ? 'text-yellow-700 dark:text-yellow-300' :
-                          docStatus.color === 'red' ? 'text-red-700 dark:text-red-300' :
-                          'text-gray-600 dark:text-gray-400'
-                        }`}>
-                          {docStatus.text}
-                        </p>
-                      </div>
-                    )}
+                        {docStatus.text}
+                      </p>
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
-                      {driver.contact_number && (
+                      {driver.phone && (
                         <button
-                          onClick={() => window.location.href = `tel:${driver.contact_number}`}
+                          onClick={() => window.location.href = `tel:${driver.phone}`}
                           className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
                         >
                           <Phone className="h-4 w-4" />
@@ -881,9 +818,9 @@ const DriversPage: React.FC = () => {
                         </button>
                       )}
 
-                      {driver.contact_number && (
+                      {driver.phone && (
                         <button
-                          onClick={() => window.open(`https://wa.me/${driver.contact_number.replace(/[^0-9]/g, '')}`)}
+                          onClick={() => window.open(`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`)}
                           className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors text-sm font-medium"
                         >
                           <MessageSquare className="h-4 w-4" />

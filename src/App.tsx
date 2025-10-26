@@ -44,7 +44,6 @@ import VehicleTagsPage from "./pages/admin/VehicleTagsPage";
 import AdminDriversPage from "./pages/admin/AdminDriversPage";
 import ActivityLogPage from "./pages/admin/ActivityLogPage";
 import DriverRankingSettingsPage from "./pages/admin/DriverRankingSettingsPage";
-import DriverPhotoMigration from "./pages/admin/DriverPhotoMigration";
 import MaintenanceTasksAdmin from "./pages/admin/MaintenanceTasksAdmin";
 import MessageTemplatesPage from "./pages/admin/MessageTemplatesPage";
 import CompanySettings from "./pages/admin/CompanySettings";
@@ -163,7 +162,6 @@ const App: React.FC = () => {
             <Route path="/admin/vehicle-management" element={<ProtectedRoute session={session} loading={loading}><VehicleManagementPage /></ProtectedRoute>} />
             <Route path="/admin/vehicle-tags" element={<ProtectedRoute session={session} loading={loading}><VehicleTagsPage /></ProtectedRoute>} />
             <Route path="/admin/driver-management" element={<ProtectedRoute session={session} loading={loading}><AdminDriversPage /></ProtectedRoute>} />
-            <Route path="/admin/driver-photo-migration" element={<ProtectedRoute session={session} loading={loading}><DriverPhotoMigration /></ProtectedRoute>} />
             <Route path="/admin/activity-logs" element={<ProtectedRoute session={session} loading={loading}><ActivityLogPage /></ProtectedRoute>} />
             <Route path="/admin/driver-ranking-settings" element={<ProtectedRoute session={session} loading={loading}><DriverRankingSettingsPage /></ProtectedRoute>} />
             <Route path="/admin/maintenance-tasks" element={<ProtectedRoute session={session} loading={loading}><MaintenanceTasksAdmin /></ProtectedRoute>} />

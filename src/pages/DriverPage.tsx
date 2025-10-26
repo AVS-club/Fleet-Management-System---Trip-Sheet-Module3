@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
-import { getVehicle, getTrips, getVehicles, getDriverPhotoPublicUrl, uploadDriverPhoto } from "../utils/storage";
-import { getDriver, getDrivers, updateDriver } from "../utils/api/drivers";
+import { getVehicle, getTrips, getVehicles } from "../utils/storage";
+import { getDriver, getDrivers } from "../utils/api/drivers";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
   User,
@@ -19,7 +19,6 @@ import {
   Phone,
   Mail, // ⚠️ Confirm field refactor here
   Edit,
-  MessageSquare,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
@@ -254,168 +253,13 @@ const DriverPage: React.FC = () => {
   };
 
   const handleUpdateDriver = async (data: Omit<Driver, "id">) => {
-    if (!driver) return;
-
     try {
-      let photoStoragePath = driver.driver_photo_url; // Keep existing photo by default
-
-      // Handle photo upload if a new photo is provided
-      if (data.photo && data.photo instanceof File) {
-        try {
-          photoStoragePath = await uploadDriverPhoto(data.photo, driver.id);
-          logger.debug("Photo uploaded to storage path:", photoStoragePath);
-        } catch (error) {
-          logger.error("Error uploading photo:", error);
-          toast.error("Failed to upload photo, but continuing with driver update");
-        }
-      } else if (data.driver_photo_url && !data.driver_photo_url.startsWith('data:')) {
-        // If driver_photo_url exists and is not a data URL, it's already a storage path
-        photoStoragePath = data.driver_photo_url;
-      }
-
-      // Prepare driver data with photo storage path
-      const driverData: Partial<Driver> = {
-        ...data,
-        driver_photo_url: photoStoragePath,
-        // Field name mappings (form field → database column)
-        // Database has 'contact_number' column
-        contact_number: data.contact_number,
-        // Date fields - use the primary database columns
-        date_of_birth: data.date_of_birth || (data as any).dob,
-        date_of_joining: data.date_of_joining || (data as any).join_date,
-        license_expiry: data.license_expiry || (data as any).license_expiry_date,
-        license_expiry_date: data.license_expiry_date || (data as any).license_expiry,
-        license_issue_date: data.license_issue_date || (data as any).issue_date,
-      };
-
-      // Remove the File object as it can't be stored in the database
-      delete (driverData as any).photo;
-
-      // Log data being saved for debugging
-      logger.debug("Updating driver data:", {
-        id: driver.id,
-        name: driverData.name,
-        contact_number: driverData.contact_number,
-        email: driverData.email,
-        date_of_birth: driverData.date_of_birth,
-        date_of_joining: driverData.date_of_joining,
-        license_expiry: driverData.license_expiry,
-        license_expiry_date: driverData.license_expiry_date,
-        license_issue_date: driverData.license_issue_date,
-        driver_photo_url: driverData.driver_photo_url,
-      });
-
-      // Handle document uploads (similar to DriversPage.tsx)
-      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) {
-        try {
-          const uploadedUrls = [];
-          for (const file of data.aadhar_doc_file) {
-            if (file instanceof File) {
-              const filePath = await uploadDriverPhoto(file, driver.id);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.aadhar_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          logger.error("Error uploading Aadhaar documents:", error);
-        }
-      }
-      delete (driverData as any).aadhar_doc_file;
-
-      if (data.license_doc_file && Array.isArray(data.license_doc_file)) {
-        try {
-          const uploadedUrls = [];
-          for (const file of data.license_doc_file) {
-            if (file instanceof File) {
-              const filePath = await uploadDriverPhoto(file, driver.id);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.license_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          logger.error("Error uploading license documents:", error);
-        }
-      }
-      delete (driverData as any).license_doc_file;
-
-      if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
-        try {
-          const uploadedUrls = [];
-          for (const file of data.police_doc_file) {
-            if (file instanceof File) {
-              const filePath = await uploadDriverPhoto(file, driver.id);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.police_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          logger.error("Error uploading police documents:", error);
-        }
-      }
-      delete (driverData as any).police_doc_file;
-
-      if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
-        try {
-          const uploadedUrls = [];
-          for (const file of data.medical_doc_file) {
-            if (file instanceof File) {
-              const filePath = await uploadDriverPhoto(file, driver.id);
-              uploadedUrls.push(filePath);
-            }
-          }
-          if (uploadedUrls.length > 0) {
-            driverData.medical_doc_url = uploadedUrls;
-          }
-        } catch (error) {
-          logger.error("Error uploading medical documents:", error);
-        }
-      }
-      delete (driverData as any).medical_doc_file;
-
-      // Process other documents
-      if (Array.isArray(driverData.other_documents)) {
-        const processedDocs = [];
-        for (const doc of driverData.other_documents) {
-          const processedDoc: any = {
-            name: doc.name,
-            issue_date: doc.issue_date,
-          };
-
-          if (doc.file_obj instanceof File) {
-            try {
-              const filePath = await uploadDriverPhoto(doc.file_obj, `${driver.id}-${doc.name.replace(/\s+/g, "-").toLowerCase()}`);
-              processedDoc.file_path = filePath;
-            } catch (error) {
-              logger.error(`Error uploading document "${doc.name}":`, error);
-            }
-          } else if (doc.file_path) {
-            processedDoc.file_path = doc.file_path;
-          }
-
-          processedDocs.push(processedDoc);
-        }
-        driverData.other_documents = processedDocs;
-      }
-
-      // Update driver in database
-      const updatedDriver = await updateDriver(driver.id, driverData);
-
-      if (updatedDriver) {
-        setDriver(updatedDriver);
-        setIsEditing(false);
-        toast.success("Driver updated successfully");
-
-        // Regenerate signed URLs for documents
-        await generateSignedUrls(updatedDriver);
-      } else {
-        toast.error("Failed to update driver");
-      }
+      // Update logic would go here
+      // For now, just close the edit mode
+      setIsEditing(false);
+      // Reload driver data
+      // This would be replaced with actual update logic
+      window.location.reload();
     } catch (error) {
       logger.error('Error updating driver:', error);
       toast.error('Failed to update driver');
@@ -607,195 +451,128 @@ const DriverPage: React.FC = () => {
             </div>
           )}
 
-          {/* Hero Section with Profile */}
-          <div className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-primary-100 dark:border-gray-700">
-            <div className="p-8">
-              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-                {/* Profile Photo */}
-                <div className="relative">
-                  <div className={`w-32 h-32 rounded-2xl overflow-hidden shadow-xl ring-4 ${
-                    driver.status === 'active' ? 'ring-green-400' :
-                    driver.status === 'onLeave' ? 'ring-yellow-400' :
-                    driver.status === 'suspended' ? 'ring-red-400' : 'ring-gray-400'
-                  }`}>
-                    {driver.driver_photo_url ? (
-                      <img
-                        src={getDriverPhotoPublicUrl(driver.driver_photo_url) || ''}
-                        alt={driver.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`${driver.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-green-100 dark:from-gray-700 dark:to-gray-800`}>
-                      <User className="w-16 h-16 text-primary-400" />
-                    </div>
-                  </div>
-                  {/* Status Badge */}
-                  <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
-                    driver.status === 'active' ? 'bg-green-500' :
-                    driver.status === 'onLeave' ? 'bg-yellow-500' :
-                    driver.status === 'suspended' ? 'bg-red-500' : 'bg-gray-400'
-                  }`}>
-                    {driver.status === 'active' ? '✓ Active' :
-                     driver.status === 'onLeave' ? 'On Leave' :
-                     driver.status === 'suspended' ? 'Suspended' : driver.status}
-                  </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-start space-x-4">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+                {driver.driver_photo_url ? (
+                  <img
+                    src={driver.driver_photo_url}
+                    alt={driver.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to default avatar on image load error
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
+                  <User className="w-12 h-12 text-gray-400" />
                 </div>
-
-                {/* Driver Info */}
-                <div className="flex-1 text-center md:text-left">
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{driver.name}</h1>
-                  <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-4">
-                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-                      <FileText className="h-4 w-4 mr-1.5 text-primary-500" />
-                      {driver.license_number}
-                    </span>
-                    {driver.experience_years && (
-                      <span className="inline-flex items-center px-3 py-1 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm">
-                        <Calendar className="h-4 w-4 mr-1.5 text-green-500" />
-                        {driver.experience_years} years exp
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Contact Quick Actions */}
-                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                    {driver.contact_number && (
-                      <>
-                        <button
-                          onClick={() => window.location.href = `tel:${driver.contact_number}`}
-                          className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
-                        >
-                          <Phone className="h-4 w-4 mr-2" />
-                          Call
-                        </button>
-                        <button
-                          onClick={() => window.open(`https://wa.me/${driver.contact_number.replace(/[^0-9]/g, '')}`)}
-                          className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
-                        >
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          WhatsApp
-                        </button>
-                      </>
-                    )}
-                    {driver.email && (
-                      <button
-                        onClick={() => window.location.href = `mailto:${driver.email}`}
-                        className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
-                      </button>
-                    )}
-                  </div>
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{driver.name}</h1>
+                <div className="mt-2 space-y-1">
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Personal Information Panel */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary-500 to-green-500 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white flex items-center">
-                    <User className="h-5 w-5 mr-2" />
-                    Personal Information
-                  </h3>
-                </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Personal Information
+                </h3>
+                <User className="h-6 w-6 text-primary-500" />
               </div>
 
-              <div className="p-6">
-                <div className="space-y-4">
-                  {driver.name && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Full Name</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.name}</div>
+              <div className="space-y-4">
+                {/* Driver Photo */}
+                <div className="flex justify-center mb-6">
+                  {driver.driver_photo_url ? (
+                    <img
+                      src={driver.driver_photo_url}
+                      alt={driver.name}
+                      className="h-32 w-32 rounded-full object-cover shadow-md"
+                    />
+                  ) : (
+                    <div className="h-32 w-32 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="h-16 w-16 text-gray-400" />
                     </div>
                   )}
+                </div>
 
-                  {driver.license_number && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">License No.</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.license_number}</div>
-                    </div>
-                  )}
+                <div className="space-y-3 divide-y divide-gray-100">
+                  <div>
+                    <p className="text-sm text-gray-500">Full Name</p>
+                    <p className="font-medium">{driver.name}</p>
+                  </div>
+
+                  <div className="pt-3">
+                    <p className="text-sm text-gray-500">License Number</p>
+                    <p className="font-medium">{driver.license_number}</p>
+                  </div>
 
                   {driver.contact_number && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Contact</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.contact_number}</div>
+                    <div className="pt-3">
+                      <p className="text-sm text-gray-500">Contact</p>
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 text-gray-400 mr-2" />
+                        <p className="font-medium">{driver.contact_number}</p>
+                      </div>
                     </div>
                   )}
 
                   {driver.email && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Email</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.email}</div>
-                    </div>
-                  )}
-
-                  {driver.date_of_birth && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Date of Birth</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">
-                        {new Date(driver.date_of_birth).toLocaleDateString()}
+                    <div className="pt-3">
+                      <p className="text-sm text-gray-500">Email</p>
+                      <div className="flex items-center">
+                        <Mail className="h-4 w-4 text-gray-400 mr-2" />
+                        <p className="font-medium">{driver.email}</p>
                       </div>
                     </div>
                   )}
 
-                  {(driver.join_date || driver.date_of_joining) && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Join Date</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">
-                        {new Date(driver.join_date || driver.date_of_joining).toLocaleDateString()}
-                      </div>
-                    </div>
-                  )}
+                  <div className="pt-3">
+                    <p className="text-sm text-gray-500">Join Date</p>
+                    <p className="font-medium">
+                      {new Date(driver.join_date).toLocaleDateString()}
+                    </p>
+                  </div>
 
-                  {driver.experience_years !== undefined && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Experience</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.experience_years} years</div>
-                    </div>
-                  )}
+                  <div className="pt-3">
+                    <p className="text-sm text-gray-500">Experience</p>
+                    <p className="font-medium">
+                      {driver.experience_years} years
+                    </p>
+                  </div>
 
-                  {driver.salary && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Salary</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">₹{driver.salary.toLocaleString()}/month</div>
-                    </div>
-                  )}
-
-                  {driver.blood_group && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Blood Group</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.blood_group}</div>
-                    </div>
-                  )}
-
-                  {driver.address && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Address</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.address}</div>
-                    </div>
-                  )}
-
-                  {driver.emergency_contact && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Emergency</div>
-                      <div className="flex-1 font-medium text-gray-900 dark:text-gray-100">{driver.emergency_contact}</div>
-                    </div>
-                  )}
+                  <div className="pt-3">
+                    <p className="text-sm text-gray-500">Status</p>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                        driver.status === "active"
+                          ? "bg-success-100 text-success-800"
+                          : driver.status === "onLeave"
+                          ? "bg-warning-100 text-warning-800"
+                          : driver.status === "suspended" ||
+                            driver.status === "blacklisted"
+                          ? "bg-error-100 text-error-800"
+                          : "bg-gray-100 text-gray-800"
+                      }`}
+                    >
+                      {driver.status.replace("_", " ")}
+                    </span>
+                  </div>
 
                   {driver.driver_status_reason && (
-                    <div className="flex items-start">
-                      <div className="w-32 text-sm text-gray-500 dark:text-gray-400">Status Note</div>
-                      <div className="flex-1 text-sm text-red-600 dark:text-red-400">{driver.driver_status_reason}</div>
+                    <div className="pt-3">
+                      <p className="text-sm text-gray-500">Status Reason</p>
+                      <p className="text-sm text-error-600">
+                        {driver.driver_status_reason}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -803,233 +580,211 @@ const DriverPage: React.FC = () => {
             </div>
 
             {/* Document Status Panel */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white flex items-center">
-                    <Shield className="h-5 w-5 mr-2" />
-                    Document Status
-                  </h3>
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      driver.documents_verified
-                        ? "bg-green-400 text-green-900"
-                        : "bg-yellow-400 text-yellow-900"
-                    }`}
-                  >
-                    {driver.documents_verified ? "✓ Verified" : "⚠ Pending"}
-                  </span>
-                </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Document Status
+                </h3>
+                <Shield className="h-6 w-6 text-primary-500" />
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* License Status Card */}
-                <div className={`p-4 rounded-lg border-2 ${
-                  hasExpiredLicense
-                    ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                    : licenseExpiringIn30Days
-                    ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-                    : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                }`}>
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">License Status</h4>
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-gray-900">
+                      License Status
+                    </h4>
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                         hasExpiredLicense
-                          ? "bg-red-500 text-white"
+                          ? "bg-error-100 text-error-700"
                           : licenseExpiringIn30Days
-                          ? "bg-yellow-500 text-white"
-                          : "bg-green-500 text-white"
+                          ? "bg-warning-100 text-warning-700"
+                          : "bg-success-100 text-success-700"
                       }`}
                     >
                       {hasExpiredLicense
-                        ? "✕ Expired"
+                        ? "Expired"
                         : licenseExpiringIn30Days
-                        ? "⚠ Expiring Soon"
-                        : "✓ Valid"}
+                        ? "Expiring Soon"
+                        : "Valid"}
                     </span>
                   </div>
 
-                  <div className="space-y-2">
-                    {Array.isArray(driver.vehicle_class) && driver.vehicle_class.length > 0 && (
-                      <div className="flex items-start">
-                        <div className="w-28 text-xs text-gray-600 dark:text-gray-400">License Class</div>
-                        <div className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {driver.vehicle_class.join(", ")}
-                        </div>
+                  {driver.license_expiry_date && (
+                    <div className="text-sm mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">License Class</span>
+                        <span className="font-medium">
+                          {Array.isArray(driver.vehicle_class)
+                            ? driver.vehicle_class.join(", ")
+                            : "Not Specified"}
+                        </span>
                       </div>
-                    )}
-                    {driver.license_issue_date && (
-                      <div className="flex items-start">
-                        <div className="w-28 text-xs text-gray-600 dark:text-gray-400">Issue Date</div>
-                        <div className="flex-1 text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {new Date(driver.license_issue_date).toLocaleDateString()}
-                        </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-gray-600">Issue Date</span>
+                        <span className="font-medium">
+                          {driver.license_issue_date
+                            ? new Date(
+                                driver.license_issue_date
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </span>
                       </div>
-                    )}
-                    {driver.license_expiry_date && (
-                      <div className="flex items-start">
-                        <div className="w-28 text-xs text-gray-600 dark:text-gray-400">Expiry Date</div>
-                        <div className={`flex-1 text-sm font-bold ${
-                          hasExpiredLicense
-                            ? "text-red-700 dark:text-red-400"
-                            : licenseExpiringIn30Days
-                            ? "text-yellow-700 dark:text-yellow-400"
-                            : "text-green-700 dark:text-green-400"
-                        }`}>
-                          {new Date(driver.license_expiry_date).toLocaleDateString()}
-                        </div>
+                      <div className="flex justify-between mt-1">
+                        <span className="text-gray-600">Expiry Date</span>
+                        <span
+                          className={`font-medium ${
+                            hasExpiredLicense
+                              ? "text-error-600"
+                              : licenseExpiringIn30Days
+                              ? "text-warning-600"
+                              : ""
+                          }`}
+                        >
+                          {new Date(
+                            driver.license_expiry_date
+                          ).toLocaleDateString()}
+                        </span>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Document List */}
-                <div className="space-y-2">
-                  {driver.license_doc_url && (
-                    <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div className="flex-1 ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">License Document</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">✓ Uploaded</p>
-                      </div>
-                    </div>
-                  )}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-medium text-gray-900">
+                      Document Verification
+                    </h4>
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                        driver.documents_verified
+                          ? "bg-success-100 text-success-700"
+                          : "bg-warning-100 text-warning-700"
+                      }`}
+                    >
+                      {driver.documents_verified ? "Verified" : "Pending"}
+                    </span>
+                  </div>
 
-                  {driver.aadhar_doc_url && (
-                    <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div className="flex-1 ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Aadhaar Document</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">✓ Uploaded</p>
-                      </div>
+                  <div className="flex items-center mt-2 p-3 bg-white rounded border border-gray-200">
+                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        License Document
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {driver.license_doc_url ? "Available" : "Not uploaded"}
+                      </p>
                     </div>
-                  )}
+                    {driver.license_doc_url && (
+                      <Button variant="outline" inputSize="sm">
+                        View
+                      </Button>
+                    )}
+                  </div>
 
-                  {driver.police_doc_url && (
-                    <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                        <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div className="flex-1 ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Police Verification</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">✓ Uploaded</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {driver.medical_doc_url && (
-                    <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="flex-1 ml-3">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Medical Certificate</p>
-                        <p className="text-xs text-green-600 dark:text-green-400">✓ Uploaded</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {driver.other_documents && Array.isArray(driver.other_documents) && driver.other_documents.length > 0 && (
-                    <>
-                      {driver.other_documents.map((doc, index) => (
-                        doc.file_path && (
-                          <div key={index} className="flex items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                            <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                              <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                  {/* Display other documents if any */}
+                  {driver.other_documents &&
+                    Array.isArray(driver.other_documents) &&
+                    driver.other_documents.length > 0 && (
+                      <div className="mt-3">
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">
+                          Additional Documents
+                        </h5>
+                        {driver.other_documents.map((doc, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center mt-2 p-3 bg-white rounded border border-gray-200"
+                          >
+                            <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {doc.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {doc.file_path ? "Available" : "Not uploaded"}
+                              </p>
                             </div>
-                            <div className="flex-1 ml-3">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{doc.name}</p>
-                              <p className="text-xs text-green-600 dark:text-green-400">✓ Uploaded</p>
-                            </div>
+                            {doc.file_path && (
+                              <Button variant="outline" inputSize="sm">
+                                View
+                              </Button>
+                            )}
                           </div>
-                        )
-                      ))}
-                    </>
-                  )}
+                        ))}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
 
             {/* Primary Vehicle Panel */}
-            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-white flex items-center">
-                    <Truck className="h-5 w-5 mr-2" />
-                    Primary Vehicle
-                  </h3>
-                </div>
+            <div className="bg-white p-6 rounded-lg shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Primary Vehicle
+                </h3>
+                <Truck className="h-6 w-6 text-primary-500" />
               </div>
 
               {primaryVehicle ? (
-                <div className="p-6">
-                  {/* Vehicle Card */}
-                  <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 p-4 rounded-xl border-2 border-orange-200 dark:border-orange-800 mb-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 rounded-lg bg-orange-500 flex items-center justify-center">
-                          <Truck className="h-6 w-6 text-white" />
-                        </div>
-                        <div className="ml-3">
-                          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                            {primaryVehicle.registration_number}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {primaryVehicle.make} {primaryVehicle.model}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${
-                          primaryVehicle.status === "active"
-                            ? "bg-green-500 text-white"
-                            : primaryVehicle.status === "maintenance"
-                            ? "bg-yellow-500 text-white"
-                            : "bg-gray-400 text-white"
-                        }`}
-                      >
-                        {primaryVehicle.status === "active" ? "✓ Active" : primaryVehicle.status}
-                      </span>
-                    </div>
+                <div className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">
+                      Vehicle Details
+                    </h4>
 
-                    <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Type</p>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 capitalize">
-                          {primaryVehicle.type}
-                        </p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Registration</span>
+                        <span className="font-medium">
+                          {primaryVehicle.registration_number}
+                        </span>
                       </div>
-                      {primaryVehicle.year && (
-                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Year</p>
-                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                            {primaryVehicle.year}
-                          </p>
-                        </div>
-                      )}
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Make & Model</span>
+                        <span className="font-medium">
+                          {primaryVehicle.make} {primaryVehicle.model}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Type</span>
+                        <span className="font-medium capitalize">
+                          {primaryVehicle.type}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Status</span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${
+                            primaryVehicle.status === "active"
+                              ? "bg-success-100 text-success-800"
+                              : primaryVehicle.status === "maintenance"
+                              ? "bg-warning-100 text-warning-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {primaryVehicle.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
                   <button
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg font-medium transition-all shadow-md"
+                    className="w-full text-center px-4 py-2 border border-gray-300 rounded-md text-primary-600 hover:bg-primary-50 hover:border-primary-300 transition-colors"
                     onClick={() => navigate(`/vehicles/${primaryVehicle.id}`)}
                   >
-                    <MapPin className="h-4 w-4" />
                     View Vehicle Details
                   </button>
                 </div>
               ) : (
-                <div className="p-6 flex flex-col items-center justify-center h-64">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
-                    <Truck className="h-10 w-10 text-gray-300 dark:text-gray-600" />
-                  </div>
-                  <p className="text-gray-500 dark:text-gray-400 text-center">No primary vehicle assigned</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1">Assign a vehicle to this driver</p>
+                <div className="flex flex-col items-center justify-center h-48 bg-gray-50 rounded-lg">
+                  <Truck className="h-10 w-10 text-gray-300 mb-2" />
+                  <p className="text-gray-500">No primary vehicle assigned</p>
                 </div>
               )}
             </div>
