@@ -754,10 +754,10 @@ const DriversPage: React.FC = () => {
 
                     {/* Contact & Vehicle Info */}
                     <div className="space-y-2 mb-4">
-                      {(driver.phone || driver.contact_number) && (
+                      {driver.contact_number && (
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                           <Phone className="h-4 w-4 mr-2" />
-                          <span>{driver.phone || driver.contact_number}</span>
+                          <span>{driver.contact_number}</span>
                         </div>
                       )}
 
@@ -808,9 +808,9 @@ const DriversPage: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
-                      {driver.phone && (
+                      {driver.contact_number && (
                         <button
-                          onClick={() => window.location.href = `tel:${driver.phone}`}
+                          onClick={() => window.location.href = `tel:${driver.contact_number}`}
                           className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors text-sm font-medium"
                         >
                           <Phone className="h-4 w-4" />
@@ -818,9 +818,9 @@ const DriversPage: React.FC = () => {
                         </button>
                       )}
 
-                      {driver.phone && (
+                      {driver.contact_number && (
                         <button
-                          onClick={() => window.open(`https://wa.me/${driver.phone.replace(/[^0-9]/g, '')}`)}
+                          onClick={() => window.open(`https://wa.me/${driver.contact_number.replace(/[^0-9]/g, '')}`)}
                           className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors text-sm font-medium"
                         >
                           <MessageSquare className="h-4 w-4" />
