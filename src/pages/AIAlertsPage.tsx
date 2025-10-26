@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from '../components/layout/Layout';
-import { AIAlert } from '@/types'; 
+import { AIAlert } from '@/types';
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
 import MediaCard from '../components/HeroFeed/MediaCard';
+import EnhancedFeedCard from '../components/ai/EnhancedFeedCard';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../utils/supabaseClient';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -62,6 +65,11 @@ const AIAlertsPage: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // Enhanced feed state
+  const [feedFilters, setFeedFilters] = useState<string[]>(['all']);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
 
   // Fetch alerts and vehicles data
   useEffect(() => {
@@ -169,6 +177,57 @@ const AIAlertsPage: React.FC = () => {
 
   const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
 
+  // Fetch drivers map for photo lookup
+  const { data: driversMap } = useQuery({
+    queryKey: ['drivers-map'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('drivers')
+          .select('id, name, driver_photo_url, photo_url, contact_number, status');
+
+        if (error) throw error;
+
+        const map: Record<string, any> = {};
+        data?.forEach(driver => {
+          map[driver.id] = {
+            ...driver,
+            photo_url: driver.driver_photo_url || driver.photo_url
+          };
+        });
+        return map;
+      } catch (error) {
+        logger.error('Error fetching drivers:', error);
+        return {};
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch vehicles map for photo lookup
+  const { data: vehiclesMap } = useQuery({
+    queryKey: ['vehicles-map'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('id, registration_number, make, model, photo_url, status, type');
+
+        if (error) throw error;
+
+        const map: Record<string, any> = {};
+        data?.forEach(vehicle => {
+          map[vehicle.id] = vehicle;
+        });
+        return map;
+      } catch (error) {
+        logger.error('Error fetching vehicles:', error);
+        return {};
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Check if YouTube API key is available
   const hasYouTubeAPIKey = !!import.meta.env.VITE_YOUTUBE_API_KEY;
 
@@ -200,6 +259,74 @@ const AIAlertsPage: React.FC = () => {
 
   const mediaCount = mediaCards.length;
   const isMediaOnly = selectedFilters.length === 1 && selectedFilters[0] === 'media';
+
+  // Calculate feed statistics
+  const feedStats = useMemo(() => {
+    const stats = {
+      ai_alerts: 0,
+      trips: 0,
+      maintenance: 0,
+      documents: 0,
+      kpis: 0,
+      activities: 0,
+      total: 0
+    };
+
+    events.forEach(event => {
+      stats.total++;
+      switch (event.kind) {
+        case 'ai_alert': stats.ai_alerts++; break;
+        case 'trip': stats.trips++; break;
+        case 'maintenance': stats.maintenance++; break;
+        case 'vehicle_doc': stats.documents++; break;
+        case 'kpi': stats.kpis++; break;
+        case 'activity':
+        case 'vehicle_activity': stats.activities++; break;
+      }
+    });
+
+    return stats;
+  }, [events]);
+
+  // Filter events based on feedFilters
+  const filteredEvents = useMemo(() => {
+    if (feedFilters.includes('all')) return events;
+    return events.filter(e => feedFilters.includes(e.kind));
+  }, [events, feedFilters]);
+
+  // Handle filter toggle
+  const handleFeedFilterToggle = (filter: string) => {
+    if (filter === 'all') {
+      setFeedFilters(['all']);
+    } else {
+      const newFilters = feedFilters.includes(filter)
+        ? feedFilters.filter(f => f !== filter)
+        : [...feedFilters.filter(f => f !== 'all'), filter];
+
+      setFeedFilters(newFilters.length === 0 ? ['all'] : newFilters);
+    }
+  };
+
+  // Handle alert actions from EnhancedFeedCard
+  const handleAlertAction = async (eventId: string, action: 'accept' | 'reject') => {
+    try {
+      const { error } = await supabase
+        .from('events_feed')
+        .update({
+          status: action === 'accept' ? 'accepted' : 'rejected',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+
+      if (error) throw error;
+
+      toast.success(`Alert ${action === 'accept' ? 'accepted' : 'rejected'}`);
+      refetchHeroFeed(); // Refresh feed
+    } catch (error) {
+      logger.error('Error updating alert:', error);
+      toast.error('Failed to update alert');
+    }
+  };
 
   // Handle alert action modal submission
   const handleActionSubmit = async (reason: string, duration?: 'week' | 'permanent') => {
@@ -641,152 +768,221 @@ const AIAlertsPage: React.FC = () => {
         <>
           {activeTab === 'all-feed' ? (
             <div className="space-y-6">
-              {/* Hero Feed Content */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900">Complete Feed</h2>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
+              {/* Enhanced Hero Feed Content */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                {/* Header with Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <Bell className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      AI Alerts & Activity Feed
+                    </h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Real-time fleet activities with AI insights
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {/* View Mode Toggle */}
+                    <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                      <button
+                        onClick={() => setViewMode('cards')}
+                        className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                          viewMode === 'cards' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'
+                        }`}
+                      >
+                        <LayoutGrid className="h-4 w-4" />
+                        <span className="text-sm font-medium hidden sm:inline">Cards</span>
+                      </button>
+                      <button
+                        onClick={() => setViewMode('list')}
+                        className={`px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 ${
+                          viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300'
+                        }`}
+                      >
+                        <List className="h-4 w-4" />
+                        <span className="text-sm font-medium hidden sm:inline">List</span>
+                      </button>
+                    </div>
+
+                    {/* Auto Scroll Toggle */}
+                    <button
+                      onClick={() => setIsAutoScrollEnabled(!isAutoScrollEnabled)}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                        isAutoScrollEnabled
+                          ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/70'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <ChevronDown className={`h-4 w-4 ${isAutoScrollEnabled ? 'animate-bounce' : ''}`} />
+                      <span className="text-sm font-medium hidden sm:inline">Auto Scroll</span>
+                      <span className="text-xs sm:hidden">{isAutoScrollEnabled ? 'ON' : 'OFF'}</span>
+                    </button>
+
+                    {/* Refresh Button */}
+                    <button
                       onClick={() => {
                         refetchHeroFeed();
                         refetchKPIs();
                         if (hasYouTubeAPIKey) refetchShorts();
                       }}
-                      icon={<RefreshCw className="h-4 w-4" />}
+                      disabled={heroFeedLoading}
+                      className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 flex items-center gap-2 transition-colors"
                     >
-                      Refresh
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Feed Filters */}
-                <div className="mb-6">
-                  <div className="flex flex-wrap gap-2">
-                    {['all', 'ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity', 'media'].map(filter => (
-                      <button
-                        key={filter}
-                        onClick={() => {
-                          if (filter === 'all') {
-                            setSelectedFilters(['all']);
-                          } else {
-                            setSelectedFilters(prev => 
-                              prev.includes('all') 
-                                ? [filter]
-                                : prev.includes(filter)
-                                ? prev.filter(f => f !== filter)
-                                : [...prev, filter]
-                            );
-                          }
-                        }}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                          selectedFilters.includes(filter)
-                            ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                        }`}
-                      >
-                        {filter === 'all' ? 'All' : filter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </button>
-                    ))}
+                      <RefreshCw className={`h-4 w-4 ${heroFeedLoading ? 'animate-spin' : ''}`} />
+                      <span className="text-sm font-medium hidden sm:inline">Refresh</span>
+                    </button>
+
+                    {/* Video Toggle */}
+                    <button
+                      onClick={toggleVideos}
+                      className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                        showVideos
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      }`}
+                      title={showVideos ? 'Hide video reels' : 'Show video reels'}
+                    >
+                      {showVideos ? (
+                        <>
+                          <Video className="w-4 h-4" />
+                          <span className="text-sm font-medium hidden sm:inline">Videos ON</span>
+                        </>
+                      ) : (
+                        <>
+                          <VideoOff className="w-4 h-4" />
+                          <span className="text-sm font-medium hidden sm:inline">Videos OFF</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 
                 {/* Social Media Scroller Layout */}
                 <div className="max-w-4xl mx-auto">
-                  {/* Stats Grid - Colorful Cards */}
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-xl border border-red-200 dark:border-red-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  {/* Stats Grid - Clickable Filter Cards */}
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3 mb-6">
+                    <button
+                      onClick={() => handleFeedFilterToggle('ai_alert')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('ai_alert')
+                          ? 'bg-red-500 border-red-600 text-white'
+                          : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.ai_alerts}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('ai_alert') ? 'opacity-90' : 'opacity-70'}`}>
+                          AI Alerts
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-red-700 dark:text-red-300">{events.filter(e => e.kind === 'ai_alert').length}</span>
-                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">AI Alerts</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleFeedFilterToggle('trip')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('trip')
+                          ? 'bg-green-500 border-green-600 text-white'
+                          : 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-700 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/40'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.trips}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('trip') ? 'opacity-90' : 'opacity-70'}`}>
+                          Trips
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{events.filter(e => e.kind === 'vehicle_doc').length}</span>
-                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Documents</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleFeedFilterToggle('maintenance')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('maintenance')
+                          ? 'bg-orange-500 border-orange-600 text-white'
+                          : 'bg-orange-50 dark:bg-orange-900/30 border-orange-200 dark:border-orange-700 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.maintenance}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('maintenance') ? 'opacity-90' : 'opacity-70'}`}>
+                          Maintenance
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{events.filter(e => e.kind === 'maintenance').length}</span>
-                      <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-1">Maintenance</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-xl border border-green-200 dark:border-green-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleFeedFilterToggle('vehicle_doc')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('vehicle_doc')
+                          ? 'bg-blue-500 border-blue-600 text-white'
+                          : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.documents}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('vehicle_doc') ? 'opacity-90' : 'opacity-70'}`}>
+                          Documents
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-green-700 dark:text-green-300">{events.filter(e => e.kind === 'trip').length}</span>
-                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">Trips</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-xl border border-purple-200 dark:border-purple-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleFeedFilterToggle('kpi')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('kpi')
+                          ? 'bg-purple-500 border-purple-600 text-white'
+                          : 'bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.kpis}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('kpi') ? 'opacity-90' : 'opacity-70'}`}>
+                          KPIs
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">{events.filter(e => e.kind === 'kpi').length}</span>
-                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-1">KPIs</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20 p-4 rounded-xl border border-pink-200 dark:border-pink-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Play className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                    </button>
+
+                    <button
+                      onClick={() => handleFeedFilterToggle('all')}
+                      className={`p-3 rounded-lg border-2 transition-all transform hover:scale-105 ${
+                        feedFilters.includes('all')
+                          ? 'bg-gray-500 border-gray-600 text-white'
+                          : 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      <div className="text-center">
+                        <div className="text-2xl font-bold">{feedStats.total}</div>
+                        <div className={`text-xs mt-1 ${feedFilters.includes('all') ? 'opacity-90' : 'opacity-70'}`}>
+                          All
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-pink-700 dark:text-pink-300">{availableShorts.length}</span>
-                      <p className="text-xs font-medium text-pink-600 dark:text-pink-400 mt-1">Videos</p>
-                    </div>
+                    </button>
                   </div>
 
-                  {/* Video Toggle */}
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Fleet Activity Feed</h2>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={toggleVideos}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                          showVideos
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                        title={showVideos ? 'Hide video reels' : 'Show video reels'}
-                      >
-                        {showVideos ? (
-                          <>
-                            <Video className="w-4 h-4" />
-                            <span className="text-sm font-medium">Videos ON</span>
-                          </>
-                        ) : (
-                          <>
-                            <VideoOff className="w-4 h-4" />
-                            <span className="text-sm font-medium">Videos OFF</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          refetchHeroFeed();
-                          refetchKPIs();
-                          if (hasYouTubeAPIKey) refetchShorts();
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Refresh
-                      </button>
+                  {/* Active Filters Display */}
+                  {!feedFilters.includes('all') && feedFilters.length > 0 && (
+                    <div className="mb-4 flex items-center gap-2 flex-wrap">
+                      <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Active filters:</span>
+                      {feedFilters.map(filter => (
+                        <span
+                          key={filter}
+                          className="px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium"
+                        >
+                          {filter.replace('_', ' ')}
+                        </span>
+                      ))}
                     </div>
-                  </div>
+                  )}
 
-                  {/* Social Media Scroller */}
+                  {/* Feed Items */}
                   <div className="space-y-4">
                     {heroFeedLoading ? (
-                      <div className="text-center py-8">
-                        <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary-600" />
-                        <p className="text-gray-500">Loading feed...</p>
+                      <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-4 text-gray-600 dark:text-gray-400">Loading feed...</p>
                       </div>
-                    ) : (
+                    ) : filteredEvents.length > 0 ? (
                       <>
                         {/* Show videos even if no events */}
                         {showVideos && availableShorts.length > 0 && (
@@ -803,114 +999,66 @@ const AIAlertsPage: React.FC = () => {
                           </div>
                         )}
 
-                        {events.length > 0 ? (
-                          <>
-                            {events.map((event, index) => {
-                              // Intersperse videos every 3-4 events
-                              const shouldShowVideo = showVideos && 
-                                availableShorts.length > 0 && 
-                                index > 0 && 
-                                index % 4 === 0;
-                              
-                              const videoIndex = Math.floor(index / 4) % availableShorts.length;
-                              const short = availableShorts[videoIndex];
+                        {filteredEvents.map((event, index) => {
+                          // Intersperse videos every 4 events
+                          const shouldShowVideo = showVideos &&
+                            availableShorts.length > 0 &&
+                            index > 0 &&
+                            index % 4 === 0;
 
-                              return (
-                                <React.Fragment key={`fragment-${event.id}`}>
-                                  {shouldShowVideo && (
-                                    <YouTubeVideoCard
-                                      key={`video-${short.id}`}
-                                      short={short}
-                                      index={videoIndex}
-                                    />
-                                  )}
-                                  
-                                  {/* Event Card - Colorful by Type */}
-                                  <div
-                                    key={`${event.id}-${index}`}
-                                    className={`
-                                      rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4
-                                      ${event.kind === 'ai_alert' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}
-                                      ${event.kind === 'vehicle_doc' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
-                                      ${event.kind === 'maintenance' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30' : ''}
-                                      ${event.kind === 'trip' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-900/30' : ''}
-                                      ${event.kind === 'kpi' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30' : ''}
-                                      ${event.kind === 'vehicle_activity' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' : ''}
-                                      ${event.kind === 'activity' ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30' : ''}
-                                      ${!['ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity'].includes(event.kind) ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700' : ''}
-                                    `}
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <div className="flex-shrink-0">
-                                        <div className={`p-2 rounded-lg ${
-                                          event.kind === 'ai_alert' ? 'bg-red-100 dark:bg-red-800/50' :
-                                          event.kind === 'vehicle_doc' ? 'bg-blue-100 dark:bg-blue-800/50' :
-                                          event.kind === 'maintenance' ? 'bg-orange-100 dark:bg-orange-800/50' :
-                                          event.kind === 'trip' ? 'bg-green-100 dark:bg-green-800/50' :
-                                          event.kind === 'kpi' ? 'bg-purple-100 dark:bg-purple-800/50' :
-                                          event.kind === 'vehicle_activity' ? 'bg-indigo-100 dark:bg-indigo-800/50' :
-                                          event.kind === 'activity' ? 'bg-pink-100 dark:bg-pink-800/50' :
-                                          'bg-gray-100 dark:bg-gray-700'
-                                        }`}>
-                                          {event.kind === 'ai_alert' && <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />}
-                                          {event.kind === 'vehicle_doc' && <FileX className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-                                          {event.kind === 'maintenance' && <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
-                                          {event.kind === 'trip' && <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />}
-                                          {event.kind === 'kpi' && <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
-                                          {event.kind === 'vehicle_activity' && <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
-                                          {event.kind === 'activity' && <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />}
-                                        </div>
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
-                                          <span className={`
-                                            inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                            ${event.kind === 'ai_alert' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : ''}
-                                            ${event.kind === 'vehicle_doc' ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : ''}
-                                            ${event.kind === 'maintenance' ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200' : ''}
-                                            ${event.kind === 'trip' ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : ''}
-                                            ${event.kind === 'kpi' ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : ''}
-                                            ${event.kind === 'vehicle_activity' ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200' : ''}
-                                            ${event.kind === 'activity' ? 'bg-pink-200 dark:bg-pink-800 text-pink-800 dark:text-pink-200' : ''}
-                                          `}>
-                                            {event.kind.replace('_', ' ')}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{event.description}</p>
-                                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
-                                          <span className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            {new Date(event.created_at).toLocaleDateString()}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </React.Fragment>
-                              );
-                            })}
-                            
-                            {hasNextPage && (
-                              <div className="text-center pt-4">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => fetchNextPage()}
-                                  disabled={isFetchingNextPage}
-                                  icon={isFetchingNextPage ? <RefreshCw className="h-4 w-4 animate-spin" /> : undefined}
-                                >
-                                  {isFetchingNextPage ? 'Loading...' : 'Load More'}
-                                </Button>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <div className="text-center py-8 text-gray-500">
-                            <Bell className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                            <p className="font-sans">No feed items available</p>
+                          const videoIndex = Math.floor(index / 4) % availableShorts.length;
+                          const short = availableShorts[videoIndex];
+
+                          // Get driver and vehicle data for trip cards
+                          const tripData = event.kind === 'trip' ? event.entity_json : null;
+                          const driverData = tripData?.driver_id ? driversMap?.[tripData.driver_id] : null;
+                          const vehicleData = tripData?.vehicle_id ? vehiclesMap?.[tripData.vehicle_id] : null;
+
+                          return (
+                            <React.Fragment key={`fragment-${event.id}`}>
+                              {shouldShowVideo && (
+                                <YouTubeVideoCard
+                                  key={`video-${short.id}`}
+                                  short={short}
+                                  index={videoIndex}
+                                />
+                              )}
+
+                              {/* Enhanced Event Card */}
+                              <EnhancedFeedCard
+                                key={`${event.id}-${index}`}
+                                event={event}
+                                onAction={handleAlertAction}
+                                driverData={driverData}
+                                vehicleData={vehicleData}
+                              />
+                            </React.Fragment>
+                          );
+                        })}
+
+                        {hasNextPage && (
+                          <div className="text-center pt-4">
+                            <Button
+                              variant="outline"
+                              onClick={() => fetchNextPage()}
+                              disabled={isFetchingNextPage}
+                              icon={isFetchingNextPage ? <RefreshCw className="h-4 w-4 animate-spin" /> : undefined}
+                            >
+                              {isFetchingNextPage ? 'Loading...' : 'Load More'}
+                            </Button>
                           </div>
                         )}
                       </>
+                    ) : (
+                      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+                        <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600 dark:text-gray-400">No events to display</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                          {feedFilters.includes('all')
+                            ? 'Events will appear here as they occur'
+                            : 'No events match your selected filters'}
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>

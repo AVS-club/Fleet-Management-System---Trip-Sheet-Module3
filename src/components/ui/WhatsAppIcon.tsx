@@ -30,32 +30,15 @@ const WhatsAppIcon: React.FC<WhatsAppIconProps> = ({
 
     // Check if dark mode is enabled
     const checkDarkMode = () => {
-      // Check for manual dark mode class on html/body
       const htmlElement = document.documentElement;
       const hasDarkClass = htmlElement.classList.contains('dark');
-
-      // Check for system preference
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-      setIsDarkMode(hasDarkClass || systemPrefersDark);
+      setIsDarkMode(hasDarkClass);
     };
 
     // Initial check
     checkDarkMode();
 
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => checkDarkMode();
-
-    // Modern browsers
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleChange);
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleChange);
-    }
-
-    // Listen for manual theme changes (if your app has a theme toggle)
+    // Listen for manual theme changes (when Tailwind's `dark` class toggles)
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, {
       attributes: true,
@@ -63,11 +46,6 @@ const WhatsAppIcon: React.FC<WhatsAppIconProps> = ({
     });
 
     return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
       observer.disconnect();
     };
   }, [variant]);
@@ -111,3 +89,4 @@ const WhatsAppIcon: React.FC<WhatsAppIconProps> = ({
 };
 
 export default WhatsAppIcon;
+

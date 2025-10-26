@@ -8,7 +8,7 @@ import { createLogger } from '../logger';
 const logger = createLogger('drivers');
 
 // Define allowed columns for drivers table (matching actual database schema)
-const DRIVER_COLS = 'id,name,license_number,phone,address,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,status,experience_years,salary,added_by,organization_id,created_at,updated_at,driver_photo_url,primary_vehicle_id,documents_verified';
+const DRIVER_COLS = 'id,name,license_number,contact_number,email,join_date,status,experience_years,primary_vehicle_id,photo,license_document,license_expiry_date,documents_verified,driver_status_reason,created_at,updated_at,driver_photo_url,license_doc_url,aadhar_doc_url,police_doc_url,bank_doc_url,address,last_updated_at,blood_group,dob,father_or_husband_name,gender,license_issue_date,other_documents,rto,rto_code,state,valid_from,vehicle_class,notes,medical_doc_url,added_by,created_by,organization_id,date_of_birth,date_of_joining,license_expiry,medical_certificate_expiry,aadhar_number,salary';
 
 export const getDrivers = async (): Promise<Driver[]> => {
   try {

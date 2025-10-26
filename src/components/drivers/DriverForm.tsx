@@ -56,6 +56,26 @@ const DriverForm: React.FC<DriverFormProps> = ({
   onSubmit,
   isSubmitting = false,
 }) => {
+  // Helper function to format date for form input (YYYY-MM-DD)
+  const formatDateForInput = (dateValue: any): string => {
+    if (!dateValue) return "";
+    try {
+      // If it's already in YYYY-MM-DD format, return it
+      if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateValue)) {
+        return dateValue.split('T')[0]; // Remove time part if present
+      }
+      // Try to parse and format the date
+      const date = new Date(dateValue);
+      if (!isNaN(date.getTime())) {
+        return format(date, 'yyyy-MM-dd');
+      }
+      return "";
+    } catch (error) {
+      logger.warn('Error formatting date:', dateValue, error);
+      return "";
+    }
+  };
+
   const [photoPreview, setPhotoPreview] = useState<string | null>(
     initialData?.driver_photo_url || null
   );
@@ -78,21 +98,42 @@ const DriverForm: React.FC<DriverFormProps> = ({
     setValue,
   } = useForm<Driver>({
     defaultValues: {
-      name: "",
-      license_number: "",
-      dob: "",
-      father_or_husband_name: "",
-      contact_number: "",
-      email: "",
-      status: "active",
-      ...initialData,
-      other_documents: initialData.other_documents
-        ? initialData.other_documents // ⚠️ Confirm field refactor here
-        : [], // ⚠️ Confirm field refactor here
-      medical_doc_file: initialData.medical_doc_url ? [] : initialData.medical_doc_file,
-      police_doc_file: initialData.police_doc_url ? [] : initialData.police_doc_file,
-      aadhar_doc_file: initialData.aadhar_doc_url ? [] : initialData.aadhar_doc_file,
-      license_doc_file: initialData.license_doc_url ? [] : initialData.license_doc_file,
+      name: initialData?.name || "",
+      license_number: initialData?.license_number || "",
+      // Map database fields to form fields with proper date formatting
+      dob: formatDateForInput(initialData?.dob || initialData?.date_of_birth),
+      father_or_husband_name: initialData?.father_or_husband_name || "",
+      // Database column is 'contact_number'
+      contact_number: initialData?.contact_number || "",
+      email: initialData?.email || "",
+      status: initialData?.status || "active",
+      // Date field mappings with proper formatting
+      join_date: formatDateForInput(initialData?.join_date || initialData?.date_of_joining),
+      license_expiry_date: formatDateForInput(initialData?.license_expiry_date || initialData?.license_expiry),
+      license_issue_date: formatDateForInput(initialData?.license_issue_date),
+      valid_from: formatDateForInput(initialData?.valid_from),
+      // Other fields from initialData
+      address: initialData?.address || "",
+      blood_group: initialData?.blood_group || "",
+      gender: initialData?.gender || "",
+      rto: initialData?.rto || "",
+      rto_code: initialData?.rto_code || "",
+      state: initialData?.state || "",
+      vehicle_class: initialData?.vehicle_class || [],
+      experience_years: initialData?.experience_years || 0,
+      salary: initialData?.salary || 0,
+      primary_vehicle_id: initialData?.primary_vehicle_id || "",
+      notes: initialData?.notes || "",
+      aadhar_number: initialData?.aadhar_number || "",
+      documents_verified: initialData?.documents_verified || false,
+      driver_status_reason: initialData?.driver_status_reason || "",
+      driver_photo_url: initialData?.driver_photo_url || "",
+      // Document arrays
+      other_documents: initialData?.other_documents || [],
+      medical_doc_file: initialData?.medical_doc_url ? [] : initialData?.medical_doc_file || [],
+      police_doc_file: initialData?.police_doc_url ? [] : initialData?.police_doc_file || [],
+      aadhar_doc_file: initialData?.aadhar_doc_url ? [] : initialData?.aadhar_doc_file || [],
+      license_doc_file: initialData?.license_doc_url ? [] : initialData?.license_doc_file || [],
     },
   });
 
@@ -192,49 +233,80 @@ const DriverForm: React.FC<DriverFormProps> = ({
       }
 
       // Map API response to form fields
+      // IMPORTANT: Preserve existing driver data and only override with government API data when provided
       const mapped: Driver = {
+        // Start with all existing data to preserve fields not in API
+        ...initialData,
+
+        // Override with government API data (only if provided)
         id: initialData?.id || undefined,
-        name: driver.holder_name || "",
-        father_or_husband_name: driver.father_or_husband_name || "",
+        name: driver.holder_name || initialData?.name || "",
+        father_or_husband_name: driver.father_or_husband_name || initialData?.father_or_husband_name || "",
         gender:
           (driver.gender &&
             (driver.gender.toUpperCase() === "MALE"
               ? "MALE"
               : driver.gender.toUpperCase() === "FEMALE"
               ? "FEMALE"
-          : "OTHER")) || // ⚠️ Confirm field refactor here
+          : "OTHER")) ||
+          initialData?.gender ||
           "MALE",
         dob: (driver?.dob && driver?.dob.split("-").reverse().join("-")) || dob,
         blood_group:
-          (driver?.blood_group && driver.blood_group.toUpperCase()) || "",
-        address: driver?.permanent_address || driver?.temporary_address || "",
-        contact_number: driver?.contact_number || "",
-        email: driver?.email || "", // ⚠️ Confirm field refactor here
+          (driver?.blood_group && driver.blood_group.toUpperCase()) || initialData?.blood_group || "",
+        address: driver?.permanent_address || driver?.temporary_address || initialData?.address || "",
+        // Preserve existing contact number if API doesn't return one
+        contact_number: driver?.contact_number || initialData?.contact_number || "",
+        email: driver?.email || initialData?.email || "",
         license_number: driver?.license_number || licenseNumber,
         vehicle_class:
           (driver?.vehicle_class &&
             driver?.vehicle_class.map((v: any) => v?.cov)) ||
+          initialData?.vehicle_class ||
           [],
         valid_from:
           (driver?.valid_from &&
             driver?.valid_from.split("-").reverse().join("-")) ||
+          initialData?.valid_from ||
           "",
         license_expiry_date:
           (driver?.valid_upto &&
             driver?.valid_upto.split("-").reverse().join("-")) ||
+          initialData?.license_expiry_date ||
+          initialData?.license_expiry ||
           "",
         license_issue_date:
           (driver?.issue_date &&
             driver?.issue_date.split("-").reverse().join("-")) ||
+          initialData?.license_issue_date ||
           "",
-        rto_code: driver.rto_code || "",
-        rto: driver.rto || "",
-        state: driver.state || "",
-        join_date: initialData.join_date || format(new Date(), 'yyyy-MM-dd'),
-        experience_years: 0,
-        primary_vehicle_id: "",
-        status: "active",
-        driver_photo_url: photoUrl,
+        rto_code: driver.rto_code || initialData?.rto_code || "",
+        rto: driver.rto || initialData?.rto || "",
+        state: driver.state || initialData?.state || "",
+
+        // Preserve important existing fields that aren't in government API
+        join_date: initialData?.join_date || initialData?.date_of_joining || format(new Date(), 'yyyy-MM-dd'),
+        experience_years: initialData?.experience_years || 0,
+        primary_vehicle_id: initialData?.primary_vehicle_id || "",
+        salary: initialData?.salary,
+        aadhar_number: initialData?.aadhar_number,
+        notes: initialData?.notes,
+        documents_verified: initialData?.documents_verified || false,
+        driver_status_reason: initialData?.driver_status_reason,
+
+        // Update photo if fetched, otherwise keep existing
+        driver_photo_url: photoUrl || initialData?.driver_photo_url,
+
+        // Preserve document URLs
+        license_doc_url: initialData?.license_doc_url,
+        aadhar_doc_url: initialData?.aadhar_doc_url,
+        police_doc_url: initialData?.police_doc_url,
+        medical_doc_url: initialData?.medical_doc_url,
+        bank_doc_url: initialData?.bank_doc_url,
+        other_documents: initialData?.other_documents,
+
+        // Keep status from existing data unless it's a new driver
+        status: initialData?.status || "active",
       };
 
       reset(mapped);
