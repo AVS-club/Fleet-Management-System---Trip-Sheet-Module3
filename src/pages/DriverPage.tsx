@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
-import { getVehicle, getTrips, getVehicles, getDriverPhotoPublicUrl } from "../utils/storage";
-import { getDriver, getDrivers } from "../utils/api/drivers";
+import { getVehicle, getTrips, getVehicles, getDriverPhotoPublicUrl, uploadDriverPhoto } from "../utils/storage";
+import { getDriver, getDrivers, updateDriver } from "../utils/api/drivers";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
+import { Driver, Trip, Vehicle, AIAlert } from "@/types";
 import {
   User,
   Calendar,
@@ -34,6 +35,7 @@ import {
 import { toast } from "react-toastify";
 import WhatsAppButton from "../components/drivers/WhatsAppButton";
 import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDownloadModal";
+import DriverWhatsAppShareModal from "../components/drivers/DriverWhatsAppShareModal";
 import DriverAIInsights from "../components/ai/DriverAIInsights";
 import { createLogger } from '../utils/logger';
 
@@ -57,6 +59,8 @@ const DriverPage: React.FC = () => {
   const [selectedDriverForShare, setSelectedDriverForShare] = useState<Driver | null>(null);
   const [showDocumentManagerModal, setShowDocumentManagerModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [driverPhotoUrl, setDriverPhotoUrl] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // State for signed document URLs
   const [signedDocUrls, setSignedDocUrls] = useState<{
@@ -69,69 +73,8 @@ const DriverPage: React.FC = () => {
     other: {},
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
-
-      setLoading(true);
-      try {
-        // Fetch driver data
-        const driverData = await getDriver(id);
-        setDriver(driverData);
-
-        // Fetch primary vehicle if available
-        if (driverData?.primary_vehicle_id) {
-          const vehicleData = await getVehicle(driverData.primary_vehicle_id);
-          setPrimaryVehicle(vehicleData);
-        }
-
-        // Fetch trips
-        const tripsData = await getTrips();
-        setTrips(
-          Array.isArray(tripsData)
-            ? tripsData.filter((trip) => trip.driver_id === id)
-            : []
-        );
-
-        // Fetch alerts
-        const alertsData = await getAIAlerts();
-        setAlerts(
-          Array.isArray(alertsData)
-            ? alertsData.filter(
-                (alert) =>
-                  alert.affected_entity?.type === "driver" &&
-                  alert.affected_entity?.id === id &&
-                  alert.status === "pending"
-              )
-            : []
-        );
-
-        // Fetch all drivers and vehicles for AI insights
-        const [allDriversData, allVehiclesData] = await Promise.all([
-          getDrivers(),
-          getVehicles()
-        ]);
-        
-        setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
-        setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
-        setMaintenanceTasks([]); // Initialize empty for now
-
-        // Generate signed URLs for documents if driver is available
-        if (driverData) {
-          await generateSignedUrls(driverData);
-        }
-      } catch (error) {
-        logger.error("Error fetching driver data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id]);
-
   // Function to generate signed URLs for all documents
-  const generateSignedUrls = async (driverData: Driver) => {
+  const generateSignedUrls = useCallback(async (driverData: Driver) => {
     const urls: { // ⚠️ Confirm field refactor here
       license?: string[];
       police_verification?: string[];
@@ -196,7 +139,73 @@ const DriverPage: React.FC = () => {
       logger.error("Error generating signed URLs:", error);
       toast.error("Failed to generate document access links");
     }
-  }; 
+  }, []); 
+
+  const fetchDriverData = useCallback(async () => {
+    if (!id) return;
+
+    setLoading(true);
+    try {
+      const driverData = await getDriver(id);
+      setDriver(driverData);
+
+      if (driverData?.driver_photo_url) {
+        const publicUrl = getDriverPhotoPublicUrl(driverData.driver_photo_url);
+        setDriverPhotoUrl(publicUrl);
+      } else {
+        setDriverPhotoUrl(null);
+      }
+
+      if (driverData?.primary_vehicle_id) {
+        const vehicleData = await getVehicle(driverData.primary_vehicle_id);
+        setPrimaryVehicle(vehicleData);
+      } else {
+        setPrimaryVehicle(null);
+      }
+
+      const [tripsData, alertsData, allDriversData, allVehiclesData] = await Promise.all([
+        getTrips(),
+        getAIAlerts(),
+        getDrivers(),
+        getVehicles(),
+      ]);
+
+      setTrips(
+        Array.isArray(tripsData)
+          ? tripsData.filter((trip) => trip.driver_id === id)
+          : []
+      );
+
+      setAlerts(
+        Array.isArray(alertsData)
+          ? alertsData.filter(
+              (alert) =>
+                alert.affected_entity?.type === "driver" &&
+                alert.affected_entity?.id === id &&
+                alert.status === "pending"
+            )
+          : []
+      );
+
+      setAllDrivers(Array.isArray(allDriversData) ? allDriversData : []);
+      setAllVehicles(Array.isArray(allVehiclesData) ? allVehiclesData : []);
+      setMaintenanceTasks([]);
+
+      if (driverData) {
+        await generateSignedUrls(driverData);
+      } else {
+        setSignedDocUrls({ other: {} });
+      }
+    } catch (error) {
+      logger.error("Error fetching driver data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [generateSignedUrls, id]);
+
+  useEffect(() => {
+    fetchDriverData();
+  }, [fetchDriverData]);
 
   // Handle export as PDF
   const handleExportPDF = async () => {
@@ -254,16 +263,188 @@ const DriverPage: React.FC = () => {
   };
 
   const handleUpdateDriver = async (data: Omit<Driver, "id">) => {
+    if (!driver?.id) {
+      toast.error("Unable to update driver — missing driver ID.");
+      return;
+    }
+
+    setIsUpdating(true);
     try {
-      // Update logic would go here
-      // For now, just close the edit mode
+      const driverId = driver.id;
+      let photoUrl = data.driver_photo_url || driver.driver_photo_url || null;
+
+      if (data.photo && data.photo instanceof File) {
+        try {
+          const uploadedPhoto = await uploadDriverPhoto(data.photo, driverId);
+          if (uploadedPhoto) {
+            photoUrl = uploadedPhoto;
+          }
+        } catch (error) {
+          logger.error("Error uploading driver photo:", error);
+          toast.error("Failed to upload driver photo");
+        }
+      }
+
+      const normalizeString = (value?: string | null) => {
+        if (!value) return null;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      };
+
+      const contactNumber =
+        normalizeString(data.contact_number) ||
+        normalizeString(data.phone) ||
+        normalizeString(driver.contact_number) ||
+        normalizeString(driver.phone);
+
+      const driverData: Partial<Driver> = {
+        ...data,
+        driver_photo_url: photoUrl || undefined,
+        contact_number: contactNumber || undefined,
+        phone: contactNumber || undefined,
+      };
+
+      const dobValue = normalizeString(data.dob as string);
+      const joinDateValue = normalizeString(data.join_date as string);
+      const licenseExpiryValue = normalizeString(
+        (data as any).license_expiry_date
+      );
+
+      if (dobValue) {
+        (driverData as any).date_of_birth = dobValue;
+      }
+      if (joinDateValue) {
+        (driverData as any).date_of_joining = joinDateValue;
+      }
+      if (licenseExpiryValue) {
+        (driverData as any).license_expiry = licenseExpiryValue;
+      }
+
+      delete (driverData as any).photo;
+      delete (driverData as any).dob;
+      delete (driverData as any).join_date;
+      delete (driverData as any).license_expiry_date;
+
+      const mergeDocumentUrls = async (
+        files: File[] | undefined,
+        existing: string[] | undefined,
+        key: string
+      ): Promise<string[] | undefined> => {
+        const currentUrls = Array.isArray(existing)
+          ? existing.filter((value): value is string => Boolean(value))
+          : [];
+        const shouldClear =
+          Array.isArray(existing) && existing.length === 0 && currentUrls.length === 0;
+
+        if (!Array.isArray(files) || files.length === 0) {
+          return shouldClear
+            ? []
+            : currentUrls.length > 0
+            ? currentUrls
+            : undefined;
+        }
+
+        const uploaded: string[] = [];
+        for (let index = 0; index < files.length; index += 1) {
+          const file = files[index];
+          if (!(file instanceof File)) {
+            continue;
+          }
+          try {
+            const storageKey = `${driverId}-${key}-${Date.now()}-${index}`;
+            const uploadedPath = await uploadDriverPhoto(file, storageKey);
+            if (uploadedPath) {
+              uploaded.push(uploadedPath);
+            }
+          } catch (error) {
+            logger.error(`Error uploading ${key} document:`, error);
+            toast.error(`Failed to upload ${key} document`);
+          }
+        }
+
+        const combined = [...currentUrls, ...uploaded];
+        if (combined.length > 0) {
+          return combined;
+        }
+        return shouldClear ? [] : undefined;
+      };
+
+      driverData.license_doc_url = await mergeDocumentUrls(
+        data.license_doc_file as File[] | undefined,
+        data.license_doc_url,
+        "license"
+      );
+      driverData.aadhar_doc_url = await mergeDocumentUrls(
+        data.aadhar_doc_file as File[] | undefined,
+        data.aadhar_doc_url,
+        "aadhar"
+      );
+      driverData.police_doc_url = await mergeDocumentUrls(
+        data.police_doc_file as File[] | undefined,
+        data.police_doc_url,
+        "police"
+      );
+      driverData.medical_doc_url = await mergeDocumentUrls(
+        data.medical_doc_file as File[] | undefined,
+        data.medical_doc_url,
+        "medical"
+      );
+
+      delete (driverData as any).license_doc_file;
+      delete (driverData as any).aadhar_doc_file;
+      delete (driverData as any).police_doc_file;
+      delete (driverData as any).medical_doc_file;
+
+      if (Array.isArray(data.other_documents)) {
+        const processedDocs: Driver["other_documents"] = [];
+
+        for (let index = 0; index < data.other_documents.length; index += 1) {
+          const doc = data.other_documents[index];
+          if (!doc) continue;
+
+          const processedDoc: any = {
+            ...doc,
+          };
+
+          if (doc.file_obj instanceof File) {
+            try {
+              const storageKey = `${driverId}-other-${Date.now()}-${index}`;
+              const uploadedPath = await uploadDriverPhoto(doc.file_obj, storageKey);
+              if (uploadedPath) {
+                processedDoc.file_path = uploadedPath;
+              }
+            } catch (error) {
+              logger.error(`Error uploading supporting document "${doc.name}":`, error);
+              toast.error(`Failed to upload document "${doc.name}"`);
+            }
+          } else if (Array.isArray(doc.file_path) && doc.file_path.length > 0) {
+            processedDoc.file_path = doc.file_path[0];
+          }
+
+          delete processedDoc.file_obj;
+          delete processedDoc.file;
+
+          processedDocs.push(processedDoc);
+        }
+
+        driverData.other_documents = processedDocs;
+      }
+
+      const updatedDriver = await updateDriver(driverId, driverData);
+
+      if (!updatedDriver) {
+        toast.error("Failed to update driver");
+        return;
+      }
+
+      toast.success("Driver updated successfully");
       setIsEditing(false);
-      // Reload driver data
-      // This would be replaced with actual update logic
-      window.location.reload();
+      await fetchDriverData();
     } catch (error) {
-      logger.error('Error updating driver:', error);
-      toast.error('Failed to update driver');
+      logger.error("Error updating driver:", error);
+      toast.error("Failed to update driver");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -303,8 +484,12 @@ const DriverPage: React.FC = () => {
       >
         <div className="max-w-4xl mx-auto">
           <DriverForm
-            initialData={driver}
+            initialData={{
+              ...driver,
+              driver_photo_url: driverPhotoUrl || driver.driver_photo_url,
+            }}
             onSubmit={handleUpdateDriver}
+            isSubmitting={isUpdating}
           />
         </div>
       </Layout>
@@ -319,6 +504,11 @@ const DriverPage: React.FC = () => {
     (new Date(driver.license_expiry_date).getTime() - new Date().getTime()) /
       (1000 * 60 * 60 * 24) <=
       30;
+  const resolvedDriverPhotoUrl =
+    driverPhotoUrl ||
+    (driver.driver_photo_url
+      ? getDriverPhotoPublicUrl(driver.driver_photo_url)
+      : null);
 
   return (
     <Layout
@@ -453,19 +643,19 @@ const DriverPage: React.FC = () => {
           )}
 
           {/* Modern Gradient Hero Section */}
-          <div className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-primary-100 dark:border-gray-700">
+          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
             <div className="p-8">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 {/* Profile Photo */}
                 <div className="relative">
                   <div className={`w-32 h-32 rounded-2xl overflow-hidden shadow-xl ring-4 ${
-                    driver.status === 'active' ? 'ring-green-400' :
-                    driver.status === 'onLeave' ? 'ring-yellow-400' :
-                    driver.status === 'suspended' ? 'ring-red-400' : 'ring-gray-400'
+                    driver.status === 'active' ? 'ring-green-300' :
+                    driver.status === 'onLeave' ? 'ring-yellow-300' :
+                    driver.status === 'suspended' ? 'ring-red-300' : 'ring-gray-300'
                   }`}>
-                    {driver.driver_photo_url ? (
+                    {resolvedDriverPhotoUrl ? (
                       <img
-                        src={getDriverPhotoPublicUrl(driver.driver_photo_url) || ''}
+                        src={resolvedDriverPhotoUrl || ''}
                         alt={driver.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
@@ -475,7 +665,7 @@ const DriverPage: React.FC = () => {
                         }}
                       />
                     ) : null}
-                    <div className={`${driver.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-green-100 dark:from-gray-700 dark:to-gray-800`}>
+                    <div className={`${resolvedDriverPhotoUrl ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-green-100 dark:from-gray-700 dark:to-gray-800`}>
                       <User className="w-16 h-16 text-primary-400" />
                     </div>
                   </div>
@@ -559,9 +749,9 @@ const DriverPage: React.FC = () => {
               <div className="space-y-4">
                 {/* Driver Photo */}
                 <div className="flex justify-center mb-6">
-                  {driver.driver_photo_url ? (
+                  {resolvedDriverPhotoUrl ? (
                     <img
-                      src={driver.driver_photo_url}
+                      src={resolvedDriverPhotoUrl}
                       alt={driver.name}
                       className="h-32 w-32 rounded-full object-cover shadow-md"
                     />
