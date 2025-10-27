@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout"; // ⚠️ Confirm field refactor here
-import { getVehicle, getTrips, getVehicles } from "../utils/storage";
+import { getVehicle, getTrips, getVehicles, getDriverPhotoPublicUrl } from "../utils/storage";
 import { getDriver, getDrivers } from "../utils/api/drivers";
 import { getSignedDriverDocumentUrl } from "../utils/supabaseStorage";
 import {
@@ -19,6 +19,7 @@ import {
   Phone,
   Mail, // ⚠️ Confirm field refactor here
   Edit,
+  MessageSquare,
 } from "lucide-react";
 import Button from "../components/ui/Button";
 import DriverMetrics from "../components/drivers/DriverMetrics";
@@ -451,28 +452,91 @@ const DriverPage: React.FC = () => {
             </div>
           )}
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex items-start space-x-4">
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-                {driver.driver_photo_url ? (
-                  <img
-                    src={driver.driver_photo_url}
-                    alt={driver.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Fallback to default avatar on image load error
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <div className={`w-full h-full flex items-center justify-center ${driver.driver_photo_url ? 'hidden' : ''}`}>
-                  <User className="w-12 h-12 text-gray-400" />
+          {/* Modern Gradient Hero Section */}
+          <div className="bg-gradient-to-br from-primary-50 to-green-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-primary-100 dark:border-gray-700">
+            <div className="p-8">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                {/* Profile Photo */}
+                <div className="relative">
+                  <div className={`w-32 h-32 rounded-2xl overflow-hidden shadow-xl ring-4 ${
+                    driver.status === 'active' ? 'ring-green-400' :
+                    driver.status === 'onLeave' ? 'ring-yellow-400' :
+                    driver.status === 'suspended' ? 'ring-red-400' : 'ring-gray-400'
+                  }`}>
+                    {driver.driver_photo_url ? (
+                      <img
+                        src={getDriverPhotoPublicUrl(driver.driver_photo_url) || ''}
+                        alt={driver.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={`${driver.driver_photo_url ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-green-100 dark:from-gray-700 dark:to-gray-800`}>
+                      <User className="w-16 h-16 text-primary-400" />
+                    </div>
+                  </div>
+                  {/* Status Badge */}
+                  <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
+                    driver.status === 'active' ? 'bg-green-500' :
+                    driver.status === 'onLeave' ? 'bg-yellow-500' :
+                    driver.status === 'suspended' ? 'bg-red-500' : 'bg-gray-400'
+                  }`}>
+                    {driver.status === 'active' ? '✓ Active' :
+                     driver.status === 'onLeave' ? 'On Leave' :
+                     driver.status === 'suspended' ? 'Suspended' : driver.status}
+                  </div>
                 </div>
-              </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{driver.name}</h1>
-                <div className="mt-2 space-y-1">
+
+                {/* Driver Info */}
+                <div className="flex-1 text-center md:text-left">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{driver.name}</h1>
+                  <div className="flex flex-wrap gap-3 justify-center md:justify-start mb-4">
+                    <span className="inline-flex items-center px-3 py-1 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm">
+                      <FileText className="h-4 w-4 mr-1.5 text-primary-500" />
+                      {driver.license_number}
+                    </span>
+                    {driver.experience_years && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-lg bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm">
+                        <Calendar className="h-4 w-4 mr-1.5 text-green-500" />
+                        {driver.experience_years} years exp
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Contact Quick Actions */}
+                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                    {driver.contact_number && (
+                      <>
+                        <button
+                          onClick={() => window.location.href = `tel:${driver.contact_number}`}
+                          className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
+                        >
+                          <Phone className="h-4 w-4 mr-2" />
+                          Call
+                        </button>
+                        <button
+                          onClick={() => window.open(`https://wa.me/${driver.contact_number.replace(/[^0-9]/g, '')}`)}
+                          className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          WhatsApp
+                        </button>
+                      </>
+                    )}
+                    {driver.email && (
+                      <button
+                        onClick={() => window.location.href = `mailto:${driver.email}`}
+                        className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -480,13 +544,17 @@ const DriverPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Personal Information Panel */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Personal Information
-                </h3>
-                <User className="h-6 w-6 text-primary-500" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-500 to-green-500 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <User className="h-5 w-5 mr-2" />
+                    Personal Information
+                  </h3>
+                </div>
               </div>
+
+              <div className="p-6">
 
               <div className="space-y-4">
                 {/* Driver Photo */}
@@ -577,16 +645,30 @@ const DriverPage: React.FC = () => {
                   )}
                 </div>
               </div>
+              </div>
             </div>
 
             {/* Document Status Panel */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Document Status
-                </h3>
-                <Shield className="h-6 w-6 text-primary-500" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <Shield className="h-5 w-5 mr-2" />
+                    Document Status
+                  </h3>
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      driver.documents_verified
+                        ? "bg-green-400 text-green-900"
+                        : "bg-yellow-400 text-yellow-900"
+                    }`}
+                  >
+                    {driver.documents_verified ? "✓ Verified" : "Pending"}
+                  </span>
+                </div>
               </div>
+
+              <div className="p-6">
 
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -717,16 +799,21 @@ const DriverPage: React.FC = () => {
                     )}
                 </div>
               </div>
+              </div>
             </div>
 
             {/* Primary Vehicle Panel */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Primary Vehicle
-                </h3>
-                <Truck className="h-6 w-6 text-primary-500" />
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <Truck className="h-5 w-5 mr-2" />
+                    Primary Vehicle
+                  </h3>
+                </div>
               </div>
+
+              <div className="p-6">
 
               {primaryVehicle ? (
                 <div className="space-y-4">
@@ -787,6 +874,7 @@ const DriverPage: React.FC = () => {
                   <p className="text-gray-500">No primary vehicle assigned</p>
                 </div>
               )}
+              </div>
             </div>
           </div>
 

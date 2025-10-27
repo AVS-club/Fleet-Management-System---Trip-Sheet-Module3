@@ -967,3 +967,24 @@ export const getVendors = async (): Promise<MaintenanceVendor[]> => {
     return DEMO_VENDORS; // Fallback to demo data
   }
 };
+
+// Helper function to get public URL from storage path for driver photos
+export const getDriverPhotoPublicUrl = (filePath: string): string | null => {
+  try {
+    if (!filePath) return null;
+
+    // If it's already a data URL or full URL, return it
+    if (filePath.startsWith('data:') || filePath.startsWith('http')) {
+      return filePath;
+    }
+
+    const { data } = supabase.storage
+      .from('driver-photos')
+      .getPublicUrl(filePath);
+
+    return data?.publicUrl || null;
+  } catch (error) {
+    logger.error('Error getting driver photo public URL:', error);
+    return null;
+  }
+};
