@@ -27,47 +27,22 @@ const WhatsAppIcon: React.FC<WhatsAppIconProps> = ({
 
   useEffect(() => {
     if (variant !== 'auto') return; // Skip if variant is manually set
+    if (typeof document === 'undefined') return;
 
-    // Check if dark mode is enabled
-    const checkDarkMode = () => {
-      // Check for manual dark mode class on html/body
-      const htmlElement = document.documentElement;
-      const hasDarkClass = htmlElement.classList.contains('dark');
-
-      // Check for system preference
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-      setIsDarkMode(hasDarkClass || systemPrefersDark);
+    const htmlElement = document.documentElement;
+    const updateDarkMode = () => {
+      setIsDarkMode(htmlElement.classList.contains('dark'));
     };
 
-    // Initial check
-    checkDarkMode();
+    updateDarkMode();
 
-    // Listen for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => checkDarkMode();
-
-    // Modern browsers
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener('change', handleChange);
-    } else {
-      // Fallback for older browsers
-      mediaQuery.addListener(handleChange);
-    }
-
-    // Listen for manual theme changes (if your app has a theme toggle)
-    const observer = new MutationObserver(checkDarkMode);
-    observer.observe(document.documentElement, {
+    const observer = new MutationObserver(updateDarkMode);
+    observer.observe(htmlElement, {
       attributes: true,
-      attributeFilter: ['class']
+      attributeFilter: ['class'],
     });
 
     return () => {
-      if (mediaQuery.removeEventListener) {
-        mediaQuery.removeEventListener('change', handleChange);
-      } else {
-        mediaQuery.removeListener(handleChange);
-      }
       observer.disconnect();
     };
   }, [variant]);

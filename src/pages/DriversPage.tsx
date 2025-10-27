@@ -47,6 +47,30 @@ import { getUserActiveOrganization } from '../utils/supaHelpers';
 
 const logger = createLogger('DriversPage');
 
+const dataUrlToFile = (dataUrl: string, fileName: string): File | null => {
+  try {
+    if (!dataUrl || !dataUrl.startsWith("data:")) {
+      return null;
+    }
+    const [meta, base64Data] = dataUrl.split(",");
+    if (!base64Data) {
+      return null;
+    }
+    const mimeMatch = meta.match(/:(.*?);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const binary = atob(base64Data);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], fileName, { type: mimeType });
+  } catch (error) {
+    logger.warn("Failed to convert data URL to File:", error);
+    return null;
+  }
+};
+
 const DriversPage: React.FC = () => {
   const navigate = useNavigate();
   const { permissions } = usePermissions();
@@ -225,13 +249,25 @@ const DriversPage: React.FC = () => {
     setIsSubmitting(true);
     try {
       let photoUrl = data.driver_photo_url; // Start with the URL from form data (includes API fetched URL)
+      const uploadTargetId = editingDriver?.id || `temp-${Date.now()}`;
 
-      // Handle photo upload if a new photo is provided
-      if (data.photo && data.photo instanceof File) {
+      let photoFile: File | null = null;
+      if (data.photo instanceof File) {
+        photoFile = data.photo;
+      } else if (
+        typeof data.driver_photo_url === "string" &&
+        data.driver_photo_url.startsWith("data:")
+      ) {
+        photoFile = dataUrlToFile(
+          data.driver_photo_url,
+          `${uploadTargetId}-fetch.jpg`
+        );
+      }
+
+      // Handle photo upload if we have a file (either direct upload or converted from data URL)
+      if (photoFile) {
         try {
-          // For new drivers, we'll use a temporary ID until we get the real one
-          const tempId = editingDriver?.id || `temp-${Date.now()}`;
-          photoUrl = await uploadDriverPhoto(data.photo, tempId);
+          photoUrl = await uploadDriverPhoto(photoFile, uploadTargetId);
         } catch (error) {
           logger.error("Error uploading photo:", error);
           toast.error(
@@ -255,7 +291,7 @@ const DriversPage: React.FC = () => {
           const uploadedUrls = [];
           for (const file of data.aadhar_doc_file) {
             if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+          const fileId = editingDriver?.id || `temp-${Date.now()}`;
               const filePath = await uploadDriverPhoto(file, fileId);
               uploadedUrls.push(filePath);
             }
@@ -274,7 +310,7 @@ const DriversPage: React.FC = () => {
           const uploadedUrls = [];
           for (const file of data.license_doc_file) {
             if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+          const fileId = editingDriver?.id || `temp-${Date.now()}`;
               const filePath = await uploadDriverPhoto(file, fileId);
               uploadedUrls.push(filePath);
             }
@@ -293,7 +329,7 @@ const DriversPage: React.FC = () => {
           const uploadedUrls = [];
           for (const file of data.police_doc_file) {
             if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+          const fileId = editingDriver?.id || `temp-${Date.now()}`;
               const filePath = await uploadDriverPhoto(file, fileId);
               uploadedUrls.push(filePath);
             }
@@ -312,7 +348,7 @@ const DriversPage: React.FC = () => {
           const uploadedUrls = [];
           for (const file of data.medical_doc_file) {
             if (file instanceof File) {
-              const fileId = editingDriver?.id || `temp-${Date.now()}`;
+          const fileId = editingDriver?.id || `temp-${Date.now()}`;
               const filePath = await uploadDriverPhoto(file, fileId); // Assuming uploadDriverPhoto can handle medical docs
               uploadedUrls.push(filePath);
             }

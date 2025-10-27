@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Layout from '../components/layout/Layout';
-import { AIAlert } from '@/types'; 
+import { AIAlert, Driver, Trip, Vehicle } from '@/types';
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
 import { getVehicle, getVehicles } from '../utils/storage';
+import { getDrivers } from '../utils/api/drivers';
+import { getTrips } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
 import MediaCard from '../components/HeroFeed/MediaCard';
+import EnhancedFeedCard from '../components/ai/EnhancedFeedCard';
 import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
@@ -18,9 +21,10 @@ import AlertTypeTag from '../components/alerts/AlertTypeTag';
 import { safeFormatDate, formatRelativeDate } from '../utils/dateUtils';
 import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
-import { Vehicle } from '@/types';
 import { toast } from 'react-toastify';
 import { createLogger } from '../utils/logger';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../utils/supabaseClient';
 
 const logger = createLogger('AIAlertsPage');
 
@@ -53,6 +57,50 @@ const AIAlertsPage: React.FC = () => {
   const [showVideos, setShowVideos] = useState(() => {
     const saved = localStorage.getItem('showVideos');
     return saved !== null ? JSON.parse(saved) : true; // Default to true
+  });
+
+  // Fetch drivers map for photo lookup in EnhancedFeedCard
+  const { data: driversMap } = useQuery({
+    queryKey: ['drivers-map'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select('id, name, driver_photo_url, photo_url, contact_number, status');
+
+      if (error) throw error;
+
+      const map: Record<string, any> = {};
+      data?.forEach(driver => {
+        map[driver.id] = {
+          ...driver,
+          photo_url: driver.driver_photo_url || driver.photo_url
+        };
+      });
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Fetch vehicles map for photo lookup in EnhancedFeedCard
+  const { data: vehiclesMap } = useQuery({
+    queryKey: ['vehicles-map'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, registration_number, make, model, vehicle_photo_url, photo_url');
+
+      if (error) throw error;
+
+      const map: Record<string, any> = {};
+      data?.forEach(vehicle => {
+        map[vehicle.id] = {
+          ...vehicle,
+          photo_url: vehicle.vehicle_photo_url || vehicle.photo_url
+        };
+      });
+      return map;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   // YouTube video state
@@ -807,13 +855,39 @@ const AIAlertsPage: React.FC = () => {
                           <>
                             {events.map((event, index) => {
                               // Intersperse videos every 3-4 events
-                              const shouldShowVideo = showVideos && 
-                                availableShorts.length > 0 && 
-                                index > 0 && 
+                              const shouldShowVideo = showVideos &&
+                                availableShorts.length > 0 &&
+                                index > 0 &&
                                 index % 4 === 0;
-                              
+
                               const videoIndex = Math.floor(index / 4) % availableShorts.length;
                               const short = availableShorts[videoIndex];
+
+                              // Get driver and vehicle data for this event
+                              const tripData = event.entity_json;
+
+                              // DEBUG: Log first trip event
+                              if (event.kind === 'trip' && index === 0) {
+                                console.log('=== TRIP CARD DEBUG ===');
+                                console.log('Event:', event);
+                                console.log('Trip Data:', tripData);
+                                console.log('Driver ID from trip:', tripData?.driver_id);
+                                console.log('Vehicle ID from trip:', tripData?.vehicle_id);
+                                console.log('Drivers Map:', driversMap);
+                                console.log('Drivers Map keys:', driversMap ? Object.keys(driversMap) : 'NULL');
+                                console.log('Vehicles Map:', vehiclesMap);
+                                console.log('Vehicles Map keys:', vehiclesMap ? Object.keys(vehiclesMap) : 'NULL');
+                              }
+
+                              const driverData = tripData?.driver_id && driversMap ? driversMap[tripData.driver_id] : null;
+                              const vehicleData = tripData?.vehicle_id && vehiclesMap ? vehiclesMap[tripData.vehicle_id] : null;
+
+                              // DEBUG: Log lookup results for first trip
+                              if (event.kind === 'trip' && index === 0) {
+                                console.log('Driver lookup result:', driverData);
+                                console.log('Vehicle lookup result:', vehicleData);
+                                console.log('=== END DEBUG ===');
+                              }
 
                               return (
                                 <React.Fragment key={`fragment-${event.id}`}>
@@ -824,69 +898,14 @@ const AIAlertsPage: React.FC = () => {
                                       index={videoIndex}
                                     />
                                   )}
-                                  
-                                  {/* Event Card - Colorful by Type */}
-                                  <div
+
+                                  {/* Enhanced Feed Card with maps, photos, and metrics */}
+                                  <EnhancedFeedCard
                                     key={`${event.id}-${index}`}
-                                    className={`
-                                      rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-200 border-l-4
-                                      ${event.kind === 'ai_alert' ? 'bg-red-50 dark:bg-red-900/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-900/30' : ''}
-                                      ${event.kind === 'vehicle_doc' ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
-                                      ${event.kind === 'maintenance' ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30' : ''}
-                                      ${event.kind === 'trip' ? 'bg-green-50 dark:bg-green-900/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-900/30' : ''}
-                                      ${event.kind === 'kpi' ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 hover:bg-purple-100 dark:hover:bg-purple-900/30' : ''}
-                                      ${event.kind === 'vehicle_activity' ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/30' : ''}
-                                      ${event.kind === 'activity' ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-500 hover:bg-pink-100 dark:hover:bg-pink-900/30' : ''}
-                                      ${!['ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity'].includes(event.kind) ? 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700' : ''}
-                                    `}
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <div className="flex-shrink-0">
-                                        <div className={`p-2 rounded-lg ${
-                                          event.kind === 'ai_alert' ? 'bg-red-100 dark:bg-red-800/50' :
-                                          event.kind === 'vehicle_doc' ? 'bg-blue-100 dark:bg-blue-800/50' :
-                                          event.kind === 'maintenance' ? 'bg-orange-100 dark:bg-orange-800/50' :
-                                          event.kind === 'trip' ? 'bg-green-100 dark:bg-green-800/50' :
-                                          event.kind === 'kpi' ? 'bg-purple-100 dark:bg-purple-800/50' :
-                                          event.kind === 'vehicle_activity' ? 'bg-indigo-100 dark:bg-indigo-800/50' :
-                                          event.kind === 'activity' ? 'bg-pink-100 dark:bg-pink-800/50' :
-                                          'bg-gray-100 dark:bg-gray-700'
-                                        }`}>
-                                          {event.kind === 'ai_alert' && <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />}
-                                          {event.kind === 'vehicle_doc' && <FileX className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-                                          {event.kind === 'maintenance' && <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />}
-                                          {event.kind === 'trip' && <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />}
-                                          {event.kind === 'kpi' && <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />}
-                                          {event.kind === 'vehicle_activity' && <Truck className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />}
-                                          {event.kind === 'activity' && <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />}
-                                        </div>
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
-                                          <span className={`
-                                            inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                            ${event.kind === 'ai_alert' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' : ''}
-                                            ${event.kind === 'vehicle_doc' ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200' : ''}
-                                            ${event.kind === 'maintenance' ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200' : ''}
-                                            ${event.kind === 'trip' ? 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200' : ''}
-                                            ${event.kind === 'kpi' ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200' : ''}
-                                            ${event.kind === 'vehicle_activity' ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200' : ''}
-                                            ${event.kind === 'activity' ? 'bg-pink-200 dark:bg-pink-800 text-pink-800 dark:text-pink-200' : ''}
-                                          `}>
-                                            {event.kind.replace('_', ' ')}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{event.description}</p>
-                                        <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-400">
-                                          <span className="flex items-center gap-1">
-                                            <Calendar className="h-3 w-3" />
-                                            {new Date(event.created_at).toLocaleDateString()}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
+                                    event={event}
+                                    vehicleData={vehicleData}
+                                    driverData={driverData}
+                                  />
                                 </React.Fragment>
                               );
                             })}

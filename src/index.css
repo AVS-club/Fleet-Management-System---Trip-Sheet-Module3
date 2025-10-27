@@ -42,6 +42,31 @@ body {
   100% { transform: translateY(-20px) scale(1.05); }
 }
 
+/* Refueling Popup Animations */
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+@keyframes slideInFromTop {
+  0% { 
+    opacity: 0; 
+    transform: translateY(-20px) scale(0.95); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+.animate-countdown-pulse {
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+.animate-slide-in-top {
+  animation: slideInFromTop 0.3s ease-out;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

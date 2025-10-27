@@ -28,7 +28,7 @@ import { getVehicles } from "../../utils/storage";
 import CollapsibleSection from "../ui/CollapsibleSection";
 import { toast } from "react-toastify";
 import { supabase } from "../../utils/supabaseClient";
-import { format, differenceInYears, differenceInMonths } from "date-fns";
+import { format, differenceInMonths } from "date-fns";
 import { 
   validateIndianLicense, 
   validateIndianMobile, 
@@ -44,6 +44,39 @@ import { checkDriverLicenseExpiry, getExpiryStatusColor } from "../../utils/docu
 import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('DriverForm');
+
+const ensureImageDataUrl = (imageData: string): string => {
+  if (!imageData) {
+    return "";
+  }
+  return imageData.startsWith("data:")
+    ? imageData
+    : `data:image/jpeg;base64,${imageData}`;
+};
+
+const base64ToFile = (imageData: string, fileName: string): File | null => {
+  try {
+    const normalized = ensureImageDataUrl(imageData);
+    const parts = normalized.split(",");
+    if (parts.length < 2) {
+      return null;
+    }
+    const mimeMatch = parts[0].match(/:(.*?);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const binary = atob(parts[1]);
+    const len = binary.length;
+    const buffer = new Uint8Array(len);
+
+    for (let i = 0; i < len; i += 1) {
+      buffer[i] = binary.charCodeAt(i);
+    }
+
+    return new File([buffer], fileName, { type: mimeType });
+  } catch (error) {
+    logger.warn("Failed to convert base64 image to File:", error);
+    return null;
+  }
+};
 
 interface DriverFormProps {
   initialData: Partial<Driver>;
@@ -73,9 +106,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
     handleSubmit,
     control,
     formState: { errors },
-    reset,
     watch,
     setValue,
+    getValues,
   } = useForm<Driver>({
     defaultValues: {
       name: "",
@@ -138,6 +171,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
   }, []);
 
   const handlePhotoChange = (file: File | null) => {
+    setValue('photo', file || undefined, { shouldDirty: true });
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -184,15 +218,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
       const driver = result.response || result.data?.response || {};
 
-      // Convert base64 image to data URL if present
-      let photoUrl = undefined; // ⚠️ Confirm field refactor here
-      if (driver.image) {
-        photoUrl = `data:image/jpeg;base64,${driver.image}`;
-        setPhotoPreview(photoUrl);
-      }
-
-      // Map API response to form fields
-      const mapped: Driver = {
+      const photoDataUrl = driver.image ? ensureImageDataUrl(driver.image) : undefined;
+      const mapped: Partial<Driver> = {
         id: initialData?.id || undefined,
         name: driver.holder_name || "",
         father_or_husband_name: driver.father_or_husband_name || "",
@@ -202,14 +229,14 @@ const DriverForm: React.FC<DriverFormProps> = ({
               ? "MALE"
               : driver.gender.toUpperCase() === "FEMALE"
               ? "FEMALE"
-          : "OTHER")) || // ⚠️ Confirm field refactor here
+          : "OTHER")) ||
           "MALE",
         dob: (driver?.dob && driver?.dob.split("-").reverse().join("-")) || dob,
         blood_group:
           (driver?.blood_group && driver.blood_group.toUpperCase()) || "",
         address: driver?.permanent_address || driver?.temporary_address || "",
         contact_number: driver?.contact_number || "",
-        email: driver?.email || "", // ⚠️ Confirm field refactor here
+        email: driver?.email || "",
         license_number: driver?.license_number || licenseNumber,
         vehicle_class:
           (driver?.vehicle_class &&
@@ -231,13 +258,42 @@ const DriverForm: React.FC<DriverFormProps> = ({
         rto: driver.rto || "",
         state: driver.state || "",
         join_date: initialData.join_date || format(new Date(), 'yyyy-MM-dd'),
-        experience_years: 0,
-        primary_vehicle_id: "",
-        status: "active",
-        driver_photo_url: photoUrl,
+        experience_years: getValues('experience_years') || 0,
+        primary_vehicle_id: getValues('primary_vehicle_id') || "",
+        status: getValues('status') || "active",
+        driver_photo_url: photoDataUrl || getValues('driver_photo_url') || undefined,
       };
 
-      reset(mapped);
+      const assignField = <K extends keyof Driver>(key: K, value: Driver[K]) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+        if (typeof value === "string" && value.trim() === "") {
+          return;
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          return;
+        }
+        setValue(key, value as any, { shouldDirty: false });
+      };
+
+      Object.entries(mapped).forEach(([key, value]) => {
+        if (key === "driver_photo_url") {
+          return;
+        }
+        assignField(key as keyof Driver, value as Driver[keyof Driver]);
+      });
+
+      if (photoDataUrl) {
+        setPhotoPreview(photoDataUrl);
+        setValue('driver_photo_url', photoDataUrl, { shouldDirty: false });
+        const sanitizedLicense = (licenseNumber || "driver").replace(/\s+/g, "_");
+        const generatedFile = base64ToFile(photoDataUrl, `${sanitizedLicense}-fetch.jpg`);
+        if (generatedFile) {
+          setValue('photo', generatedFile, { shouldDirty: true });
+        }
+      }
+
       setFieldsDisabled(false);
       setFetchStatus("success");
       toast.success(
@@ -288,14 +344,25 @@ const DriverForm: React.FC<DriverFormProps> = ({
   };
 
   const onFormSubmit = (data: Driver) => {
-    // Include uploaded document URLs in the submission
-    const formData = {
+    const formData: Driver = {
       ...data,
-      license_doc_url: uploadedDocuments.license || [],
-      aadhar_doc_url: uploadedDocuments.aadhar || [],
-      police_doc_url: uploadedDocuments.police || [],
-      medical_doc_url: uploadedDocuments.medical || [],
+      license_doc_url: (uploadedDocuments.license && uploadedDocuments.license.length > 0)
+        ? uploadedDocuments.license
+        : data.license_doc_url,
+      aadhar_doc_url: (uploadedDocuments.aadhar && uploadedDocuments.aadhar.length > 0)
+        ? uploadedDocuments.aadhar
+        : data.aadhar_doc_url,
+      police_doc_url: (uploadedDocuments.police && uploadedDocuments.police.length > 0)
+        ? uploadedDocuments.police
+        : data.police_doc_url,
+      medical_doc_url: (uploadedDocuments.medical && uploadedDocuments.medical.length > 0)
+        ? uploadedDocuments.medical
+        : data.medical_doc_url,
     };
+
+    if (photoPreview) {
+      formData.driver_photo_url = photoPreview;
+    }
 
     onSubmit(formData);
   };

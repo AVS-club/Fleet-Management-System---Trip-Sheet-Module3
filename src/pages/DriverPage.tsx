@@ -41,6 +41,30 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('DriverPage');
 
+const dataUrlToFile = (dataUrl: string, fileName: string): File | null => {
+  try {
+    if (!dataUrl || !dataUrl.startsWith("data:")) {
+      return null;
+    }
+    const [meta, base64Data] = dataUrl.split(",");
+    if (!base64Data) {
+      return null;
+    }
+    const mimeMatch = meta.match(/:(.*?);/);
+    const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const binary = atob(base64Data);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], fileName, { type: mimeType });
+  } catch (error) {
+    logger.warn("Failed to convert data URL to File:", error);
+    return null;
+  }
+};
+
 const DriverPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -147,7 +171,13 @@ const DriverPage: React.FC = () => {
     setLoading(true);
     try {
       const driverData = await getDriver(id);
-      setDriver(driverData);
+      const mergedDriver = driverData
+        ? {
+            ...driverData,
+            join_date: driverData.join_date || driverData.date_of_joining || driverData.join_date,
+          }
+        : null;
+      setDriver(mergedDriver);
 
       if (driverData?.driver_photo_url) {
         const publicUrl = getDriverPhotoPublicUrl(driverData.driver_photo_url);
@@ -273,9 +303,22 @@ const DriverPage: React.FC = () => {
       const driverId = driver.id;
       let photoUrl = data.driver_photo_url || driver.driver_photo_url || null;
 
-      if (data.photo && data.photo instanceof File) {
+      let photoFile: File | null = null;
+      if (data.photo instanceof File) {
+        photoFile = data.photo;
+      } else if (
+        typeof data.driver_photo_url === "string" &&
+        data.driver_photo_url.startsWith("data:")
+      ) {
+        photoFile = dataUrlToFile(
+          data.driver_photo_url,
+          `${driverId}-fetch.jpg`
+        );
+      }
+
+      if (photoFile) {
         try {
-          const uploadedPhoto = await uploadDriverPhoto(data.photo, driverId);
+          const uploadedPhoto = await uploadDriverPhoto(photoFile, driverId);
           if (uploadedPhoto) {
             photoUrl = uploadedPhoto;
           }
@@ -509,6 +552,17 @@ const DriverPage: React.FC = () => {
     (driver.driver_photo_url
       ? getDriverPhotoPublicUrl(driver.driver_photo_url)
       : null);
+  const joinDateRaw = driver.join_date || driver.date_of_joining || '';
+  const formattedJoinDate = (() => {
+    if (!joinDateRaw) {
+      return 'Not set';
+    }
+    const parsed = new Date(joinDateRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return 'Not set';
+    }
+    return parsed.toLocaleDateString();
+  })();
 
   return (
     <Layout
@@ -795,9 +849,7 @@ const DriverPage: React.FC = () => {
 
                   <div className="pt-3">
                     <p className="text-sm text-gray-500">Join Date</p>
-                    <p className="font-medium">
-                      {new Date(driver.join_date).toLocaleDateString()}
-                    </p>
+                    <p className="font-medium">{formattedJoinDate}</p>
                   </div>
 
                   <div className="pt-3">

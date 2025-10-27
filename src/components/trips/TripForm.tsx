@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Combobox } from '@headlessui/react';
 import { Trip, TripFormData, Vehicle, Driver, Destination, Warehouse, Refueling } from '@/types';
@@ -22,6 +22,7 @@ import CollapsibleRouteAnalysis from './CollapsibleRouteAnalysis';
 import RefuelingForm from './RefuelingForm';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import { CascadePreviewModal } from './CascadePreviewModal';
+import FuelDetailsPrompt from './FuelDetailsPrompt';
 import config from '../../utils/env';
 import {
   Truck,
@@ -40,7 +41,7 @@ import {
   X,
   Hash
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast, ToastId } from 'react-toastify';
 
 // Import the new warehouse rules system
 import { autoAssignWarehouse } from '../../utils/vehicleWarehouseRules';
@@ -103,6 +104,15 @@ const TripForm: React.FC<TripFormProps> = ({
     loading: false
   });
   const [selectedDestinationObjects, setSelectedDestinationObjects] = useState<Destination[]>([]);
+  const destinationsInitializedRef = useRef(false);
+  const initialDestinationsKey = useMemo(
+    () => JSON.stringify(initialData?.destinations ?? []),
+    [initialData?.destinations]
+  );
+  const initialDestinationsList = useMemo(
+    () => (initialData?.destinations ? [...initialData.destinations] : []),
+    [initialDestinationsKey]
+  );
   const [fuelBillUploadProgress, setFuelBillUploadProgress] = useState(0);
   const [fuelBillUploadStatus, setFuelBillUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -121,10 +131,22 @@ const TripForm: React.FC<TripFormProps> = ({
   const [showRefuelingDetails, setShowRefuelingDetails] = useState<boolean>(false);
   const [formValidationErrors, setFormValidationErrors] = useState<string[]>([]);
   const [autoTieDriver, setAutoTieDriver] = useState(true);
+  const [showFuelPrompt, setShowFuelPrompt] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [hasInteractedWithFuel, setHasInteractedWithFuel] = useState(false);
   
-
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const {
     register,
@@ -156,6 +178,7 @@ const TripForm: React.FC<TripFormProps> = ({
       ...initialData
     }
   });
+
 
   // Reset form with initial data whenever initialData changes - with proper date formatting
   useEffect(() => {
@@ -311,27 +334,25 @@ const TripForm: React.FC<TripFormProps> = ({
     fetchFormData();
   }, [allVehicles, allDrivers, allDestinations, allWarehouses, allMaterialTypes]);
 
-  // Initialize selected destinations from initialData
   useEffect(() => {
-    if (initialData?.destinations && destinations.length > 0) {
-      const selectedDests = initialData.destinations
-        .map(id => destinations.find(d => d.id === id))
-        .filter(Boolean) as Destination[];
-      setSelectedDestinationObjects(selectedDests);
-    }
-  }, [initialData?.destinations, destinations]);
+    destinationsInitializedRef.current = false;
+    setSelectedDestinationObjects([]);
+    setValue('destinations', initialDestinationsList);
+  }, [initialDestinationsKey, initialData?.id, initialDestinationsList, setValue]);
 
-  // Handle cloned trip data - set destinations when they become available
+  // Initialize selected destinations from initialData without clobbering user edits
   useEffect(() => {
-    if (initialData?.destinations && destinations.length > 0 && selectedDestinationObjects.length === 0) {
-      const selectedDests = initialData.destinations
-        .map(id => destinations.find(d => d.id === id))
-        .filter(Boolean) as Destination[];
-      if (selectedDests.length > 0) {
-        setSelectedDestinationObjects(selectedDests);
-      }
+    if (initialDestinationsList.length === 0 || destinations.length === 0 || destinationsInitializedRef.current) {
+      return;
     }
-  }, [initialData?.destinations, destinations, selectedDestinationObjects.length]);
+
+    const selectedDests = initialDestinationsList
+      .map(id => destinations.find(d => d.id === id))
+      .filter(Boolean) as Destination[];
+
+    setSelectedDestinationObjects(selectedDests);
+    destinationsInitializedRef.current = true;
+  }, [initialDestinationsList, destinations]);
 
   // Add a ref to track vehicle changes
   const vehicleJustChanged = useRef(false);
@@ -423,6 +444,7 @@ const TripForm: React.FC<TripFormProps> = ({
     const newDestinations = [...selectedDestinationObjects, destination];
     setSelectedDestinationObjects(newDestinations);
     setValue('destinations', newDestinations.map(d => d.id));
+    destinationsInitializedRef.current = true;
   };
 
   // Handle removing destinations
@@ -430,6 +452,7 @@ const TripForm: React.FC<TripFormProps> = ({
     const newDestinations = selectedDestinationObjects.filter((_, i) => i !== index);
     setSelectedDestinationObjects(newDestinations);
     setValue('destinations', newDestinations.map(d => d.id));
+    destinationsInitializedRef.current = true;
   };
 
   // Enhanced End KM blur handler with cascade preview and route analysis
@@ -600,6 +623,11 @@ const TripForm: React.FC<TripFormProps> = ({
       (watchedValues.refuelings && watchedValues.refuelings.length > 0 && 
        watchedValues.refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
 
+    // Track fuel interaction
+    if (hasFuelData || watchedValues.refueling_done) {
+      setHasInteractedWithFuel(true);
+    }
+
     // Auto-detect refueling when fuel data is entered (unless manually toggled)
     if (hasFuelData && !isRefuelingTrip && !manualToggle) {
       setIsRefuelingTrip(true);
@@ -618,7 +646,7 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('fuel_quantity', 0);
       setValue('fuel_rate_per_liter', 0);
     }
-  }, [watchedValues.total_fuel_cost, watchedValues.fuel_quantity, watchedValues.refuelings, isRefuelingTrip, showRefuelingInfo, manualToggle, setValue]);
+  }, [watchedValues.total_fuel_cost, watchedValues.fuel_quantity, watchedValues.refuelings, watchedValues.refueling_done, isRefuelingTrip, showRefuelingInfo, manualToggle, setValue]);
 
   // Initialize refueling state based on initial data
   useEffect(() => {
@@ -889,6 +917,16 @@ const TripForm: React.FC<TripFormProps> = ({
 
     // Calculate mileage using tank-to-tank method if refueling data is available
     const totalFuel = (data.refuelings || []).reduce((sum, r) => sum + (r.fuel_quantity || 0), 0);
+    const hasFuelDetails =
+      totalFuel > 0 ||
+      (Array.isArray(data.refuelings) &&
+        data.refuelings.some(
+          (refuel) =>
+            (refuel?.total_fuel_cost || 0) > 0 ||
+            (refuel?.fuel_rate_per_liter || 0) > 0
+        )) ||
+      (data.total_fuel_cost ?? 0) > 0 ||
+      (data.fuel_quantity ?? 0) > 0;
     if (totalFuel > 0 && data.start_km && data.end_km) {
       // Create a temporary trip object for mileage calculation
       const tempTrip: Trip = {
@@ -977,7 +1015,55 @@ const TripForm: React.FC<TripFormProps> = ({
     delete submitData.destination_display;
     delete submitData.toll_expense; // Database uses breakdown_expense instead
 
-    // Submit trip data
+    // Check for gross weight notification (non-blocking)
+    const grossWeight = data.gross_weight || 0;
+    if (grossWeight === 0 || grossWeight < 100) {
+      toast.info(
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center">
+                <Package className="h-4 w-4 text-amber-600" />
+              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                Gross weight not added
+              </h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Was the truck traveling without any load? Trip will be saved automatically.
+              </p>
+            </div>
+          </div>
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          closeButton: false,
+          draggable: false,
+          className: "max-w-sm w-full bg-white text-gray-900 border border-amber-200 shadow-lg rounded-xl",
+          bodyClassName: "p-4",
+          icon: false,
+        }
+      );
+    }
+
+    // Check if we should show the fuel prompt
+    const shouldShowFuelPrompt = 
+      !initialData?.id && 
+      !manualToggle && 
+      !isRefuelingTrip && 
+      !hasFuelDetails && 
+      !hasInteractedWithFuel &&
+      computedDistance >= 5 && // Suppress for very short trips
+      validationError === null; // Only show if form validation passes
+
+    if (shouldShowFuelPrompt) {
+      setShowFuelPrompt(true);
+      return; // Don't submit yet, wait for user choice
+    }
 
     await onSubmit(submitData);
   };
@@ -1059,6 +1145,81 @@ const TripForm: React.FC<TripFormProps> = ({
       loading: false
     });
   };
+
+  // Fuel prompt handlers
+  const handleAddFuel = useCallback(() => {
+    setShowFuelPrompt(false);
+    setIsRefuelingTrip(true);
+    setShowRefuelingInfo(true);
+    setShowRefuelingDetails(true);
+    setManualToggle(true);
+    setValue('refueling_done', true);
+    setHasInteractedWithFuel(true);
+  }, [setValue]);
+
+  const handleSaveWithoutFuel = useCallback(async (data: TripFormData) => {
+    setShowFuelPrompt(false);
+    try {
+      // Create submit data for saving without fuel
+      const submitData: any = { 
+        ...data,
+        destinations: selectedDestinationObjects.map(d => d.id),
+        trip_duration: data.trip_duration || 1,
+        gross_weight: data.gross_weight || 0,
+        breakdown_expense: data.breakdown_expense || 0,
+        refueling_done: false,
+        refuelings: [],
+        total_fuel_cost: 0,
+        fuel_quantity: 0,
+        fuel_rate_per_liter: 0
+      };
+
+      // Remove fields that don't exist in database schema
+      delete submitData.destination_names;
+      delete submitData.destination_display;
+      delete submitData.toll_expense;
+
+      await onSubmit(submitData);
+      toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+    } catch (error) {
+      logger.error('Error saving trip without fuel:', error);
+      toast.error('Failed to save trip');
+    }
+  }, [onSubmit, selectedDestinationObjects]);
+
+  const handleDismissFuelPrompt = useCallback(() => {
+    setShowFuelPrompt(false);
+  }, []);
+
+  const handleConfirmSaveWithoutFuel = useCallback(async (data: TripFormData) => {
+    setShowFuelPrompt(false);
+    try {
+      // Create submit data for saving without fuel
+      const submitData: any = { 
+        ...data,
+        destinations: selectedDestinationObjects.map(d => d.id),
+        trip_duration: data.trip_duration || 1,
+        gross_weight: data.gross_weight || 0,
+        breakdown_expense: data.breakdown_expense || 0,
+        refueling_done: false,
+        refuelings: [],
+        total_fuel_cost: 0,
+        fuel_quantity: 0,
+        fuel_rate_per_liter: 0
+      };
+
+      // Remove fields that don't exist in database schema
+      delete submitData.destination_names;
+      delete submitData.destination_display;
+      delete submitData.toll_expense;
+
+      await onSubmit(submitData);
+      toast.success("Trip saved. You can add fuel anytime from Trips → Edit.");
+    } catch (error) {
+      logger.error('Error saving trip without fuel:', error);
+      toast.error('Failed to save trip');
+    }
+  }, [onSubmit, selectedDestinationObjects]);
 
 
   if (loading) {
@@ -2027,6 +2188,16 @@ const TripForm: React.FC<TripFormProps> = ({
         onApply={handleApplyCascade}
         affectedTrips={cascadePreview.affectedTrips}
         loading={cascadePreview.loading}
+      />
+
+      {/* Fuel Details Prompt */}
+      <FuelDetailsPrompt
+        isOpen={showFuelPrompt}
+        onAddFuel={handleAddFuel}
+        onSaveWithoutFuel={() => handleSaveWithoutFuel(watchedValues)}
+        onDismiss={handleDismissFuelPrompt}
+        onConfirmSave={() => handleConfirmSaveWithoutFuel(watchedValues)}
+        isMobile={isMobile}
       />
     </div>
   );
