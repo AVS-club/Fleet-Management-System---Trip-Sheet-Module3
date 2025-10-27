@@ -643,15 +643,15 @@ const DriverPage: React.FC = () => {
           )}
 
           {/* Modern Gradient Hero Section */}
-          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+          <div className="bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700">
             <div className="p-8">
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 {/* Profile Photo */}
                 <div className="relative">
                   <div className={`w-32 h-32 rounded-2xl overflow-hidden shadow-xl ring-4 ${
-                    driver.status === 'active' ? 'ring-green-300' :
-                    driver.status === 'onLeave' ? 'ring-yellow-300' :
-                    driver.status === 'suspended' ? 'ring-red-300' : 'ring-gray-300'
+                    driver.status === 'active' ? 'ring-green-200' :
+                    driver.status === 'onLeave' ? 'ring-yellow-200' :
+                    driver.status === 'suspended' ? 'ring-red-200' : 'ring-gray-200'
                   }`}>
                     {resolvedDriverPhotoUrl ? (
                       <img
@@ -735,7 +735,7 @@ const DriverPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Personal Information Panel */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary-500 to-green-500 px-6 py-4">
+              <div className="bg-gradient-to-r from-emerald-400 to-teal-400 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white flex items-center">
                     <User className="h-5 w-5 mr-2" />
@@ -840,7 +840,7 @@ const DriverPage: React.FC = () => {
 
             {/* Document Status Panel */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-4">
+              <div className="bg-gradient-to-r from-blue-400 to-indigo-400 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white flex items-center">
                     <Shield className="h-5 w-5 mr-2" />
@@ -994,7 +994,7 @@ const DriverPage: React.FC = () => {
 
             {/* Primary Vehicle Panel */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 px-6 py-4">
+              <div className="bg-gradient-to-r from-orange-400 to-rose-400 px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-white flex items-center">
                     <Truck className="h-5 w-5 mr-2" />
