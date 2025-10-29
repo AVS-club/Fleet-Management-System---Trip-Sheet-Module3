@@ -191,7 +191,7 @@ export const filterDrivers = (drivers: any[], searchTerm: string): any[] => {
   const search = searchTerm.toLowerCase();
   return drivers.filter(driver =>
     driver.name?.toLowerCase().includes(search) ||
-    driver.phone?.includes(search) ||
+    driver.contact_number?.includes(search) ||
     driver.license_number?.toLowerCase().includes(search)
   );
 };

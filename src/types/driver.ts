@@ -2,7 +2,7 @@ export interface Driver {
   id?: string;
   name: string;
   license_number?: string;
-  phone?: string; // matches database 'phone' column
+  contact_number?: string; // matches database 'contact_number' column
   address?: string;
   date_of_birth?: string; // matches database 'date_of_birth' column
   date_of_joining?: string; // matches database 'date_of_joining' column
@@ -17,7 +17,7 @@ export interface Driver {
   updated_at?: string; // matches database 'updated_at' column
 
   // Legacy fields for backward compatibility (not in database)
-  contact_number?: string; // alias for phone
+  phone?: string; // alias for contact_number
   join_date?: string; // alias for date_of_joining
   dob?: string; // alias for date_of_birth
   license_expiry_date?: string; // alias for license_expiry

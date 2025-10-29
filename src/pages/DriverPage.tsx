@@ -336,15 +336,12 @@ const DriverPage: React.FC = () => {
 
       const contactNumber =
         normalizeString(data.contact_number) ||
-        normalizeString(data.phone) ||
-        normalizeString(driver.contact_number) ||
-        normalizeString(driver.phone);
+        normalizeString(driver.contact_number);
 
       const driverData: Partial<Driver> = {
         ...data,
         driver_photo_url: photoUrl || undefined,
         contact_number: contactNumber || undefined,
-        phone: contactNumber || undefined,
       };
 
       const dobValue = normalizeString(data.dob as string);
