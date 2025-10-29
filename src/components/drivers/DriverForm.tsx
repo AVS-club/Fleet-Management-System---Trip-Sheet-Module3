@@ -469,7 +469,6 @@ const DriverForm: React.FC<DriverFormProps> = ({
                       handlePhotoChange(file);
                     }}
                     disabled={fieldsDisabled || isSubmitting}
-                    {...field}
                   />
                 </label>
               </div>
