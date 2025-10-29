@@ -194,9 +194,12 @@ const DriverPage: React.FC = () => {
       }
 
       if (driverData?.primary_vehicle_id) {
+        logger.debug('Loading primary vehicle for driver:', driverData.primary_vehicle_id);
         const vehicleData = await getVehicle(driverData.primary_vehicle_id);
+        logger.debug('Primary vehicle data:', vehicleData);
         setPrimaryVehicle(vehicleData);
       } else {
+        logger.debug('No primary vehicle ID found for driver:', driverData);
         setPrimaryVehicle(null);
       }
 
@@ -481,6 +484,9 @@ const DriverPage: React.FC = () => {
         driverData.other_documents = processedDocs;
       }
 
+      logger.debug('Saving driver data with primary_vehicle_id:', driverData.primary_vehicle_id);
+      logger.debug('Full driver data being saved:', driverData);
+      
       const updatedDriver = await updateDriver(driverId, driverData);
 
       if (!updatedDriver) {
