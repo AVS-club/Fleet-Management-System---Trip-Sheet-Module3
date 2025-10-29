@@ -60,12 +60,26 @@ const AIAlertsPage: React.FC = () => {
   });
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
-  const { data: driversMap } = useQuery({
+  const { data: driversMap, error: driversError, isLoading: driversLoading } = useQuery({
     queryKey: ['drivers-map'],
     queryFn: async () => {
+      // Get user's organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return {};
+
+      // Get user's active organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.active_organization_id) return {};
+
       const { data, error } = await supabase
         .from('drivers')
-        .select('id, name, driver_photo_url, photo_url, contact_number, status');
+        .select('id, name, driver_photo_url, contact_number, status')
+        .eq('organization_id', profile.active_organization_id);
 
       if (error) throw error;
 
@@ -73,7 +87,7 @@ const AIAlertsPage: React.FC = () => {
       data?.forEach(driver => {
         map[driver.id] = {
           ...driver,
-          photo_url: driver.driver_photo_url || driver.photo_url
+          photo_url: driver.driver_photo_url  // Normalize to photo_url for consistency
         };
       });
       return map;
@@ -82,21 +96,32 @@ const AIAlertsPage: React.FC = () => {
   });
 
   // Fetch vehicles map for photo lookup in EnhancedFeedCard
-  const { data: vehiclesMap } = useQuery({
+  const { data: vehiclesMap, error: vehiclesError, isLoading: vehiclesLoading } = useQuery({
     queryKey: ['vehicles-map'],
     queryFn: async () => {
+      // Get user's organization
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return {};
+
+      // Get user's active organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_organization_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.active_organization_id) return {};
+
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, registration_number, make, model, vehicle_photo_url, photo_url');
+        .select('id, registration_number, make, model, photo_url')
+        .eq('organization_id', profile.active_organization_id);
 
       if (error) throw error;
 
       const map: Record<string, any> = {};
       data?.forEach(vehicle => {
-        map[vehicle.id] = {
-          ...vehicle,
-          photo_url: vehicle.vehicle_photo_url || vehicle.photo_url
-        };
+        map[vehicle.id] = vehicle;
       });
       return map;
     },
@@ -110,6 +135,7 @@ const AIAlertsPage: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
 
   // Fetch alerts and vehicles data
   useEffect(() => {
@@ -865,29 +891,8 @@ const AIAlertsPage: React.FC = () => {
 
                               // Get driver and vehicle data for this event
                               const tripData = event.entity_json;
-
-                              // DEBUG: Log first trip event
-                              if (event.kind === 'trip' && index === 0) {
-                                console.log('=== TRIP CARD DEBUG ===');
-                                console.log('Event:', event);
-                                console.log('Trip Data:', tripData);
-                                console.log('Driver ID from trip:', tripData?.driver_id);
-                                console.log('Vehicle ID from trip:', tripData?.vehicle_id);
-                                console.log('Drivers Map:', driversMap);
-                                console.log('Drivers Map keys:', driversMap ? Object.keys(driversMap) : 'NULL');
-                                console.log('Vehicles Map:', vehiclesMap);
-                                console.log('Vehicles Map keys:', vehiclesMap ? Object.keys(vehiclesMap) : 'NULL');
-                              }
-
                               const driverData = tripData?.driver_id && driversMap ? driversMap[tripData.driver_id] : null;
                               const vehicleData = tripData?.vehicle_id && vehiclesMap ? vehiclesMap[tripData.vehicle_id] : null;
-
-                              // DEBUG: Log lookup results for first trip
-                              if (event.kind === 'trip' && index === 0) {
-                                console.log('Driver lookup result:', driverData);
-                                console.log('Vehicle lookup result:', vehicleData);
-                                console.log('=== END DEBUG ===');
-                              }
 
                               return (
                                 <React.Fragment key={`fragment-${event.id}`}>

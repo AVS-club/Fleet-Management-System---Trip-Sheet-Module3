@@ -76,22 +76,43 @@ export const useHeroFeed = (filters?: {
     queryKey: ['hero-feed', filters],
     queryFn: async ({ pageParam = null }) => {
       try {
+        // Get user's organization
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          logger.warn('No user found, returning empty feed');
+          return [];
+        }
+
+        // Get user's active organization
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('active_organization_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile?.active_organization_id) {
+          logger.warn('No active organization found, returning empty feed');
+          return [];
+        }
+
         let query = supabase
           .from('events_feed')
           .select('*')
+          .eq('organization_id', profile.active_organization_id)
           .order('event_time', { ascending: false })
           .limit(filters?.limit || 20);
-        
+
         if (filters?.kinds && filters.kinds.length > 0 && !filters.kinds.includes('all')) {
           query = query.in('kind', filters.kinds);
         }
-        
+
         if (pageParam) {
           query = query.lt('event_time', pageParam);
         }
-        
+
         const { data, error } = await query;
         if (error) throw error;
+
         return data as FeedEvent[];
       } catch (error) {
         logger.warn('Database not available, using mock data:', error);

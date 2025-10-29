@@ -193,6 +193,46 @@ export const createTask = async (
     throw new Error(`Error creating maintenance task: ${error.message}`);
   }
 
+  // Add maintenance task to events feed for AI Alerts timeline
+  if (data) {
+    try {
+      const { error: feedError } = await supabase
+        .from('events_feed')
+        .insert({
+          kind: 'maintenance',
+          event_time: data.start_date || new Date().toISOString(),
+          priority: data.priority === 'high' ? 'warn' : 'info',
+          title: `Maintenance Task Created${data.priority === 'high' ? ' (High Priority)' : ''}`,
+          description: `${data.type || 'Service'} scheduled for vehicle at ${data.odometer_reading} km`,
+          entity_json: {
+            task_id: data.id,
+            vehicle_id: data.vehicle_id,
+            type: data.type,
+            priority: data.priority,
+            status: data.status,
+            odometer_reading: data.odometer_reading,
+            garage_id: data.garage_id,
+            scheduled_date: data.start_date
+          },
+          status: data.status,
+          metadata: {
+            source: 'maintenance_task_creation'
+          },
+          organization_id: data.organization_id
+        });
+
+      if (feedError) {
+        logger.error('Failed to create feed event:', feedError);
+        // Don't throw - feed event is not critical
+      } else {
+        logger.debug('✅ Maintenance task added to events feed');
+      }
+    } catch (feedError) {
+      logger.error('Exception adding to events feed:', feedError);
+      // Continue - feed event is not critical
+    }
+  }
+
   // Handle odometer image upload with actual task ID
   if (data && taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
     try {
@@ -362,6 +402,44 @@ export const updateTask = async (
   if (error) {
     handleSupabaseError('update maintenance task', error);
     throw new Error(`Error updating maintenance task: ${error.message}`);
+  }
+
+  // Add feed event if status changed to completed
+  if (updatedTask && updateData.status === 'completed' && oldTask.status !== 'completed') {
+    try {
+      const { error: feedError } = await supabase
+        .from('events_feed')
+        .insert({
+          kind: 'maintenance',
+          event_time: updatedTask.end_date || new Date().toISOString(),
+          priority: 'info',
+          title: 'Maintenance Task Completed',
+          description: `${updatedTask.type || 'Service'} completed for vehicle at ${updatedTask.odometer_reading} km`,
+          entity_json: {
+            task_id: updatedTask.id,
+            vehicle_id: updatedTask.vehicle_id,
+            type: updatedTask.type,
+            priority: updatedTask.priority,
+            status: updatedTask.status,
+            odometer_reading: updatedTask.odometer_reading,
+            garage_id: updatedTask.garage_id,
+            completed_date: updatedTask.end_date
+          },
+          status: 'completed',
+          metadata: {
+            source: 'maintenance_task_completion'
+          },
+          organization_id: updatedTask.organization_id
+        });
+
+      if (feedError) {
+        logger.error('Failed to create completion feed event:', feedError);
+      } else {
+        logger.debug('✅ Maintenance completion added to events feed');
+      }
+    } catch (feedError) {
+      logger.error('Exception adding completion to events feed:', feedError);
+    }
   }
 
   // Compute and update next due dates/odometer if relevant fields changed
