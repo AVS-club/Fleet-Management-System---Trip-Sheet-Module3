@@ -59,6 +59,13 @@ export const useKPICards = () => {
           .limit(20);
         
         if (error) throw error;
+        
+        // If no data in database, return mock data
+        if (!data || data.length === 0) {
+          logger.info('No KPI cards in database, using mock data');
+          return getMockKPICards();
+        }
+        
         return data as KPICard[];
       } catch (error) {
         logger.warn('Database not available, using mock KPI data:', error);
@@ -112,6 +119,12 @@ export const useHeroFeed = (filters?: {
 
         const { data, error } = await query;
         if (error) throw error;
+
+        // If no data in database, return mock data
+        if (!data || data.length === 0) {
+          logger.info('No events in database, using mock data');
+          return getMockFeedEvents(filters, pageParam);
+        }
 
         return data as FeedEvent[];
       } catch (error) {

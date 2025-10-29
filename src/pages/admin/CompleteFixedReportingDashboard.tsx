@@ -140,18 +140,6 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     setSelectedDateRange(rangeType);
   }, [customStartDate, customEndDate]);
 
-  // Initialize date range properly
-  useEffect(() => {
-    updateDateRange(selectedDateRange);
-  }, [updateDateRange, selectedDateRange]);
-
-  // Fetch data when date range changes
-  useEffect(() => {
-    if (activeTab === 'dashboard') {
-      fetchDashboardData();
-    }
-  }, [dateRange, activeTab, fetchDashboardData]);
-
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
@@ -170,6 +158,18 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       setLoading(false);
     }
   }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
+
+  // Initialize date range properly
+  useEffect(() => {
+    updateDateRange(selectedDateRange);
+  }, [updateDateRange, selectedDateRange]);
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [dateRange, activeTab, fetchDashboardData]);
 
   const fetchMetrics = useCallback(async () => {
     try {

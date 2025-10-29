@@ -716,27 +716,36 @@ const AIAlertsPage: React.FC = () => {
           {activeTab === 'all-feed' ? (
             <div className="space-y-6">
               {/* Hero Feed Content */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-display font-semibold tracking-tight-plus text-gray-900">Complete Feed</h2>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        refetchHeroFeed();
-                        refetchKPIs();
-                        if (hasYouTubeAPIKey) refetchShorts();
-                      }}
-                      icon={<RefreshCw className="h-4 w-4" />}
-                    >
-                      Refresh
-                    </Button>
+              <div className="bg-white rounded-lg shadow-sm">
+                <div className="flex justify-between items-center p-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                      <Bell className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Fleet Activity</h3>
+                      <p className="text-xs text-gray-500">Real-time updates from your fleet</p>
+                    </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      refetchHeroFeed();
+                      refetchKPIs();
+                      if (hasYouTubeAPIKey) refetchShorts();
+                    }}
+                    icon={<RefreshCw className="h-4 w-4" />}
+                  >
+                    Refresh
+                  </Button>
                 </div>
+                <div className="p-4">
                 
                 {/* Feed Filters */}
-                <div className="mb-6">
-                  <div className="flex flex-wrap gap-2">
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-500">Filter:</span>
                     {['all', 'ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity', 'media'].map(filter => (
                       <button
                         key={filter}
@@ -744,8 +753,8 @@ const AIAlertsPage: React.FC = () => {
                           if (filter === 'all') {
                             setSelectedFilters(['all']);
                           } else {
-                            setSelectedFilters(prev => 
-                              prev.includes('all') 
+                            setSelectedFilters(prev =>
+                              prev.includes('all')
                                 ? [filter]
                                 : prev.includes(filter)
                                 ? prev.filter(f => f !== filter)
@@ -753,10 +762,10 @@ const AIAlertsPage: React.FC = () => {
                             );
                           }
                         }}
-                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                           selectedFilters.includes(filter)
-                            ? 'bg-primary-100 text-primary-700 border border-primary-200'
-                            : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                            ? 'bg-teal-100 text-teal-700 border border-teal-300'
+                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                         }`}
                       >
                         {filter === 'all' ? 'All' : filter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -767,94 +776,93 @@ const AIAlertsPage: React.FC = () => {
 
                 {/* Social Media Scroller Layout */}
                 <div className="max-w-4xl mx-auto">
-                  {/* Stats Grid - Colorful Cards */}
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/20 p-4 rounded-xl border border-red-200 dark:border-red-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Bell className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  {/* Stats Grid - Compact Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+                    <div className="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-lg border border-red-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-red-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-red-700">{events.filter(e => e.kind === 'ai_alert').length}</p>
+                          <p className="text-xs text-red-600 truncate">AI Alerts</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-red-700 dark:text-red-300">{events.filter(e => e.kind === 'ai_alert').length}</span>
-                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-1">AI Alerts</p>
                     </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20 p-4 rounded-xl border border-blue-200 dark:border-blue-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg border border-blue-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-blue-700">{events.filter(e => e.kind === 'vehicle_doc').length}</p>
+                          <p className="text-xs text-blue-600 truncate">Documents</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">{events.filter(e => e.kind === 'vehicle_doc').length}</span>
-                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mt-1">Documents</p>
                     </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/30 dark:to-orange-800/20 p-4 rounded-xl border border-orange-200 dark:border-orange-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Tool className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg border border-orange-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <Tool className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-orange-700">{events.filter(e => e.kind === 'maintenance').length}</p>
+                          <p className="text-xs text-orange-600 truncate">Maintenance</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-orange-700 dark:text-orange-300">{events.filter(e => e.kind === 'maintenance').length}</span>
-                      <p className="text-xs font-medium text-orange-600 dark:text-orange-400 mt-1">Maintenance</p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/20 p-4 rounded-xl border border-green-200 dark:border-green-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Truck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-green-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-green-700">{events.filter(e => e.kind === 'trip').length}</p>
+                          <p className="text-xs text-green-600 truncate">Trips</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-green-700 dark:text-green-300">{events.filter(e => e.kind === 'trip').length}</span>
-                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mt-1">Trips</p>
                     </div>
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/20 p-4 rounded-xl border border-purple-200 dark:border-purple-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg border border-purple-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <BarChart2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-purple-700">
+                            {events.filter(e => e.kind === 'kpi').length + (kpiCards?.filter(card => card.kpi_payload?.type === 'kpi').length || 0)}
+                          </p>
+                          <p className="text-xs text-purple-600 truncate">KPIs</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-purple-700 dark:text-purple-300">{events.filter(e => e.kind === 'kpi').length}</span>
-                      <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mt-1">KPIs</p>
                     </div>
-                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/30 dark:to-pink-800/20 p-4 rounded-xl border border-pink-200 dark:border-pink-700 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center justify-between mb-2">
-                        <Play className="h-5 w-5 text-pink-600 dark:text-pink-400" />
+                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-3 rounded-lg border border-pink-200 hover:shadow-sm transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <Play className="h-4 w-4 text-pink-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xl font-bold text-pink-700">{availableShorts.length}</p>
+                          <p className="text-xs text-pink-600 truncate">Videos</p>
+                        </div>
                       </div>
-                      <span className="text-2xl font-bold text-pink-700 dark:text-pink-300">{availableShorts.length}</span>
-                      <p className="text-xs font-medium text-pink-600 dark:text-pink-400 mt-1">Videos</p>
                     </div>
                   </div>
 
-                  {/* Video Toggle */}
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Fleet Activity Feed</h2>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={toggleVideos}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                          showVideos
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                        }`}
-                        title={showVideos ? 'Hide video reels' : 'Show video reels'}
-                      >
-                        {showVideos ? (
-                          <>
-                            <Video className="w-4 h-4" />
-                            <span className="text-sm font-medium">Videos ON</span>
-                          </>
-                        ) : (
-                          <>
-                            <VideoOff className="w-4 h-4" />
-                            <span className="text-sm font-medium">Videos OFF</span>
-                          </>
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          refetchHeroFeed();
-                          refetchKPIs();
-                          if (hasYouTubeAPIKey) refetchShorts();
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        Refresh
-                      </button>
-                    </div>
+                  {/* Video Toggle - Compact */}
+                  <div className="flex justify-end items-center mb-4">
+                    <button
+                      onClick={toggleVideos}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        showVideos
+                          ? 'bg-teal-600 text-white shadow-sm'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      title={showVideos ? 'Hide video reels' : 'Show video reels'}
+                    >
+                      {showVideos ? (
+                        <>
+                          <Video className="w-3.5 h-3.5" />
+                          <span>Videos ON</span>
+                        </>
+                      ) : (
+                        <>
+                          <VideoOff className="w-3.5 h-3.5" />
+                          <span>Videos OFF</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Social Media Scroller */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {heroFeedLoading ? (
                       <div className="text-center py-8">
                         <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary-600" />
@@ -937,6 +945,7 @@ const AIAlertsPage: React.FC = () => {
                       </>
                     )}
                   </div>
+                </div>
                 </div>
               </div>
             </div>
