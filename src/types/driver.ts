@@ -21,7 +21,7 @@ export interface Driver {
   join_date?: string; // alias for date_of_joining
   dob?: string; // alias for date_of_birth
   license_expiry_date?: string; // alias for license_expiry
-  primary_vehicle_id?: string; // not in current schema but used in code
+  primary_vehicle_id?: string; // matches database 'primary_vehicle_id' column
   driver_photo_url?: string; // not in current schema but used in code
 
   // Document URLs (stored in Supabase Storage) - not in current schema

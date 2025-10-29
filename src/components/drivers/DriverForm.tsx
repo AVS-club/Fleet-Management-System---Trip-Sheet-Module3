@@ -319,9 +319,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
       const years = Math.floor(totalMonths / 12);
       const months = totalMonths % 12;
       
-      // Store the decimal representation for database
-      const decimalYears = parseFloat((totalMonths / 12).toFixed(2));
-      setValue('experience_years', decimalYears);
+      // Store the integer representation for database (round to nearest year)
+      const integerYears = Math.round(totalMonths / 12);
+      setValue('experience_years', integerYears);
       
       // Set display string
       setExperienceDisplay(`${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`);
