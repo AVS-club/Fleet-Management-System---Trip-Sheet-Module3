@@ -174,7 +174,14 @@ const DriverPage: React.FC = () => {
       const mergedDriver = driverData
         ? {
             ...driverData,
-            join_date: driverData.join_date || driverData.date_of_joining || driverData.join_date,
+            // Map database fields to form fields
+            dob: driverData.date_of_birth || driverData.dob,
+            join_date: driverData.date_of_joining || driverData.join_date,
+            license_expiry_date: driverData.license_expiry || driverData.license_expiry_date,
+            // Keep original fields for backward compatibility
+            date_of_birth: driverData.date_of_birth,
+            date_of_joining: driverData.date_of_joining,
+            license_expiry: driverData.license_expiry,
           }
         : null;
       setDriver(mergedDriver);
@@ -350,6 +357,7 @@ const DriverPage: React.FC = () => {
         (data as any).license_expiry_date
       );
 
+      // Map form fields to database fields
       if (dobValue) {
         (driverData as any).date_of_birth = dobValue;
       }
@@ -360,10 +368,13 @@ const DriverPage: React.FC = () => {
         (driverData as any).license_expiry = licenseExpiryValue;
       }
 
+      // Clean up form fields that don't exist in database
       delete (driverData as any).photo;
       delete (driverData as any).dob;
       delete (driverData as any).join_date;
       delete (driverData as any).license_expiry_date;
+      delete (driverData as any).valid_from; // Not in database
+      delete (driverData as any).license_issue_date; // Not in database
 
       const mergeDocumentUrls = async (
         files: File[] | undefined,
