@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(npm run build:check:*)"
+      "Bash(npm run build:check:*)",
+      "Bash(npm run dev:*)",
+      "Bash(node check_kpis.js:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"console.log(require(''''fs'''').readFileSync(''''.bolt/supabase_discarded_migrations/20250130000000_create_events_feed.sql'''', ''''utf8''''))\")",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []
