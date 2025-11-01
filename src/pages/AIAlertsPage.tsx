@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { AIAlert, Driver, Trip, Vehicle } from '@/types';
 import { getAIAlerts, processAlertAction, runAlertScan } from '../utils/aiAnalytics';
@@ -10,7 +11,7 @@ import MediaCard from '../components/HeroFeed/MediaCard';
 import EnhancedFeedCard from '../components/ai/EnhancedFeedCard';
 import TripCard from '../components/trips/TripCard';
 import { useHeroFeed } from '../hooks/useHeroFeed';
-import { useKPICards as useKPICardsData, useLatestKPIs } from '../hooks/useKPICards';
+import { useKPICards as useKPICardsData, useLatestKPIs } from '@/hooks/useKPICards';
 import KPICard from '../components/kpi/KPICard';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
@@ -33,6 +34,7 @@ import config from '../utils/env';
 const logger = createLogger('AIAlertsPage');
 
 const AIAlertsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [activeTab, setActiveTab] = useState<'all-feed' | 'alerts' | 'driver-insights'>('all-feed');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -65,7 +67,7 @@ const AIAlertsPage: React.FC = () => {
   const [includeDocuments, setIncludeDocuments] = useState(false); // Default to false
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
-  const { data: driversMap, error: driversError, isLoading: driversLoading } = useQuery({
+  const { data: driversMap, error: driversError, isLoading: driversLoading, refetch: refetchDrivers } = useQuery({
     queryKey: ['drivers-map'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -103,7 +105,7 @@ const AIAlertsPage: React.FC = () => {
   });
 
   // Fetch vehicles map for photo lookup in EnhancedFeedCard
-  const { data: vehiclesMap, error: vehiclesError, isLoading: vehiclesLoading } = useQuery({
+  const { data: vehiclesMap, error: vehiclesError, isLoading: vehiclesLoading, refetch: refetchVehicles } = useQuery({
     queryKey: ['vehicles-map'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -793,7 +795,7 @@ const AIAlertsPage: React.FC = () => {
           </div>
           <button
             onClick={() => {
-              refetch();
+              refetchHeroFeed();
               refetchDrivers();
               refetchVehicles();
               refetchKPIs();
