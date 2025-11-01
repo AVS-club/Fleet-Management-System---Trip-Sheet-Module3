@@ -5,7 +5,8 @@ import Layout from "../components/layout/Layout";
 import { usePermissions } from "../hooks/usePermissions";
 import { 
   getTrips, 
-  uploadDriverPhoto 
+  uploadDriverPhoto,
+  getDriverPhotoPublicUrl
 } from "../utils/storage"; // ⚠️ Confirm field refactor here
 import { 
   getDrivers, 
@@ -734,7 +735,7 @@ const DriversPage: React.FC = () => {
                         <div className={`w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ring-4 ${statusRingColor}`}>
                           {driver.driver_photo_url ? (
                             <img
-                              src={driver.driver_photo_url}
+                              src={getDriverPhotoPublicUrl(driver.driver_photo_url) || driver.driver_photo_url}
                               alt={driver.name}
                               className="w-full h-full object-cover"
                               onError={(e) => {

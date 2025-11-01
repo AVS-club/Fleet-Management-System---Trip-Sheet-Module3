@@ -11,6 +11,7 @@ import { Driver } from '@/types';
 import { getDrivers } from '../../utils/api/drivers';
 import { toast } from 'react-toastify';
 import { createLogger } from '../../utils/logger';
+import { getDriverPhotoPublicUrl } from '../../utils/storage';
 
 const logger = createLogger('AdminDriversPage');
 
@@ -554,7 +555,7 @@ const AdminDriversPage: React.FC = () => {
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0">
                               {driver.driver_photo_url ? (
-                                <img className="h-10 w-10 rounded-full object-cover" src={driver.driver_photo_url} alt="" />
+                                <img className="h-10 w-10 rounded-full object-cover" src={getDriverPhotoPublicUrl(driver.driver_photo_url) || driver.driver_photo_url} alt="" />
                               ) : (
                                 <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                                   <Users className="h-5 w-5 text-gray-500" />
