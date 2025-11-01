@@ -60,7 +60,216 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     }).format(amount);
   };
 
-  // Regular card for non-trip events
+  // Enhanced maintenance card
+  const isMaintenance = event.kind === 'maintenance';
+  const maintenanceData = isMaintenance ? event.entity_json : null;
+
+  if (isMaintenance && maintenanceData) {
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 hover:shadow-md transition-all ${
+        event.priority === 'danger' ? 'border-red-200 bg-red-50 dark:bg-red-900/20' :
+        event.priority === 'warn' ? 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20' :
+        'border-gray-200 dark:border-gray-700'
+      }`}>
+        <div className="flex items-start gap-3">
+          {getEventIcon(event.kind, event.priority)}
+          <div className="flex-1">
+            {/* Header with title and status */}
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">{event.title}</h3>
+              {event.status && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  event.status === 'open' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                  event.status === 'resolved' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                  event.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
+                  event.status === 'pending' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' :
+                  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}>
+                  {event.status}
+                </span>
+              )}
+              {maintenanceData.priority && maintenanceData.priority !== 'medium' && (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  maintenanceData.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                  'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                }`}>
+                  {maintenanceData.priority} priority
+                </span>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{event.description}</p>
+
+            {/* Vehicle and Maintenance details grid */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Vehicle info */}
+              {vehicleData && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Truck className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {vehicleData.registration_number}
+                    {vehicleData.make && ` - ${vehicleData.make}`}
+                    {vehicleData.model && ` ${vehicleData.model}`}
+                    {vehicleData.year && ` (${vehicleData.year})`}
+                  </span>
+                </div>
+              )}
+
+              {/* Scheduled date */}
+              {maintenanceData.scheduled_date && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {format(new Date(maintenanceData.scheduled_date), 'MMM dd, yyyy')}
+                  </span>
+                </div>
+              )}
+
+              {/* Cost */}
+              {maintenanceData.cost && (
+                <div className="flex items-center gap-2 text-sm">
+                  <DollarSign className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    ₹{Number(maintenanceData.cost).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+
+              {/* Odometer reading */}
+              {maintenanceData.odometer_reading && (
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {maintenanceData.odometer_reading.toLocaleString('en-IN')} km
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Task type and vendor */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {maintenanceData.task_type && (
+                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md">
+                  {maintenanceData.task_type}
+                </span>
+              )}
+              {maintenanceData.vendor && (
+                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md">
+                  Vendor: {maintenanceData.vendor}
+                </span>
+              )}
+            </div>
+
+            {/* Timestamp */}
+            <div className="flex items-center gap-2 mt-2">
+              <Clock className="h-3 w-3 text-gray-400" />
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Enhanced AI Alert card with structured layout
+  if (isAIAlert) {
+    // Extract key metrics from title and description
+    const alertData = event.entity_json || {};
+    const titleMatch = event.title.match(/(\d+(?:\.\d+)?%?)/);
+    const keyMetric = titleMatch ? titleMatch[1] : null;
+
+    // Extract trip ID from description
+    const tripMatch = event.description.match(/Trip (T\d+-\d+-\d+)/);
+    const tripId = tripMatch ? tripMatch[1] : null;
+
+    return (
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 p-4 hover:shadow-md transition-all ${
+        event.priority === 'danger' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
+        event.priority === 'warn' ? 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+        'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20'
+      }`}>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 flex-1">
+            {getEventIcon(event.kind, event.priority)}
+            <div className="flex-1 min-w-0">
+              {/* Header with metric highlight */}
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
+                  {event.title.split(':')[0]}:
+                </h3>
+                {keyMetric && (
+                  <span className={`text-2xl font-bold ${
+                    event.priority === 'danger' ? 'text-red-600 dark:text-red-400' :
+                    event.priority === 'warn' ? 'text-yellow-600 dark:text-yellow-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {keyMetric}
+                  </span>
+                )}
+                {event.status && (
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ml-auto ${
+                    event.status === 'accepted' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                    event.status === 'rejected' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                    event.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
+                    'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>
+                    {event.status}
+                  </span>
+                )}
+              </div>
+
+              {/* Condensed description */}
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                {event.description.length > 120
+                  ? event.description.substring(0, 120) + '...'
+                  : event.description}
+              </p>
+
+              {/* Key details in a grid */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                {tripId && (
+                  <div className="flex items-center gap-1.5">
+                    <Navigation className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium text-gray-700 dark:text-gray-300">{tripId}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          {event.status === 'pending' && (
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                onClick={() => onAction?.(event.id, 'accept')}
+                className="p-2 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/70 transition-colors"
+                title="Accept"
+              >
+                <CheckCircle className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => onAction?.(event.id, 'reject')}
+                className="p-2 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors"
+                title="Reject"
+              >
+                <XCircle className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Regular card for other non-trip, non-maintenance events
   if (!isTrip) {
     return (
       <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 hover:shadow-md transition-all ${
@@ -95,25 +304,6 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
               </div>
             </div>
           </div>
-
-          {isAIAlert && event.status === 'pending' && (
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => onAction?.(event.id, 'accept')}
-                className="p-1.5 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/70 transition-colors"
-                title="Accept"
-              >
-                <CheckCircle className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => onAction?.(event.id, 'reject')}
-                className="p-1.5 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors"
-                title="Reject"
-              >
-                <XCircle className="h-4 w-4" />
-              </button>
-            </div>
-          )}
         </div>
       </div>
     );
@@ -207,14 +397,28 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
         <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg p-3">
           <div className="relative">
             {driverData?.photo_url ? (
-              <img
-                src={driverData.photo_url}
-                alt={driverData.name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
-              />
+              <>
+                <img
+                  src={driverData.photo_url}
+                  alt={driverData.name || 'Driver'}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling;
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">
+                    {driverData?.name?.charAt(0)?.toUpperCase() || 'D'}
+                  </span>
+                </div>
+              </>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center">
-                <User className="h-6 w-6 text-white" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <span className="text-white font-semibold text-lg">
+                  {driverData?.name?.charAt(0)?.toUpperCase() || 'D'}
+                </span>
               </div>
             )}
             <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
@@ -233,13 +437,23 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
         <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg p-3">
           <div className="relative">
             {vehicleData?.photo_url ? (
-              <img
-                src={vehicleData.photo_url}
-                alt={vehicleData.registration_number}
-                className="w-12 h-12 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-700"
-              />
+              <>
+                <img
+                  src={vehicleData.photo_url}
+                  alt={vehicleData.registration_number || 'Vehicle'}
+                  className="w-12 h-12 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-700"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling;
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
+                  <Truck className="h-6 w-6 text-white" />
+                </div>
+              </>
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 dark:from-blue-600 dark:to-blue-700 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
                 <Truck className="h-6 w-6 text-white" />
               </div>
             )}

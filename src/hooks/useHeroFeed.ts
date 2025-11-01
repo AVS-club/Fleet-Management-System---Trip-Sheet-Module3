@@ -78,7 +78,10 @@ export const useKPICards = () => {
 export const useHeroFeed = (filters?: {
   kinds?: string[];
   limit?: number;
+  includeDocuments?: boolean;
 }) => {
+  const { includeDocuments = false } = filters || {};
+
   return useInfiniteQuery({
     queryKey: ['hero-feed', filters],
     queryFn: async ({ pageParam = null }) => {
@@ -102,16 +105,37 @@ export const useHeroFeed = (filters?: {
           return [];
         }
 
+        // Build the kinds array
+        let kindsToFetch = filters?.kinds || [];
+
+        // If 'all' is selected, fetch all types
+        if (!kindsToFetch || kindsToFetch.length === 0 || kindsToFetch.includes('all')) {
+          kindsToFetch = [
+            'trip',
+            'maintenance',
+            'activity',
+            'ai_alert',
+            'vehicle_activity'
+          ];
+        }
+
+        // Add vehicle_doc only if includeDocuments is true
+        if (includeDocuments && !kindsToFetch.includes('vehicle_doc')) {
+          kindsToFetch.push('vehicle_doc');
+        }
+
+        // Remove vehicle_doc if includeDocuments is false
+        if (!includeDocuments) {
+          kindsToFetch = kindsToFetch.filter(k => k !== 'vehicle_doc');
+        }
+
         let query = supabase
           .from('events_feed')
           .select('*')
           .eq('organization_id', profile.active_organization_id)
+          .in('kind', kindsToFetch)
           .order('event_time', { ascending: false })
           .limit(filters?.limit || 20);
-
-        if (filters?.kinds && filters.kinds.length > 0 && !filters.kinds.includes('all')) {
-          query = query.in('kind', filters.kinds);
-        }
 
         if (pageParam) {
           query = query.lt('event_time', pageParam);

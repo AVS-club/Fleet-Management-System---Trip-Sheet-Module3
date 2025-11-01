@@ -245,20 +245,36 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-gray-400" />
+            {vehicle && (vehicle.vehicle_photo_url || vehicle.photo_url) ? (
+              <img
+                src={vehicle.vehicle_photo_url || vehicle.photo_url}
+                alt="Vehicle"
+                className="h-6 w-6 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <Truck className="h-4 w-4 text-gray-400" />
+            )}
             <span className="text-gray-600">
-              <SearchHighlightedText 
-                text={vehicle ? vehicle.registration_number : 'Unknown Vehicle'} 
-                searchTerm={searchTerm || ''} 
+              <SearchHighlightedText
+                text={vehicle ? vehicle.registration_number : 'Unknown Vehicle'}
+                searchTerm={searchTerm || ''}
               />
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-gray-400" />
+            {driver && (driver.driver_photo_url || driver.photo_url) ? (
+              <img
+                src={driver.driver_photo_url || driver.photo_url}
+                alt="Driver"
+                className="h-6 w-6 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <User className="h-4 w-4 text-gray-400" />
+            )}
             <span className="text-gray-600">
-              <SearchHighlightedText 
-                text={driver ? driver.name : 'Unknown Driver'} 
-                searchTerm={searchTerm || ''} 
+              <SearchHighlightedText
+                text={driver ? driver.name : 'Unknown Driver'}
+                searchTerm={searchTerm || ''}
               />
             </span>
           </div>

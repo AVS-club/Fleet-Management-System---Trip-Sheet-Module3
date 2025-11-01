@@ -8,7 +8,10 @@ import { getTrips } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
 import MediaCard from '../components/HeroFeed/MediaCard';
 import EnhancedFeedCard from '../components/ai/EnhancedFeedCard';
-import { useHeroFeed, useKPICards } from '../hooks/useHeroFeed';
+import TripCard from '../components/trips/TripCard';
+import { useHeroFeed } from '../hooks/useHeroFeed';
+import { useKPICards as useKPICardsData, useLatestKPIs } from '../hooks/useKPICards';
+import KPICard from '../components/kpi/KPICard';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
 import Input from '../components/ui/Input';
@@ -25,6 +28,7 @@ import { toast } from 'react-toastify';
 import { createLogger } from '../utils/logger';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../utils/supabaseClient';
+import config from '../utils/env';
 
 const logger = createLogger('AIAlertsPage');
 
@@ -58,75 +62,111 @@ const AIAlertsPage: React.FC = () => {
     const saved = localStorage.getItem('showVideos');
     return saved !== null ? JSON.parse(saved) : true; // Default to true
   });
+  const [includeDocuments, setIncludeDocuments] = useState(false); // Default to false
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
   const { data: driversMap, error: driversError, isLoading: driversLoading } = useQuery({
     queryKey: ['drivers-map'],
     queryFn: async () => {
-      // Get user's organization
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {};
-
-      // Get user's active organization
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('active_organization_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.active_organization_id) return {};
-
       const { data, error } = await supabase
         .from('drivers')
-        .select('id, name, driver_photo_url, contact_number, status')
-        .eq('organization_id', profile.active_organization_id);
+        .select('id, name, driver_photo_url, photo_url, contact_number, status, email');
 
       if (error) throw error;
 
       const map: Record<string, any> = {};
       data?.forEach(driver => {
+        // Prioritize driver_photo_url, fallback to photo_url
+        let photoUrl = driver.driver_photo_url || driver.photo_url || null;
+
+        // If photo URL exists and is not a full URL, make it a public URL
+        if (photoUrl && !photoUrl.startsWith('http')) {
+          try {
+            const { data: urlData } = supabase.storage
+              .from('driver-photos')
+              .getPublicUrl(photoUrl);
+            photoUrl = urlData?.publicUrl || photoUrl;
+          } catch (e) {
+            console.warn('Failed to get public URL for driver photo:', e);
+          }
+        }
+
         map[driver.id] = {
           ...driver,
-          photo_url: driver.driver_photo_url  // Normalize to photo_url for consistency
+          photo_url: photoUrl,
+          name: driver.name || 'Unknown Driver'
         };
       });
       return map;
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch vehicles map for photo lookup in EnhancedFeedCard
   const { data: vehiclesMap, error: vehiclesError, isLoading: vehiclesLoading } = useQuery({
     queryKey: ['vehicles-map'],
     queryFn: async () => {
-      // Get user's organization
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return {};
-
-      // Get user's active organization
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('active_organization_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile?.active_organization_id) return {};
-
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, registration_number, make, model, photo_url')
-        .eq('organization_id', profile.active_organization_id);
+        .select('id, registration_number, make, model, year, vehicle_photo_url, photo_url, vehicle_type');
 
       if (error) throw error;
 
       const map: Record<string, any> = {};
       data?.forEach(vehicle => {
-        map[vehicle.id] = vehicle;
+        // Prioritize vehicle_photo_url, fallback to photo_url
+        let photoUrl = vehicle.vehicle_photo_url || vehicle.photo_url || null;
+
+        // If photo URL exists and is not a full URL, make it a public URL
+        if (photoUrl && !photoUrl.startsWith('http')) {
+          try {
+            const { data: urlData} = supabase.storage
+              .from('vehicle-photos')
+              .getPublicUrl(photoUrl);
+            photoUrl = urlData?.publicUrl || photoUrl;
+          } catch (e) {
+            console.warn('Failed to get public URL for vehicle photo:', e);
+          }
+        }
+
+        map[vehicle.id] = {
+          ...vehicle,
+          photo_url: photoUrl,
+          display_name: `${vehicle.registration_number} - ${vehicle.make || ''} ${vehicle.model || ''}`.trim()
+        };
       });
       return map;
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
+
+  // Fetch maintenance tasks for enrichment
+  const { data: maintenanceTasksData, error: maintenanceError, isLoading: maintenanceLoading } = useQuery({
+    queryKey: ['maintenance-tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('maintenance_tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch KPI cards
+  const {
+    data: kpiCards,
+    isLoading: kpiLoading,
+    refetch: refetchKPIs
+  } = useKPICardsData({ period: 'all', limit: 20 });
+
+  // Fetch latest KPIs by theme for statistics
+  const {
+    data: latestKPIs,
+    refetch: refetchLatestKPIs
+  } = useLatestKPIs();
 
   // YouTube video state
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -237,11 +277,9 @@ const AIAlertsPage: React.FC = () => {
     isLoading: heroFeedLoading,
     refetch: refetchHeroFeed
   } = useHeroFeed({
-    kinds: feedKinds,
-    limit: 20
+    kinds: selectedFilters.includes('all') ? undefined : selectedFilters,
+    includeDocuments: includeDocuments
   });
-
-  const { data: kpiCards, refetch: refetchKPIs } = useKPICards();
 
   // Check if YouTube API key is available
   const hasYouTubeAPIKey = !!import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -259,7 +297,109 @@ const AIAlertsPage: React.FC = () => {
 
 
   const availableShorts = youtubeShorts || [];
-  const events = useMemo(() => (heroFeedData?.pages ?? []).flat(), [heroFeedData]);
+  const events = useMemo(() => {
+    const feedEvents = (heroFeedData?.pages ?? []).flat();
+    const enrichedFeedEvents = feedEvents.map(event => {
+      // Enrich trip events with full trip data from trips array
+      if (event.kind === 'trip') {
+        // Try multiple ways to get the trip ID
+        const tripId = event.entity_json?.id || event.entity_json?.trip_id || event.id;
+
+        // Log for debugging
+        if (config.isDev) {
+          console.log('Trip event entity_json:', event.entity_json);
+          console.log('Attempting to match trip ID:', tripId);
+        }
+
+        if (tripId) {
+          const fullTrip = trips.find(t => t.id === tripId);
+          if (fullTrip) {
+            if (config.isDev) {
+              console.log('Found matching trip:', fullTrip);
+            }
+            return {
+              ...event,
+              entity_json: fullTrip
+            };
+          }
+        }
+
+        // If entity_json already looks like a full trip object with all fields, use it
+        if (event.entity_json &&
+            (event.entity_json.vehicle_id || event.entity_json.driver_id ||
+             event.entity_json.start_km || event.entity_json.end_km)) {
+          return event;
+        }
+      }
+
+      // Enrich maintenance events with full task data from maintenance_tasks array
+      if (event.kind === 'maintenance' && maintenanceTasksData) {
+        // Try multiple ways to get the maintenance task ID
+        const taskId = event.entity_json?.id || event.entity_json?.task_id || event.entity_json?.maintenance_task_id;
+
+        if (taskId) {
+          const fullTask = maintenanceTasksData.find((t: any) => t.id === taskId);
+          if (fullTask) {
+            return {
+              ...event,
+              entity_json: fullTask
+            };
+          }
+        }
+
+        // If entity_json already looks like a full task object, use it
+        if (event.entity_json && event.entity_json.vehicle_id) {
+          return event;
+        }
+      }
+
+      return event;
+    });
+
+    let allEvents = [...enrichedFeedEvents];
+
+    // Merge AI alerts into feed if filter includes 'ai_alert' or 'all'
+    if ((selectedFilters.includes('ai_alert') || selectedFilters.includes('all')) && alerts.length > 0) {
+      const alertEvents = alerts.map(alert => ({
+        id: alert.id,
+        kind: 'ai_alert' as const,
+        event_time: alert.created_at,
+        priority: alert.severity === 'high' ? 'danger' as const : alert.severity === 'medium' ? 'warn' as const : 'info' as const,
+        title: alert.title,
+        description: alert.description,
+        entity_json: alert,
+        status: alert.status,
+        metadata: alert.metadata || {},
+        organization_id: null
+      }));
+
+      allEvents = [...allEvents, ...alertEvents];
+    }
+
+    // Merge KPI cards into feed if filter includes 'kpi' or 'all'
+    if ((selectedFilters.includes('kpi') || selectedFilters.includes('all')) && kpiCards) {
+      const kpiEvents = kpiCards.map(kpi => ({
+        id: kpi.id,
+        kind: 'kpi' as const,
+        event_time: kpi.computed_at,
+        priority: 'info' as const,
+        title: kpi.kpi_title,
+        description: `${kpi.kpi_value_human} - ${kpi.kpi_payload.period || ''}`,
+        entity_json: kpi.kpi_payload,
+        status: 'active' as const,
+        metadata: { theme: kpi.theme },
+        kpi_data: kpi, // Store full KPI data
+        organization_id: kpi.organization_id
+      }));
+
+      allEvents = [...allEvents, ...kpiEvents];
+    }
+
+    // Sort all events by event_time descending
+    return allEvents.sort((a, b) =>
+      new Date(b.event_time).getTime() - new Date(a.event_time).getTime()
+    );
+  }, [heroFeedData, kpiCards, selectedFilters, alerts, trips, maintenanceTasksData]);
 
   // Media cards for YouTube content
   const mediaCards = useMemo(() => {
@@ -638,69 +778,75 @@ const AIAlertsPage: React.FC = () => {
 
   return (
     <Layout>
-      {/* Page Header */}
-      <div className="rounded-xl border bg-white dark:bg-white px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <Bell className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
-            {activeTab === 'all-feed' ? 'AI Alerts & Feed' : activeTab === 'alerts' ? 'AI Alerts' : 'Driver AI Insights'}
-          </h1>
+      {/* Compact Header with Fleet Activity */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
+        {/* Title Row with Refresh Button */}
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg">
+              <Home className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">Fleet Activity</h1>
+              <p className="text-xs text-gray-600 mt-0.5">Real-time updates from your fleet</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              refetch();
+              refetchDrivers();
+              refetchVehicles();
+              refetchKPIs();
+              refetchShorts();
+            }}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh feed"
+          >
+            <RefreshCw className="w-5 h-5 text-gray-600" />
+          </button>
         </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
-          {activeTab === 'all-feed' 
-            ? 'Complete feed with AI alerts, media, and insights' 
-            : activeTab === 'alerts' 
-            ? 'Review and manage AI alerts for your fleet' 
-            : 'AI-powered driver performance insights'}
-        </p>
-      </div>
 
-      {/* Tab Navigation */}
-      <div className="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
-            <button
-              className={`py-4 text-sm font-sans font-medium border-b-2 transition-colors ${
-                activeTab === 'all-feed'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              onClick={() => setActiveTab('all-feed')}
-            >
-              <div className="flex items-center gap-2">
-                <Home className="h-4 w-4" />
-                <span>All Feed</span>
-              </div>
-            </button>
-            
-            <button
-              className={`py-4 text-sm font-sans font-medium border-b-2 transition-colors ${
-                activeTab === 'alerts'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              onClick={() => setActiveTab('alerts')}
-            >
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
-                <span>AI Alerts</span>
-              </div>
-            </button>
-            
-            <button
-              className={`py-4 text-sm font-sans font-medium border-b-2 transition-colors ${
-                activeTab === 'driver-insights'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-              onClick={() => setActiveTab('driver-insights')}
-            >
-              <div className="flex items-center gap-2">
-                <BarChart2 className="h-4 w-4" />
-                <span>Driver Insights</span>
-              </div>
-            </button>
-          </nav>
+        {/* Tab Navigation Row */}
+        <div className="flex gap-2 px-4 py-2">
+          <button
+            onClick={() => setActiveTab('all-feed')}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
+              ${activeTab === 'all-feed'
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }
+            `}
+          >
+            <Home className="w-4 h-4" />
+            <span>All Feed</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('alerts')}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
+              ${activeTab === 'alerts'
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }
+            `}
+          >
+            <Bell className="w-4 h-4" />
+            <span>AI Alerts</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('driver-insights')}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
+              ${activeTab === 'driver-insights'
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }
+            `}
+          >
+            <BarChart2 className="w-4 h-4" />
+            <span>Driver Insights</span>
+          </button>
         </div>
       </div>
 
@@ -714,152 +860,136 @@ const AIAlertsPage: React.FC = () => {
       ) : (
         <>
           {activeTab === 'all-feed' ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Hero Feed Content */}
-              <div className="bg-white rounded-lg shadow-sm">
-                <div className="flex justify-between items-center p-4 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
-                      <Bell className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900">Fleet Activity</h3>
-                      <p className="text-xs text-gray-500">Real-time updates from your fleet</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      refetchHeroFeed();
-                      refetchKPIs();
-                      if (hasYouTubeAPIKey) refetchShorts();
-                    }}
-                    icon={<RefreshCw className="h-4 w-4" />}
-                  >
-                    Refresh
-                  </Button>
-                </div>
-                <div className="p-4">
-                
-                {/* Feed Filters */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-gray-500">Filter:</span>
-                    {['all', 'ai_alert', 'vehicle_doc', 'maintenance', 'trip', 'kpi', 'vehicle_activity', 'activity', 'media'].map(filter => (
-                      <button
-                        key={filter}
-                        onClick={() => {
-                          if (filter === 'all') {
-                            setSelectedFilters(['all']);
-                          } else {
-                            setSelectedFilters(prev =>
-                              prev.includes('all')
-                                ? [filter]
-                                : prev.includes(filter)
-                                ? prev.filter(f => f !== filter)
-                                : [...prev, filter]
-                            );
-                          }
-                        }}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                          selectedFilters.includes(filter)
-                            ? 'bg-teal-100 text-teal-700 border border-teal-300'
-                            : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                        }`}
-                      >
-                        {filter === 'all' ? 'All' : filter.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                {/* Compact Filter Row with Integrated Counts */}
+                <div className="p-3">
+                  {/* Filter Badges with Counts */}
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <button
+                      onClick={() => {
+                        if (!selectedFilters.includes('ai_alert')) {
+                          setSelectedFilters(prev => prev.includes('all') ? ['ai_alert'] : [...prev, 'ai_alert']);
+                        } else {
+                          setSelectedFilters(prev => prev.filter(f => f !== 'ai_alert'));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedFilters.includes('ai_alert') || selectedFilters.includes('all')
+                          ? 'bg-red-100 text-red-700 border border-red-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Bell className="w-3.5 h-3.5" />
+                      <span>AI Alerts ({events.filter(e => e.kind === 'ai_alert').length})</span>
+                    </button>
 
-                {/* Social Media Scroller Layout */}
-                <div className="max-w-4xl mx-auto">
-                  {/* Stats Grid - Compact Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
-                    <div className="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-lg border border-red-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <Bell className="h-4 w-4 text-red-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-red-700">{events.filter(e => e.kind === 'ai_alert').length}</p>
-                          <p className="text-xs text-red-600 truncate">AI Alerts</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-lg border border-blue-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-blue-700">{events.filter(e => e.kind === 'vehicle_doc').length}</p>
-                          <p className="text-xs text-blue-600 truncate">Documents</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-3 rounded-lg border border-orange-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <Tool className="h-4 w-4 text-orange-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-orange-700">{events.filter(e => e.kind === 'maintenance').length}</p>
-                          <p className="text-xs text-orange-600 truncate">Maintenance</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-lg border border-green-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-green-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-green-700">{events.filter(e => e.kind === 'trip').length}</p>
-                          <p className="text-xs text-green-600 truncate">Trips</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-lg border border-purple-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <BarChart2 className="h-4 w-4 text-purple-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-purple-700">
-                            {events.filter(e => e.kind === 'kpi').length + (kpiCards?.filter(card => card.kpi_payload?.type === 'kpi').length || 0)}
-                          </p>
-                          <p className="text-xs text-purple-600 truncate">KPIs</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-3 rounded-lg border border-pink-200 hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <Play className="h-4 w-4 text-pink-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xl font-bold text-pink-700">{availableShorts.length}</p>
-                          <p className="text-xs text-pink-600 truncate">Videos</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                    <button
+                      onClick={() => {
+                        if (!selectedFilters.includes('vehicle_doc')) {
+                          setSelectedFilters(prev => prev.includes('all') ? ['vehicle_doc'] : [...prev, 'vehicle_doc']);
+                        } else {
+                          setSelectedFilters(prev => prev.filter(f => f !== 'vehicle_doc'));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedFilters.includes('vehicle_doc') || selectedFilters.includes('all')
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Documents ({events.filter(e => e.kind === 'vehicle_doc').length})</span>
+                    </button>
 
-                  {/* Video Toggle - Compact */}
-                  <div className="flex justify-end items-center mb-4">
+                    <button
+                      onClick={() => {
+                        if (!selectedFilters.includes('maintenance')) {
+                          setSelectedFilters(prev => prev.includes('all') ? ['maintenance'] : [...prev, 'maintenance']);
+                        } else {
+                          setSelectedFilters(prev => prev.filter(f => f !== 'maintenance'));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedFilters.includes('maintenance') || selectedFilters.includes('all')
+                          ? 'bg-orange-100 text-orange-700 border border-orange-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Tool className="w-3.5 h-3.5" />
+                      <span>Maintenance ({events.filter(e => e.kind === 'maintenance').length})</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (!selectedFilters.includes('trip')) {
+                          setSelectedFilters(prev => prev.includes('all') ? ['trip'] : [...prev, 'trip']);
+                        } else {
+                          setSelectedFilters(prev => prev.filter(f => f !== 'trip'));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedFilters.includes('trip') || selectedFilters.includes('all')
+                          ? 'bg-green-100 text-green-700 border border-green-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Truck className="w-3.5 h-3.5" />
+                      <span>Trips ({events.filter(e => e.kind === 'trip').length})</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (!selectedFilters.includes('kpi')) {
+                          setSelectedFilters(prev => prev.includes('all') ? ['kpi'] : [...prev, 'kpi']);
+                        } else {
+                          setSelectedFilters(prev => prev.filter(f => f !== 'kpi'));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        selectedFilters.includes('kpi') || selectedFilters.includes('all')
+                          ? 'bg-purple-100 text-purple-700 border border-purple-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      <BarChart2 className="w-3.5 h-3.5" />
+                      <span>KPIs ({kpiCards?.length || 0})</span>
+                    </button>
+
                     <button
                       onClick={toggleVideos}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                         showVideos
-                          ? 'bg-teal-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-pink-100 text-pink-700 border border-pink-300'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
                       }`}
                       title={showVideos ? 'Hide video reels' : 'Show video reels'}
                     >
-                      {showVideos ? (
-                        <>
-                          <Video className="w-3.5 h-3.5" />
-                          <span>Videos ON</span>
-                        </>
-                      ) : (
-                        <>
-                          <VideoOff className="w-3.5 h-3.5" />
-                          <span>Videos OFF</span>
-                        </>
-                      )}
+                      {showVideos ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+                      <span>Videos ({availableShorts.length})</span>
                     </button>
+
+                    {/* Compact Document Reminders Toggle */}
+                    <div className="ml-auto flex items-center gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <span className="text-xs text-gray-600 font-medium">Show Doc Reminders</span>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={includeDocuments}
+                            onChange={(e) => setIncludeDocuments(e.target.checked)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </div>
+                      </label>
+                    </div>
                   </div>
+                </div>
+
+                {/* Social Media Scroller Layout */}
+                <div className="max-w-4xl mx-auto px-3 pb-3">
 
                   {/* Social Media Scroller */}
                   <div className="space-y-3">
@@ -870,37 +1000,90 @@ const AIAlertsPage: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        {/* Show videos even if no events */}
-                        {showVideos && availableShorts.length > 0 && (
-                          <div className="mb-6">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-                              <Play className="h-5 w-5 text-primary-600" />
-                              Fleet Tips & Insights
-                            </h3>
-                            <div className="space-y-6">
-                              {availableShorts.slice(0, 3).map((short, index) => (
-                                <YouTubeVideoCard key={short.id} short={short} index={index} />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
                         {events.length > 0 ? (
                           <>
                             {events.map((event, index) => {
-                              // Intersperse videos every 3-4 events
-                              const shouldShowVideo = showVideos &&
-                                availableShorts.length > 0 &&
-                                index > 0 &&
-                                index % 4 === 0;
+                              // Intersperse videos: After first 3 cards, then every 3-4 cards
+                              // Pattern: 3 cards → video → 3 cards → video → 4 cards → video...
+                              let shouldShowVideo = false;
+                              let videoIndex = 0;
 
-                              const videoIndex = Math.floor(index / 4) % availableShorts.length;
+                              if (showVideos && availableShorts.length > 0) {
+                                // Show first video after 3 info cards
+                                if (index === 3) {
+                                  shouldShowVideo = true;
+                                  videoIndex = 0;
+                                }
+                                // Then alternate between every 3 and 4 cards
+                                else if (index > 3) {
+                                  const adjustedIndex = index - 3; // Offset by first 3 cards
+                                  // After index 3, show video every 3-4 cards
+                                  // Pattern: 3 cards (index 4,5,6) → video → 4 cards (index 8,9,10,11) → video → 3 cards...
+                                  const cycle = Math.floor(adjustedIndex / 7); // Each cycle is 3 cards + video + 3 cards
+                                  const positionInCycle = adjustedIndex % 7;
+
+                                  if (positionInCycle === 3) {
+                                    shouldShowVideo = true;
+                                    videoIndex = (cycle + 1) % availableShorts.length;
+                                  }
+                                }
+                              }
+
                               const short = availableShorts[videoIndex];
 
                               // Get driver and vehicle data for this event
                               const tripData = event.entity_json;
-                              const driverData = tripData?.driver_id && driversMap ? driversMap[tripData.driver_id] : null;
-                              const vehicleData = tripData?.vehicle_id && vehiclesMap ? vehiclesMap[tripData.vehicle_id] : null;
+
+                              // Try to get vehicle and driver from multiple sources
+                              let vehicleData = null;
+                              let driverData = null;
+
+                              if (tripData?.vehicle_id) {
+                                // First try vehiclesMap (which has photo_url already processed)
+                                vehicleData = vehiclesMap ? vehiclesMap[tripData.vehicle_id] : null;
+                                // Fallback to vehicles array
+                                if (!vehicleData) {
+                                  const foundVehicle = vehicles.find(v => v.id === tripData.vehicle_id);
+                                  if (foundVehicle) {
+                                    // Ensure photo_url is set
+                                    vehicleData = {
+                                      ...foundVehicle,
+                                      photo_url: foundVehicle.vehicle_photo_url || foundVehicle.photo_url
+                                    };
+                                  }
+                                }
+
+                                if (config.isDev && event.kind === 'trip' && index === 0) {
+                                  console.log('Trip vehicle_id:', tripData.vehicle_id);
+                                  console.log('Found vehicleData:', vehicleData);
+                                  console.log('Vehicle photo_url:', vehicleData?.photo_url);
+                                  console.log('VehiclesMap sample:', vehiclesMap && Object.values(vehiclesMap)[0]);
+                                }
+                              }
+
+                              if (tripData?.driver_id) {
+                                // First try driversMap (which has photo_url already processed)
+                                driverData = driversMap ? driversMap[tripData.driver_id] : null;
+                                // Fallback to drivers array
+                                if (!driverData) {
+                                  const foundDriver = drivers.find(d => d.id === tripData.driver_id);
+                                  if (foundDriver) {
+                                    // Ensure photo_url is set from driver_photo_url
+                                    driverData = {
+                                      ...foundDriver,
+                                      photo_url: foundDriver.driver_photo_url || foundDriver.photo_url
+                                    };
+                                  }
+                                }
+
+                                if (config.isDev && event.kind === 'trip' && index === 0) {
+                                  console.log('Trip driver_id:', tripData.driver_id);
+                                  console.log('Found driverData:', driverData);
+                                  console.log('Driver photo_url:', driverData?.photo_url);
+                                  console.log('Driver driver_photo_url:', driverData?.driver_photo_url);
+                                  console.log('DriversMap sample:', driversMap && Object.values(driversMap)[0]);
+                                }
+                              }
 
                               return (
                                 <React.Fragment key={`fragment-${event.id}`}>
@@ -912,13 +1095,36 @@ const AIAlertsPage: React.FC = () => {
                                     />
                                   )}
 
-                                  {/* Enhanced Feed Card with maps, photos, and metrics */}
-                                  <EnhancedFeedCard
-                                    key={`${event.id}-${index}`}
-                                    event={event}
-                                    vehicleData={vehicleData}
-                                    driverData={driverData}
-                                  />
+                                  {/* KPI Card - Special handling */}
+                                  {event.kind === 'kpi' && event.kpi_data ? (
+                                    <KPICard
+                                      key={`kpi-${event.id}`}
+                                      kpi={event.kpi_data}
+                                      variant="full"
+                                    />
+                                  ) : event.kind === 'trip' && event.entity_json ? (
+                                    /* Trip Card - Use the same card as trips page */
+                                    <TripCard
+                                      key={`trip-${event.id}`}
+                                      trip={event.entity_json as Trip}
+                                      vehicle={vehicleData}
+                                      driver={driverData}
+                                      onClick={() => {
+                                        // Navigate to trip details if needed
+                                        if (event.entity_json?.id) {
+                                          window.location.href = `/trips/${event.entity_json.id}`;
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    /* Enhanced Feed Card for other events */
+                                    <EnhancedFeedCard
+                                      key={`${event.id}-${index}`}
+                                      event={event}
+                                      vehicleData={vehicleData}
+                                      driverData={driverData}
+                                    />
+                                  )}
                                 </React.Fragment>
                               );
                             })}
@@ -945,7 +1151,6 @@ const AIAlertsPage: React.FC = () => {
                       </>
                     )}
                   </div>
-                </div>
                 </div>
               </div>
             </div>
