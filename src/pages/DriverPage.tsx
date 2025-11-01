@@ -88,10 +88,11 @@ const DriverPage: React.FC = () => {
 
   // State for signed document URLs
   const [signedDocUrls, setSignedDocUrls] = useState<{
-    license?: string;
-    police_verification?: string;
-    medical_certificate?: string;
-    id_proof?: string;
+    license?: string[];
+    police_verification?: string[];
+    medical_certificate?: string[];
+    medical_doc_url?: string[];
+    id_proof?: string[];
     other: Record<string, string>;
   }>({
     other: {},
@@ -527,18 +528,27 @@ const DriverPage: React.FC = () => {
 
   if (isEditing) {
     return (
-      <Layout
-        title="Edit Driver"
-        subtitle={`License: ${driver.license_number}`}
-        actions={
-          <Button
-            variant="outline"
-            onClick={handleCancelEdit}
-          >
-            Cancel
-          </Button>
-        }
-      >
+      <Layout>
+        {/* Page Header */}
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <Edit className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+              Edit Driver
+            </h1>
+          </div>
+          <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            License: {driver.license_number}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelEdit}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
         <div className="max-w-4xl mx-auto">
           <DriverForm
             initialData={{
@@ -578,12 +588,36 @@ const DriverPage: React.FC = () => {
     return parsed.toLocaleDateString();
   })();
 
+  const dobRaw = driver.dob || driver.date_of_birth || '';
+  const formattedDateOfBirth = (() => {
+    if (!dobRaw) {
+      return 'Not set';
+    }
+    const parsed = new Date(dobRaw);
+    if (Number.isNaN(parsed.getTime())) {
+      return 'Not set';
+    }
+    return parsed.toLocaleDateString();
+  })();
+
   return (
-    <Layout
-      title={`Driver: ${driver.name}`}
-      subtitle={`License: ${driver.license_number}`}
-      actions={
-        <div className="flex flex-wrap gap-3">
+    <Layout>
+      {/* Page Header */}
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center group">
+            <User className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <div>
+              <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+                Driver Details
+              </h1>
+              <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-0.5">
+                License: {driver.license_number}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={handleEditDriver}
@@ -630,8 +664,7 @@ const DriverPage: React.FC = () => {
             Share
           </Button>
         </div>
-      }
-    >
+      </div>
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
@@ -862,6 +895,14 @@ const DriverPage: React.FC = () => {
                   )}
 
                   <div className="pt-3">
+                    <p className="text-sm text-gray-500">Date of Birth</p>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                      <p className="font-medium">{formattedDateOfBirth}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3">
                     <p className="text-sm text-gray-500">Join Date</p>
                     <p className="font-medium">{formattedJoinDate}</p>
                   </div>
@@ -1012,11 +1053,15 @@ const DriverPage: React.FC = () => {
                         License Document
                       </p>
                       <p className="text-xs text-gray-500">
-                        {driver.license_doc_url ? "Available" : "Not uploaded"}
+                        {driver.license_doc_url && Array.isArray(driver.license_doc_url) && driver.license_doc_url.length > 0 ? "Available" : "Not uploaded"}
                       </p>
                     </div>
-                    {driver.license_doc_url && (
-                      <Button variant="outline" inputSize="sm">
+                    {driver.license_doc_url && Array.isArray(driver.license_doc_url) && driver.license_doc_url.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        inputSize="sm"
+                        onClick={() => setShowDocumentManagerModal(true)}
+                      >
                         View
                       </Button>
                     )}
@@ -1187,6 +1232,16 @@ const DriverPage: React.FC = () => {
             <DriverDocumentDownloadModal
               isOpen={showDownloadModal}
               onClose={() => setShowDownloadModal(false)}
+              driver={driver}
+              signedDocUrls={signedDocUrls}
+            />
+          )}
+
+          {/* Document Manager Modal */}
+          {showDocumentManagerModal && driver && (
+            <DriverDocumentManagerModal
+              isOpen={showDocumentManagerModal}
+              onClose={() => setShowDocumentManagerModal(false)}
               driver={driver}
               signedDocUrls={signedDocUrls}
             />
