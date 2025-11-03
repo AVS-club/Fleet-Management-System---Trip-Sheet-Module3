@@ -73,6 +73,7 @@ export interface Vehicle {
 
   // Insurance Details
   policy_number?: string;
+  insurance_policy_number?: string; // Alternate field name
   insurer_name?: string;
   insurance_start_date?: string;
   insurance_expiry_date?: string;
@@ -156,8 +157,9 @@ export interface Vehicle {
   service_interval_km?: number;
   service_interval_days?: number;
 
-  // Vehicle photo
-  photo_url?: string;
+  // Vehicle photo (single photo stored in vehicle-photos bucket)
+  vehicle_photo_url?: string;
+  photo_url?: string; // Legacy field for backward compatibility
 
   // Other Information & Documents (VAHAN data)
   vehicle_class?: string;
@@ -165,6 +167,8 @@ export interface Vehicle {
   cubic_capacity?: number;
   cylinders?: number;
   unladen_weight?: number;
+  gvw?: number; // Gross Vehicle Weight
+  gbw?: number; // Gross Brake Weight
   seating_capacity?: number;
   emission_norms?: string;
   noc_details?: string;

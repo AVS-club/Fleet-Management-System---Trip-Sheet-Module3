@@ -109,6 +109,7 @@ const DriverForm: React.FC<DriverFormProps> = ({
     watch,
     setValue,
     getValues,
+    reset,
   } = useForm<Driver>({
     defaultValues: {
       name: "",
@@ -200,6 +201,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
     try {
       const dob_formatted = dob.split("-").reverse().join("-");
 
+      logger.info("Fetching driver details:", { licenseNumber, dob: dob_formatted });
+
       const { data: result, error } = await supabase.functions.invoke(
         "fetch-driver-details",
         {
@@ -210,16 +213,33 @@ const DriverForm: React.FC<DriverFormProps> = ({
         }
       );
 
+      logger.info("API Response:", { result, error });
+
       if (error || !result?.success) {
+        logger.error("Failed to fetch driver details:", { error, result });
         throw new Error(
           result?.message || error?.message || "Failed to fetch details"
         );
       }
 
       const driver = result.response || result.data?.response || {};
+      logger.info("Driver data received:", driver);
 
+      // Convert base64 image to data URL if present
       const photoDataUrl = driver.image ? ensureImageDataUrl(driver.image) : undefined;
-      const mapped: Partial<Driver> = {
+
+      // Set photo preview immediately if we have image data
+      if (photoDataUrl) {
+        setPhotoPreview(photoDataUrl);
+      }
+
+      // Map API response to form fields
+      // Preserve existing data for fields not returned by the API
+      const mapped: Driver = {
+        // Start with existing form data
+        ...initialData,
+
+        // Override with government API data
         id: initialData?.id || undefined,
         name: driver.holder_name || "",
         father_or_husband_name: driver.father_or_husband_name || "",
@@ -257,36 +277,32 @@ const DriverForm: React.FC<DriverFormProps> = ({
         rto_code: driver.rto_code || "",
         rto: driver.rto || "",
         state: driver.state || "",
-        join_date: initialData.join_date || format(new Date(), 'yyyy-MM-dd'),
-        experience_years: getValues('experience_years') || 0,
-        primary_vehicle_id: getValues('primary_vehicle_id') || "",
-        status: getValues('status') || "active",
-        driver_photo_url: photoDataUrl || getValues('driver_photo_url') || undefined,
-      };
 
-      const assignField = <K extends keyof Driver>(key: K, value: Driver[K]) => {
-        if (value === undefined || value === null) {
-          return;
-        }
-        if (typeof value === "string" && value.trim() === "") {
-          return;
-        }
-        if (Array.isArray(value) && value.length === 0) {
-          return;
-        }
-        setValue(key, value as any, { shouldDirty: false });
-      };
+        // Preserve important fields not in government API
+        join_date: initialData?.join_date || format(new Date(), 'yyyy-MM-dd'),
+        experience_years: getValues('experience_years') || initialData?.experience_years || 0,
+        primary_vehicle_id: getValues('primary_vehicle_id') || initialData?.primary_vehicle_id || "",
+        status: getValues('status') || initialData?.status || "active",
 
-      Object.entries(mapped).forEach(([key, value]) => {
-        if (key === "driver_photo_url") {
-          return;
-        }
-        assignField(key as keyof Driver, value as Driver[keyof Driver]);
-      });
+        // Set photo URL if fetched, otherwise preserve existing
+        driver_photo_url: photoDataUrl || initialData?.driver_photo_url || "",
 
+        // Preserve document URLs
+        license_doc_url: initialData?.license_doc_url,
+        aadhar_doc_url: initialData?.aadhar_doc_url,
+        police_doc_url: initialData?.police_doc_url,
+        medical_doc_url: initialData?.medical_doc_url,
+
+        // Preserve other existing fields
+        other_documents: initialData?.other_documents || [],
+        notes: initialData?.notes,
+      } as Driver;
+
+      // Reset the form with all mapped data
+      reset(mapped);
+
+      // If we have photo data, also set the photo file for upload
       if (photoDataUrl) {
-        setPhotoPreview(photoDataUrl);
-        setValue('driver_photo_url', photoDataUrl, { shouldDirty: false });
         const sanitizedLicense = (licenseNumber || "driver").replace(/\s+/g, "_");
         const generatedFile = base64ToFile(photoDataUrl, `${sanitizedLicense}-fetch.jpg`);
         if (generatedFile) {

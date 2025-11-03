@@ -249,8 +249,37 @@ const DriversPage: React.FC = () => {
   const handleSaveDriver = async (data: Omit<Driver, "id">) => {
     setIsSubmitting(true);
     try {
+      // For EDITING: Use existing driver ID immediately
+      // For NEW: Create driver first to get UUID, then upload photos
+      const isEditing = !!editingDriver;
+      let uploadTargetId: string;
+      let newDriverRecord: Driver | null = null;
+
+      if (isEditing) {
+        // EDITING MODE: Use existing driver ID
+        uploadTargetId = editingDriver.id;
+      } else {
+        // NEW DRIVER MODE: Create driver record first (without files) to get UUID
+        const { photo, aadhar_doc_file, license_doc_file, police_doc_file, medical_doc_file, other_documents, ...driverDataWithoutFiles } = data;
+
+        // Remove empty id field if present to let Supabase auto-generate
+        const { id, ...cleanDriverData } = driverDataWithoutFiles as any;
+        const finalDriverData = id && id.trim() !== '' ? driverDataWithoutFiles : cleanDriverData;
+
+        newDriverRecord = await createDriver(finalDriverData);
+
+        if (!newDriverRecord) {
+          toast.error("Failed to create driver");
+          setIsSubmitting(false);
+          return;
+        }
+
+        uploadTargetId = newDriverRecord.id;
+        logger.info(`Created new driver with UUID: ${uploadTargetId}`);
+      }
+
+      // Now we have a valid UUID in uploadTargetId for both create and edit scenarios
       let photoUrl = data.driver_photo_url; // Start with the URL from form data (includes API fetched URL)
-      const uploadTargetId = editingDriver?.id || `temp-${Date.now()}`;
 
       let photoFile: File | null = null;
       if (data.photo instanceof File) {
@@ -286,14 +315,13 @@ const DriversPage: React.FC = () => {
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).photo;
 
-      // Handle Aadhaar document upload
-      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) { // ⚠️ Confirm field refactor here
-        try { // ⚠️ Confirm field refactor here
+      // Handle Aadhaar document upload (using correct UUID)
+      if (data.aadhar_doc_file && Array.isArray(data.aadhar_doc_file)) {
+        try {
           const uploadedUrls = [];
           for (const file of data.aadhar_doc_file) {
             if (file instanceof File) {
-          const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
+              const filePath = await uploadDriverPhoto(file, uploadTargetId);
               uploadedUrls.push(filePath);
             }
           }
@@ -304,15 +332,14 @@ const DriversPage: React.FC = () => {
           logger.error("Error uploading Aadhaar documents:", error);
         }
       }
-      
-      // Handle license document upload
-      if (data.license_doc_file && Array.isArray(data.license_doc_file)) { // ⚠️ Confirm field refactor here
-        try { // ⚠️ Confirm field refactor here
+
+      // Handle license document upload (using correct UUID)
+      if (data.license_doc_file && Array.isArray(data.license_doc_file)) {
+        try {
           const uploadedUrls = [];
           for (const file of data.license_doc_file) {
             if (file instanceof File) {
-          const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
+              const filePath = await uploadDriverPhoto(file, uploadTargetId);
               uploadedUrls.push(filePath);
             }
           }
@@ -324,14 +351,13 @@ const DriversPage: React.FC = () => {
         }
       }
 
-      // Handle police document upload
+      // Handle police document upload (using correct UUID)
       if (data.police_doc_file && Array.isArray(data.police_doc_file)) {
         try {
           const uploadedUrls = [];
           for (const file of data.police_doc_file) {
             if (file instanceof File) {
-          const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId);
+              const filePath = await uploadDriverPhoto(file, uploadTargetId);
               uploadedUrls.push(filePath);
             }
           }
@@ -343,14 +369,13 @@ const DriversPage: React.FC = () => {
         }
       }
 
-      // Handle medical document upload (already handled in previous commit, but ensuring consistency)
+      // Handle medical document upload (using correct UUID)
       if (data.medical_doc_file && Array.isArray(data.medical_doc_file)) {
         try {
           const uploadedUrls = [];
           for (const file of data.medical_doc_file) {
             if (file instanceof File) {
-          const fileId = editingDriver?.id || `temp-${Date.now()}`;
-              const filePath = await uploadDriverPhoto(file, fileId); // Assuming uploadDriverPhoto can handle medical docs
+              const filePath = await uploadDriverPhoto(file, uploadTargetId);
               uploadedUrls.push(filePath);
             }
           }
@@ -367,7 +392,7 @@ const DriversPage: React.FC = () => {
       // Remove the File object as it can't be stored in the database
       delete (driverData as any).aadhar_doc_file;
 
-      // Process other documents
+      // Process other documents (using correct UUID)
       if (Array.isArray(driverData.other_documents)) {
         const processedDocs = [];
 
@@ -380,10 +405,7 @@ const DriversPage: React.FC = () => {
           // Handle file upload for each document
           if (doc.file_obj instanceof File) {
             try {
-              const fileId =
-                editingDriver?.id ||
-                `temp-${Date.now()}-${processedDocs.length}`;
-              const filePath = await uploadDriverPhoto(doc.file_obj, fileId);
+              const filePath = await uploadDriverPhoto(doc.file_obj, uploadTargetId);
               processedDoc.file_path = filePath;
             } catch (error) {
               logger.error(`Error uploading document "${doc.name}":`, error);
@@ -398,10 +420,10 @@ const DriversPage: React.FC = () => {
         driverData.other_documents = processedDocs;
       }
 
-      if (editingDriver) {
-        // Update existing driver
-        const updatedDriver = await updateDriver(editingDriver.id, driverData); // ⚠️ Confirm field refactor here
-        if (updatedDriver) { // ⚠️ Confirm field refactor here
+      if (isEditing) {
+        // EDITING MODE: Update existing driver with uploaded files
+        const updatedDriver = await updateDriver(editingDriver.id, driverData);
+        if (updatedDriver) {
           // Update the drivers list
           setDrivers((prevDrivers) =>
             prevDrivers.map((d) =>
@@ -414,70 +436,27 @@ const DriversPage: React.FC = () => {
           toast.error("Failed to update driver");
         }
       } else {
-        // Create new driver
-        // Remove empty id field if present to let Supabase auto-generate // ⚠️ Confirm field refactor here
-        const { id, ...cleanDriverData } = driverData as any;
-        const finalDriverData = id && id.trim() !== '' ? driverData : cleanDriverData;
-        
-        const newDriver = await createDriver(finalDriverData);
-        if (newDriver) {
-          // Update other documents with the correct driver ID
-          if (
-            Array.isArray(newDriver.other_documents) &&
-            newDriver.other_documents.length > 0
-          ) {
-            const updatedDocs = [];
+        // NEW DRIVER MODE: Update the driver record we created earlier with uploaded file URLs
+        if (newDriverRecord) {
+          // Update driver with all the uploaded file URLs
+          const updatedDriver = await updateDriver(newDriverRecord.id, driverData);
 
-            for (const doc of newDriver.other_documents) {
-              const updatedDoc = { ...doc };
-
-              if (doc.file_path && doc.file_path.includes("temp-")) {
-                try {
-                  // Find the original file object
-                  const originalDoc = data.other_documents?.find(
-                    (d) => d.name === doc.name
-                  );
-                  if (originalDoc && originalDoc.file_obj) {
-                    // Re-upload with the correct ID
-                    const finalFilePath = await uploadDriverPhoto(
-                      originalDoc.file_obj as File,
-                      `${newDriver.id}-${doc.name
-                        .replace(/\s+/g, "-")
-                        .toLowerCase()}`
-                    );
-                    updatedDoc.file_path = finalFilePath;
-                  }
-                } catch (error) {
-                  logger.error(
-                    `Error updating document "${doc.name}" with final ID:`,
-                    error
-                  );
-                }
-              }
-
-              updatedDocs.push(updatedDoc);
+          if (updatedDriver) {
+            setDrivers((prevDrivers) => [updatedDriver, ...prevDrivers]);
+            setTotalDrivers((prev) => prev + 1);
+            if (updatedDriver.status === "active") {
+              setActiveDrivers((prev) => prev + 1);
+            } else if (updatedDriver.status === "inactive") {
+              setInactiveDrivers((prev) => prev + 1);
             }
 
-            if (updatedDocs.length > 0) {
-              await updateDriver(newDriver.id, {
-                other_documents: updatedDocs,
-              });
-              newDriver.other_documents = updatedDocs;
-            }
+            setIsAddingDriver(false);
+            toast.success("Driver added successfully");
+          } else {
+            toast.error("Failed to update driver with uploaded files");
           }
-
-          setDrivers((prevDrivers) => [newDriver, ...prevDrivers]);
-          setTotalDrivers((prev) => prev + 1);
-          if (newDriver.status === "active") {
-            setActiveDrivers((prev) => prev + 1);
-          } else if (newDriver.status === "inactive") {
-            setInactiveDrivers((prev) => prev + 1);
-          }
-
-          setIsAddingDriver(false);
-          toast.success("Driver added successfully");
         } else {
-          toast.error("Failed to add driver");
+          toast.error("Failed to create driver");
         }
       }
     } catch (error) {
@@ -795,6 +774,13 @@ const DriversPage: React.FC = () => {
                         <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                           <Phone className="h-4 w-4 mr-2" />
                           <span>{driver.contact_number}</span>
+                        </div>
+                      )}
+
+                      {driver.date_of_birth && (
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>DOB: {formatDate(driver.date_of_birth)}</span>
                         </div>
                       )}
 

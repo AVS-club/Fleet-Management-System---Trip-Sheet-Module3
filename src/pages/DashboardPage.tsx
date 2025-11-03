@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Layout from '../components/layout/Layout';
 import DashboardHeader from '../components/layout/DashboardHeader';
@@ -25,12 +25,51 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('DashboardPage');
 
+// Comparison mode types
+type ComparisonMode =
+  | 'this-week'
+  | 'last-7-days'
+  | 'last-14-days'
+  | 'last-30-days'
+  | 'this-month'
+  | 'full-month'
+  | 'same-period'
+  | 'this-quarter'
+  | 'year-over-year';
+
+interface ComparisonModeOption {
+  value: ComparisonMode;
+  label: string;
+  shortLabel: string;
+  group: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+}
+
 const DashboardPage: React.FC = () => {
   // ALL HOOKS FIRST - NO CONDITIONAL LOGIC YET
   const navigate = useNavigate();
   const { permissions, loading: permissionsLoading } = usePermissions();
   const { t } = useTranslation();
-  
+
+  // Comparison mode state
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>('this-month');
+
+  const comparisonModeOptions: ComparisonModeOption[] = [
+    // Weekly comparisons
+    { value: 'this-week', label: 'This Week vs Last Week', shortLabel: 'vs last week', group: 'weekly' },
+    { value: 'last-7-days', label: 'Last 7 Days vs Previous 7', shortLabel: 'vs prev 7 days', group: 'weekly' },
+    { value: 'last-14-days', label: 'Last 14 Days vs Previous 14', shortLabel: 'vs prev 14 days', group: 'weekly' },
+
+    // Monthly comparisons
+    { value: 'this-month', label: 'This Month vs Same Period Last Month', shortLabel: 'vs last month', group: 'monthly' },
+    { value: 'full-month', label: 'This Month vs Full Last Month', shortLabel: 'vs last month (full)', group: 'monthly' },
+    { value: 'last-30-days', label: 'Last 30 Days vs Previous 30', shortLabel: 'vs prev 30 days', group: 'monthly' },
+    { value: 'same-period', label: 'Same Days Last Month', shortLabel: 'vs same days', group: 'monthly' },
+
+    // Quarterly & Yearly
+    { value: 'this-quarter', label: 'This Quarter vs Last Quarter', shortLabel: 'vs last quarter', group: 'quarterly' },
+    { value: 'year-over-year', label: 'This Month vs Same Month Last Year', shortLabel: 'vs last year', group: 'yearly' },
+  ];
+
   // Use React Query for better caching and performance
   const { data: trips = [], isLoading: tripsLoading, error: tripsError } = useQuery({
     queryKey: ['trips'],
@@ -57,7 +96,183 @@ const DashboardPage: React.FC = () => {
   });
 
   const loading = permissionsLoading || tripsLoading || vehiclesLoading || driversLoading;
-  
+
+  // Helper function to get start of week (Monday)
+  const getStartOfWeek = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.getFullYear(), d.getMonth(), diff, 0, 0, 0, 0);
+  };
+
+  // Helper function to get start of quarter
+  const getStartOfQuarter = (date: Date): Date => {
+    const quarter = Math.floor(date.getMonth() / 3);
+    return new Date(date.getFullYear(), quarter * 3, 1, 0, 0, 0, 0);
+  };
+
+  // Helper function to calculate date ranges based on comparison mode
+  const getDateRanges = (mode: ComparisonMode) => {
+    const now = new Date();
+
+    switch (mode) {
+      case 'this-week': {
+        // Current: This week (Monday to now)
+        // Previous: Last week (Monday to Sunday)
+        const currentWeekStart = getStartOfWeek(now);
+        const currentWeekEnd = now;
+
+        const prevWeekEnd = new Date(currentWeekStart.getTime() - 1);
+        const prevWeekStart = getStartOfWeek(prevWeekEnd);
+
+        return {
+          currentStart: currentWeekStart,
+          currentEnd: currentWeekEnd,
+          prevStart: prevWeekStart,
+          prevEnd: prevWeekEnd,
+        };
+      }
+
+      case 'last-7-days': {
+        // Current: Last 7 days
+        // Previous: 7 days before that
+        const currentEnd = now;
+        const currentStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const prevEnd = new Date(currentStart.getTime() - 1);
+        const prevStart = new Date(prevEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+        return {
+          currentStart,
+          currentEnd,
+          prevStart,
+          prevEnd,
+        };
+      }
+
+      case 'last-14-days': {
+        // Current: Last 14 days
+        // Previous: 14 days before that
+        const currentEnd = now;
+        const currentStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        const prevEnd = new Date(currentStart.getTime() - 1);
+        const prevStart = new Date(prevEnd.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+        return {
+          currentStart,
+          currentEnd,
+          prevStart,
+          prevEnd,
+        };
+      }
+
+      case 'last-30-days': {
+        // Current: Last 30 days
+        // Previous: 30 days before that
+        const currentEnd = now;
+        const currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const prevEnd = new Date(currentStart.getTime() - 1);
+        const prevStart = new Date(prevEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        return {
+          currentStart,
+          currentEnd,
+          prevStart,
+          prevEnd,
+        };
+      }
+
+      case 'this-month': {
+        // Current: Current month, days 1 to current day
+        // Previous: Previous month, days 1 to same day number
+        const currentDay = now.getDate();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthEnd = now;
+
+        const prevMonth = now.getMonth() - 1;
+        const prevYear = prevMonth < 0 ? now.getFullYear() - 1 : now.getFullYear();
+        const prevMonthActual = prevMonth < 0 ? 11 : prevMonth;
+
+        const daysInPrevMonth = new Date(prevYear, prevMonthActual + 1, 0).getDate();
+        const comparisonDay = Math.min(currentDay, daysInPrevMonth);
+
+        const prevMonthStart = new Date(prevYear, prevMonthActual, 1);
+        const prevMonthEnd = new Date(prevYear, prevMonthActual, comparisonDay, 23, 59, 59);
+
+        return {
+          currentStart: currentMonthStart,
+          currentEnd: currentMonthEnd,
+          prevStart: prevMonthStart,
+          prevEnd: prevMonthEnd,
+        };
+      }
+
+      case 'full-month': {
+        // Current: Current month to date
+        // Previous: Entire previous month
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthEnd = now;
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+        return {
+          currentStart: currentMonthStart,
+          currentEnd: currentMonthEnd,
+          prevStart: prevMonthStart,
+          prevEnd: prevMonthEnd,
+        };
+      }
+
+      case 'same-period': {
+        // Current: Current month, days 1 to current day
+        // Previous: Previous month, days 1 to same day number (same as this-month but kept for backward compatibility)
+        return getDateRanges('this-month');
+      }
+
+      case 'this-quarter': {
+        // Current: This quarter to date
+        // Previous: Last quarter (full)
+        const currentQuarterStart = getStartOfQuarter(now);
+        const currentQuarterEnd = now;
+
+        const prevQuarterEnd = new Date(currentQuarterStart.getTime() - 1);
+        const prevQuarterStart = getStartOfQuarter(prevQuarterEnd);
+
+        return {
+          currentStart: currentQuarterStart,
+          currentEnd: currentQuarterEnd,
+          prevStart: prevQuarterStart,
+          prevEnd: prevQuarterEnd,
+        };
+      }
+
+      case 'year-over-year': {
+        // Current: Current month to date
+        // Previous: Same month last year (same period)
+        const currentDay = now.getDate();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const currentMonthEnd = now;
+
+        const prevYear = now.getFullYear() - 1;
+        const prevYearMonth = now.getMonth();
+        const daysInPrevYearMonth = new Date(prevYear, prevYearMonth + 1, 0).getDate();
+        const comparisonDay = Math.min(currentDay, daysInPrevYearMonth);
+
+        const prevMonthStart = new Date(prevYear, prevYearMonth, 1);
+        const prevMonthEnd = new Date(prevYear, prevYearMonth, comparisonDay, 23, 59, 59);
+
+        return {
+          currentStart: currentMonthStart,
+          currentEnd: currentMonthEnd,
+          prevStart: prevMonthStart,
+          prevEnd: prevMonthEnd,
+        };
+      }
+
+      default:
+        return getDateRanges('this-month');
+    }
+  };
+
   // Calculate stats with error handling and performance optimization
   const stats = useMemo(() => {
     if (!Array.isArray(trips) || trips.length === 0) {
@@ -90,15 +305,8 @@ const DashboardPage: React.FC = () => {
     }
 
     try {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      const previousMonthDate = new Date(currentYear, currentMonth - 1, 1);
-      const prevMonth = previousMonthDate.getMonth();
-      const prevYear = previousMonthDate.getFullYear();
-      const currentDayOfMonth = now.getDate();
-      const daysInPreviousMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
-      const comparisonDayForPrevMonth = Math.min(currentDayOfMonth, daysInPreviousMonth);
+      // Get date ranges based on selected comparison mode
+      const dateRanges = getDateRanges(comparisonMode);
 
       let totalDistance = 0;
       let totalFuel = 0;
@@ -129,11 +337,10 @@ const DashboardPage: React.FC = () => {
         }
 
         const tripDate = new Date(trip.trip_start_date);
-        const tripMonth = tripDate.getMonth();
-        const tripYear = tripDate.getFullYear();
-        const tripDay = tripDate.getDate();
+        const tripTime = tripDate.getTime();
 
-        if (tripMonth === currentMonth && tripYear === currentYear && tripDay <= currentDayOfMonth) {
+        // Check if trip falls in current period
+        if (tripTime >= dateRanges.currentStart.getTime() && tripTime <= dateRanges.currentEnd.getTime()) {
           tripsThisMonth++;
           distanceThisMonth += distance;
           fuelThisMonth += fuelQuantity;
@@ -142,7 +349,9 @@ const DashboardPage: React.FC = () => {
             mileageThisMonthCount++;
             mileageThisMonthTotal += trip.calculated_kmpl;
           }
-        } else if (tripMonth === prevMonth && tripYear === prevYear && tripDay <= comparisonDayForPrevMonth) {
+        }
+        // Check if trip falls in previous period
+        else if (tripTime >= dateRanges.prevStart.getTime() && tripTime <= dateRanges.prevEnd.getTime()) {
           tripsLastMonth++;
           distanceLastMonth += distance;
           fuelLastMonth += fuelQuantity;
@@ -153,7 +362,7 @@ const DashboardPage: React.FC = () => {
           }
         }
 
-        tripDates.push(tripDate.getTime());
+        tripDates.push(tripTime);
       }
 
       const avgMileage = tripsWithKmpl > 0 ? totalKmpl / tripsWithKmpl : 0;
@@ -226,7 +435,7 @@ const DashboardPage: React.FC = () => {
         latestTripDate: undefined
       };
     }
-  }, [trips]);
+  }, [trips, comparisonMode]);
 
   // Get best performers with React Query for better caching
   const mileageInsights = useMemo(() => getMileageInsights(trips), [trips]);
@@ -271,15 +480,34 @@ const DashboardPage: React.FC = () => {
   const hasEnoughData = Array.isArray(trips) && trips.length > 0;
   const hasRefuelingData = Array.isArray(trips) && trips.some(trip => trip.fuel_quantity);
 
+  // Helper to format date for tooltip
+  const formatDateForTooltip = (date: Date): string => {
+    return format(date, 'MMM d, yyyy');
+  };
+
+  // Helper to build date range tooltip text
+  const getDateRangeTooltip = (): string => {
+    const ranges = getDateRanges(comparisonMode);
+
+    const currentPeriod = `Current: ${formatDateForTooltip(ranges.currentStart)} - ${formatDateForTooltip(ranges.currentEnd)}`;
+    const previousPeriod = `Previous: ${formatDateForTooltip(ranges.prevStart)} - ${formatDateForTooltip(ranges.prevEnd)}`;
+
+    return `${currentPeriod}\n${previousPeriod}`;
+  };
+
   const buildTrend = (percent?: number | null) => {
     if (percent === null || percent === undefined || Number.isNaN(percent)) {
       return undefined;
     }
 
+    const currentMode = comparisonModeOptions.find(m => m.value === comparisonMode);
+    const label = currentMode?.shortLabel || 'vs last month';
+
     return {
       value: Number(percent.toFixed(1)),
-      label: t('dashboard.vsLastMonth'),
+      label: label,
       isPositive: percent >= 0,
+      dateRangeTooltip: getDateRangeTooltip(),
     };
   };
   
@@ -319,17 +547,57 @@ const DashboardPage: React.FC = () => {
       <div className="space-y-4">
         {/* Page Header */}
         <DashboardHeader vehicleCount={vehicles.filter(v => v.status !== 'archived').length} />
-        
+
         {/* Dashboard Content */}
         {/* Key Metrics Section */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
-          <div className="flex items-center space-x-2 mb-6">
-            <BarChart2 className="h-5 w-5 text-primary-600" />
-            <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">{t('dashboard.keyMetrics')}</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-2">
+              <BarChart2 className="h-5 w-5 text-primary-600" />
+              <h2 className="text-lg font-display font-semibold tracking-tight-plus text-gray-900">{t('dashboard.keyMetrics')}</h2>
+            </div>
+            {/* Comparison Mode Selector - Compact & Mobile-Friendly */}
+            <div className="flex items-center space-x-2">
+              <select
+                value={comparisonMode}
+                onChange={(e) => setComparisonMode(e.target.value as ComparisonMode)}
+                className="text-xs sm:text-sm font-sans border border-gray-300 dark:border-gray-600 rounded-md px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors cursor-pointer"
+                title="Select comparison period"
+              >
+                <optgroup label="Weekly">
+                  {comparisonModeOptions.filter(opt => opt.group === 'weekly').map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Monthly">
+                  {comparisonModeOptions.filter(opt => opt.group === 'monthly').map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Quarterly">
+                  {comparisonModeOptions.filter(opt => opt.group === 'quarterly').map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Yearly">
+                  {comparisonModeOptions.filter(opt => opt.group === 'yearly').map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div key={comparisonMode} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
               onClick={() => navigate("/trips")}
               role="button"

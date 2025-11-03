@@ -85,7 +85,7 @@ const AIAlertsPage: React.FC = () => {
         if (photoUrl && !photoUrl.startsWith('http')) {
           try {
             const { data: urlData } = supabase.storage
-              .from('driver-photos')
+              .from('driver-docs')
               .getPublicUrl(photoUrl);
             photoUrl = urlData?.publicUrl || photoUrl;
           } catch (e) {

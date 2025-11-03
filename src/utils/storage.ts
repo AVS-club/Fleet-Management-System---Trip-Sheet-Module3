@@ -45,11 +45,11 @@ export const uploadDriverPhoto = async (file: File, driverId: string): Promise<s
   }
 
   const fileExt = file.name.split('.').pop();
-  const filePath = `drivers/${driverId}.${fileExt}`;
+  const filePath = `${driverId}/profile-photo/photo.${fileExt}`;
 
   try {
-    const { error } = await supabase.storage // ⚠️ Confirm field refactor here
-      .from('driver-photos') // ⚠️ Confirm field refactor here
+    const { error } = await supabase.storage
+      .from('driver-docs')
       .upload(filePath, file, { upsert: true });
       
     if (error) {
@@ -979,7 +979,7 @@ export const getDriverPhotoPublicUrl = (filePath: string): string | null => {
     }
 
     const { data } = supabase.storage
-      .from('driver-photos')
+      .from('driver-docs')
       .getPublicUrl(filePath);
 
     return data?.publicUrl || null;

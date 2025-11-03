@@ -140,37 +140,6 @@ const CompleteFixedReportingDashboard: React.FC = () => {
     setSelectedDateRange(rangeType);
   }, [customStartDate, customEndDate]);
 
-  const fetchDashboardData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Fetch all data in parallel
-      const [metricsData, trends, utilization, performance, expenses] = await Promise.all([
-        fetchMetrics(),
-        fetchTripTrends(),
-        fetchVehicleUtilization(),
-        fetchDriverPerformance(),
-        fetchExpenseBreakdown()
-      ]);
-      logger.debug('Dashboard data fetched successfully');
-    } catch (error) {
-      logger.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
-
-  // Initialize date range properly
-  useEffect(() => {
-    updateDateRange(selectedDateRange);
-  }, [updateDateRange, selectedDateRange]);
-
-  // Fetch data when date range changes
-  useEffect(() => {
-    if (activeTab === 'dashboard') {
-      fetchDashboardData();
-    }
-  }, [dateRange, activeTab, fetchDashboardData]);
-
   const fetchMetrics = useCallback(async () => {
     try {
       // Get trips for the selected period
@@ -389,6 +358,37 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       return false;
     }
   }, [dateRange, metrics.maintenanceCosts]);
+
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Fetch all data in parallel
+      const [metricsData, trends, utilization, performance, expenses] = await Promise.all([
+        fetchMetrics(),
+        fetchTripTrends(),
+        fetchVehicleUtilization(),
+        fetchDriverPerformance(),
+        fetchExpenseBreakdown()
+      ]);
+      logger.debug('Dashboard data fetched successfully');
+    } catch (error) {
+      logger.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMetrics, fetchTripTrends, fetchVehicleUtilization, fetchDriverPerformance, fetchExpenseBreakdown]);
+
+  // Initialize date range properly
+  useEffect(() => {
+    updateDateRange(selectedDateRange);
+  }, [updateDateRange, selectedDateRange]);
+
+  // Fetch data when date range changes
+  useEffect(() => {
+    if (activeTab === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [dateRange, activeTab, fetchDashboardData]);
 
   const generatePDFReport = async (reportType: string) => {
     setGeneratingReport(reportType);

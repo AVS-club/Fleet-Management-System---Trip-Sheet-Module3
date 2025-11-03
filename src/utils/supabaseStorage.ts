@@ -476,28 +476,28 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
   other: Record<string, string | null>;
 }> => {
   const urls: any = { other: {} };
-  
+
   // Debug logging for insurance specifically
   logger.debug('🔍 generateVehicleDocumentUrls - vehicleData:', {
     insurance_document_url: vehicleData.insurance_document_url,
     rc_document_url: vehicleData.rc_document_url,
     fitness_document_url: vehicleData.fitness_document_url
   });
-  
+
   // Process each document type
   const docTypes = ['rc', 'insurance', 'fitness', 'tax', 'permit', 'puc'];
-  
+
   for (const type of docTypes) {
     const fieldName = `${type}_document_url`;
     const filePaths = vehicleData[fieldName];
-    
+
     logger.debug(`🔍 Processing ${type}:`, { fieldName, filePaths });
-    
+
     if (filePaths && Array.isArray(filePaths) && filePaths.length > 0) {
       logger.debug(`🔍 Generating URLs for ${type}:`, filePaths);
       const generatedUrls = await generateSignedUrlsBatch(filePaths, 'vehicle');
       logger.debug(`🔍 Generated URLs for ${type}:`, generatedUrls);
-      
+
       // Only add if we have at least one valid URL
       const validUrls = generatedUrls.filter(url => url !== null);
       if (validUrls.length > 0) {
@@ -510,7 +510,7 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
       logger.debug(`❌ No file paths for ${type}:`, filePaths);
     }
   }
-  
+
   // Process other documents
   if (vehicleData.other_documents && Array.isArray(vehicleData.other_documents)) {
     for (let i = 0; i < vehicleData.other_documents.length; i++) {
@@ -523,7 +523,222 @@ export const generateVehicleDocumentUrls = async (vehicleData: any): Promise<{
       }
     }
   }
-  
+
   logger.debug('🔍 Final generated URLs result:', urls);
   return urls;
+};
+
+// ============================================
+// VEHICLE PHOTO MANAGEMENT
+// ============================================
+
+/**
+ * Validates if a file is an allowed image type for vehicle photos
+ * @param file The file to validate
+ * @returns true if valid, false otherwise
+ */
+export const validateVehiclePhotoType = (file: File): boolean => {
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+  const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif'];
+
+  const fileName = file.name.toLowerCase();
+  const fileType = file.type.toLowerCase();
+
+  // Check MIME type
+  const isValidType = allowedTypes.includes(fileType);
+
+  // Check file extension
+  const isValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+  return isValidType && isValidExtension;
+};
+
+/**
+ * Lists all files in a vehicle's photo folder
+ * @param vehicleId The ID of the vehicle
+ * @returns Array of file names in the vehicles/{vehicleId}/ folder
+ */
+const listVehiclePhotoFiles = async (vehicleId: string): Promise<string[]> => {
+  try {
+    const folderPath = `vehicles/${vehicleId}`;
+
+    const { data, error } = await supabase.storage
+      .from('vehicle-photos')
+      .list(folderPath, {
+        limit: 100,
+        offset: 0,
+      });
+
+    if (error) {
+      logger.warn(`Failed to list files in ${folderPath}:`, error);
+      return [];
+    }
+
+    // Return file paths (not just names)
+    return (data || []).map(file => `${folderPath}/${file.name}`);
+  } catch (error) {
+    logger.error('Error listing vehicle photo files:', error);
+    return [];
+  }
+};
+
+/**
+ * Deletes all existing photos for a vehicle (to enforce single photo limit)
+ * @param vehicleId The ID of the vehicle
+ * @returns Promise<void>
+ */
+const deleteAllVehiclePhotos = async (vehicleId: string): Promise<void> => {
+  try {
+    const existingFiles = await listVehiclePhotoFiles(vehicleId);
+
+    if (existingFiles.length === 0) {
+      logger.debug(`No existing photos to delete for vehicle ${vehicleId}`);
+      return;
+    }
+
+    logger.debug(`Deleting ${existingFiles.length} existing photo(s) for vehicle ${vehicleId}`);
+
+    const { error } = await supabase.storage
+      .from('vehicle-photos')
+      .remove(existingFiles);
+
+    if (error) {
+      logger.error('Failed to delete existing photos:', error);
+      throw error;
+    }
+
+    logger.debug(`Successfully deleted ${existingFiles.length} photo(s)`);
+  } catch (error) {
+    logger.error('Error deleting vehicle photos:', error);
+    throw error;
+  }
+};
+
+/**
+ * Uploads a vehicle photo to Supabase Storage
+ * - Automatically deletes any existing photos (enforces single photo limit)
+ * - Stores in folder structure: vehicles/{vehicleId}/photo.{ext}
+ * - Validates file type (PNG, JPEG, JPG, GIF only)
+ *
+ * @param file The image file to upload
+ * @param vehicleId The ID of the vehicle
+ * @param onProgress Optional callback for progress updates (0-100)
+ * @returns The file path of the uploaded photo
+ */
+export const uploadVehiclePhoto = async (
+  file: File,
+  vehicleId: string,
+  onProgress?: (progress: number) => void
+): Promise<string> => {
+  if (!file) {
+    throw new Error('No file provided');
+  }
+
+  if (!vehicleId) {
+    throw new Error('Vehicle ID is required');
+  }
+
+  // Validate file type
+  if (!validateVehiclePhotoType(file)) {
+    throw new Error('Invalid file type. Only PNG, JPEG, JPG, and GIF files are allowed.');
+  }
+
+  // Get file extension
+  const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+
+  // Create folder path: vehicles/{vehicleId}/photo.{ext}
+  const filePath = `vehicles/${vehicleId}/photo.${fileExt}`;
+
+  logger.debug(`Uploading vehicle photo to: ${filePath}`);
+
+  try {
+    // Step 1: Delete all existing photos for this vehicle
+    await deleteAllVehiclePhotos(vehicleId);
+
+    // Step 2: Upload the new photo
+    if (onProgress) {
+      await uploadFileWithProgress('vehicle-photos', filePath, file, onProgress);
+    } else {
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle-photos')
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type,
+        });
+
+      if (uploadError) {
+        handleSupabaseError('upload vehicle photo', uploadError);
+        throw uploadError;
+      }
+    }
+
+    logger.debug(`Successfully uploaded vehicle photo: ${filePath}`);
+    return filePath;
+  } catch (error) {
+    logger.error('Error uploading vehicle photo:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generates a signed URL for a vehicle photo
+ * @param filePath The path of the photo in storage
+ * @param expiresIn Expiration time in seconds (default: 7 days)
+ * @returns The signed URL or null if not found
+ */
+export const getSignedVehiclePhotoUrl = async (
+  filePath: string,
+  expiresIn: number = 604800
+): Promise<string | null> => {
+  if (!filePath) {
+    logger.warn('No file path provided for vehicle photo');
+    return null;
+  }
+
+  try {
+    const cleanedPath = cleanFilePath(filePath);
+
+    if (!cleanedPath) {
+      logger.warn('Invalid file path after cleaning:', filePath);
+      return null;
+    }
+
+    const { data, error } = await supabase.storage
+      .from('vehicle-photos')
+      .createSignedUrl(cleanedPath, expiresIn);
+
+    if (error) {
+      if (error.message?.includes('not found') || error.statusCode === 404) {
+        logger.warn(`Vehicle photo not found in storage: ${cleanedPath}`);
+        return null;
+      }
+      logger.error(`Failed to generate signed URL for vehicle photo ${cleanedPath}:`, error);
+      return null;
+    }
+
+    return data?.signedUrl || null;
+  } catch (error) {
+    logger.error('Error generating signed vehicle photo URL:', error);
+    return null;
+  }
+};
+
+/**
+ * Deletes a vehicle photo from storage
+ * @param vehicleId The ID of the vehicle
+ * @returns true if successful, false otherwise
+ */
+export const deleteVehiclePhoto = async (vehicleId: string): Promise<boolean> => {
+  if (!vehicleId) {
+    logger.warn('No vehicle ID provided for photo deletion');
+    return false;
+  }
+
+  try {
+    await deleteAllVehiclePhotos(vehicleId);
+    return true;
+  } catch (error) {
+    logger.error('Error deleting vehicle photo:', error);
+    return false;
+  }
 };
