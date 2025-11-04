@@ -5,6 +5,7 @@ import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
 import { createLogger } from '../../utils/logger';
+import { getUserActiveOrganization } from '../../utils/supaHelpers';
 
 const logger = createLogger('DashboardHeader');
 
@@ -75,31 +76,42 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         } as Organization);
       }
 
+      // Get organization ID for filtering
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (!organizationId) {
+        logger.warn('No organization selected for user');
+        setLoading(false);
+        return;
+      }
+
       // Load fleet metrics
       const { count: vehicleCount } = await supabase
         .from('vehicles')
         .select('*', { count: 'exact', head: true })
-        .eq('created_by', user.id);
+        .eq('organization_id', organizationId);
 
-      // Get trip count and earliest trip date in a single query
-      const { data: tripStats } = await supabase
+      // Get trip count using count query (no row limit)
+      const { count: totalTrips } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+
+      // Get earliest trip date separately
+      const { data: earliestTrip } = await supabase
         .from('trips')
         .select('created_at')
-        .eq('created_by', user.id);
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .single();
 
-      const totalTrips = tripStats?.length || 0;
-      const earliestTripDate = tripStats && tripStats.length > 0
-        ? tripStats.reduce((earliest: string, trip: { created_at: string }) =>
-            new Date(trip.created_at) < new Date(earliest) ? trip.created_at : earliest,
-            tripStats[0].created_at
-          )
-        : null;
+      const earliestTripDate = earliestTrip?.created_at || null;
 
       const today = new Date().toISOString().split('T')[0];
       const { count: todayTrips } = await supabase
         .from('trips')
         .select('*', { count: 'exact', head: true })
-        .eq('created_by', user.id)
+        .eq('organization_id', organizationId)
         .gte('created_at', today);
 
       // Calculate active days from first trip

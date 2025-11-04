@@ -133,6 +133,102 @@ const KPICard: React.FC<KPICardProps> = ({ kpi, variant = 'full' }) => {
     );
   }
 
+  // Helper function to format multi-line values for better display
+  const formatValueForDisplay = (value: string, payload: any) => {
+    // Log payload for debugging (remove in production)
+    if (value.includes('AMAN') || value.includes('9478')) {
+      console.log('KPI Debug:', { title: kpi.kpi_title, value, payload });
+    }
+
+    // Remove emojis and split by them to get separate entries
+    // This handles patterns like "🏅 9478: 39.8 km/l 🏅 7689: 22.7 km/l 🏅 7690: 21.8 km/l"
+    const emojiPattern = /[\u{1F3C5}\u{1F947}\u{1F948}\u{1F949}\u{1F3C6}\u{26A1}\u{1F525}\u{1F3C3}]/gu;
+
+    // Check if value contains emojis (likely a ranked list)
+    if (emojiPattern.test(value)) {
+      // Split by emoji and filter out empty entries
+      const items = value.split(emojiPattern)
+        .map(item => item.trim())
+        .filter(item => item.length > 0);
+
+      // Try to get actual values from payload if available
+      if (payload.items && Array.isArray(payload.items)) {
+        console.log('Using payload.items:', payload.items);
+        return payload.items.map((itemData: any, index: number) => {
+          const name = itemData.name || itemData.driver_name || itemData.vehicle_id || `Item ${index + 1}`;
+          const val = itemData.value || itemData.distance || itemData.mileage || 0;
+          const unit = itemData.unit || payload.unit || '';
+
+          // Format large numbers with proper formatting
+          const formattedValue = typeof val === 'number'
+            ? val.toLocaleString('en-IN')
+            : val;
+
+          // Add rank medal emoji
+          const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+          return `${medal} ${name}: ${formattedValue}${unit}`;
+        });
+      }
+
+      // Format the existing items
+      return items.map((item, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+        return `${medal} ${item}`;
+      });
+    }
+
+    // Check if this is a "Top 3" or ranked list style value without emojis
+    if (value.includes(',') && (value.includes(':') || value.match(/[A-Z\.]+:\s*[#,\d]+/))) {
+      // Handle patterns like "AMAN: #,###km, M.SITARAM: 6,272km, MANOJ: 6,160km"
+      // Split by comma and format each item on a new line
+      const items = value.split(',').map(item => item.trim());
+
+      // Try to get actual values from payload if available
+      if (payload.items && Array.isArray(payload.items)) {
+        return payload.items.map((itemData: any, index: number) => {
+          const name = itemData.name || itemData.driver_name || itemData.vehicle_id || `Item ${index + 1}`;
+          const val = itemData.value || itemData.distance || itemData.mileage || 0;
+          const unit = itemData.unit || payload.unit || '';
+
+          // Format large numbers with proper formatting
+          const formattedValue = typeof val === 'number'
+            ? val.toLocaleString('en-IN')
+            : val;
+
+          const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+          return `${medal} ${name}: ${formattedValue}${unit}`;
+        });
+      }
+
+      // If no structured data in payload, try to clean up the existing value
+      return items.map((item, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+
+        // Replace "#,###" pattern with "value hidden" or try to extract from other sources
+        if (item.match(/#[,#]+/)) {
+          // Extract name part and any visible numbers
+          const parts = item.split(':');
+          const namePart = parts[0]?.trim() || '';
+
+          // Check if there are actual numbers after the hashes
+          const valuePart = parts[1]?.trim() || '';
+          const actualNumbers = valuePart.replace(/#[,#]+/g, '').trim();
+
+          if (actualNumbers && actualNumbers.length > 0) {
+            return `${medal} ${namePart}: ${actualNumbers}`;
+          }
+
+          return namePart ? `${medal} ${namePart}: (data hidden)` : `${medal} ${item}`;
+        }
+        return `${medal} ${item}`;
+      });
+    }
+    return [value];
+  };
+
+  const valueLines = formatValueForDisplay(kpi.kpi_value_human, kpi.kpi_payload);
+  const isMultiLine = valueLines.length > 1;
+
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all overflow-hidden border-l-4 ${colors.border.replace('border-', 'border-l-')}`}>
       <div className={`bg-gradient-to-r ${colors.bg} p-4 border-b ${colors.border}`}>
@@ -159,9 +255,19 @@ const KPICard: React.FC<KPICardProps> = ({ kpi, variant = 'full' }) => {
       </div>
 
       <div className="p-4">
-        <div className={`text-4xl font-bold ${colors.text} mb-4`}>
-          {kpi.kpi_value_human}
-        </div>
+        {isMultiLine ? (
+          <div className={`space-y-1.5 mb-4`}>
+            {valueLines.map((line, index) => (
+              <div key={index} className={`text-xl font-bold ${colors.text} leading-tight`}>
+                {line}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={`text-4xl font-bold ${colors.text} mb-4 break-words`}>
+            {kpi.kpi_value_human}
+          </div>
+        )}
 
         {kpi.kpi_payload.comparison && (
           <div className="space-y-2">

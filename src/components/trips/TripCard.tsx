@@ -29,6 +29,20 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
   const warehouseDataRef = useRef<any>(null);
   const [destinationData, setDestinationData] = useState<any[]>([]);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [vehicleImageError, setVehicleImageError] = useState(false);
+  const [driverImageError, setDriverImageError] = useState(false);
+
+  const vehiclePhotoUrl = vehicle?.vehicle_photo_url || vehicle?.photo_url || '';
+  const driverPhotoUrl = driver?.driver_photo_url || driver?.photo_url || '';
+  const vehiclePhotoIsGif = /\.gif(\?|$)/i.test(vehiclePhotoUrl);
+
+  useEffect(() => {
+    setVehicleImageError(false);
+  }, [vehiclePhotoUrl]);
+
+  useEffect(() => {
+    setDriverImageError(false);
+  }, [driverPhotoUrl]);
 
   useEffect(() => {
     warehouseDataRef.current = warehouseData;
@@ -244,15 +258,21 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
       
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            {vehicle && (vehicle.vehicle_photo_url || vehicle.photo_url) ? (
-              <img
-                src={vehicle.vehicle_photo_url || vehicle.photo_url}
-                alt="Vehicle"
-                className="h-6 w-6 rounded-full object-cover border border-gray-200"
-              />
+          <div className="flex items-center gap-3">
+            {vehiclePhotoUrl && !vehicleImageError ? (
+              <div className="h-[3.75rem] w-[3.75rem] rounded-full border border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                <img
+                  src={vehiclePhotoUrl}
+                  alt="Vehicle"
+                  loading="lazy"
+                  className={`h-full w-full ${vehiclePhotoIsGif ? 'object-contain' : 'object-cover'}`}
+                  onError={() => setVehicleImageError(true)}
+                />
+              </div>
             ) : (
-              <Truck className="h-4 w-4 text-gray-400" />
+              <div className="h-[3.75rem] w-[3.75rem] rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                <Truck className="h-6 w-6 text-gray-400" />
+              </div>
             )}
             <span className="text-gray-600">
               <SearchHighlightedText
@@ -261,15 +281,21 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
               />
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {driver && (driver.driver_photo_url || driver.photo_url) ? (
-              <img
-                src={driver.driver_photo_url || driver.photo_url}
-                alt="Driver"
-                className="h-6 w-6 rounded-full object-cover border border-gray-200"
-              />
+          <div className="flex items-center gap-3">
+            {driverPhotoUrl && !driverImageError ? (
+              <div className="h-[3.75rem] w-[3.75rem] rounded-full border border-gray-200 overflow-hidden bg-white flex items-center justify-center">
+                <img
+                  src={driverPhotoUrl}
+                  alt="Driver"
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  onError={() => setDriverImageError(true)}
+                />
+              </div>
             ) : (
-              <User className="h-4 w-4 text-gray-400" />
+              <div className="h-[3.75rem] w-[3.75rem] rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center">
+                <User className="h-6 w-6 text-gray-400" />
+              </div>
             )}
             <span className="text-gray-600">
               <SearchHighlightedText
@@ -318,7 +344,7 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
       </div>
       
       <div className="mt-3 pt-3 border-t border-gray-100">
-        <div className="grid grid-cols-4 gap-2 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-2 text-sm">
           <div>
             <span className="text-gray-500 block">Distance</span>
             <span className="font-medium text-primary-600">
@@ -339,6 +365,15 @@ const TripCard: React.FC<TripCardProps> = memo(({ trip, vehicle, driver, onClick
             <span className="text-gray-500 block">Fuel</span>
             <span className="font-medium text-gray-900">
               {trip.fuel_quantity ? `${trip.fuel_quantity}L` : '-'}
+            </span>
+          </div>
+          
+          <div>
+            <span className="text-gray-500 block">Gross Weight</span>
+            <span className="font-medium text-gray-900">
+              {typeof trip.gross_weight === 'number' && !Number.isNaN(trip.gross_weight)
+                ? `${trip.gross_weight.toLocaleString()} kg`
+                : '-'}
             </span>
           </div>
           

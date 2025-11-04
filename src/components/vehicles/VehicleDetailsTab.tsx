@@ -11,7 +11,7 @@ import MultiDocumentViewer from './MultiDocumentViewer';
 import VehicleTagSelector from './VehicleTagSelector';
 import VehicleTagHistoryModal from '../admin/VehicleTagHistoryModal';
 import VehicleTagBadges from './VehicleTagBadges';
-import { removeTagFromVehicle } from '../../utils/api/tags';
+import { removeTagFromVehicle, assignTagToVehicle } from '../../utils/api/tags';
 import { formatDate, daysUntil } from '../../utils/dateUtils';
 import { toast } from 'react-toastify';
 import { vehicleColors } from '../../utils/vehicleColors';
@@ -19,6 +19,7 @@ import { createShortUrl, createWhatsAppShareLink } from '../../utils/urlShortene
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
 import { createLogger } from '../../utils/logger';
+import { uploadVehiclePhoto, getSignedVehiclePhotoUrl } from '../../utils/supabaseStorage';
 
 const logger = createLogger('VehicleDetailsTab');
 
@@ -60,6 +61,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const [isViewingDocuments, setIsViewingDocuments] = useState(false);
   const [vehicleTags, setVehicleTags] = useState<Tag[]>([]);
   const [showTagHistory, setShowTagHistory] = useState(false);
+  const [showTagSelector, setShowTagSelector] = useState(false);
   const [downloadingDocs, setDownloadingDocs] = useState<Set<string>>(new Set());
 
   // Load vehicle tags
@@ -282,35 +284,53 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
   const handlePhotoChange = async () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = 'image/png,image/jpeg,image/jpg,image/gif';
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        try {
-          // Upload photo to Supabase Storage
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${vehicle.id}/photo_${Date.now()}.${fileExt}`;
-          
-          const { data, error } = await supabase.storage
-            .from('vehicle-photos')
-            .upload(fileName, file);
+        // Validate file size (5MB limit)
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error('File size must be less than 5MB');
+          input.remove(); // Cleanup
+          return;
+        }
 
-          if (error) {
-            throw error;
+        try {
+          // Upload photo using the utility function that handles old photo deletion
+          const filePath = await uploadVehiclePhoto(file, vehicle.id);
+
+          // Get signed URL for display
+          const signedUrl = await getSignedVehiclePhotoUrl(filePath);
+
+          // Update the database with the new photo URL
+          const { error: updateError } = await supabase
+            .from('vehicles')
+            .update({ vehicle_photo_url: filePath })
+            .eq('id', vehicle.id);
+
+          if (updateError) {
+            logger.error('Failed to update vehicle photo URL in database:', updateError);
+            // Rollback: Delete the uploaded photo since DB update failed
+            await supabase.storage
+              .from('vehicle-photos')
+              .remove([filePath]);
+            throw updateError;
           }
 
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('vehicle-photos')
-            .getPublicUrl(fileName);
-
-          // Update vehicle with new photo URL
-          onUpdate({ photo_url: publicUrl });
+          // Update local state with the signed URL for immediate display
+          onUpdate({ photo_url: signedUrl, vehicle_photo_url: filePath });
           toast.success('Vehicle photo updated successfully');
         } catch (error) {
           logger.error('Photo upload failed:', error);
           toast.error('Failed to upload photo');
+        } finally {
+          // Cleanup: Remove the input element to prevent memory leak
+          input.remove();
         }
+      } else {
+        // Cleanup even if no file selected
+        input.remove();
       }
     };
     input.click();
@@ -372,8 +392,8 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tags</p>
                   {vehicleTags.length > 0 ? (
-                    <VehicleTagBadges 
-                      tags={vehicleTags} 
+                    <VehicleTagBadges
+                      tags={vehicleTags}
                       onRemove={async (tagId) => {
                         try {
                           await removeTagFromVehicle(vehicle.id, tagId);
@@ -391,12 +411,20 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                     <span className="text-sm text-gray-400">None</span>
                   )}
                 </div>
-                <button
-                  onClick={() => setShowTagHistory(true)}
-                  className="text-xs text-primary-600 hover:underline shrink-0"
-                >
-                  History
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => setShowTagSelector(true)}
+                    className="text-xs text-primary-600 hover:underline"
+                  >
+                    Add Tag
+                  </button>
+                  <button
+                    onClick={() => setShowTagHistory(true)}
+                    className="text-xs text-primary-600 hover:underline"
+                  >
+                    History
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -584,6 +612,53 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
           vehicleNumber={vehicle.registration_number}
           onClose={() => setDocumentViewer(null)}
         />
+      )}
+
+      {/* Tag Selector Modal */}
+      {showTagSelector && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Add Tags to {vehicle.registration_number}
+            </h3>
+            <VehicleTagSelector
+              selectedTags={vehicleTags}
+              onTagsChange={async (newTags) => {
+                // Find newly added tags
+                const addedTags = newTags.filter(
+                  tag => !vehicleTags.some(existing => existing.id === tag.id)
+                );
+
+                // Assign new tags
+                for (const tag of addedTags) {
+                  try {
+                    await assignTagToVehicle(vehicle.id, tag.id);
+                    logger.debug(`Tag ${tag.name} assigned successfully`);
+                  } catch (error) {
+                    logger.error(`Failed to assign tag ${tag.name}:`, error);
+                    toast.error(`Failed to assign tag: ${tag.name}`);
+                    return;
+                  }
+                }
+
+                // Update local state
+                setVehicleTags(newTags);
+                if (addedTags.length > 0) {
+                  toast.success(`${addedTags.length} tag(s) added successfully`);
+                }
+              }}
+              placeholder="Search and select tags..."
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setShowTagSelector(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Tag History Modal */}

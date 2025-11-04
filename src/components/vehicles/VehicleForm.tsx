@@ -4,7 +4,8 @@ import { Vehicle, Driver } from '@/types';
 import { getMaterialTypes, MaterialType } from '../../utils/materialTypes';
 import { getReminderContacts, ReminderContact } from '../../utils/reminderService';
 import { getDrivers } from '../../utils/api/drivers';
-import { getTags } from '../../utils/api/tags';
+import { getTags, assignTagToVehicle, removeTagFromVehicle } from '../../utils/api/tags';
+import { Tag as TagType } from '../../types/tags';
 import { supabase } from '../../utils/supabaseClient';
 import { deleteVehicleDocument, uploadVehicleDocument } from '../../utils/supabaseStorage';
 import Input from '../ui/Input';
@@ -14,6 +15,7 @@ import Button from '../ui/Button';
 import Textarea from '../ui/Textarea';
 import DocumentUploader from '../shared/DocumentUploader';
 import CollapsibleSection from '../ui/CollapsibleSection';
+import VehicleTagSelector from './VehicleTagSelector';
 import {
   Truck,
   Calendar,
@@ -77,6 +79,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [uploadedDocuments, setUploadedDocuments] = useState<Record<string, string[]>>({});
   const [deletedDocuments, setDeletedDocuments] = useState<Record<string, string[]>>({});
+
+  // Tag management state
+  const [vehicleTags, setVehicleTags] = useState<TagType[]>([]);
+  const [initialVehicleTags, setInitialVehicleTags] = useState<TagType[]>([]);
   
   // Draft state management for document changes
   const [draftState, setDraftState] = useState({
@@ -192,7 +198,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           getReminderContacts(),
           getDrivers()
         ]);
-        
+
         setReminderContacts(Array.isArray(contactsData) ? contactsData : []);
         setAvailableDrivers(Array.isArray(driversData) ? driversData : []);
       } catch (error) {
@@ -203,6 +209,45 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
     fetchData();
   }, []);
+
+  // Load existing vehicle tags when editing
+  useEffect(() => {
+    const loadVehicleTags = async () => {
+      if (initialData?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('vehicle_tags')
+            .select(`
+              tags (
+                id,
+                name,
+                slug,
+                color_hex,
+                description,
+                active,
+                created_at,
+                updated_at
+              )
+            `)
+            .eq('vehicle_id', initialData.id);
+
+          if (error) throw error;
+
+          const tags = (data || [])
+            .map((vt: any) => vt.tags)
+            .filter((tag: TagType | null): tag is TagType => tag !== null);
+
+          setVehicleTags(tags);
+          setInitialVehicleTags(tags);
+          logger.debug('Loaded vehicle tags:', tags);
+        } catch (error) {
+          logger.error('Error loading vehicle tags:', error);
+        }
+      }
+    };
+
+    loadVehicleTags();
+  }, [initialData?.id]);
 
   const handleDocumentUpload = (docType: string, filePaths: string[]) => {
     logger.debug(`📥 Document upload completed for ${docType}:`, filePaths);
@@ -483,10 +528,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     
     // Reset form to initial values (this is the key fix)
     reset(initialData);
-    
-    // Reset tag state to initial values (if tags are implemented)
-    // setVehicleTags(initialVehicleTags);
-    
+
+    // Reset tag state to initial values
+    setVehicleTags(initialVehicleTags);
+
     // Reset uploaded documents
     setUploadedDocuments({});
     
@@ -670,7 +715,45 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // ========================================
       logger.debug('📤 Submitting to parent component');
       await onSubmit(finalData);
-      
+
+      // ========================================
+      // STEP 5.5: Handle tag assignments after vehicle creation/update
+      // ========================================
+      if (data.id || initialData?.id) {
+        const vehicleId = data.id || initialData?.id || '';
+        logger.debug('🏷️ Managing vehicle tags for vehicle:', vehicleId);
+
+        // Determine which tags to add and remove
+        const initialTagIds = new Set(initialVehicleTags.map(t => t.id));
+        const currentTagIds = new Set(vehicleTags.map(t => t.id));
+
+        const tagsToAdd = vehicleTags.filter(t => !initialTagIds.has(t.id));
+        const tagsToRemove = initialVehicleTags.filter(t => !currentTagIds.has(t.id));
+
+        // Remove tags
+        for (const tag of tagsToRemove) {
+          try {
+            await removeTagFromVehicle(vehicleId, tag.id);
+            logger.debug(`✅ Removed tag: ${tag.name}`);
+          } catch (error) {
+            logger.error(`❌ Failed to remove tag ${tag.name}:`, error);
+          }
+        }
+
+        // Add tags
+        for (const tag of tagsToAdd) {
+          try {
+            await assignTagToVehicle(vehicleId, tag.id);
+            logger.debug(`✅ Assigned tag: ${tag.name}`);
+          } catch (error) {
+            logger.error(`❌ Failed to assign tag ${tag.name}:`, error);
+          }
+        }
+
+        // Update initial tags to current state
+        setInitialVehicleTags([...vehicleTags]);
+      }
+
       // ========================================
       // STEP 6: Cleanup state after successful submission
       // ========================================
@@ -894,6 +977,23 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               />
             )}
           />
+        </div>
+
+        {/* Vehicle Tags Section */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <TagIcon className="h-4 w-4" />
+            Vehicle Tags
+          </label>
+          <VehicleTagSelector
+            selectedTags={vehicleTags}
+            onTagsChange={setVehicleTags}
+            disabled={isSubmitting}
+            placeholder="Select tags to categorize this vehicle..."
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Tags help you categorize and compare vehicles with similar characteristics
+          </p>
         </div>
       </CollapsibleSection>
 

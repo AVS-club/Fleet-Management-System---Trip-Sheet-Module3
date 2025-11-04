@@ -16,7 +16,8 @@ import {
   Navigation,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  Image
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -60,113 +61,297 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     }).format(amount);
   };
 
+  const getFileNameFromUrl = (url?: string) => {
+    if (!url || typeof url !== 'string') return 'Attachment';
+    try {
+      const withoutQuery = url.split('?')[0];
+      const segments = withoutQuery.split('/').filter(Boolean);
+      const fileName = segments[segments.length - 1] || 'Attachment';
+      return decodeURIComponent(fileName);
+    } catch {
+      return 'Attachment';
+    }
+  };
+
+  // Humanize labels like wear_and_tear_replacement_repairs → Wear And Tear Replacement Repairs
+  const toTitleFromSnake = (value?: string) => {
+    if (!value || typeof value !== 'string') return '';
+    return value
+      .replace(/_/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   // Enhanced maintenance card
   const isMaintenance = event.kind === 'maintenance';
   const maintenanceData = isMaintenance ? event.entity_json : null;
+  const estimatedCostValue = maintenanceData
+    ? maintenanceData.cost ?? maintenanceData.estimated_cost ?? maintenanceData.actual_cost
+    : null;
+  const maintenanceContainerClass =
+    event.priority === 'danger'
+      ? 'border-red-300 bg-red-50/80 dark:border-red-800 dark:bg-red-950/40'
+      : event.priority === 'warn'
+      ? 'border-amber-300 bg-amber-50/70 dark:border-amber-700 dark:bg-amber-900/30'
+      : 'border-blue-200 bg-blue-50/60 dark:border-blue-800 dark:bg-blue-900/30';
+
+  const maintenanceIconAccent =
+    event.priority === 'danger'
+      ? 'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200'
+      : event.priority === 'warn'
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-200'
+      : 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200';
+
+  const maintenanceFiles = React.useMemo(() => {
+    if (!maintenanceData) return [] as Array<{ url: string; label: string; type: 'image' | 'pdf' }>;
+
+    const files: Array<{ url: string; label: string; type: 'image' | 'pdf' }> = [];
+    const seen = new Set<string>();
+    const addFile = (url?: string, label?: string) => {
+      if (!url || typeof url !== 'string') return;
+      const trimmed = url.trim();
+      if (!trimmed || seen.has(trimmed)) return;
+      seen.add(trimmed);
+      const isPdf = /\.pdf(\?|$)/i.test(trimmed);
+      files.push({
+        url: trimmed,
+        label: label || getFileNameFromUrl(trimmed),
+        type: isPdf ? 'pdf' : 'image'
+      });
+    };
+
+    addFile(maintenanceData.odometer_image, 'Odometer Reading');
+
+    maintenanceData.attachments?.forEach((url: string, index: number) =>
+      addFile(url, `Attachment ${index + 1}`)
+    );
+
+    maintenanceData.bills?.forEach((bill: any, index: number) =>
+      addFile(bill?.bill_image, bill?.description || `Bill ${index + 1}`)
+    );
+
+    maintenanceData.service_groups?.forEach((group: any, groupIndex: number) => {
+      group?.bill_url?.forEach((url: string, index: number) =>
+        addFile(
+          url,
+          group?.tasks?.[index]
+            ? `${toTitleFromSnake(group.tasks[index])} Bill`
+            : `Service Bill ${groupIndex + 1}-${index + 1}`
+        )
+      );
+      group?.battery_waranty_url?.forEach((url: string) => addFile(url, 'Battery Warranty'));
+      group?.tyre_waranty_url?.forEach((url: string) => addFile(url, 'Tyre Warranty'));
+    });
+
+    return files.slice(0, 4);
+  }, [maintenanceData]);
 
   if (isMaintenance && maintenanceData) {
     return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 hover:shadow-md transition-all ${
-        event.priority === 'danger' ? 'border-red-200 bg-red-50 dark:bg-red-900/20' :
-        event.priority === 'warn' ? 'border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20' :
-        'border-gray-200 dark:border-gray-700'
-      }`}>
-        <div className="flex items-start gap-3">
-          {getEventIcon(event.kind, event.priority)}
-          <div className="flex-1">
-            {/* Header with title and status */}
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">{event.title}</h3>
-              {event.status && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  event.status === 'open' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
-                  event.status === 'resolved' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
-                  event.status === 'completed' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
-                  event.status === 'pending' ? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' :
-                  'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                }`}>
-                  {event.status}
-                </span>
-              )}
-              {maintenanceData.priority && maintenanceData.priority !== 'medium' && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  maintenanceData.priority === 'high' ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
-                  'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
-                }`}>
-                  {maintenanceData.priority} priority
-                </span>
-              )}
+      <div
+        className={`relative overflow-hidden rounded-2xl border-2 p-6 shadow-md transition-all hover:shadow-lg ${maintenanceContainerClass}`}
+      >
+        <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white/60 to-transparent dark:from-white/10 pointer-events-none" />
+
+        <div className="relative space-y-5 text-sm">
+          {/* Header */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${maintenanceIconAccent}`}>
+                {getEventIcon(event.kind, event.priority)}
+              </div>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{event.title}</h3>
+                  {event.status && (
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                        event.status === 'open'
+                          ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/60 dark:text-yellow-200'
+                          : event.status === 'resolved'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200'
+                          : event.status === 'completed'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200'
+                          : event.status === 'pending'
+                          ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                          : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                      }`}
+                    >
+                      {event.status}
+                    </span>
+                  )}
+                  {maintenanceData.priority && maintenanceData.priority !== 'medium' && (
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
+                        maintenanceData.priority === 'high'
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200'
+                      }`}
+                    >
+                      {toTitleFromSnake(maintenanceData.priority)} Priority
+                    </span>
+                  )}
+                </div>
+
+                <p className="max-w-3xl text-sm text-gray-600 dark:text-gray-300">{event.description}</p>
+              </div>
             </div>
 
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{event.description}</p>
-
-            {/* Vehicle and Maintenance details grid */}
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              {/* Vehicle info */}
-              {vehicleData && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Truck className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {vehicleData.registration_number}
-                    {vehicleData.make && ` - ${vehicleData.make}`}
-                    {vehicleData.model && ` ${vehicleData.model}`}
-                    {vehicleData.year && ` (${vehicleData.year})`}
-                  </span>
-                </div>
-              )}
-
-              {/* Scheduled date */}
-              {maintenanceData.scheduled_date && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Calendar className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {format(new Date(maintenanceData.scheduled_date), 'MMM dd, yyyy')}
-                  </span>
-                </div>
-              )}
-
-              {/* Cost */}
-              {maintenanceData.cost && (
-                <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    ₹{Number(maintenanceData.cost).toLocaleString('en-IN')}
-                  </span>
-                </div>
-              )}
-
-              {/* Odometer reading */}
-              {maintenanceData.odometer_reading && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {maintenanceData.odometer_reading.toLocaleString('en-IN')} km
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Task type and vendor */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {maintenanceData.task_type && (
-                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md">
-                  {maintenanceData.task_type}
-                </span>
-              )}
+            <div className="flex flex-wrap gap-2">
               {maintenanceData.vendor && (
-                <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md">
+                <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/50 dark:text-purple-200">
                   Vendor: {maintenanceData.vendor}
                 </span>
               )}
+              {maintenanceData.task_type && (
+                <span className="rounded-full bg-gray-900/5 px-3 py-1 text-xs font-medium text-gray-600 backdrop-blur dark:bg-white/10 dark:text-gray-200">
+                  {toTitleFromSnake(maintenanceData.task_type)}
+                </span>
+              )}
+              {maintenanceData.category && (
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700 dark:bg-sky-900/50 dark:text-sky-200">
+                  {toTitleFromSnake(maintenanceData.category)}
+                </span>
+              )}
             </div>
+          </div>
 
-            {/* Timestamp */}
-            <div className="flex items-center gap-2 mt-2">
-              <Clock className="h-3 w-3 text-gray-400" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}
-              </span>
+          {/* Key metrics */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {vehicleData && (
+              <div className="rounded-xl border border-blue-200 bg-white/80 p-4 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/40">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-200">
+                    <Truck className="h-5 w-5" />
+                    <span className="text-xs font-semibold uppercase tracking-wide">Vehicle</span>
+                  </div>
+                  <span className="text-[11px] font-medium text-blue-500 dark:text-blue-300">Assigned</span>
+                </div>
+                <div className="mt-2 text-base font-semibold text-blue-900 dark:text-blue-100">
+                  {vehicleData.registration_number}
+                </div>
+                {(vehicleData.make || vehicleData.model || vehicleData.year) && (
+                  <div className="mt-1 text-xs text-blue-700/80 dark:text-blue-200/80">
+                    {[vehicleData.make, vehicleData.model].filter(Boolean).join(' ')}
+                    {vehicleData.year ? ` (${vehicleData.year})` : ''}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {maintenanceData.odometer_reading && (
+              <div className="rounded-xl border border-indigo-200 bg-white/80 p-4 shadow-sm dark:border-indigo-900/60 dark:bg-indigo-950/40">
+                <div className="flex items-center justify-between text-indigo-600 dark:text-indigo-200">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    <span className="text-xs font-semibold uppercase tracking-wide">Odometer</span>
+                  </div>
+                  <span className="text-[11px] font-medium">km</span>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+                  {Number(maintenanceData.odometer_reading).toLocaleString('en-IN')}
+                </div>
+              </div>
+            )}
+
+            {maintenanceData.scheduled_date && (
+              <div className="rounded-xl border border-emerald-200 bg-white/80 p-4 shadow-sm dark:border-emerald-900/60 dark:bg-emerald-950/40">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-200">
+                  <Calendar className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-wide">Scheduled</span>
+                </div>
+                <div className="mt-3 text-lg font-semibold text-emerald-900 dark:text-emerald-100">
+                  {format(new Date(maintenanceData.scheduled_date), 'MMM dd, yyyy')}
+                </div>
+              </div>
+            )}
+
+            {estimatedCostValue !== null && estimatedCostValue !== undefined && (
+              <div className="rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-200">
+                  <DollarSign className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-wide">
+                    {maintenanceData.actual_cost ? 'Actual Cost' : 'Estimated Cost'}
+                  </span>
+                </div>
+                <div className="mt-3 text-lg font-bold text-amber-900 dark:text-amber-100 truncate">
+                  ₹{Number(estimatedCostValue).toLocaleString('en-IN')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          {maintenanceData.notes && (
+            <div className="rounded-xl border border-gray-200 bg-white/80 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/60">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Notes</h4>
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">{maintenanceData.notes}</p>
             </div>
+          )}
+
+          {/* Attachments */}
+          {maintenanceFiles.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Supporting Media
+              </h4>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {maintenanceFiles.map((file, index) => (
+                  <a
+                    key={`${file.url}-${index}`}
+                    href={file.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-gray-700 dark:bg-gray-900/70"
+                  >
+                    {file.type === 'image' ? (
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+                        <img
+                          src={file.url}
+                          alt={file.label}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
+                        />
+                        <div className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                          <Image className="h-3 w-3" />
+                          Photo
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-3 bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-300">
+                        <FileText className="h-8 w-8" />
+                        <span className="text-xs font-semibold uppercase tracking-wide">PDF</span>
+                      </div>
+                    )}
+                    <div className="border-t border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition-colors group-hover:text-blue-600 dark:border-gray-700 dark:text-gray-200">
+                      {file.label}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Meta */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>{formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}</span>
+            </div>
+            {maintenanceData.start_date && (
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-emerald-500" />
+                <span>Started {format(new Date(maintenanceData.start_date), 'dd MMM yyyy')}</span>
+              </div>
+            )}
+            {maintenanceData.end_date && (
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-gray-400" />
+                <span>Completed {format(new Date(maintenanceData.end_date), 'dd MMM yyyy')}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -184,8 +369,19 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     const tripMatch = event.description.match(/Trip (T\d+-\d+-\d+)/);
     const tripId = tripMatch ? tripMatch[1] : null;
 
+    // Check if this is a route deviation alert
+    const isRouteDeviation = event.title.toLowerCase().includes('route deviation');
+
+    // Extract metadata for route deviation
+    const metadata = alertData.metadata || {};
+    const driverId = metadata.driver_id;
+    const tripStartDate = metadata.trip_start_date;
+    const actualDistance = metadata.distance;
+    const expectedDistance = metadata.expected_value ? (metadata.distance / (metadata.actual_value / 100)) : null;
+    const deviationPercent = metadata.deviation;
+
     return (
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 p-4 hover:shadow-md transition-all ${
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 p-5 hover:shadow-md transition-all ${
         event.priority === 'danger' ? 'border-l-red-500 bg-red-50 dark:bg-red-900/20' :
         event.priority === 'warn' ? 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
         'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20'
@@ -193,17 +389,17 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 flex-1">
             {getEventIcon(event.kind, event.priority)}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-3">
               {/* Header with metric highlight */}
-              <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-base">
                   {event.title.split(':')[0]}:
                 </h3>
                 {keyMetric && (
-                  <span className={`text-2xl font-bold ${
-                    event.priority === 'danger' ? 'text-red-600 dark:text-red-400' :
-                    event.priority === 'warn' ? 'text-yellow-600 dark:text-yellow-400' :
-                    'text-blue-600 dark:text-blue-400'
+                  <span className={`px-3 py-1 rounded-lg text-2xl font-bold ${
+                    event.priority === 'danger' ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40' :
+                    event.priority === 'warn' ? 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/40' :
+                    'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40'
                   }`}>
                     {keyMetric}
                   </span>
@@ -220,27 +416,102 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                 )}
               </div>
 
-              {/* Condensed description */}
-              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-                {event.description.length > 120
-                  ? event.description.substring(0, 120) + '...'
-                  : event.description}
-              </p>
+              {/* Key Information Grid - Vehicle, Driver, Date, Trip */}
+              {isRouteDeviation && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2 border-y border-gray-200 dark:border-gray-700">
+                  {/* Vehicle Number */}
+                  {vehicleData?.registration_number && (
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-900/50 rounded-md px-2 py-1.5">
+                      <Truck className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Vehicle</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {vehicleData.registration_number}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Key details in a grid */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                {tripId && (
-                  <div className="flex items-center gap-1.5">
-                    <Navigation className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium text-gray-700 dark:text-gray-300">{tripId}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-600 dark:text-gray-400">
-                    {formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}
+                  {/* Driver Number */}
+                  {(driverData?.name || driverId) && (
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-900/50 rounded-md px-2 py-1.5">
+                      <User className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Driver</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {driverData?.name || driverId}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trip Date */}
+                  {tripStartDate && (
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-900/50 rounded-md px-2 py-1.5">
+                      <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Date</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {format(new Date(tripStartDate), 'MMM dd, yyyy')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Trip ID */}
+                  {tripId && (
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-900/50 rounded-md px-2 py-1.5">
+                      <Navigation className="h-4 w-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Trip ID</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {tripId}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Distance Information Badge - for route deviation */}
+              {isRouteDeviation && actualDistance && (
+                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg ${
+                  event.priority === 'danger' ? 'bg-red-100 dark:bg-red-900/40' :
+                  event.priority === 'warn' ? 'bg-yellow-100 dark:bg-yellow-900/40' :
+                  'bg-blue-100 dark:bg-blue-900/40'
+                }`}>
+                  <MapPin className={`h-4 w-4 ${
+                    event.priority === 'danger' ? 'text-red-600 dark:text-red-400' :
+                    event.priority === 'warn' ? 'text-yellow-600 dark:text-yellow-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }`} />
+                  <span className={`text-sm font-semibold ${
+                    event.priority === 'danger' ? 'text-red-900 dark:text-red-100' :
+                    event.priority === 'warn' ? 'text-yellow-900 dark:text-yellow-100' :
+                    'text-blue-900 dark:text-blue-100'
+                  }`}>
+                    {actualDistance.toFixed(1)} km
+                    {expectedDistance && (
+                      <span className="font-normal"> ({deviationPercent?.toFixed(1)}% longer)</span>
+                    )}
                   </span>
                 </div>
+              )}
+
+              {/* Condensed description */}
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                {isRouteDeviation
+                  ? "May indicate unauthorized detours, traffic delays, or route planning issues."
+                  : event.description.length > 120
+                    ? event.description.substring(0, 120) + '...'
+                    : event.description
+                }
+              </p>
+
+              {/* Time stamp */}
+              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}</span>
               </div>
             </div>
           </div>
@@ -401,22 +672,22 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                 <img
                   src={driverData.photo_url}
                   alt={driverData.name || 'Driver'}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                  className="w-[7.5rem] h-[7.5rem] rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     const fallback = e.currentTarget.nextElementSibling;
                     if (fallback) fallback.classList.remove('hidden');
                   }}
                 />
-                <div className="hidden w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                  <span className="text-white font-semibold text-lg">
+                <div className="hidden w-[7.5rem] h-[7.5rem] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                  <span className="text-white font-semibold text-3xl">
                     {driverData?.name?.charAt(0)?.toUpperCase() || 'D'}
                   </span>
                 </div>
               </>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <span className="text-white font-semibold text-lg">
+              <div className="w-[7.5rem] h-[7.5rem] rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <span className="text-white font-semibold text-3xl">
                   {driverData?.name?.charAt(0)?.toUpperCase() || 'D'}
                 </span>
               </div>
@@ -441,20 +712,20 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                 <img
                   src={vehicleData.photo_url}
                   alt={vehicleData.registration_number || 'Vehicle'}
-                  className="w-12 h-12 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-700"
+                  className="w-[7.5rem] h-[7.5rem] rounded-lg object-cover border-2 border-gray-200 dark:border-gray-700"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     const fallback = e.currentTarget.nextElementSibling;
                     if (fallback) fallback.classList.remove('hidden');
                   }}
                 />
-                <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
-                  <Truck className="h-6 w-6 text-white" />
+                <div className="hidden w-[7.5rem] h-[7.5rem] rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
+                  <Truck className="h-12 w-12 text-white" />
                 </div>
               </>
             ) : (
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
-                <Truck className="h-6 w-6 text-white" />
+              <div className="w-[7.5rem] h-[7.5rem] rounded-lg bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center">
+                <Truck className="h-12 w-12 text-white" />
               </div>
             )}
           </div>

@@ -92,7 +92,7 @@ export const backfillMaintenanceEvents = async () => {
 
       return {
         kind: 'maintenance',
-        event_time: task.start_date || task.created_at,
+        event_time: task.created_at || task.start_date, // Use created_at for chronological ordering
         priority: task.priority === 'high' ? 'warn' : 'info',
         title: `Maintenance Task${task.priority === 'high' ? ' (High Priority)' : ''}${task.status === 'completed' ? ' - Completed' : ''}`,
         description: `${task.type || 'Service'} ${task.status === 'completed' ? 'completed' : 'scheduled'} for vehicle at ${task.odometer_reading} km`,
@@ -104,7 +104,7 @@ export const backfillMaintenanceEvents = async () => {
           status: task.status,
           odometer_reading: task.odometer_reading,
           garage_id: task.garage_id,
-          scheduled_date: task.start_date,
+          scheduled_date: task.start_date, // Store scheduled date in metadata
           completed_date: task.end_date
         },
         status: task.status,

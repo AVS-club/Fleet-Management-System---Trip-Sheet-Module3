@@ -4,7 +4,7 @@ import Layout from "../components/layout/Layout";
 import { usePermissions } from "../hooks/usePermissions";
 import { Permissions } from "../types/permissions";
 import { getVehicle, getVehicleStats } from "../utils/storage";
-import { generateVehicleDocumentUrls } from "../utils/supabaseStorage";
+import { generateVehicleDocumentUrls, getSignedVehiclePhotoUrl } from "../utils/supabaseStorage";
 import { updateVehicle } from "../utils/api/vehicles";
 import { assignTagToVehicle, removeTagFromVehicle } from "../utils/api/tags";
 import { supabase } from "../utils/supabaseClient";
@@ -40,6 +40,7 @@ import VehicleDetailsTabMobile from "../components/vehicles/VehicleDetailsTabMob
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 import { createLogger } from '../utils/logger';
+import { trackEntityView } from '../utils/entityViewTracking';
 
 const logger = createLogger('VehiclePage');
 
@@ -112,6 +113,9 @@ const VehiclePage: React.FC = () => {
     const fetchData = async () => {
       if (!id) return;
 
+      // Ensure a brief loading state to avoid flashing "Not Found" before data arrives
+      const MIN_LOAD_MS = 1200; // 1.2s minimum loader time
+      const loadStartedAt = Date.now();
       setLoading(true);
       try {
         const [vehicleData, vehicleStats] = await Promise.all([
@@ -119,10 +123,25 @@ const VehiclePage: React.FC = () => {
           getVehicleStats(id),
         ]);
 
+        // Generate signed URL for vehicle photo if vehicle_photo_url exists
+        if (vehicleData && vehicleData.vehicle_photo_url) {
+          logger.debug('📸 Vehicle has photo_url field:', vehicleData.vehicle_photo_url);
+          const signedPhotoUrl = await getSignedVehiclePhotoUrl(vehicleData.vehicle_photo_url);
+          logger.debug('📸 Generated signed photo URL:', signedPhotoUrl);
+          if (signedPhotoUrl) {
+            vehicleData.photo_url = signedPhotoUrl;
+            logger.debug('✅ Set photo_url to:', vehicleData.photo_url);
+          } else {
+            logger.warn('⚠️ Failed to generate signed URL for photo');
+          }
+        } else {
+          logger.debug('📸 No vehicle_photo_url found in vehicle data');
+        }
+
         setVehicle(vehicleData);
-        setStats(vehicleStats || { 
-          totalTrips: 0, 
-          totalDistance: 0, 
+        setStats(vehicleStats || {
+          totalTrips: 0,
+          totalDistance: 0,
           totalCost: 0,
           costPerKm: 0,
           monthlyAverage: 0,
@@ -132,11 +151,30 @@ const VehiclePage: React.FC = () => {
         // Generate signed URLs only once when vehicle data is fetched
         if (vehicleData) {
           await generateSignedUrls(vehicleData);
+
+          // Track vehicle view for AI Alerts feed
+          if (vehicleData.organization_id) {
+            trackEntityView({
+              entityType: 'vehicles',
+              entityId: vehicleData.id,
+              entityName: vehicleData.registration_number,
+              organizationId: vehicleData.organization_id
+            }).catch(error => {
+              logger.error('Failed to track vehicle view:', error);
+              // Don't throw - tracking is non-critical
+            });
+          }
         }
       } catch (error) {
         logger.error("Error fetching vehicle data:", error);
         toast.error("Failed to load vehicle details");
       } finally {
+        // Enforce minimum loader duration
+        const elapsed = Date.now() - loadStartedAt;
+        const remaining = Math.max(0, MIN_LOAD_MS - elapsed);
+        if (remaining > 0) {
+          await new Promise((resolve) => setTimeout(resolve, remaining));
+        }
         setLoading(false);
       }
     };
@@ -231,6 +269,18 @@ const VehiclePage: React.FC = () => {
   // IMPORTANT: All hooks are now defined above this point
   // Now we can have conditional returns
 
+  // Show loader while fetching to prevent premature "Not Found"
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Only show Not Found once loading has fully completed
   if (!vehicle) {
     return (
       <Layout>
@@ -476,11 +526,7 @@ const VehiclePage: React.FC = () => {
             </div>
           </div>
         </div>
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-      ) : (
+      {(
         <div className="space-y-6">
           {/* Tab Navigation */}
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border-b border-gray-200 dark:border-gray-700">

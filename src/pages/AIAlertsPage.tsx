@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { AIAlert, Driver, Trip, Vehicle } from '@/types';
@@ -57,6 +57,7 @@ const AIAlertsPage: React.FC = () => {
   } | null>(null);
   const [selectedAlert, setSelectedAlert] = useState<AIAlert | null>(null);
   const [runningCheck, setRunningCheck] = useState(false);
+  const [loadMoreNode, setLoadMoreNode] = useState<HTMLDivElement | null>(null);
 
   // Hero Feed state
   const [selectedFilters, setSelectedFilters] = useState<string[]>(['all']);
@@ -65,6 +66,10 @@ const AIAlertsPage: React.FC = () => {
     return saved !== null ? JSON.parse(saved) : true; // Default to true
   });
   const [includeDocuments, setIncludeDocuments] = useState(false); // Default to false
+  const [showFutureEvents, setShowFutureEvents] = useState(() => {
+    const saved = localStorage.getItem('showFutureEvents');
+    return saved !== null ? JSON.parse(saved) : false; // Default to false - hide future dates
+  });
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
   const { data: driversMap, error: driversError, isLoading: driversLoading, refetch: refetchDrivers } = useQuery({
@@ -177,6 +182,10 @@ const AIAlertsPage: React.FC = () => {
   const [liked, setLiked] = useState(false);
   const videoRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const feedContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    setLoadMoreNode(node);
+  }, []);
 
 
   // Fetch alerts and vehicles data
@@ -299,6 +308,30 @@ const AIAlertsPage: React.FC = () => {
 
 
   const availableShorts = youtubeShorts || [];
+
+  useEffect(() => {
+    if (!loadMoreNode || !hasNextPage || heroFeedLoading) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: feedContainerRef.current ?? null,
+        rootMargin: '160px 0px 320px 0px',
+        threshold: 0.1
+      }
+    );
+
+    observer.observe(loadMoreNode);
+
+    return () => observer.disconnect();
+  }, [loadMoreNode, fetchNextPage, hasNextPage, isFetchingNextPage, heroFeedLoading]);
   const events = useMemo(() => {
     const feedEvents = (heroFeedData?.pages ?? []).flat();
     const enrichedFeedEvents = feedEvents.map(event => {
@@ -397,11 +430,46 @@ const AIAlertsPage: React.FC = () => {
       allEvents = [...allEvents, ...kpiEvents];
     }
 
+    // Filter out future events if toggle is off
+    if (!showFutureEvents) {
+      const now = new Date();
+      allEvents = allEvents.filter(event => {
+        // For events with scheduled_date or expiry_date in entity_json, check if they're in the future
+        const eventTime = new Date(event.event_time);
+        const scheduledDate = event.entity_json?.scheduled_date ? new Date(event.entity_json.scheduled_date) : null;
+        const expiryDate = event.entity_json?.expiry_date ? new Date(event.entity_json.expiry_date) : null;
+        const endDate = event.entity_json?.end_date ? new Date(event.entity_json.end_date) : null;
+
+        // Special handling for document reminders (vehicle_doc)
+        // Document reminders SHOULD have future expiry dates - that's the point!
+        // We only care about when the reminder was created (event_time), not when doc expires
+        if (event.kind === 'vehicle_doc') {
+          return eventTime <= now; // Show if reminder was created in the past
+        }
+
+        // Keep events where event_time (activity timestamp) is in the past
+        // This ensures recently created/viewed items always show
+        if (eventTime <= now) {
+          return true;
+        }
+
+        // Filter out other event types with future scheduled dates or end dates
+        if (scheduledDate && scheduledDate > now) {
+          return false;
+        }
+        if (endDate && endDate > now) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
     // Sort all events by event_time descending
     return allEvents.sort((a, b) =>
       new Date(b.event_time).getTime() - new Date(a.event_time).getTime()
     );
-  }, [heroFeedData, kpiCards, selectedFilters, alerts, trips, maintenanceTasksData]);
+  }, [heroFeedData, kpiCards, selectedFilters, alerts, trips, maintenanceTasksData, showFutureEvents]);
 
   // Media cards for YouTube content
   const mediaCards = useMemo(() => {
@@ -973,7 +1041,7 @@ const AIAlertsPage: React.FC = () => {
                     </button>
 
                     {/* Compact Document Reminders Toggle */}
-                    <div className="ml-auto flex items-center gap-2">
+                    <div className="ml-auto flex items-center gap-4">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <span className="text-xs text-gray-600 font-medium">Show Doc Reminders</span>
                         <div className="relative">
@@ -986,6 +1054,24 @@ const AIAlertsPage: React.FC = () => {
                           <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                         </div>
                       </label>
+
+                      {/* Future Events Toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <span className="text-xs text-gray-600 font-medium">Show Future Events</span>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={showFutureEvents}
+                            onChange={(e) => {
+                              const newValue = e.target.checked;
+                              setShowFutureEvents(newValue);
+                              localStorage.setItem('showFutureEvents', JSON.stringify(newValue));
+                            }}
+                            className="sr-only peer"
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -994,7 +1080,10 @@ const AIAlertsPage: React.FC = () => {
                 <div className="max-w-4xl mx-auto px-3 pb-3">
 
                   {/* Social Media Scroller */}
-                  <div className="space-y-3">
+                  <div
+                    ref={feedContainerRef}
+                    className="space-y-3 overflow-y-auto max-h-[60vh] sm:max-h-[70vh] md:max-h-[75vh] pr-1"
+                  >
                     {heroFeedLoading ? (
                       <div className="text-center py-8">
                         <RefreshCw className="h-6 w-6 mx-auto mb-2 animate-spin text-primary-600" />
@@ -1040,6 +1129,44 @@ const AIAlertsPage: React.FC = () => {
                               let vehicleData = null;
                               let driverData = null;
 
+                              // For AI alerts, get vehicle/driver from metadata or affected_entity
+                              if (event.kind === 'ai_alert') {
+                                const alertData = event.entity_json || {};
+                                const metadata = alertData.metadata || {};
+                                const affectedEntity = alertData.affected_entity;
+
+                                // Get vehicle ID from metadata or affected_entity
+                                const vehicleId = metadata.vehicle_id || (affectedEntity?.type === 'vehicle' ? affectedEntity.id : null);
+                                if (vehicleId) {
+                                  vehicleData = vehiclesMap ? vehiclesMap[vehicleId] : null;
+                                  if (!vehicleData) {
+                                    const foundVehicle = vehicles.find(v => v.id === vehicleId);
+                                    if (foundVehicle) {
+                                      vehicleData = {
+                                        ...foundVehicle,
+                                        photo_url: foundVehicle.vehicle_photo_url || foundVehicle.photo_url
+                                      };
+                                    }
+                                  }
+                                }
+
+                                // Get driver ID from metadata or affected_entity
+                                const driverId = metadata.driver_id || (affectedEntity?.type === 'driver' ? affectedEntity.id : null);
+                                if (driverId) {
+                                  driverData = driversMap ? driversMap[driverId] : null;
+                                  if (!driverData) {
+                                    const foundDriver = drivers.find(d => d.id === driverId);
+                                    if (foundDriver) {
+                                      driverData = {
+                                        ...foundDriver,
+                                        photo_url: foundDriver.driver_photo_url || foundDriver.photo_url
+                                      };
+                                    }
+                                  }
+                                }
+                              }
+
+                              // For trips, get vehicle and driver from trip data
                               if (tripData?.vehicle_id) {
                                 // First try vehiclesMap (which has photo_url already processed)
                                 vehicleData = vehiclesMap ? vehiclesMap[tripData.vehicle_id] : null;
@@ -1132,7 +1259,7 @@ const AIAlertsPage: React.FC = () => {
                             })}
                             
                             {hasNextPage && (
-                              <div className="text-center pt-4">
+                              <div ref={loadMoreRef} className="text-center pt-4">
                                 <Button
                                   variant="outline"
                                   onClick={() => fetchNextPage()}

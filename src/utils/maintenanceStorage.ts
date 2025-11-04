@@ -200,7 +200,7 @@ export const createTask = async (
         .from('events_feed')
         .insert({
           kind: 'maintenance',
-          event_time: data.start_date || new Date().toISOString(),
+          event_time: new Date().toISOString(), // Use NOW() for chronological feed ordering
           priority: data.priority === 'high' ? 'warn' : 'info',
           title: `Maintenance Task Created${data.priority === 'high' ? ' (High Priority)' : ''}`,
           description: `${data.type || 'Service'} scheduled for vehicle at ${data.odometer_reading} km`,
@@ -212,7 +212,7 @@ export const createTask = async (
             status: data.status,
             odometer_reading: data.odometer_reading,
             garage_id: data.garage_id,
-            scheduled_date: data.start_date
+            scheduled_date: data.start_date // Store scheduled date in metadata
           },
           status: data.status,
           metadata: {
@@ -411,7 +411,7 @@ export const updateTask = async (
         .from('events_feed')
         .insert({
           kind: 'maintenance',
-          event_time: updatedTask.end_date || new Date().toISOString(),
+          event_time: new Date().toISOString(), // Use NOW() for chronological feed ordering
           priority: 'info',
           title: 'Maintenance Task Completed',
           description: `${updatedTask.type || 'Service'} completed for vehicle at ${updatedTask.odometer_reading} km`,
@@ -423,7 +423,7 @@ export const updateTask = async (
             status: updatedTask.status,
             odometer_reading: updatedTask.odometer_reading,
             garage_id: updatedTask.garage_id,
-            completed_date: updatedTask.end_date
+            completed_date: updatedTask.end_date // Store completion date in metadata
           },
           status: 'completed',
           metadata: {

@@ -37,27 +37,32 @@ ORDER BY
 -- SUMMARY: Count drivers by path status
 -- =============================================================================
 
+WITH driver_status AS (
+  SELECT
+    CASE
+      WHEN driver_photo_url IS NULL THEN 'NO_PHOTO'
+      WHEN driver_photo_url LIKE 'data:%' THEN 'DATA_URL'
+      WHEN driver_photo_url LIKE 'http%' THEN 'FULL_URL'
+      WHEN driver_photo_url LIKE id::text || '/%' THEN 'UUID_CORRECT ✓'
+      WHEN driver_photo_url ~ '^[A-Z]{2}[0-9]{12,14}/' THEN 'LICENSE_NUMBER ✗'
+      WHEN driver_photo_url LIKE 'temp-%' THEN 'TEMP_ID ✗'
+      WHEN driver_photo_url LIKE 'drivers/%' THEN 'OLD_FORMAT ✗'
+      ELSE 'UNKNOWN ✗'
+    END as path_status,
+    CASE
+      WHEN driver_photo_url IS NULL THEN 5
+      WHEN driver_photo_url LIKE 'data:%' THEN 4
+      WHEN driver_photo_url LIKE id::text || '/%' THEN 3
+      ELSE 1
+    END as sort_order
+  FROM public.drivers
+)
 SELECT
-  CASE
-    WHEN driver_photo_url IS NULL THEN 'NO_PHOTO'
-    WHEN driver_photo_url LIKE 'data:%' THEN 'DATA_URL'
-    WHEN driver_photo_url LIKE 'http%' THEN 'FULL_URL'
-    WHEN driver_photo_url LIKE id::text || '/%' THEN 'UUID_CORRECT ✓'
-    WHEN driver_photo_url ~ '^[A-Z]{2}[0-9]{12,14}/' THEN 'LICENSE_NUMBER ✗'
-    WHEN driver_photo_url LIKE 'temp-%' THEN 'TEMP_ID ✗'
-    WHEN driver_photo_url LIKE 'drivers/%' THEN 'OLD_FORMAT ✗'
-    ELSE 'UNKNOWN ✗'
-  END as path_status,
+  path_status,
   COUNT(*) as driver_count
-FROM public.drivers
-GROUP BY path_status
-ORDER BY
-  CASE
-    WHEN driver_photo_url IS NULL THEN 5
-    WHEN driver_photo_url LIKE 'data:%' THEN 4
-    WHEN driver_photo_url LIKE id::text || '/%' THEN 3
-    ELSE 1
-  END;
+FROM driver_status
+GROUP BY path_status, sort_order
+ORDER BY sort_order;
 
 -- =============================================================================
 -- MIGRATION PLAN: Generate new paths for drivers needing migration

@@ -9,6 +9,8 @@ import { getTrips, getVehicles, getVehicle, getVehicleStats } from '../utils/sto
 import { getDrivers, getDriver } from '../utils/api/drivers';
 import { format } from 'date-fns';
 import { Trip, Vehicle, Driver } from '@/types';
+import { supabase } from '../utils/supabaseClient';
+import { getUserActiveOrganization } from '../utils/supaHelpers';
 import StatCard from '../components/ui/StatCard';
 import EnhancedMileageChart from '../components/dashboard/EnhancedMileageChart';
 import VehicleStatsList from '../components/dashboard/VehicleStatsList';
@@ -79,6 +81,28 @@ const DashboardPage: React.FC = () => {
     retry: 2,
   });
 
+  // Get total trip count separately (no row limit)
+  const { data: totalTripsCount = 0, isLoading: totalTripsCountLoading } = useQuery({
+    queryKey: ['totalTripsCount'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+      
+      const organizationId = await getUserActiveOrganization(user.id);
+      if (!organizationId) return 0;
+
+      const { count } = await supabase
+        .from('trips')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+      
+      return count || 0;
+    },
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
   const { data: vehicles = [], isLoading: vehiclesLoading, error: vehiclesError } = useQuery({
     queryKey: ['vehicles'],
     queryFn: getVehicles,
@@ -95,7 +119,7 @@ const DashboardPage: React.FC = () => {
     retry: 2,
   });
 
-  const loading = permissionsLoading || tripsLoading || vehiclesLoading || driversLoading;
+  const loading = permissionsLoading || tripsLoading || vehiclesLoading || driversLoading || totalTripsCountLoading;
 
   // Helper function to get start of week (Monday)
   const getStartOfWeek = (date: Date): Date => {
@@ -381,7 +405,7 @@ const DashboardPage: React.FC = () => {
       const latestTripDate = tripDates.length > 0 ? new Date(Math.max(...tripDates)) : undefined;
 
       return {
-        totalTrips: trips.length,
+        totalTrips: totalTripsCount,
         totalDistance,
         totalFuel,
         avgMileage,

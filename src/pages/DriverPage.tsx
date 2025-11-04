@@ -38,6 +38,7 @@ import DriverDocumentDownloadModal from "../components/drivers/DriverDocumentDow
 import DriverWhatsAppShareModal from "../components/drivers/DriverWhatsAppShareModal";
 import DriverAIInsights from "../components/ai/DriverAIInsights";
 import { createLogger } from '../utils/logger';
+import { trackEntityView } from '../utils/entityViewTracking';
 
 const logger = createLogger('DriverPage');
 
@@ -186,6 +187,19 @@ const DriverPage: React.FC = () => {
           }
         : null;
       setDriver(mergedDriver);
+
+      // Track driver profile view for AI Alerts feed
+      if (driverData && driverData.organization_id) {
+        trackEntityView({
+          entityType: 'drivers',
+          entityId: driverData.id,
+          entityName: driverData.name,
+          organizationId: driverData.organization_id
+        }).catch(error => {
+          logger.error('Failed to track driver view:', error);
+          // Don't throw - tracking is non-critical
+        });
+      }
 
       if (driverData?.driver_photo_url) {
         const publicUrl = getDriverPhotoPublicUrl(driverData.driver_photo_url);

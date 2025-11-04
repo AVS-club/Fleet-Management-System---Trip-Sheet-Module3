@@ -23,7 +23,7 @@ import {
 } from "../utils/storage";
 import { getAllDriversIncludingInactive } from "../utils/api/drivers";
 import config from "../utils/env";
-import { uploadVehicleDocument } from "../utils/supabaseStorage";
+import { uploadVehicleDocument, getSignedVehiclePhotoUrl } from "../utils/supabaseStorage";
 import {
   Truck,
   Calendar,
@@ -149,8 +149,25 @@ const VehiclesPage: React.FC = () => {
         }
         setDrivers(driversData);
 
+        // Generate signed URLs for all vehicle photos
+        logger.debug('📸 Generating signed URLs for vehicle photos...');
+        const vehiclesWithPhotos = await Promise.all(
+          vehiclesData.map(async (vehicle) => {
+            if (vehicle.vehicle_photo_url) {
+              logger.debug(`📸 Vehicle ${vehicle.registration_number} has photo:`, vehicle.vehicle_photo_url);
+              const signedPhotoUrl = await getSignedVehiclePhotoUrl(vehicle.vehicle_photo_url);
+              logger.debug(`📸 Generated signed URL for ${vehicle.registration_number}:`, signedPhotoUrl ? 'SUCCESS' : 'FAILED');
+              if (signedPhotoUrl) {
+                return { ...vehicle, photo_url: signedPhotoUrl };
+              }
+            }
+            return vehicle;
+          })
+        );
+        logger.debug('📸 Total vehicles with photos:', vehiclesWithPhotos.filter(v => v.photo_url).length);
+
         // Set vehicles with default stats first for immediate display
-        const vehiclesWithDefaultStats = vehiclesData.map((vehicle) => ({
+        const vehiclesWithDefaultStats = vehiclesWithPhotos.map((vehicle) => ({
           ...vehicle,
           stats: {
             totalTrips: 0,
@@ -185,7 +202,7 @@ const VehiclesPage: React.FC = () => {
 
         // Calculate and update stats
         const statsMap = await getAllVehicleStats(tripsArray);
-        const vehiclesWithStats = vehiclesData.map((vehicle) => ({
+        const vehiclesWithStats = vehiclesWithPhotos.map((vehicle) => ({
           ...vehicle,
           stats:
             statsMap[vehicle.id] ?? {
@@ -1083,7 +1100,8 @@ const VehiclesPage: React.FC = () => {
                           tags={vehicle.tags}
                           readOnly
                           size="sm"
-                          maxDisplay={3}
+                          maxDisplay={2}
+                          compactMode={true}
                         />
                       </div>
                     )}
