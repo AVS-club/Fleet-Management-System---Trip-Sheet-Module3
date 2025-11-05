@@ -208,6 +208,66 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
     }
   };
 
+  // WhatsApp share handler - shares the actual file
+  const handleWhatsAppShare = async (docUrls: string[] | null, docType: string, docLabel: string) => {
+    if (!docUrls || docUrls.length === 0) {
+      toast.info(`No ${docType} documents available`);
+      return;
+    }
+
+    try {
+      const filePath = docUrls[0];
+
+      // Clean the path
+      const cleanedPath = filePath
+        .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
+        .replace(/^vehicle-docs\//, '')
+        .replace(/^driver-docs\//, '')
+        .trim();
+
+      // Download the document
+      const { data, error } = await supabase.storage
+        .from('vehicle-docs')
+        .download(cleanedPath);
+
+      if (error) {
+        logger.error('Download error:', error);
+        throw error;
+      }
+
+      // Create a file from the blob with proper name and type
+      const fileName = `${vehicle.registration_number}_${docLabel.replace(/\s+/g, '_')}.pdf`;
+      const file = new File([data], fileName, { type: data.type || 'application/pdf' });
+
+      // Check if Web Share API is available and supports files
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `${docLabel} - ${vehicle.registration_number}`,
+          text: `${docLabel} for vehicle ${vehicle.registration_number}`,
+          files: [file]
+        });
+        logger.debug('File shared successfully via Web Share API');
+      } else {
+        // Fallback: Download the file and show instruction
+        const url = URL.createObjectURL(data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        toast.info('File downloaded. Please share it manually via WhatsApp from your downloads.', {
+          autoClose: 5000
+        });
+      }
+    } catch (error) {
+      logger.error('WhatsApp share error:', error);
+      toast.error('Unable to share document');
+    }
+  };
+
   const handleDownload = async (url: string, filename: string, docType: string) => {
     // Add document type to downloading set
     setDownloadingDocs(prev => new Set(prev).add(docType));
@@ -528,19 +588,7 @@ const VehicleDetailsTab: React.FC<VehicleDetailsTabProps> = ({
                     </button>
                     
                     <button
-                      onClick={async () => {
-                        try {
-                          const whatsappUrl = await createWhatsAppShareLink(
-                            doc.label,
-                            vehicle.registration_number,
-                            doc.urls[0]
-                          );
-                          window.open(whatsappUrl, '_blank');
-                        } catch (error) {
-                          logger.error('Failed to create WhatsApp link:', error);
-                          toast.error('Failed to create share link');
-                        }
-                      }}
+                      onClick={() => handleWhatsAppShare(doc.urls, doc.type, doc.label)}
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100 transition-colors"
                     >
                       <WhatsAppIcon size={20} variant="light" />

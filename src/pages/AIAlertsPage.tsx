@@ -1302,7 +1302,9 @@ const AIAlertsPage: React.FC = () => {
                                       maintenanceEntity.driver_name ||
                                       maintenanceEntity.assigned_driver_name ||
                                       maintenanceEntity.assigned_driver?.name ||
-                                      maintenanceEntity.driver?.name;
+                                      maintenanceEntity.driver?.name ||
+                                      vehicleData?.assigned_driver_name ||
+                                      vehicleData?.driver_name;
 
                                     if (fallbackName) {
                                       driverData = {
@@ -1321,7 +1323,9 @@ const AIAlertsPage: React.FC = () => {
                                     maintenanceEntity.driver_name ||
                                     maintenanceEntity.assigned_driver_name ||
                                     maintenanceEntity.assigned_driver?.name ||
-                                    maintenanceEntity.driver?.name;
+                                    maintenanceEntity.driver?.name ||
+                                    vehicleData?.assigned_driver_name ||
+                                    vehicleData?.driver_name;
 
                                   if (fallbackName) {
                                     driverData = {
@@ -1330,9 +1334,18 @@ const AIAlertsPage: React.FC = () => {
                                         maintenanceEntity.driver_photo_url ||
                                         maintenanceEntity.assigned_driver?.photo_url ||
                                         maintenanceEntity.driver?.photo_url ||
+                                        vehicleData?.driver_photo_url ||
+                                        vehicleData?.photo_url ||
                                         null
                                     };
                                   }
+                                }
+
+                                if (!driverData && vehicleData?.primary_driver_id) {
+                                  driverData =
+                                    (driversMap ? driversMap[vehicleData.primary_driver_id] : null) ||
+                                    drivers.find(d => d.id === vehicleData.primary_driver_id) ||
+                                    null;
                                 }
                               }
 

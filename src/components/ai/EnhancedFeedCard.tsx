@@ -188,6 +188,12 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
 
   const maintenanceTypeLabel = React.useMemo(() => {
     if (!maintenanceData) return null;
+    if (maintenanceData.maintenanceType) {
+      return toTitleFromSnake(maintenanceData.maintenanceType);
+    }
+    if (maintenanceData.maintenance_type) {
+      return toTitleFromSnake(maintenanceData.maintenance_type);
+    }
     if (maintenanceData.task_type) {
       return toTitleFromSnake(maintenanceData.task_type);
     }
@@ -198,11 +204,17 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
   }, [maintenanceData]);
 
   const serviceModeLabel = React.useMemo(() => {
-    if (!primaryServiceGroup) return null;
-    const mode = primaryServiceGroup.serviceType || primaryServiceGroup.service_type;
+    if (!primaryServiceGroup && !maintenanceData) return null;
+    const mode =
+      primaryServiceGroup?.serviceType ||
+      primaryServiceGroup?.service_type ||
+      maintenanceData?.service_type ||
+      maintenanceData?.serviceType ||
+      maintenanceData?.service_mode ||
+      maintenanceData?.serviceMode;
     if (!mode || typeof mode !== 'string') return null;
     return toTitleFromSnake(mode);
-  }, [primaryServiceGroup]);
+  }, [primaryServiceGroup, maintenanceData]);
 
   const garageName = React.useMemo(() => {
     if (!maintenanceData && !primaryServiceGroup) return null;
@@ -210,9 +222,15 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
       maintenanceData?.garage_name,
       maintenanceData?.vendor_name,
       maintenanceData?.vendor,
+      maintenanceData?.service_provider,
+      maintenanceData?.serviceProvider,
+      maintenanceData?.garage?.name,
+      maintenanceData?.garage?.garage_name,
+      maintenanceData?.garage?.vendor_name,
       primaryServiceGroup?.vendor_name,
       primaryServiceGroup?.vendor,
-      primaryServiceGroup?.shop_name
+      primaryServiceGroup?.shop_name,
+      primaryServiceGroup?.garage_name
     ];
     const found = candidates.find((value) => {
       if (!value) return false;
@@ -226,10 +244,18 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     if (maintenanceData?.work_done) {
       return maintenanceData.work_done;
     }
-    if (!primaryServiceGroup) return null;
-    const tasks = primaryServiceGroup.tasks;
-    if (!tasks) return null;
-    const normalized = Array.isArray(tasks)
+    if (!primaryServiceGroup && !maintenanceData) return null;
+    const tasks = primaryServiceGroup?.tasks;
+    const baseDescription =
+      maintenanceData?.work_done ||
+      maintenanceData?.service_description ||
+      maintenanceData?.description ||
+      maintenanceData?.summary ||
+      maintenanceData?.service_summary;
+
+    if (!tasks && !baseDescription) return null;
+
+    const normalizedTasks = Array.isArray(tasks)
       ? tasks
           .map((task: any) => {
             if (!task) return null;
@@ -249,8 +275,13 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
       ? [toTitleFromSnake(tasks)]
       : [];
 
-    if (normalized.length === 0) return null;
-    return normalized.join(', ');
+    const taskSummary = normalizedTasks.length > 0 ? normalizedTasks.join(', ') : null;
+
+    if (baseDescription && taskSummary) {
+      return `${baseDescription} • ${taskSummary}`;
+    }
+
+    return baseDescription || taskSummary;
   }, [maintenanceData, primaryServiceGroup]);
 
   const assignedDriverName = React.useMemo(() => {
@@ -260,6 +291,8 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     if (maintenanceData?.assigned_driver?.name) return maintenanceData.assigned_driver.name;
     if (maintenanceData?.driver?.name) return maintenanceData.driver.name;
     if (maintenanceData?.vehicle?.driver_name) return maintenanceData.vehicle.driver_name;
+    if (maintenanceData?.vehicle?.assigned_driver_name) return maintenanceData.vehicle.assigned_driver_name;
+    if (maintenanceData?.vehicle?.assigned_driver?.name) return maintenanceData.vehicle.assigned_driver.name;
     return null;
   }, [driverData, maintenanceData]);
 
@@ -442,7 +475,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                     {workSummary && (
                       <div className="flex items-start gap-2">
                         <ClipboardList className="mt-[2px] h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="leading-snug">
+                        <span className="leading-snug line-clamp-2">
                           Work Done:&nbsp;
                           <span className="font-medium text-amber-800 dark:text-amber-100">{workSummary}</span>
                         </span>
