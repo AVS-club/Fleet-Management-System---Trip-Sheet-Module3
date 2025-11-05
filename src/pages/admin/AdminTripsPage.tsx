@@ -21,6 +21,7 @@ import { comprehensiveSearchTrips } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
+import { analyzeAllTrips } from '../../utils/mileageDiagnostics';
 import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('AdminTripsPage');
@@ -296,18 +297,53 @@ const AdminTripsPage: React.FC = () => {
 
   // Fix mileage calculations for all trips
   const handleFixMileage = async () => {
-    const confirmed = window.confirm(
-      'This will recalculate mileage for all existing trips using the tank-to-tank method. ' +
-      'This may take a few minutes. Do you want to continue?'
-    );
-    
-    if (!confirmed) return;
-
-    setFixingMileage(true);
     try {
+      // Run diagnostics first to show preview
+      const diagnostics = analyzeAllTrips(trips);
+
+      let confirmMessage = 'This will recalculate mileage for all existing trips using the tank-to-tank method.\n\n';
+      confirmMessage += `Trips to analyze: ${diagnostics.totalRefuelingTrips} refueling trips\n`;
+
+      if (diagnostics.totalAnomalies > 0) {
+        confirmMessage += `\nAnomalies detected:\n`;
+        if (diagnostics.extremelyHighMileage > 0) {
+          confirmMessage += `  - ${diagnostics.extremelyHighMileage} trips with extremely high mileage (>100 km/L)\n`;
+        }
+        if (diagnostics.veryHighMileage > 0) {
+          confirmMessage += `  - ${diagnostics.veryHighMileage} trips with high mileage (>50 km/L)\n`;
+        }
+        if (diagnostics.partialRefills > 0) {
+          confirmMessage += `  - ${diagnostics.partialRefills} possible partial refills\n`;
+        }
+        if (diagnostics.veryLowMileage > 0) {
+          confirmMessage += `  - ${diagnostics.veryLowMileage} trips with very low mileage (<2 km/L)\n`;
+        }
+        confirmMessage += '\nDetailed diagnostics will be logged to console.\n';
+      }
+
+      confirmMessage += '\nThis may take a few minutes. Do you want to continue?';
+
+      const confirmed = window.confirm(confirmMessage);
+
+      if (!confirmed) return;
+
+      setFixingMileage(true);
+
       const result = await fixAllExistingMileage();
       if (result.success) {
-        toast.success(result.message);
+        // Show detailed message with diagnostics
+        let successMessage = result.message;
+        if (result.diagnostics && result.diagnostics.totalAnomalies > 0) {
+          toast.success(successMessage, { autoClose: 8000 });
+        } else {
+          toast.success(successMessage);
+        }
+
+        logger.info('Fix Mileage completed successfully');
+        if (result.diagnostics) {
+          logger.info(`Total anomalies found: ${result.diagnostics.totalAnomalies}`);
+        }
+
         // Refresh the data to show updated mileage
         await refreshData();
       } else {

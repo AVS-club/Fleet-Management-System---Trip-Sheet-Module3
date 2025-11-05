@@ -122,12 +122,19 @@ export const useHeroFeed = (filters?: {
         // Add vehicle_doc only if includeDocuments is true
         if (includeDocuments && !kindsToFetch.includes('vehicle_doc')) {
           kindsToFetch.push('vehicle_doc');
+          console.log('📄 Adding vehicle_doc to query kinds');
         }
 
         // Remove vehicle_doc if includeDocuments is false
         if (!includeDocuments) {
+          const hadDocs = kindsToFetch.includes('vehicle_doc');
           kindsToFetch = kindsToFetch.filter(k => k !== 'vehicle_doc');
+          if (hadDocs) {
+            console.log('📄 Removing vehicle_doc from query kinds');
+          }
         }
+
+        console.log('📄 Querying events_feed with kinds:', kindsToFetch);
 
         let query = supabase
           .from('events_feed')
@@ -148,6 +155,12 @@ export const useHeroFeed = (filters?: {
         if (!data || data.length === 0) {
           logger.info('No events in database');
           return [];
+        }
+
+        // Log document count from database
+        const docCount = data.filter((e: any) => e.kind === 'vehicle_doc').length;
+        if (docCount > 0) {
+          console.log('📄 Fetched from database:', docCount, 'document events');
         }
 
         return data as FeedEvent[];

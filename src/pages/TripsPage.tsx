@@ -20,6 +20,7 @@ import { validateTripSerialUniqueness } from '../utils/tripSerialGenerator';
 import { uploadFilesAndGetPublicUrls } from '../utils/supabaseStorage';
 import { searchTrips, TripFilters, useDebounce, comprehensiveSearchTrips } from '../utils/tripSearch';
 import { recalculateMileageForRefuelingTrip, recalculateAllMileageForVehicle } from '../utils/mileageRecalculation';
+import { analyzeAllTrips } from '../utils/mileageDiagnostics';
 import { PlusCircle, FileText, BarChart2, Route, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { createLogger } from '../utils/logger';
@@ -234,17 +235,40 @@ const TripsPage: React.FC = () => {
   }, [trips, vehicles, drivers, warehouses, filters, currentPage, tripsPerPage]);
 
   const handleFixMileage = async () => {
-    const confirmed = window.confirm(
-      'This will recalculate mileage for all existing trips using the tank-to-tank method. ' +
-      'This may take a few minutes. Do you want to continue?'
-    );
-    
-    if (!confirmed) return;
-
-    setFixingMileage(true);
     try {
-      // Get all trips
+      // Get all trips for diagnostic preview
       const allTrips = await getTrips();
+
+      // Run diagnostics to show preview
+      const diagnostics = analyzeAllTrips(allTrips);
+
+      let confirmMessage = 'This will recalculate mileage for all existing trips using the tank-to-tank method.\n\n';
+      confirmMessage += `Trips to analyze: ${diagnostics.totalRefuelingTrips} refueling trips\n`;
+
+      if (diagnostics.totalAnomalies > 0) {
+        confirmMessage += `\nAnomalies detected:\n`;
+        if (diagnostics.extremelyHighMileage > 0) {
+          confirmMessage += `  - ${diagnostics.extremelyHighMileage} trips with extremely high mileage (>100 km/L)\n`;
+        }
+        if (diagnostics.veryHighMileage > 0) {
+          confirmMessage += `  - ${diagnostics.veryHighMileage} trips with high mileage (>50 km/L)\n`;
+        }
+        if (diagnostics.partialRefills > 0) {
+          confirmMessage += `  - ${diagnostics.partialRefills} possible partial refills\n`;
+        }
+        if (diagnostics.veryLowMileage > 0) {
+          confirmMessage += `  - ${diagnostics.veryLowMileage} trips with very low mileage (<2 km/L)\n`;
+        }
+        confirmMessage += '\nDetailed diagnostics will be logged to console.\n';
+      }
+
+      confirmMessage += '\nThis may take a few minutes. Do you want to continue?';
+
+      const confirmed = window.confirm(confirmMessage);
+
+      if (!confirmed) return;
+
+      setFixingMileage(true);
       
       // Group trips by vehicle
       const tripsByVehicle = allTrips.reduce((acc, trip) => {
@@ -278,8 +302,21 @@ const TripsPage: React.FC = () => {
         }
       }
 
-      toast.success(`Successfully updated mileage for ${totalUpdated} trips`);
-      
+      // Show detailed success message
+      let successMessage = `Successfully updated mileage for ${totalUpdated} trips`;
+      if (diagnostics.totalAnomalies > 0) {
+        successMessage += `\n\nFound ${diagnostics.totalAnomalies} anomalies that may need manual review.`;
+        if (diagnostics.extremelyHighMileage > 0) {
+          successMessage += `\n${diagnostics.extremelyHighMileage} trips with extremely high mileage (>100 km/L)`;
+        }
+        successMessage += '\n\nCheck browser console for detailed diagnostics.';
+      }
+      toast.success(successMessage, { autoClose: 8000 });
+
+      logger.info('Fix Mileage completed successfully');
+      logger.info(`Total trips updated: ${totalUpdated}`);
+      logger.info(`Anomalies found: ${diagnostics.totalAnomalies}`);
+
       // Refresh the data to show updated mileage
       const [tripsData, vehiclesData, driversData, warehousesData, destinationsData, materialTypesData] = await Promise.all([
         getTrips(),

@@ -11,7 +11,9 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  X,
+  Loader2
 } from 'lucide-react';
 import WhatsAppIcon from '../ui/WhatsAppIcon';
 import { Vehicle } from '@/types';
@@ -36,7 +38,9 @@ interface VehicleDetailsTabProps {
 
 const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, signedDocUrls }) => {
   const { t } = useTranslation();
-  
+  const [viewingDocument, setViewingDocument] = React.useState<{url: string; type: string; label: string} | null>(null);
+  const [isLoadingDocument, setIsLoadingDocument] = React.useState(false);
+
   // Debug logging for insurance documents
   logger.debug('🔍 VehicleDetailsTabMobile - received signedDocUrls:', signedDocUrls);
   logger.debug('🔍 VehicleDetailsTabMobile - insurance URLs:', signedDocUrls.insurance);
@@ -210,51 +214,53 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
     }
   };
 
-  // Working view handler that uses download-then-open approach
-  const handleViewCompliance = async (docUrls: string[] | null, docType: string) => {
+  // Mobile-friendly view handler with inline document viewer
+  const handleViewCompliance = async (docUrls: string[] | null, docType: string, docLabel: string) => {
     logger.debug(`🔍 handleViewCompliance called for ${docType}:`, docUrls);
-    
+
     if (!docUrls || docUrls.length === 0) {
       logger.debug(`❌ No ${docType} documents available`);
       toast.info(`No ${docType} documents available`);
       return;
     }
 
+    setIsLoadingDocument(true);
+
     try {
       // Take the first document URL
       const filePath = docUrls[0];
       logger.debug(`🔍 Original filePath:`, filePath);
-      
+
       // Clean the path
       const cleanedPath = filePath
         .replace(/^https?:\/\/[^/]+\/storage\/v1\/object\/(?:public|sign)\/[^/]+\//, '')
         .replace(/^vehicle-docs\//, '')
         .replace(/^driver-docs\//, '')
         .trim();
-      
+
       logger.debug(`🔍 Cleaned path:`, cleanedPath);
-      
-      // Download and open (this works like in edit mode)
+
+      // Download the document
       logger.debug(`🔍 Attempting to download from vehicle-docs bucket:`, cleanedPath);
       const { data, error } = await supabase.storage
         .from('vehicle-docs')
         .download(cleanedPath);
-      
+
       if (error) {
         logger.error(`❌ Download error:`, error);
         throw error;
       }
-      
+
       logger.debug(`✅ Download successful, data:`, data);
       logger.debug(`🔍 Data type:`, typeof data, 'Size:', data?.size);
-      
-      // Create blob URL and open
+
+      // Create blob URL
       const url = URL.createObjectURL(data);
       logger.debug(`🔍 Created blob URL:`, url);
-      
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      
+
+      // Set viewing document state to show inline viewer
+      setViewingDocument({ url, type: docType, label: docLabel });
+
     } catch (error) {
       logger.error('❌ View error:', error);
       logger.error('❌ Error details:', {
@@ -264,7 +270,17 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
         name: error.name
       });
       toast.error('Unable to view document');
+    } finally {
+      setIsLoadingDocument(false);
     }
+  };
+
+  // Close document viewer
+  const closeDocumentViewer = () => {
+    if (viewingDocument?.url) {
+      URL.revokeObjectURL(viewingDocument.url);
+    }
+    setViewingDocument(null);
   };
 
   return (
@@ -381,43 +397,48 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
                 {/* Action Buttons - Larger Touch Targets */}
                 {hasDocument ? (
                   <div className="grid grid-cols-2 gap-2 mt-4">
-                    {/* View Button */}
+                    {/* View Button - Enhanced for Mobile */}
                     <button
-                      onClick={() => handleViewCompliance(doc.urls, doc.type)}
-                      className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors shadow-md font-semibold text-sm md:text-base"
+                      onClick={() => handleViewCompliance(doc.urls, doc.type, doc.label)}
+                      disabled={isLoadingDocument}
+                      className="flex items-center justify-center gap-2 px-4 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md font-semibold text-base min-h-[50px] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Eye className="h-5 w-5" />
-                      <span>{t('common.view')}</span>
+                      {isLoadingDocument ? (
+                        <Loader2 className="h-5 w-5 flex-shrink-0 animate-spin" />
+                      ) : (
+                        <Eye className="h-5 w-5 flex-shrink-0" />
+                      )}
+                      <span className="whitespace-nowrap">{t('common.view')}</span>
                     </button>
                     
                     {/* Download Button */}
                     <button
                       onClick={() => handleDownload(doc.urls[0], `${vehicle.registration_number}_${doc.type}`)}
-                      className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-md font-semibold text-sm md:text-base"
+                      className="flex items-center justify-center gap-2 px-4 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors shadow-md font-semibold text-base min-h-[50px] touch-manipulation"
                     >
-                      <Download className="h-5 w-5" />
-                      <span>{t('common.download')}</span>
+                      <Download className="h-5 w-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">{t('common.download')}</span>
                     </button>
-                    
+
                     {/* WhatsApp Button */}
                     <button
                       onClick={() => {
                         const message = `${doc.label} for ${vehicle.registration_number}: ${doc.urls[0]}`;
                         window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
                       }}
-                      className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-md font-semibold text-sm md:text-base"
+                      className="flex items-center justify-center gap-2 px-4 py-4 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:bg-emerald-800 transition-colors shadow-md font-semibold text-base min-h-[50px] touch-manipulation"
                     >
                       <WhatsAppIcon size={22} variant="dark" />
-                      <span>WhatsApp</span>
+                      <span className="whitespace-nowrap">WhatsApp</span>
                     </button>
-                    
+
                     {/* Copy Link Button */}
                     <button
                       onClick={() => handleCopyLink(doc.urls[0])}
-                      className="flex items-center justify-center gap-2 px-4 py-3 md:py-4 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors shadow-md font-semibold text-sm md:text-base"
+                      className="flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 text-white rounded-xl hover:bg-gray-700 active:bg-gray-800 transition-colors shadow-md font-semibold text-base min-h-[50px] touch-manipulation"
                     >
-                      <Link className="h-5 w-5" />
-                      <span>{t('documents.copyLink')}</span>
+                      <Link className="h-5 w-5 flex-shrink-0" />
+                      <span className="whitespace-nowrap">{t('documents.copyLink')}</span>
                     </button>
                   </div>
                 ) : (
@@ -436,6 +457,51 @@ const VehicleDetailsTabMobile: React.FC<VehicleDetailsTabProps> = ({ vehicle, si
           })}
         </div>
       </div>
+
+      {/* Mobile-Friendly Document Viewer Modal */}
+      {viewingDocument && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex flex-col">
+          {/* Header */}
+          <div className="bg-gray-900 text-white p-4 flex items-center justify-between border-b border-gray-700">
+            <h3 className="text-lg font-semibold truncate flex-1">{viewingDocument.label}</h3>
+            <button
+              onClick={closeDocumentViewer}
+              className="p-2 hover:bg-gray-800 rounded-lg transition-colors ml-2 flex-shrink-0"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Document Content - Full Screen with proper mobile handling */}
+          <div className="flex-1 overflow-auto bg-gray-900">
+            <iframe
+              src={viewingDocument.url}
+              className="w-full h-full border-0"
+              title={viewingDocument.label}
+              style={{ minHeight: '100%' }}
+            />
+          </div>
+
+          {/* Footer with Actions - Mobile Friendly */}
+          <div className="bg-gray-900 p-4 border-t border-gray-700 grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleDownload(viewingDocument.url, `${vehicle.registration_number}_${viewingDocument.type}`)}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 transition-colors font-semibold"
+            >
+              <Download className="h-5 w-5" />
+              <span>Download</span>
+            </button>
+            <button
+              onClick={closeDocumentViewer}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-gray-700 text-white rounded-lg hover:bg-gray-600 active:bg-gray-500 transition-colors font-semibold"
+            >
+              <X className="h-5 w-5" />
+              <span>Close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -430,6 +430,16 @@ const AIAlertsPage: React.FC = () => {
       allEvents = [...allEvents, ...kpiEvents];
     }
 
+    // Debug logging for document events
+    const documentEvents = allEvents.filter(e => e.kind === 'vehicle_doc');
+    if (documentEvents.length > 0) {
+      console.log('📄 Document Events Before Filtering:', documentEvents.length, {
+        includeDocuments,
+        showFutureEvents,
+        sample: documentEvents[0]
+      });
+    }
+
     // Filter out future events if toggle is off
     if (!showFutureEvents) {
       const now = new Date();
@@ -441,10 +451,38 @@ const AIAlertsPage: React.FC = () => {
         const endDate = event.entity_json?.end_date ? new Date(event.entity_json.end_date) : null;
 
         // Special handling for document reminders (vehicle_doc)
-        // Document reminders SHOULD have future expiry dates - that's the point!
-        // We only care about when the reminder was created (event_time), not when doc expires
+        // When "Show Future Events" is OFF, hide documents with distant future expiry dates
+        // This prevents documents expiring in 2026, 2027, 2028 from appearing at the top
+        // But allow documents expiring soon (within 90 days) to always show
         if (event.kind === 'vehicle_doc') {
-          return eventTime <= now; // Show if reminder was created in the past
+          // Always filter by event_time first
+          if (eventTime > now) {
+            console.log('📄 Filtering out document (future event_time):', {
+              title: event.title,
+              event_time: event.event_time,
+              expiry_date: expiryDate
+            });
+            return false;
+          }
+
+          // If expiry date is more than 90 days in the future, hide it
+          // This filters out documents expiring in 2026, 2027, 2028
+          // But allows imminent expiries (within 3 months) to show
+          if (expiryDate) {
+            const daysUntilExpiry = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const isDistantFuture = daysUntilExpiry > 90;
+
+            if (isDistantFuture) {
+              console.log('📄 Filtering out document (distant future expiry):', {
+                title: event.title,
+                expiry_date: expiryDate,
+                days_until_expiry: daysUntilExpiry
+              });
+              return false;
+            }
+          }
+
+          return true; // Show documents expiring soon or in the past
         }
 
         // Keep events where event_time (activity timestamp) is in the past
@@ -463,6 +501,16 @@ const AIAlertsPage: React.FC = () => {
 
         return true;
       });
+
+      // Log how many documents passed the filter
+      const remainingDocs = allEvents.filter(e => e.kind === 'vehicle_doc');
+      if (documentEvents.length > 0) {
+        console.log('📄 Document Events After Filtering:', remainingDocs.length, `(${documentEvents.length - remainingDocs.length} filtered out)`);
+      }
+    } else {
+      // When showFutureEvents is ON, all events pass through (including documents)
+      console.log('📄 Show Future Events is ON - No filtering applied');
+      console.log('📄 Total documents in feed:', documentEvents.length);
     }
 
     // Sort all events by event_time descending
@@ -1214,6 +1262,80 @@ const AIAlertsPage: React.FC = () => {
                                 }
                               }
 
+                              if (event.kind === 'maintenance') {
+                                const maintenanceEntity = event.entity_json || {};
+
+                                const maintenanceVehicleId =
+                                  maintenanceEntity.vehicle_id ||
+                                  maintenanceEntity.vehicleId ||
+                                  maintenanceEntity.vehicle?.id ||
+                                  maintenanceEntity.vehicle?.vehicle_id ||
+                                  maintenanceEntity.vehicle?.vehicleId;
+
+                                if (maintenanceVehicleId && !vehicleData) {
+                                  vehicleData =
+                                    (vehiclesMap ? vehiclesMap[maintenanceVehicleId] : null) ||
+                                    vehicleMap[maintenanceVehicleId] ||
+                                    vehicles.find(v => v.id === maintenanceVehicleId) ||
+                                    null;
+                                }
+
+                                const maintenanceDriverId =
+                                  maintenanceEntity.driver_id ||
+                                  maintenanceEntity.driverId ||
+                                  maintenanceEntity.assigned_driver_id ||
+                                  maintenanceEntity.assignedDriverId ||
+                                  maintenanceEntity.driver?.id ||
+                                  maintenanceEntity.assigned_driver?.id ||
+                                  maintenanceEntity.vehicle?.assigned_driver_id ||
+                                  maintenanceEntity.vehicle?.driver_id ||
+                                  maintenanceEntity.vehicle?.driverId;
+
+                                if (maintenanceDriverId && !driverData) {
+                                  driverData =
+                                    (driversMap ? driversMap[maintenanceDriverId] : null) ||
+                                    drivers.find(d => d.id === maintenanceDriverId) ||
+                                    null;
+
+                                  if (!driverData) {
+                                    const fallbackName =
+                                      maintenanceEntity.driver_name ||
+                                      maintenanceEntity.assigned_driver_name ||
+                                      maintenanceEntity.assigned_driver?.name ||
+                                      maintenanceEntity.driver?.name;
+
+                                    if (fallbackName) {
+                                      driverData = {
+                                        id: maintenanceDriverId,
+                                        name: fallbackName,
+                                        photo_url:
+                                          maintenanceEntity.driver_photo_url ||
+                                          maintenanceEntity.assigned_driver?.photo_url ||
+                                          maintenanceEntity.driver?.photo_url ||
+                                          null
+                                      };
+                                    }
+                                  }
+                                } else if (!driverData) {
+                                  const fallbackName =
+                                    maintenanceEntity.driver_name ||
+                                    maintenanceEntity.assigned_driver_name ||
+                                    maintenanceEntity.assigned_driver?.name ||
+                                    maintenanceEntity.driver?.name;
+
+                                  if (fallbackName) {
+                                    driverData = {
+                                      name: fallbackName,
+                                      photo_url:
+                                        maintenanceEntity.driver_photo_url ||
+                                        maintenanceEntity.assigned_driver?.photo_url ||
+                                        maintenanceEntity.driver?.photo_url ||
+                                        null
+                                    };
+                                  }
+                                }
+                              }
+
                               return (
                                 <React.Fragment key={`fragment-${event.id}`}>
                                   {shouldShowVideo && (
@@ -1252,6 +1374,7 @@ const AIAlertsPage: React.FC = () => {
                                       event={event}
                                       vehicleData={vehicleData}
                                       driverData={driverData}
+                                      onAction={handleAction}
                                     />
                                   )}
                                 </React.Fragment>

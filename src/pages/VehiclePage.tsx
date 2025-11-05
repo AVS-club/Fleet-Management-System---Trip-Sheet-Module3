@@ -40,7 +40,6 @@ import VehicleDetailsTabMobile from "../components/vehicles/VehicleDetailsTabMob
 import VehicleMaintenanceTab from "../components/vehicles/VehicleMaintenanceTab";
 import VehicleTripsTab from "../components/vehicles/VehicleTripsTab";
 import { createLogger } from '../utils/logger';
-import { trackEntityView } from '../utils/entityViewTracking';
 
 const logger = createLogger('VehiclePage');
 
@@ -151,19 +150,6 @@ const VehiclePage: React.FC = () => {
         // Generate signed URLs only once when vehicle data is fetched
         if (vehicleData) {
           await generateSignedUrls(vehicleData);
-
-          // Track vehicle view for AI Alerts feed
-          if (vehicleData.organization_id) {
-            trackEntityView({
-              entityType: 'vehicles',
-              entityId: vehicleData.id,
-              entityName: vehicleData.registration_number,
-              organizationId: vehicleData.organization_id
-            }).catch(error => {
-              logger.error('Failed to track vehicle view:', error);
-              // Don't throw - tracking is non-critical
-            });
-          }
         }
       } catch (error) {
         logger.error("Error fetching vehicle data:", error);

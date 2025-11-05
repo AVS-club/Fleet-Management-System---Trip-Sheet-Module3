@@ -17,13 +17,15 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Image
+  Image,
+  Store,
+  ClipboardList
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface FeedCardProps {
   event: any;
-  onAction?: (eventId: string, action: 'accept' | 'reject') => void;
+  onAction?: (alert: any, action: 'accept' | 'deny' | 'ignore') => void;
   vehicleData?: any;
   driverData?: any;
 }
@@ -82,6 +84,36 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
       .trim()
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  // Extract actual value from KPI payload when kpi_value_human contains hash marks
+  const extractKPIValue = (valueHuman: string, payload: any) => {
+    // Check if value contains hash marks (e.g., "₹#.#L" or "#,###km")
+    if (!valueHuman.includes('#')) {
+      return valueHuman; // No hash marks, return as-is
+    }
+
+    // Try to extract value from payload
+    if (payload && typeof payload === 'object') {
+      const value = payload.value;
+      const unit = payload.unit || '';
+
+      if (typeof value === 'number') {
+        // Format large numbers with Indian locale
+        const formattedValue = value.toLocaleString('en-IN');
+
+        // Handle currency
+        if (unit === '₹' || valueHuman.includes('₹')) {
+          return `₹${formattedValue}`;
+        }
+
+        // Handle other units
+        return `${formattedValue}${unit}`;
+      }
+    }
+
+    // Fallback: return original with indication that data is hidden
+    return valueHuman.replace(/#[,#.]+/g, '[hidden]');
   };
 
   // Enhanced maintenance card
@@ -147,6 +179,95 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
 
     return files.slice(0, 4);
   }, [maintenanceData]);
+
+  const primaryServiceGroup = React.useMemo(() => {
+    if (!maintenanceData || !Array.isArray(maintenanceData.service_groups)) return null;
+    if (maintenanceData.service_groups.length === 0) return null;
+    return maintenanceData.service_groups[0];
+  }, [maintenanceData]);
+
+  const maintenanceTypeLabel = React.useMemo(() => {
+    if (!maintenanceData) return null;
+    if (maintenanceData.task_type) {
+      return toTitleFromSnake(maintenanceData.task_type);
+    }
+    if (maintenanceData.category) {
+      return toTitleFromSnake(maintenanceData.category);
+    }
+    return null;
+  }, [maintenanceData]);
+
+  const serviceModeLabel = React.useMemo(() => {
+    if (!primaryServiceGroup) return null;
+    const mode = primaryServiceGroup.serviceType || primaryServiceGroup.service_type;
+    if (!mode || typeof mode !== 'string') return null;
+    return toTitleFromSnake(mode);
+  }, [primaryServiceGroup]);
+
+  const garageName = React.useMemo(() => {
+    if (!maintenanceData && !primaryServiceGroup) return null;
+    const candidates = [
+      maintenanceData?.garage_name,
+      maintenanceData?.vendor_name,
+      maintenanceData?.vendor,
+      primaryServiceGroup?.vendor_name,
+      primaryServiceGroup?.vendor,
+      primaryServiceGroup?.shop_name
+    ];
+    const found = candidates.find((value) => {
+      if (!value) return false;
+      if (typeof value === 'string') return value.trim().length > 0;
+      return false;
+    });
+    return typeof found === 'string' ? found : null;
+  }, [maintenanceData, primaryServiceGroup]);
+
+  const workSummary = React.useMemo(() => {
+    if (maintenanceData?.work_done) {
+      return maintenanceData.work_done;
+    }
+    if (!primaryServiceGroup) return null;
+    const tasks = primaryServiceGroup.tasks;
+    if (!tasks) return null;
+    const normalized = Array.isArray(tasks)
+      ? tasks
+          .map((task: any) => {
+            if (!task) return null;
+            if (typeof task === 'string') return toTitleFromSnake(task);
+            if (typeof task === 'object') {
+              return (
+                task.name ||
+                task.en ||
+                task.hi ||
+                Object.values(task).find((val) => typeof val === 'string')
+              );
+            }
+            return null;
+          })
+          .filter((task): task is string => Boolean(task))
+      : typeof tasks === 'string'
+      ? [toTitleFromSnake(tasks)]
+      : [];
+
+    if (normalized.length === 0) return null;
+    return normalized.join(', ');
+  }, [maintenanceData, primaryServiceGroup]);
+
+  const assignedDriverName = React.useMemo(() => {
+    if (driverData?.name) return driverData.name;
+    if (maintenanceData?.driver_name) return maintenanceData.driver_name;
+    if (maintenanceData?.assigned_driver_name) return maintenanceData.assigned_driver_name;
+    if (maintenanceData?.assigned_driver?.name) return maintenanceData.assigned_driver.name;
+    if (maintenanceData?.driver?.name) return maintenanceData.driver.name;
+    if (maintenanceData?.vehicle?.driver_name) return maintenanceData.vehicle.driver_name;
+    return null;
+  }, [driverData, maintenanceData]);
+
+  const showCostSummaryCard =
+    estimatedCostValue !== null &&
+    estimatedCostValue !== undefined
+      ? true
+      : Boolean(garageName || maintenanceTypeLabel || workSummary || serviceModeLabel);
 
   if (isMaintenance && maintenanceData) {
     return (
@@ -238,6 +359,12 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                     {vehicleData.year ? ` (${vehicleData.year})` : ''}
                   </div>
                 )}
+                {assignedDriverName && (
+                  <div className="mt-3 flex items-center gap-2 text-xs font-medium text-blue-700/80 dark:text-blue-200/80">
+                    <User className="h-4 w-4" />
+                    <span className="truncate">Driver: {assignedDriverName}</span>
+                  </div>
+                )}
               </div>
             )}
 
@@ -268,7 +395,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
               </div>
             )}
 
-            {estimatedCostValue !== null && estimatedCostValue !== undefined && (
+            {showCostSummaryCard && (
               <div className="rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-200">
                   <DollarSign className="h-5 w-5" />
@@ -277,8 +404,52 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                   </span>
                 </div>
                 <div className="mt-3 text-lg font-bold text-amber-900 dark:text-amber-100 truncate">
-                  ₹{Number(estimatedCostValue).toLocaleString('en-IN')}
+                  {estimatedCostValue !== null && estimatedCostValue !== undefined
+                    ? `₹${Number(estimatedCostValue).toLocaleString('en-IN')}`
+                    : '₹—'}
                 </div>
+                {(garageName || maintenanceTypeLabel || serviceModeLabel || workSummary) && (
+                  <div className="mt-3 space-y-2 text-xs text-amber-700 dark:text-amber-200/80">
+                    {garageName && (
+                      <div className="flex items-start gap-2">
+                        <Store className="mt-[2px] h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="leading-snug">
+                          Garage:&nbsp;
+                          <span className="font-semibold text-amber-800 dark:text-amber-100">{garageName}</span>
+                        </span>
+                      </div>
+                    )}
+                    {maintenanceTypeLabel && (
+                      <div className="flex items-start gap-2">
+                        <Wrench className="mt-[2px] h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="leading-snug">
+                          Maintenance Type:&nbsp;
+                          <span className="font-semibold text-amber-800 dark:text-amber-100">
+                            {maintenanceTypeLabel}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                    {serviceModeLabel && (
+                      <div className="flex items-start gap-2">
+                        <Activity className="mt-[2px] h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="leading-snug">
+                          Service Mode:&nbsp;
+                          <span className="font-semibold text-amber-800 dark:text-amber-100">{serviceModeLabel}</span>
+                        </span>
+                      </div>
+                    )}
+                    {workSummary && (
+                      <div className="flex items-start gap-2">
+                        <ClipboardList className="mt-[2px] h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="leading-snug">
+                          Work Done:&nbsp;
+                          <span className="font-medium text-amber-800 dark:text-amber-100">{workSummary}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -379,6 +550,55 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
     const actualDistance = metadata.distance;
     const expectedDistance = metadata.expected_value ? (metadata.distance / (metadata.actual_value / 100)) : null;
     const deviationPercent = metadata.deviation;
+
+    // Check if alert is accepted or denied for compact display
+    const isResolved = event.status === 'accepted' || event.status === 'denied';
+
+    // Compact version for resolved alerts
+    if (isResolved) {
+      return (
+        <div className={`rounded-lg shadow-sm border-l-4 p-3 hover:shadow-md transition-all cursor-pointer ${
+          event.status === 'accepted'
+            ? 'border-l-green-500 bg-green-50 dark:bg-green-900/10'
+            : 'border-l-gray-400 bg-gray-50 dark:bg-gray-800/50'
+        }`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <CheckCircle className={`h-4 w-4 flex-shrink-0 ${
+                event.status === 'accepted' ? 'text-green-600' : 'text-gray-400'
+              }`} />
+              <div className="flex-1 min-w-0">
+                <h3 className={`font-medium text-sm truncate ${
+                  event.status === 'accepted' ? 'text-green-900 dark:text-green-100' : 'text-gray-700 dark:text-gray-300'
+                }`}>
+                  {event.title}
+                </h3>
+              </div>
+              {keyMetric && (
+                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                  event.status === 'accepted'
+                    ? 'text-green-700 bg-green-100 dark:bg-green-900/40 dark:text-green-300'
+                    : 'text-gray-600 bg-gray-200 dark:bg-gray-700 dark:text-gray-400'
+                }`}>
+                  {keyMetric}
+                </span>
+              )}
+            </div>
+            <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${
+              event.status === 'accepted'
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+            }`}>
+              {event.status}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+            <Clock className="h-3 w-3" />
+            <span>{formatDistanceToNow(new Date(event.event_time), { addSuffix: true })}</span>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 p-5 hover:shadow-md transition-all ${
@@ -520,16 +740,16 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
           {event.status === 'pending' && (
             <div className="flex gap-2 flex-shrink-0">
               <button
-                onClick={() => onAction?.(event.id, 'accept')}
+                onClick={() => onAction?.(event, 'accept')}
                 className="p-2 bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/70 transition-colors"
                 title="Accept"
               >
                 <CheckCircle className="h-5 w-5" />
               </button>
               <button
-                onClick={() => onAction?.(event.id, 'reject')}
+                onClick={() => onAction?.(event, 'deny')}
                 className="p-2 bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/70 transition-colors"
-                title="Reject"
+                title="Deny"
               >
                 <XCircle className="h-5 w-5" />
               </button>
@@ -542,6 +762,22 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
 
   // Regular card for other non-trip, non-maintenance events
   if (!isTrip) {
+    // For KPI events, extract value from payload if hash marks are present
+    const isKPI = event.kind === 'kpi';
+    const kpiData = isKPI && event.kpi_data ? event.kpi_data : null;
+    let displayDescription = event.description;
+
+    if (isKPI && kpiData) {
+      // Extract the kpi_value_human part from description (format: "value - period")
+      const parts = event.description.split(' - ');
+      const valueHuman = parts[0] || event.description;
+      const period = parts[1] || '';
+
+      // Apply hash mark fix
+      const fixedValue = extractKPIValue(valueHuman, kpiData.kpi_payload);
+      displayDescription = period ? `${fixedValue} - ${period}` : fixedValue;
+    }
+
     return (
       <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 hover:shadow-md transition-all ${
         event.priority === 'danger' ? 'border-red-200 bg-red-50 dark:bg-red-900/20' :
@@ -565,7 +801,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{event.description}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{displayDescription}</p>
 
               <div className="flex items-center gap-2 mt-2">
                 <Calendar className="h-3 w-3 text-gray-400" />
