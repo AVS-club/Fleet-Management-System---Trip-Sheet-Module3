@@ -169,14 +169,14 @@ const VehiclePage: React.FC = () => {
   }, [id]); // Remove generateSignedUrls from dependencies - only depend on id
 
   // Memoized function to generate signed URLs
-  const generateSignedUrls = useCallback(async (vehicleData: Vehicle) => {
-    // Prevent duplicate calls
-    if (urlGenerationRef.current || lastVehicleId.current === vehicleData.id) {
+  const generateSignedUrls = useCallback(async (vehicleData: Vehicle, forceRefresh: boolean = false) => {
+    // Prevent duplicate calls (unless force refresh is requested)
+    if (!forceRefresh && (urlGenerationRef.current || lastVehicleId.current === vehicleData.id)) {
       logger.debug('✅ Using cached URLs for vehicle:', vehicleData.id);
       return;
     }
 
-    logger.debug('🔄 Generating fresh URLs for vehicle:', vehicleData.id);
+    logger.debug('🔄 Generating fresh URLs for vehicle:', vehicleData.id, forceRefresh ? '(forced refresh)' : '');
     urlGenerationRef.current = true;
     lastVehicleId.current = vehicleData.id;
 
@@ -345,9 +345,10 @@ const VehiclePage: React.FC = () => {
 
                     // Update local state
                     setVehicle(updatedVehicleData);
-                    
-                    // Refresh signed URLs with the updated data
-                    await generateSignedUrls(updatedVehicleData);
+
+                    // Force refresh signed URLs with the updated data (important for new/deleted documents)
+                    urlGenerationRef.current = false; // Reset the ref to allow regeneration
+                    await generateSignedUrls(updatedVehicleData, true);
 
                     if (!tagUpdateError) {
                       toast.success('Vehicle updated successfully');
