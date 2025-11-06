@@ -18,7 +18,10 @@
       "Bash(node:*)",
       "Bash(npx supabase status)",
       "Bash(npx supabase:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git log:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

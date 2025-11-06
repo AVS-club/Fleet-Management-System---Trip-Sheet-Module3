@@ -311,10 +311,19 @@ const TripDetailsPage: React.FC = () => {
   }
   
   return (
-    <Layout
-      title={`Trip ${trip.trip_serial_number}`}
-      subtitle={`Created on ${new Date(trip.created_at || '').toLocaleDateString()}`}
-    >
+    <Layout>
+      {/* Compact page header panel - matches other pages, with vibrant pink accent */}
+      <div className="rounded-xl border border-pink-300 bg-white px-4 py-3 shadow-md mb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100 text-pink-700 border border-pink-300 text-2xl shadow-sm">🗺️</span>
+            <div>
+              <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900">{`Trip ${trip.trip_serial_number}`}</h1>
+              <p className="text-sm text-gray-600">{`Created on ${new Date(trip.created_at || '').toLocaleDateString()}`}</p>
+            </div>
+          </div>
+        </div>
+      </div>
       {isEditing ? (
         <div className="bg-white dark:bg-gray-900 shadow-sm rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex justify-between items-center mb-6">

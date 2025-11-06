@@ -164,7 +164,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   const hasFinanceData = trip.income_amount || trip.net_profit || trip.cost_per_km;
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-2 sm:space-y-3">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Button
@@ -200,10 +200,10 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Trip Overview */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
           <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">
-            Trip {trip.trip_serial_number}
+            Trip Details
           </h2>
           <div className="flex flex-wrap gap-2">
             {/* Action Buttons */}
@@ -245,25 +245,25 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-gray-400 flex-shrink-0" />
+              <Calendar className="h-5 w-5 text-blue-500 flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Trip Start Date</p>
+                <p className="text-sm text-gray-600">Trip Start Date</p>
                 <p className="font-medium text-gray-900">{formatDate(trip.trip_start_date)}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-gray-400 flex-shrink-0" />
+              <Calendar className="h-5 w-5 text-blue-500 flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Trip End Date</p>
+                <p className="text-sm text-gray-600">Trip End Date</p>
                 <p className="font-medium text-gray-900">{formatDate(trip.trip_end_date)}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Truck className="h-5 w-5 text-gray-400 flex-shrink-0" />
+              <Truck className="h-5 w-5 text-primary-600 flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Vehicle</p>
+                <p className="text-sm text-gray-600">Vehicle</p>
                 <p className="font-medium text-gray-900">
                   {vehicle ? `${vehicle.registration_number} - ${vehicle.make} ${vehicle.model}` : 'N/A'}
                 </p>
@@ -271,9 +271,9 @@ const TripDetails: React.FC<TripDetailsProps> = ({
             </div>
 
             <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-gray-400 flex-shrink-0" />
+              <User className="h-5 w-5 text-purple-500 flex-shrink-0" />
               <div>
-                <p className="text-sm text-gray-500">Driver</p>
+                <p className="text-sm text-gray-600">Driver</p>
                 <p className="font-medium text-gray-900">{driver?.name || 'N/A'}</p>
               </div>
             </div>
@@ -281,17 +281,17 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <MapPin className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500">Origin Warehouse</p>
+                <p className="text-sm text-gray-600">Origin Warehouse</p>
                 <p className="font-medium text-gray-900">{warehouse?.name || 'N/A'}</p>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
-              <MapPin className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <MapPin className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm text-gray-500 mb-2">Destinations</p>
+                <p className="text-sm text-gray-600 mb-2">Destinations</p>
                 <div className="flex flex-wrap gap-2">
                   {destinations.length > 0 ? (
                     destinations.map((dest, index) => (
@@ -316,15 +316,15 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Odometer & Load */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-blue-500 pl-3">
           <Gauge className="h-5 w-5 mr-2 text-primary-500" />
           Odometer & Load
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-gray-500 mb-1">Start KM</p>
+            <p className="text-sm text-gray-600 mb-1">Start KM</p>
             <div className="flex items-center gap-2">
               <p className="text-xl font-semibold text-gray-900">{trip.start_km.toLocaleString()} km</p>
               {trip.manual_trip_id && (
@@ -337,12 +337,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">End KM</p>
+            <p className="text-sm text-gray-600">End KM</p>
             <p className="text-xl font-semibold text-gray-900">{trip.end_km.toLocaleString()} km</p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Gross Weight</p>
+            <p className="text-sm text-gray-600">Gross Weight</p>
             <p className="text-xl font-semibold text-gray-900">
               {trip.gross_weight ? `${trip.gross_weight.toLocaleString()} kg` : 'N/A'}
             </p>
@@ -350,7 +350,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         </div>
 
         <div className="mt-6">
-          <p className="text-sm text-gray-500 mb-3">Materials Carried</p>
+          <p className="text-sm text-gray-600 mb-3">Materials Carried</p>
           <div className="flex flex-wrap gap-2">
             {getMaterialNames().length > 0 ? (
               getMaterialNames().map((material, index) => (
@@ -370,27 +370,27 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Trip Metrics */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-blue-500 pl-3">
           <TrendingUp className="h-5 w-5 mr-2 text-primary-500" />
           Trip Metrics
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <p className="text-sm text-gray-500">Distance</p>
+            <p className="text-sm text-gray-600">Distance</p>
             <p className="text-xl font-semibold text-primary-600">{distance.toLocaleString()} km</p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Fuel Added</p>
+            <p className="text-sm text-gray-600">Fuel Added</p>
             <p className="text-xl font-semibold text-gray-900">
               {trip.fuel_quantity ? `${trip.fuel_quantity} L` : 'N/A'}
             </p>
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Calculated Mileage</p>
+            <p className="text-sm text-gray-600">Calculated Mileage</p>
             <div className="flex items-center gap-2">
               <p className={`text-xl font-semibold ${getMileageColor()}`}>
                 {trip.calculated_kmpl && typeof trip.calculated_kmpl === 'number' && !isNaN(trip.calculated_kmpl) ? `${trip.calculated_kmpl.toFixed(2)} km/L` : 'N/A'}
@@ -409,7 +409,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
 
           {displayedDeviation && typeof displayedDeviation === 'number' && !isNaN(displayedDeviation) && (
             <div>
-              <p className="text-sm text-gray-500">Route Deviation</p>
+              <p className="text-sm text-gray-600">Route Deviation</p>
               <div className="flex items-center gap-2">
                 <p className={`text-xl font-semibold ${getRouteDeviationColor()}`}>
                   {displayedDeviation > 0 ? '+' : ''}{displayedDeviation.toFixed(1)}%
@@ -444,8 +444,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Expenses */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-blue-500 pl-3">
           <IndianRupee className="h-5 w-5 mr-2 text-primary-500" />
           Expenses
         </h3>
@@ -453,45 +453,45 @@ const TripDetails: React.FC<TripDetailsProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Fuel Cost (per L)</p>
+              <p className="text-sm text-gray-600">Fuel Cost (per L)</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.fuel_cost)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Total Fuel Cost</p>
+              <p className="text-sm text-gray-600">Total Fuel Cost</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.total_fuel_cost)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Unloading Expense</p>
+              <p className="text-sm text-gray-600">Unloading Expense</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.unloading_expense)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Driver Bata</p>
+              <p className="text-sm text-gray-600">Driver Bata</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.driver_expense)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Road/RTO Expense</p>
+              <p className="text-sm text-gray-600">Road/RTO Expense</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.road_rto_expense)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Breakdown Expense</p>
+              <p className="text-sm text-gray-600">Breakdown Expense</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.breakdown_expense)}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-500">Miscellaneous</p>
+              <p className="text-sm text-gray-600">Miscellaneous</p>
               <p className="font-medium text-gray-900">{formatCurrency(trip.miscellaneous_expense)}</p>
             </div>
             {trip.advance_amount && trip.advance_amount > 0 && (
               <div>
-                <p className="text-sm text-gray-500">Advance Amount</p>
+                <p className="text-sm text-gray-600">Advance Amount</p>
                 <p className="font-medium text-gray-900">{formatCurrency(trip.advance_amount)}</p>
               </div>
             )}
@@ -500,11 +500,11 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           <div className="pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">Total Road Expenses</p>
+                <p className="text-sm text-gray-600">Total Road Expenses</p>
                 <p className="font-semibold text-gray-900">{formatCurrency(totalRoadExpenses)}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Expenses</p>
+                <p className="text-sm text-gray-600">Total Expenses</p>
                 <p className="font-semibold text-error-600">{formatCurrency(totalExpenses)}</p>
               </div>
             </div>
@@ -516,13 +516,13 @@ const TripDetails: React.FC<TripDetailsProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {trip.income_amount && trip.income_amount > 0 && (
                   <div>
-                    <p className="text-sm text-gray-500">Income Amount</p>
+                    <p className="text-sm text-gray-600">Income Amount</p>
                     <p className="font-semibold text-success-600">{formatCurrency(trip.income_amount)}</p>
                   </div>
                 )}
                 {trip.net_profit !== undefined && trip.net_profit !== null && (
                   <div>
-                    <p className="text-sm text-gray-500">Net Profit/Loss</p>
+                    <p className="text-sm text-gray-600">Net Profit/Loss</p>
                     <p className={`font-semibold text-lg ${trip.net_profit >= 0 ? 'text-success-600' : 'text-error-600'}`}>
                       {formatCurrency(trip.net_profit)}
                     </p>
@@ -530,7 +530,7 @@ const TripDetails: React.FC<TripDetailsProps> = ({
                 )}
                 {trip.cost_per_km && trip.cost_per_km > 0 && (
                   <div>
-                    <p className="text-sm text-gray-500">Cost per KM</p>
+                    <p className="text-sm text-gray-600">Cost per KM</p>
                     <p className="font-semibold text-gray-900">{formatCurrency(trip.cost_per_km)}</p>
                   </div>
                 )}
@@ -541,8 +541,8 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Attachments */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-blue-500 pl-3">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Attachments
         </h3>
@@ -660,12 +660,12 @@ const TripDetails: React.FC<TripDetailsProps> = ({
       </div>
 
       {/* Remarks */}
-      <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
-        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-2 border-blue-500 pl-2">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-blue-500 pl-3">
           <FileText className="h-5 w-5 mr-2 text-primary-500" />
           Remarks
         </h3>
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
           <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">
             {trip.remarks || 'No remarks provided'}
           </p>

@@ -1,0 +1,40 @@
+name: Refresh KPIs
+
+on:
+  schedule:
+    # Runs every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows manual triggering from GitHub Actions UI
+
+jobs:
+  refresh-kpis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call Supabase Edge Function to Refresh KPIs
+        run: |
+          response=$(curl -X POST https://oosrmuqfcqtojflruhww.supabase.co/functions/v1/refresh-kpis \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            -H "Content-Type: application/json" \
+            -w "\nHTTP_CODE:%{http_code}" \
+            -s)
+
+          http_code=$(echo "$response" | grep "HTTP_CODE:" | cut -d':' -f2)
+          body=$(echo "$response" | sed '/HTTP_CODE:/d')
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          # Exit with error if request failed
+          if [ "$http_code" -ne 200 ]; then
+            echo "ERROR: KPI refresh failed with HTTP $http_code"
+            exit 1
+          fi
+
+          echo "SUCCESS: KPIs refreshed successfully"
+
+      - name: Log execution time
+        if: always()
+        run: |
+          echo "Workflow completed at: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"

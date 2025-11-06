@@ -14,7 +14,7 @@ import { useHeroFeed } from '../hooks/useHeroFeed';
 import { useKPICards as useKPICardsData, useLatestKPIs } from '@/hooks/useKPICards';
 import KPICard from '../components/kpi/KPICard';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
-import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home } from 'lucide-react';
+import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home, Activity, Users, Wrench, Route, TrendingUp } from 'lucide-react';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Checkbox from '../components/ui/Checkbox';
@@ -27,7 +27,7 @@ import { formatKmPerLitre } from '../utils/format';
 import { isValid } from 'date-fns';
 import { toast } from 'react-toastify';
 import { createLogger } from '../utils/logger';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../utils/supabaseClient';
 import config from '../utils/env';
 
@@ -35,6 +35,7 @@ const logger = createLogger('AIAlertsPage');
 
 const AIAlertsPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [activeTab, setActiveTab] = useState<'all-feed' | 'alerts' | 'driver-insights'>('all-feed');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -70,6 +71,10 @@ const AIAlertsPage: React.FC = () => {
     const saved = localStorage.getItem('showFutureEvents');
     return saved !== null ? JSON.parse(saved) : false; // Default to false - hide future dates
   });
+
+  // Refresh state
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
   const { data: driversMap, error: driversError, isLoading: driversLoading, refetch: refetchDrivers } = useQuery({
@@ -188,47 +193,57 @@ const AIAlertsPage: React.FC = () => {
   }, []);
 
 
-  // Fetch alerts and vehicles data
+  // Reusable function to fetch initial data
+  const fetchInitialData = useCallback(async () => {
+    try {
+      // Fetch alerts
+      const alertsData = await getAIAlerts();
+      const alertsArray = Array.isArray(alertsData) ? alertsData : [];
+      setAlerts(alertsArray);
+
+      // Fetch all data for both tabs
+      const [vehiclesData, driversData, tripsData] = await Promise.all([
+        getVehicles(),
+        getDrivers(),
+        getTrips()
+      ]);
+
+      const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
+      const driversArray = Array.isArray(driversData) ? driversData : [];
+      const tripsArray = Array.isArray(tripsData) ? tripsData : [];
+
+      setVehicles(vehiclesArray);
+      setDrivers(driversArray);
+      setTrips(tripsArray);
+      setMaintenanceTasks([]); // Initialize empty for now
+
+      // Create vehicle lookup map for efficient access
+      const vehicleMapData: Record<string, Vehicle> = {};
+      vehiclesArray.forEach(vehicle => {
+        vehicleMapData[vehicle.id] = vehicle;
+      });
+      setVehicleMap(vehicleMapData);
+
+      return true;
+    } catch (error) {
+      logger.error('Error fetching initial data:', error);
+      throw error;
+    }
+  }, []);
+
+  // Fetch alerts and vehicles data on mount
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch alerts
-        const alertsData = await getAIAlerts();
-        const alertsArray = Array.isArray(alertsData) ? alertsData : [];
-        setAlerts(alertsArray);
-        
-        // Fetch all data for both tabs
-        const [vehiclesData, driversData, tripsData] = await Promise.all([
-          getVehicles(),
-          getDrivers(),
-          getTrips()
-        ]);
-        
-        const vehiclesArray = Array.isArray(vehiclesData) ? vehiclesData : [];
-        const driversArray = Array.isArray(driversData) ? driversData : [];
-        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
-        
-        setVehicles(vehiclesArray);
-        setDrivers(driversArray);
-        setTrips(tripsArray);
-        setMaintenanceTasks([]); // Initialize empty for now
-        
-        // Create vehicle lookup map for efficient access
-        const vehicleMapData: Record<string, Vehicle> = {};
-        vehiclesArray.forEach(vehicle => {
-          vehicleMapData[vehicle.id] = vehicle;
-        });
-        setVehicleMap(vehicleMapData);
-      } catch (error) {
-        logger.error('Error fetching AI alerts data:', error);
+        await fetchInitialData();
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
-  }, []);
+  }, [fetchInitialData]);
 
   // YouTube video intersection observer
   useEffect(() => {
@@ -896,75 +911,233 @@ const AIAlertsPage: React.FC = () => {
 
   return (
     <Layout>
-      {/* Compact Header with Fleet Activity */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm mb-4">
-        {/* Title Row with Refresh Button */}
-        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg">
-              <Home className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Fleet Activity</h1>
-              <p className="text-xs text-gray-600 mt-0.5">Real-time updates from your fleet</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              refetchHeroFeed();
-              refetchDrivers();
-              refetchVehicles();
-              refetchKPIs();
-              refetchShorts();
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Refresh feed"
-          >
-            <RefreshCw className="w-5 h-5 text-gray-600" />
-          </button>
+      {/* Hero Header - Compact Design (35% reduced height) */}
+      <div className="relative bg-gradient-to-r from-teal-600 via-teal-500 to-green-500 rounded-xl shadow-sm mb-4 overflow-hidden">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}/>
         </div>
 
-        {/* Tab Navigation Row */}
-        <div className="flex gap-2 px-4 py-2">
-          <button
-            onClick={() => setActiveTab('all-feed')}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
-              ${activeTab === 'all-feed'
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        {/* Header Content - Reduced Padding */}
+        <div className="relative z-10 px-4 sm:px-5 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              {/* Compact Icon Container */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-white/20 rounded-xl blur-lg animate-pulse"></div>
+                <div className="relative p-2 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30 shadow-md">
+                  <Home className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+              </div>
+
+              {/* Compact Title Section */}
+              <div>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                  Fleet Activity
+                  {/* Smaller Live Indicator */}
+                  <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 bg-green-400/20 backdrop-blur-sm rounded-full border border-green-400/30">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                    </span>
+                    <span className="text-[10px] sm:text-xs font-medium text-green-50">LIVE</span>
+                  </span>
+                </h1>
+                <p className="text-white/80 text-xs sm:text-sm mt-0.5">Monitor your fleet performance in real-time</p>
+              </div>
+            </div>
+
+            {/* Compact Action Buttons */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Notification Bell - Navigate to AI Alerts */}
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className="relative p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30 hover:bg-white/30 active:scale-95 transition-all group"
+                title={`View ${alerts?.filter(a => a.status === 'pending').length || 0} pending alerts`}
+              >
+                <Bell className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
+                {/* Notification Badge */}
+                {alerts?.filter(a => a.status === 'pending').length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white animate-pulse">
+                    {alerts?.filter(a => a.status === 'pending').length}
+                  </span>
+                )}
+              </button>
+
+              {/* Refresh Button with Loading State */}
+              <button
+                onClick={async () => {
+                  setIsRefreshing(true);
+                  try {
+                    // Clear React Query cache to force fresh fetch
+                    queryClient.invalidateQueries({ queryKey: ['drivers-map'] });
+                    queryClient.invalidateQueries({ queryKey: ['vehicles-map'] });
+                    queryClient.invalidateQueries({ queryKey: ['maintenance-tasks'] });
+                    queryClient.invalidateQueries({ queryKey: ['kpi-cards'] });
+                    queryClient.invalidateQueries({ queryKey: ['youtube-shorts'] });
+
+                    // Refetch ALL data including initial state data
+                    await Promise.all([
+                      fetchInitialData(), // Refetch alerts, trips, vehicles, drivers
+                      refetchHeroFeed(),
+                      refetchDrivers(),
+                      refetchVehicles(),
+                      refetchKPIs(),
+                      refetchShorts()
+                    ]);
+
+                    // Update last updated timestamp
+                    setLastUpdated(new Date());
+
+                    // Show success toast
+                    toast.success('Feed refreshed successfully!', {
+                      position: 'bottom-right',
+                      autoClose: 2000
+                    });
+                  } catch (error) {
+                    logger.error('Error refreshing feed:', error);
+                    toast.error('Failed to refresh feed. Please try again.', {
+                      position: 'bottom-right',
+                      autoClose: 3000
+                    });
+                  } finally {
+                    setIsRefreshing(false);
+                  }
+                }}
+                disabled={isRefreshing}
+                className={`p-1.5 sm:p-2 bg-white/20 backdrop-blur-sm rounded-lg border border-white/30 hover:bg-white/30 transition-all group ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Refresh feed"
+              >
+                <RefreshCw className={`w-4 h-4 text-white transition-transform duration-500 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Compact Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[10px] sm:text-xs">Active Vehicles</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{vehicles?.length || 0}</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[10px] sm:text-xs">Total Alerts</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{alerts?.length || 0}</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[10px] sm:text-xs">Active Trips</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{trips?.length || 0}</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[10px] sm:text-xs">Maintenance</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{maintenanceTasksData?.length || 0}</div>
+            </div>
+          </div>
+
+          {/* Connection Status Indicator */}
+          <div className="mt-2 flex items-center justify-center gap-2 text-white/70 text-xs">
+            {/* Status Dot */}
+            <div className={`w-2 h-2 rounded-full ${
+              (() => {
+                const minutesAgo = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 60000);
+                if (minutesAgo < 2) return 'bg-green-400 shadow-lg shadow-green-400/50';
+                if (minutesAgo < 5) return 'bg-yellow-400 shadow-lg shadow-yellow-400/50';
+                return 'bg-red-400 shadow-lg shadow-red-400/50';
+              })()
+            }`}></div>
+            <span>
+              Last updated: {
+                (() => {
+                  const minutesAgo = Math.floor((new Date().getTime() - lastUpdated.getTime()) / 60000);
+                  if (minutesAgo < 1) return 'just now';
+                  if (minutesAgo === 1) return '1 minute ago';
+                  if (minutesAgo < 60) return `${minutesAgo} minutes ago`;
+                  const hoursAgo = Math.floor(minutesAgo / 60);
+                  if (hoursAgo === 1) return '1 hour ago';
+                  if (hoursAgo < 24) return `${hoursAgo} hours ago`;
+                  const daysAgo = Math.floor(hoursAgo / 24);
+                  return daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+                })()
               }
-            `}
-          >
-            <Home className="w-4 h-4" />
-            <span>All Feed</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
-              ${activeTab === 'alerts'
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }
-            `}
-          >
-            <Bell className="w-4 h-4" />
-            <span>AI Alerts</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('driver-insights')}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium
-              ${activeTab === 'driver-insights'
-                ? 'bg-primary-50 text-primary-600'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }
-            `}
-          >
-            <BarChart2 className="w-4 h-4" />
-            <span>Driver Insights</span>
-          </button>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Tab Navigation */}
+      <div className="bg-white rounded-xl shadow-sm mb-4 sticky top-0 z-20 border border-gray-100">
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between">
+            {/* Tabs */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveTab('all-feed')}
+                className={`
+                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
+                  ${activeTab === 'all-feed'
+                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                {activeTab === 'all-feed' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-green-500 rounded-lg blur-lg opacity-50"></div>
+                )}
+                <span className="relative flex items-center gap-2">
+                  <Activity className="w-4 h-4" />
+                  All Feed
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('alerts')}
+                className={`
+                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
+                  ${activeTab === 'alerts'
+                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="relative flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  AI Alerts
+                  {alerts?.filter(a => a.status === 'pending').length > 0 && (
+                    <span className={`ml-1 px-2 py-0.5 ${activeTab === 'alerts' ? 'bg-white/20' : 'bg-red-500'} text-white text-xs rounded-full`}>
+                      {alerts?.filter(a => a.status === 'pending').length}
+                    </span>
+                  )}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('driver-insights')}
+                className={`
+                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
+                  ${activeTab === 'driver-insights'
+                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
+                    : 'text-gray-600 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <span className="relative flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Driver Insights
+                </span>
+              </button>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex items-center gap-2">
+              <button className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <Search className="w-5 h-5" />
+              </button>
+              <button className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
+                <Filter className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -980,11 +1153,11 @@ const AIAlertsPage: React.FC = () => {
           {activeTab === 'all-feed' ? (
             <div className="space-y-4">
               {/* Hero Feed Content */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                {/* Compact Filter Row with Integrated Counts */}
-                <div className="p-3">
-                  {/* Filter Badges with Counts */}
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                {/* Apple-style Filter Section with Muted Colors */}
+                <div className="p-4">
+                  {/* Filter Pills - Subtle Apple-inspired Colors */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
                     <button
                       onClick={() => {
                         if (!selectedFilters.includes('ai_alert')) {
@@ -993,14 +1166,27 @@ const AIAlertsPage: React.FC = () => {
                           setSelectedFilters(prev => prev.filter(f => f !== 'ai_alert'));
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedFilters.includes('ai_alert') || selectedFilters.includes('all')
-                          ? 'bg-red-100 text-red-700 border border-red-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${selectedFilters.includes('ai_alert') || selectedFilters.includes('all')
+                          ? 'bg-purple-100 text-purple-700 border-purple-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                     >
-                      <Bell className="w-3.5 h-3.5" />
-                      <span>AI Alerts ({events.filter(e => e.kind === 'ai_alert').length})</span>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Alerts</span>
+                      {events.filter(e => e.kind === 'ai_alert').length > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${selectedFilters.includes('ai_alert') || selectedFilters.includes('all')
+                            ? 'bg-white/60 text-purple-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {events.filter(e => e.kind === 'ai_alert').length}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -1011,14 +1197,27 @@ const AIAlertsPage: React.FC = () => {
                           setSelectedFilters(prev => prev.filter(f => f !== 'vehicle_doc'));
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedFilters.includes('vehicle_doc') || selectedFilters.includes('all')
-                          ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${selectedFilters.includes('vehicle_doc') || selectedFilters.includes('all')
+                          ? 'bg-blue-100 text-blue-700 border-blue-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                     >
                       <FileText className="w-3.5 h-3.5" />
-                      <span>Documents ({events.filter(e => e.kind === 'vehicle_doc').length})</span>
+                      <span>Documents</span>
+                      {events.filter(e => e.kind === 'vehicle_doc').length > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${selectedFilters.includes('vehicle_doc') || selectedFilters.includes('all')
+                            ? 'bg-white/60 text-blue-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {events.filter(e => e.kind === 'vehicle_doc').length}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -1029,14 +1228,27 @@ const AIAlertsPage: React.FC = () => {
                           setSelectedFilters(prev => prev.filter(f => f !== 'maintenance'));
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedFilters.includes('maintenance') || selectedFilters.includes('all')
-                          ? 'bg-orange-100 text-orange-700 border border-orange-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${selectedFilters.includes('maintenance') || selectedFilters.includes('all')
+                          ? 'bg-orange-100 text-orange-700 border-orange-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                     >
-                      <Tool className="w-3.5 h-3.5" />
-                      <span>Maintenance ({events.filter(e => e.kind === 'maintenance').length})</span>
+                      <Wrench className="w-3.5 h-3.5" />
+                      <span>Maintenance</span>
+                      {events.filter(e => e.kind === 'maintenance').length > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${selectedFilters.includes('maintenance') || selectedFilters.includes('all')
+                            ? 'bg-white/60 text-orange-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {events.filter(e => e.kind === 'maintenance').length}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -1047,14 +1259,27 @@ const AIAlertsPage: React.FC = () => {
                           setSelectedFilters(prev => prev.filter(f => f !== 'trip'));
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedFilters.includes('trip') || selectedFilters.includes('all')
-                          ? 'bg-green-100 text-green-700 border border-green-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${selectedFilters.includes('trip') || selectedFilters.includes('all')
+                          ? 'bg-green-100 text-green-700 border-green-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                     >
-                      <Truck className="w-3.5 h-3.5" />
-                      <span>Trips ({events.filter(e => e.kind === 'trip').length})</span>
+                      <Route className="w-3.5 h-3.5" />
+                      <span>Trips</span>
+                      {events.filter(e => e.kind === 'trip').length > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${selectedFilters.includes('trip') || selectedFilters.includes('all')
+                            ? 'bg-white/60 text-green-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {events.filter(e => e.kind === 'trip').length}
+                        </span>
+                      )}
                     </button>
 
                     <button
@@ -1065,62 +1290,103 @@ const AIAlertsPage: React.FC = () => {
                           setSelectedFilters(prev => prev.filter(f => f !== 'kpi'));
                         }
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        selectedFilters.includes('kpi') || selectedFilters.includes('all')
-                          ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${selectedFilters.includes('kpi') || selectedFilters.includes('all')
+                          ? 'bg-indigo-100 text-indigo-700 border-indigo-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                     >
-                      <BarChart2 className="w-3.5 h-3.5" />
-                      <span>KPIs ({kpiCards?.length || 0})</span>
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      <span>KPIs</span>
+                      {(kpiCards?.length || 0) > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${selectedFilters.includes('kpi') || selectedFilters.includes('all')
+                            ? 'bg-white/60 text-indigo-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {kpiCards?.length || 0}
+                        </span>
+                      )}
                     </button>
 
                     <button
                       onClick={toggleVideos}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                        showVideos
-                          ? 'bg-pink-100 text-pink-700 border border-pink-300'
-                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        ${showVideos
+                          ? 'bg-pink-100 text-pink-700 border-pink-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
                       title={showVideos ? 'Hide video reels' : 'Show video reels'}
                     >
                       {showVideos ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
-                      <span>Videos ({availableShorts.length})</span>
+                      <span>Videos</span>
+                      {availableShorts.length > 0 && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${showVideos
+                            ? 'bg-white/60 text-pink-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {availableShorts.length}
+                        </span>
+                      )}
                     </button>
+                  </div>
 
-                    {/* Compact Document Reminders Toggle */}
-                    <div className="ml-auto flex items-center gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <span className="text-xs text-gray-600 font-medium">Show Doc Reminders</span>
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={includeDocuments}
-                            onChange={(e) => setIncludeDocuments(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                        </div>
-                      </label>
+                  {/* Apple-style Toggle Switches */}
+                  <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100">
+                    <label className="flex items-center gap-2.5 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={includeDocuments}
+                        onChange={(e) => setIncludeDocuments(e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`
+                        relative w-10 h-5 rounded-full transition-colors duration-200
+                        ${includeDocuments ? 'bg-teal-500' : 'bg-gray-300'}
+                      `}>
+                        <div className={`
+                          absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200
+                          ${includeDocuments ? 'translate-x-5' : 'translate-x-0'}
+                        `}></div>
+                      </div>
+                      <span className="text-sm text-gray-700">
+                        Show Doc Reminders
+                      </span>
+                    </label>
 
-                      {/* Future Events Toggle */}
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <span className="text-xs text-gray-600 font-medium">Show Future Events</span>
-                        <div className="relative">
-                          <input
-                            type="checkbox"
-                            checked={showFutureEvents}
-                            onChange={(e) => {
-                              const newValue = e.target.checked;
-                              setShowFutureEvents(newValue);
-                              localStorage.setItem('showFutureEvents', JSON.stringify(newValue));
-                            }}
-                            className="sr-only peer"
-                          />
-                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
-                        </div>
-                      </label>
-                    </div>
+                    <label className="flex items-center gap-2.5 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={showFutureEvents}
+                        onChange={(e) => {
+                          const newValue = e.target.checked;
+                          setShowFutureEvents(newValue);
+                          localStorage.setItem('showFutureEvents', JSON.stringify(newValue));
+                        }}
+                        className="sr-only"
+                      />
+                      <div className={`
+                        relative w-10 h-5 rounded-full transition-colors duration-200
+                        ${showFutureEvents ? 'bg-teal-500' : 'bg-gray-300'}
+                      `}>
+                        <div className={`
+                          absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200
+                          ${showFutureEvents ? 'translate-x-5' : 'translate-x-0'}
+                        `}></div>
+                      </div>
+                      <span className="text-sm text-gray-700">
+                        Show Future Events
+                      </span>
+                    </label>
                   </div>
                 </div>
 

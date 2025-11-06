@@ -165,7 +165,7 @@ const TripDashboard: React.FC<TripDashboardProps> = ({ trips, vehicles, drivers 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          title={t('dashboard.totalTrips')}
+          title={t('dashboard.totalTripsLabel')}
           value={stats.totalTrips}
           icon={<BarChart2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />}
         />
