@@ -27,7 +27,9 @@
       "Bash(npx tsx:*)",
       "Bash(findstr:*)",
       "Bash(set VITE_SUPABASE_URL=https://oosrmuqfcqtojflruhww.supabase.co:*)",
-      "Bash(set:*)"
+      "Bash(set:*)",
+      "Bash(supabase db dump:*)",
+      "Bash(2)"
     ],
     "deny": [],
     "ask": []

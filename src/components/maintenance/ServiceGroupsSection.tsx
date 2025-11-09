@@ -553,7 +553,8 @@ const ServiceGroup = ({
   vehicleType,
   numberOfTyres,
   vendors,
-  loadingVendors
+  loadingVendors,
+  setVendors
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -965,6 +966,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
             numberOfTyres={numberOfTyres}
             vendors={vendors}
             loadingVendors={loadingVendors}
+            setVendors={setVendors}
           />
         ))}
 

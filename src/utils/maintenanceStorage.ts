@@ -361,8 +361,12 @@ export const updateTask = async (
   id: string,
   updates: Partial<MaintenanceTask>
 ): Promise<MaintenanceTask | null> => {
-  // Extract service groups to handle separately
-  const { service_groups, ...updateData } = updates as any;
+  // Extract service groups and generated columns to handle separately
+  const { service_groups, total_downtime_hours, ...updateData } = updates as any;
+
+  // Note: total_downtime_hours is a GENERATED column in the database
+  // It's automatically calculated as (downtime_days * 24) + downtime_hours
+  // We must not include it in UPDATE operations
 
   // Get the old task first to compare changes
   const { data: oldTask } = await supabase

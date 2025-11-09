@@ -114,7 +114,8 @@ export const createVendorFromName = async (vendorName: string): Promise<Vendor |
 
     return await createVendor({
       vendor_name: vendorName.trim(),
-      vendor_type: 'other',
+      // vendor_type removed - let database use default or allow NULL
+      // The enum values don't include 'other', so we omit this field
     });
   } catch (error) {
     logger.error('Error in createVendorFromName:', error);

@@ -726,29 +726,39 @@ const MaintenanceTaskPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Service Groups - Enhanced */}
-                {task.service_groups && task.service_groups.length > 0 && (
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                      <Wrench className="h-5 w-5 mr-2 text-green-600" />
-                      Shops/Mechanics & Services
-                    </h2>
+                {/* Service Groups - ALWAYS SHOW */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                    <Wrench className="h-5 w-5 mr-2 text-green-600" />
+                    Shops/Mechanics & Services
+                  </h2>
+                  {task.service_groups && task.service_groups.length > 0 ? (
                     <div className="space-y-4">
                       {task.service_groups.map((group: any, index: number) => (
                         <div key={index} className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                          {/* Vendor Name - ALWAYS SHOW */}
                           <div className="mb-3 flex items-center justify-between">
-                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
-                              <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
-                                {index + 1}
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Vendor/Shop:</p>
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                                <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
+                                  {index + 1}
+                                </span>
+                                {group.vendor_id || '❌ NO VENDOR SAVED'}
                               </span>
-                              {group.vendor_id || 'Unknown Vendor'}
-                            </span>
-                            <span className="text-lg font-semibold text-gray-900">
-                              ₹{(group.cost || 0).toLocaleString()}
-                            </span>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">Cost:</p>
+                              <span className="text-lg font-semibold text-gray-900">
+                                ₹{(group.cost || 0).toLocaleString()}
+                              </span>
+                            </div>
                           </div>
-                          {group.service_type && (
-                            <div className="mb-2">
+
+                          {/* Service Type - ALWAYS SHOW */}
+                          <div className="mb-2">
+                            <p className="text-xs text-gray-500 mb-1">Service Type:</p>
+                            {group.service_type ? (
                               <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
                                 group.service_type === 'purchase' ? 'bg-indigo-100 text-indigo-700' :
                                 group.service_type === 'labor' ? 'bg-purple-100 text-purple-700' :
@@ -758,18 +768,44 @@ const MaintenanceTaskPage: React.FC = () => {
                                  group.service_type === 'labor' ? 'Service/Repair' :
                                  'Parts + Installation'}
                               </span>
-                            </div>
-                          )}
-                          {group.notes && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              <span className="font-medium">Notes:</span> {group.notes}
+                            ) : (
+                              <span className="text-gray-400 text-sm">Not specified</span>
+                            )}
+                          </div>
+
+                          {/* Tasks - ALWAYS SHOW */}
+                          <div className="mb-2">
+                            <p className="text-xs text-gray-500 mb-1">Tasks:</p>
+                            {group.tasks && group.tasks.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {group.tasks.map((task: string, taskIdx: number) => (
+                                  <span key={taskIdx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
+                                    {task}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">❌ NO TASKS SAVED</span>
+                            )}
+                          </div>
+
+                          {/* Notes - ALWAYS SHOW */}
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1">Notes:</p>
+                            <p className="text-sm text-gray-600">
+                              {group.notes || <span className="text-gray-400">No notes</span>}
                             </p>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="text-center py-8 bg-red-50 border-2 border-red-200 rounded-lg">
+                      <p className="text-red-700 font-medium">⚠️ NO SERVICE GROUPS SAVED</p>
+                      <p className="text-sm text-red-600 mt-1">This means the service group data failed to save to the database</p>
+                    </div>
+                  )}
+                </div>
 
                 {/* Complaint & Resolution */}
                 {(task.complaint_description || task.resolution_description) && (
