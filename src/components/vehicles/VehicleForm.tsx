@@ -169,25 +169,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   }, [register]);
 
 
-  // Reset form when initialData changes (when entering edit mode)
-  useEffect(() => {
-    if (initialData) {
-      reset({
-        type: 'truck',
-        fuel_type: 'diesel',
-        status: 'active',
-        current_odometer: 0,
-        remind_insurance: false,
-        remind_fitness: false,
-        remind_puc: false,
-        remind_tax: false,
-        remind_permit: false,
-        remind_service: false,
-        other_documents: [],
-        ...initialData,
-      });
-    }
-  }, [initialData, reset]);
+  // REMOVED: This was causing infinite loop because reset() changes on every render
+  // The form already has defaultValues set in useForm, so this reset is redundant
+  // If you need to reset the form when initialData changes, use a stable reference
+  // or only depend on initialData (not reset) in the dependency array
 
 
   // Fetch required data on component mount

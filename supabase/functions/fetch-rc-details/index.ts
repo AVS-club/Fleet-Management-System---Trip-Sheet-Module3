@@ -1,71 +1,9 @@
+// @ts-ignore Remote import for Deno Edge Function
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// Mock RC details data for demonstration
-// In production, this would connect to actual VAHAN API or government portal
-const mockRCData: Record<string, any> = {
-  'MH12AB1234': {
-    registration_number: 'MH12AB1234',
-    maker: 'TATA MOTORS',
-    model: 'LPT 3118',
-    vehicle_type: 'truck',
-    chassis_number: 'MA3ERLF1S00123456',
-    engine_number: 'G12B1234567',
-    fuel_type: 'Diesel',
-    color: 'White',
-    body_type: 'Goods Carrier',
-    manufacturing_year: '2019',
-    registration_date: '2019-03-15',
-    fitness_upto: '2025-03-14',
-    insurance_validity: '2025-03-31',
-    permit_upto: '2025-03-14',
-    puc_validity: '2025-01-31',
-    tax_validity: '2025-03-31',
-    owner_name: 'AUTO VITAL SOLUTION PVT LTD',
-    owner_address: 'Mumbai, Maharashtra',
-    rto_code: 'MH12',
-    rto_name: 'Pune RTO',
-    state: 'Maharashtra',
-    seating_capacity: 2,
-    gvw: '31000',
-    unladen_weight: '7200',
-    norms_type: 'BS VI',
-    financer: 'HDFC BANK',
-    hypothecation: true
-  },
-  'TN09BZ5678': {
-    registration_number: 'TN09BZ5678',
-    maker: 'ASHOK LEYLAND',
-    model: 'BOSS 1213',
-    vehicle_type: 'truck',
-    chassis_number: 'MB1NXMBAAHW123456',
-    engine_number: 'H4CRDI1234567',
-    fuel_type: 'Diesel',
-    color: 'Yellow',
-    body_type: 'Goods Carrier',
-    manufacturing_year: '2020',
-    registration_date: '2020-06-20',
-    fitness_upto: '2026-06-19',
-    insurance_validity: '2025-06-30',
-    permit_upto: '2025-06-19',
-    puc_validity: '2025-04-30',
-    tax_validity: '2025-06-30',
-    owner_name: 'CHENNAI LOGISTICS',
-    owner_address: 'Chennai, Tamil Nadu',
-    rto_code: 'TN09',
-    rto_name: 'Chennai RTO',
-    state: 'Tamil Nadu',
-    seating_capacity: 2,
-    gvw: '12000',
-    unladen_weight: '4200',
-    norms_type: 'BS VI',
-    financer: 'ICICI BANK',
-    hypothecation: true
-  }
 };
 
 serve(async (req) => {
@@ -90,55 +28,76 @@ serve(async (req) => {
       );
     }
 
-    // Clean the registration number (remove spaces and convert to uppercase)
-    const cleanedNumber = registration_number.replace(/\s/g, '').toUpperCase();
+    console.log('🚗 Fetching RC details for:', registration_number);
+    const cleanedNumber = registration_number.replace(/\s+/g, '').toUpperCase();
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Check if we have mock data for this registration number
-    const rcData = mockRCData[cleanedNumber];
-
-    if (!rcData) {
-      // Generate mock data for any registration number
-      const stateCode = cleanedNumber.substring(0, 2);
-      const rtoCode = cleanedNumber.substring(2, 4);
-      
-      const generatedData = {
-        registration_number: cleanedNumber,
-        maker: 'TATA MOTORS',
-        model: 'PRIMA LX 3125.K',
-        vehicle_type: 'truck',
-        chassis_number: `CHN${Math.random().toString(36).substring(2, 15).toUpperCase()}`,
-        engine_number: `ENG${Math.random().toString(36).substring(2, 15).toUpperCase()}`,
+    const testVehicles: Record<string, Record<string, string | number>> = {
+      CG04NJ9406: {
+        brand_name: 'TATA MOTORS',
+        brand_model: 'INTRA V30',
+        vehicle_age: 0,
         fuel_type: 'Diesel',
+        class: 'GOODS CARRIER',
+        chassis_number: 'MAT456ERLF1S00789',
+        engine_number: 'G12B789456',
+        owner_name: 'SHREE DURGA ENT',
+        registration_date: '2025-01-01',
+        insurance_expiry: '2026-01-15',
+        tax_upto: 'LTT',
+        permit_valid_upto: '2030-01-14',
+        pucc_upto: '2025-07-31',
+        fitness_upto: '2027-01-14',
         color: 'White',
-        body_type: 'Goods Carrier',
-        manufacturing_year: '2021',
-        registration_date: '2021-04-10',
-        fitness_upto: '2027-04-09',
-        insurance_validity: '2025-04-30',
-        permit_upto: '2026-04-09',
-        puc_validity: '2025-02-28',
-        tax_validity: '2025-04-30',
-        owner_name: 'FLEET OWNER',
-        owner_address: 'India',
-        rto_code: `${stateCode}${rtoCode}`,
-        rto_name: `${stateCode} RTO`,
-        state: getStateName(stateCode),
-        seating_capacity: 2,
-        gvw: '25000',
-        unladen_weight: '8500',
-        norms_type: 'BS VI',
-        financer: null,
-        hypothecation: false
-      };
+        seating_capacity: '2',
+        gross_weight: '3490'
+      },
+      CG04AB1234: {
+        brand_name: 'TATA MOTORS',
+        brand_model: 'YODHA 1700',
+        vehicle_age: 2,
+        fuel_type: 'Diesel',
+        class: 'GOODS CARRIER',
+        chassis_number: 'MAT789ERLF1S00123',
+        engine_number: 'H4CR123456',
+        owner_name: 'TEST OWNER',
+        registration_date: '2023-03-15',
+        insurance_expiry: '2025-03-14',
+        tax_upto: '2025-03-31',
+        permit_valid_upto: '2028-03-14',
+        pucc_upto: '2025-02-28',
+        fitness_upto: '2025-03-14'
+      },
+      CG04NC4622: {
+        brand_name: 'MAHINDRA',
+        brand_model: 'BOLERO PICKUP',
+        vehicle_age: 3,
+        fuel_type: 'Diesel',
+        class: 'GOODS CARRIER',
+        chassis_number: 'MA1TA2G2S00000000',
+        engine_number: 'M2DICR000000',
+        owner_name: 'VEHICLE OWNER',
+        registration_date: '2022-06-10',
+        insurance_expiry: '2025-06-09',
+        tax_upto: '2025-06-30',
+        permit_valid_upto: '2027-06-09',
+        pucc_upto: '2025-05-31',
+        fitness_upto: '2025-06-09',
+        color: 'White',
+        seating_capacity: '3',
+        gross_weight: '2500'
+      }
+    };
+
+    if (testVehicles[cleanedNumber]) {
+      console.log('✅ Using test data for:', cleanedNumber);
 
       return new Response(
         JSON.stringify({
           success: true,
-          data: generatedData,
-          message: 'RC details fetched successfully (simulated)'
+          data: {
+            response: testVehicles[cleanedNumber]
+          },
+          message: 'RC details fetched successfully (test mode)'
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -147,25 +106,154 @@ serve(async (req) => {
       );
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: rcData,
-        message: 'RC details fetched successfully'
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
+    try {
+      console.log('🌐 Making API call to API Club...');
 
+      // Use API Club credentials from environment
+      const apiUrl = (globalThis as any).Deno?.env?.get?.('APICLUB_URL');
+      const apiKey = (globalThis as any).Deno?.env?.get?.('APICLUB_KEY');
+      const apiXid = (globalThis as any).Deno?.env?.get?.('APICLUB_XID');
+
+      if (!apiUrl || !apiKey || !apiXid) {
+        console.error('⚠️ Missing API Club credentials in environment');
+        throw new Error('API credentials not configured');
+      }
+
+      console.log('📍 API URL:', apiUrl);
+      console.log('🔑 Using configured API Club credentials');
+
+      const apiResponse = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'secretKey': apiKey,
+          'clientId': apiXid
+        },
+        body: JSON.stringify({
+          vehicleNumber: cleanedNumber
+        })
+      });
+
+      const responseText = await apiResponse.text();
+      console.log('📥 API Response Status:', apiResponse.status);
+
+      if (!apiResponse.ok) {
+        console.error('❌ API Error:', responseText);
+        throw new Error(`External API error: ${apiResponse.status}`);
+      }
+
+      const apiData = JSON.parse(responseText);
+      console.log('📊 API Response Code:', apiData.code);
+
+      if (apiData.code !== 100) {
+        console.error('⚠️ API returned non-success code:', apiData);
+        throw new Error(apiData.message || 'Vehicle not found in database');
+      }
+
+      const vehicleData = apiData.data || {};
+      console.log('✅ Vehicle data received, fields:', Object.keys(vehicleData));
+
+      const transformedData = {
+        response: {
+          brand_name: vehicleData.maker || vehicleData.makerModel || '',
+          brand_model: vehicleData.model || vehicleData.vehicleModel || '',
+          vehicle_age: vehicleData.vehicleAge || 0,
+          fuel_type: vehicleData.fuelType || 'Diesel',
+          class: vehicleData.vehicleClass || '',
+          chassis_number: vehicleData.chassisNumber || '',
+          engine_number: vehicleData.engineNumber || '',
+          color: vehicleData.color || vehicleData.vehicleColor || '',
+          cubic_capacity: vehicleData.vehicleCubicCapacity || '',
+          cylinders: vehicleData.vehicleCylindersNo || '',
+          gross_weight: vehicleData.vehicleGrossWeight || '',
+          seating_capacity: vehicleData.vehicleSeatingCapacity || '',
+          norms: vehicleData.normsType || '',
+          owner_name: vehicleData.ownerName || '',
+          registration_date: vehicleData.registrationDate || '',
+          rc_status: vehicleData.rcStatus || '',
+          financer: vehicleData.financer || '',
+          noc_details: vehicleData.nocDetails || '',
+          insurance_policy: vehicleData.insurancePolicyNumber || '',
+          insurance_company: vehicleData.insuranceCompany || '',
+          insurance_expiry: vehicleData.insuranceUpto || '',
+          tax_upto: vehicleData.taxUpto || vehicleData.taxPaidUpto || '',
+          tax_paid_upto: vehicleData.taxPaidUpto || '',
+          permit_number: vehicleData.permitNumber || '',
+          permit_type: vehicleData.permitType || '',
+          permit_issue_date: vehicleData.permitIssueDate || '',
+          permit_valid_upto: vehicleData.permitValidUpto || '',
+          national_permit_number: vehicleData.nationalPermitNumber || '',
+          national_permit_upto: vehicleData.nationalPermitUpto || '',
+          pucc_number: vehicleData.pucNumber || '',
+          pucc_upto: vehicleData.pucUpto || '',
+          fitness_upto: vehicleData.fitnessUpto || '',
+          rc_expiry: vehicleData.rcExpiryDate || ''
+        }
+      };
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: transformedData,
+          message: 'RC details fetched successfully'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    } catch (apiError) {
+      console.error('🔥 API Call Failed:', apiError);
+
+      console.log('📦 Using fallback data generation for:', cleanedNumber);
+
+      const fallbackData = {
+        response: {
+          brand_name: 'TATA MOTORS',
+          brand_model: 'COMMERCIAL VEHICLE',
+          vehicle_age: 1,
+          fuel_type: 'Diesel',
+          class: 'GOODS CARRIER',
+          chassis_number: `CHN${Date.now()}`,
+          engine_number: `ENG${Date.now()}`,
+          owner_name: 'VEHICLE OWNER',
+          registration_date: '2024-01-01',
+          insurance_expiry: '2025-12-31',
+          tax_upto: '2025-12-31',
+          permit_valid_upto: '2029-12-31',
+          pucc_upto: '2025-06-30',
+          fitness_upto: '2026-12-31',
+          color: 'White',
+          seating_capacity: '2',
+          gross_weight: '3500'
+        }
+      };
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: fallbackData,
+          message: 'RC details fetched (fallback mode - API unavailable)',
+          warning: 'Using fallback data. Please verify and update manually.'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        }
+      );
+    }
   } catch (error) {
-    console.error('Error in fetch-rc-details:', error);
+    console.error('💥 Fatal Error in fetch-rc-details:', error);
+
     return new Response(
       JSON.stringify({
         success: false,
-        message: 'Failed to fetch RC details',
-        error: error.message
+        message: error.message || 'Failed to fetch RC details',
+        error: error.message,
+        debug: {
+          timestamp: new Date().toISOString(),
+          functionVersion: '2.0'
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -174,45 +262,3 @@ serve(async (req) => {
     );
   }
 });
-
-function getStateName(stateCode: string): string {
-  const states: Record<string, string> = {
-    'AN': 'Andaman and Nicobar Islands',
-    'AP': 'Andhra Pradesh',
-    'AR': 'Arunachal Pradesh',
-    'AS': 'Assam',
-    'BR': 'Bihar',
-    'CH': 'Chandigarh',
-    'CG': 'Chhattisgarh',
-    'DD': 'Daman and Diu',
-    'DL': 'Delhi',
-    'GA': 'Goa',
-    'GJ': 'Gujarat',
-    'HR': 'Haryana',
-    'HP': 'Himachal Pradesh',
-    'JK': 'Jammu and Kashmir',
-    'JH': 'Jharkhand',
-    'KA': 'Karnataka',
-    'KL': 'Kerala',
-    'LD': 'Lakshadweep',
-    'MP': 'Madhya Pradesh',
-    'MH': 'Maharashtra',
-    'MN': 'Manipur',
-    'ML': 'Meghalaya',
-    'MZ': 'Mizoram',
-    'NL': 'Nagaland',
-    'OD': 'Odisha',
-    'PY': 'Puducherry',
-    'PB': 'Punjab',
-    'RJ': 'Rajasthan',
-    'SK': 'Sikkim',
-    'TN': 'Tamil Nadu',
-    'TS': 'Telangana',
-    'TR': 'Tripura',
-    'UP': 'Uttar Pradesh',
-    'UK': 'Uttarakhand',
-    'WB': 'West Bengal'
-  };
-  
-  return states[stateCode] || 'Unknown';
-}

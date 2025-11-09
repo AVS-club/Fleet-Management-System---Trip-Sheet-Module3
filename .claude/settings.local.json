@@ -21,7 +21,13 @@
       "Bash(git checkout:*)",
       "Bash(git restore:*)",
       "Bash(git log:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(nul)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsx:*)",
+      "Bash(findstr:*)",
+      "Bash(set VITE_SUPABASE_URL=https://oosrmuqfcqtojflruhww.supabase.co:*)",
+      "Bash(set:*)"
     ],
     "deny": [],
     "ask": []

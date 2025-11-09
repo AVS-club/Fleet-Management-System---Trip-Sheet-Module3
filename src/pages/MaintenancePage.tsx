@@ -47,6 +47,11 @@ const MaintenancePage = () => {
       percentChange: 0,
     },
   });
+  // Scroll to top when page loads or location changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
+
   // Initialize custom date range values and handle action=new
   useEffect(() => {
     const today = new Date();

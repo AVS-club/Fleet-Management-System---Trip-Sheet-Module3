@@ -429,9 +429,22 @@ interface PartReplacementProps {
   onChange: (updatedPart: PartData) => void;
   onRemove: () => void;
   vehicleType?: 'truck' | 'tempo' | 'trailer' | 'pickup' | 'van' | string;
+  numberOfTyres?: number; // NEW: Use actual tyre count from vehicle
 }
 
-// Map database vehicle types to tyre diagram configurations
+// Map tyre count to tyre diagram configurations (PREFERRED - uses actual vehicle data)
+const mapTyreCountToDiagramConfig = (tyreCount?: number): 'PICKUP_4TYRE' | 'TEMPO_3TYRE' | 'TRUCK_6TYRE' | 'DEFAULT' => {
+  if (!tyreCount) return 'DEFAULT';
+
+  switch (tyreCount) {
+    case 3: return 'TEMPO_3TYRE';
+    case 4: return 'PICKUP_4TYRE';
+    case 6: return 'TRUCK_6TYRE';
+    default: return 'DEFAULT'; // Defaults to 4 tyres
+  }
+};
+
+// Map database vehicle types to tyre diagram configurations (FALLBACK - if numberOfTyres not available)
 const mapVehicleTypeToDiagramConfig = (dbType?: string): 'PICKUP_4TYRE' | 'TEMPO_3TYRE' | 'TRUCK_6TYRE' | 'DEFAULT' => {
   if (!dbType) return 'DEFAULT';
 
@@ -450,13 +463,16 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
   partData,
   onChange,
   onRemove,
-  vehicleType
+  vehicleType,
+  numberOfTyres
 }) => {
   // FIXED: Directly check partData.partType instead of using state
   const shouldShowTyreSelector = partData.partType === 'Tyre';
 
-  // Map database vehicle type to diagram configuration
-  const diagramConfig = mapVehicleTypeToDiagramConfig(vehicleType);
+  // Map to diagram configuration - prefer numberOfTyres over vehicleType
+  const diagramConfig = numberOfTyres
+    ? mapTyreCountToDiagramConfig(numberOfTyres)
+    : mapVehicleTypeToDiagramConfig(vehicleType);
 
   return (
     <div className="border border-red-200 bg-red-50 rounded-lg p-4">

@@ -10,6 +10,7 @@ import { getLatestOdometer, getVehicle } from "./storage";
 import { handleSupabaseError } from "./errors";
 import { clearVehiclePredictionCache } from "./maintenancePredictor";
 import { createLogger } from './logger';
+import { getCurrentUserId, getUserActiveOrganization, withOwner } from './supaHelpers';
 
 const logger = createLogger('maintenanceStorage');
 
@@ -175,16 +176,33 @@ export const createTask = async (
     throw new Error("Garage ID is required");
   }
 
+  // Get user ID and organization ID for multi-tenant support
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    logger.error("User not authenticated in createTask");
+    throw new Error("User not authenticated");
+  }
+
+  const organizationId = await getUserActiveOrganization(userId);
+  if (!organizationId) {
+    logger.error("No organization found for user in createTask");
+    throw new Error("No organization selected. Please select an organization.");
+  }
+
+  // Use withOwner to add both created_by and organization_id
+  const payload = withOwner({
+    ...taskData,
+    bills: taskData.bills || [],
+    parts_required: taskData.parts_required || [],
+    odometer_image: null, // Will be updated after upload
+  }, userId, organizationId);
+
+  logger.debug(`Creating maintenance task for organization: ${organizationId}`);
 
   // Insert the main task first to get the ID
   const { data, error } = await supabase
     .from("maintenance_tasks")
-    .insert({
-      ...taskData,
-      bills: taskData.bills || [],
-      parts_required: taskData.parts_required || [],
-      odometer_image: null, // Will be updated after upload
-    })
+    .insert(payload)
     .select()
     .single();
 

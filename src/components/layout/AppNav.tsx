@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { navLinks, getMobileNavLinks } from './navLinks';
 import { cn } from '../../utils/cn';
@@ -55,17 +55,14 @@ const AppNav: React.FC = () => {
 
             return (
               <div key={to} className="relative group">
-                <NavLink
-                  to={to}
-                  className={({ isActive: navIsActive }) =>
-                    cn(
-                      "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all",
-                      "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
-                      (navIsActive || isActive) ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
-                    )
-                  }
+                <button
+                  onClick={() => navigate(to, { replace: true })}
+                  className={cn(
+                    "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all w-full",
+                    "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
+                    isActive ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
+                  )}
                   title={t(label)}
-                  end={to === "/"}
                 >
                   <div className="relative">
                     <Icon className="h-5 w-5 sm:h-5 sm:w-5" />
@@ -86,7 +83,7 @@ const AppNav: React.FC = () => {
                   <span className="mt-0.5 text-[10px] sm:text-xs whitespace-nowrap">
                     {isMobile ? t(label).split(' ')[0] : t(label)}
                   </span>
-                </NavLink>
+                </button>
               </div>
             );
           }
@@ -112,17 +109,14 @@ const AppNav: React.FC = () => {
 
           return (
             <div key={to} className="relative group">
-              <NavLink
-                to={to}
-                className={({ isActive: navIsActive }) =>
-                  cn(
-                    "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all",
-                    "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
-                    (navIsActive || isActive) ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
-                  )
-                }
+              <button
+                onClick={() => navigate(to, { replace: true })}
+                className={cn(
+                  "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all w-full",
+                  "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
+                  isActive ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
+                )}
                 title={t(label)}
-                end={to === "/"}
               >
                 <div className="relative">
                   <Icon className="h-5 w-5 sm:h-5 sm:w-5" />
@@ -145,7 +139,7 @@ const AppNav: React.FC = () => {
                 <span className="mt-0.5 text-[10px] sm:text-xs whitespace-nowrap">
                   {isMobile ? t(label).split(' ')[0] : t(label)}
                 </span>
-              </NavLink>
+              </button>
             </div>
           );
         })}

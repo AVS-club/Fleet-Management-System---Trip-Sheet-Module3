@@ -148,7 +148,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                     <Controller
                       control={control}
                       name={
-                        `service_groups.${index}.battery_warranty_file` as const
+                        `service_groups.${index}.batteryWarrantyFiles` as const
                       }
                       render={({ field: { value, onChange } }) => (
                         <FileUpload
@@ -234,7 +234,7 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                             <Controller
                               control={control}
                               name={
-                                `service_groups.${index}.tyre_warranty_file` as const
+                                `service_groups.${index}.tyreWarrantyFiles` as const
                               }
                               render={({ field: { value, onChange } }) => (
                                 <FileUpload
@@ -246,8 +246,8 @@ const ServiceGroupItem: React.FC<ServiceGroupItemProps> = ({
                               )}
                             />
                           </div>
-                          <div className="grid grid-cols-3 gap-2 bg-white p-2 rounded border border-gray-200">
-                            {["FL", "FR", "RL", "RR", "Stepney"].map(
+                          <div className="grid grid-cols-2 gap-2 bg-white p-2 rounded border border-gray-200">
+                            {["FL - Front Left", "FR - Front Right", "RL - Rear Left", "RR - Rear Right"].map(
                               (position) => (
                                 <label
                                   key={position}

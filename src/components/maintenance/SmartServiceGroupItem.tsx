@@ -520,7 +520,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
               <div className="border border-gray-300 rounded-md p-2">
                 <input
                   type="file"
-                  {...register(`service_groups.${index}.battery_warranty_file`)}
+                  {...register(`service_groups.${index}.batteryWarrantyFiles`)}
                   accept=".jpg,.jpeg,.png,.pdf"
                   className="w-full text-xs"
                 />
@@ -542,8 +542,8 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 <label className="block text-xs font-medium text-gray-700 mb-2">
                   Select Positions
                 </label>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {['FL', 'FR', 'RL', 'RR', 'Stepney'].map(position => (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {['FL - Front Left', 'FR - Front Right', 'RL - Rear Left', 'RR - Rear Right'].map(position => (
                     <label key={position} className="relative">
                       <input
                         type="checkbox"
@@ -623,7 +623,7 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 <div className="border border-gray-300 rounded-md p-2">
                   <input
                     type="file"
-                    {...register(`service_groups.${index}.tyre_warranty_file`)}
+                    {...register(`service_groups.${index}.tyreWarrantyFiles`)}
                     accept=".jpg,.jpeg,.png,.pdf"
                     className="w-full text-xs"
                   />

@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
-import { getVendors } from '../../utils/storage';
+import { getVendors as getVendorsOld } from '../../utils/storage';
+import { getVendors, createVendorFromName, Vendor } from '../../utils/vendorStorage';
 import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { createLogger } from '../../utils/logger';
+import { getCurrentUserId, getUserActiveOrganization } from '../../utils/supaHelpers';
 import PartReplacement from './PartReplacement';
 
 const logger = createLogger('ServiceGroupsSection');
@@ -21,12 +23,26 @@ const convertTaskNamesToIds = async (taskNames: string[]): Promise<string[]> => 
   }
 
   try {
+    // Get current user and their organization
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      logger.error('No user ID found in convertTaskNamesToIds');
+      return [];
+    }
+
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      logger.error('No organization found for user in convertTaskNamesToIds');
+      return [];
+    }
+
     // Query the catalog to get UUIDs for the task names
     const { data, error } = await supabase
       .from('maintenance_tasks_catalog')
       .select('id, task_name')
       .in('task_name', taskNames)
-      .eq('active', true);
+      .eq('active', true)
+      .eq('organization_id', organizationId);
 
     if (error) {
       logger.error('Error fetching task IDs:', error);
@@ -237,6 +253,7 @@ interface ServiceGroupsSectionProps {
   serviceGroups: ServiceGroup[];
   onChange: (groups: ServiceGroup[]) => void;
   vehicleType?: string;
+  numberOfTyres?: number;
 }
 
 // ===== HELPER COMPONENTS =====
@@ -527,13 +544,14 @@ const SelectedTasksTags = ({ tasks, onRemove }) => {
 };
 
 // Service Group Component
-const ServiceGroup = ({ 
-  groupData, 
-  onChange, 
-  onRemove, 
+const ServiceGroup = ({
+  groupData,
+  onChange,
+  onRemove,
   index,
   canRemove,
   vehicleType,
+  numberOfTyres,
   vendors,
   loadingVendors
 }) => {
@@ -661,35 +679,75 @@ const ServiceGroup = ({
           </div>
 
           <div className="space-y-3">
-            {/* Service Type Selector */}
+            {/* Service Type Selector - Button Version */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 What did you do here? <span className="text-red-500">*</span>
               </label>
-              <select
-                value={groupData.serviceType || ''}
-                onChange={(e) => onChange({ ...groupData, serviceType: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="">Choose...</option>
-                <option value="purchase">Bought Parts Only</option>
-                <option value="labor">Got Service/Repair Done</option>
-                <option value="both">Bought Parts + Got Them Installed</option>
-              </select>
-              {groupData.serviceType && (
-                <p className="mt-1 text-xs text-gray-600">{getServiceTypeHelp(groupData.serviceType)}</p>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'purchase' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'purchase'
+                      ? 'bg-indigo-600 text-white border-indigo-700 shadow-md'
+                      : 'bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50'
+                  }`}
+                >
+                  Bought Parts Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'labor' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'labor'
+                      ? 'bg-purple-500 text-white border-purple-600 shadow-md'
+                      : 'bg-white text-purple-700 border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  Got Service/Repair Done
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...groupData, serviceType: 'both' })}
+                  className={`px-4 py-3 rounded-lg font-medium text-sm transition-all border-2 ${
+                    groupData.serviceType === 'both'
+                      ? 'bg-teal-600 text-white border-teal-700 shadow-md'
+                      : 'bg-white text-teal-700 border-teal-300 hover:bg-teal-50'
+                  }`}
+                >
+                  Bought Parts + Got Them Installed
+                </button>
+              </div>
+              {/* Hint text removed per user request - service types are self-explanatory */}
             </div>
 
             <InlineSearchableDropdown
               label="Shop/Mechanic Name"
-              options={vendors}
+              options={vendors.map(v => v.vendor_name)}
               value={groupData.vendor}
               onChange={(val) => onChange({ ...groupData, vendor: val })}
-              onAddNew={(newVendor) => {
-                logger.debug('New vendor added:', newVendor);
-                // Add the new vendor to the list
-                setVendors(prev => [...prev, newVendor]);
+              onAddNew={async (newVendorName) => {
+                try {
+                  logger.debug('Creating new vendor:', newVendorName);
+                  const newVendor = await createVendorFromName(newVendorName);
+                  if (newVendor) {
+                    // Add to local state
+                    setVendors(prev => [...prev, newVendor]);
+                    // Set as selected
+                    onChange({ ...groupData, vendor: newVendor.vendor_name });
+                    logger.debug('Vendor created and saved to database:', newVendor);
+                  }
+                } catch (error) {
+                  logger.error('Error creating vendor:', error);
+                  // Still add to local state even if DB save fails
+                  setVendors(prev => [...prev, {
+                    id: `temp-${Date.now()}`,
+                    vendor_name: newVendorName,
+                    organization_id: ''
+                  }]);
+                  onChange({ ...groupData, vendor: newVendorName });
+                }
               }}
               icon={Store}
               required
@@ -786,6 +844,7 @@ const ServiceGroup = ({
                         onChange={(updated) => handlePartChange(partIndex, updated)}
                         onRemove={() => removePart(partIndex)}
                         vehicleType={vehicleType}
+                        numberOfTyres={numberOfTyres}
                       />
                     ))}
 
@@ -835,8 +894,9 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
   serviceGroups,
   onChange,
   vehicleType,
+  numberOfTyres,
 }) => {
-  const [vendors, setVendors] = useState<string[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(true);
 
   // Fetch vendors from database
@@ -844,12 +904,11 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
     const fetchVendors = async () => {
       try {
         const vendorData = await getVendors();
-        const vendorNames = vendorData.map(vendor => vendor.name);
-        setVendors(vendorNames);
+        setVendors(vendorData);
+        logger.debug(`Loaded ${vendorData.length} vendors from database`);
       } catch (error) {
         logger.error('Error fetching vendors:', error);
-        // Fallback to hardcoded vendors
-        setVendors(['ABC Auto Parts', 'XYZ Lubricants', 'Ravi Auto Works', 'Kumar Garage', 'City Service Center']);
+        setVendors([]);
       } finally {
         setLoadingVendors(false);
       }
@@ -903,6 +962,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
             index={index}
             canRemove={serviceGroups.length > 1}
             vehicleType={vehicleType}
+            numberOfTyres={numberOfTyres}
             vendors={vendors}
             loadingVendors={loadingVendors}
           />
@@ -961,13 +1021,14 @@ export const convertServiceGroupsToDatabase = async (
   logger.debug('Converting service groups for database...', serviceGroups);
 
   const convertedGroups = await Promise.all(
-    serviceGroups.map(async (group) => {
-      logger.debug('Converting group:', group);
-      logger.debug('Group tasks:', group.tasks);
+    serviceGroups.map(async (group, index) => {
+      logger.debug(`[Group ${index}] Input group:`, group);
+      logger.debug(`[Group ${index}] Vendor value:`, group.vendor);
+      logger.debug(`[Group ${index}] Tasks:`, group.tasks);
 
       // Convert task names to IDs
       const taskIds = await convertTaskNamesToIds(group.tasks || []);
-      logger.debug('Converted task IDs:', taskIds);
+      logger.debug(`[Group ${index}] Converted task IDs:`, taskIds);
 
       const converted = {
         vendor_id: group.vendor || '',
@@ -977,10 +1038,18 @@ export const convertServiceGroupsToDatabase = async (
         tyre_tracking: false,
         service_type: group.serviceType || '',
         notes: group.notes || '',
-        // Include any other fields you need
+        bill_url: group.bill_url || [],
+        battery_warranty_url: group.battery_warranty_url || [],
+        tyre_warranty_url: group.tyre_warranty_url || [],
+        partsData: group.partsData || [],
       };
 
-      logger.debug('Converted group:', converted);
+      logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
+
+      if (!converted.vendor_id) {
+        logger.error(`[Group ${index}] ⚠️ WARNING: vendor_id is EMPTY! Original vendor was:`, group.vendor);
+      }
+
       return converted;
     })
   );

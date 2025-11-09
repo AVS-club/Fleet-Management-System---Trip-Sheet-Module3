@@ -25,10 +25,10 @@ export interface MaintenanceServiceGroup {
     brand: string;
     serialNumbers: string;
   };
-  battery_warranty_file?: File[];
-  battery_waranty_url?: string[];
-  tyre_warranty_file?: File[];
-  tyre_waranty_url?: string[];
+  battery_warranty_url?: string[];
+  batteryWarrantyFiles?: File[]; // For frontend file handling before upload
+  tyre_warranty_url?: string[];
+  tyreWarrantyFiles?: File[]; // For frontend file handling before upload
   battery_warranty_expiry_date?: string;
   tyre_warranty_expiry_date?: string;
 }
@@ -54,8 +54,8 @@ export interface MaintenanceTask {
     | "others";
   title: string[];
   description: string;
-  status: "open" | "in_progress" | "resolved" | "escalated" | "rework";
-  priority: "low" | "medium" | "high" | "critical";
+  status: "open" | "in_progress" | "resolved" | "rework";
+  priority: "low" | "medium" | "high";
   vendor_id?: string; // Optional vendor ID for backward compatibility
   garage_id?: string; // Making this optional as we'll use vendor_id from service groups
   estimated_cost: number;

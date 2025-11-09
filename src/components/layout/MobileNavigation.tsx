@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Menu,
   X,
@@ -117,12 +117,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
 
                   const Icon = item.icon;
                   return (
-                    <Link
+                    <button
                       key={item.path}
-                      to={item.path}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        navigate(item.path, { replace: true });
+                        setIsOpen(false);
+                      }}
                       className={cn(
-                        'flex items-center gap-3 px-4 py-3 transition-colors',
+                        'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left',
                         isActive(item.path)
                           ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-3 border-blue-600 dark:border-blue-400'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -130,7 +132,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                     >
                       <Icon className="h-5 w-5" />
                       <span>{item.label}</span>
-                    </Link>
+                    </button>
                   );
                 }
                 if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
@@ -158,12 +160,14 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
 
                 const Icon = item.icon;
                 return (
-                  <Link
+                  <button
                     key={item.path}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => {
+                      navigate(item.path, { replace: true });
+                      setIsOpen(false);
+                    }}
                     className={cn(
-                      'flex items-center gap-3 px-4 py-3 transition-colors',
+                      'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left',
                       isActive(item.path)
                         ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-3 border-blue-600 dark:border-blue-400'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -171,7 +175,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                   >
                     <Icon className="h-5 w-5" />
                     <span>{item.label}</span>
-                  </Link>
+                  </button>
                 );
               })}
             </div>

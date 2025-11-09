@@ -421,13 +421,6 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
 
   const hasExistingFiles = uploadState.uploadedPaths.length > 0;
 
-  // Expose methods to parent component
-  React.useImperativeHandle(React.forwardRef(() => null), () => ({
-    uploadStagedFiles,
-    clearStagedFiles,
-    hasStagedFiles: stagedFiles.length > 0
-  })  );
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {

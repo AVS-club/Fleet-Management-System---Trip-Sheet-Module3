@@ -342,23 +342,19 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   const title = watch("title");
   const serviceGroupsWatch = watch("service_groups");
 
-  // Get current values of the text areas for speech-to-text functionality
-  const complaintDescription = watch("complaint_description") || "";
-  const resolutionSummary = watch("resolution_summary") || "";
-
   // Handle speech-to-text transcripts
+  // Note: ComplaintResolutionSection now handles setValue directly,
+  // so these handlers are mainly for logging/notification purposes
   const handleComplaintTranscript = (text: string) => {
-    setValue(
-      "complaint_description",
-      complaintDescription ? `${complaintDescription} ${text}` : text
-    );
+    // The ComplaintResolutionSection already handles setValue,
+    // so we don't need to append here to avoid double appending
+    // This is kept for backward compatibility and potential future use
   };
 
   const handleResolutionTranscript = (text: string) => {
-    setValue(
-      "resolution_summary",
-      resolutionSummary ? `${resolutionSummary} ${text}` : text
-    );
+    // The ComplaintResolutionSection already handles setValue,
+    // so we don't need to append here to avoid double appending
+    // This is kept for backward compatibility and potential future use
   };
 
   const initialVehicleIdRef = useRef(initialData?.vehicle_id);
@@ -759,6 +755,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
           serviceGroups={serviceGroups}
           onChange={setServiceGroups}
           vehicleType={vehicles.find(v => v.id === vehicleId)?.type}
+          numberOfTyres={vehicles.find(v => v.id === vehicleId)?.number_of_tyres}
         />
 
         {/* Complaint & Resolution */}
@@ -831,7 +828,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
               { value: "open", label: "Open", color: "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200", selectedColor: "bg-gray-600 text-white border-gray-600 shadow-lg" },
               { value: "in_progress", label: "In Progress", color: "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200", selectedColor: "bg-blue-600 text-white border-blue-600 shadow-lg" },
               { value: "resolved", label: "Resolved", color: "bg-green-100 text-green-700 border-green-200 hover:bg-green-200", selectedColor: "bg-green-600 text-white border-green-600 shadow-lg" },
-              { value: "escalated", label: "Escalated", color: "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200", selectedColor: "bg-orange-600 text-white border-orange-600 shadow-lg" },
               { value: "rework", label: "Rework Required", color: "bg-red-100 text-red-700 border-red-200 hover:bg-red-200", selectedColor: "bg-red-600 text-white border-red-600 shadow-lg" },
             ].map((option) => (
               <Controller

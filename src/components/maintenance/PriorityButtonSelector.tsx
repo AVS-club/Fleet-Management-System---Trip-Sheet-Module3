@@ -10,29 +10,23 @@ interface PriorityButtonSelectorProps {
 }
 
 const PRIORITY_OPTIONS = [
-  { 
-    value: 'low', 
-    label: 'Low', 
+  {
+    value: 'low',
+    label: 'Low',
     color: 'priority-button low',
     selectedColor: 'priority-button low active'
   },
-  { 
-    value: 'medium', 
-    label: 'Medium', 
+  {
+    value: 'medium',
+    label: 'Medium',
     color: 'priority-button medium',
     selectedColor: 'priority-button medium active'
   },
-  { 
-    value: 'high', 
-    label: 'High', 
+  {
+    value: 'high',
+    label: 'High',
     color: 'priority-button high',
     selectedColor: 'priority-button high active'
-  },
-  { 
-    value: 'critical', 
-    label: 'Critical', 
-    color: 'priority-button critical',
-    selectedColor: 'priority-button critical active'
   },
 ];
 

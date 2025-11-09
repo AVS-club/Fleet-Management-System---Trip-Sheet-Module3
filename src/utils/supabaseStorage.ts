@@ -54,23 +54,33 @@ const checkFileExists = async (
  * @param filePath The file path in the bucket
  * @param file The file to upload
  * @param onProgress Callback for progress updates (0-100)
+ * @param timeout Timeout in milliseconds (default: 30000ms = 30s)
  * @returns Promise<string> The file path
  */
 const uploadFileWithProgress = async (
   bucketName: string,
   filePath: string,
   file: File,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  timeout: number = 30000
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    // Set up timeout
+    timeoutId = setTimeout(() => {
+      xhr.abort();
+      reject(new Error(`Upload timeout after ${timeout / 1000} seconds`));
+    }, timeout);
+
     // Get the upload URL from Supabase
     supabase.storage
       .from(bucketName)
       .createSignedUploadUrl(filePath)
       .then(({ data, error }) => {
         if (error || !data) {
+          if (timeoutId) clearTimeout(timeoutId);
           reject(error || new Error('Failed to get upload URL'));
           return;
         }
@@ -84,6 +94,7 @@ const uploadFileWithProgress = async (
         });
 
         xhr.addEventListener('load', () => {
+          if (timeoutId) clearTimeout(timeoutId);
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(filePath);
           } else {
@@ -92,7 +103,13 @@ const uploadFileWithProgress = async (
         });
 
         xhr.addEventListener('error', () => {
-          reject(new Error('Upload failed'));
+          if (timeoutId) clearTimeout(timeoutId);
+          reject(new Error('Upload failed - network error'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          reject(new Error('Upload aborted'));
         });
 
         // Perform the upload
@@ -100,7 +117,10 @@ const uploadFileWithProgress = async (
         xhr.setRequestHeader('Content-Type', file.type);
         xhr.send(file);
       })
-      .catch(reject);
+      .catch((err) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        reject(err);
+      });
   });
 };
 
@@ -380,7 +400,8 @@ export async function uploadFilesAndGetPublicUrls(
   bucketId: string,
   pathPrefix: string,
   files: File[],
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  timeout: number = 10000
 ): Promise<string[]> {
   // Handle case where files is null or undefined
   if (!files || files.length === 0) {
@@ -397,12 +418,20 @@ export async function uploadFilesAndGetPublicUrls(
         const docName = pathPrefix.split("/").pop() || "document";
         const ext = file.name.split(".").pop();
         const filePath = `${pathPrefix}/${docName}_${i}.${ext}`;
-        const { data, error } = await supabase.storage
+
+        // Add timeout wrapper
+        const uploadPromise = supabase.storage
           .from(bucketId)
           .upload(filePath, file, { upsert: true });
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`File upload timeout after ${timeout / 1000}s`)), timeout)
+        );
+
+        const { data, error } = await Promise.race([uploadPromise, timeoutPromise]);
         if (error) throw error;
         if (data?.path) uploadedPaths.push(data.path);
-        
+
         // Report progress
         if (onProgress) {
           const progress = Math.round(((i + 1) / totalFiles) * 100);

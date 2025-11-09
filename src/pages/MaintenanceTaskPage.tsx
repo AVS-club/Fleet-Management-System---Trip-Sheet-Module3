@@ -15,8 +15,11 @@ import Button from "../components/ui/Button";
 import { ChevronLeft, Trash2, Edit, Wrench } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
+import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
 import "../styles/maintenanceFormUpdates.css";
 import { createLogger } from '../utils/logger';
+import SaveDiagnosticsModal, { SaveOperation, OperationStatus } from '../components/maintenance/SaveDiagnosticsModal';
+import { convertServiceGroupsToDatabase } from '../components/maintenance/ServiceGroupsSection';
 
 const logger = createLogger('MaintenanceTaskPage');
 // Define a more specific type for the data coming from MaintenanceTaskForm
@@ -105,6 +108,8 @@ const MaintenanceTaskPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saveOperations, setSaveOperations] = useState<SaveOperation[]>([]);
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
   const searchParams = new URLSearchParams(location.search);
   const modeParam = searchParams.get('mode');
   const isViewMode = (modeParam || (locationState.mode ?? undefined)) === 'view';
@@ -200,137 +205,151 @@ const MaintenanceTaskPage: React.FC = () => {
   };
 
   // CRASH-PROOF: Handle file uploads with compression and async processing
+  // Using the new maintenanceFileUpload utility which handles organization_id correctly
   const handleFileUploads = async (
     serviceGroups: Array<any>,
     taskId: string
   ): Promise<Array<any>> => {
     if (!serviceGroups || serviceGroups.length === 0) return [];
 
-    const updatedGroups = [...serviceGroups];
-    logger.debug(`📁 Starting file upload for ${serviceGroups.length} service groups`);
+    try {
+      logger.debug(`📁 Starting file upload for ${serviceGroups.length} service groups using processAllServiceGroupFiles`);
 
-    for (let i = 0; i < updatedGroups.length; i++) {
-      const group = updatedGroups[i];
-
-      try {
-        // Handle bill uploads
-        if (group.bills && group.bills.length) {
-          const compressedFiles = await Promise.all(
-            group.bills.map((file: File) => compressImage(file))
-          );
-          
-          const billUrls = await uploadFilesAndGetPublicUrls(
-            "maintenance-bills",
-            `${taskId}/group${i}/bills`,
-            compressedFiles
-          );
-
-          updatedGroups[i].bill_url = billUrls;
-          delete updatedGroups[i].bills;
+      // Create callback to update operation status
+      const fileUploadCallback: FileUploadCallback = (event) => {
+        if (event.type === 'start') {
+          updateOperationStatus(event.operation, 'in-progress');
+        } else if (event.type === 'complete') {
+          updateOperationStatus(event.operation, 'success', event.progress);
+        } else if (event.type === 'error') {
+          updateOperationStatus(event.operation, 'error', undefined, event.error);
         }
-
-        // Handle battery warranty uploads
-        if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length) {
-          const compressedBatteryFiles = await Promise.all(
-            group.batteryWarrantyFiles.map((file: File) => compressImage(file))
-          );
-          
-          const batteryWarrantyUrls = await uploadFilesAndGetPublicUrls(
-            "battery-warranties",
-            `${taskId}/group${i}/battery-warranty`,
-            compressedBatteryFiles
-          );
-
-          updatedGroups[i].battery_warranty_url = batteryWarrantyUrls;
-          delete updatedGroups[i].batteryWarrantyFiles;
-        }
-
-        // Handle tyre warranty uploads
-        if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length) {
-          const compressedTyreFiles = await Promise.all(
-            group.tyreWarrantyFiles.map((file: File) => compressImage(file))
-          );
-          
-          const tyreWarrantyUrls = await uploadFilesAndGetPublicUrls(
-            "tyre-warranties",
-            `${taskId}/group${i}/tyre-warranty`,
-            compressedTyreFiles
-          );
-
-          updatedGroups[i].tyre_warranty_url = tyreWarrantyUrls;
-          delete updatedGroups[i].tyreWarrantyFiles;
-        }
-
-        // Handle parts warranty uploads
-        if (group.partsData && group.partsData.length) {
-          for (let j = 0; j < group.partsData.length; j++) {
-            const part = group.partsData[j];
-            if (part.warrantyDocument) {
-              const compressedWarrantyFile = await compressImage(part.warrantyDocument);
-              const warrantyUrls = await uploadFilesAndGetPublicUrls(
-                "part-warranties",
-                `${taskId}/group${i}/part${j}/warranty`,
-                [compressedWarrantyFile]
-              );
-              
-              updatedGroups[i].partsData[j].warrantyDocumentUrl = warrantyUrls[0];
-              delete updatedGroups[i].partsData[j].warrantyDocument;
-            }
-          }
-        }
-      } catch (error) {
-        logger.error("Error uploading files for service group:", error);
-        toast.error(`Failed to upload files for service group ${i + 1}`);
-      }
-    }
-
-    return updatedGroups;
-  };
-
-  // Map new service group structure to database format
-  const mapServiceGroupsToDatabase = (serviceGroups: Array<any>) => {
-    if (!serviceGroups || serviceGroups.length === 0) return [];
-
-    return serviceGroups.map((group) => {
-      const dbGroup = {
-        maintenance_task_id: id !== "new" ? id : undefined,
-        service_type: group.serviceType,
-        vendor_id: group.vendor, // Store as text, not UUID
-        tasks: group.tasks || [],
-        cost: group.cost || 0,
-        bill_url: group.bill_url || [],
-        notes: group.notes || null,
-        
-        // Parts data as JSONB
-        battery_data: group.batteryData ? {
-          serialNumber: group.batteryData.serialNumber,
-          brand: group.batteryData.brand
-        } : undefined,
-        
-        tyre_data: group.tyreData ? {
-          positions: group.tyreData.positions,
-          brand: group.tyreData.brand,
-          serialNumbers: group.tyreData.serialNumbers
-        } : undefined,
-        
-        parts_data: group.partsData ? group.partsData.map((part: any) => ({
-          partType: part.partType,
-          partName: part.partName,
-          brand: part.brand,
-          serialNumber: part.serialNumber || null,
-          quantity: part.quantity,
-          warrantyPeriod: part.warrantyPeriod || null,
-          warrantyDocumentUrl: part.warrantyDocumentUrl || null
-        })) : [],
-        
-        // Warranty URLs
-        battery_warranty_url: group.battery_warranty_url || undefined,
-        tyre_warranty_url: group.tyre_warranty_url || undefined
       };
 
-      return dbGroup;
-    });
+      // Use the utility function that handles organization_id paths correctly
+      // Add timeout wrapper (60 seconds for all file uploads)
+      const uploadPromise = processAllServiceGroupFiles(
+        serviceGroups,
+        taskId,
+        undefined, // onProgress
+        fileUploadCallback
+      );
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('File upload timeout after 60 seconds. Please try again or reduce file sizes.')), 60000)
+      );
+
+      const processedGroups = await Promise.race([uploadPromise, timeoutPromise]);
+
+      logger.debug('✅ All files uploaded successfully with organization-based paths');
+      return processedGroups;
+    } catch (error) {
+      logger.error("Error uploading files:", error);
+      throw error;
+    }
   };
+
+  // Helper function to update operation status
+  const updateOperationStatus = (
+    opId: string,
+    status: OperationStatus,
+    progress?: number,
+    error?: string
+  ) => {
+    setSaveOperations((prev) =>
+      prev.map((op) => {
+        if (op.id === opId) {
+          return { ...op, status, progress, error };
+        }
+        // Check sub-operations
+        if (op.subOperations) {
+          return {
+            ...op,
+            subOperations: op.subOperations.map((subOp) =>
+              subOp.id === opId ? { ...subOp, status, progress, error } : subOp
+            ),
+          };
+        }
+        return op;
+      })
+    );
+  };
+
+  // Helper function to initialize save operations
+  const initializeSaveOperations = (serviceGroups: any[]) => {
+    const operations: SaveOperation[] = [
+      {
+        id: 'task_creation',
+        label: 'Create/Update Task',
+        status: 'pending',
+      },
+    ];
+
+    // Add service group operations
+    serviceGroups.forEach((group, index) => {
+      const subOps: SaveOperation[] = [];
+
+      // Bills upload
+      if (group.bills && group.bills.length > 0) {
+        subOps.push({
+          id: `group${index}_bills`,
+          label: `Upload ${group.bills.length} Bill(s)`,
+          status: 'pending',
+        });
+      }
+
+      // Battery warranty
+      if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) {
+        subOps.push({
+          id: `group${index}_battery_warranty`,
+          label: `Upload Battery Warranty`,
+          status: 'pending',
+        });
+      }
+
+      // Tyre warranty
+      if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0) {
+        subOps.push({
+          id: `group${index}_tyre_warranty`,
+          label: `Upload Tyre Warranty`,
+          status: 'pending',
+        });
+      }
+
+      // Parts warranties
+      if (group.partsData && group.partsData.length > 0) {
+        group.partsData.forEach((part: any, partIndex: number) => {
+          if (part.warrantyDocument) {
+            subOps.push({
+              id: `group${index}_part${partIndex}_warranty`,
+              label: `Upload ${part.partName} Warranty`,
+              status: 'pending',
+            });
+          }
+        });
+      }
+
+      if (subOps.length > 0) {
+        operations.push({
+          id: `service_group_${index}`,
+          label: `${group.vendor || 'Service Group'} - ${group.tasks?.join(', ') || 'Tasks'}`,
+          status: 'pending',
+          subOperations: subOps,
+        });
+      }
+    });
+
+    operations.push({
+      id: 'database_save',
+      label: 'Save to Database',
+      status: 'pending',
+    });
+
+    return operations;
+  };
+
+  // NOTE: Using convertServiceGroupsToDatabase from ServiceGroupsSection.tsx
+  // This function properly converts task names to UUIDs from maintenance_tasks_catalog
 
 
   const handleSubmit = async (formData: any) => {
@@ -339,33 +358,41 @@ const MaintenanceTaskPage: React.FC = () => {
       logger.debug('🚫 Already submitting, ignoring click to prevent crash...');
       return;
     }
-    
+
     setIsSubmitting(true);
     logger.debug('🎯 Starting maintenance task submission...');
-    
+
     try {
       // CRASH-PROOF: Allow UI to update before processing
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       // Make sure required fields are present
       if (!formData.vehicle_id) {
         toast.error("Vehicle selection is required");
+        setIsSubmitting(false);
         return;
       }
 
       if (!formData.start_date || formData.start_date === "") {
         toast.error("Start date is required");
+        setIsSubmitting(false);
         return;
       }
 
       // Ensure odometer_reading is provided
       if (!formData.odometer_reading) {
         toast.error("Odometer reading is required");
+        setIsSubmitting(false);
         return;
       }
 
       // Extract service groups for separate handling
-      const { service_groups, ...taskData } = formData;
+      const { service_groups, ...taskData} = formData;
+
+      // Initialize save operations and show diagnostics modal
+      const operations = initializeSaveOperations(service_groups || []);
+      setSaveOperations(operations);
+      setShowDiagnosticsModal(true);
 
       // If garage_id is not provided, use vendor from the first service group
       if (
@@ -389,15 +416,24 @@ const MaintenanceTaskPage: React.FC = () => {
         // CRASH-PROOF: Use requestAnimationFrame to defer heavy file upload processing
         await new Promise(resolve => {
           requestAnimationFrame(async () => {
+            let progressToast: any = null;
+
             try {
+              // Start with a loading toast
+              progressToast = toast.loading('Updating maintenance task...');
+
               // Handle service group file uploads
               let updatedServiceGroups: Array<any> = [];
               if (service_groups && service_groups.length > 0) {
                 logger.debug('📁 Starting file uploads for service groups...');
+
+                // Update toast to show upload progress
+                toast.loading('Uploading files...', { id: progressToast });
+
                 updatedServiceGroups = await handleFileUploads(service_groups, id);
-                // Map to database format
-                updatedServiceGroups = mapServiceGroupsToDatabase(updatedServiceGroups);
-                logger.debug('✅ File uploads completed');
+                // Map to database format - converts task names to UUIDs
+                updatedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
+                logger.debug('✅ File uploads completed and service groups converted to database format');
               }
 
               const updatePayload: any = {
@@ -406,26 +442,30 @@ const MaintenanceTaskPage: React.FC = () => {
               };
 
               try {
+                // Update toast to show saving progress
+                toast.loading('Saving task details...', { id: progressToast });
+
                 // Now try our utility function
                 const updatedTask = await updateTask(id, updatePayload);
                 if (updatedTask) {
                   setTask(updatedTask);
-                  toast.success("Maintenance task updated successfully");
+                  toast.success("Maintenance task updated successfully!", { id: progressToast });
                   navigate("/maintenance");
                 } else {
-                  toast.error("Failed to update task");
+                  toast.error("Failed to update task", { id: progressToast });
                 }
               } catch (error) {
                 logger.error("Error updating task:", error);
                 toast.error(
                   `Error updating task: ${
                     error instanceof Error ? error.message : "Unknown error"
-                  }`
+                  }`,
+                  { id: progressToast }
                 );
               }
             } catch (error) {
               logger.error("Error in file upload processing:", error);
-              toast.error("Error processing file uploads");
+              toast.error("Error processing file uploads", { id: progressToast });
             } finally {
               resolve(undefined);
             }
@@ -435,8 +475,14 @@ const MaintenanceTaskPage: React.FC = () => {
         // CRASH-PROOF: Use requestAnimationFrame to defer heavy processing for new task creation
         await new Promise(resolve => {
           requestAnimationFrame(async () => {
+            let createdTaskId: string | null = null;
+
             try {
               logger.debug('🆕 Creating new maintenance task...');
+
+              // Update operation status: task creation in progress
+              updateOperationStatus('task_creation', 'in-progress');
+
               const newTask = await createTask(
                 taskData as Omit<
                   MaintenanceTask,
@@ -444,40 +490,72 @@ const MaintenanceTaskPage: React.FC = () => {
                 >
               );
 
-              if (newTask) {
-                // Handle service group file uploads
-                if (service_groups && service_groups.length > 0 && newTask.id) {
-                  logger.debug('📁 Starting file uploads for new task...');
-                  toast.info('Uploading files...', { autoClose: 2000 });
-                  const updatedServiceGroups = await handleFileUploads(
-                    service_groups,
-                    newTask.id
-                  );
-
-                  // Map to database format
-                  const mappedServiceGroups = mapServiceGroupsToDatabase(updatedServiceGroups);
-
-                  // Update the task with the service groups
-                  if (mappedServiceGroups.length > 0) {
-                    await updateTask(newTask.id, {
-                      service_groups: mappedServiceGroups,
-                    });
-                  }
-                  logger.debug('✅ File uploads completed for new task');
-                  toast.success('Files uploaded successfully!', { autoClose: 2000 });
-                }
-
-                toast.success("Maintenance task created successfully");
-                navigate("/maintenance");
-              } else {
-                toast.error("Task creation failed - no data returned");
+              if (!newTask) {
+                throw new Error("Task creation failed - no data returned");
               }
+
+              createdTaskId = newTask.id;
+              logger.debug(`✅ Task created with ID: ${createdTaskId}`);
+
+              // Update operation status: task creation complete
+              updateOperationStatus('task_creation', 'success');
+
+              // Handle service group file uploads
+              if (service_groups && service_groups.length > 0 && newTask.id) {
+                logger.debug('📁 Starting file uploads for new task...');
+
+                const updatedServiceGroups = await handleFileUploads(
+                  service_groups,
+                  newTask.id
+                );
+
+                // Map to database format - converts task names to UUIDs
+                const mappedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
+
+                // Update the task with the service groups
+                if (mappedServiceGroups.length > 0) {
+                  // Update operation status: database save in progress
+                  updateOperationStatus('database_save', 'in-progress');
+
+                  await updateTask(newTask.id, {
+                    service_groups: mappedServiceGroups,
+                  });
+
+                  // Update operation status: database save complete
+                  updateOperationStatus('database_save', 'success');
+                }
+                logger.debug('✅ File uploads completed for new task');
+              }
+
+              // Final success message - only if everything succeeded
+              toast.success("Maintenance task created successfully!");
+
+              // Wait a moment to show final status before navigating
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              navigate("/maintenance");
             } catch (error) {
               logger.error("Error creating task:", error);
+
+              // Update all pending operations to error status
+              updateOperationStatus('task_creation', 'error', undefined, error instanceof Error ? error.message : 'Unknown error');
+              updateOperationStatus('database_save', 'error', undefined, 'Task creation failed');
+
+              // ATOMIC ROLLBACK: Delete the task if anything failed after creation
+              if (createdTaskId) {
+                logger.warn(`⚠️ Rolling back task ${createdTaskId} due to error`);
+                try {
+                  await deleteTask(createdTaskId);
+                  logger.debug('✅ Rollback successful - task deleted');
+                } catch (rollbackError) {
+                  logger.error('❌ Rollback failed:', rollbackError);
+                }
+              }
+
+              // Show error in toast
               toast.error(
-                `Error creating task: ${
+                `Failed to create task: ${
                   error instanceof Error ? error.message : "Unknown error"
-                }`
+                }. No data was saved.`
               );
             } finally {
               resolve(undefined);
@@ -564,59 +642,155 @@ const MaintenanceTaskPage: React.FC = () => {
           {/* ========== FORM - FULL WIDTH ========== */}
           {isViewMode ? (
             task ? (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
-                  <Button
-                    variant="outline"
-                    onClick={() =>
-                      navigate(`/maintenance/`, {
-                        state: { task, mode: "edit" },
-                      })
-                    }
-                    icon={<Edit className="h-4 w-4" />}
-                  >
-                    Edit Task
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Vehicle</h3>
-                    <p className="text-gray-900">
-                      {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
-                    </p>
+              <div className="space-y-6">
+                {/* Basic Task Details */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        navigate(`/maintenance/${id}`, {
+                          state: { task, mode: "edit" },
+                        })
+                      }
+                      icon={<Edit className="h-4 w-4" />}
+                    >
+                      Edit Task
+                    </Button>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Status</h3>
-                    <p className="text-gray-900 capitalize">{task.status}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Priority</h3>
-                    <p className="text-gray-900 capitalize">{task.priority}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Task Type</h3>
-                    <p className="text-gray-900 capitalize">{task.task_type?.replace(/_/g, ' ')}</p>
-                  </div>
-                  {task.description && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Vehicle</h3>
+                      <p className="text-gray-900">
+                        {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Status</h3>
+                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                        task.status === 'completed' ? 'bg-success-100 text-success-700' :
+                        task.status === 'in_progress' ? 'bg-warning-100 text-warning-700' :
+                        task.status === 'pending' ? 'bg-gray-100 text-gray-700' :
+                        'bg-danger-100 text-danger-700'
+                      }`}>
+                        {task.status?.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Priority</h3>
+                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                        task.priority === 'high' ? 'bg-danger-100 text-danger-700' :
+                        task.priority === 'medium' ? 'bg-warning-100 text-warning-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {task.priority?.toUpperCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Task Type</h3>
+                      <p className="text-gray-900 capitalize">{task.task_type?.replace(/_/g, ' ') || 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Start Date</h3>
+                      <p className="text-gray-900">{task.start_date ? new Date(task.start_date).toLocaleDateString() : 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">End Date</h3>
+                      <p className="text-gray-900">{task.end_date ? new Date(task.end_date).toLocaleDateString() : 'Not specified'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Downtime</h3>
+                      <p className="text-gray-900">
+                        {task.downtime_days ? `${task.downtime_days} days` : ''}
+                        {task.downtime_hours ? ` ${task.downtime_hours} hours` : ''}
+                        {!task.downtime_days && !task.downtime_hours ? 'Not specified' : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500 mb-2">Odometer Reading</h3>
+                      <p className="text-gray-900">{task.odometer_reading ? `${task.odometer_reading} km` : 'Not specified'}</p>
+                    </div>
                     <div className="md:col-span-2">
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
-                      <p className="text-gray-900">{task.description}</p>
+                      <p className="text-gray-900">{task.description || 'No description provided'}</p>
                     </div>
-                  )}
-                  {task.estimated_cost && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Estimated Cost</h3>
-                      <p className="text-gray-900">₹{task.estimated_cost.toLocaleString()}</p>
+                      <p className="text-gray-900 text-lg font-semibold">₹{task.estimated_cost?.toLocaleString() || '0'}</p>
                     </div>
-                  )}
-                  {task.actual_cost && (
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
-                      <p className="text-gray-900">₹{task.actual_cost.toLocaleString()}</p>
+                      <p className="text-gray-900 text-lg font-semibold">₹{task.actual_cost?.toLocaleString() || '0'}</p>
                     </div>
-                  )}
+                  </div>
                 </div>
+
+                {/* Service Groups - Enhanced */}
+                {task.service_groups && task.service_groups.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <Wrench className="h-5 w-5 mr-2 text-green-600" />
+                      Shops/Mechanics & Services
+                    </h2>
+                    <div className="space-y-4">
+                      {task.service_groups.map((group: any, index: number) => (
+                        <div key={index} className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                              <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
+                                {index + 1}
+                              </span>
+                              {group.vendor_id || 'Unknown Vendor'}
+                            </span>
+                            <span className="text-lg font-semibold text-gray-900">
+                              ₹{(group.cost || 0).toLocaleString()}
+                            </span>
+                          </div>
+                          {group.service_type && (
+                            <div className="mb-2">
+                              <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
+                                group.service_type === 'purchase' ? 'bg-indigo-100 text-indigo-700' :
+                                group.service_type === 'labor' ? 'bg-purple-100 text-purple-700' :
+                                'bg-teal-100 text-teal-700'
+                              }`}>
+                                {group.service_type === 'purchase' ? 'Parts Purchase' :
+                                 group.service_type === 'labor' ? 'Service/Repair' :
+                                 'Parts + Installation'}
+                              </span>
+                            </div>
+                          )}
+                          {group.notes && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              <span className="font-medium">Notes:</span> {group.notes}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Complaint & Resolution */}
+                {(task.complaint_description || task.resolution_description) && (
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Complaint & Resolution</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {task.complaint_description && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500 mb-2">Complaint</h3>
+                          <p className="text-gray-900">{task.complaint_description}</p>
+                        </div>
+                      )}
+                      {task.resolution_description && (
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500 mb-2">Resolution</h3>
+                          <p className="text-gray-900">{task.resolution_description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white rounded-lg shadow-sm p-6 text-center text-gray-500">
@@ -635,6 +809,17 @@ const MaintenanceTaskPage: React.FC = () => {
           )}
         </>
       )}
+
+      {/* Save Diagnostics Modal */}
+      <SaveDiagnosticsModal
+        isOpen={showDiagnosticsModal}
+        onClose={() => {
+          setShowDiagnosticsModal(false);
+          setIsSubmitting(false);
+        }}
+        operations={saveOperations}
+        title="Save Progress"
+      />
     </Layout>
   );
 };
