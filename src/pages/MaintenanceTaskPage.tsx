@@ -820,6 +820,87 @@ const MaintenanceTaskPage: React.FC = () => {
                               {group.notes || <span className="text-gray-400">No notes</span>}
                             </p>
                           </div>
+
+                          {/* Bills Photos */}
+                          {group.bill_url && group.bill_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Bills ({group.bill_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.bill_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Bill ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Battery Warranty Photos */}
+                          {group.battery_warranty_url && group.battery_warranty_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Battery Warranty ({group.battery_warranty_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.battery_warranty_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-green-200 hover:border-green-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Battery Warranty ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E🔋%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tyre Warranty Photos */}
+                          {group.tyre_warranty_url && group.tyre_warranty_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Tyre Warranty ({group.tyre_warranty_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.tyre_warranty_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Tyre Warranty ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E⚙️%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
