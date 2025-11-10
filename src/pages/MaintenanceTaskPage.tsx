@@ -781,14 +781,7 @@ const MaintenanceTaskPage: React.FC = () => {
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
                       <p className="text-gray-900">{task.description || 'No description provided'}</p>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Estimated Cost</h3>
-                      <p className="text-gray-900 text-lg font-semibold">₹{task.estimated_cost?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
-                      <p className="text-gray-900 text-lg font-semibold">₹{task.actual_cost?.toLocaleString() || '0'}</p>
-                    </div>
+                    {/* REMOVED: Estimated Cost & Actual Cost - Using service group costs instead */}
                   </div>
                 </div>
 
