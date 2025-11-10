@@ -1,0 +1,358 @@
+{
+  "name": "Fleet Management - Email Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "Schedule Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_PROJECT_ID.supabase.co/functions/v1/get-pending-reminders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "organization_id",
+              "value": "YOUR_ORG_ID"
+            },
+            {
+              "name": "method",
+              "value": "email"
+            },
+            {
+              "name": "days_ahead",
+              "value": "7"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Get Pending Reminders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SUPABASE_AUTH_CREDENTIAL_ID",
+          "name": "Supabase Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.count }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "Check Reminders Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "reminders",
+        "options": {}
+      },
+      "name": "Split Reminders",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "contacts",
+        "options": {}
+      },
+      "name": "Split Contacts",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "recipientEmail",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "recipientName",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "reminderId",
+              "value": "={{ $('Split Reminders').item.json.reminder_id }}"
+            },
+            {
+              "name": "entityId",
+              "value": "={{ $('Split Reminders').item.json.entity_id }}"
+            },
+            {
+              "name": "entityType",
+              "value": "={{ $('Split Reminders').item.json.entity_type }}"
+            },
+            {
+              "name": "reminderType",
+              "value": "={{ $('Split Reminders').item.json.reminder_type }}"
+            },
+            {
+              "name": "title",
+              "value": "={{ $('Split Reminders').item.json.title }}"
+            },
+            {
+              "name": "dueDate",
+              "value": "={{ $('Split Reminders').item.json.due_date }}"
+            },
+            {
+              "name": "priority",
+              "value": "={{ $('Split Reminders').item.json.priority }}"
+            },
+            {
+              "name": "link",
+              "value": "={{ $('Split Reminders').item.json.link }}"
+            },
+            {
+              "name": "subject",
+              "value": "={{ $('Split Reminders').item.json.template?.subject || 'Reminder: ' + $('Split Reminders').item.json.title }}"
+            },
+            {
+              "name": "messageTemplate",
+              "value": "={{ $('Split Reminders').item.json.template?.message || '' }}"
+            }
+          ],
+          "number": [
+            {
+              "name": "daysLeft",
+              "value": "={{ $('Split Reminders').item.json.days_left }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Email Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\n// Build email message\nlet message = item.messageTemplate;\n\n// If no template, use default\nif (!message || message.trim() === '') {\n  message = `Dear ${item.recipientName},\n\nThis is a reminder regarding: ${item.title}\n\nDue Date: ${new Date(item.dueDate).toLocaleDateString()}\nDays Remaining: ${item.daysLeft} days\nPriority: ${item.priority.toUpperCase()}\n\nPlease take necessary action.\n\nView details: ${item.link}\n\nThis is an automated reminder from Fleet Management System.\n\nBest regards,\nFleet Management Team`;\n} else {\n  // Replace template variables\n  message = message\n    .replace(/\\{recipient_name\\}/g, item.recipientName)\n    .replace(/\\{title\\}/g, item.title)\n    .replace(/\\{due_date\\}/g, new Date(item.dueDate).toLocaleDateString())\n    .replace(/\\{days_left\\}/g, item.daysLeft)\n    .replace(/\\{priority\\}/g, item.priority.toUpperCase())\n    .replace(/\\{link\\}/g, item.link)\n    .replace(/\\{entity_type\\}/g, item.entityType)\n    .replace(/\\{reminder_type\\}/g, item.reminderType);\n}\n\nreturn {\n  ...item,\n  emailBody: message\n};"
+      },
+      "name": "Build Email Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "to": "={{ $json.recipientEmail }}",
+        "subject": "={{ $json.subject }}",
+        "messageType": "text",
+        "message": "={{ $json.emailBody }}",
+        "options": {}
+      },
+      "name": "Send Email via Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1780,
+        200
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR_PROJECT_ID.supabase.co/functions/v1/mark-notification-sent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"reminder_id\": \"{{ $('Prepare Email Data').item.json.reminderId }}\",\n  \"entity_id\": \"{{ $('Prepare Email Data').item.json.entityId }}\",\n  \"entity_type\": \"{{ $('Prepare Email Data').item.json.entityType }}\",\n  \"reminder_type\": \"{{ $('Prepare Email Data').item.json.reminderType }}\",\n  \"notification_method\": \"email\",\n  \"recipient_email\": \"{{ $json.recipientEmail }}\",\n  \"recipient_name\": \"{{ $json.recipientName }}\",\n  \"subject\": \"{{ $json.subject }}\",\n  \"message_body\": \"{{ $json.emailBody }}\",\n  \"template_used\": \"{{ $('Prepare Email Data').item.json.reminderType }}\",\n  \"status\": \"sent\",\n  \"n8n_execution_id\": \"{{ $execution.id }}\",\n  \"organization_id\": \"YOUR_ORG_ID\",\n  \"metadata\": {\n    \"sent_at\": \"{{ $now }}\",\n    \"gmail_message_id\": \"{{ $json.id }}\"\n  }\n}",
+        "options": {}
+      },
+      "name": "Mark as Sent in Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2000,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SUPABASE_AUTH_CREDENTIAL_ID",
+          "name": "Supabase Auth"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "name": "No Reminders",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        900,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Reminders": {
+      "main": [
+        [
+          {
+            "node": "Check Reminders Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Reminders Exist": {
+      "main": [
+        [
+          {
+            "node": "Split Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Reminders": {
+      "main": [
+        [
+          {
+            "node": "Split Contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Contacts": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Data": {
+      "main": [
+        [
+          {
+            "node": "Build Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email Body": {
+      "main": [
+        [
+          {
+            "node": "Send Email via Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email via Gmail": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2025-01-30T00:00:00.000Z",
+  "versionId": "1"
+}
