@@ -197,6 +197,87 @@ export const createTask = async (
     odometer_image: null, // Will be updated after upload
   }, userId, organizationId);
 
+  // ========================================
+  // 📝 COMPREHENSIVE DEBUG LOGGING - MAIN TASK
+  // ========================================
+  console.group('📝 MAINTENANCE TASK DEBUG - CREATE');
+
+  console.group('1️⃣ MAIN TASK FIELDS');
+  console.log('✅ Vehicle ID:', payload.vehicle_id, typeof payload.vehicle_id);
+  console.log('✅ Task Type:', payload.task_type);
+  console.log('✅ Title:', payload.title, Array.isArray(payload.title) ? `(array of ${payload.title.length})` : typeof payload.title);
+  console.log('✅ Description:', payload.description, `(length: ${payload.description?.length || 0})`);
+  console.log('✅ Status:', payload.status);
+  console.log('✅ Priority:', payload.priority);
+  console.log('✅ Garage ID:', payload.garage_id);
+  console.log('💰 Estimated Cost:', payload.estimated_cost, typeof payload.estimated_cost);
+  console.log('💰 Actual Cost:', payload.actual_cost, typeof payload.actual_cost);
+  console.log('📅 Start Date:', payload.start_date);
+  console.log('📅 End Date:', payload.end_date);
+  console.log('⏱️ Downtime Days:', payload.downtime_days, typeof payload.downtime_days);
+  console.log('⏱️ Downtime Hours:', payload.downtime_hours, typeof payload.downtime_hours);
+  console.log('🚗 Odometer Reading:', payload.odometer_reading, typeof payload.odometer_reading);
+  console.log('📷 Odometer Image:', payload.odometer_image || '(none)');
+  console.log('📋 Complaint:', payload.complaint_description, `(length: ${payload.complaint_description?.length || 0})`);
+  console.log('✔️ Resolution:', payload.resolution_summary, `(length: ${payload.resolution_summary?.length || 0})`);
+  console.log('🏢 Organization ID:', organizationId);
+  console.log('👤 Created By:', userId);
+  console.groupEnd();
+
+  console.group('2️⃣ SERVICE GROUPS (before processing)');
+  console.log('Service Groups Count:', service_groups?.length || 0);
+  if (service_groups && service_groups.length > 0) {
+    service_groups.forEach((group: any, idx: number) => {
+      console.group(`Group ${idx + 1}`);
+      console.log('🔧 Service Type:', group.serviceType || group.service_type || '(not set)');
+      console.log('👤 Vendor:', group.vendor || group.vendor_id || '(not set)');
+      console.log('📋 Tasks:', group.tasks, Array.isArray(group.tasks) ? `(array of ${group.tasks.length})` : typeof group.tasks);
+      console.log('💰 Cost:', group.cost, typeof group.cost);
+      console.log('📝 Notes:', group.notes, `(length: ${group.notes?.length || 0})`);
+      console.log('📄 Bill Files:', group.bill_file, Array.isArray(group.bill_file) ? `(${group.bill_file.length} files)` : typeof group.bill_file);
+
+      if (group.batteryData || group.battery_tracking) {
+        console.group('🔋 Battery Data');
+        console.log('Tracking:', group.battery_tracking || false);
+        console.log('Serial:', group.batteryData?.serialNumber || group.battery_serial || '(not set)');
+        console.log('Brand:', group.batteryData?.brand || group.battery_brand || '(not set)');
+        console.log('Warranty Files:', group.battery_warranty_file, Array.isArray(group.battery_warranty_file) ? `(${group.battery_warranty_file.length} files)` : typeof group.battery_warranty_file);
+        console.groupEnd();
+      }
+
+      if (group.tyreData || group.tyre_tracking) {
+        console.group('🛞 Tyre Data');
+        console.log('Tracking:', group.tyre_tracking || false);
+        console.log('Positions:', group.tyreData?.positions || group.tyre_positions || [], Array.isArray(group.tyreData?.positions) ? `(${group.tyreData.positions.length} selected)` : '(not array)');
+        console.log('Brand:', group.tyreData?.brand || group.tyre_brand || '(not set)');
+        console.log('Serials:', group.tyreData?.serialNumbers || group.tyre_serials || '(not set)');
+        console.log('Warranty Files:', group.tyre_warranty_file, Array.isArray(group.tyre_warranty_file) ? `(${group.tyre_warranty_file.length} files)` : typeof group.tyre_warranty_file);
+        console.groupEnd();
+      }
+
+      if (group.partsData && Array.isArray(group.partsData) && group.partsData.length > 0) {
+        console.group('🔩 Parts Data');
+        console.log('Parts Count:', group.partsData.length);
+        group.partsData.forEach((part: any, pIdx: number) => {
+          console.log(`Part ${pIdx + 1}:`, {
+            type: part.partType,
+            name: part.partName,
+            brand: part.brand,
+            serial: part.serialNumber,
+            quantity: part.quantity
+          });
+        });
+        console.groupEnd();
+      }
+
+      console.groupEnd();
+    });
+  }
+  console.groupEnd();
+
+  console.groupEnd();
+  // ========================================
+
   logger.debug(`Creating maintenance task for organization: ${organizationId}`);
 
   // Insert the main task first to get the ID
@@ -318,23 +399,142 @@ export const createTask = async (
               }
             }
 
-            return {
-              ...group,
+            // Destructure to remove File fields and prepare database object
+            const {
+              id, // Remove 'id' field (UI timestamp, DB auto-generates UUID)
+              bill_file,
+              battery_warranty_file,
+              tyre_warranty_file,
+              batteryData,
+              tyreData,
+              partsData,
+              serviceType,
+              bills, // Remove 'bills' field (used in UI, not in DB)
+              batteryWarrantyFiles, // Remove file arrays from UI
+              tyreWarrantyFiles, // Remove file arrays from UI
+              parts, // Remove 'parts' field (legacy, not in DB schema)
+              vendor, // Remove 'vendor' field (UI has name, DB has vendor_id UUID)
+              tasks, // Remove 'tasks' field - will be added after conversion below
+              ...groupWithoutFiles
+            } = group;
+
+            const dbGroup: any = {
+              ...groupWithoutFiles,
               maintenance_task_id: data.id,
+              organization_id: data.organization_id, // Copy organization_id from parent task
+              service_type: serviceType || 'both', // Add service_type field
+              tasks: group.tasks || [], // Keep tasks array (should already be converted to UUIDs by this point)
               bill_url: bill_urls,
               battery_warranty_url: battery_warranty_urls,
               tyre_warranty_url: tyre_warranty_urls,
-              // Remove file objects as they're not for database storage
-              bill_file: undefined,
-              battery_warranty_file: undefined,
-              tyre_warranty_file: undefined,
             };
+
+            // Map battery data to JSONB if present
+            if (batteryData && batteryData.serialNumber) {
+              dbGroup.battery_data = {
+                serialNumber: batteryData.serialNumber,
+                brand: batteryData.brand || '',
+              };
+            }
+
+            // Map tyre data to JSONB if present
+            if (tyreData && tyreData.positions && tyreData.positions.length > 0) {
+              dbGroup.tyre_data = {
+                positions: tyreData.positions,
+                brand: tyreData.brand || '',
+                serialNumbers: tyreData.serialNumbers || '',
+              };
+            }
+
+            // Map parts data to JSONB if present
+            if (partsData && Array.isArray(partsData) && partsData.length > 0) {
+              dbGroup.parts_data = partsData;
+            }
+
+            return dbGroup;
           })
         );
 
-        await supabase
+        // ========================================
+        // 🔍 DETAILED SERVICE GROUP DEBUG LOGGING
+        // ========================================
+        console.group('3️⃣ SERVICE GROUPS (after processing - FINAL DATABASE FORMAT)');
+        console.log('📊 Total groups to insert:', serviceGroupsWithTaskId.length);
+        console.log('📄 Full JSON:', JSON.stringify(serviceGroupsWithTaskId, null, 2));
+
+        serviceGroupsWithTaskId.forEach((group, idx) => {
+          console.group(`🔧 Group ${idx + 1} - Database Format`);
+
+          console.log('👤 vendor_id:', group.vendor_id, typeof group.vendor_id, group.vendor_id ? '✅' : '❌ EMPTY');
+          console.log('📋 tasks:', group.tasks);
+          console.log('   ├─ Type:', Array.isArray(group.tasks) ? '✅ array' : `❌ ${typeof group.tasks} (should be array!)`);
+          console.log('   ├─ Length:', Array.isArray(group.tasks) ? group.tasks.length : 'N/A');
+          console.log('   └─ Values:', Array.isArray(group.tasks) ? group.tasks.map(t => `${t.substring(0, 8)}...`) : 'NOT AN ARRAY');
+
+          console.log('💰 cost:', group.cost, typeof group.cost);
+          console.log('🔧 service_type:', group.service_type, group.service_type ? '✅' : '⚠️ missing');
+          console.log('📝 notes:', group.notes, group.notes ? `(${group.notes.length} chars)` : '(empty)');
+
+          console.log('📄 bill_url:', group.bill_url);
+          console.log('   ├─ Type:', Array.isArray(group.bill_url) ? '✅ array' : `❌ ${typeof group.bill_url} (should be array!)`);
+          console.log('   └─ Count:', Array.isArray(group.bill_url) ? group.bill_url.length : 'NOT AN ARRAY');
+
+          console.log('🔋 battery_warranty_url:', Array.isArray(group.battery_warranty_url) ? `✅ array (${group.battery_warranty_url.length})` : `❌ ${typeof group.battery_warranty_url}`);
+          console.log('🛞 tyre_warranty_url:', Array.isArray(group.tyre_warranty_url) ? `✅ array (${group.tyre_warranty_url.length})` : `❌ ${typeof group.tyre_warranty_url}`);
+
+          if (group.battery_data) {
+            console.group('🔋 battery_data (JSONB)');
+            console.log('Serial:', group.battery_data.serialNumber);
+            console.log('Brand:', group.battery_data.brand);
+            console.log('Type:', typeof group.battery_data);
+            console.groupEnd();
+          } else {
+            console.log('🔋 battery_data: (none)');
+          }
+
+          if (group.tyre_data) {
+            console.group('🛞 tyre_data (JSONB)');
+            console.log('Positions:', group.tyre_data.positions, Array.isArray(group.tyre_data.positions) ? `✅ array (${group.tyre_data.positions.length})` : '❌ not array');
+            console.log('Brand:', group.tyre_data.brand);
+            console.log('Serials:', group.tyre_data.serialNumbers);
+            console.log('Type:', typeof group.tyre_data);
+            console.groupEnd();
+          } else {
+            console.log('🛞 tyre_data: (none)');
+          }
+
+          if (group.parts_data && Array.isArray(group.parts_data) && group.parts_data.length > 0) {
+            console.group('🔩 parts_data (JSONB Array)');
+            console.log('Count:', group.parts_data.length);
+            console.log('Type:', Array.isArray(group.parts_data) ? '✅ array' : `❌ ${typeof group.parts_data}`);
+            group.parts_data.forEach((part: any, pIdx: number) => {
+              console.log(`Part ${pIdx + 1}:`, part);
+            });
+            console.groupEnd();
+          } else {
+            console.log('🔩 parts_data: (none)');
+          }
+
+          console.groupEnd();
+        });
+
+        console.groupEnd();
+        // ========================================
+
+        const { data: insertResult, error: insertError } = await supabase
           .from("maintenance_service_tasks")
           .insert(serviceGroupsWithTaskId);
+
+        if (insertError) {
+          console.error('❌ DEBUG: Insert failed with error:', insertError);
+          console.error('❌ DEBUG: Error code:', insertError.code);
+          console.error('❌ DEBUG: Error message:', insertError.message);
+          console.error('❌ DEBUG: Error details:', insertError.details);
+          console.error('❌ DEBUG: Error hint:', insertError.hint);
+          throw insertError;
+        }
+
+        console.log('✅ DEBUG: Insert successful:', insertResult);
 
         // Fetch the inserted service groups
         const { data: insertedGroups } = await supabase
@@ -522,17 +722,59 @@ export const updateTask = async (
               }
             }
 
-            return {
-              ...group,
+            // Destructure to remove File fields and prepare database object
+            const {
+              id, // Remove 'id' field (UI timestamp, DB auto-generates UUID)
+              bill_file,
+              battery_warranty_file,
+              tyre_warranty_file,
+              batteryData,
+              tyreData,
+              partsData,
+              serviceType,
+              bills, // Remove 'bills' field (used in UI, not in DB)
+              batteryWarrantyFiles, // Remove file arrays from UI
+              tyreWarrantyFiles, // Remove file arrays from UI
+              parts, // Remove 'parts' field (legacy, not in DB schema)
+              vendor, // Remove 'vendor' field (UI has name, DB has vendor_id UUID)
+              tasks, // Remove 'tasks' field - will be added after conversion below
+              ...groupWithoutFiles
+            } = group;
+
+            const dbGroup: any = {
+              ...groupWithoutFiles,
               maintenance_task_id: id,
+              organization_id: oldTask.organization_id, // Copy organization_id from parent task
+              service_type: serviceType || 'both', // Add service_type field
+              tasks: group.tasks || [], // Keep tasks array (should already be converted to UUIDs by this point)
               bill_url: bill_urls,
               battery_warranty_url: battery_warranty_urls,
               tyre_warranty_url: tyre_warranty_urls,
-              // Remove file objects as they're not for database storage
-              bill_file: undefined,
-              battery_warranty_file: undefined,
-              tyre_warranty_file: undefined,
             };
+
+            // Map battery data to JSONB if present
+            if (batteryData && batteryData.serialNumber) {
+              dbGroup.battery_data = {
+                serialNumber: batteryData.serialNumber,
+                brand: batteryData.brand || '',
+              };
+            }
+
+            // Map tyre data to JSONB if present
+            if (tyreData && tyreData.positions && tyreData.positions.length > 0) {
+              dbGroup.tyre_data = {
+                positions: tyreData.positions,
+                brand: tyreData.brand || '',
+                serialNumbers: tyreData.serialNumbers || '',
+              };
+            }
+
+            // Map parts data to JSONB if present
+            if (partsData && Array.isArray(partsData) && partsData.length > 0) {
+              dbGroup.parts_data = partsData;
+            }
+
+            return dbGroup;
           })
         );
 
