@@ -321,6 +321,7 @@ export const createTask = async (
             return {
               ...group,
               maintenance_task_id: data.id,
+              organization_id: data.organization_id, // ✅ FIX: Add organization_id from parent task
               bill_url: bill_urls,
               battery_warranty_url: battery_warranty_urls,
               tyre_warranty_url: tyre_warranty_urls,
@@ -525,6 +526,7 @@ export const updateTask = async (
             return {
               ...group,
               maintenance_task_id: id,
+              organization_id: updatedTask.organization_id, // ✅ FIX: Add organization_id from parent task
               bill_url: bill_urls,
               battery_warranty_url: battery_warranty_urls,
               tyre_warranty_url: tyre_warranty_urls,
