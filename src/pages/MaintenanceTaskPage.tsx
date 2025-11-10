@@ -20,6 +20,8 @@ import "../styles/maintenanceFormUpdates.css";
 import { createLogger } from '../utils/logger';
 import SaveDiagnosticsModal, { SaveOperation, OperationStatus } from '../components/maintenance/SaveDiagnosticsModal';
 import { convertServiceGroupsToDatabase } from '../components/maintenance/ServiceGroupsSection';
+import { getVendors, Vendor } from '../utils/vendorStorage';
+import { getMaintenanceTasksCatalog } from '../utils/maintenanceCatalog';
 
 const logger = createLogger('MaintenanceTaskPage');
 // Define a more specific type for the data coming from MaintenanceTaskForm
@@ -110,6 +112,8 @@ const MaintenanceTaskPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saveOperations, setSaveOperations] = useState<SaveOperation[]>([]);
   const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
+  const [tasksMap, setTasksMap] = useState<Map<string, string>>(new Map());
   const searchParams = new URLSearchParams(location.search);
   const modeParam = searchParams.get('mode');
   const isViewMode = (modeParam || (locationState.mode ?? undefined)) === 'view';
@@ -122,6 +126,26 @@ const MaintenanceTaskPage: React.FC = () => {
         // Load vehicles regardless of whether we're creating or editing
         const vehiclesData = await getVehicles();
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+
+        // Load vendors and tasks catalog for display (UUID → Name conversion)
+        const [vendorsData, catalogData] = await Promise.all([
+          getVendors(),
+          getMaintenanceTasksCatalog()
+        ]);
+
+        // Create vendor ID → vendor name map
+        const vendorMap = new Map<string, string>();
+        vendorsData.forEach(vendor => {
+          vendorMap.set(vendor.id, vendor.vendor_name);
+        });
+        setVendorsMap(vendorMap);
+
+        // Create task ID → task name map
+        const taskMap = new Map<string, string>();
+        catalogData.forEach(task => {
+          taskMap.set(task.id, task.task_name);
+        });
+        setTasksMap(taskMap);
 
         // If we're editing an existing task, load it
         if (id && id !== "new") {
@@ -744,7 +768,7 @@ const MaintenanceTaskPage: React.FC = () => {
                                 <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
                                   {index + 1}
                                 </span>
-                                {group.vendor_id || '❌ NO VENDOR SAVED'}
+                                {vendorsMap.get(group.vendor_id) || group.vendor_id || '❌ NO VENDOR SAVED'}
                               </span>
                             </div>
                             <div>
@@ -778,9 +802,9 @@ const MaintenanceTaskPage: React.FC = () => {
                             <p className="text-xs text-gray-500 mb-1">Tasks:</p>
                             {group.tasks && group.tasks.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {group.tasks.map((task: string, taskIdx: number) => (
+                                {group.tasks.map((taskId: string, taskIdx: number) => (
                                   <span key={taskIdx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
-                                    {task}
+                                    {tasksMap.get(taskId) || taskId}
                                   </span>
                                 ))}
                               </div>
