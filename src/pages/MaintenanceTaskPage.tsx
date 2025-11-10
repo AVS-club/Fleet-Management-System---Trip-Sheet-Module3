@@ -667,6 +667,48 @@ const MaintenanceTaskPage: React.FC = () => {
           {isViewMode ? (
             task ? (
               <div className="space-y-6">
+                {/* DEBUG: Raw Data Viewer */}
+                <details className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                  <summary className="cursor-pointer font-semibold text-yellow-900 flex items-center gap-2">
+                    🔍 DEBUG: View Raw Database Data (Click to expand)
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <h3 className="font-bold text-sm text-gray-700 mb-2">Main Task Object:</h3>
+                      <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-auto max-h-96">
+                        {JSON.stringify(task, null, 2)}
+                      </pre>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Estimated Cost:</strong> {task.estimated_cost || 'NULL/Empty'}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Actual Cost:</strong> {task.actual_cost || 'NULL/Empty'}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Service Groups Count:</strong> {task.service_groups?.length || 0}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Organization ID:</strong> {task.organization_id || 'MISSING!'}
+                      </div>
+                    </div>
+                    {task.service_groups && task.service_groups.length > 0 && (
+                      <div>
+                        <h3 className="font-bold text-sm text-gray-700 mb-2">Service Groups Raw:</h3>
+                        {task.service_groups.map((group: any, idx: number) => (
+                          <details key={idx} className="bg-white p-3 rounded border mb-2">
+                            <summary className="cursor-pointer font-semibold">Group {idx + 1}</summary>
+                            <pre className="bg-gray-900 text-green-400 p-2 rounded text-xs overflow-auto mt-2">
+                              {JSON.stringify(group, null, 2)}
+                            </pre>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </details>
+
                 {/* Basic Task Details */}
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-center mb-6">
