@@ -1,35 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)",
-      "Bash(npm run build:check:*)",
-      "Bash(npm run dev:*)",
-      "Bash(node check_kpis.js:*)",
-      "Bash(npx tsc:*)",
-      "Bash(node -e \"console.log(require(''''fs'''').readFileSync(''''.bolt/supabase_discarded_migrations/20250130000000_create_events_feed.sql'''', ''''utf8''''))\")",
-      "Bash(git push)",
-      "Bash(tree:*)",
-      "Bash(find:*)",
-      "Bash(git -C \"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\" log --oneline --all --graph -20)",
-      "Bash(wc -l:*)",
-      "Bash(git -C \"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\" log --since=\"2024-10-01\" --pretty=format:\"%h %s\")",
       "Bash(ls:*)",
-      "Bash(npm install:*)",
-      "Bash(node:*)",
-      "Bash(npx supabase status)",
-      "Bash(npx supabase:*)",
-      "Bash(git checkout:*)",
-      "Bash(git restore:*)",
-      "Bash(git log:*)",
-      "Bash(cat:*)",
-      "Bash(nul)",
-      "Bash(npx ts-node:*)",
-      "Bash(npx tsx:*)",
-      "Bash(findstr:*)",
-      "Bash(set VITE_SUPABASE_URL=https://oosrmuqfcqtojflruhww.supabase.co:*)",
-      "Bash(set:*)",
-      "Bash(supabase db dump:*)",
-      "Bash(2)"
+      "Bash(find:*)",
+      "Bash(nul)"
     ],
     "deny": [],
     "ask": []
