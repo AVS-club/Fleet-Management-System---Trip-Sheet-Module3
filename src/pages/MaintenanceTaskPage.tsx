@@ -20,6 +20,8 @@ import "../styles/maintenanceFormUpdates.css";
 import { createLogger } from '../utils/logger';
 import SaveDiagnosticsModal, { SaveOperation, OperationStatus } from '../components/maintenance/SaveDiagnosticsModal';
 import { convertServiceGroupsToDatabase } from '../components/maintenance/ServiceGroupsSection';
+import { getVendors, Vendor } from '../utils/vendorStorage';
+import { getMaintenanceTasksCatalog } from '../utils/maintenanceCatalog';
 
 const logger = createLogger('MaintenanceTaskPage');
 // Define a more specific type for the data coming from MaintenanceTaskForm
@@ -36,8 +38,6 @@ interface MaintenanceFormData {
   status?: "open" | "in_progress" | "resolved" | "escalated" | "rework";
   priority?: "low" | "medium" | "high" | "critical";
   garage_id?: string;
-  estimated_cost?: number;
-  actual_cost?: number;
   category?: string;
 
   // Service groups
@@ -110,6 +110,8 @@ const MaintenanceTaskPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saveOperations, setSaveOperations] = useState<SaveOperation[]>([]);
   const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
+  const [tasksMap, setTasksMap] = useState<Map<string, string>>(new Map());
   const searchParams = new URLSearchParams(location.search);
   const modeParam = searchParams.get('mode');
   const isViewMode = (modeParam || (locationState.mode ?? undefined)) === 'view';
@@ -122,6 +124,26 @@ const MaintenanceTaskPage: React.FC = () => {
         // Load vehicles regardless of whether we're creating or editing
         const vehiclesData = await getVehicles();
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
+
+        // Load vendors and tasks catalog for display (UUID → Name conversion)
+        const [vendorsData, catalogData] = await Promise.all([
+          getVendors(),
+          getMaintenanceTasksCatalog()
+        ]);
+
+        // Create vendor ID → vendor name map
+        const vendorMap = new Map<string, string>();
+        vendorsData.forEach(vendor => {
+          vendorMap.set(vendor.id, vendor.vendor_name);
+        });
+        setVendorsMap(vendorMap);
+
+        // Create task ID → task name map
+        const taskMap = new Map<string, string>();
+        catalogData.forEach(task => {
+          taskMap.set(task.id, task.task_name);
+        });
+        setTasksMap(taskMap);
 
         // If we're editing an existing task, load it
         if (id && id !== "new") {
@@ -664,6 +686,48 @@ const MaintenanceTaskPage: React.FC = () => {
           {isViewMode ? (
             task ? (
               <div className="space-y-6">
+                {/* DEBUG: Raw Data Viewer */}
+                <details className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                  <summary className="cursor-pointer font-semibold text-yellow-900 flex items-center gap-2">
+                    🔍 DEBUG: View Raw Database Data (Click to expand)
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <h3 className="font-bold text-sm text-gray-700 mb-2">Main Task Object:</h3>
+                      <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-auto max-h-96">
+                        {JSON.stringify(task, null, 2)}
+                      </pre>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Estimated Cost:</strong> {task.estimated_cost || 'NULL/Empty'}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Actual Cost:</strong> {task.actual_cost || 'NULL/Empty'}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Service Groups Count:</strong> {task.service_groups?.length || 0}
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <strong>Organization ID:</strong> {task.organization_id || 'MISSING!'}
+                      </div>
+                    </div>
+                    {task.service_groups && task.service_groups.length > 0 && (
+                      <div>
+                        <h3 className="font-bold text-sm text-gray-700 mb-2">Service Groups Raw:</h3>
+                        {task.service_groups.map((group: any, idx: number) => (
+                          <details key={idx} className="bg-white p-3 rounded border mb-2">
+                            <summary className="cursor-pointer font-semibold">Group {idx + 1}</summary>
+                            <pre className="bg-gray-900 text-green-400 p-2 rounded text-xs overflow-auto mt-2">
+                              {JSON.stringify(group, null, 2)}
+                            </pre>
+                          </details>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </details>
+
                 {/* Basic Task Details */}
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex justify-between items-center mb-6">
@@ -736,14 +800,7 @@ const MaintenanceTaskPage: React.FC = () => {
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
                       <p className="text-gray-900">{task.description || 'No description provided'}</p>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Estimated Cost</h3>
-                      <p className="text-gray-900 text-lg font-semibold">₹{task.estimated_cost?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
-                      <p className="text-gray-900 text-lg font-semibold">₹{task.actual_cost?.toLocaleString() || '0'}</p>
-                    </div>
+                    {/* REMOVED: Estimated Cost & Actual Cost - Using service group costs instead */}
                   </div>
                 </div>
 
@@ -765,7 +822,7 @@ const MaintenanceTaskPage: React.FC = () => {
                                 <span className="bg-green-200 text-green-900 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold mr-2">
                                   {index + 1}
                                 </span>
-                                {group.vendor_id || '❌ NO VENDOR SAVED'}
+                                {vendorsMap.get(group.vendor_id) || group.vendor_id || '❌ NO VENDOR SAVED'}
                               </span>
                             </div>
                             <div>
@@ -799,9 +856,9 @@ const MaintenanceTaskPage: React.FC = () => {
                             <p className="text-xs text-gray-500 mb-1">Tasks:</p>
                             {group.tasks && group.tasks.length > 0 ? (
                               <div className="flex flex-wrap gap-1">
-                                {group.tasks.map((task: string, taskIdx: number) => (
+                                {group.tasks.map((taskId: string, taskIdx: number) => (
                                   <span key={taskIdx} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">
-                                    {task}
+                                    {tasksMap.get(taskId) || taskId}
                                   </span>
                                 ))}
                               </div>
@@ -817,6 +874,87 @@ const MaintenanceTaskPage: React.FC = () => {
                               {group.notes || <span className="text-gray-400">No notes</span>}
                             </p>
                           </div>
+
+                          {/* Bills Photos */}
+                          {group.bill_url && group.bill_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Bills ({group.bill_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.bill_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Bill ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Battery Warranty Photos */}
+                          {group.battery_warranty_url && group.battery_warranty_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Battery Warranty ({group.battery_warranty_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.battery_warranty_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-green-200 hover:border-green-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Battery Warranty ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E🔋%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tyre Warranty Photos */}
+                          {group.tyre_warranty_url && group.tyre_warranty_url.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2">Tyre Warranty ({group.tyre_warranty_url.length}):</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {group.tyre_warranty_url.map((url: string, idx: number) => (
+                                  <a
+                                    key={idx}
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-500 transition-colors"
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Tyre Warranty ${idx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E⚙️%3C/text%3E%3C/svg%3E';
+                                      }}
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

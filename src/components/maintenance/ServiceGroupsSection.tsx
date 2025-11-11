@@ -1080,8 +1080,6 @@ export const convertServiceGroupsToDatabase = async (
         vendor_id: vendorId, // Now contains vendor UUID
         tasks: taskIds, // Now contains UUIDs
         cost: group.cost || 0,
-        // battery_tracking and tyre_tracking removed - columns don't exist in DB
-        // Database has battery_data and tyre_data (JSONB) instead
         service_type: group.serviceType || '',
         notes: group.notes || '',
         bill_url: group.bill_url || [],

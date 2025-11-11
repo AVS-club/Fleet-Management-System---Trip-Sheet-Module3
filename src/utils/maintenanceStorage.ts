@@ -1,3 +1,5 @@
+// DEPLOYMENT VERIFICATION: Updated 2025-11-11 - Schema cache fix applied
+// This file contains fixes for actual_cost/estimated_cost removal and parts_data mapping
 import {
   MaintenanceTask,
   MaintenanceStats,
@@ -901,10 +903,11 @@ export const uploadServiceBill = async (
 
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-group${groupId || Date.now()}.${fileExt}`;
-  const filePath = `maintenance-bills/${fileName}`;
+  // Files stored directly in bucket root, no subfolder
+  const filePath = fileName;
 
   const { error: uploadError } = await supabase.storage
-    .from("maintenance")
+    .from("maintenance-bills")  // ✅ FIXED: Use new bucket
     .upload(filePath, file, {
       upsert: true,
       contentType: file.type,
@@ -915,7 +918,9 @@ export const uploadServiceBill = async (
     return null;
   }
 
-  const { data } = supabase.storage.from("maintenance").getPublicUrl(filePath);
+  const { data } = supabase.storage
+    .from("maintenance-bills")  // ✅ FIXED: Use new bucket
+    .getPublicUrl(filePath);
 
   return data.publicUrl;
 };
@@ -951,10 +956,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   // Calculate total expenditure from service groups
   const total_expenditure = Array.isArray(serviceGroups)
     ? serviceGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
-    : tasks.reduce(
-        (sum, task) => sum + (task.actual_cost || task.estimated_cost || 0),
-        0
-      );
+    : 0; // No service groups = no cost data
 
   // Calculate monthly expenses
   const monthlyExpenses = tasks.reduce((acc, task) => {
@@ -969,7 +971,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
     const taskCost =
       taskGroups.length > 0
         ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
-        : task.actual_cost || task.estimated_cost || 0;
+        : 0; // No service groups = no cost data
 
     acc[monthKey] = (acc[monthKey] || 0) + taskCost;
     return acc;
@@ -992,7 +994,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
     const taskCost =
       taskGroups.length > 0
         ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
-        : task.actual_cost || task.estimated_cost || 0;
+        : 0; // No service groups = no cost data
 
     acc[task.vehicle_id] = (acc[task.vehicle_id] || 0) + taskCost;
     return acc;
