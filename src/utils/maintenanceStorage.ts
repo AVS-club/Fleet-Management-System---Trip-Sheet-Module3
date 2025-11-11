@@ -1,3 +1,5 @@
+// DEPLOYMENT VERIFICATION: Updated 2025-11-11 - Schema cache fix applied
+// This file contains fixes for actual_cost/estimated_cost removal and parts_data mapping
 import {
   MaintenanceTask,
   MaintenanceStats,
