@@ -120,7 +120,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
   const isMaintenance = event.kind === 'maintenance';
   const maintenanceData = isMaintenance ? event.entity_json : null;
   const estimatedCostValue = maintenanceData
-    ? maintenanceData.cost ?? maintenanceData.estimated_cost ?? maintenanceData.actual_cost
+    ? maintenanceData.cost ?? maintenanceData.estimated_cost
     : null;
   const maintenanceContainerClass =
     event.priority === 'danger'
@@ -433,7 +433,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-200">
                   <DollarSign className="h-5 w-5" />
                   <span className="text-xs font-semibold uppercase tracking-wide">
-                    {maintenanceData.actual_cost ? 'Actual Cost' : 'Estimated Cost'}
+                    {maintenanceData.cost ? 'Actual Cost' : 'Estimated Cost'}
                   </span>
                 </div>
                 <div className="mt-3 text-lg font-bold text-amber-900 dark:text-amber-100 truncate">

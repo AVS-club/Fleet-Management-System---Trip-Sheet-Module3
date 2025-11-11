@@ -380,15 +380,15 @@ export const getMaintenanceCostInsight = (
   
   // Calculate average maintenance cost per task for this vehicle
   const totalCost = vehicleTasks.reduce((sum, task) => {
-    // Get cost either from actual_cost or from service_groups
-    let taskCost = task.actual_cost || task.estimated_cost || 0;
-    
+    // Get cost either from cost or from service_groups
+    let taskCost = task.cost || task.estimated_cost || 0;
+
     // If service_groups exists, sum up costs from there
     if (Array.isArray(task.service_groups)) {
-      taskCost = task.service_groups.reduce((groupSum, group) => 
+      taskCost = task.service_groups.reduce((groupSum, group) =>
         groupSum + (typeof group.cost === 'number' ? group.cost : 0), 0);
     }
-    
+
     return sum + taskCost;
   }, 0);
   

@@ -155,7 +155,7 @@ export const calculateMaintenanceMetrics = (
   }, 0);
   
   const costsFromTasks = filteredTasks.reduce((sum, task) => 
-    sum + (task.actual_cost || task.estimated_cost || 0), 0);
+    sum + (task.cost || task.estimated_cost || 0), 0);
   
   const totalExpenditure = Math.max(costsFromServiceGroups, costsFromTasks);
   const averageCost = totalTasks > 0 ? totalExpenditure / totalTasks : 0;
@@ -211,7 +211,7 @@ export const calculateMaintenanceMetrics = (
     if (!isValid(date)) return;
     
     const monthKey = format(date, 'MMM yyyy');
-    const cost = task.actual_cost || task.estimated_cost || 0;
+    const cost = task.cost || task.estimated_cost || 0;
     
     monthlyData[monthKey] = (monthlyData[monthKey] || 0) + cost;
   });
@@ -234,7 +234,7 @@ export const calculateMaintenanceMetrics = (
     const vehicleId = task.vehicle_id;
     if (!vehicleId) return;
     
-    const cost = task.actual_cost || task.estimated_cost || 0;
+    const cost = task.cost || task.estimated_cost || 0;
     vehicleExpenditureMap[vehicleId] = (vehicleExpenditureMap[vehicleId] || 0) + cost;
   });
   
@@ -760,7 +760,7 @@ export const getMaintenanceMetricsWithComparison = async (
         return sum + task.service_groups.reduce((groupSum, group) => 
           groupSum + (typeof group.cost === 'number' ? group.cost : 0), 0);
       }
-      return sum + (task.actual_cost || task.estimated_cost || 0);
+      return sum + (task.cost || task.estimated_cost || 0);
     }, 0);
     
     // Calculate percent change in expenditure

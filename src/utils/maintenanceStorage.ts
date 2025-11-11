@@ -211,7 +211,7 @@ export const createTask = async (
   console.log('✅ Priority:', payload.priority);
   console.log('✅ Garage ID:', payload.garage_id);
   console.log('💰 Estimated Cost:', payload.estimated_cost, typeof payload.estimated_cost);
-  console.log('💰 Actual Cost:', payload.actual_cost, typeof payload.actual_cost);
+  console.log('💰 Cost:', payload.cost, typeof payload.cost);
   console.log('📅 Start Date:', payload.start_date);
   console.log('📅 End Date:', payload.end_date);
   console.log('⏱️ Downtime Days:', payload.downtime_days, typeof payload.downtime_days);
@@ -952,7 +952,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
   const total_expenditure = Array.isArray(serviceGroups)
     ? serviceGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
     : tasks.reduce(
-        (sum, task) => sum + (task.actual_cost || task.estimated_cost || 0),
+        (sum, task) => sum + (task.cost || task.estimated_cost || 0),
         0
       );
 
@@ -969,7 +969,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
     const taskCost =
       taskGroups.length > 0
         ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
-        : task.actual_cost || task.estimated_cost || 0;
+        : task.cost || task.estimated_cost || 0;
 
     acc[monthKey] = (acc[monthKey] || 0) + taskCost;
     return acc;
@@ -992,7 +992,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
     const taskCost =
       taskGroups.length > 0
         ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
-        : task.actual_cost || task.estimated_cost || 0;
+        : task.cost || task.estimated_cost || 0;
 
     acc[task.vehicle_id] = (acc[task.vehicle_id] || 0) + taskCost;
     return acc;

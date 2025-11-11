@@ -503,7 +503,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       const totalCost = serviceGroupsWatch.reduce((sum, group) => {
         return sum + (parseFloat(group.cost as any) || 0);
       }, 0);
-      setValue("actual_cost", totalCost);
+      setValue("cost", totalCost);
     }
   }, [serviceGroupsWatch, setValue]);
 

@@ -37,7 +37,7 @@ interface MaintenanceFormData {
   priority?: "low" | "medium" | "high" | "critical";
   garage_id?: string;
   estimated_cost?: number;
-  actual_cost?: number;
+  cost?: number;
   category?: string;
 
   // Service groups
@@ -742,7 +742,7 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
-                      <p className="text-gray-900 text-lg font-semibold">₹{task.actual_cost?.toLocaleString() || '0'}</p>
+                      <p className="text-gray-900 text-lg font-semibold">₹{task.cost?.toLocaleString() || '0'}</p>
                     </div>
                   </div>
                 </div>

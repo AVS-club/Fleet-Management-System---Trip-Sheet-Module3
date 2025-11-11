@@ -60,8 +60,8 @@ export const validateMaintenanceTask = (
     errors.estimated_cost = 'Estimated cost cannot be negative';
   }
 
-  if (data.actual_cost !== undefined && data.actual_cost < 0) {
-    errors.actual_cost = 'Actual cost cannot be negative';
+  if (data.cost !== undefined && data.cost < 0) {
+    errors.cost = 'Cost cannot be negative';
   }
 
   // Downtime validation
@@ -204,7 +204,7 @@ export const validateCosts = (
   }
 
   if (actualCost !== undefined && actualCost < 0) {
-    errors.actual_cost = 'Actual cost cannot be negative';
+    errors.cost = 'Cost cannot be negative';
   }
 
   // Check if actual cost significantly exceeds estimated cost
@@ -369,7 +369,7 @@ export const validateMaintenanceTaskComplete = (
   }
 
   // Cost validation
-  const costValidation = validateCosts(data.estimated_cost, data.actual_cost);
+  const costValidation = validateCosts(data.estimated_cost, data.cost);
   Object.assign(allErrors, costValidation.errors);
   if (costValidation.warnings) {
     allWarnings.push(...costValidation.warnings);
