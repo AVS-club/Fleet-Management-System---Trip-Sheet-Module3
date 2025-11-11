@@ -1036,14 +1036,16 @@ export const convertServiceGroupsToDatabase = async (
         vendor_id: group.vendor || '',
         tasks: taskIds, // Now contains UUIDs
         cost: group.cost || 0,
-        battery_tracking: false,
-        tyre_tracking: false,
         service_type: group.serviceType || '',
         notes: group.notes || '',
         bill_url: group.bill_url || [],
         battery_warranty_url: group.battery_warranty_url || [],
         tyre_warranty_url: group.tyre_warranty_url || [],
-        partsData: group.partsData || [],
+        // ✅ FIX: Convert camelCase to snake_case for JSONB fields
+        parts_data: group.partsData || [],
+        // Deprecated fields - keep null for backward compatibility
+        battery_data: null,
+        tyre_data: null,
       };
 
       logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
