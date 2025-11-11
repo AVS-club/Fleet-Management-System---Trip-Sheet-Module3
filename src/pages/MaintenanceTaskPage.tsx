@@ -505,8 +505,19 @@ const MaintenanceTaskPage: React.FC = () => {
               // Update operation status: task creation in progress
               updateOperationStatus('task_creation', 'in-progress');
 
-              const newTask = await createTask(
-                taskData as Omit<
+              // Convert service groups to database format BEFORE creating task
+              // This converts task names to UUIDs and vendor names to vendor_ids
+              let convertedServiceGroups: any[] = [];
+              if (service_groups && service_groups.length > 0) {
+                logger.debug('🔄 Converting service groups to database format...');
+                convertedServiceGroups = await convertServiceGroupsToDatabase(service_groups);
+                logger.debug('✅ Service groups converted:', convertedServiceGroups);
+              }
+
+              const newTask = await createTask({
+                ...taskData,
+                service_groups: convertedServiceGroups  // Use converted groups with UUIDs
+              } as Omit<
                   MaintenanceTask,
                   "id" | "created_at" | "updated_at"
                 >
@@ -522,31 +533,41 @@ const MaintenanceTaskPage: React.FC = () => {
               // Update operation status: task creation complete
               updateOperationStatus('task_creation', 'success');
 
-              // Handle service group file uploads
+              // Handle service group file uploads if there are files to upload
               if (service_groups && service_groups.length > 0 && newTask.id) {
-                logger.debug('📁 Starting file uploads for new task...');
-
-                const updatedServiceGroups = await handleFileUploads(
-                  service_groups,
-                  newTask.id
+                // Check if there are actually files to upload
+                const hasFiles = service_groups.some(group =>
+                  (group.bills && group.bills.length > 0) ||
+                  (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) ||
+                  (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0)
                 );
 
-                // Map to database format - converts task names to UUIDs
-                const mappedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
+                if (hasFiles) {
+                  logger.debug('📁 Starting file uploads for new task...');
 
-                // Update the task with the service groups
-                if (mappedServiceGroups.length > 0) {
-                  // Update operation status: database save in progress
-                  updateOperationStatus('database_save', 'in-progress');
+                  // Upload files using ORIGINAL service groups (which have File objects)
+                  const updatedServiceGroups = await handleFileUploads(
+                    service_groups,
+                    newTask.id
+                  );
 
-                  await updateTask(newTask.id, {
-                    service_groups: mappedServiceGroups,
-                  });
+                  // Convert to database format (task names -> UUIDs, vendor name -> vendor_id)
+                  const mappedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
 
-                  // Update operation status: database save complete
-                  updateOperationStatus('database_save', 'success');
+                  // Update the task with the service groups including file URLs
+                  if (mappedServiceGroups.length > 0) {
+                    // Update operation status: database save in progress
+                    updateOperationStatus('database_save', 'in-progress');
+
+                    await updateTask(newTask.id, {
+                      service_groups: mappedServiceGroups,
+                    });
+
+                    // Update operation status: database save complete
+                    updateOperationStatus('database_save', 'success');
+                  }
+                  logger.debug('✅ File uploads completed for new task');
                 }
-                logger.debug('✅ File uploads completed for new task');
               }
 
               // Final success message - only if everything succeeded

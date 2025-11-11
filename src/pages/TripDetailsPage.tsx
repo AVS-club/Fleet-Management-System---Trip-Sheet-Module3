@@ -352,10 +352,28 @@ const TripDetailsPage: React.FC = () => {
               fuel_cost: trip.fuel_cost,
               total_fuel_cost: trip.total_fuel_cost,
               fuel_rate_per_liter: trip.fuel_rate_per_liter,
+              // Convert old single refueling data to new format if refuelings array doesn't exist
+              refuelings: trip.refuelings && trip.refuelings.length > 0 
+                ? trip.refuelings
+                : (trip.total_fuel_cost || trip.fuel_cost || trip.fuel_quantity || trip.fuel_bill_url)
+                  ? [{
+                      location: trip.station || '',
+                      fuel_quantity: trip.fuel_quantity || 0,
+                      fuel_rate_per_liter: trip.fuel_rate_per_liter || 0,
+                      total_fuel_cost: trip.total_fuel_cost || trip.fuel_cost || 0,
+                      fuel_bill_url: trip.fuel_bill_url || undefined
+                    }]
+                  : [{
+                      location: '',
+                      fuel_quantity: 0,
+                      fuel_rate_per_liter: 0,
+                      total_fuel_cost: 0
+                    }],
               unloading_expense: trip.unloading_expense,
               driver_expense: trip.driver_expense,
               road_rto_expense: trip.road_rto_expense,
               breakdown_expense: trip.breakdown_expense,
+              toll_expense: trip.breakdown_expense, // Map breakdown_expense to toll_expense for form
               miscellaneous_expense: trip.miscellaneous_expense,
               total_road_expenses: trip.total_road_expenses,
               is_return_trip: trip.is_return_trip,

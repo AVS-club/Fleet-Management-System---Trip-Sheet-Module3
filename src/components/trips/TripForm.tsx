@@ -134,6 +134,9 @@ const TripForm: React.FC<TripFormProps> = ({
   const [showFuelPrompt, setShowFuelPrompt] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [hasInteractedWithFuel, setHasInteractedWithFuel] = useState(false);
+  const [hasFuelWarning, setHasFuelWarning] = useState(false);
+  const [hasGrossWeightWarning, setHasGrossWeightWarning] = useState(false);
+  const [hasExpensesWarning, setHasExpensesWarning] = useState(false);
   
   // Get yesterday's date for auto-defaulting
   const yesterdayDate = format(subDays(new Date(), 1), 'yyyy-MM-dd');
@@ -205,27 +208,42 @@ const TripForm: React.FC<TripFormProps> = ({
       setValue('end_km', initialData.end_km || 0);
       setValue('gross_weight', initialData.gross_weight || 0);
       
-      // Handle refueling data properly
+      // Handle refueling data properly - convert old single refueling format to new array format
       const refuelings = initialData.refuelings && initialData.refuelings.length > 0 
         ? initialData.refuelings 
-        : [{
-            location: '',
-            fuel_quantity: 0,
-            fuel_rate_per_liter: 0,
-            total_fuel_cost: 0,
-            fuel_bill_url: ''
-          }];
+        : (initialData.fuel_cost || initialData.fuel_quantity || initialData.fuel_bill_url || initialData.total_fuel_cost)
+          ? [{
+              location: initialData.station || '',
+              fuel_quantity: initialData.fuel_quantity || 0,
+              fuel_rate_per_liter: initialData.fuel_rate_per_liter || 0,
+              total_fuel_cost: initialData.fuel_cost || initialData.total_fuel_cost || 0,
+              fuel_bill_url: initialData.fuel_bill_url || undefined
+            }]
+          : [{
+              location: '',
+              fuel_quantity: 0,
+              fuel_rate_per_liter: 0,
+              total_fuel_cost: 0
+            }];
       setValue('refuelings', refuelings);
       
-      // Set fuel-related fields
-      setValue('fuel_quantity', initialData.fuel_quantity || 0);
-      setValue('total_fuel_cost', initialData.total_fuel_cost || 0);
-      setValue('fuel_rate_per_liter', initialData.fuel_rate_per_liter || 0);
+      // Set fuel-related fields - prefer values from refuelings array if available, otherwise use initialData
+      const firstRefueling = refuelings && refuelings.length > 0 ? refuelings[0] : null;
+      setValue('fuel_quantity', firstRefueling?.fuel_quantity || initialData.fuel_quantity || 0);
+      setValue('total_fuel_cost', firstRefueling?.total_fuel_cost || initialData.total_fuel_cost || initialData.fuel_cost || 0);
+      setValue('fuel_rate_per_liter', firstRefueling?.fuel_rate_per_liter || initialData.fuel_rate_per_liter || 0);
       setValue('refueling_done', initialData.refueling_done || false);
-      setValue('station', initialData.station || '');
+      setValue('station', firstRefueling?.location || initialData.station || '');
       
-      // Set refueling state based on data
-      if (initialData.refueling_done || (initialData.total_fuel_cost && initialData.total_fuel_cost > 0)) {
+      // Set refueling state based on data - check both refuelings array and individual fields
+      const hasInitialFuelData = 
+        initialData.refueling_done || 
+        (initialData.total_fuel_cost && initialData.total_fuel_cost > 0) ||
+        (initialData.fuel_cost && initialData.fuel_cost > 0) ||
+        (initialData.fuel_quantity && initialData.fuel_quantity > 0) ||
+        (refuelings && refuelings.length > 0 && refuelings.some(r => r.fuel_quantity > 0 || r.total_fuel_cost > 0));
+      
+      if (hasInitialFuelData) {
         setIsRefuelingTrip(true);
         setShowRefuelingDetails(true);
       }
@@ -650,10 +668,20 @@ const TripForm: React.FC<TripFormProps> = ({
 
   // Initialize refueling state based on initial data
   useEffect(() => {
-    if (initialData?.refueling_done) {
-      setIsRefuelingTrip(true);
-      setShowRefuelingInfo(true);
-      setShowRefuelingDetails(true);
+    if (initialData) {
+      const hasInitialFuelData = 
+        initialData.refueling_done || 
+        (initialData.total_fuel_cost && initialData.total_fuel_cost > 0) ||
+        (initialData.fuel_cost && initialData.fuel_cost > 0) ||
+        (initialData.fuel_quantity && initialData.fuel_quantity > 0) ||
+        (initialData.refuelings && initialData.refuelings.length > 0 && 
+         initialData.refuelings.some((r: any) => (r.fuel_quantity && r.fuel_quantity > 0) || (r.total_fuel_cost && r.total_fuel_cost > 0)));
+      
+      if (hasInitialFuelData) {
+        setIsRefuelingTrip(true);
+        setShowRefuelingInfo(true);
+        setShowRefuelingDetails(true);
+      }
     }
   }, [initialData]);
 
@@ -1015,40 +1043,20 @@ const TripForm: React.FC<TripFormProps> = ({
     delete submitData.destination_display;
     delete submitData.toll_expense; // Database uses breakdown_expense instead
 
-    // Check for gross weight notification (non-blocking)
+    // Check for gross weight warning
     const grossWeight = data.gross_weight || 0;
-    if (grossWeight === 0 || grossWeight < 100) {
-      toast.info(
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center">
-                <Package className="h-4 w-4 text-amber-600" />
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                Gross weight not added
-              </h3>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Was the truck traveling without any load? Trip will be saved automatically.
-              </p>
-            </div>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          closeButton: false,
-          draggable: false,
-          className: "max-w-sm w-full bg-white text-gray-900 border border-amber-200 shadow-lg rounded-xl",
-          bodyClassName: "p-4",
-          icon: false,
-        }
-      );
-    }
+    const grossWeightWarning = (grossWeight === 0 || grossWeight < 100);
+    setHasGrossWeightWarning(grossWeightWarning);
+
+    // Check for expenses warning (excluding toll which is auto-calculated)
+    const hasOtherExpenses = 
+      (data.unloading_expense || 0) > 0 ||
+      (data.driver_expense || 0) > 0 ||
+      (data.road_rto_expense || 0) > 0 ||
+      (data.breakdown_expense || 0) > 0 ||
+      (data.miscellaneous_expense || 0) > 0;
+    const expensesWarning = !hasOtherExpenses;
+    setHasExpensesWarning(expensesWarning);
 
     // Check if we should show the fuel prompt
     const shouldShowFuelPrompt = 
@@ -1060,7 +1068,10 @@ const TripForm: React.FC<TripFormProps> = ({
       computedDistance >= 5 && // Suppress for very short trips
       validationError === null; // Only show if form validation passes
 
-    if (shouldShowFuelPrompt) {
+    setHasFuelWarning(shouldShowFuelPrompt);
+
+    // Show combined prompt if any warning exists
+    if (shouldShowFuelPrompt || grossWeightWarning || expensesWarning) {
       setShowFuelPrompt(true);
       return; // Don't submit yet, wait for user choice
     }
@@ -1149,6 +1160,9 @@ const TripForm: React.FC<TripFormProps> = ({
   // Fuel prompt handlers
   const handleAddFuel = useCallback(() => {
     setShowFuelPrompt(false);
+    setHasFuelWarning(false);
+    setHasGrossWeightWarning(false);
+    setHasExpensesWarning(false);
     setIsRefuelingTrip(true);
     setShowRefuelingInfo(true);
     setShowRefuelingDetails(true);
@@ -1159,6 +1173,9 @@ const TripForm: React.FC<TripFormProps> = ({
 
   const handleSaveWithoutFuel = useCallback(async (data: TripFormData) => {
     setShowFuelPrompt(false);
+    setHasFuelWarning(false);
+    setHasGrossWeightWarning(false);
+    setHasExpensesWarning(false);
     try {
       // Create submit data for saving without fuel
       const submitData: any = { 
@@ -1189,10 +1206,16 @@ const TripForm: React.FC<TripFormProps> = ({
 
   const handleDismissFuelPrompt = useCallback(() => {
     setShowFuelPrompt(false);
+    setHasFuelWarning(false);
+    setHasGrossWeightWarning(false);
+    setHasExpensesWarning(false);
   }, []);
 
   const handleConfirmSaveWithoutFuel = useCallback(async (data: TripFormData) => {
     setShowFuelPrompt(false);
+    setHasFuelWarning(false);
+    setHasGrossWeightWarning(false);
+    setHasExpensesWarning(false);
     try {
       // Create submit data for saving without fuel
       const submitData: any = { 
@@ -2190,7 +2213,7 @@ const TripForm: React.FC<TripFormProps> = ({
         loading={cascadePreview.loading}
       />
 
-      {/* Fuel Details Prompt */}
+      {/* Combined Fuel, Gross Weight, and Expenses Prompt */}
       <FuelDetailsPrompt
         isOpen={showFuelPrompt}
         onAddFuel={handleAddFuel}
@@ -2198,6 +2221,9 @@ const TripForm: React.FC<TripFormProps> = ({
         onDismiss={handleDismissFuelPrompt}
         onConfirmSave={() => handleConfirmSaveWithoutFuel(watchedValues)}
         isMobile={isMobile}
+        hasFuelWarning={hasFuelWarning}
+        hasGrossWeightWarning={hasGrossWeightWarning}
+        hasExpensesWarning={hasExpensesWarning}
       />
     </div>
   );

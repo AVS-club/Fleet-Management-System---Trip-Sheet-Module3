@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Fuel, X } from 'lucide-react';
+import { Fuel, X, Package, IndianRupee } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('FuelDetailsPrompt');
@@ -11,6 +11,9 @@ interface FuelDetailsPromptProps {
   onDismiss: () => void;
   onConfirmSave: () => void;
   isMobile: boolean;
+  hasFuelWarning?: boolean;
+  hasGrossWeightWarning?: boolean;
+  hasExpensesWarning?: boolean;
 }
 
 const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
@@ -19,7 +22,10 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
   onSaveWithoutFuel,
   onDismiss,
   onConfirmSave,
-  isMobile
+  isMobile,
+  hasFuelWarning = true,
+  hasGrossWeightWarning = false,
+  hasExpensesWarning = false
 }) => {
   const [timeLeft, setTimeLeft] = useState(3);
   const [isPaused, setIsPaused] = useState(false);
@@ -148,11 +154,43 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
             </div>
             <div className="flex-1 min-w-0">
               <h6 id="fuel-prompt-title" className="text-base font-semibold text-slate-900">
-                Add fuel details?
+                {(hasFuelWarning && hasGrossWeightWarning) || (hasFuelWarning && hasExpensesWarning) || (hasGrossWeightWarning && hasExpensesWarning) || (hasFuelWarning && hasGrossWeightWarning && hasExpensesWarning)
+                  ? 'Add missing details?' 
+                  : hasFuelWarning 
+                    ? 'Add fuel details?' 
+                    : hasGrossWeightWarning
+                      ? 'Gross weight not added'
+                      : 'Expenses not added'}
               </h6>
-              <div className="mt-1.5 text-sm text-slate-600">
-                <p>No refueling is added for this trip.</p>
-                <p>Save now or add fuel details to track mileage and cost.</p>
+              <div className="mt-1.5 text-sm text-slate-600 space-y-2">
+                {hasFuelWarning && (
+                  <div>
+                    <p>No refueling is added for this trip.</p>
+                    <p>Save now or add fuel details to track mileage and cost.</p>
+                  </div>
+                )}
+                {hasGrossWeightWarning && (
+                  <div className={hasFuelWarning ? "pt-2 border-t border-slate-200" : ""}>
+                    <div className="flex items-start gap-2">
+                      <Package className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-slate-700">Gross weight not added</p>
+                        <p className="text-xs text-slate-600 mt-0.5">Was the truck traveling without any load? Trip will be saved automatically.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {hasExpensesWarning && (
+                  <div className={(hasFuelWarning || hasGrossWeightWarning) ? "pt-2 border-t border-slate-200" : ""}>
+                    <div className="flex items-start gap-2">
+                      <IndianRupee className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-slate-700">No expenses added</p>
+                        <p className="text-xs text-slate-600 mt-0.5">Only toll expense is auto-calculated. Add unloading, driver, or other expenses to track trip costs.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -174,26 +212,31 @@ const FuelDetailsPrompt: React.FC<FuelDetailsPromptProps> = ({
 
           {/* Buttons */}
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-between">
+            {hasFuelWarning && (
+              <button
+                ref={primaryButtonRef}
+                onClick={handleAddFuel}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
+              >
+                <Fuel className="h-4 w-4 mr-2" />
+                Add Fuel Details
+              </button>
+            )}
             <button
-              ref={primaryButtonRef}
-              onClick={handleAddFuel}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-4 font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
-            >
-              <Fuel className="h-4 w-4 mr-2" />
-              Add Fuel Details
-            </button>
-            <button
+              ref={!hasFuelWarning ? primaryButtonRef : undefined}
               onClick={handleSaveWithoutFuel}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-medium text-emerald-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
+              className={`inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 font-medium text-emerald-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors ${hasFuelWarning ? '' : 'w-full sm:w-auto'}`}
             >
-              Save without fuel
+              {hasFuelWarning ? 'Save without fuel' : 'Save trip'}
             </button>
           </div>
 
           {/* Helper Text */}
-          <p className="mt-3 text-[12px] text-slate-500 text-center">
-            Adding fuel helps track vehicle efficiency & maintenance.
-          </p>
+          {hasFuelWarning && (
+            <p className="mt-3 text-[12px] text-slate-500 text-center">
+              Adding fuel helps track vehicle efficiency & maintenance.
+            </p>
+          )}
         </div>
       </div>
 
