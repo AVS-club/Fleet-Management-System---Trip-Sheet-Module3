@@ -38,8 +38,6 @@ interface MaintenanceFormData {
   status?: "open" | "in_progress" | "resolved" | "escalated" | "rework";
   priority?: "low" | "medium" | "high" | "critical";
   garage_id?: string;
-  estimated_cost?: number;
-  actual_cost?: number;
   category?: string;
 
   // Service groups
