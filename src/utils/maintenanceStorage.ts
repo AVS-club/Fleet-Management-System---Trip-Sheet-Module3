@@ -661,10 +661,11 @@ export const uploadServiceBill = async (
 
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-group${groupId || Date.now()}.${fileExt}`;
-  const filePath = `maintenance-bills/${fileName}`;
+  // Files stored directly in bucket root, no subfolder
+  const filePath = fileName;
 
   const { error: uploadError } = await supabase.storage
-    .from("maintenance")
+    .from("maintenance-bills")  // ✅ FIXED: Use new bucket
     .upload(filePath, file, {
       upsert: true,
       contentType: file.type,
@@ -675,7 +676,9 @@ export const uploadServiceBill = async (
     return null;
   }
 
-  const { data } = supabase.storage.from("maintenance").getPublicUrl(filePath);
+  const { data } = supabase.storage
+    .from("maintenance-bills")  // ✅ FIXED: Use new bucket
+    .getPublicUrl(filePath);
 
   return data.publicUrl;
 };
