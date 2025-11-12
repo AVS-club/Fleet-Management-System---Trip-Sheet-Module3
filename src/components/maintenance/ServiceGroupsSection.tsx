@@ -926,8 +926,7 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
       tasks: [],
       cost: 0,
       notes: '',
-      bills: [],
-      parts: []
+      bills: []
     };
     onChange([...serviceGroups, newGroup]);
   };
@@ -1010,6 +1009,47 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
 };
 
 /**
+ * Converts vendor name to vendor UUID by looking up in the database
+ */
+const convertVendorNameToId = async (vendorName: string): Promise<string> => {
+  if (!vendorName) return '';
+
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      logger.error('[convertVendorNameToId] No user ID found');
+      return '';
+    }
+
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      logger.error('[convertVendorNameToId] No organization found');
+      return '';
+    }
+
+    // Query vendors table to find vendor by name
+    const { data, error } = await supabase
+      .from('maintenance_vendors')
+      .select('id')
+      .eq('vendor_name', vendorName)
+      .eq('organization_id', organizationId)
+      .eq('active', true)
+      .single();
+
+    if (error || !data) {
+      logger.warn(`[convertVendorNameToId] Could not find vendor ID for name: "${vendorName}"`, error);
+      return '';
+    }
+
+    logger.debug(`[convertVendorNameToId] Converted vendor name "${vendorName}" to ID: ${data.id}`);
+    return data.id;
+  } catch (error) {
+    logger.error('[convertVendorNameToId] Error:', error);
+    return '';
+  }
+};
+
+/**
  * Converts service groups with task names to service groups with task IDs
  * Call this function before submitting the form
  */
@@ -1025,15 +1065,19 @@ export const convertServiceGroupsToDatabase = async (
   const convertedGroups = await Promise.all(
     serviceGroups.map(async (group, index) => {
       logger.debug(`[Group ${index}] Input group:`, group);
-      logger.debug(`[Group ${index}] Vendor value:`, group.vendor);
+      logger.debug(`[Group ${index}] Vendor name:`, group.vendor);
       logger.debug(`[Group ${index}] Tasks:`, group.tasks);
 
       // Convert task names to IDs
       const taskIds = await convertTaskNamesToIds(group.tasks || []);
       logger.debug(`[Group ${index}] Converted task IDs:`, taskIds);
 
-      const converted = {
-        vendor_id: group.vendor || '',
+      // Convert vendor name to vendor UUID
+      const vendorId = await convertVendorNameToId(group.vendor);
+      logger.debug(`[Group ${index}] Converted vendor ID:`, vendorId);
+
+      const converted: any = {
+        vendor_id: vendorId, // Now contains vendor UUID
         tasks: taskIds, // Now contains UUIDs
         service_cost: group.cost || 0, // ✅ FIX: Map 'cost' to 'service_cost' for database
         service_type: group.serviceType || '',
@@ -1041,12 +1085,27 @@ export const convertServiceGroupsToDatabase = async (
         bill_url: group.bill_url || [],
         battery_warranty_url: group.battery_warranty_url || [],
         tyre_warranty_url: group.tyre_warranty_url || [],
-        // ✅ FIX: Convert camelCase to snake_case for JSONB fields
-        parts_data: group.partsData || [],
-        // Deprecated fields - keep null for backward compatibility
-        battery_data: null,
-        tyre_data: null,
+        parts_data: group.partsData || [], // Fixed: database column is parts_data (snake_case)
       };
+
+      // Map battery data to JSONB if present
+      if (group.batteryData && group.batteryData.serialNumber) {
+        converted.battery_data = {
+          serialNumber: group.batteryData.serialNumber,
+          brand: group.batteryData.brand || '',
+        };
+        logger.debug(`[Group ${index}] Added battery_data JSONB:`, converted.battery_data);
+      }
+
+      // Map tyre data to JSONB if present
+      if (group.tyreData && group.tyreData.positions && group.tyreData.positions.length > 0) {
+        converted.tyre_data = {
+          positions: group.tyreData.positions,
+          brand: group.tyreData.brand || '',
+          serialNumbers: group.tyreData.serialNumbers || '',
+        };
+        logger.debug(`[Group ${index}] Added tyre_data JSONB:`, converted.tyre_data);
+      }
 
       logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
 
