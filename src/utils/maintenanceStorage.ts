@@ -965,9 +965,30 @@ export const uploadOdometerImage = async (
 ): Promise<string | null> => {
   if (!file) return null;
 
+  // Get organization ID for multi-tenant file storage
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    logger.error("User not authenticated for odometer upload");
+    return null;
+  }
+
+  const organizationId = await getUserActiveOrganization(userId);
+  if (!organizationId) {
+    logger.error("No organization found for odometer upload");
+    return null;
+  }
+
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-odometer.${fileExt}`;
-  const filePath = fileName;
+  // Path structure required by RLS policy: {org-id}/tasks/{task-id}/odometer/{filename}
+  const filePath = `${organizationId}/tasks/${taskId}/odometer/${fileName}`;
+
+  logger.debug('📤 Uploading odometer image:', {
+    organizationId,
+    taskId,
+    fileName,
+    filePath
+  });
 
   const { error: uploadError } = await supabase.storage
     .from("maintenance-bills")
@@ -996,9 +1017,31 @@ export const uploadSupportingDocument = async (
 ): Promise<string | null> => {
   if (!file) return null;
 
+  // Get organization ID for multi-tenant file storage
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    logger.error("User not authenticated for supporting document upload");
+    return null;
+  }
+
+  const organizationId = await getUserActiveOrganization(userId);
+  if (!organizationId) {
+    logger.error("No organization found for supporting document upload");
+    return null;
+  }
+
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-document-${index}.${fileExt}`;
-  const filePath = fileName;
+  // Path structure required by RLS policy: {org-id}/tasks/{task-id}/documents/{filename}
+  const filePath = `${organizationId}/tasks/${taskId}/documents/${fileName}`;
+
+  logger.debug('📤 Uploading supporting document:', {
+    organizationId,
+    taskId,
+    index,
+    fileName,
+    filePath
+  });
 
   const { error: uploadError } = await supabase.storage
     .from("maintenance-bills")
