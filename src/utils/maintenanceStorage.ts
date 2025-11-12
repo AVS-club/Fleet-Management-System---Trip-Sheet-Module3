@@ -513,7 +513,8 @@ export const createTask = async (
 
         const { data: insertResult, error: insertError} = await supabase
           .from("maintenance_service_tasks")
-          .insert(serviceGroupsWithTaskId);
+          .insert(serviceGroupsWithTaskId)
+          .select();
 
         console.log('📤 DEBUG: Insert response - data:', insertResult, 'error:', insertError);
 
