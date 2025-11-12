@@ -715,7 +715,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
 
   // Calculate total expenditure from service groups
   const total_expenditure = Array.isArray(serviceGroups)
-    ? serviceGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+    ? serviceGroups.reduce((sum, group) => sum + (group.service_cost || group.cost || 0), 0)
     : 0; // No service groups = no cost data
 
   // Calculate monthly expenses
@@ -730,7 +730,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
 
     const taskCost =
       taskGroups.length > 0
-        ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+        ? taskGroups.reduce((sum, group) => sum + (group.service_cost || group.cost || 0), 0)
         : 0; // No service groups = no cost data
 
     acc[monthKey] = (acc[monthKey] || 0) + taskCost;
@@ -753,7 +753,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
 
     const taskCost =
       taskGroups.length > 0
-        ? taskGroups.reduce((sum, group) => sum + (group.cost || 0), 0)
+        ? taskGroups.reduce((sum, group) => sum + (group.service_cost || group.cost || 0), 0)
         : 0; // No service groups = no cost data
 
     acc[task.vehicle_id] = (acc[task.vehicle_id] || 0) + taskCost;
@@ -765,7 +765,7 @@ const getMaintenanceStats = async (): Promise<MaintenanceStats> => {
     ? serviceGroups.reduce((acc, group) => {
         if (group.vendor_id) {
           acc[group.vendor_id] =
-            (acc[group.vendor_id] || 0) + (group.cost || 0);
+            (acc[group.vendor_id] || 0) + (group.service_cost || group.cost || 0);
         }
         return acc;
       }, {} as Record<string, number>)

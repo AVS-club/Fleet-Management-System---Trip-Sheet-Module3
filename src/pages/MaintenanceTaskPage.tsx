@@ -805,9 +805,9 @@ const MaintenanceTaskPage: React.FC = () => {
                               </span>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500 mb-1">Cost:</p>
+                              <p className="text-xs text-gray-500 mb-1">Service Cost:</p>
                               <span className="text-lg font-semibold text-gray-900">
-                                ₹{(group.cost || 0).toLocaleString()}
+                                ₹{(group.service_cost || group.cost || 0).toLocaleString()}
                               </span>
                             </div>
                           </div>
