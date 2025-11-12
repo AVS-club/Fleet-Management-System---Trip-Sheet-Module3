@@ -1079,8 +1079,7 @@ export const convertServiceGroupsToDatabase = async (
       const converted: any = {
         vendor_id: vendorId, // Now contains vendor UUID
         tasks: taskIds, // Now contains UUIDs
-        cost: group.cost || 0, // ✅ BACKWARD COMPATIBILITY: Send 'cost' for old schema
-        service_cost: group.cost || 0, // ✅ NEW SCHEMA: Send 'service_cost' for new schema
+        service_cost: group.cost || 0, // ✅ FIX: Map 'cost' to 'service_cost' for database
         service_type: group.serviceType || '',
         notes: group.notes || '',
         bill_url: group.bill_url || [],
