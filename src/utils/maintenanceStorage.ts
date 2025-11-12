@@ -498,9 +498,13 @@ export const createTask = async (
         console.groupEnd();
         // ========================================
 
+        console.log('🔄 DEBUG: Attempting insert with data:', JSON.stringify(serviceGroupsWithTaskId, null, 2));
+
         const { data: insertResult, error: insertError } = await supabase
           .from("maintenance_service_tasks")
           .insert(serviceGroupsWithTaskId);
+
+        console.log('📤 DEBUG: Insert response - data:', insertResult, 'error:', insertError);
 
         if (insertError) {
           console.error('❌ DEBUG: Insert failed with error:', insertError);
@@ -508,7 +512,12 @@ export const createTask = async (
           console.error('❌ DEBUG: Error message:', insertError.message);
           console.error('❌ DEBUG: Error details:', insertError.details);
           console.error('❌ DEBUG: Error hint:', insertError.hint);
+          console.error('❌ DEBUG: Full error object:', JSON.stringify(insertError, null, 2));
           throw insertError;
+        }
+
+        if (!insertResult || insertResult.length === 0) {
+          console.warn('⚠️ DEBUG: Insert returned no data but no error - might be RLS blocking');
         }
 
         console.log('✅ DEBUG: Insert successful:', insertResult);
