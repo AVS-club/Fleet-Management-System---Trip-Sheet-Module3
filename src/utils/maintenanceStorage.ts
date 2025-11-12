@@ -243,35 +243,17 @@ export const createTask = async (
       console.log('📝 Notes:', group.notes, `(length: ${group.notes?.length || 0})`);
       console.log('📄 Bill Files:', group.bill_file, Array.isArray(group.bill_file) ? `(${group.bill_file.length} files)` : typeof group.bill_file);
 
-      if (group.batteryData || group.battery_tracking) {
-        console.group('🔋 Battery Data');
-        console.log('Tracking:', group.battery_tracking || false);
-        console.log('Serial:', group.batteryData?.serialNumber || group.battery_serial || '(not set)');
-        console.log('Brand:', group.batteryData?.brand || group.battery_brand || '(not set)');
-        console.log('Warranty Files:', group.battery_warranty_file, Array.isArray(group.battery_warranty_file) ? `(${group.battery_warranty_file.length} files)` : typeof group.battery_warranty_file);
-        console.groupEnd();
-      }
-
-      if (group.tyreData || group.tyre_tracking) {
-        console.group('🛞 Tyre Data');
-        console.log('Tracking:', group.tyre_tracking || false);
-        console.log('Positions:', group.tyreData?.positions || group.tyre_positions || [], Array.isArray(group.tyreData?.positions) ? `(${group.tyreData.positions.length} selected)` : '(not array)');
-        console.log('Brand:', group.tyreData?.brand || group.tyre_brand || '(not set)');
-        console.log('Serials:', group.tyreData?.serialNumbers || group.tyre_serials || '(not set)');
-        console.log('Warranty Files:', group.tyre_warranty_file, Array.isArray(group.tyre_warranty_file) ? `(${group.tyre_warranty_file.length} files)` : typeof group.tyre_warranty_file);
-        console.groupEnd();
-      }
-
-      if (group.partsData && Array.isArray(group.partsData) && group.partsData.length > 0) {
+      if (group.parts && Array.isArray(group.parts) && group.parts.length > 0) {
         console.group('🔩 Parts Data');
-        console.log('Parts Count:', group.partsData.length);
-        group.partsData.forEach((part: any, pIdx: number) => {
+        console.log('Parts Count:', group.parts.length);
+        group.parts.forEach((part: any, pIdx: number) => {
           console.log(`Part ${pIdx + 1}:`, {
             type: part.partType,
             name: part.partName,
             brand: part.brand,
             serial: part.serialNumber,
-            quantity: part.quantity
+            quantity: part.quantity,
+            warranty: part.warrantyPeriod || '(none)'
           });
         });
         console.groupEnd();
@@ -485,30 +467,6 @@ export const createTask = async (
           console.log('📄 bill_url:', group.bill_url);
           console.log('   ├─ Type:', Array.isArray(group.bill_url) ? '✅ array' : `❌ ${typeof group.bill_url} (should be array!)`);
           console.log('   └─ Count:', Array.isArray(group.bill_url) ? group.bill_url.length : 'NOT AN ARRAY');
-
-          console.log('🔋 battery_warranty_url:', Array.isArray(group.battery_warranty_url) ? `✅ array (${group.battery_warranty_url.length})` : `❌ ${typeof group.battery_warranty_url}`);
-          console.log('🛞 tyre_warranty_url:', Array.isArray(group.tyre_warranty_url) ? `✅ array (${group.tyre_warranty_url.length})` : `❌ ${typeof group.tyre_warranty_url}`);
-
-          if (group.battery_data) {
-            console.group('🔋 battery_data (JSONB)');
-            console.log('Serial:', group.battery_data.serialNumber);
-            console.log('Brand:', group.battery_data.brand);
-            console.log('Type:', typeof group.battery_data);
-            console.groupEnd();
-          } else {
-            console.log('🔋 battery_data: (none)');
-          }
-
-          if (group.tyre_data) {
-            console.group('🛞 tyre_data (JSONB)');
-            console.log('Positions:', group.tyre_data.positions, Array.isArray(group.tyre_data.positions) ? `✅ array (${group.tyre_data.positions.length})` : '❌ not array');
-            console.log('Brand:', group.tyre_data.brand);
-            console.log('Serials:', group.tyre_data.serialNumbers);
-            console.log('Type:', typeof group.tyre_data);
-            console.groupEnd();
-          } else {
-            console.log('🛞 tyre_data: (none)');
-          }
 
           if (group.parts_data && Array.isArray(group.parts_data) && group.parts_data.length > 0) {
             console.group('🔩 parts_data (JSONB Array)');
