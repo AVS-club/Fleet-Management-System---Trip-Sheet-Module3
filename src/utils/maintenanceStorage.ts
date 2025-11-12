@@ -397,6 +397,7 @@ export const createTask = async (
               batteryData,
               tyreData,
               partsData,
+              parts_data, // Remove 'parts_data' field - will be sanitized and re-added below
               serviceType,
               bills, // Remove 'bills' field (used in UI, not in DB)
               batteryWarrantyFiles, // Remove file arrays from UI
@@ -436,8 +437,10 @@ export const createTask = async (
             }
 
             // Map parts data to JSONB if present - SANITIZE UI-only fields
-            if (partsData && Array.isArray(partsData) && partsData.length > 0) {
-              dbGroup.parts_data = partsData.map(part => ({
+            // Handle both 'parts_data' (from UI) and 'partsData' (legacy)
+            const rawPartsData = parts_data || partsData;
+            if (rawPartsData && Array.isArray(rawPartsData) && rawPartsData.length > 0) {
+              dbGroup.parts_data = rawPartsData.map(part => ({
                 partType: part.partType,
                 partName: part.partName,
                 brand: part.brand,
@@ -705,6 +708,7 @@ export const updateTask = async (
               batteryData,
               tyreData,
               partsData,
+              parts_data, // Remove 'parts_data' field - will be sanitized and re-added below
               serviceType,
               bills, // Remove 'bills' field (used in UI, not in DB)
               batteryWarrantyFiles, // Remove file arrays from UI
@@ -744,8 +748,10 @@ export const updateTask = async (
             }
 
             // Map parts data to JSONB if present - SANITIZE UI-only fields
-            if (partsData && Array.isArray(partsData) && partsData.length > 0) {
-              dbGroup.parts_data = partsData.map(part => ({
+            // Handle both 'parts_data' (from UI) and 'partsData' (legacy)
+            const rawPartsData = parts_data || partsData;
+            if (rawPartsData && Array.isArray(rawPartsData) && rawPartsData.length > 0) {
+              dbGroup.parts_data = rawPartsData.map(part => ({
                 partType: part.partType,
                 partName: part.partName,
                 brand: part.brand,
