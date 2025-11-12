@@ -459,9 +459,17 @@ const DriversPage: React.FC = () => {
           toast.error("Failed to create driver");
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error saving driver:", error);
-      toast.error(`Failed to ${editingDriver ? "update" : "add"} driver`);
+      
+      // Handle specific error cases with user-friendly messages
+      if (error?.code === '23505' && error?.message?.includes('license_number')) {
+        toast.error(`A driver with license number "${data.license_number}" already exists. Please use a different license number.`);
+      } else if (error?.code === '22P02') {
+        toast.error('Invalid data format. Please check all fields and try again.');
+      } else {
+        toast.error(`Failed to ${editingDriver ? "update" : "add"} driver. ${error?.message || ''}`);
+      }
     } finally {
       setIsSubmitting(false);
     }

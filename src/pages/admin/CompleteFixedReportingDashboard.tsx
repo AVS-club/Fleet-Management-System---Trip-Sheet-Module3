@@ -188,11 +188,11 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       // Get maintenance data
       const { data: maintenance } = await supabase
         .from('maintenance_tasks')
-        .select('actual_cost, status')
+        .select('total_cost, status')
         .gte('start_date', dateRange.startDate.toISOString())
         .lte('start_date', dateRange.endDate.toISOString());
 
-      const maintenanceCosts = maintenance?.reduce((sum, m) => sum + (m.actual_cost || 0), 0) || 0;
+      const maintenanceCosts = maintenance?.reduce((sum, m) => sum + (m.total_cost || 0), 0) || 0;
       const pendingMaintenance = maintenance?.filter(m => m.status === 'open').length || 0;
 
       setMetrics({

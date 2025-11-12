@@ -59,7 +59,8 @@ export interface MaintenanceTask {
   priority: "low" | "medium" | "high";
   vendor_id?: string; // Optional vendor ID for backward compatibility
   garage_id?: string; // Making this optional as we'll use vendor_id from service groups
-  total_cost?: number; // Sum of all service_cost from service_groups (auto-calculated)
+  estimated_cost?: number;
+  total_cost?: number;
   bills: MaintenanceBill[];
   complaint_description?: string;
   resolution_summary?: string;

@@ -85,8 +85,8 @@
             <p className="text-gray-900">₹{task.estimated_cost?.toLocaleString() || '0'}</p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Actual Cost</h3>
-            <p className="text-gray-900">₹{task.actual_cost?.toLocaleString() || '0'}</p>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Total Cost</h3>
+            <p className="text-gray-900">₹{task.total_cost?.toLocaleString() || '0'}</p>
           </div>
         </div>
       </div>
