@@ -408,6 +408,10 @@ export const createTask = async (
               ...groupWithoutFiles
             } = group;
 
+            console.log('🔍 DEBUG: groupWithoutFiles keys:', Object.keys(groupWithoutFiles));
+            console.log('🔍 DEBUG: groupWithoutFiles.maintenance_task_id:', groupWithoutFiles.maintenance_task_id);
+            console.log('🔍 DEBUG: data.id (should be maintenance_task_id):', data.id);
+
             const dbGroup: any = {
               ...groupWithoutFiles,
               maintenance_task_id: data.id,
@@ -418,6 +422,8 @@ export const createTask = async (
               battery_warranty_url: battery_warranty_urls,
               tyre_warranty_url: tyre_warranty_urls,
             };
+
+            console.log('🔍 DEBUG: dbGroup.maintenance_task_id after construction:', dbGroup.maintenance_task_id);
 
             // Map battery data to JSONB if present
             if (batteryData && batteryData.serialNumber) {
@@ -500,7 +506,12 @@ export const createTask = async (
 
         console.log('🔄 DEBUG: Attempting insert with data:', JSON.stringify(serviceGroupsWithTaskId, null, 2));
 
-        const { data: insertResult, error: insertError } = await supabase
+        // CRITICAL DEBUG: Check each object for maintenance_task_id
+        serviceGroupsWithTaskId.forEach((g, i) => {
+          console.log(`Group ${i} maintenance_task_id:`, g.maintenance_task_id, 'keys:', Object.keys(g));
+        });
+
+        const { data: insertResult, error: insertError} = await supabase
           .from("maintenance_service_tasks")
           .insert(serviceGroupsWithTaskId);
 
