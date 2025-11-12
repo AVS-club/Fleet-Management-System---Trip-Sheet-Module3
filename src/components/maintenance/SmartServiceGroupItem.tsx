@@ -520,8 +520,9 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
               <div className="border border-gray-300 rounded-md p-2">
                 <input
                   type="file"
-                  {...register(`service_groups.${index}.batteryWarrantyFiles`)}
+                  {...register(`service_groups.${index}.battery_warranty_file`)}
                   accept=".jpg,.jpeg,.png,.pdf"
+                  multiple
                   className="w-full text-xs"
                 />
                 <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (max 10MB)</p>
@@ -623,8 +624,9 @@ const SmartServiceGroupItem: React.FC<SmartServiceGroupItemProps> = ({
                 <div className="border border-gray-300 rounded-md p-2">
                   <input
                     type="file"
-                    {...register(`service_groups.${index}.tyreWarrantyFiles`)}
+                    {...register(`service_groups.${index}.tyre_warranty_file`)}
                     accept=".jpg,.jpeg,.png,.pdf"
+                    multiple
                     className="w-full text-xs"
                   />
                   <p className="text-xs text-gray-500 mt-1">JPG, PNG, PDF (max 10MB)</p>

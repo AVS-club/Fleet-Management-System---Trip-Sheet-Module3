@@ -1086,6 +1086,10 @@ export const convertServiceGroupsToDatabase = async (
         battery_warranty_url: group.battery_warranty_url || [],
         tyre_warranty_url: group.tyre_warranty_url || [],
         parts_data: group.partsData || [], // Fixed: database column is parts_data (snake_case)
+        // Pass File objects for upload
+        bill_file: group.bill_file || [],
+        battery_warranty_file: group.battery_warranty_file || [],
+        tyre_warranty_file: group.tyre_warranty_file || [],
       };
 
       // Map battery data to JSONB if present
