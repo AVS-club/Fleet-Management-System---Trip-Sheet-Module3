@@ -703,7 +703,7 @@ const MaintenanceTaskPage: React.FC = () => {
                         <strong>Estimated Cost:</strong> {task.estimated_cost || 'NULL/Empty'}
                       </div>
                       <div className="bg-white p-3 rounded border">
-                        <strong>Actual Cost:</strong> {task.actual_cost || 'NULL/Empty'}
+                        <strong>Total Cost:</strong> {task.total_cost || 'NULL/Empty'}
                       </div>
                       <div className="bg-white p-3 rounded border">
                         <strong>Service Groups Count:</strong> {task.service_groups?.length || 0}

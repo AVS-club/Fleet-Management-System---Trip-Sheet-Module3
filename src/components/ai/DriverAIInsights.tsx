@@ -61,7 +61,7 @@ const DriverAIInsights: React.FC<DriverAIInsightsProps> = ({
 
     const fleetAvgMaintenanceCost = maintenanceTasks.length > 0
       ? maintenanceTasks.reduce(
-          (sum, t) => sum + (t.actual_cost || t.estimated_cost || 0),
+          (sum, t) => sum + (t.total_cost || t.estimated_cost || 0),
           0
         ) / maintenanceTasks.length
       : 0;

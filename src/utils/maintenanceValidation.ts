@@ -60,8 +60,8 @@ export const validateMaintenanceTask = (
     errors.estimated_cost = 'Estimated cost cannot be negative';
   }
 
-  if (data.actual_cost !== undefined && data.actual_cost < 0) {
-    errors.actual_cost = 'Actual cost cannot be negative';
+  if (data.total_cost !== undefined && data.total_cost < 0) {
+    errors.total_cost = 'Actual cost cannot be negative';
   }
 
   // Downtime validation
@@ -189,12 +189,12 @@ export const validateOdometerReading = (
  * Validates cost values
  *
  * @param estimatedCost - Estimated cost
- * @param actualCost - Actual cost
+ * @param totalCost - Actual cost
  * @returns Validation result
  */
 export const validateCosts = (
   estimatedCost?: number,
-  actualCost?: number
+  totalCost?: number
 ): ValidationResult => {
   const errors: Record<string, string> = {};
   const warnings: string[] = [];
@@ -203,27 +203,27 @@ export const validateCosts = (
     errors.estimated_cost = 'Estimated cost cannot be negative';
   }
 
-  if (actualCost !== undefined && actualCost < 0) {
-    errors.actual_cost = 'Actual cost cannot be negative';
+  if (totalCost !== undefined && totalCost < 0) {
+    errors.total_cost = 'Actual cost cannot be negative';
   }
 
   // Check if actual cost significantly exceeds estimated cost
   if (
     estimatedCost !== undefined &&
-    actualCost !== undefined &&
+    totalCost !== undefined &&
     estimatedCost > 0 &&
-    actualCost > estimatedCost * 1.5
+    totalCost > estimatedCost * 1.5
   ) {
-    const percentage = ((actualCost - estimatedCost) / estimatedCost) * 100;
+    const percentage = ((totalCost - estimatedCost) / estimatedCost) * 100;
     warnings.push(
       `Actual cost is ${percentage.toFixed(0)}% higher than estimated cost`
     );
   }
 
   // Check for unrealistic costs
-  if (actualCost !== undefined && actualCost > 1000000) {
+  if (totalCost !== undefined && totalCost > 1000000) {
     warnings.push(
-      `Cost of ₹${actualCost.toLocaleString()} seems very high. Please verify.`
+      `Cost of ₹${totalCost.toLocaleString()} seems very high. Please verify.`
     );
   }
 
@@ -369,7 +369,7 @@ export const validateMaintenanceTaskComplete = (
   }
 
   // Cost validation
-  const costValidation = validateCosts(data.estimated_cost, data.actual_cost);
+  const costValidation = validateCosts(data.estimated_cost, data.total_cost);
   Object.assign(allErrors, costValidation.errors);
   if (costValidation.warnings) {
     allWarnings.push(...costValidation.warnings);

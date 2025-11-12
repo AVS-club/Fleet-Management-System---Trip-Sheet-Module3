@@ -570,7 +570,7 @@ export const getPartsHealthMetrics = (
           partReplacements[partId].push({
             vehicleId: task.vehicle_id,
             date: task.start_date,
-            cost: task.actual_cost || task.estimated_cost || 0,
+            cost: task.total_cost || task.estimated_cost || 0,
             odometerReading: task.odometer_reading,
             brand: undefined,
             warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
@@ -588,7 +588,7 @@ export const getPartsHealthMetrics = (
         partReplacements[partId].push({
           vehicleId: task.vehicle_id,
           date: task.start_date,
-          cost: task.actual_cost || task.estimated_cost || 0,
+          cost: task.total_cost || task.estimated_cost || 0,
           odometerReading: task.odometer_reading,
           brand: undefined,
           warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
