@@ -153,13 +153,19 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
 export const createTask = async (
   task: Omit<MaintenanceTask, "id" | "created_at" | "updated_at">
 ): Promise<MaintenanceTask | null> => {
-  // Extract service groups to handle separately
-  const { service_groups, ...taskData } = task as any;
+  // Extract service groups and cost fields to handle separately
+  const { service_groups, estimated_cost, total_cost, ...taskData } = task as any;
 
   // Make sure start_date is not empty string
   if (taskData.start_date === "") {
     logger.error("Empty start_date detected in createTask");
     throw new Error("Start date cannot be empty");
+  }
+
+  // Make sure end_date is not empty string - if empty, use start_date
+  if (taskData.end_date === "" || !taskData.end_date) {
+    logger.warn("Empty or missing end_date detected, using start_date as fallback");
+    taskData.end_date = taskData.start_date;
   }
 
   // If garage_id is not provided, use vendor_id from the first service group
@@ -212,8 +218,7 @@ export const createTask = async (
   console.log('✅ Status:', payload.status);
   console.log('✅ Priority:', payload.priority);
   console.log('✅ Garage ID:', payload.garage_id);
-  console.log('💰 Estimated Cost:', payload.estimated_cost, typeof payload.estimated_cost);
-  console.log('💰 Actual Cost:', payload.actual_cost, typeof payload.actual_cost);
+  console.log('💰 Cost Note: estimated_cost and total_cost excluded (DB auto-calculates total_cost)');
   console.log('📅 Start Date:', payload.start_date);
   console.log('📅 End Date:', payload.end_date);
   console.log('⏱️ Downtime Days:', payload.downtime_days, typeof payload.downtime_days);
@@ -901,10 +906,32 @@ export const uploadServiceBill = async (
 ): Promise<string | null> => {
   if (!file) return null;
 
+  // Get organization ID for multi-tenant file storage
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    logger.error("User not authenticated for file upload");
+    return null;
+  }
+
+  const organizationId = await getUserActiveOrganization(userId);
+  if (!organizationId) {
+    logger.error("No organization found for file upload");
+    return null;
+  }
+
   const fileExt = file.name.split(".").pop();
   const fileName = `${taskId}-group${groupId || Date.now()}.${fileExt}`;
-  // Files stored directly in bucket root, no subfolder
-  const filePath = fileName;
+  // Path structure required by RLS policy: {org-id}/tasks/{task-id}/bills/{filename}
+  const filePath = `${organizationId}/tasks/${taskId}/bills/${fileName}`;
+
+  logger.debug('📤 Attempting to upload service bill:', {
+    bucketId: 'maintenance-bills',
+    organizationId: organizationId,
+    fileName: fileName,
+    filePath: filePath,
+    fileSize: file.size,
+    fileType: file.type
+  });
 
   const { error: uploadError } = await supabase.storage
     .from("maintenance-bills")  // ✅ FIXED: Use new bucket
@@ -914,6 +941,12 @@ export const uploadServiceBill = async (
     });
 
   if (uploadError) {
+    logger.error('❌ Storage upload failed:', {
+      error: uploadError,
+      message: uploadError.message,
+      statusCode: (uploadError as any).statusCode,
+      details: uploadError
+    });
     handleSupabaseError('upload service bill', uploadError);
     return null;
   }
