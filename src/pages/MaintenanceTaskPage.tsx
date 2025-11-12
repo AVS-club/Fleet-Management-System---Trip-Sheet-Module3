@@ -955,6 +955,51 @@ const MaintenanceTaskPage: React.FC = () => {
                               </div>
                             </div>
                           )}
+
+                          {/* Part Details */}
+                          {group.parts_data && group.parts_data.length > 0 && (
+                            <div className="mt-4">
+                              <p className="text-xs text-gray-500 mb-2 font-semibold">Parts Details ({group.parts_data.length}):</p>
+                              <div className="space-y-3">
+                                {group.parts_data.map((part: any, partIdx: number) => (
+                                  <div key={partIdx} className="bg-white border border-gray-200 rounded-lg p-3">
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      <div>
+                                        <span className="text-gray-500">Type:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.partType || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Name:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.partName || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Brand:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.brand || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Serial #:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.serialNumber || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Quantity:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.quantity || 'N/A'}</span>
+                                      </div>
+                                      <div>
+                                        <span className="text-gray-500">Warranty:</span>
+                                        <span className="ml-2 font-medium text-gray-900">{part.warrantyPeriod || 'None'}</span>
+                                      </div>
+                                      {part.tyrePositions && part.tyrePositions.length > 0 && (
+                                        <div className="col-span-2">
+                                          <span className="text-gray-500">Positions:</span>
+                                          <span className="ml-2 font-medium text-gray-900">{part.tyrePositions.join(', ')}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
