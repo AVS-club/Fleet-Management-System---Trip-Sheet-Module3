@@ -195,7 +195,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                       <DollarSign className="h-4 w-4" />
                       <span>{formatCurrency(
                         task.total_cost ??
-                        task.service_groups?.reduce((sum, group) => sum + (Number(group.service_cost || group.cost) || 0), 0) || 0
+                        (task.service_groups?.reduce((sum, group) => sum + (Number(group.service_cost || group.cost) || 0), 0) || 0)
                       )}</span>
                     </div>
 
