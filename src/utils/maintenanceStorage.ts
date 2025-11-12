@@ -338,7 +338,7 @@ export const createTask = async (
   if (data && taskData.odometer_image && Array.isArray(taskData.odometer_image) && taskData.odometer_image.length > 0) {
     try {
       const compressedImage = await compressImageForUpload(taskData.odometer_image[0]);
-      const odometerImageUrl = await uploadServiceBill(compressedImage, data.id, 'odometer');
+      const odometerImageUrl = await uploadOdometerImage(compressedImage, data.id);
       
       if (odometerImageUrl) {
         await supabase
@@ -608,7 +608,7 @@ export const updateTask = async (
   if (updateData.odometer_image && Array.isArray(updateData.odometer_image) && updateData.odometer_image.length > 0) {
     // Compress image before upload to prevent main thread blocking
     const compressedImage = await compressImageForUpload(updateData.odometer_image[0]);
-    odometerImageUrl = await uploadServiceBill(compressedImage, id, 'odometer');
+    odometerImageUrl = await uploadOdometerImage(compressedImage, id);
   }
 
   // Update the task
@@ -920,6 +920,67 @@ export const uploadServiceBill = async (
 
   const { data } = supabase.storage
     .from("maintenance-bills")  // ✅ FIXED: Use new bucket
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+// Upload odometer image
+export const uploadOdometerImage = async (
+  file: File,
+  taskId: string
+): Promise<string | null> => {
+  if (!file) return null;
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${taskId}-odometer.${fileExt}`;
+  const filePath = fileName;
+
+  const { error: uploadError } = await supabase.storage
+    .from("maintenance-bills")
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+
+  if (uploadError) {
+    handleSupabaseError('upload odometer image', uploadError);
+    return null;
+  }
+
+  const { data } = supabase.storage
+    .from("maintenance-bills")
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+// Upload supporting document
+export const uploadSupportingDocument = async (
+  file: File,
+  taskId: string,
+  index: number
+): Promise<string | null> => {
+  if (!file) return null;
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${taskId}-document-${index}.${fileExt}`;
+  const filePath = fileName;
+
+  const { error: uploadError } = await supabase.storage
+    .from("maintenance-bills")
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+
+  if (uploadError) {
+    handleSupabaseError('upload supporting document', uploadError);
+    return null;
+  }
+
+  const { data } = supabase.storage
+    .from("maintenance-bills")
     .getPublicUrl(filePath);
 
   return data.publicUrl;
