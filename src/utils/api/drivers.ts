@@ -222,9 +222,28 @@ export const createDriver = async (driverData: Omit<Driver, 'id'>): Promise<Driv
 
 export const updateDriver = async (id: string, updates: Partial<Driver>): Promise<Driver | null> => {
   try {
+    // Remove file fields that shouldn't be sent to the database
+    const payload = { ...updates };
+    for (const k of Object.keys(payload)) {
+      if (k.endsWith('_file')) {
+        delete payload[k];
+      }
+    }
+
+    // Convert empty strings to null (especially important for UUID fields)
+    for (const key in payload) {
+      if (typeof payload[key] === 'string' && payload[key].trim() === '') {
+        payload[key] = null;
+      }
+    }
+
+    // Filter out undefined values
     const cleanUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, value]) => value !== undefined)
+      Object.entries(payload).filter(([_, value]) => value !== undefined)
     );
+
+    // Debug: Log the payload before sending
+    logger.debug('Driver update payload:', cleanUpdates);
 
     const { data, error } = await supabase
       .from('drivers')
@@ -234,6 +253,13 @@ export const updateDriver = async (id: string, updates: Partial<Driver>): Promis
       .single();
 
     if (error) {
+      logger.error('Supabase driver update error:', error);
+      logger.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       handleSupabaseError('update driver', error);
       throw error;
     }

@@ -498,9 +498,18 @@ const DriverPage: React.FC = () => {
       toast.success("Driver updated successfully");
       setIsEditing(false);
       await fetchDriverData();
-    } catch (error) {
+    } catch (error: any) {
       logger.error("Error updating driver:", error);
-      toast.error("Failed to update driver");
+      
+      // Handle specific error cases with user-friendly messages
+      if (error?.code === '23505' && error?.message?.includes('license_number')) {
+        const licenseNumber = data.license_number || driver?.license_number || 'this license number';
+        toast.error(`A driver with license number "${licenseNumber}" already exists. Please use a different license number.`);
+      } else if (error?.code === '22P02') {
+        toast.error('Invalid data format. Please check all fields and try again.');
+      } else {
+        toast.error(`Failed to update driver. ${error?.message || ''}`);
+      }
     } finally {
       setIsUpdating(false);
     }
