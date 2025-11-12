@@ -190,11 +190,12 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
                       {task.priority}
                     </span>
 
-                    {/* Cost - Calculate from service groups */}
+                    {/* Cost - Use total_cost from task (auto-calculated by database) */}
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <DollarSign className="h-4 w-4" />
                       <span>{formatCurrency(
-                        task.service_groups?.reduce((sum, group) => sum + (Number(group.cost) || 0), 0) || 0
+                        task.total_cost ??
+                        task.service_groups?.reduce((sum, group) => sum + (Number(group.service_cost || group.cost) || 0), 0) || 0
                       )}</span>
                     </div>
 

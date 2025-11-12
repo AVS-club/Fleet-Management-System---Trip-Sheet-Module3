@@ -4,7 +4,8 @@ export interface MaintenanceServiceGroup {
   maintenance_task_id?: string;
   vendor_id: string;
   tasks: string[];
-  cost: number;
+  service_cost: number; // Renamed from 'cost' to match database
+  cost?: number; // Backward compatibility - will be removed
   bill_url?: string[];
   bill_file?: File[]; // For frontend handling before upload
   created_at?: string;
