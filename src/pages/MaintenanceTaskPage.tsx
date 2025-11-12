@@ -12,7 +12,7 @@ import {
 } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, Edit, Wrench } from "lucide-react";
+import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
@@ -965,6 +965,69 @@ const MaintenanceTaskPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Odometer Photo */}
+                {task.odometer_image && (
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <Camera className="h-5 w-5 mr-2 text-blue-600" />
+                      Odometer Photo
+                    </h2>
+                    <div className="max-w-md">
+                      <a
+                        href={task.odometer_image}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block relative aspect-video rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-colors"
+                      >
+                        <img
+                          src={task.odometer_image}
+                          alt="Odometer Reading"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📊%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </a>
+                      <p className="text-sm text-gray-600 mt-2 text-center">
+                        Odometer Reading: {task.odometer_reading ? `${task.odometer_reading} km` : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Supporting Documents */}
+                {task.attachments && task.attachments.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <FileText className="h-5 w-5 mr-2 text-purple-600" />
+                      Supporting Documents ({task.attachments.length})
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {task.attachments.map((url: string, idx: number) => (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-colors group"
+                        >
+                          <img
+                            src={url}
+                            alt={`Supporting Document ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📎%3C/text%3E%3C/svg%3E';
+                            }}
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            Document {idx + 1}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Complaint & Resolution */}
                 {(task.complaint_description || task.resolution_description) && (
