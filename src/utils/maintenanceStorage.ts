@@ -435,9 +435,18 @@ export const createTask = async (
               };
             }
 
-            // Map parts data to JSONB if present
+            // Map parts data to JSONB if present - SANITIZE UI-only fields
             if (partsData && Array.isArray(partsData) && partsData.length > 0) {
-              dbGroup.parts_data = partsData;
+              dbGroup.parts_data = partsData.map(part => ({
+                partType: part.partType,
+                partName: part.partName,
+                brand: part.brand,
+                serialNumber: part.serialNumber,
+                quantity: part.quantity,
+                warrantyPeriod: part.warrantyPeriod,
+                tyrePositions: part.tyrePositions || []
+                // Remove UI-only fields: id, warrantyDocument
+              }));
             }
 
             return dbGroup;
@@ -734,9 +743,18 @@ export const updateTask = async (
               };
             }
 
-            // Map parts data to JSONB if present
+            // Map parts data to JSONB if present - SANITIZE UI-only fields
             if (partsData && Array.isArray(partsData) && partsData.length > 0) {
-              dbGroup.parts_data = partsData;
+              dbGroup.parts_data = partsData.map(part => ({
+                partType: part.partType,
+                partName: part.partName,
+                brand: part.brand,
+                serialNumber: part.serialNumber,
+                quantity: part.quantity,
+                warrantyPeriod: part.warrantyPeriod,
+                tyrePositions: part.tyrePositions || []
+                // Remove UI-only fields: id, warrantyDocument
+              }));
             }
 
             return dbGroup;
