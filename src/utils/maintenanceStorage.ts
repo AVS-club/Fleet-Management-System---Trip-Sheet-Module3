@@ -540,6 +540,27 @@ export const createTask = async (
           .select("*")
           .eq("maintenance_task_id", data.id);
 
+        // MANUAL TOTAL_COST UPDATE (triggers are disabled)
+        // Calculate sum of all service costs and update parent maintenance_tasks.total_cost
+        if (insertedGroups && insertedGroups.length > 0) {
+          const totalCost = insertedGroups.reduce((sum, group) => {
+            return sum + (group.service_cost || group.cost || 0);
+          }, 0);
+
+          console.log('💰 Manually updating total_cost:', totalCost);
+
+          const { error: costUpdateError } = await supabase
+            .from("maintenance_tasks")
+            .update({ total_cost: totalCost })
+            .eq("id", data.id);
+
+          if (costUpdateError) {
+            logger.error('Failed to update total_cost:', costUpdateError);
+          } else {
+            console.log('✅ total_cost updated successfully');
+          }
+        }
+
         return {
           ...data,
           service_groups: insertedGroups || [],
@@ -798,6 +819,21 @@ export const updateTask = async (
         .from("maintenance_service_tasks")
         .select("*")
         .eq("maintenance_task_id", id);
+
+      // MANUAL TOTAL_COST UPDATE (triggers are disabled)
+      // Calculate sum of all service costs and update parent maintenance_tasks.total_cost
+      const totalCost = (insertedGroups || []).reduce((sum, group) => {
+        return sum + (group.service_cost || group.cost || 0);
+      }, 0);
+
+      const { error: costUpdateError } = await supabase
+        .from("maintenance_tasks")
+        .update({ total_cost: totalCost })
+        .eq("id", id);
+
+      if (costUpdateError) {
+        logger.error('Failed to update total_cost on task update:', costUpdateError);
+      }
 
       return {
         ...updatedTask,
