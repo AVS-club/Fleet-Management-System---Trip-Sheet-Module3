@@ -995,6 +995,25 @@ const MaintenanceTaskPage: React.FC = () => {
                                         </div>
                                       )}
                                     </div>
+
+                                    {/* Warranty Document */}
+                                    {part.warrantyDocumentUrl && (
+                                      <div className="mt-3 pt-3 border-t border-gray-200">
+                                        <p className="text-xs text-gray-500 mb-2 font-semibold">Warranty Document:</p>
+                                        <a
+                                          href={part.warrantyDocumentUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-block"
+                                        >
+                                          <img
+                                            src={part.warrantyDocumentUrl}
+                                            alt="Warranty document"
+                                            className="w-24 h-24 object-cover rounded border border-gray-300 hover:border-blue-500 transition-colors cursor-pointer"
+                                          />
+                                        </a>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>

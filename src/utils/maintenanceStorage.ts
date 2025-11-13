@@ -453,8 +453,9 @@ export const createTask = async (
                 serialNumber: part.serialNumber,
                 quantity: part.quantity,
                 warrantyPeriod: part.warrantyPeriod,
-                tyrePositions: part.tyrePositions || []
-                // Remove UI-only fields: id, warrantyDocument
+                tyrePositions: part.tyrePositions || [],
+                warrantyDocumentUrl: part.warrantyDocumentUrl || null // Keep warranty document URL
+                // Remove UI-only fields: id, warrantyDocument (File object)
               }));
             }
 
@@ -514,7 +515,7 @@ export const createTask = async (
         const { data: insertResult, error: insertError} = await supabase
           .from("maintenance_service_tasks")
           .insert(serviceGroupsWithTaskId)
-          .select();
+          .select('*'); // Use '*' instead of empty select() to avoid column inference issues
 
         console.log('📤 DEBUG: Insert response - data:', insertResult, 'error:', insertError);
 
@@ -800,8 +801,9 @@ export const updateTask = async (
                 serialNumber: part.serialNumber,
                 quantity: part.quantity,
                 warrantyPeriod: part.warrantyPeriod,
-                tyrePositions: part.tyrePositions || []
-                // Remove UI-only fields: id, warrantyDocument
+                tyrePositions: part.tyrePositions || [],
+                warrantyDocumentUrl: part.warrantyDocumentUrl || null // Keep warranty document URL
+                // Remove UI-only fields: id, warrantyDocument (File object)
               }));
             }
 
