@@ -10,14 +10,22 @@ import {
 import {
   fetchWeeklyComparisonData,
   fetchMonthlyComparisonData,
+  fetchYearlyComparisonData,
   fetchTripSummaryData,
   fetchVehicleUtilizationData,
   fetchDriverPerformanceData,
+  fetchComplianceData,
+  fetchExpenseData,
+  fetchFuelAnalysisData,
   WeeklyComparisonData,
   MonthlyComparisonData,
+  YearlyComparisonData,
   TripSummaryData,
   VehicleUtilizationData,
-  DriverPerformanceData
+  DriverPerformanceData,
+  ComplianceData,
+  ExpenseData,
+  FuelAnalysisData
 } from '../../utils/reportDataFetchers';
 
 // Import report templates
@@ -32,12 +40,16 @@ import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('ReportGenerator');
 
-export type ReportType = 
+export type ReportType =
   | 'weekly-comparison'
   | 'monthly-comparison'
+  | 'yearly-comparison'
   | 'trip-summary'
   | 'vehicle-utilization'
-  | 'driver-performance';
+  | 'driver-performance'
+  | 'compliance-report'
+  | 'expense-report'
+  | 'fuel-analysis';
 
 interface ReportGeneratorProps {
   reportType: ReportType;
@@ -83,6 +95,12 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       icon: <Calendar className="w-5 h-5" />,
       color: 'bg-blue-500'
     },
+    'yearly-comparison': {
+      title: 'Yearly Comparison Report',
+      description: 'Year-over-year performance analysis',
+      icon: <Calendar className="w-5 h-5" />,
+      color: 'bg-green-600'
+    },
     'trip-summary': {
       title: 'Trip Summary Report',
       description: 'Detailed trip information and statistics',
@@ -95,11 +113,29 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
       icon: <Table className="w-5 h-5" />,
       color: 'bg-orange-500'
     },
+    'expense-report': {
+      title: 'Expense Report',
+      description: 'Comprehensive expense breakdown and analysis',
+      icon: <FileText className="w-5 h-5" />,
+      color: 'bg-red-500'
+    },
+    'fuel-analysis': {
+      title: 'Fuel Analysis Report',
+      description: 'Detailed fuel consumption and cost analysis',
+      icon: <Table className="w-5 h-5" />,
+      color: 'bg-yellow-500'
+    },
     'driver-performance': {
       title: 'Driver Performance Report',
       description: 'Driver performance metrics and safety analysis',
       icon: <Table className="w-5 h-5" />,
       color: 'bg-indigo-500'
+    },
+    'compliance-report': {
+      title: 'Compliance Report',
+      description: 'Vehicle and driver document compliance tracking',
+      icon: <FileText className="w-5 h-5" />,
+      color: 'bg-blue-600'
     }
   };
 
@@ -123,14 +159,28 @@ export const ReportGenerator: React.FC<ReportGeneratorProps> = ({
           data = await fetchMonthlyComparisonData(currentMonth);
           break;
         }
+        case 'yearly-comparison': {
+          const currentYear = new Date().getFullYear();
+          data = await fetchYearlyComparisonData(currentYear);
+          break;
+        }
         case 'trip-summary':
           data = await fetchTripSummaryData(dateRange);
           break;
         case 'vehicle-utilization':
           data = await fetchVehicleUtilizationData('Current Month');
           break;
+        case 'expense-report':
+          data = await fetchExpenseData(dateRange);
+          break;
+        case 'fuel-analysis':
+          data = await fetchFuelAnalysisData(dateRange);
+          break;
         case 'driver-performance':
           data = await fetchDriverPerformanceData('Current Month');
+          break;
+        case 'compliance-report':
+          data = await fetchComplianceData();
           break;
         default:
           throw new Error(`Unknown report type: ${reportType}`);

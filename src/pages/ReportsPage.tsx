@@ -43,6 +43,14 @@ const ReportsPage: React.FC = () => {
       category: 'comparison'
     },
     {
+      id: 'yearly-comparison',
+      title: 'Yearly Comparison',
+      description: 'Year-over-year analysis',
+      icon: <Calendar className="w-6 h-6" />,
+      color: 'bg-green-500',
+      category: 'comparison'
+    },
+    {
       id: 'trip-summary',
       title: 'Trip Summary',
       description: 'All trip details',
@@ -59,10 +67,35 @@ const ReportsPage: React.FC = () => {
       category: 'summary'
     },
     {
+      id: 'expense-report',
+      title: 'Expense Report',
+      description: 'Detailed expense breakdown',
+      icon: <PieChart className="w-6 h-6" />,
+      color: 'bg-purple-500',
+      category: 'summary'
+    },
+    {
+      id: 'fuel-analysis',
+      title: 'Fuel Analysis',
+      description: 'Fuel consumption & costs',
+      icon: <Activity className="w-6 h-6" />,
+      color: 'bg-blue-500',
+      category: 'performance'
+    },
+    {
       id: 'driver-performance',
       title: 'Driver Performance',
-      description: 'Driver efficiency',
+      description: 'Driver efficiency metrics',
       icon: <Users className="w-6 h-6" />,
+      color: 'bg-blue-500',
+      category: 'performance'
+    },
+    {
+      id: 'compliance-report',
+      title: 'Compliance Report',
+      description: 'Document expiry tracking',
+      icon: <FileText className="w-6 h-6" />,
+      color: 'bg-blue-500',
       category: 'performance'
     }
   ];
