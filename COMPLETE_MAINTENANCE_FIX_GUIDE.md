@@ -307,18 +307,8 @@ CREATE TABLE maintenance_service_tasks (
   notes TEXT,
   bill_url TEXT[],
 
-  -- JSONB fields for complex data
-  battery_data JSONB,  -- { serialNumber, brand }
-  tyre_data JSONB,     -- { positions[], brand, serialNumbers }
-  parts_data JSONB,    -- [{ partType, partName, brand, ... }]
-
-  -- Warranty URLs
-  battery_warranty_url TEXT[],
-  tyre_warranty_url TEXT[],
-  part_warranty_url TEXT[],
-
-  battery_warranty_expiry_date DATE,
-  tyre_warranty_expiry_date DATE,
+  -- JSONB field for unified parts tracking
+  parts_data JSONB,    -- [{ partType, partName, brand, serialNumber, quantity, warrantyPeriod, tyrePositions[], warrantyDocumentUrl }]
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -326,14 +316,17 @@ CREATE TABLE maintenance_service_tasks (
 ```
 
 ### Key Points:
-- ❌ **NO** `battery_tracking` column
-- ❌ **NO** `tyre_tracking` column
-- ✅ **YES** `battery_data` (JSONB)
-- ✅ **YES** `tyre_data` (JSONB)
-- ✅ **YES** `parts_data` (JSONB)
+- ❌ **NO** `battery_tracking` column (removed - zombie code)
+- ❌ **NO** `tyre_tracking` column (removed - zombie code)
+- ❌ **NO** `battery_data` column (removed - migrated to parts_data)
+- ❌ **NO** `tyre_data` column (removed - migrated to parts_data)
+- ❌ **NO** `battery_warranty_url` column (removed - zombie code)
+- ❌ **NO** `tyre_warranty_url` column (removed - zombie code)
+- ❌ **NO** `part_warranty_url` column (never existed)
+- ✅ **YES** `parts_data` (JSONB) - Unified system for ALL parts (batteries, tyres, oil, brakes, etc.)
 
 ---
 
-**Last Updated:** 2025-11-09
-**Fix Version:** Complete v2
-**Status:** All critical issues resolved ✅
+**Last Updated:** 2025-11-14
+**Fix Version:** Complete v3 (Zombie Code Cleanup)
+**Status:** All critical issues resolved ✅ | Battery/Tire zombie code removed ✅

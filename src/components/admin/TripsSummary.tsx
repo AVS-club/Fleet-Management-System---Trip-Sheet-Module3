@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { IndianRupee, TrendingUp, Fuel, User, Truck } from 'lucide-react';
 
 interface TripSummaryMetrics {
@@ -25,15 +25,24 @@ interface TripsSummaryProps {
   drivers: any[];
   loading?: boolean;
   metrics: TripSummaryMetrics;
+  className?: string;
+  actionsSlot?: ReactNode;
 }
 
-const TripsSummary: React.FC<TripsSummaryProps> = ({ 
+const TripsSummary: React.FC<TripsSummaryProps> = ({
   loading = false,
-  metrics
+  metrics,
+  className,
+  actionsSlot
 }) => {
+  const gridClasses = [
+    'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4',
+    className
+  ].filter(Boolean).join(' ');
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+      <div className={gridClasses}>
         {[...Array(5)].map((_, i) => (
           <div key={i} className="bg-white p-4 rounded-lg shadow-sm animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
@@ -44,69 +53,73 @@ const TripsSummary: React.FC<TripsSummaryProps> = ({
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Expenses</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">₹{(metrics.totalExpenses || 0).toLocaleString()}</p>
+  const baseCard = (
+    key: string,
+    label: string,
+    value: React.ReactNode,
+    icon: React.ReactNode,
+    secondary?: React.ReactNode
+  ) => (
+    <div
+      key={key}
+      className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+          <div className="space-y-1">
+            <p className="text-2xl font-semibold text-gray-900">{value}</p>
+            <p className="min-h-[18px] text-xs text-gray-500">{secondary || '\u00A0'}</p>
           </div>
-          <IndianRupee className="h-8 w-8 text-blue-500 opacity-75" />
         </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Distance</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{(metrics.avgDistance || 0).toFixed(1)} km</p>
-          </div>
-          <TrendingUp className="h-8 w-8 text-green-500 opacity-75" />
-        </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Mean Mileage</p>
-            <p className="mt-2 text-2xl font-bold text-gray-900">{(metrics.meanMileage || 0).toFixed(2)} km/L</p>
-          </div>
-          <Fuel className="h-8 w-8 text-orange-500 opacity-75" />
-        </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Driver</p>
-            <p className="mt-2 text-lg font-bold text-gray-900 truncate">
-              {metrics.topDriver?.name || 'No drivers'}
-            </p>
-            {metrics.topDriver?.tripCount && (
-              <p className="text-xs text-gray-500 mt-1">{metrics.topDriver.tripCount} trips</p>
-            )}
-          </div>
-          <User className="h-8 w-8 text-purple-500 opacity-75" />
-        </div>
-      </div>
-
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Top Vehicle</p>
-            <p className="mt-2 text-lg font-bold text-gray-900 truncate" title={metrics.topVehicle?.registrationNumber}>
-              {metrics.topVehicle?.registrationNumber || 'No vehicles'}
-            </p>
-            {metrics.topVehicle?.tripCount && (
-              <p className="text-xs text-gray-500 mt-1">{metrics.topVehicle.tripCount} trips</p>
-            )}
-          </div>
-          <Truck className="h-8 w-8 text-indigo-500 opacity-75" />
-        </div>
+        {icon}
       </div>
     </div>
   );
+
+  const cards = [
+    baseCard(
+      'avg-distance',
+      'Avg Distance',
+      `${(metrics.avgDistance || 0).toFixed(1)} km`,
+      <TrendingUp className="h-8 w-8 text-green-500 opacity-75" />,
+      'Per trip'
+    ),
+    baseCard(
+      'mean-mileage',
+      'Mean Mileage',
+      `${(metrics.meanMileage || 0).toFixed(2)} km/L`,
+      <Fuel className="h-8 w-8 text-orange-500 opacity-75" />,
+      'Fleet-wide'
+    ),
+    baseCard(
+      'top-driver',
+      'Top Driver',
+      metrics.topDriver?.name || 'No drivers',
+      <User className="h-8 w-8 text-purple-500 opacity-75" />,
+      metrics.topDriver?.tripCount ? `${metrics.topDriver.tripCount} trips` : 'No trips yet'
+    ),
+    baseCard(
+      'top-vehicle',
+      'Top Vehicle',
+      metrics.topVehicle?.registrationNumber || 'No vehicles',
+      <Truck className="h-8 w-8 text-indigo-500 opacity-75" />,
+      metrics.topVehicle?.tripCount ? `${metrics.topVehicle.tripCount} trips` : 'No trips yet'
+    )
+  ];
+
+  if (actionsSlot) {
+    cards.push(
+      <div
+        key="quick-actions"
+        className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 shadow-sm flex flex-col"
+      >
+        {actionsSlot}
+      </div>
+    );
+  }
+
+  return <div className={gridClasses}>{cards}</div>;
 };
 
 export default TripsSummary;

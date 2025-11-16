@@ -420,49 +420,62 @@ const CompanySettings: React.FC = () => {
     );
   }
 
+  const isReadOnlyMode = isEditMode && !isEditing;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-800 py-6">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-6">
-          <button
-            onClick={() => navigate('/admin')}
-            className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            <span className="font-sans">Back to Admin</span>
-          </button>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3">
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <span className="font-sans text-sm sm:text-base">Back to Admin</span>
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                {isEditMode && !isEditing && (
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm font-sans">
+                    Profile Active
+                  </span>
+                )}
+                {isEditMode && (
+                  <button
+                    onClick={handleEditToggle}
+                    className={`px-4 py-2 rounded-lg font-sans font-medium transition-colors ${
+                      isEditing
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        : 'bg-primary-600 text-white hover:bg-primary-700'
+                    }`}
+                  >
+                    {isEditing ? 'Cancel' : 'Edit Profile'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-4 flex items-start space-x-3">
               <Building2 className="h-8 w-8 text-primary-600 dark:text-primary-400" />
               <div>
                 <h1 className="text-2xl font-display font-bold tracking-tight-plus text-gray-900 dark:text-gray-100">
                   {isEditMode ? (isEditing ? 'Edit Company Profile' : 'Company Profile') : 'Setup Company Profile'}
                 </h1>
-                <p className="text-sm font-sans text-gray-500 dark:text-gray-400">
-                  {isEditMode ? 'View and manage your organization profile' : 'Set up your organization profile and branding'}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-sm font-sans text-gray-500 dark:text-gray-400">
+                    {isEditMode ? 'View and manage your organization profile' : 'Set up your organization profile and branding'}
+                  </p>
+                  {company.tagline && (
+                    <p className="text-sm font-sans text-gray-600 dark:text-gray-300">{company.tagline}</p>
+                  )}
+                  <p className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                    Org ID: {company.id || 'N/A'}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              {isEditMode && !isEditing && (
-                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm font-sans">
-                  Profile Active
-                </span>
-              )}
-              {isEditMode && (
-                <button
-                  onClick={handleEditToggle}
-                  className={`px-4 py-2 rounded-lg font-sans font-medium transition-colors ${
-                    isEditing
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      : 'bg-primary-600 text-white hover:bg-primary-700'
-                  }`}
-                >
-                  {isEditing ? 'Cancel' : 'Edit Profile'}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -485,10 +498,11 @@ const CompanySettings: React.FC = () => {
 
         {/* Main Form */}
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <fieldset disabled={isReadOnlyMode} className={isReadOnlyMode ? 'opacity-90' : ''}>
           <div className="p-6 space-y-6">
             {/* Company Information Section */}
             <div>
-              <h2 className="text-lg font-display font-semibold tracking-tight-plus mb-4 text-gray-900 dark:text-gray-100">Company Information</h2>
+              <h2 className="sr-only">Company Information</h2>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -551,7 +565,7 @@ const CompanySettings: React.FC = () => {
                 </div>
                 <div className="flex-grow">
                   <div className="flex space-x-2">
-                    <label className="cursor-pointer">
+                    <label className={`${isReadOnlyMode ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
                       <div className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center text-gray-700 dark:text-gray-300">
                         <Upload className="h-4 w-4 mr-2" />
                         {previewUrl && selectedFile ? 'Change Logo' : 'Upload Logo'}
@@ -560,6 +574,7 @@ const CompanySettings: React.FC = () => {
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
+                        disabled={isReadOnlyMode}
                         onChange={handleFileSelect}
                         className="hidden"
                       />
@@ -805,6 +820,7 @@ const CompanySettings: React.FC = () => {
               </div>
             </div>
           </div>
+          </fieldset>
 
           {/* Action Buttons - Show when editing or creating new */}
           {(isEditing || !isEditMode) && (

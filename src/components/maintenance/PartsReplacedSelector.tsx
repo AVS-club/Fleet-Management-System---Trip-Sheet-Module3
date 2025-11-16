@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, DollarSign, Calendar, Gauge } from 'lucide-react';
+import { X, Plus, Trash2, IndianRupee, Calendar, Gauge } from 'lucide-react';
 import Button from '../ui/Button';
 
 interface PartReplacement {

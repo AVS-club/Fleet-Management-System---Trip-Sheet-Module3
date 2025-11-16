@@ -14,29 +14,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import {
-  Calendar,
-  TrendingUp,
-  Users,
-  Truck,
-  DollarSign,
-  Package,
-  AlertCircle,
-  Download,
-  Filter,
-  RefreshCw,
-  FileText,
-  Fuel,
-  MapPin,
-  Clock,
-  Wrench,
-  BarChart3,
-  PieChart as PieChartIcon,
-  FileSpreadsheet,
-  Eye,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react';
+import { Calendar, TrendingUp, Users, Truck, IndianRupee, Package, AlertCircle, Download, Filter, RefreshCw, FileText, Fuel, MapPin, Clock, Wrench, BarChart3, PieChart as PieChartIcon, FileSpreadsheet, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import { createLogger } from '../../utils/logger';
@@ -189,7 +167,7 @@ const UnifiedReportingDashboard: React.FC = () => {
       id: 'expense-analysis',
       name: 'Expense Report',
       description: 'All expenses',
-      icon: <DollarSign className="h-4 w-4" />,
+      icon: <IndianRupee className="h-4 w-4" />,
       category: 'financial'
     },
     {
@@ -680,7 +658,7 @@ const UnifiedReportingDashboard: React.FC = () => {
                     ${metrics.totalRevenue.toLocaleString()}
                   </p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-500" />
+                <IndianRupee className="h-8 w-8 text-green-500" />
               </div>
             </div>
 
@@ -868,7 +846,7 @@ const UnifiedReportingDashboard: React.FC = () => {
 
             <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold mb-4 flex items-center text-gray-900 dark:text-gray-100">
-                <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                <IndianRupee className="h-5 w-5 mr-2 text-blue-600" />
                 Financial Reports
               </h3>
               <div className="space-y-2">

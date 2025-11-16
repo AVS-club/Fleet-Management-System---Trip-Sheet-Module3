@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '../../utils/cn';
 import { Upload, X, CheckCircle, AlertCircle, FileText, Image } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
@@ -28,6 +28,8 @@ interface FileUploadWithProgressProps {
   disabled?: boolean;
   className?: string;
   variant?: 'default' | 'compact';
+  existingFiles?: string[]; // URLs of existing files to display
+  onRemoveExisting?: (url: string) => void; // Callback when existing file is removed
 }
 
 // Image compression utility
@@ -110,9 +112,12 @@ const FileUploadWithProgress: React.FC<FileUploadWithProgressProps> = ({
   error,
   disabled = false,
   className,
-  variant = 'default'
+  variant = 'default',
+  existingFiles = [],
+  onRemoveExisting
 }) => {
   const [uploadStates, setUploadStates] = useState<FileUploadState[]>([]);
+  const [existingFilesList, setExistingFilesList] = useState<string[]>(existingFiles);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,6 +196,20 @@ const FileUploadWithProgress: React.FC<FileUploadWithProgressProps> = ({
     const newFiles = newStates.map(state => state.file);
     onFilesChange(newFiles);
   }, [uploadStates, onFilesChange]);
+
+  const removeExistingFile = useCallback((url: string) => {
+    const newExisting = existingFilesList.filter(fileUrl => fileUrl !== url);
+    setExistingFilesList(newExisting);
+    if (onRemoveExisting) {
+      onRemoveExisting(url);
+    }
+  }, [existingFilesList, onRemoveExisting]);
+
+  // Update existing files list when prop changes, filtering out invalid values
+  useEffect(() => {
+    const validFiles = existingFiles.filter(url => url && typeof url === 'string' && url.trim() !== '');
+    setExistingFilesList(validFiles);
+  }, [existingFiles]);
 
   const openFileDialog = () => {
     if (!disabled) {
@@ -278,6 +297,69 @@ const FileUploadWithProgress: React.FC<FileUploadWithProgressProps> = ({
 
       {error && (
         <p className="file-error-text">{error}</p>
+      )}
+
+      {/* Existing Files Preview */}
+      {existingFilesList.length > 0 && (
+        <div className="files-list existing-files">
+          <p className="text-sm font-medium text-gray-700 mb-2">Existing Files:</p>
+          {existingFilesList.filter(url => url && typeof url === 'string').map((url, index) => {
+            const fileName = url.split('/').pop() || 'Unknown file';
+            const isImage = url.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
+            return (
+              <div key={`existing-${index}`} className="file-item status-success">
+                <div className="file-info">
+                  {isImage ? (
+                    <div className="file-icon">
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={url}
+                          alt={fileName}
+                          className="h-16 w-16 object-cover rounded border border-gray-200"
+                        />
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="file-icon">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                  )}
+
+                  <div className="file-details">
+                    <div className="file-name">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {fileName}
+                      </a>
+                    </div>
+                    <div className="file-meta">
+                      <span className="file-status success">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        Saved
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Remove/Replace Button */}
+                <button
+                  type="button"
+                  onClick={() => removeExistingFile(url)}
+                  className="file-remove-btn"
+                  title="Remove this file (you can upload a replacement)"
+                  disabled={disabled}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Files List with Progress */}

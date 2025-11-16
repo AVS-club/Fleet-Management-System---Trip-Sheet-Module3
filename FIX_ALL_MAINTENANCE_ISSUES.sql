@@ -17,17 +17,12 @@ BEGIN;
 \echo '📝 FIX 1: Adding missing columns to maintenance_service_tasks...'
 
 -- Add all required columns if they don't exist
+-- NOTE: battery_data, tyre_data, and warranty columns removed as zombie code
+-- Use unified parts_data system instead
 ALTER TABLE public.maintenance_service_tasks
   ADD COLUMN IF NOT EXISTS service_type VARCHAR(50),
   ADD COLUMN IF NOT EXISTS notes TEXT,
-  ADD COLUMN IF NOT EXISTS battery_data JSONB,
-  ADD COLUMN IF NOT EXISTS tyre_data JSONB,
-  ADD COLUMN IF NOT EXISTS parts_data JSONB DEFAULT '[]'::jsonb,
-  ADD COLUMN IF NOT EXISTS battery_warranty_url TEXT[],
-  ADD COLUMN IF NOT EXISTS tyre_warranty_url TEXT[],
-  ADD COLUMN IF NOT EXISTS part_warranty_url TEXT[],
-  ADD COLUMN IF NOT EXISTS battery_warranty_expiry_date DATE,
-  ADD COLUMN IF NOT EXISTS tyre_warranty_expiry_date DATE;
+  ADD COLUMN IF NOT EXISTS parts_data JSONB DEFAULT '[]'::jsonb;
 
 \echo '✅ Columns added/verified'
 \echo ''

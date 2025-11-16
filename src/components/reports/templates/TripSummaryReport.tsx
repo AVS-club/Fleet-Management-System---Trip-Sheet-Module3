@@ -2,7 +2,7 @@ import React from 'react';
 import { ReportHeader } from '../common/ReportHeader';
 import { StatCard } from '../common/StatCard';
 import { ReportTable } from '../common/ReportTable';
-import { MapPin, Clock, Fuel, DollarSign, Car, User } from 'lucide-react';
+import { MapPin, Clock, Fuel, IndianRupee, Car, User } from 'lucide-react';
 
 interface TripSummaryData {
   dateRange: {
@@ -87,7 +87,7 @@ export const TripSummaryReport: React.FC<TripSummaryReportProps> = ({ data }) =>
         <StatCard
           title="Total Fuel Cost"
           value={`₹${data.totalFuelCost.toLocaleString()}`}
-          icon={<DollarSign className="w-6 h-6" />}
+          icon={<IndianRupee className="w-6 h-6" />}
         />
       </div>
 

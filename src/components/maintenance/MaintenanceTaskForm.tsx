@@ -57,6 +57,26 @@ const ServiceDetailsSection = () => {
     }
   }, [startDate, setValue]);
 
+  // Initialize selected option based on downtime values (for edit mode)
+  useEffect(() => {
+    if (downtimeDays || downtimeHours) {
+      const presets = [
+        { id: '2h', days: 0, hours: 2 },
+        { id: '4h', days: 0, hours: 4 },
+        { id: '6h', days: 0, hours: 6 },
+        { id: '8h', days: 0, hours: 8 },
+        { id: '1d', days: 1, hours: 0 },
+        { id: '2d', days: 2, hours: 0 },
+        { id: '3d', days: 3, hours: 0 },
+      ];
+
+      const matchingPreset = presets.find(p => p.days === downtimeDays && p.hours === downtimeHours);
+      if (matchingPreset && selectedOption !== matchingPreset.id) {
+        setSelectedOption(matchingPreset.id);
+      }
+    }
+  }, [downtimeDays, downtimeHours]); // Only run when downtime values change
+
   // Handle quick select
   const handleQuickSelect = (days: number, hours: number, optionId: string) => {
     setSelectedOption(optionId);
@@ -274,7 +294,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       vendor: '',
       tasks: [],
       cost: 0,
-      notes: '',
       bills: [],
       parts: []
     }
@@ -289,6 +308,26 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
   // File upload states
   const [odometerPhoto, setOdometerPhoto] = useState<File[]>([]);
   const [documents, setDocuments] = useState<File[]>([]);
+
+  // Initialize serviceGroups from initialData when editing
+  useEffect(() => {
+    if (initialData) {
+      // Initialize service groups
+      if (initialData.service_groups && initialData.service_groups.length > 0) {
+        console.log('🔄 Initializing serviceGroups from initialData:', initialData.service_groups);
+        setServiceGroups(initialData.service_groups);
+      }
+
+      // Note: File preview states (odometerPhoto, documents) cannot be initialized from URLs
+      // Users will need to re-upload files if they want to change them
+      // The existing images can be displayed in the form using the URLs from initialData
+      console.log('📝 Edit mode initialized with data:', {
+        serviceGroups: initialData.service_groups?.length || 0,
+        odometerImage: initialData.odometer_image, // ✅ FIX: Use odometer_image
+        supportingDocsUrls: initialData.supporting_documents_urls?.length || 0,
+      });
+    }
+  }, [initialData]);
 
   const methods = useForm<Partial<MaintenanceTask>>({
     defaultValues: {
@@ -310,8 +349,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 vendor_id: "",
                 tasks: [],
                 cost: 0,
-                battery_tracking: false,
-                tyre_tracking: false,
               },
             ],
       ...initialData,
@@ -581,32 +618,6 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
       if (!group.cost || group.cost < 0) {
         return `Please enter a valid cost for service group ${i + 1}`;
       }
-
-      // Battery tracking validation
-      if (group.battery_tracking) {
-        if (!group.battery_serial) {
-          return `Please enter battery serial number for service group ${i + 1}`;
-        }
-        if (!group.battery_brand) {
-          return `Please select battery brand for service group ${i + 1}`;
-        }
-        if (!group.battery_warranty_expiry) {
-          return `Please set battery warranty expiry date for service group ${i + 1}`;
-        }
-      }
-
-      // Tyre tracking validation
-      if (group.tyre_tracking) {
-        if (!Array.isArray(group.tyre_positions) || group.tyre_positions.length === 0) {
-          return `Please select at least one tyre position for service group ${i + 1}`;
-        }
-        if (!group.tyre_brand) {
-          return `Please select tyre brand for service group ${i + 1}`;
-        }
-        if (!group.tyre_warranty_expiry) {
-          return `Please set tyre warranty expiry date for service group ${i + 1}`;
-        }
-      }
     }
 
     // Priority validation
@@ -631,13 +642,27 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
     setOverallProgress(0);
 
     try {
+      // Debug: Check file states before submission
+      console.log('📋 Form submission - File states:', {
+        odometerPhoto: odometerPhoto.length,
+        documents: documents.length,
+        'initialData?.attachments': initialData?.attachments,
+      });
+
       // Build form data with service groups and files
       const formDataWithParts = {
         ...data,
         service_groups: serviceGroups.length > 0 ? serviceGroups : undefined,
-        odometer_image: odometerPhoto,
-        attachments: documents,
+        // Only include new files if uploaded, otherwise preserve existing values
+        odometer_image: odometerPhoto.length > 0 ? odometerPhoto : initialData?.odometer_image,
+        attachments: documents.length > 0 ? documents : initialData?.attachments,
       };
+
+      console.log('📋 Form data being submitted:', {
+        hasOdometerImage: !!formDataWithParts.odometer_image,
+        attachmentsCount: formDataWithParts.attachments?.length || 0,
+        attachmentsType: typeof formDataWithParts.attachments,
+      });
 
       // Validate form data
       const validationError = validateFormData(formDataWithParts);
@@ -809,6 +834,7 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
                 maxSize={5 * 1024 * 1024}
                 onFilesChange={setOdometerPhoto}
                 helperText="Upload a clear photo of the odometer reading"
+                existingFiles={initialData?.odometer_image ? [initialData.odometer_image] : []}
               />
             </div>
           </div>
@@ -882,8 +908,12 @@ const MaintenanceTaskForm: React.FC<MaintenanceTaskFormProps> = ({
             multiple={true}
             compress={false}
             maxSize={10 * 1024 * 1024}
-            onFilesChange={setDocuments}
+            onFilesChange={(files) => {
+              console.log('📎 Supporting documents selected:', files.length, files);
+              setDocuments(files);
+            }}
             helperText="Upload warranty cards, bills, or other relevant documents"
+            existingFiles={initialData?.supporting_documents_urls || []}
           />
         </div>
 

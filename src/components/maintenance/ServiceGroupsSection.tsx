@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
-import { Plus, Trash2, Wrench, DollarSign, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, IndianRupee, X, Check, Truck } from 'lucide-react';
+import { Plus, Trash2, Wrench, IndianRupee, FileText, CheckSquare, ChevronDown, ChevronUp, Upload, Package, Store, X, Check, Truck } from 'lucide-react';
 import { getVendors as getVendorsOld } from '../../utils/storage';
 import { getVendors, createVendorFromName, Vendor } from '../../utils/vendorStorage';
+import { getTasks, createTaskFromName, MaintenanceTask } from '../../utils/maintenanceTaskCatalogStorage';
 import { supabase } from '../../utils/supabaseClient';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -10,6 +11,8 @@ import Select from '../ui/Select';
 import { createLogger } from '../../utils/logger';
 import { getCurrentUserId, getUserActiveOrganization } from '../../utils/supaHelpers';
 import PartReplacement from './PartReplacement';
+import { toast } from 'react-toastify';
+import FileUploadWithProgress from '../ui/FileUploadWithProgress';
 
 const logger = createLogger('ServiceGroupsSection');
 
@@ -221,19 +224,10 @@ interface ServiceGroup {
   vendor: string;
   tasks: string[];
   cost: number;
-  notes?: string;
   bills?: File[];
-  
+  part_warranty_url?: string[]; // Array of warranty URLs from individual parts
+
   // Parts tracking
-  batteryData?: {
-    serialNumber: string;
-    brand: string;
-  };
-  tyreData?: {
-    positions: string[];
-    brand: string;
-    serialNumbers: string;
-  };
   partsData?: Array<{
     partType: string;
     partName: string;
@@ -243,10 +237,6 @@ interface ServiceGroup {
     warrantyPeriod?: string;
     warrantyDocument?: File;
   }>;
-  
-  // Warranty uploads
-  batteryWarrantyFiles?: File[];
-  tyreWarrantyFiles?: File[];
 }
 
 interface ServiceGroupsSectionProps {
@@ -554,9 +544,16 @@ const ServiceGroup = ({
   numberOfTyres,
   vendors,
   loadingVendors,
-  setVendors
+  setVendors,
+  availableTasks,
+  setAvailableTasks
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Memoize existing bill URLs to prevent infinite re-renders
+  const existingBillUrls = useMemo(() => {
+    return Array.isArray(groupData.bill_url) ? groupData.bill_url : [];
+  }, [groupData.bill_url]);
 
   // AUTO-CREATE PARTS BASED ON PURCHASE TASKS
   useEffect(() => {
@@ -639,16 +636,19 @@ const ServiceGroup = ({
 
   // Filter tasks based on service type
   const getFilteredTasks = (serviceType: string) => {
+    // Merge hardcoded tasks with database tasks
+    const allTasks = [...MAINTENANCE_TASKS, ...availableTasks.filter(task => !MAINTENANCE_TASKS.includes(task))];
+
     if (serviceType === 'purchase') {
       // Show only purchase tasks (tasks ending with "Purchase")
-      return MAINTENANCE_TASKS.filter(task => task.includes('Purchase'));
+      return allTasks.filter(task => task.includes('Purchase'));
     }
     if (serviceType === 'labor') {
       // Show only labor/service tasks (tasks NOT ending with "Purchase")
-      return MAINTENANCE_TASKS.filter(task => !task.includes('Purchase'));
+      return allTasks.filter(task => !task.includes('Purchase'));
     }
     // For 'both' or empty, show all tasks
-    return MAINTENANCE_TASKS;
+    return allTasks;
   };
 
   return (
@@ -761,7 +761,34 @@ const ServiceGroup = ({
                 options={getFilteredTasks(groupData.serviceType)}
                 value={groupData.tasks}
                 onChange={(val) => onChange({ ...groupData, tasks: val })}
-                onAddNew={(newTask) => logger.debug('New task added:', newTask)}
+                onAddNew={async (newTaskName) => {
+                  try {
+                    logger.debug('Creating new task:', newTaskName);
+
+                    // Determine category based on service type
+                    let taskCategory = 'general_scheduled_service';
+                    if (groupData.serviceType === 'purchase') {
+                      taskCategory = 'Purchase Tasks';
+                    } else if (groupData.serviceType === 'labor') {
+                      taskCategory = 'Labor & Service Tasks';
+                    }
+
+                    const newTask = await createTaskFromName(newTaskName, taskCategory);
+                    if (newTask) {
+                      // Add to available tasks list
+                      setAvailableTasks(prev => [...prev, newTask.task_name]);
+                      logger.debug('Task created and saved to database:', newTask);
+
+                      // Show success message
+                      toast.success(`Task "${newTaskName}" created successfully!`);
+                    }
+                  } catch (error) {
+                    logger.error('Error creating task:', error);
+                    // Still add to local state even if DB save fails
+                    setAvailableTasks(prev => [...prev, newTaskName]);
+                    toast.warning('Task added locally but failed to save to database. It will only be available in this session.');
+                  }
+                }}
                 icon={Wrench}
                 required
                 multiSelect
@@ -814,20 +841,18 @@ const ServiceGroup = ({
 
           {isExpanded && (
             <div className="mt-4 space-y-4 pl-6 border-l-3 border-yellow-400">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload Bills/Receipts
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => onChange({ ...groupData, bills: Array.from(e.target.files) })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  />
-                  <Upload className="h-4 w-4 text-gray-400" />
-                </div>
-              </div>
+              <FileUploadWithProgress
+                id={`bills-${groupData.id}`}
+                label="Upload Bills/Receipts"
+                accept="image/*,.pdf"
+                multiple={true}
+                onFilesChange={(files) => onChange({ ...groupData, bills: files })}
+                existingFiles={existingBillUrls}
+                maxSize={10 * 1024 * 1024}
+                compress={true}
+                helperText="Upload bills or receipts (max 10MB each)"
+                variant="compact"
+              />
 
               {/* Part Replacements */}
               {(groupData.serviceType === 'purchase' || groupData.serviceType === 'both') && (
@@ -869,20 +894,6 @@ const ServiceGroup = ({
                 </div>
               )}
 
-              {/* Extra Notes - MOVED TO END AND MADE SMALLER (70% reduction) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Extra Notes
-                </label>
-                <textarea
-                  value={groupData.notes || ''}
-                  onChange={(e) => onChange({ ...groupData, notes: e.target.value })}
-                  rows={1}
-                  placeholder="Any additional information..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
-                  style={{ minHeight: '36px', resize: 'vertical' }}
-                />
-              </div>
             </div>
           )}
         </div>
@@ -899,6 +910,8 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
 }) => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loadingVendors, setLoadingVendors] = useState(true);
+  const [availableTasks, setAvailableTasks] = useState<string[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
 
   // Fetch vendors from database
   useEffect(() => {
@@ -918,6 +931,25 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
     fetchVendors();
   }, []);
 
+  // Fetch tasks from database
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const taskData = await getTasks();
+        const taskNames = taskData.map(task => task.task_name);
+        setAvailableTasks(taskNames);
+        logger.debug(`Loaded ${taskData.length} tasks from database`);
+      } catch (error) {
+        logger.error('Error fetching tasks:', error);
+        setAvailableTasks([]);
+      } finally {
+        setLoadingTasks(false);
+      }
+    };
+
+    fetchTasks();
+  }, []);
+
   const addServiceGroup = () => {
     const newGroup: ServiceGroup = {
       id: Date.now().toString(),
@@ -925,7 +957,6 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
       vendor: '',
       tasks: [],
       cost: 0,
-      notes: '',
       bills: []
     };
     onChange([...serviceGroups, newGroup]);
@@ -966,6 +997,8 @@ const ServiceGroupsSection: React.FC<ServiceGroupsSectionProps> = ({
             vendors={vendors}
             loadingVendors={loadingVendors}
             setVendors={setVendors}
+            availableTasks={availableTasks}
+            setAvailableTasks={setAvailableTasks}
           />
         ))}
 
@@ -1081,35 +1114,11 @@ export const convertServiceGroupsToDatabase = async (
         tasks: taskIds, // Now contains UUIDs
         service_cost: group.cost || 0, // ✅ FIX: Map 'cost' to 'service_cost' for database
         service_type: group.serviceType || '',
-        notes: group.notes || '',
         bill_url: group.bill_url || [],
-        battery_warranty_url: group.battery_warranty_url || [],
-        tyre_warranty_url: group.tyre_warranty_url || [],
+        part_warranty_url: group.part_warranty_url || [], // ✅ NEW: Array of warranty URLs at service group level
         parts_data: group.parts || [], // ✅ FIX: Map 'parts' to 'parts_data' for database
-        // Pass File objects for upload
-        bill_file: group.bill_file || [],
-        battery_warranty_file: group.battery_warranty_file || [],
-        tyre_warranty_file: group.tyre_warranty_file || [],
+        // File objects are NOT sent to database - they're handled separately in file upload step
       };
-
-      // Map battery data to JSONB if present
-      if (group.batteryData && group.batteryData.serialNumber) {
-        converted.battery_data = {
-          serialNumber: group.batteryData.serialNumber,
-          brand: group.batteryData.brand || '',
-        };
-        logger.debug(`[Group ${index}] Added battery_data JSONB:`, converted.battery_data);
-      }
-
-      // Map tyre data to JSONB if present
-      if (group.tyreData && group.tyreData.positions && group.tyreData.positions.length > 0) {
-        converted.tyre_data = {
-          positions: group.tyreData.positions,
-          brand: group.tyreData.brand || '',
-          serialNumbers: group.tyreData.serialNumbers || '',
-        };
-        logger.debug(`[Group ${index}] Added tyre_data JSONB:`, converted.tyre_data);
-      }
 
       logger.debug(`[Group ${index}] FINAL CONVERTED - vendor_id="${converted.vendor_id}"`, converted);
 

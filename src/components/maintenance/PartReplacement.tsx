@@ -421,6 +421,7 @@ interface PartData {
   quantity?: number;
   warrantyPeriod?: string;
   warrantyDocument?: File;
+  warrantyDocumentUrl?: string; // For existing warranty documents in edit mode
   tyrePositions?: string[];
 }
 
@@ -473,6 +474,11 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
   const diagramConfig = numberOfTyres
     ? mapTyreCountToDiagramConfig(numberOfTyres)
     : mapVehicleTypeToDiagramConfig(vehicleType);
+
+  // Memoize existing warranty document URL to prevent infinite re-renders
+  const existingWarrantyUrls = useMemo(() => {
+    return partData.warrantyDocumentUrl ? [partData.warrantyDocumentUrl] : [];
+  }, [partData.warrantyDocumentUrl]);
 
   return (
     <div className="border border-red-200 bg-red-50 rounded-lg p-4">
@@ -584,6 +590,7 @@ const PartReplacement: React.FC<PartReplacementProps> = ({
           accept="image/*,.pdf"
           multiple={false}
           onFilesChange={(files) => onChange({ ...partData, warrantyDocument: files[0] })}
+          existingFiles={existingWarrantyUrls}
           maxSize={10 * 1024 * 1024}
           compress={true}
           helperText="Upload warranty document (max 10MB)"

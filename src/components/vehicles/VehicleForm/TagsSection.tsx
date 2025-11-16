@@ -13,6 +13,9 @@ import Select from '../../ui/Select';
 import { Tag, Bell } from 'lucide-react';
 import { getTags } from '../../../utils/api/tags';
 import { getReminderContacts, ReminderContact } from '../../../utils/reminderService';
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('TagsSection');
 
 interface TagsSectionProps {
   formMethods: UseFormReturn<Vehicle>;
@@ -34,6 +37,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
         const tags = await getTags();
         setAvailableTags(tags.map(t => t.name));
       } catch (error) {
+        // Silently fail - tags are optional
       }
 
       // Load reminder contacts
@@ -41,7 +45,7 @@ export const TagsSection: React.FC<TagsSectionProps> = ({
         const contacts = await getReminderContacts();
         setReminderContacts(contacts);
       } catch (error) {
-        console.error('Failed to load reminder contacts:', error);
+        logger.error('Failed to load reminder contacts:', error);
       }
     };
 

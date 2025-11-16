@@ -50,6 +50,7 @@
     "expiringDocs": "एक्सपायर होने वाले डॉक्यूमेंट",
     "fleetSummary": "फ्लीट सारांश",
     "fleetVehicles": "फ्लीट: {{count}} गाड़ियां",
+    "driverCount": "चालक: {{count}}",
     "todayTrips": "आज: {{count}} ट्रिप्स",
     "totalTrips": "कुल: {{count}} ट्रिप्स",
     "activeDays": "सक्रिय: {{count}} दिन",

@@ -1,5 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../utils/supabaseClient';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('useKPICards');
 
 export interface KPICard {
   id: string;
@@ -50,7 +53,7 @@ export const useKPICards = (options: UseKPICardsOptions = {}) => {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching KPI cards:', error);
+        logger.error('Error fetching KPI cards:', error);
         throw error;
       }
 

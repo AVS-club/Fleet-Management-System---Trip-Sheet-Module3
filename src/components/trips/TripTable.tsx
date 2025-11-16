@@ -1,10 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { format, parseISO } from 'date-fns';
-import { 
-  ArrowUpDown, ArrowUp, ArrowDown, Download, 
-  Eye, Edit2, DollarSign, Copy
-} from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Download, Eye, Edit2, IndianRupee, Copy } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { NumberFormatter } from '@/utils/numberFormatter';
@@ -695,7 +692,7 @@ const TripTable: React.FC<TripTableProps> = ({
                           className="p-1 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
                           title="P&L Analysis"
                         >
-                          <DollarSign className="h-3.5 w-3.5" />
+                          <IndianRupee className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>

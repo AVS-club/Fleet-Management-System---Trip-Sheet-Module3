@@ -2,6 +2,9 @@ import React from 'react';
 import { TrendingUp, TrendingDown, Minus, Calendar } from 'lucide-react';
 import { KPICard as KPICardType } from '../../hooks/useKPICards';
 import { formatDistanceToNow } from 'date-fns';
+import { createLogger } from '../../utils/logger';
+
+const logger = createLogger('KPICard');
 
 interface KPICardProps {
   kpi: KPICardType;
@@ -137,7 +140,7 @@ const KPICard: React.FC<KPICardProps> = ({ kpi, variant = 'full' }) => {
   const formatValueForDisplay = (value: string, payload: any) => {
     // Log payload for debugging (remove in production)
     if (value.includes('AMAN') || value.includes('9478')) {
-      console.log('KPI Debug:', { title: kpi.kpi_title, value, payload });
+      logger.debug('KPI Debug:', { title: kpi.kpi_title, value, payload });
     }
 
     // Remove emojis and split by them to get separate entries
@@ -153,7 +156,7 @@ const KPICard: React.FC<KPICardProps> = ({ kpi, variant = 'full' }) => {
 
       // Try to get actual values from payload if available
       if (payload.items && Array.isArray(payload.items)) {
-        console.log('Using payload.items:', payload.items);
+        logger.debug('Using payload.items:', payload.items);
         return payload.items.map((itemData: any, index: number) => {
           const name = itemData.name || itemData.driver_name || itemData.vehicle_id || `Item ${index + 1}`;
           const val = itemData.value || itemData.distance || itemData.mileage || 0;
@@ -178,7 +181,7 @@ const KPICard: React.FC<KPICardProps> = ({ kpi, variant = 'full' }) => {
     }
 
     // Check if this is a "Top 3" or ranked list style value without emojis
-    if (value.includes(',') && (value.includes(':') || value.match(/[A-Z\.]+:\s*[#,\d]+/))) {
+    if (value.includes(',') && (value.includes(':') || value.match(/[A-Z.]+:\s*[#,\d]+/))) {
       // Handle patterns like "AMAN: #,###km, M.SITARAM: 6,272km, MANOJ: 6,160km"
       // Split by comma and format each item on a new line
       const items = value.split(',').map(item => item.trim());

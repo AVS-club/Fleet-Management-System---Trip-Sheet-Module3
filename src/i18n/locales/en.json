@@ -50,6 +50,7 @@
     "expiringDocs": "Expiring Documents",
     "fleetSummary": "Fleet Summary",
     "fleetVehicles": "Fleet: {{count}} vehicles",
+    "driverCount": "Drivers: {{count}} drivers",
     "todayTrips": "Today: {{count}} trips",
     "totalTrips": "Total: {{count}} trips",
     "activeDays": "Active: {{count}} days",

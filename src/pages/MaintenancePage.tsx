@@ -27,7 +27,7 @@ const MaintenancePage = () => {
     start: "",
     end: "",
   });
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [metrics, setMetrics] = useState<any>({
     totalTasks: 0,
     pendingTasks: 0,

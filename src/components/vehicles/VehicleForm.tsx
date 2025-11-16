@@ -16,40 +16,14 @@ import Textarea from '../ui/Textarea';
 import DocumentUploader from '../shared/DocumentUploader';
 import CollapsibleSection from '../ui/CollapsibleSection';
 import VehicleTagSelector from './VehicleTagSelector';
-import {
-  Truck,
-  Calendar,
-  FileText,
-  Fuel,
-  User,
-  Shield,
-  Database,
-  MapPin,
-  Settings,
-  Package,
-  Plus,
-  Trash2,
-  Bell,
-  CheckCircle,
-  AlertTriangle,
-  Car,
-  Hash,
-  Palette,
-  Weight,
-  Users,
-  DollarSign,
-  Clock,
-  CreditCard,
-  Tag as TagIcon,
-  Upload,
-  Loader,
-} from 'lucide-react';
+import { Truck, Calendar, FileText, Fuel, User, Shield, Database, MapPin, Settings, Package, Plus, Trash2, Bell, CheckCircle, AlertTriangle, Car, Hash, Palette, Weight, Users, IndianRupee, Clock, CreditCard, Tag as TagIcon, Upload, Loader } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('VehicleForm');
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {}
 
 // Helper function to get max date (10 years from today)
@@ -1193,7 +1167,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Premium Amount"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_premium_amount', { valueAsNumber: true })}
           />
@@ -1201,7 +1175,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="IDV Amount"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('insurance_idv', { valueAsNumber: true })}
           />
@@ -1244,7 +1218,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Cost"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('fitness_cost', { valueAsNumber: true })}
           />
@@ -1269,7 +1243,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Amount"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('tax_amount', { valueAsNumber: true })}
           />
@@ -1341,7 +1315,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Cost"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('permit_cost', { valueAsNumber: true })}
           />
@@ -1399,7 +1373,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Cost"
             type="number"
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<IndianRupee className="h-4 w-4" />}
             disabled={fieldsDisabled || isSubmitting}
             {...register('puc_cost', { valueAsNumber: true })}
           />

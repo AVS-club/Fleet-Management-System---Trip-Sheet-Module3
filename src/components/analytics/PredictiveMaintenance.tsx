@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Wrench, 
-  AlertTriangle, 
-  Clock, 
-  TrendingUp, 
-  Calendar,
-  DollarSign,
-  Activity,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
+import { Wrench, AlertTriangle, Clock, TrendingUp, Calendar, IndianRupee, Activity, CheckCircle, XCircle } from 'lucide-react';
 import { Vehicle, MaintenanceTask } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { getVehicles } from '../../utils/storage';
@@ -206,7 +196,7 @@ const PredictiveMaintenance: React.FC = () => {
 
   const getInsightIcon = (type: string) => {
     switch (type) {
-      case 'cost_savings': return <DollarSign className="h-5 w-5 text-green-600" />;
+      case 'cost_savings': return <IndianRupee className="h-5 w-5 text-green-600" />;
       case 'risk_reduction': return <AlertTriangle className="h-5 w-5 text-red-600" />;
       case 'efficiency': return <TrendingUp className="h-5 w-5 text-blue-600" />;
       case 'scheduling': return <Calendar className="h-5 w-5 text-purple-600" />;
@@ -299,7 +289,7 @@ const PredictiveMaintenance: React.FC = () => {
               </p>
             </div>
             <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
-              <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+              <IndianRupee className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </div>

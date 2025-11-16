@@ -2,6 +2,7 @@ import { MaintenanceTask, Vehicle } from '@/types';
 import { supabase } from './supabaseClient';
 import { format, parseISO, isValid, isWithinInterval, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
 import { AIAlert } from '@/types';
+import { getCurrentUserId, getUserActiveOrganization } from './supaHelpers';
 
 type DateRange = {
   start: Date;
@@ -22,6 +23,8 @@ type MaintenanceMetrics = {
   taskTypeDistribution: { type: string; count: number }[];
   vehicleDowntime: { vehicleId: string; registration: string; downtime: number }[];
   kmBetweenMaintenance: { vehicleId: string; registration: string; kmReadings: number[] }[];
+  serviceTypeBreakdown: { type: string; count: number }[];
+  partsBreakdown: { type: string; count: number }[];
 };
 
 export const getDateRangeForFilter = (filterType: string, customStart?: string, customEnd?: string): DateRange => {
@@ -98,7 +101,8 @@ export const getDateRangeForFilter = (filterType: string, customStart?: string, 
 export const calculateMaintenanceMetrics = (
   tasks: MaintenanceTask[],
   vehicles: Vehicle[],
-  dateRange: DateRange
+  dateRange: DateRange,
+  vendors?: Array<{ id: string; vendor_name?: string; name?: string }>
 ): MaintenanceMetrics => {
   // Filter tasks by date range
   const filteredTasks = Array.isArray(tasks) ? tasks.filter(task => {
@@ -145,19 +149,10 @@ export const calculateMaintenanceMetrics = (
     ? Math.round((totalCompletionTime / completedTasks.length) * 10) / 10 
     : 0;
   
-  // Calculate total expenditure and average cost
-  const costsFromServiceGroups = filteredTasks.reduce((sum, task) => {
-    if (Array.isArray(task.service_groups)) {
-      return sum + task.service_groups.reduce((groupSum, group) => 
-        groupSum + (typeof group.cost === 'number' ? group.cost : 0), 0);
-    }
-    return sum;
-  }, 0);
-  
-  const costsFromTasks = filteredTasks.reduce((sum, task) => 
-    sum + (task.total_cost || task.estimated_cost || 0), 0);
-  
-  const totalExpenditure = Math.max(costsFromServiceGroups, costsFromTasks);
+  // Calculate total expenditure and average cost using total_cost from database
+  const totalExpenditure = filteredTasks.reduce((sum, task) =>
+    sum + (task.total_cost || 0), 0);
+
   const averageCost = totalTasks > 0 ? totalExpenditure / totalTasks : 0;
   
   // Calculate documentation cost
@@ -211,7 +206,7 @@ export const calculateMaintenanceMetrics = (
     if (!isValid(date)) return;
     
     const monthKey = format(date, 'MMM yyyy');
-    const cost = task.total_cost || task.estimated_cost || 0;
+    const cost = task.total_cost || 0;
     
     monthlyData[monthKey] = (monthlyData[monthKey] || 0) + cost;
   });
@@ -233,8 +228,8 @@ export const calculateMaintenanceMetrics = (
   filteredTasks.forEach(task => {
     const vehicleId = task.vehicle_id;
     if (!vehicleId) return;
-    
-    const cost = task.total_cost || task.estimated_cost || 0;
+
+    const cost = task.total_cost || 0;
     vehicleExpenditureMap[vehicleId] = (vehicleExpenditureMap[vehicleId] || 0) + cost;
   });
   
@@ -246,6 +241,14 @@ export const calculateMaintenanceMetrics = (
     }))
     .sort((a, b) => b.cost - a.cost); // Sort by highest cost first
   
+  // Create vendor lookup map
+  const vendorMap: Record<string, string> = {};
+  if (Array.isArray(vendors)) {
+    vendors.forEach(vendor => {
+      vendorMap[vendor.id] = vendor.vendor_name || vendor.name || vendor.id;
+    });
+  }
+
   // Calculate expenditure by vendor
   const vendorExpenditureMap: Record<string, { name: string; cost: number }> = {};
   
@@ -255,14 +258,16 @@ export const calculateMaintenanceMetrics = (
         const vendorId = group.vendor_id;
         if (!vendorId) return;
         
+        const vendorName = vendorMap[vendorId] || vendorId;
+        
         if (!vendorExpenditureMap[vendorId]) {
           vendorExpenditureMap[vendorId] = {
-            name: vendorId, // Would be replaced by actual vendor name if available
+            name: vendorName,
             cost: 0
           };
         }
         
-        vendorExpenditureMap[vendorId].cost += (typeof group.cost === 'number' ? group.cost : 0);
+        vendorExpenditureMap[vendorId].cost += (typeof group.service_cost === 'number' ? group.service_cost : 0);
       });
     }
   });
@@ -375,7 +380,56 @@ export const calculateMaintenanceMetrics = (
       registration: vehicleMap[vehicleId]?.registration_number || 'Unknown',
       kmReadings
     }));
-  
+
+  // Calculate service type breakdown (purchase, labor, both)
+  const serviceTypeMap: Record<string, number> = {
+    purchase: 0,
+    labor: 0,
+    both: 0
+  };
+
+  filteredTasks.forEach(task => {
+    if (Array.isArray(task.service_groups) && task.service_groups.length > 0) {
+      task.service_groups.forEach(group => {
+        const serviceType = group.service_type || '';
+        if (serviceType === 'purchase' || serviceType === 'labor' || serviceType === 'both') {
+          serviceTypeMap[serviceType] = (serviceTypeMap[serviceType] || 0) + 1;
+        }
+      });
+    }
+  });
+
+  const serviceTypeBreakdown = Object.entries(serviceTypeMap)
+    .filter(([_, count]) => count > 0)
+    .map(([type, count]) => ({
+      type: type.charAt(0).toUpperCase() + type.slice(1),
+      count
+    }));
+
+  // Calculate parts breakdown by part type
+  const partsTypeMap: Record<string, number> = {};
+
+  filteredTasks.forEach(task => {
+    if (Array.isArray(task.service_groups) && task.service_groups.length > 0) {
+      task.service_groups.forEach(group => {
+        if (Array.isArray(group.parts_data) && group.parts_data.length > 0) {
+          group.parts_data.forEach((part: any) => {
+            const partType = part.partType || part.part_type || 'Unknown';
+            partsTypeMap[partType] = (partsTypeMap[partType] || 0) + (part.quantity || 1);
+          });
+        }
+      });
+    }
+  });
+
+  const partsBreakdown = Object.entries(partsTypeMap)
+    .map(([type, count]) => ({
+      type,
+      count
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10); // Top 10 parts
+
   return {
     totalTasks,
     pendingTasks,
@@ -389,7 +443,9 @@ export const calculateMaintenanceMetrics = (
     expenditureByVendor,
     taskTypeDistribution,
     vehicleDowntime,
-    kmBetweenMaintenance
+    kmBetweenMaintenance,
+    serviceTypeBreakdown,
+    partsBreakdown
   };
 };
 
@@ -398,13 +454,20 @@ export const calculateMaintenanceMetrics = (
  * @param currentMonthExpenditure Current month's total maintenance expenditure
  * @param previousMonthExpenditure Previous month's total maintenance expenditure
  * @param dateRange Current date range being analyzed
+ * @param organizationId Organization ID for the alert
  * @returns An AIAlert object if an alert was created, null otherwise
  */
 const checkRisingCosts = async (
   currentMonthExpenditure: number,
   previousMonthExpenditure: number,
-  dateRange: DateRange
+  dateRange: DateRange,
+  organizationId: string | null
 ): Promise<AIAlert | null> => {
+  // Skip alert creation if organizationId is not provided
+  if (!organizationId) {
+    logger.warn('Cannot create rising costs alert: organizationId is missing');
+    return null;
+  }
   // Only create alert if we have valid data for both periods
   if (!currentMonthExpenditure || !previousMonthExpenditure || previousMonthExpenditure === 0) {
     return null;
@@ -445,7 +508,7 @@ const checkRisingCosts = async (
   const severity = percentageIncrease > 35 ? 'high' : 'medium';
   
   // Create alert data
-  const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
+  const alertData: Omit<AIAlert, 'id' | 'updated_at'> & { organization_id: string } = {
     alert_type: 'rising_maintenance_costs',
     severity,
     status: 'pending',
@@ -467,7 +530,8 @@ const checkRisingCosts = async (
         'Investigate if any vehicles are requiring excessive maintenance'
       ]
     },
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    organization_id: organizationId
   };
   
   try {
@@ -494,12 +558,19 @@ const checkRisingCosts = async (
  * Check for non-optimal vendor rates and create an AI alert if necessary
  * @param tasks Maintenance tasks to analyze
  * @param dateRange Current date range being analyzed
+ * @param organizationId Organization ID for the alert
  * @returns An AIAlert object if an alert was created, null otherwise
  */
 const checkNonOptimalVendorRates = async (
   tasks: MaintenanceTask[],
-  dateRange: DateRange
+  dateRange: DateRange,
+  organizationId: string | null
 ): Promise<AIAlert | null> => {
+  // Skip alert creation if organizationId is not provided
+  if (!organizationId) {
+    logger.warn('Cannot create vendor rates alert: organizationId is missing');
+    return null;
+  }
   // Group tasks by task type and vendor
   const tasksByTypeAndVendor: Record<string, Record<string, { count: number; totalCost: number }>> = {};
   
@@ -538,7 +609,7 @@ const checkNonOptimalVendorRates = async (
         
         // Update count and cost
         tasksByTypeAndVendor[taskId][group.vendor_id].count += 1;
-        tasksByTypeAndVendor[taskId][group.vendor_id].totalCost += (typeof group.cost === 'number' ? group.cost : 0);
+        tasksByTypeAndVendor[taskId][group.vendor_id].totalCost += (typeof group.service_cost === 'number' ? group.service_cost : 0);
       });
     });
   });
@@ -631,7 +702,7 @@ const checkNonOptimalVendorRates = async (
   const severity = topDifferences[0].percentageDifference > 35 ? 'high' : 'medium';
   
   // Create alert data
-  const alertData: Omit<AIAlert, 'id' | 'updated_at'> = {
+  const alertData: Omit<AIAlert, 'id' | 'updated_at'> & { organization_id: string } = {
     alert_type: 'non_optimal_vendor_rates',
     severity,
     status: 'pending',
@@ -651,7 +722,8 @@ const checkNonOptimalVendorRates = async (
         'Request detailed breakdowns for higher-cost services'
       ]
     },
-    created_at: new Date().toISOString()
+    created_at: new Date().toISOString(),
+    organization_id: organizationId
   };
   
   try {
@@ -755,26 +827,53 @@ export const getMaintenanceMetricsWithComparison = async (
     // Calculate total tasks and expenditure for previous period
     const previousTotalTasks = previousTasks.length;
     
-    const previousExpenditure = previousTasks.reduce((sum, task) => {
-      if (Array.isArray(task.service_groups)) {
-        return sum + task.service_groups.reduce((groupSum, group) => 
-          groupSum + (typeof group.cost === 'number' ? group.cost : 0), 0);
-      }
-      return sum + (task.total_cost || task.estimated_cost || 0);
-    }, 0);
+    const previousExpenditure = previousTasks.reduce((sum, task) =>
+      sum + (task.total_cost || 0), 0);
     
     // Calculate percent change in expenditure
     const percentChange = previousExpenditure > 0
       ? ((currentMetrics.totalExpenditure - previousExpenditure) / previousExpenditure) * 100
       : 0;
     
+    // Extract organization_id from tasks or get from user's active organization
+    let organizationId: string | null = null;
+    
+    // First try to get from tasks array
+    if (Array.isArray(tasks) && tasks.length > 0) {
+      organizationId = tasks[0]?.organization_id || null;
+    }
+    
+    // Fallback: get from user's active organization
+    if (!organizationId) {
+      try {
+        const userId = await getCurrentUserId();
+        if (userId) {
+          organizationId = await getUserActiveOrganization(userId);
+        }
+      } catch (error) {
+        logger.warn('Failed to get organization_id from user:', error);
+      }
+    }
+    
     // Check for rising costs and create alert if necessary
+    // Wrap in try-catch to prevent alert failures from blocking metrics calculation
     if (Math.abs(percentChange) > 20) {
-      await checkRisingCosts(currentMetrics.totalExpenditure, previousExpenditure, currentDateRange);
+      try {
+        await checkRisingCosts(currentMetrics.totalExpenditure, previousExpenditure, currentDateRange, organizationId);
+      } catch (error) {
+        logger.error('Failed to create rising costs alert (non-blocking):', error);
+        // Don't throw - metrics calculation should continue even if alert creation fails
+      }
     }
     
     // Check for non-optimal vendor rates
-    await checkNonOptimalVendorRates(tasks, currentDateRange);
+    // Wrap in try-catch to prevent alert failures from blocking metrics calculation
+    try {
+      await checkNonOptimalVendorRates(tasks, currentDateRange, organizationId);
+    } catch (error) {
+      logger.error('Failed to create vendor rates alert (non-blocking):', error);
+      // Don't throw - metrics calculation should continue even if alert creation fails
+    }
     
     return {
       ...currentMetrics,

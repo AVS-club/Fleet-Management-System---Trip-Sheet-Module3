@@ -100,8 +100,6 @@ const EnhancedMaintenanceTaskForm: React.FC<EnhancedMaintenanceTaskFormProps> = 
                 vendor_id: "",
                 tasks: [],
                 cost: 0,
-                battery_tracking: false,
-                tyre_tracking: false,
               },
             ],
       ...initialData,

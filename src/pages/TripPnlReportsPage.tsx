@@ -6,32 +6,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { getTrips, getVehicles, getWarehouses } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';
-import {
-  Calendar,
-  ChevronDown,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  RefreshCw,
-  Search,
-  Download,
-  IndianRupee,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  BarChart3,
-  BarChart2,
-  Target,
-  Eye,
-  Printer,
-  ArrowUpDown,
-  MoreHorizontal,
-  PieChart,
-  LineChart,
-  Activity,
-  AlertTriangle
-} from 'lucide-react';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, BarChart2, Target, Eye, Printer, ArrowUpDown, MoreHorizontal, PieChart, LineChart, Activity, AlertTriangle } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -867,7 +842,7 @@ const TripPnlReportsPage: React.FC = () => {
               <div className={`p-3 rounded-lg ${
                 pnlSummary.netProfit >= 0 ? 'bg-green-50 dark:bg-green-900/30' : 'bg-red-50 dark:bg-red-900/30'
               }`}>
-                <DollarSign className={`h-6 w-6 ${
+                <IndianRupee className={`h-6 w-6 ${
                   pnlSummary.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`} />
               </div>

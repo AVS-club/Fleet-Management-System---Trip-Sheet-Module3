@@ -1,13 +1,5 @@
 import { useMemo } from 'react';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Calendar, 
-  DollarSign, 
-  AlertTriangle,
-  Activity,
-  BarChart2
-} from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, IndianRupee, AlertTriangle, Activity, BarChart2 } from 'lucide-react';
 import { MaintenanceTask } from '@/types/maintenance';
 import { Vehicle } from '@/types';
 import { calculateHistoricalTrends } from '@/utils/partsAnalytics';
@@ -103,7 +95,7 @@ const HistoricalTrends: React.FC<HistoricalTrendsProps> = ({
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs sm:text-sm text-gray-600">Avg Cost</span>
-              <DollarSign className="h-4 w-4 text-gray-500" />
+              <IndianRupee className="h-4 w-4 text-gray-500" />
             </div>
             <div className="text-xl sm:text-2xl font-bold text-gray-900">
               ₹{Math.round(trendStats.recentAvgCost / 1000)}K

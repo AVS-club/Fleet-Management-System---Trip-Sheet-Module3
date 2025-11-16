@@ -14,19 +14,6 @@ export interface FormServiceGroup {
   bills?: File[];
   bill_url?: string[];
   notes?: string;
-  batteryData?: {
-    serialNumber: string;
-    brand: string;
-  };
-  batteryWarrantyFiles?: File[];
-  battery_warranty_url?: string[];
-  tyreData?: {
-    positions: string[];
-    brand: string;
-    serialNumbers: string;
-  };
-  tyreWarrantyFiles?: File[];
-  tyre_warranty_url?: string[];
   partsData?: Array<{
     partType: string;
     partName: string;
@@ -48,22 +35,9 @@ export interface DatabaseServiceGroup {
   service_type: 'purchase' | 'labor' | 'both';
   vendor_id: string;
   tasks: string[];
-  cost: number;
+  service_cost: number; // Database field is service_cost, not cost
   bill_url?: string[];
   notes?: string | null;
-  battery_data?: {
-    serialNumber: string;
-    brand: string;
-  };
-  battery_warranty_url?: string[];
-  battery_warranty_expiry_date?: string | null;
-  tyre_data?: {
-    positions: string[];
-    brand: string;
-    serialNumbers: string;
-  };
-  tyre_warranty_url?: string[];
-  tyre_warranty_expiry_date?: string | null;
   parts_data?: Array<{
     partType: string;
     partName: string;
@@ -95,33 +69,6 @@ export const mapServiceGroupToDatabase = (
     bill_url: group.bill_url || [],
     notes: group.notes || null,
   };
-
-  // Map battery data
-  if (group.batteryData) {
-    dbGroup.battery_data = {
-      serialNumber: group.batteryData.serialNumber,
-      brand: group.batteryData.brand,
-    };
-  }
-
-  // Map battery warranty URLs
-  if (group.battery_warranty_url && group.battery_warranty_url.length > 0) {
-    dbGroup.battery_warranty_url = group.battery_warranty_url;
-  }
-
-  // Map tyre data
-  if (group.tyreData) {
-    dbGroup.tyre_data = {
-      positions: group.tyreData.positions,
-      brand: group.tyreData.brand,
-      serialNumbers: group.tyreData.serialNumbers,
-    };
-  }
-
-  // Map tyre warranty URLs
-  if (group.tyre_warranty_url && group.tyre_warranty_url.length > 0) {
-    dbGroup.tyre_warranty_url = group.tyre_warranty_url;
-  }
 
   // Map parts data
   if (group.partsData && group.partsData.length > 0) {
@@ -177,33 +124,6 @@ export const mapDatabaseToFormServiceGroup = (
     notes: dbGroup.notes || undefined,
   };
 
-  // Map battery data
-  if (dbGroup.battery_data) {
-    formGroup.batteryData = {
-      serialNumber: dbGroup.battery_data.serialNumber,
-      brand: dbGroup.battery_data.brand,
-    };
-  }
-
-  // Map battery warranty URLs
-  if (dbGroup.battery_warranty_url && dbGroup.battery_warranty_url.length > 0) {
-    formGroup.battery_warranty_url = dbGroup.battery_warranty_url;
-  }
-
-  // Map tyre data
-  if (dbGroup.tyre_data) {
-    formGroup.tyreData = {
-      positions: dbGroup.tyre_data.positions || [],
-      brand: dbGroup.tyre_data.brand,
-      serialNumbers: dbGroup.tyre_data.serialNumbers,
-    };
-  }
-
-  // Map tyre warranty URLs
-  if (dbGroup.tyre_warranty_url && dbGroup.tyre_warranty_url.length > 0) {
-    formGroup.tyre_warranty_url = dbGroup.tyre_warranty_url;
-  }
-
   // Map parts data
   if (dbGroup.parts_data && dbGroup.parts_data.length > 0) {
     formGroup.partsData = dbGroup.parts_data.map((part) => ({
@@ -247,28 +167,16 @@ export const mapDatabaseToFormServiceGroups = (
  */
 export const extractFileReferences = (groups: FormServiceGroup[]): {
   bills: File[];
-  batteryWarranties: File[];
-  tyreWarranties: File[];
   partsWarranties: File[];
 } => {
   const files = {
     bills: [] as File[],
-    batteryWarranties: [] as File[],
-    tyreWarranties: [] as File[],
     partsWarranties: [] as File[],
   };
 
   groups.forEach((group) => {
     if (group.bills) {
       files.bills.push(...group.bills);
-    }
-
-    if (group.batteryWarrantyFiles) {
-      files.batteryWarranties.push(...group.batteryWarrantyFiles);
-    }
-
-    if (group.tyreWarrantyFiles) {
-      files.tyreWarranties.push(...group.tyreWarrantyFiles);
     }
 
     if (group.partsData) {
@@ -296,7 +204,11 @@ export const calculateTotalServiceCost = (
     return 0;
   }
 
-  return groups.reduce((total, group) => total + (group.cost || 0), 0);
+  return groups.reduce((total, group) => {
+    // Handle both form data (cost) and database data (service_cost)
+    const cost = ('service_cost' in group) ? group.service_cost : ('cost' in group) ? group.cost : 0;
+    return total + (cost || 0);
+  }, 0);
 };
 
 /**
@@ -325,26 +237,6 @@ export const validateServiceGroup = (group: FormServiceGroup): {
 
   if (group.cost !== undefined && group.cost < 0) {
     errors.push('Cost cannot be negative');
-  }
-
-  // Validate battery data if present
-  if (group.batteryData) {
-    if (!group.batteryData.serialNumber || group.batteryData.serialNumber.trim() === '') {
-      errors.push('Battery serial number is required when battery data is provided');
-    }
-    if (!group.batteryData.brand || group.batteryData.brand.trim() === '') {
-      errors.push('Battery brand is required when battery data is provided');
-    }
-  }
-
-  // Validate tyre data if present
-  if (group.tyreData) {
-    if (!group.tyreData.positions || group.tyreData.positions.length === 0) {
-      errors.push('At least one tyre position is required when tyre data is provided');
-    }
-    if (!group.tyreData.brand || group.tyreData.brand.trim() === '') {
-      errors.push('Tyre brand is required when tyre data is provided');
-    }
   }
 
   // Validate parts data if present

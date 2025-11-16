@@ -596,59 +596,10 @@ export const getPartsHealthMetrics = (
       }
     }
     
-    // PRIORITY 6: Process service groups for battery and tyre tracking (legacy)
+    // PRIORITY 6: Process service groups for parts from task list
     if (Array.isArray(task.service_groups)) {
       task.service_groups.forEach(group => {
-        // Battery replacement
-        if (group.battery_tracking && group.battery_data) {
-          const partId = 'battery';
-          if (!partReplacements[partId]) partReplacements[partId] = [];
-          
-          partReplacements[partId].push({
-            vehicleId: task.vehicle_id,
-            date: task.start_date,
-            cost: typeof group.cost === 'number' ? group.cost : 0,
-            odometerReading: task.odometer_reading,
-            brand: group.battery_data.brand,
-            warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
-          });
-        }
-        
-        // Tyre replacement
-        if (group.tyre_tracking && group.tyre_data) {
-          const positions = group.tyre_data.positions || [];
-          const costPerTyre = positions.length > 0 ? (typeof group.cost === 'number' ? group.cost : 0) / positions.length : 0;
-          
-          if (positions.some(pos => ['FL', 'FR'].includes(pos))) {
-            const partId = 'tyres_front';
-            if (!partReplacements[partId]) partReplacements[partId] = [];
-            
-            partReplacements[partId].push({
-              vehicleId: task.vehicle_id,
-              date: task.start_date,
-              cost: costPerTyre,
-              odometerReading: task.odometer_reading,
-              brand: group.tyre_data.brand,
-              warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
-            });
-          }
-          
-          if (positions.some(pos => ['RL', 'RR'].includes(pos))) {
-            const partId = 'tyres_rear';
-            if (!partReplacements[partId]) partReplacements[partId] = [];
-            
-            partReplacements[partId].push({
-              vehicleId: task.vehicle_id,
-              date: task.start_date,
-              cost: costPerTyre,
-              odometerReading: task.odometer_reading,
-              brand: group.tyre_data.brand,
-              warrantyPeriod: PART_DEFINITIONS.find(p => p.id === partId)?.warrantyPeriod
-            });
-          }
-        }
-        
-        // Other parts from task list
+        // Parts from task list
         if (Array.isArray(group.tasks)) {
           group.tasks.forEach(taskId => {
             const maintenanceItem = MAINTENANCE_ITEMS.find(item => item.id === taskId);
@@ -664,7 +615,7 @@ export const getPartsHealthMetrics = (
             
             if (!partReplacements[partId]) partReplacements[partId] = [];
             
-            const costPerTask = group.tasks.length > 0 ? (typeof group.cost === 'number' ? group.cost : 0) / group.tasks.length : 0;
+            const costPerTask = group.tasks.length > 0 ? (typeof group.service_cost === 'number' ? group.service_cost : 0) / group.tasks.length : 0;
             
             partReplacements[partId].push({
               vehicleId: task.vehicle_id,

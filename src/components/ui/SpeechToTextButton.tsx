@@ -75,7 +75,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       recognitionRef.current.lang = language;
 
       recognitionRef.current.onresult = (event: any) => {
-        console.log('🎤 SPEECH RECOGNITION ONRESULT TRIGGERED', event);
+        logger.debug('🎤 SPEECH RECOGNITION ONRESULT TRIGGERED', event);
         let finalTranscript = '';
         let interimTranscript = '';
 
@@ -84,22 +84,22 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript + ' ';
-            console.log('✅ FINAL TRANSCRIPT:', transcript);
+            logger.debug('✅ FINAL TRANSCRIPT:', transcript);
           } else {
             interimTranscript += transcript;
-            console.log('⏳ INTERIM TRANSCRIPT:', transcript);
+            logger.debug('⏳ INTERIM TRANSCRIPT:', transcript);
           }
         }
 
         // Send interim results for real-time display
         if (interimTranscript && onInterimTranscriptRef.current) {
-          console.log('📤 SENDING INTERIM TO CALLBACK:', interimTranscript);
+          logger.debug('📤 SENDING INTERIM TO CALLBACK:', interimTranscript);
           onInterimTranscriptRef.current(interimTranscript);
         }
 
         // Handle final results
         if (finalTranscript.trim()) {
-          console.log('📤 SENDING FINAL TO CALLBACK:', finalTranscript.trim());
+          logger.debug('📤 SENDING FINAL TO CALLBACK:', finalTranscript.trim());
           onTranscriptRef.current(finalTranscript.trim());
           setStatus('success');
           setIsListening(false);
@@ -121,7 +121,7 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('❌ SPEECH RECOGNITION ERROR:', event.error, event);
+        logger.error('❌ SPEECH RECOGNITION ERROR:', event.error, event);
         setIsListening(false);
         setStatus('error');
 
@@ -141,11 +141,11 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       };
 
       recognitionRef.current.onstart = () => {
-        console.log('🎙️ SPEECH RECOGNITION ONSTART EVENT FIRED');
+        logger.debug('🎙️ SPEECH RECOGNITION ONSTART EVENT FIRED');
       };
 
       recognitionRef.current.onend = () => {
-        console.log('🛑 SPEECH RECOGNITION ONEND EVENT FIRED');
+        logger.debug('🛑 SPEECH RECOGNITION ONEND EVENT FIRED');
         setIsListening(false);
         // Clear active instance if this was the active one
         if (activeInstanceId === instanceIdRef.current) {
@@ -230,9 +230,9 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
       }
 
       try {
-        console.log('🎬 STARTING SPEECH RECOGNITION...', { language });
+        logger.debug('🎬 STARTING SPEECH RECOGNITION...', { language });
         recognitionRef.current.start();
-        console.log('✅ recognition.start() called successfully');
+        logger.debug('✅ recognition.start() called successfully');
         setIsListening(true);
         // Set this as the active instance
         activeRecognitionInstance = recognitionRef.current;
@@ -240,25 +240,25 @@ const SpeechToTextButton: React.FC<SpeechToTextButtonProps> = ({
 
         // Call onStart callback to focus the textarea
         if (onStartRef.current) {
-          console.log('🎯 CALLING onStart CALLBACK');
+          logger.debug('🎯 CALLING onStart CALLBACK');
           onStartRef.current();
         }
 
         // Set auto-stop timeout
         autoStopTimeoutRef.current = setTimeout(() => {
-          console.log(`⏱️ AUTO-STOPPING after ${maxDuration}ms`);
+          logger.debug(`⏱️ AUTO-STOPPING after ${maxDuration}ms`);
           try {
             if (recognitionRef.current && isListening) {
               recognitionRef.current.stop();
             }
           } catch (err) {
-            console.error('Error auto-stopping:', err);
+            logger.error('Error auto-stopping:', err);
           }
         }, maxDuration);
 
-        console.log('✅ SPEECH RECOGNITION STARTED');
+        logger.debug('✅ SPEECH RECOGNITION STARTED');
       } catch (err) {
-        console.error('❌ ERROR STARTING SPEECH RECOGNITION:', err);
+        logger.error('❌ ERROR STARTING SPEECH RECOGNITION:', err);
         // If start fails, make sure state is clean
         setIsListening(false);
         if (activeInstanceId === instanceIdRef.current) {

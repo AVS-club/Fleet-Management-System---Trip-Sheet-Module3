@@ -2,7 +2,7 @@ import React from 'react';
 import { ReportHeader } from '../common/ReportHeader';
 import { StatCard } from '../common/StatCard';
 import { ReportTable } from '../common/ReportTable';
-import { Car, Users, Fuel, DollarSign, Calendar, TrendingUp } from 'lucide-react';
+import { Car, Users, Fuel, IndianRupee, Calendar, TrendingUp } from 'lucide-react';
 
 interface MonthlyComparisonData {
   monthName: string;
@@ -86,7 +86,7 @@ export const MonthlyComparisonReport: React.FC<MonthlyComparisonReportProps> = (
         <StatCard
           title="Total Cost"
           value={`₹${data.totalCost.toLocaleString()}`}
-          icon={<DollarSign className="w-6 h-6" />}
+          icon={<IndianRupee className="w-6 h-6" />}
         />
       </div>
 

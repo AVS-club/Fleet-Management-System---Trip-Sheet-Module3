@@ -8,11 +8,13 @@ import ExpenditureAnalytics from '../components/maintenance/ExpenditureAnalytics
 import VehicleMaintenanceIntensity from '../components/maintenance/VehicleMaintenanceIntensity';
 import VehicleDowntimeChart from '../components/maintenance/VehicleDowntimeChart';
 import TaskDistributionChart from '../components/maintenance/TaskDistributionChart';
+import ServicesPartsBreakdown from '../components/maintenance/ServicesPartsBreakdown';
 import { MaintenanceTask } from '@/types/maintenance';
 import { Vehicle, Tag } from '@/types';
 import { getTasks } from '../utils/maintenanceStorage';
 import { getVehicles } from '../utils/storage';
 import { getTags } from '../utils/api/tags';
+import { getVendors } from '../utils/vendorStorage';
 import { getDateRangeForFilter, calculateMaintenanceMetrics } from '../utils/maintenanceAnalytics';
 import { 
   getPartsHealthMetrics,
@@ -28,7 +30,6 @@ import {
   Tag as TagIcon,
   AlertTriangle,
   CheckCircle2,
-  DollarSign,
   Filter,
   X,
   ChevronDown
@@ -47,6 +48,7 @@ const PartsHealthAnalyticsPage: React.FC = () => {
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [vendors, setVendors] = useState<any[]>([]);
   const [partsMetrics, setPartsMetrics] = useState<PartHealthMetrics[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -59,6 +61,8 @@ const PartsHealthAnalyticsPage: React.FC = () => {
     taskTypeDistribution: [],
     vehicleDowntime: [],
     kmBetweenMaintenance: [],
+    serviceTypeBreakdown: [],
+    partsBreakdown: [],
     previousPeriodComparison: {
       totalExpenditure: 0,
       percentChange: 0
@@ -70,15 +74,17 @@ const PartsHealthAnalyticsPage: React.FC = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [tasksData, vehiclesData, tagsData] = await Promise.all([
+        const [tasksData, vehiclesData, tagsData, vendorsData] = await Promise.all([
           getTasks(),
           getVehicles(),
-          getTags()
+          getTags(),
+          getVendors()
         ]);
         
         setTasks(Array.isArray(tasksData) ? tasksData : []);
         setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
         setTags(Array.isArray(tagsData) ? tagsData : []);
+        setVendors(Array.isArray(vendorsData) ? vendorsData : []);
         
         const metrics = getPartsHealthMetrics(
           Array.isArray(tasksData) ? tasksData : [],
@@ -90,7 +96,8 @@ const PartsHealthAnalyticsPage: React.FC = () => {
         const analyticsData = calculateMaintenanceMetrics(
           Array.isArray(tasksData) ? tasksData : [],
           Array.isArray(vehiclesData) ? vehiclesData : [],
-          dateRange
+          dateRange,
+          Array.isArray(vendorsData) ? vendorsData : []
         );
         setAnalyticsMetrics(analyticsData);
         
@@ -109,15 +116,17 @@ const PartsHealthAnalyticsPage: React.FC = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const [tasksData, vehiclesData, tagsData] = await Promise.all([
+      const [tasksData, vehiclesData, tagsData, vendorsData] = await Promise.all([
         getTasks(),
         getVehicles(),
-        getTags()
+        getTags(),
+        getVendors()
       ]);
       
       setTasks(Array.isArray(tasksData) ? tasksData : []);
       setVehicles(Array.isArray(vehiclesData) ? vehiclesData : []);
       setTags(Array.isArray(tagsData) ? tagsData : []);
+      setVendors(Array.isArray(vendorsData) ? vendorsData : []);
       
       const metrics = getPartsHealthMetrics(
         Array.isArray(tasksData) ? tasksData : [],
@@ -129,7 +138,8 @@ const PartsHealthAnalyticsPage: React.FC = () => {
       const analyticsData = calculateMaintenanceMetrics(
         Array.isArray(tasksData) ? tasksData : [],
         Array.isArray(vehiclesData) ? vehiclesData : [],
-        dateRange
+        dateRange,
+        Array.isArray(vendorsData) ? vendorsData : []
       );
       setAnalyticsMetrics(analyticsData);
       
@@ -222,10 +232,10 @@ const PartsHealthAnalyticsPage: React.FC = () => {
 
               <div className="flex-shrink-0 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2 border border-blue-200 dark:border-blue-800 min-w-[100px]">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold">₹</span>
                   <div>
                     <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                      ₹{(metrics.upcomingCost / 1000).toFixed(0)}K
+                      {(metrics.upcomingCost / 1000).toFixed(0)}K
                     </div>
                     <div className="text-[10px] text-blue-700 dark:text-blue-300">Est. Cost</div>
                   </div>
@@ -419,6 +429,10 @@ const PartsHealthAnalyticsPage: React.FC = () => {
               />
               <TaskDistributionChart 
                 taskTypeDistribution={analyticsMetrics.taskTypeDistribution || []}
+              />
+              <ServicesPartsBreakdown
+                serviceTypeBreakdown={analyticsMetrics.serviceTypeBreakdown || []}
+                partsBreakdown={analyticsMetrics.partsBreakdown || []}
               />
             </div>
           )}

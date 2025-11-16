@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  MapPin, Calendar, User, Fuel, TrendingUp, 
-  Package, Clock, DollarSign, AlertCircle 
-} from 'lucide-react';
+import { MapPin, Calendar, User, Fuel, TrendingUp, Package, Clock, IndianRupee, AlertCircle } from 'lucide-react';
 import { getTrips } from '../../utils/storage';
 import { formatDate } from '../../utils/dateUtils';
 import { getMileageBadge, vehicleColors } from '../../utils/vehicleColors';
@@ -275,7 +272,7 @@ const VehicleTripsTab: React.FC<VehicleTripsTabProps> = ({ vehicleId }) => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-purple-500" />
+                  <IndianRupee className="h-4 w-4 text-purple-500" />
                   <div>
                     <p className="text-xs text-gray-500">Revenue</p>
                     <p className="text-sm font-medium text-gray-900">₹{(trip.revenue || 0).toLocaleString()}</p>

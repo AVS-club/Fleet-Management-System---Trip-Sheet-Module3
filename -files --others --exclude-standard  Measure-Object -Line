@@ -1,0 +1,32 @@
+[33m5a6f5d0[m[33m ([m[1;32mbackup-last-50-hours[m[33m)[m Merge remote changes and resolve conflict in TripForm.tsx - keep overflow-visible without h-full
+[33m5b4f521[m Fix TripForm overflow issue - change from overflow-y-auto to overflow-visible
+[33m980eee2[m Apply comprehensive dropdown overflow fixes
+[33m0635d29[m Portal dropdown overlays for trip inputs
+[33m9b9b93f[m Fix trip form dropdown typing and positioning
+[33me863aae[m Deleted vite.config.ts.timestamp-1758721586442-57617fa6b4b328.mjs
+[33m68a59c8[m Added vite.config.ts.timestamp-1758721586442-57617fa6b4b328.mjs
+[33mcc6241e[m Apply aggressive fixes for dropdown overflow issues
+[33mf52e7c0[m Resolve merge conflict in package-lock.json
+[33m5e9a583[m Add missing TypeScript types for react-paginate
+[33mf7391c3[m Updated package-lock.json
+[33m7f8ba8e[m Fix dropdown overflow and input focus issues in trip form
+[33m599550a[m cleanup: Remove temporary image files from attached_assets
+[33mf8fac05[m feat: Implement comprehensive document sharing system
+[33m0cbdfc8[m FINAL REVERT: Remove all dark mode implementation completely
+[33m44ad47e[m Complete merge and revert dark mode
+[33m8bb44dd[m REVERT: Remove all dark mode implementation
+[33m1ba512c[m Fix syntax errors in Select and WarehouseSelector components
+[33m67151c9[m Merge remote changes and complete dark mode implementation
+[33m82881e7[m Complete Dark Mode Implementation - Final Updates
+[33mbcc1979[m Added 20250120000004_enhanced_maintenance_tables.sql
+[33m54a92c5[m  Fix Dark Mode White Patches - Complete UI Enhancement
+[33m57f53ad[m  Fix CSS error: Remove 'group' utility from @apply directive
+[33m3a7f9be[m  Complete Dark Mode Implementation - AVS Fleet Management
+[33m7883584[m Force recreate service_category enum with all required values
+[33m8d0eee9[m Fix migration order and table reference issues
+[33m5669e27[m Fix service_category enum issue in database migration
+[33m1ab82de[m Fix database migration dependency issue
+[33mb06c0be[m Update RLS policies for maintenance_schedules table to require authentication
+[33mae31fbf[m feat: Add sophisticated Indian NLU system with Hinglish support
+[33m786fca9[m feat: implement comprehensive resilience patterns for RPC read handlers
+[33m21fece5[m feat: Add comprehensive enhanced scanner with advanced analytics

@@ -1,4 +1,4 @@
-// @ts-ignore Remote import for Deno Edge Function
+// @ts-expect-error Remote import for Deno Edge Function
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {

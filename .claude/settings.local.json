@@ -3,7 +3,22 @@
     "allow": [
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git log:*)",
+      "Bash(rm:*)",
+      "Bash(del \"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\\src\\components\\maintenance\\ServiceGroupItem.tsx\")",
+      "Bash(del \"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\\supabase\\migrations\\20251112000001_add_missing_columns_to_service_tasks.sql\")",
+      "Bash(wc:*)",
+      "Bash(npx supabase db push --help:*)",
+      "Bash(npx supabase:*)",
+      "Bash(\"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\\UI_IMPROVEMENTS_SUMMARY.md\")",
+      "Bash(\"c:\\Users\\nishi\\OneDrive\\Desktop\\Fleet-Management-System---Trip-Sheet-Module3-main (2)\\Fleet-Management-System---Trip-Sheet-Module3\\NOTES_FIELD_REMOVAL.md\")",
+      "Bash(cat:*)",
+      "Bash(psql:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

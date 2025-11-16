@@ -12,7 +12,7 @@ import {
 } from "../utils/maintenanceStorage";
 import { getVehicles } from "../utils/storage";
 import Button from "../components/ui/Button";
-import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText } from "lucide-react";
+import { ChevronLeft, Trash2, Edit, Wrench, Camera, FileText, Clock, Truck, Calendar, IndianRupee, Share2, Copy, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "react-toastify";
 import { uploadFilesAndGetPublicUrls } from "@/utils/supabaseStorage";
 import { processAllServiceGroupFiles, FileUploadCallback } from "@/utils/maintenanceFileUpload";
@@ -22,8 +22,32 @@ import SaveDiagnosticsModal, { SaveOperation, OperationStatus } from '../compone
 import { convertServiceGroupsToDatabase } from '../components/maintenance/ServiceGroupsSection';
 import { getVendors, Vendor } from '../utils/vendorStorage';
 import { getMaintenanceTasksCatalog } from '../utils/maintenanceCatalog';
+import { format, parseISO } from 'date-fns';
+import { supabase } from '../utils/supabaseClient';
+import { getWarrantyStatus, formatWarrantyExpiryDate } from '../utils/warrantyCalculations';
+import { useQueryClient } from "@tanstack/react-query";
 
 const logger = createLogger('MaintenanceTaskPage');
+
+// Helper function to extract filename from URL
+const getFilenameFromUrl = (url: string | null | undefined): string => {
+  if (!url || typeof url !== 'string') return 'Document';
+  try {
+    const parts = url.split('/');
+    const filename = parts[parts.length - 1];
+    // Decode URL encoding and remove query params
+    return decodeURIComponent(filename.split('?')[0]);
+  } catch {
+    return 'Document';
+  }
+};
+
+// Helper function to detect if URL is a PDF
+const isPdfUrl = (url: string | null | undefined): boolean => {
+  if (!url || typeof url !== 'string') return false;
+  return url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('application/pdf');
+};
+
 // Define a more specific type for the data coming from MaintenanceTaskForm
 interface MaintenanceFormData {
   // Basic fields
@@ -50,17 +74,8 @@ interface MaintenanceFormData {
     cost: number;
     notes?: string;
     bills?: File[];
-    
+
     // Parts tracking
-    batteryData?: {
-      serialNumber: string;
-      brand: string;
-    };
-    tyreData?: {
-      positions: string[];
-      brand: string;
-      serialNumbers: string;
-    };
     partsData?: Array<{
       partType: string;
       partName: string;
@@ -70,10 +85,6 @@ interface MaintenanceFormData {
       warrantyPeriod?: string;
       warrantyDocument?: File;
     }>;
-    
-    // Warranty uploads
-    batteryWarrantyFiles?: File[];
-    tyreWarrantyFiles?: File[];
   }>;
 
   // Other fields
@@ -103,6 +114,7 @@ const MaintenanceTaskPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const locationState = (location.state as { task?: MaintenanceTask; mode?: string } | undefined) || {};
   const [task, setTask] = useState<MaintenanceTask | null>(locationState.task || null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -115,6 +127,13 @@ const MaintenanceTaskPage: React.FC = () => {
   const searchParams = new URLSearchParams(location.search);
   const modeParam = searchParams.get('mode');
   const isViewMode = (modeParam || (locationState.mode ?? undefined)) === 'view';
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [uploadedPhotos, setUploadedPhotos] = useState<Array<{
+    id: string;
+    image_url: string;
+    uploaded_at: string;
+    uploaded_by: string | null;
+  }>>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -164,6 +183,117 @@ const MaintenanceTaskPage: React.FC = () => {
 
     fetchData();
   }, [id, navigate]);
+
+  // Fetch uploaded field photos in view mode
+  useEffect(() => {
+    const fetchUploadedPhotos = async () => {
+      if (!id || id === 'new' || !isViewMode) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('maintenance_task_uploads')
+          .select('id, image_url, uploaded_at, uploaded_by')
+          .eq('maintenance_task_id', id)
+          .order('uploaded_at', { ascending: false });
+
+        if (error) {
+          logger.error('Error fetching uploaded photos:', error);
+        } else {
+          setUploadedPhotos(data || []);
+        }
+      } catch (error) {
+        logger.error('Failed to fetch uploaded photos:', error);
+      }
+    };
+
+    fetchUploadedPhotos();
+
+    // Poll for new uploads every 30 seconds when in view mode
+    const interval = isViewMode ? setInterval(fetchUploadedPhotos, 30000) : null;
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [id, isViewMode]);
+
+  // Transform database format to form format for editing
+  const transformDatabaseToFormData = (dbTask: MaintenanceTask) => {
+    try {
+      logger.debug('🔄 Transforming database task to form format:', dbTask);
+
+      // Extract time from datetime strings
+      const extractTime = (dateTimeString: string | undefined): string => {
+        if (!dateTimeString) return '09:00';
+        try {
+          const date = parseISO(dateTimeString);
+          return format(date, 'HH:mm');
+        } catch {
+          return '09:00';
+        }
+      };
+
+      // Transform service groups from database format to form format
+      const transformedServiceGroups = (dbTask.service_groups || []).map((group: any, index: number) => {
+        // Transform tasks from UUIDs to names
+        const taskNames = (group.tasks || []).map((taskId: string) => {
+          const taskName = tasksMap.get(taskId);
+          return taskName || taskId; // Fallback to ID if name not found
+        });
+
+        // Get vendor name from UUID
+        const vendorName = vendorsMap.get(group.vendor_id) || group.vendor_id;
+
+        // Transform parts_data (snake_case) to parts (camelCase) for the form
+        const transformedParts = (group.parts_data || []).map((part: any) => ({
+          partType: part.partType || part.part_type || '',
+          partName: part.partName || part.part_name || '',
+          brand: part.brand || '',
+          serialNumber: part.serialNumber || part.serial_number || '',
+          quantity: part.quantity || 1,
+          warrantyPeriod: part.warrantyPeriod || part.warranty_period || '',
+          tyrePositions: part.tyrePositions || part.tyre_positions || [],
+          // Check multiple possible field names for warranty document URL
+          warrantyDocumentUrl: part.warrantyDocumentUrl || part.warranty_document_url || part.warrantyUrl || part.warranty_url || null,
+        }));
+
+        return {
+          id: group.id || `group-${index}`,
+          serviceType: group.service_type || '',
+          vendor: vendorName,
+          vendor_id: group.vendor_id, // Keep ID for submission
+          tasks: taskNames,
+          cost: group.service_cost || group.cost || 0,
+          notes: group.notes || '',
+          bill_url: group.bill_url || [],
+          part_warranty_url: group.part_warranty_url || [], // ✅ NEW: Include warranty URLs array
+          parts: transformedParts,
+          parts_data: group.parts_data, // Keep original for reference
+        };
+      });
+
+      // Build transformed task data
+      const transformed = {
+        ...dbTask,
+        // Service groups with proper transformation
+        service_groups: transformedServiceGroups,
+        // Extract time components
+        start_time: extractTime(dbTask.start_date),
+        end_time: extractTime(dbTask.end_date),
+        // Keep date part only for date inputs
+        start_date: dbTask.start_date ? dbTask.start_date.split('T')[0] : undefined,
+        end_date: dbTask.end_date ? dbTask.end_date.split('T')[0] : undefined,
+        // URLs for image previews (form will need to handle these specially)
+        odometer_image: dbTask.odometer_image, // ✅ FIX: Use odometer_image instead of odometer_image_url
+        supporting_documents_urls: dbTask.attachments || [],
+      };
+
+      logger.debug('✅ Transformed form data:', transformed);
+      return transformed;
+    } catch (error) {
+      logger.error('❌ Error transforming database to form data:', error);
+      return dbTask; // Return original if transformation fails
+    }
+  };
 
   // CRASH-PROOF: Compress images before upload to prevent main thread blocking
   const compressImage = (file: File): Promise<File> => {
@@ -320,25 +450,16 @@ const MaintenanceTaskPage: React.FC = () => {
         });
       }
 
-      // Battery warranty
-      if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) {
+      // Warranty files at service group level (NEW)
+      if (group.warrantyFiles && group.warrantyFiles.length > 0) {
         subOps.push({
-          id: `group${index}_battery_warranty`,
-          label: `Upload Battery Warranty`,
+          id: `group${index}_warranties`,
+          label: `Upload ${group.warrantyFiles.length} Warranty Document(s)`,
           status: 'pending',
         });
       }
 
-      // Tyre warranty
-      if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0) {
-        subOps.push({
-          id: `group${index}_tyre_warranty`,
-          label: `Upload Tyre Warranty`,
-          status: 'pending',
-        });
-      }
-
-      // Parts warranties
+      // Parts warranties (DEPRECATED - kept for backward compatibility)
       if (group.partsData && group.partsData.length > 0) {
         group.partsData.forEach((part: any, partIndex: number) => {
           if (part.warrantyDocument) {
@@ -458,9 +579,27 @@ const MaintenanceTaskPage: React.FC = () => {
                 logger.debug('✅ File uploads completed and service groups converted to database format');
               }
 
+              // Remove fields that don't exist in database schema
+              // Database only has start_date and end_date columns (date+time combined)
+              // estimated_cost also doesn't exist in the schema
+              const {
+                start_time,
+                end_time,
+                estimated_cost,
+                ...cleanTaskData
+              } = taskData;
+
+              // Debug: Check what we have
+              console.log('📋 Task data before updateTask:', {
+                hasAttachments: !!taskData.attachments,
+                attachmentsLength: taskData.attachments?.length,
+                attachmentsType: typeof taskData.attachments,
+              });
+
               const updatePayload: any = {
-                ...taskData,
+                ...cleanTaskData,
                 service_groups: updatedServiceGroups,
+                // attachments already in cleanTaskData from form submission
               };
 
               try {
@@ -472,6 +611,7 @@ const MaintenanceTaskPage: React.FC = () => {
                 if (updatedTask) {
                   setTask(updatedTask);
                   toast.success("Maintenance task updated successfully!", { id: progressToast });
+                  await queryClient.invalidateQueries({ queryKey: ["maintenanceTasks"] });
                   navigate("/maintenance");
                 } else {
                   toast.error("Failed to update task", { id: progressToast });
@@ -505,18 +645,10 @@ const MaintenanceTaskPage: React.FC = () => {
               // Update operation status: task creation in progress
               updateOperationStatus('task_creation', 'in-progress');
 
-              // Convert service groups to database format BEFORE creating task
-              // This converts task names to UUIDs and vendor names to vendor_ids
-              let convertedServiceGroups: any[] = [];
-              if (service_groups && service_groups.length > 0) {
-                logger.debug('🔄 Converting service groups to database format...');
-                convertedServiceGroups = await convertServiceGroupsToDatabase(service_groups);
-                logger.debug('✅ Service groups converted:', convertedServiceGroups);
-              }
-
+              // DON'T send service_groups in initial createTask - they need maintenance_task_id first!
               const newTask = await createTask({
                 ...taskData,
-                service_groups: convertedServiceGroups  // Use converted groups with UUIDs
+                // ✅ Removed service_groups from here - will add after task is created
               } as Omit<
                   MaintenanceTask,
                   "id" | "created_at" | "updated_at"
@@ -535,14 +667,15 @@ const MaintenanceTaskPage: React.FC = () => {
 
               // Handle service group file uploads if there are files to upload
               if (service_groups && service_groups.length > 0 && newTask.id) {
-                // Check if there are actually files to upload
+                // Check if there are actually files to upload (including warranty files and parts warranty documents)
                 const hasFiles = service_groups.some(group =>
                   (group.bills && group.bills.length > 0) ||
-                  (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) ||
-                  (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0)
+                  (group.warrantyFiles && group.warrantyFiles.length > 0) ||
+                  (group.parts && Array.isArray(group.parts) && group.parts.some((part: any) => part.warrantyDocument))
                 );
 
-                if (hasFiles) {
+                // Always upload files if service groups exist (they may have parts with warranty docs)
+                if (hasFiles || service_groups.length > 0) {
                   logger.debug('📁 Starting file uploads for new task...');
 
                   // Upload files using ORIGINAL service groups (which have File objects)
@@ -572,9 +705,9 @@ const MaintenanceTaskPage: React.FC = () => {
 
               // Final success message - only if everything succeeded
               toast.success("Maintenance task created successfully!");
-
+              await queryClient.invalidateQueries({ queryKey: ["maintenanceTasks"] });
               // Wait a moment to show final status before navigating
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 500));
               navigate("/maintenance");
             } catch (error) {
               logger.error("Error creating task:", error);
@@ -620,7 +753,27 @@ const MaintenanceTaskPage: React.FC = () => {
     }
   };
 
-  const handleDelete = () => {
+  const copyUploadLink = async () => {
+    if (!id || id === 'new') return;
+
+    const uploadLink = `${window.location.origin}/upload/${id}`;
+
+    try {
+      await navigator.clipboard.writeText(uploadLink);
+      setLinkCopied(true);
+      toast.success('Upload link copied! Share it via WhatsApp or SMS');
+
+      // Reset the copied state after 3 seconds
+      setTimeout(() => {
+        setLinkCopied(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handleDelete = async () => {
     if (!id) return;
 
     const confirmDelete = window.confirm(
@@ -631,6 +784,7 @@ const MaintenanceTaskPage: React.FC = () => {
     try {
       deleteTask(id);
       toast.success("Maintenance task deleted successfully");
+      await queryClient.invalidateQueries({ queryKey: ["maintenanceTasks"] });
       navigate("/maintenance");
     } catch (error) {
       logger.error("Error deleting task:", error);
@@ -686,134 +840,252 @@ const MaintenanceTaskPage: React.FC = () => {
           {isViewMode ? (
             task ? (
               <div className="space-y-6">
-                {/* DEBUG: Raw Data Viewer */}
-                <details className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
-                  <summary className="cursor-pointer font-semibold text-yellow-900 flex items-center gap-2">
-                    🔍 DEBUG: View Raw Database Data (Click to expand)
-                  </summary>
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <h3 className="font-bold text-sm text-gray-700 mb-2">Main Task Object:</h3>
-                      <pre className="bg-gray-900 text-green-400 p-4 rounded text-xs overflow-auto max-h-96">
-                        {JSON.stringify(task, null, 2)}
-                      </pre>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-xs">
-                      <div className="bg-white p-3 rounded border">
-                        <strong>Estimated Cost:</strong> {task.estimated_cost || 'NULL/Empty'}
-                      </div>
-                      <div className="bg-white p-3 rounded border">
-                        <strong>Total Cost:</strong> {task.total_cost || 'NULL/Empty'}
-                      </div>
-                      <div className="bg-white p-3 rounded border">
-                        <strong>Service Groups Count:</strong> {task.service_groups?.length || 0}
-                      </div>
-                      <div className="bg-white p-3 rounded border">
-                        <strong>Organization ID:</strong> {task.organization_id || 'MISSING!'}
-                      </div>
-                    </div>
-                    {task.service_groups && task.service_groups.length > 0 && (
-                      <div>
-                        <h3 className="font-bold text-sm text-gray-700 mb-2">Service Groups Raw:</h3>
-                        {task.service_groups.map((group: any, idx: number) => (
-                          <details key={idx} className="bg-white p-3 rounded border mb-2">
-                            <summary className="cursor-pointer font-semibold">Group {idx + 1}</summary>
-                            <pre className="bg-gray-900 text-green-400 p-2 rounded text-xs overflow-auto mt-2">
-                              {JSON.stringify(group, null, 2)}
-                            </pre>
-                          </details>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </details>
-
                 {/* Basic Task Details */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        navigate(`/maintenance/${id}`, {
-                          state: { task, mode: "edit" },
-                        })
-                      }
-                      icon={<Edit className="h-4 w-4" />}
-                    >
-                      Edit Task
-                    </Button>
+                <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+                  {/* Header with Edit Button */}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <h2 className="text-2xl font-bold text-gray-900">Task Details</h2>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        <button
+                          onClick={copyUploadLink}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                            linkCopied
+                              ? 'bg-green-100 text-green-700 border-green-300'
+                              : 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
+                          }`}
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                          {linkCopied ? (
+                            <>
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Link Copied!
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="h-3.5 w-3.5" />
+                              Photo Upload Link
+                            </>
+                          )}
+                        </button>
+                        <Button
+                          variant="outline"
+                          onClick={() =>
+                            navigate(`/maintenance/${id}`, {
+                              state: { task, mode: "edit" },
+                            })
+                          }
+                          icon={<Edit className="h-4 w-4" />}
+                        >
+                          Edit Task
+                        </Button>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      📱 Click to copy & share via WhatsApp
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Vehicle</h3>
-                      <p className="text-gray-900">
-                        {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
-                      </p>
+
+                  {/* Status & Priority Row */}
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center gap-1.5 ${
+                      task.status === 'resolved' ? 'bg-green-100 text-green-700 border border-green-200' :
+                      task.status === 'in_progress' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                      task.status === 'open' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' :
+                      task.status === 'rework' ? 'bg-red-100 text-red-700 border border-red-200' :
+                      'bg-gray-100 text-gray-700 border border-gray-200'
+                    }`}>
+                      <span className={`w-2 h-2 rounded-full ${
+                        task.status === 'resolved' ? 'bg-green-500' :
+                        task.status === 'in_progress' ? 'bg-blue-500' :
+                        task.status === 'open' ? 'bg-yellow-500' :
+                        task.status === 'rework' ? 'bg-red-500' :
+                        'bg-gray-500'
+                      }`}></span>
+                      {task.status?.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                    <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                      task.priority === 'high' || task.priority === 'critical' ? 'bg-red-100 text-red-700 border border-red-200' :
+                      task.priority === 'medium' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                      'bg-green-100 text-green-700 border border-green-200'
+                    }`}>
+                      {task.priority?.toUpperCase()} PRIORITY
+                    </span>
+                  </div>
+
+                  {/* Vehicle & Task Type Row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200">
+                      <label className="text-sm font-medium text-gray-600 mb-2 block flex items-center gap-1">
+                        <Truck className="h-4 w-4 text-blue-600" />
+                        Vehicle
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold border-2 border-blue-300 shadow-sm">
+                          {vehicles.find((v) => v.id === task.vehicle_id)?.registration_number || 'Unknown'}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Status</h3>
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                        task.status === 'completed' ? 'bg-success-100 text-success-700' :
-                        task.status === 'in_progress' ? 'bg-warning-100 text-warning-700' :
-                        task.status === 'pending' ? 'bg-gray-100 text-gray-700' :
-                        'bg-danger-100 text-danger-700'
-                      }`}>
-                        {task.status?.replace(/_/g, ' ').toUpperCase()}
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+                      <label className="text-sm font-medium text-gray-600 mb-2 block">Task Type</label>
+                      <span className="inline-block bg-white text-purple-700 px-4 py-2 rounded-lg font-semibold capitalize border-2 border-purple-300 shadow-sm">
+                        {task.task_type?.replace(/_/g, ' ') || 'Not specified'}
                       </span>
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Priority</h3>
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                        task.priority === 'high' ? 'bg-danger-100 text-danger-700' :
-                        task.priority === 'medium' ? 'bg-warning-100 text-warning-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {task.priority?.toUpperCase()}
-                      </span>
+                  </div>
+
+                  {/* Timeline Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="rounded-xl p-4 border-2 border-blue-200 shadow-sm bg-gradient-to-br from-blue-50 to-cyan-50">
+                      <div className="flex items-center gap-2 mb-1 text-blue-700">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-sm font-semibold">Start</span>
+                      </div>
+                      {task.start_date ? (
+                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                          <Clock className="h-4 w-4 text-blue-700" />
+                          <span>{format(parseISO(task.start_date), 'MMM dd, yyyy • hh:mm a')}</span>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">Not specified</p>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Task Type</h3>
-                      <p className="text-gray-900 capitalize">{task.task_type?.replace(/_/g, ' ') || 'Not specified'}</p>
+
+                    <div className="rounded-xl p-4 border-2 border-green-200 shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+                      <div className="flex items-center gap-2 mb-1 text-green-700">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-sm font-semibold">End</span>
+                      </div>
+                      {task.end_date ? (
+                        <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                          <Clock className="h-4 w-4 text-green-700" />
+                          <span>{format(parseISO(task.end_date), 'MMM dd, yyyy • hh:mm a')}</span>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">Not specified</p>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Start Date</h3>
-                      <p className="text-gray-900">{task.start_date ? new Date(task.start_date).toLocaleDateString() : 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">End Date</h3>
-                      <p className="text-gray-900">{task.end_date ? new Date(task.end_date).toLocaleDateString() : 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Downtime</h3>
-                      <p className="text-gray-900">
-                        {task.downtime_days ? `${task.downtime_days} days` : ''}
-                        {task.downtime_hours ? ` ${task.downtime_hours} hours` : ''}
+
+                    <div className="rounded-xl p-4 border-2 border-orange-200 shadow-sm bg-gradient-to-br from-orange-50 to-amber-50">
+                      <div className="flex items-center gap-2 mb-1 text-orange-700">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-sm font-semibold">Downtime</span>
+                      </div>
+                      <p className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-orange-700" />
+                        {task.downtime_days ? `${task.downtime_days}d ` : ''}
+                        {task.downtime_hours ? `${task.downtime_hours}h` : ''}
                         {!task.downtime_days && !task.downtime_hours ? 'Not specified' : ''}
                       </p>
                     </div>
+                  </div>
+
+                  {/* Total Cost - Prominent Display */}
+                  {task.total_cost !== null && task.total_cost !== undefined && (
+                    <div className="bg-gradient-to-br from-emerald-50 via-cyan-50 to-teal-50 rounded-xl p-6 border-2 border-emerald-300 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-white p-3 rounded-xl border-2 border-emerald-400 shadow-sm">
+                            <IndianRupee className="h-6 w-6 text-emerald-600" />
+                          </div>
+                          <span className="text-lg font-semibold text-gray-800">Total Cost</span>
+                        </div>
+                        <span className="text-4xl font-bold text-emerald-700">
+                          ₹{task.total_cost.toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
                     <div>
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Odometer Reading</h3>
-                      <p className="text-gray-900">{task.odometer_reading ? `${task.odometer_reading} km` : 'Not specified'}</p>
+                      <label className="text-sm font-medium text-gray-500 mb-2 block">Odometer Reading</label>
+                      <p className="text-gray-900 font-semibold flex items-center gap-2">
+                        <span role="img" aria-label="odometer">🧭</span>
+                        {task.odometer_reading ? `${task.odometer_reading.toLocaleString()} km` : 'Not specified'}
+                      </p>
                     </div>
-                    <div className="md:col-span-2">
-                      <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
-                      <p className="text-gray-900">{task.description || 'No description provided'}</p>
-                    </div>
-                    {/* REMOVED: Estimated Cost & Actual Cost - Using service group costs instead */}
                   </div>
                 </div>
 
+                {/* Warranty Information Section */}
+                {(() => {
+                  const warrantyInfo = getWarrantyStatus(task.warranty_expiry);
+                  const hasWarranty = task.warranty_expiry && task.warranty_status !== 'not_applicable';
+
+                  if (hasWarranty || task.warranty_claimed) {
+                    return (
+                      <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-5 flex items-center">
+                          <div className="bg-gradient-to-br from-purple-100 to-indigo-100 p-2 rounded-lg mr-3">
+                            <FileText className="h-5 w-5 text-purple-700" />
+                          </div>
+                          Warranty Information
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Warranty Expiry Date */}
+                          {task.warranty_expiry && (
+                            <div className={`rounded-xl p-4 border-2 shadow-sm ${warrantyInfo.statusColor}`}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="h-4 w-4" />
+                                <label className="text-sm font-semibold">Warranty Expiry</label>
+                              </div>
+                              <p className="font-bold text-gray-900 text-lg">
+                                {formatWarrantyExpiryDate(task.warranty_expiry)}
+                              </p>
+                              {warrantyInfo.daysRemaining !== null && warrantyInfo.daysRemaining >= 0 && (
+                                <p className="text-sm mt-1 opacity-80">
+                                  {warrantyInfo.daysRemaining} days remaining
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Warranty Status */}
+                          <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle className="h-4 w-4 text-gray-600" />
+                              <label className="text-sm font-semibold text-gray-600">Warranty Status</label>
+                            </div>
+                            <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${warrantyInfo.statusBadge}`}>
+                              {warrantyInfo.statusText}
+                            </span>
+                          </div>
+
+                          {/* Warranty Claimed */}
+                          <div className="rounded-xl p-4 border-2 border-gray-200 shadow-sm bg-white">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="h-4 w-4 text-gray-600" />
+                              <label className="text-sm font-semibold text-gray-600">Warranty Claimed</label>
+                            </div>
+                            <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold ${
+                              task.warranty_claimed
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                : 'bg-gray-100 text-gray-700 border border-gray-300'
+                            }`}>
+                              {task.warranty_claimed ? 'Yes' : 'No'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Service Groups - ALWAYS SHOW */}
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <Wrench className="h-5 w-5 mr-2 text-green-600" />
+                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                  <h2 className="text-xl font-semibold text-gray-900 mb-5 flex items-center">
+                    <div className="bg-gradient-to-br from-orange-100 to-amber-100 p-2 rounded-lg mr-3">
+                      <Wrench className="h-5 w-5 text-orange-700" />
+                    </div>
                     Shops/Mechanics & Services
                   </h2>
                   {task.service_groups && task.service_groups.length > 0 ? (
                     <div className="space-y-4">
                       {task.service_groups.map((group: any, index: number) => (
-                        <div key={index} className="border-2 border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div key={index} className="border-2 border-gray-300 rounded-xl p-5 bg-gradient-to-br from-gray-50 to-slate-50 shadow-sm hover:shadow-md transition-shadow">
                           {/* Vendor Name - ALWAYS SHOW */}
                           <div className="mb-3 flex items-center justify-between">
                             <div>
@@ -867,13 +1139,6 @@ const MaintenanceTaskPage: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Notes - ALWAYS SHOW */}
-                          <div className="mt-2">
-                            <p className="text-xs text-gray-500 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-600">
-                              {group.notes || <span className="text-gray-400">No notes</span>}
-                            </p>
-                          </div>
 
                           {/* Bills Photos */}
                           {group.bill_url && group.bill_url.length > 0 && (
@@ -902,54 +1167,43 @@ const MaintenanceTaskPage: React.FC = () => {
                             </div>
                           )}
 
-                          {/* Battery Warranty Photos */}
-                          {group.battery_warranty_url && group.battery_warranty_url.length > 0 && (
+                          {/* Warranty Documents - Service Group Level */}
+                          {group.part_warranty_url && Array.isArray(group.part_warranty_url) && group.part_warranty_url.length > 0 && (
                             <div className="mt-4">
-                              <p className="text-xs text-gray-500 mb-2">Battery Warranty ({group.battery_warranty_url.length}):</p>
+                              <p className="text-xs text-gray-500 mb-2 font-semibold">Warranty Documents ({group.part_warranty_url.length}):</p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {group.battery_warranty_url.map((url: string, idx: number) => (
+                                {group.part_warranty_url.map((url: string, idx: number) => (
                                   <a
                                     key={idx}
                                     href={url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-green-200 hover:border-green-500 transition-colors"
+                                    className="block relative rounded-lg overflow-hidden border-2 border-green-200 hover:border-green-500 transition-colors"
                                   >
-                                    <img
-                                      src={url}
-                                      alt={`Battery Warranty ${idx + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E🔋%3C/text%3E%3C/svg%3E';
-                                      }}
-                                    />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Tyre Warranty Photos */}
-                          {group.tyre_warranty_url && group.tyre_warranty_url.length > 0 && (
-                            <div className="mt-4">
-                              <p className="text-xs text-gray-500 mb-2">Tyre Warranty ({group.tyre_warranty_url.length}):</p>
-                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {group.tyre_warranty_url.map((url: string, idx: number) => (
-                                  <a
-                                    key={idx}
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block relative aspect-square rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-500 transition-colors"
-                                  >
-                                    <img
-                                      src={url}
-                                      alt={`Tyre Warranty ${idx + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E⚙️%3C/text%3E%3C/svg%3E';
-                                      }}
-                                    />
+                                    {isPdfUrl(url) ? (
+                                      // PDF Display
+                                      <div className="flex items-center gap-2 p-3 bg-green-50">
+                                        <FileText className="h-8 w-8 text-green-600 flex-shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-gray-900 truncate">
+                                            {getFilenameFromUrl(url)}
+                                          </p>
+                                          <p className="text-xs text-gray-500">PDF Document</p>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      // Image Display
+                                      <div className="aspect-square">
+                                        <img
+                                          src={url}
+                                          alt={`Warranty Document ${idx + 1}`}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                                          }}
+                                        />
+                                      </div>
+                                    )}
                                   </a>
                                 ))}
                               </div>
@@ -995,6 +1249,44 @@ const MaintenanceTaskPage: React.FC = () => {
                                         </div>
                                       )}
                                     </div>
+                                    
+                                    {/* Warranty Document */}
+                                    {part.warrantyDocumentUrl && (
+                                      <div className="mt-3 pt-3 border-t border-gray-200">
+                                        <p className="text-xs text-gray-500 mb-2 font-semibold">Warranty Document:</p>
+                                        <a
+                                          href={part.warrantyDocumentUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="block relative w-full rounded-lg overflow-hidden border-2 border-gray-200 hover:border-green-500 transition-colors group"
+                                        >
+                                          {isPdfUrl(part.warrantyDocumentUrl) ? (
+                                            // PDF Display with filename
+                                            <div className="flex items-center gap-3 p-3 bg-red-50">
+                                              <FileText className="h-10 w-10 text-red-600 flex-shrink-0" />
+                                              <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 truncate">
+                                                  {getFilenameFromUrl(part.warrantyDocumentUrl)}
+                                                </p>
+                                                <p className="text-xs text-gray-500">PDF Document</p>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            // Image Display
+                                            <div className="aspect-square w-24">
+                                              <img
+                                                src={part.warrantyDocumentUrl}
+                                                alt={`Warranty Document for ${part.partName || 'Part'}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📄%3C/text%3E%3C/svg%3E';
+                                                }}
+                                              />
+                                            </div>
+                                          )}
+                                        </a>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -1048,47 +1340,124 @@ const MaintenanceTaskPage: React.FC = () => {
                       <FileText className="h-5 w-5 mr-2 text-purple-600" />
                       Supporting Documents ({task.attachments.length})
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {task.attachments.map((url: string, idx: number) => (
                         <a
                           key={idx}
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="block relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-colors group"
+                          className="block relative rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-colors group"
                         >
-                          <img
-                            src={url}
-                            alt={`Supporting Document ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📎%3C/text%3E%3C/svg%3E';
-                            }}
-                          />
-                          <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            Document {idx + 1}
-                          </div>
+                          {isPdfUrl(url) ? (
+                            // PDF Display with filename
+                            <div className="flex items-center gap-3 p-4 bg-purple-50">
+                              <FileText className="h-12 w-12 text-purple-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {getFilenameFromUrl(url)}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">PDF Document #{idx + 1}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            // Image Display
+                            <>
+                              <div className="aspect-square">
+                                <img
+                                  src={url}
+                                  alt={`Supporting Document ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📎%3C/text%3E%3C/svg%3E';
+                                  }}
+                                />
+                              </div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                Document {idx + 1}
+                              </div>
+                            </>
+                          )}
                         </a>
                       ))}
                     </div>
                   </div>
                 )}
 
+                {/* Field Photos - Uploaded via shareable link */}
+                {uploadedPhotos.length > 0 && (
+                  <div className="bg-white rounded-lg shadow-sm p-6 border-2 border-teal-200">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                        <Camera className="h-5 w-5 mr-2 text-teal-600" />
+                        Field Photos ({uploadedPhotos.length})
+                      </h2>
+                      <span className="text-xs text-gray-500 bg-teal-50 px-3 py-1 rounded-full">
+                        Uploaded via link
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {uploadedPhotos.map((photo) => (
+                        <div key={photo.id} className="relative group">
+                          <a
+                            href={photo.image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block relative aspect-square rounded-lg overflow-hidden border-2 border-teal-200 hover:border-teal-500 transition-colors"
+                          >
+                            <img
+                              src={photo.image_url}
+                              alt="Field photo"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E📷%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs py-2 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <p className="truncate">
+                                {photo.uploaded_by || 'Anonymous'}
+                              </p>
+                              <p className="text-[10px] text-gray-300">
+                                {format(parseISO(photo.uploaded_at), 'MMM dd, h:mm a')}
+                              </p>
+                            </div>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                      Auto-refreshing every 30 seconds
+                    </p>
+                  </div>
+                )}
+
                 {/* Complaint & Resolution */}
-                {(task.complaint_description || task.resolution_description) && (
-                  <div className="bg-white rounded-lg shadow-sm p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4">Complaint & Resolution</h2>
+                {(task.complaint_description || task.resolution_summary) && (
+                  <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-5 flex items-center">
+                      <div className="bg-gradient-to-br from-rose-100 to-pink-100 p-2 rounded-lg mr-3">
+                        <AlertTriangle className="h-5 w-5 text-rose-700" />
+                      </div>
+                      Complaint & Resolution
+                    </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {task.complaint_description && (
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-500 mb-2">Complaint</h3>
-                          <p className="text-gray-900">{task.complaint_description}</p>
+                        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-5 border-l-4 border-red-400 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <h3 className="text-sm font-semibold text-red-800 uppercase tracking-wide">Complaint</h3>
+                          </div>
+                          <p className="text-gray-800 leading-relaxed">{task.complaint_description}</p>
                         </div>
                       )}
-                      {task.resolution_description && (
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-500 mb-2">Resolution</h3>
-                          <p className="text-gray-900">{task.resolution_description}</p>
+                      {task.resolution_summary && (
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-l-4 border-green-400 shadow-sm">
+                          <div className="flex items-center gap-2 mb-3">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <h3 className="text-sm font-semibold text-green-800 uppercase tracking-wide">Resolution</h3>
+                          </div>
+                          <p className="text-gray-800 leading-relaxed">{task.resolution_summary}</p>
                         </div>
                       )}
                     </div>
@@ -1101,14 +1470,17 @@ const MaintenanceTaskPage: React.FC = () => {
               </div>
             )
           ) : (
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <MaintenanceTaskForm
-                vehicles={vehicles}
-                initialData={task || undefined}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
-              />
-            </div>
+            <>
+              {/* Edit Form */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <MaintenanceTaskForm
+                  vehicles={vehicles}
+                  initialData={task ? transformDatabaseToFormData(task) : undefined}
+                  onSubmit={handleSubmit}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </>
           )}
         </>
       )}

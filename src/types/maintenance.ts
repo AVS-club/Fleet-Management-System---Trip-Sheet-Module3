@@ -10,28 +10,6 @@ export interface MaintenanceServiceGroup {
   bill_file?: File[]; // For frontend handling before upload
   created_at?: string;
   updated_at?: string;
-  battery_tracking?: boolean;
-  battery_serial?: string;
-  battery_brand?: string;
-  tyre_tracking?: boolean;
-  tyre_positions?: string[];
-  tyre_brand?: string;
-  tyre_serials?: string;
-  battery_data?: {
-    serialNumber: string;
-    brand: string;
-  };
-  tyre_data?: {
-    positions: string[];
-    brand: string;
-    serialNumbers: string;
-  };
-  battery_warranty_url?: string[];
-  batteryWarrantyFiles?: File[]; // For frontend file handling before upload
-  tyre_warranty_url?: string[];
-  tyreWarrantyFiles?: File[]; // For frontend file handling before upload
-  battery_warranty_expiry_date?: string;
-  tyre_warranty_expiry_date?: string;
 }
 
 // Add new interfaces for maintenance form

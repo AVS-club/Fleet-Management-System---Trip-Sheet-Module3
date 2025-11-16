@@ -81,8 +81,8 @@
 
 #### 10. maintenance_service_tasks
 **Purpose:** Service task breakdown within maintenance
-**Key Columns:** `id`, `maintenance_task_id`, `tasks[]`, `cost`, `bill_url[]`, `battery_data`, `tyre_data`, `parts_data`
-**Features:** Battery/tyre warranty tracking
+**Key Columns:** `id`, `maintenance_task_id`, `tasks[]`, `service_cost`, `bill_url[]`, `parts_data`, `service_type`, `notes`
+**Features:** Unified parts tracking (batteries, tyres, oil, brakes, etc.) via parts_data JSONB array
 
 #### 11. maintenance_vendors
 **Purpose:** Service provider/vendor master

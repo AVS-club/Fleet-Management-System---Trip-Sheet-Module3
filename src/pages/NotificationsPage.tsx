@@ -193,35 +193,11 @@ const NotificationsPage: React.FC = () => {
     // Use provided short or get from availableShorts
     const short = providedShort || availableShorts[index % availableShorts.length];
 
-    // If no short available, show appropriate state
-    if (!short) {
-      return (
-        <div className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-gray-900 shadow-2xl my-6"
-             style={{ aspectRatio: '9/16', maxHeight: '650px' }}>
-          <div className="flex items-center justify-center h-full">
-            <div className="text-white text-center p-6">
-              {!hasYouTubeAPIKey ? (
-                <div>
-                  <div className="text-4xl mb-4">🎬</div>
-                  <div className="text-lg font-semibold mb-2">YouTube API Key Required</div>
-                  <div className="text-sm text-gray-300">
-                    Add VITE_YOUTUBE_API_KEY to .env file to enable dynamic video content
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                  <div>Loading videos...</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // Intersection Observer for autoplay
+    // Intersection Observer for autoplay - must be before any early returns
     useEffect(() => {
+      if (!hasYouTubeAPIKey || !youtubeShorts || youtubeShorts.length === 0) {
+        return;
+      }
       observerRef.current = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {

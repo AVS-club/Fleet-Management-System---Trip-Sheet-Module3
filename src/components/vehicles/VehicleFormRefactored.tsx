@@ -30,6 +30,7 @@ import { WarehouseDriversSection } from './VehicleForm/WarehouseDriversSection';
 
 const logger = createLogger('VehicleFormRefactored');
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface VehicleFormSubmission extends Omit<Vehicle, 'id'> {}
 
 interface VehicleFormProps {

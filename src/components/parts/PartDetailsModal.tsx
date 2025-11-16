@@ -46,42 +46,9 @@ const PartDetailsModal: React.FC<PartDetailsModalProps> = ({
       const vehicle = vehicleMap.get(task.vehicle_id);
       if (!vehicle) return;
 
-      if (Array.isArray(task.service_groups)) {
-        task.service_groups.forEach(group => {
-          // Check for battery replacement
-          if (part.partId === 'battery' && group.battery_tracking && group.battery_data) {
-            history.push({
-              vehicle: vehicle.registration_number,
-              date: task.start_date,
-              brand: group.battery_data.brand,
-              cost: typeof group.cost === 'number' ? group.cost : 0,
-              odometer: task.odometer_reading
-            });
-          }
-          
-          // Check for tyre replacement
-          if ((part.partId === 'tyres_front' || part.partId === 'tyres_rear') && 
-              group.tyre_tracking && group.tyre_data) {
-            const positions = group.tyre_data.positions || [];
-            const isRelevant = part.partId === 'tyres_front' 
-              ? positions.some(pos => ['FL', 'FR'].includes(pos))
-              : positions.some(pos => ['RL', 'RR'].includes(pos));
-              
-            if (isRelevant) {
-              const costPerTyre = positions.length > 0 ? 
-                (typeof group.cost === 'number' ? group.cost : 0) / positions.length : 0;
-              
-              history.push({
-                vehicle: vehicle.registration_number,
-                date: task.start_date,
-                brand: group.tyre_data.brand,
-                cost: costPerTyre,
-                odometer: task.odometer_reading
-              });
-            }
-          }
-        });
-      }
+      // Parts data is now handled through the unified parts_data field
+      // Battery and tyre tracking via separate fields has been removed
+      // All parts history is managed through the parts_replaced array
     });
 
     return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

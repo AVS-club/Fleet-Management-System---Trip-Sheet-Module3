@@ -1,5 +1,5 @@
 import React from 'react';
-import { DollarSign, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
+import { IndianRupee, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
 
 interface CostAnalyticsProps {
   totalCost: number;
@@ -45,7 +45,7 @@ const CostAnalytics: React.FC<CostAnalyticsProps> = ({
         <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Cost</span>
-            <DollarSign className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+            <IndianRupee className="h-4 w-4 text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(totalCost)}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400">Lifetime operational cost</p>

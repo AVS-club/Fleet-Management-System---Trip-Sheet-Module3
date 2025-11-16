@@ -40,10 +40,6 @@ const VehicleTagBadges: React.FC<VehicleTagBadgesProps> = ({
   const defaultMaxDisplay = compactMode ? 2 : undefined;
   const effectiveMaxDisplay = maxDisplay ?? defaultMaxDisplay;
 
-  if (!tags || tags.length === 0) {
-    return null;
-  }
-
   const displayTags = effectiveMaxDisplay ? tags.slice(0, effectiveMaxDisplay) : tags;
   const remainingTags = effectiveMaxDisplay && tags.length > effectiveMaxDisplay 
     ? tags.slice(effectiveMaxDisplay) 
@@ -95,7 +91,11 @@ const VehicleTagBadges: React.FC<VehicleTagBadgesProps> = ({
         setIsPopoverAbove(false);
       }
     }
-  }, [isPopoverOpen, compactMode, remainingTags]);
+  }, [isPopoverOpen, compactMode, remainingTags.length]);
+
+  if (!tags || tags.length === 0) {
+    return null;
+  }
 
   const handleTogglePopover = (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { MaintenanceTask } from "@/types/maintenance";
 import SpeechToTextButton from "../ui/SpeechToTextButton";
+import { createLogger } from "../../utils/logger";
+
+const logger = createLogger('ComplaintResolutionSection');
 
 interface Props {
   onComplaintTranscript: (text: string) => void;
@@ -28,7 +31,7 @@ const ComplaintResolutionSection: React.FC<Props> = ({
 
   // Handle interim transcripts for real-time display
   const handleComplaintInterim = (text: string) => {
-    console.log('🎙️ Complaint interim transcript:', text);
+    logger.debug('🎙️ Complaint interim transcript:', text);
     setInterimComplaint(text);
   };
 
@@ -38,10 +41,10 @@ const ComplaintResolutionSection: React.FC<Props> = ({
 
   // Handle final transcripts - append to existing text
   const handleComplaintFinal = (text: string) => {
-    console.log('🎤 Complaint final transcript received:', text);
+    logger.debug('🎤 Complaint final transcript received:', text);
     const currentText = complaintDescription || "";
     const newText = currentText ? `${currentText} ${text}` : text;
-    console.log('📝 Setting complaint_description to:', newText);
+    logger.debug('📝 Setting complaint_description to:', newText);
     setValue("complaint_description", newText);
     setInterimComplaint(""); // Clear interim text
     onComplaintTranscript(text);

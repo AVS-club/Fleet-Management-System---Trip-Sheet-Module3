@@ -1,12 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Trip, Vehicle, Driver, Warehouse } from '@/types';
 import { format, parseISO, isValid, differenceInDays } from 'date-fns';
-import { 
-  MapPin, User, Truck, Calendar, Fuel, DollarSign, 
-  Edit2, Eye, TrendingUp, AlertTriangle, Clock, 
-  Building2, Package, Navigation, ChevronRight,
-  Activity, Target, IndianRupee, ArrowRight
-} from 'lucide-react';
+import { MapPin, User, Truck, Calendar, Fuel, IndianRupee, Edit2, Eye, TrendingUp, AlertTriangle, Clock, Building2, Package, Navigation, ChevronRight, Activity, Target, ArrowRight } from 'lucide-react';
 import { getWarehouse, getDestinationByAnyId } from '../../utils/storage';
 import { createLogger } from '../../utils/logger';
 
@@ -373,7 +368,7 @@ const TripListView: React.FC<TripListViewProps> = ({
                           className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="P&L Analysis"
                         >
-                          <DollarSign className="h-4 w-4" />
+                          <IndianRupee className="h-4 w-4" />
                         </button>
                       )}
                     </div>

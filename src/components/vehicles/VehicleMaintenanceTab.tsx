@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { PenTool as Tool, AlertTriangle, TrendingUp, Award, Clock } from 'lucide-react';
 import { formatDate } from '../../utils/dateUtils';
 import { createLogger } from '../../utils/logger';
+import { supabase } from '../../utils/supabaseClient';
+import { toast } from 'react-toastify';
+import { getVendors } from '../../utils/vendorStorage';
 
 const logger = createLogger('VehicleMaintenanceTab');
 
@@ -28,56 +31,109 @@ const VehicleMaintenanceTab: React.FC<VehicleMaintenanceTabProps> = ({
     avgCostPerMonth: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadMaintenanceData();
+    if (vehicleId) {
+      loadMaintenanceData();
+    }
   }, [vehicleId]);
 
   const loadMaintenanceData = async () => {
     try {
-      // Simulate loading maintenance data
-      // In a real app, this would fetch from your API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock data for demonstration
-      const mockData: MaintenanceRecord[] = [
-        {
-          id: '1',
-          maintenance_type: 'Oil Change',
-          description: 'Regular engine oil change',
-          maintenance_date: '2024-01-15',
-          cost: 2500,
-          vendor_name: 'Auto Service Center'
-        },
-        {
-          id: '2',
-          maintenance_type: 'Tyre Rotation',
-          description: 'Front and rear tyre rotation',
-          maintenance_date: '2024-01-01',
-          cost: 800,
-          vendor_name: 'Tyre Shop'
-        },
-        {
-          id: '3',
-          maintenance_type: 'Brake Inspection',
-          description: 'Complete brake system check',
-          maintenance_date: '2023-12-20',
-          cost: 1500,
-          vendor_name: 'Brake Specialists'
+      setLoading(true);
+      setError(null);
+
+      // Fetch maintenance tasks for this vehicle
+      const { data: tasks, error: tasksError } = await supabase
+        .from('maintenance_tasks')
+        .select('*, service_groups:maintenance_service_tasks(*)')
+        .eq('vehicle_id', vehicleId)
+        .order('start_date', { ascending: false });
+
+      if (tasksError) {
+        throw new Error(`Failed to fetch maintenance tasks: ${tasksError.message}`);
+      }
+
+      if (!tasks || tasks.length === 0) {
+        setMaintenance([]);
+        setTotals({ totalCost: 0, totalRecords: 0, avgCostPerMonth: 0 });
+        return;
+      }
+
+      // Fetch vendors to get vendor names
+      const vendors = await getVendors();
+      const vendorsMap = new Map(vendors.map(v => [v.id, v.vendor_name]));
+
+      // Transform tasks to MaintenanceRecord format
+      const records: MaintenanceRecord[] = [];
+
+      for (const task of tasks) {
+        const serviceGroups = task.service_groups || [];
+        
+        // If task has service groups, create a record for each group
+        if (serviceGroups.length > 0) {
+          for (const group of serviceGroups) {
+            const vendorName = group.vendor_id 
+              ? (vendorsMap.get(group.vendor_id) || 'Unknown Vendor')
+              : 'No Vendor';
+            
+            const taskTitle = Array.isArray(task.title) 
+              ? task.title.join(', ') 
+              : (task.title || task.task_type || 'Maintenance');
+            
+            records.push({
+              id: `${task.id}-${group.id || Date.now()}`,
+              maintenance_type: taskTitle,
+              description: task.description || group.notes || 'No description',
+              maintenance_date: task.start_date || task.created_at,
+              cost: group.service_cost || group.cost || task.total_cost || 0,
+              vendor_name: vendorName
+            });
+          }
+        } else {
+          // If no service groups, create a single record from the task
+          const taskTitle = Array.isArray(task.title) 
+            ? task.title.join(', ') 
+            : (task.title || task.task_type || 'Maintenance');
+          
+          records.push({
+            id: task.id,
+            maintenance_type: taskTitle,
+            description: task.description || 'No description',
+            maintenance_date: task.start_date || task.created_at,
+            cost: task.total_cost || task.estimated_cost || 0,
+            vendor_name: task.vendor_id ? (vendorsMap.get(task.vendor_id) || 'Unknown Vendor') : 'No Vendor'
+          });
         }
-      ];
-      
-      setMaintenance(mockData);
-      
+      }
+
+      setMaintenance(records);
+
       // Calculate totals
-      const totalCost = mockData.reduce((sum, m) => sum + (m.cost || 0), 0);
-      setTotals({
-        totalCost,
-        totalRecords: mockData.length,
-        avgCostPerMonth: totalCost / 12 // Simple average
-      });
+      const totalCost = records.reduce((sum, m) => sum + (m.cost || 0), 0);
+      const totalRecords = records.length;
+      
+      // Calculate average per month based on date range
+      if (records.length > 0) {
+        const dates = records.map(r => new Date(r.maintenance_date)).sort((a, b) => a.getTime() - b.getTime());
+        const firstDate = dates[0];
+        const lastDate = dates[dates.length - 1];
+        const monthsDiff = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+        const avgCostPerMonth = totalCost / monthsDiff;
+        
+        setTotals({
+          totalCost,
+          totalRecords,
+          avgCostPerMonth
+        });
+      } else {
+        setTotals({ totalCost: 0, totalRecords: 0, avgCostPerMonth: 0 });
+      }
     } catch (error) {
       logger.error('Error loading maintenance data:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load maintenance data');
+      toast.error('Failed to load maintenance records');
     } finally {
       setLoading(false);
     }
@@ -85,6 +141,21 @@ const VehicleMaintenanceTab: React.FC<VehicleMaintenanceTabProps> = ({
 
   if (loading) {
     return <div className="flex justify-center py-8">Loading maintenance data...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <AlertTriangle className="h-8 w-8 text-red-500 mb-2" />
+        <p className="text-red-600">{error}</p>
+        <button
+          onClick={loadMaintenanceData}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -378,19 +378,9 @@ export const getMaintenanceCostInsight = (
   
   if (vehicleTasks.length === 0) return null; // No tasks for this vehicle
   
-  // Calculate average maintenance cost per task for this vehicle
-  const totalCost = vehicleTasks.reduce((sum, task) => {
-    // Get cost either from total_cost or from service_groups
-    let taskCost = task.total_cost || task.estimated_cost || 0;
-
-    // If service_groups exists, sum up costs from there
-    if (Array.isArray(task.service_groups)) {
-      taskCost = task.service_groups.reduce((groupSum, group) =>
-        groupSum + (typeof group.cost === 'number' ? group.cost : 0), 0);
-    }
-
-    return sum + taskCost;
-  }, 0);
+  // Calculate average maintenance cost per task for this vehicle using total_cost from database
+  const totalCost = vehicleTasks.reduce((sum, task) =>
+    sum + (task.total_cost || 0), 0);
   
   const avgCost = totalCost / vehicleTasks.length;
   

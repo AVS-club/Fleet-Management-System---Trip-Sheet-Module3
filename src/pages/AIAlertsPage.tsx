@@ -99,7 +99,7 @@ const AIAlertsPage: React.FC = () => {
               .getPublicUrl(photoUrl);
             photoUrl = urlData?.publicUrl || photoUrl;
           } catch (e) {
-            console.warn('Failed to get public URL for driver photo:', e);
+            logger.warn('Failed to get public URL for driver photo:', e);
           }
         }
 
@@ -137,7 +137,7 @@ const AIAlertsPage: React.FC = () => {
               .getPublicUrl(photoUrl);
             photoUrl = urlData?.publicUrl || photoUrl;
           } catch (e) {
-            console.warn('Failed to get public URL for vehicle photo:', e);
+            logger.warn('Failed to get public URL for vehicle photo:', e);
           }
         }
 
@@ -288,6 +288,18 @@ const AIAlertsPage: React.FC = () => {
   };
 
   // Hero Feed logic
+  // Calculate active trips (trips currently in progress)
+  const activeTripsCount = useMemo(() => {
+    if (!trips || trips.length === 0) return 0;
+    const now = new Date();
+    return trips.filter(trip => {
+      if (!trip.trip_start_date || !trip.trip_end_date) return false;
+      const startDate = new Date(trip.trip_start_date);
+      const endDate = new Date(trip.trip_end_date);
+      return startDate <= now && endDate >= now;
+    }).length;
+  }, [trips]);
+
   const feedKinds = useMemo(() => {
     if (selectedFilters.includes('all')) {
       return [];
@@ -357,15 +369,15 @@ const AIAlertsPage: React.FC = () => {
 
         // Log for debugging
         if (config.isDev) {
-          console.log('Trip event entity_json:', event.entity_json);
-          console.log('Attempting to match trip ID:', tripId);
+          logger.debug('Trip event entity_json:', event.entity_json);
+          logger.debug('Attempting to match trip ID:', tripId);
         }
 
         if (tripId) {
           const fullTrip = trips.find(t => t.id === tripId);
           if (fullTrip) {
             if (config.isDev) {
-              console.log('Found matching trip:', fullTrip);
+              logger.debug('Found matching trip:', fullTrip);
             }
             return {
               ...event,
@@ -448,7 +460,7 @@ const AIAlertsPage: React.FC = () => {
     // Debug logging for document events
     const documentEvents = allEvents.filter(e => e.kind === 'vehicle_doc');
     if (documentEvents.length > 0) {
-      console.log('📄 Document Events Before Filtering:', documentEvents.length, {
+      logger.debug('📄 Document Events Before Filtering:', documentEvents.length, {
         includeDocuments,
         showFutureEvents,
         sample: documentEvents[0]
@@ -472,7 +484,7 @@ const AIAlertsPage: React.FC = () => {
         if (event.kind === 'vehicle_doc') {
           // Always filter by event_time first
           if (eventTime > now) {
-            console.log('📄 Filtering out document (future event_time):', {
+            logger.debug('📄 Filtering out document (future event_time):', {
               title: event.title,
               event_time: event.event_time,
               expiry_date: expiryDate
@@ -488,7 +500,7 @@ const AIAlertsPage: React.FC = () => {
             const isDistantFuture = daysUntilExpiry > 90;
 
             if (isDistantFuture) {
-              console.log('📄 Filtering out document (distant future expiry):', {
+              logger.debug('📄 Filtering out document (distant future expiry):', {
                 title: event.title,
                 expiry_date: expiryDate,
                 days_until_expiry: daysUntilExpiry
@@ -520,12 +532,12 @@ const AIAlertsPage: React.FC = () => {
       // Log how many documents passed the filter
       const remainingDocs = allEvents.filter(e => e.kind === 'vehicle_doc');
       if (documentEvents.length > 0) {
-        console.log('📄 Document Events After Filtering:', remainingDocs.length, `(${documentEvents.length - remainingDocs.length} filtered out)`);
+        logger.debug('📄 Document Events After Filtering:', remainingDocs.length, `(${documentEvents.length - remainingDocs.length} filtered out)`);
       }
     } else {
       // When showFutureEvents is ON, all events pass through (including documents)
-      console.log('📄 Show Future Events is ON - No filtering applied');
-      console.log('📄 Total documents in feed:', documentEvents.length);
+      logger.debug('📄 Show Future Events is ON - No filtering applied');
+      logger.debug('📄 Total documents in feed:', documentEvents.length);
     }
 
     // Sort all events by event_time descending
@@ -1027,7 +1039,7 @@ const AIAlertsPage: React.FC = () => {
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
               <div className="text-white/70 text-[10px] sm:text-xs">Active Trips</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{trips?.length || 0}</div>
+              <div className="text-lg sm:text-xl font-bold text-white">{activeTripsCount}</div>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
               <div className="text-white/70 text-[10px] sm:text-xs">Maintenance</div>
@@ -1497,10 +1509,10 @@ const AIAlertsPage: React.FC = () => {
                                 }
 
                                 if (config.isDev && event.kind === 'trip' && index === 0) {
-                                  console.log('Trip vehicle_id:', tripData.vehicle_id);
-                                  console.log('Found vehicleData:', vehicleData);
-                                  console.log('Vehicle photo_url:', vehicleData?.photo_url);
-                                  console.log('VehiclesMap sample:', vehiclesMap && Object.values(vehiclesMap)[0]);
+                                  logger.debug('Trip vehicle_id:', tripData.vehicle_id);
+                                  logger.debug('Found vehicleData:', vehicleData);
+                                  logger.debug('Vehicle photo_url:', vehicleData?.photo_url);
+                                  logger.debug('VehiclesMap sample:', vehiclesMap && Object.values(vehiclesMap)[0]);
                                 }
                               }
 
@@ -1520,11 +1532,11 @@ const AIAlertsPage: React.FC = () => {
                                 }
 
                                 if (config.isDev && event.kind === 'trip' && index === 0) {
-                                  console.log('Trip driver_id:', tripData.driver_id);
-                                  console.log('Found driverData:', driverData);
-                                  console.log('Driver photo_url:', driverData?.photo_url);
-                                  console.log('Driver driver_photo_url:', driverData?.driver_photo_url);
-                                  console.log('DriversMap sample:', driversMap && Object.values(driversMap)[0]);
+                                  logger.debug('Trip driver_id:', tripData.driver_id);
+                                  logger.debug('Found driverData:', driverData);
+                                  logger.debug('Driver photo_url:', driverData?.photo_url);
+                                  logger.debug('Driver driver_photo_url:', driverData?.driver_photo_url);
+                                  logger.debug('DriversMap sample:', driversMap && Object.values(driversMap)[0]);
                                 }
                               }
 

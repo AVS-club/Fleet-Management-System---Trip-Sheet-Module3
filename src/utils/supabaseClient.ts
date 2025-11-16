@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import config, { isSupabaseConfigured } from "./env";
-import { createMockClient } from "./supabase/mockClient";
 import { toast } from "react-toastify";
 import { createLogger } from './logger';
 
@@ -20,13 +19,33 @@ let corsErrorShown = false;
 // Create the Supabase client with enhanced error handling
 const createSupabaseClient = () => {
   if (!isConfigured) {
-    logger.error("Supabase is not properly configured. Using mock client.");
+    const errorMsg = "Supabase is not properly configured. Please check your environment variables.";
+    logger.error(errorMsg);
     logger.error("Environment variables:", {
       VITE_SUPABASE_URL: supabaseUrl,
       VITE_SUPABASE_ANON_KEY: supabaseAnonKey ? "Present" : "Missing",
     });
     logger.error("Please ensure you have copied .env.example to .env and filled in your actual Supabase credentials");
-    return createMockClient() as any;
+    
+    // Show error to user
+    if (typeof window !== 'undefined') {
+      toast.error("Supabase configuration error. Check console for details.", {
+        autoClose: false,
+      });
+    }
+    
+    // Still create a client but it will fail on actual operations
+    // This prevents the app from crashing immediately
+    return createClient(
+      supabaseUrl || 'https://placeholder.supabase.co',
+      supabaseAnonKey || 'placeholder-key',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
 
   try {
@@ -62,7 +81,25 @@ const createSupabaseClient = () => {
   } catch (error) {
     logger.error("Error initializing Supabase client:", error);
     connectionStatus = 'failed';
-    return createMockClient() as any;
+    
+    // Show error to user
+    if (typeof window !== 'undefined') {
+      toast.error("Failed to initialize Supabase client. Check console for details.", {
+        autoClose: false,
+      });
+    }
+    
+    // Return a client that will fail gracefully
+    return createClient(
+      supabaseUrl || 'https://placeholder.supabase.co',
+      supabaseAnonKey || 'placeholder-key',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
 };
 

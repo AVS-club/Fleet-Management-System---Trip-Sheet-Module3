@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Palette } from 'lucide-react';
+import { Tag } from '../../types/tags';
 
 interface TagColorPickerProps {
   value: string;
   onChange: (color: string) => void;
   label?: string;
   error?: string;
+  existingTags?: Tag[];
+  editingTagId?: string | null;
 }
 
+// 30 distinct, visually different colors
 const PRESET_COLORS = [
   '#10B981', // Green
   '#3B82F6', // Blue
@@ -21,15 +25,46 @@ const PRESET_COLORS = [
   '#14B8A6', // Teal
   '#F59E0B', // Amber
   '#84CC16', // Lime
+  '#22C55E', // Emerald
+  '#0EA5E9', // Sky Blue
+  '#A855F7', // Violet
+  '#F43F5E', // Rose
+  '#8B5A2B', // Brown
+  '#64748B', // Slate
+  '#DC2626', // Red-600
+  '#059669', // Emerald-600
+  '#0284C7', // Sky-600
+  '#7C3AED', // Violet-600
+  '#C026D3', // Fuchsia-600
+  '#EA580C', // Orange-600
+  '#CA8A04', // Yellow-600
+  '#16A34A', // Green-600
+  '#2563EB', // Blue-600
+  '#9333EA', // Purple-600
+  '#BE185D', // Pink-600
+  '#0891B2', // Cyan-600
 ];
 
 const TagColorPicker: React.FC<TagColorPickerProps> = ({
   value,
   onChange,
   label = 'Tag Color',
-  error
+  error,
+  existingTags = [],
+  editingTagId = null
 }) => {
   const [showCustom, setShowCustom] = useState(false);
+
+  // Filter out colors that are already used by existing tags
+  const availableColors = useMemo(() => {
+    const usedColors = new Set(
+      existingTags
+        .filter(tag => tag.id !== editingTagId) // Exclude the tag being edited
+        .map(tag => tag.color_hex.toUpperCase())
+    );
+    
+    return PRESET_COLORS.filter(color => !usedColors.has(color.toUpperCase()));
+  }, [existingTags, editingTagId]);
 
   return (
     <div className="space-y-2">
@@ -42,7 +77,7 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
       <div className="space-y-3">
         {/* Preset Colors */}
         <div className="grid grid-cols-6 gap-2">
-          {PRESET_COLORS.map((color) => (
+          {availableColors.map((color) => (
             <button
               key={color}
               type="button"
@@ -63,6 +98,12 @@ const TagColorPicker: React.FC<TagColorPickerProps> = ({
             </button>
           ))}
         </div>
+        
+        {availableColors.length === 0 && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            All preset colors are in use. Please use a custom color.
+          </p>
+        )}
 
         {/* Custom Color */}
         <div>

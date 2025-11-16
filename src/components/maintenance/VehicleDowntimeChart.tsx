@@ -64,50 +64,82 @@ const VehicleDowntimeChart: React.FC<VehicleDowntimeChartProps> = ({
     );
   }
 
+  // Calculate summary stats
+  const totalDowntime = displayData.reduce((sum, entry) => sum + entry.downtime, 0);
+  const avgDowntime = displayData.length > 0 ? (totalDowntime / displayData.length).toFixed(1) : 0;
+  const maxDowntime = displayData.length > 0 ? Math.max(...displayData.map(d => d.downtime)) : 0;
+
   return (
     <CollapsibleSection 
       title="Vehicle Downtime" 
       iconColor="text-red-600"
     >
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="flex justify-between items-center mb-4">
-          <p className="text-sm text-gray-600">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="mb-6">
+          <p className="text-sm text-gray-600 mb-4">
             Shows the total days vehicles were down for maintenance
           </p>
+          {/* Summary Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Total Downtime</div>
+              <div className="text-lg font-semibold text-gray-900">{totalDowntime} days</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Average</div>
+              <div className="text-lg font-semibold text-gray-900">{avgDowntime} days</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">Maximum</div>
+              <div className="text-lg font-semibold text-gray-900">{maxDowntime} days</div>
+            </div>
+          </div>
         </div>
         
-        <div className="h-64">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={displayData}
               layout="vertical"
-              margin={{ top: 5, right: 20, left: 60, bottom: 5 }}
+              margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false}/>
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0"/>
               <XAxis 
                 type="number" 
                 axisLine={false}
                 tickLine={false}
                 domain={[0, 'auto']} 
-                tick={{ fontSize: 10 }}
+                tick={{ fontSize: 11, fill: '#6b7280' }}
+                label={{ value: 'Days', position: 'insideBottom', offset: -5, style: { fill: '#6b7280', fontSize: 11 } }}
               />
               <YAxis 
                 type="category" 
                 dataKey="registration" 
                 axisLine={false}
                 tickLine={false}
-                width={60} 
-                tick={{ fontSize: 10 }}
+                width={80} 
+                tick={{ fontSize: 11, fill: '#6b7280' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />}
+                contentStyle={{
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              />
               <Bar 
                 dataKey="downtime" 
-                barSize={20}
+                radius={[0, 8, 8, 0]}
+                barSize={28}
                 label={{
                   position: 'right',
-                  formatter: (value: number) => `${value} days`,
+                  formatter: (value: number) => `${value}d`,
                   fill: '#6B7280',
-                  fontSize: 10
+                  fontSize: 11,
+                  fontWeight: 500
                 }}
               >
                 {displayData.map((entry, index) => (

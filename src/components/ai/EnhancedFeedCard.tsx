@@ -1,26 +1,5 @@
 import React from 'react';
-import {
-  AlertTriangle,
-  Truck,
-  Wrench,
-  FileText,
-  TrendingUp,
-  Bell,
-  Calendar,
-  MapPin,
-  Fuel,
-  DollarSign,
-  TrendingDown,
-  User,
-  Activity,
-  Navigation,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Image,
-  Store,
-  ClipboardList
-} from 'lucide-react';
+import { AlertTriangle, Truck, Wrench, FileText, TrendingUp, Bell, Calendar, MapPin, Fuel, IndianRupee, TrendingDown, User, Activity, Navigation, Clock, CheckCircle, XCircle, Image, Store, ClipboardList } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 interface FeedCardProps {
@@ -431,7 +410,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
             {showCostSummaryCard && (
               <div className="rounded-xl border border-amber-200 bg-white/80 p-4 shadow-sm dark:border-amber-900/60 dark:bg-amber-950/40">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-200">
-                  <DollarSign className="h-5 w-5" />
+                  <IndianRupee className="h-5 w-5" />
                   <span className="text-xs font-semibold uppercase tracking-wide">
                     {maintenanceData.total_cost ? 'Total Cost' : 'Estimated Cost'}
                   </span>
@@ -1037,7 +1016,7 @@ export default function EnhancedFeedCard({ event, onAction, vehicleData, driverD
         {tripData?.net_profit !== undefined && (
           <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <DollarSign className="h-4 w-4 text-green-500 dark:text-green-400" />
+              <IndianRupee className="h-4 w-4 text-green-500 dark:text-green-400" />
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Revenue</span>
             </div>
             <p className="text-lg font-bold text-green-900 dark:text-green-100 mt-1 truncate">

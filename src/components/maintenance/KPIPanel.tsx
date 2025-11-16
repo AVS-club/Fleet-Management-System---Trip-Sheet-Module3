@@ -54,7 +54,6 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Pending Tasks (All Time)</p>
             <h3 className="text-xl font-bold text-warning-600">{pendingTasks}</h3>
-            <p className="text-xs text-gray-500 mt-1">Requires attention</p>
           </div>
           <AlertTriangle className="h-6 w-6 text-warning-500" />
         </div>
@@ -65,7 +64,6 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Avg. Completion</p>
             <h3 className="text-xl font-bold text-gray-900">{(averageCompletionTime * 24).toFixed(1)} hours</h3>
-            <p className="text-xs text-gray-500 mt-1">Based on completed tasks</p>
           </div>
           <Clock className="h-6 w-6 text-primary-500" />
         </div>
@@ -76,7 +74,6 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Completed This Month</p>
             <h3 className="text-xl font-bold text-success-600">{completedTasksThisMonth}</h3>
-            <p className="text-xs text-gray-500 mt-1">Tasks resolved</p>
           </div>
           <CheckCircle className="h-6 w-6 text-success-500" />
         </div>
@@ -87,7 +84,6 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Avg. Maintenance Cost</p>
             <h3 className="text-xl font-bold text-gray-900">₹{averageCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-            <p className="text-xs text-gray-500 mt-1">Per completed task (This Month)</p>
           </div>
           <IndianRupee className="h-6 w-6 text-primary-500" />
         </div>
@@ -116,7 +112,6 @@ const KPIPanel: React.FC<KPIPanelProps> = ({
           <div>
             <p className="text-xs text-gray-500">Documentation Costs</p>
             <h3 className="text-xl font-bold text-gray-900">₹{documentationCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h3>
-            <p className="text-xs text-gray-500 mt-1">Insurance, permits, etc.</p>
           </div>
           <FileText className="h-6 w-6 text-primary-500" />
         </div>

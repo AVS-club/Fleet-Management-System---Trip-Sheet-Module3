@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X } from 'lucide-react';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
@@ -58,6 +58,26 @@ const TagCreateModal: React.FC<TagCreateModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof TagFormData, string>>>({});
 
+  // Get first available color from preset colors
+  const firstAvailableColor = useMemo(() => {
+    const usedColors = new Set(
+      existingTags
+        .filter(tag => tag.id !== editingTag?.id)
+        .map(tag => tag.color_hex.toUpperCase())
+    );
+    
+    const PRESET_COLORS = [
+      '#10B981', '#3B82F6', '#F97316', '#8B5CF6', '#EAB308', '#EF4444',
+      '#06B6D4', '#EC4899', '#6366F1', '#14B8A6', '#F59E0B', '#84CC16',
+      '#22C55E', '#0EA5E9', '#A855F7', '#F43F5E', '#8B5A2B', '#64748B',
+      '#DC2626', '#059669', '#0284C7', '#7C3AED', '#C026D3', '#EA580C',
+      '#CA8A04', '#16A34A', '#2563EB', '#9333EA', '#BE185D', '#0891B2'
+    ];
+    
+    const availableColor = PRESET_COLORS.find(color => !usedColors.has(color.toUpperCase()));
+    return availableColor || '#3B82F6'; // Fallback to blue if all are used
+  }, [existingTags, editingTag?.id]);
+
   useEffect(() => {
     if (editingTag) {
       setFormData({
@@ -69,11 +89,11 @@ const TagCreateModal: React.FC<TagCreateModalProps> = ({
       setFormData({
         name: '',
         description: '',
-        color_hex: '#3B82F6'
+        color_hex: firstAvailableColor
       });
     }
     setErrors({});
-  }, [editingTag, isOpen]);
+  }, [editingTag, isOpen, firstAvailableColor]);
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof TagFormData, string>> = {};
@@ -184,6 +204,8 @@ const TagCreateModal: React.FC<TagCreateModalProps> = ({
                 value={formData.color_hex}
                 onChange={(color) => setFormData({ ...formData, color_hex: color })}
                 error={errors.color_hex}
+                existingTags={existingTags}
+                editingTagId={editingTag?.id || null}
               />
             </form>
           </div>

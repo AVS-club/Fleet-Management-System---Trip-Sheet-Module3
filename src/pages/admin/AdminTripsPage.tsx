@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout'; 
 import TripsTable from '../../components/admin/TripsTable';
 import TripsSummary from '../../components/admin/TripsSummary';
+import ExcelFormatTips from '../../components/admin/ExcelFormatTips';
 import ExportOptionsModal, { ExportOptions } from '../../components/admin/ExportOptionsModal';
 import { Trip, Vehicle, Driver, Warehouse, Destination } from '@/types';
 import { getTrips, getVehicles, getWarehouses, getDestinations, updateTrip } from '../../utils/storage';
@@ -15,9 +16,9 @@ import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronLeft, ChevronRight, X, RefreshCw, Search, FileText, Download, ChevronUp, Upload, SlidersHorizontal } from 'lucide-react';
 import UnifiedSearchBar from '../../components/trips/UnifiedSearchBar';
-import { comprehensiveSearchTrips } from '../../utils/tripSearch';
+import { comprehensiveSearchTrips, TripFilters } from '../../utils/tripSearch';
 import * as XLSX from 'xlsx';
 import { toast } from 'react-toastify';
 import { fixAllExistingMileage, fixMileageForSpecificVehicle } from '../../utils/fixExistingMileage';
@@ -66,11 +67,14 @@ const AdminTripsPage: React.FC = () => {
   const destinationsMap = useMemo(() => new Map(destinations.map(d => [d.id, d.name])), [destinations]);
   
   // Date preset state
-  const [datePreset, setDatePreset] = useState('last30');
+  const [datePreset, setDatePreset] = useState('allTime');
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const tripsPerPage = 50; // 50 trips per page
+  // Infinite scroll state
+  const tripsPerPage = 50; // load 50 trips per batch
+  const [visibleTripCount, setVisibleTripCount] = useState(tripsPerPage);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const autoLoadLockRef = useRef(false);
+  const [isAutoLoading, setIsAutoLoading] = useState(false);
 
   const [summaryMetrics, setSummaryMetrics] = useState<TripSummaryMetrics>({
     totalExpenses: 0,
@@ -81,11 +85,11 @@ const AdminTripsPage: React.FC = () => {
     topVehicle: null
   });
 
-  // Filter state
+  // Filter state - no default date filter, loads all trips
   const [filters, setFilters] = useState({
     dateRange: {
-      start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-      end: format(new Date(), 'yyyy-MM-dd')
+      start: '',
+      end: ''
     },
     vehicleId: '',
     driverId: '',
@@ -93,6 +97,13 @@ const AdminTripsPage: React.FC = () => {
     tripType: '',
     search: ''
   });
+  const [sortMode, setSortMode] = useState<'recent' | 'distance' | 'expense'>('recent');
+  const [showImportTips, setShowImportTips] = useState(false);
+  const sortOptions = [
+    { value: 'recent', label: 'Newest first' },
+    { value: 'distance', label: 'Longest distance' },
+    { value: 'expense', label: 'Highest expense' }
+  ];
 
   // Date preset options
   const datePresetOptions = [
@@ -112,6 +123,24 @@ const AdminTripsPage: React.FC = () => {
 
   // Handle date preset changes
   useEffect(() => {
+    // Only update dates if preset is not 'allTime' or 'custom'
+    // 'allTime' means no date filter (empty dates)
+    if (datePreset === 'allTime') {
+      setFilters(prev => ({
+        ...prev,
+        dateRange: {
+          start: '',
+          end: ''
+        }
+      }));
+      return;
+    }
+    
+    if (datePreset === 'custom') {
+      // Don't update dates for custom - user controls them manually
+      return;
+    }
+    
     const today = new Date();
     let start: Date, end: Date;
     
@@ -154,16 +183,16 @@ const AdminTripsPage: React.FC = () => {
         start = subDays(today, 29);
         end = today;
         break;
-      case 'allTime':
-        start = new Date('2020-01-01');
-        end = today;
-        break;
-      case 'custom':
-        // Don't update dates for custom
-        return;
       default:
-        start = subDays(today, 29);
-        end = today;
+        // Default to no date filter
+        setFilters(prev => ({
+          ...prev,
+          dateRange: {
+            start: '',
+            end: ''
+          }
+        }));
+        return;
     }
     
     setFilters(prev => ({
@@ -332,7 +361,7 @@ const AdminTripsPage: React.FC = () => {
       const result = await fixAllExistingMileage();
       if (result.success) {
         // Show detailed message with diagnostics
-        let successMessage = result.message;
+        const successMessage = result.message;
         if (result.diagnostics && result.diagnostics.totalAnomalies > 0) {
           toast.success(successMessage, { autoClose: 8000 });
         } else {
@@ -357,6 +386,26 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
+  const buildSearchFilters = useCallback((): TripFilters => {
+    const sortBy =
+      sortMode === 'distance'
+        ? 'distance-desc'
+        : sortMode === 'expense'
+          ? 'cost-desc'
+          : 'date-desc';
+
+    return {
+      search: filters.search || undefined,
+      vehicle: filters.vehicleId || undefined,
+      driver: filters.driverId || undefined,
+      warehouse: filters.warehouseId || undefined,
+      dateRange: filters.dateRange.start || filters.dateRange.end ? 'custom' : 'all',
+      startDate: filters.dateRange.start,
+      endDate: filters.dateRange.end,
+      sortBy
+    };
+  }, [filters, sortMode]);
+
   // Handle smart search with field selection
   const handleSmartSearch = async (searchTerm: string, searchField?: string) => {
     if (searchTerm.length < 2) {
@@ -374,7 +423,8 @@ const AdminTripsPage: React.FC = () => {
         vehicles,
         drivers,
         warehouses,
-        { page: currentPage, limit: tripsPerPage }
+        buildSearchFilters(),
+        { page: 1, limit: Math.max(visibleTripCount, tripsPerPage) }
       );
       
       setSearchResult(result);
@@ -401,7 +451,7 @@ const AdminTripsPage: React.FC = () => {
       return searchResult.trips;
     }
     
-    return trips.filter(trip => {
+    const baseFiltered = trips.filter(trip => {
       // Search filter
       if (filters.search) {
         const vehicle = vehiclesMap.get(trip.vehicle_id);
@@ -461,33 +511,103 @@ const AdminTripsPage: React.FC = () => {
           return false;
         }
       }
-
       return true;
     });
-  }, [trips, vehiclesMap, driversMap, filters, searchResult]);
 
-  // Calculate pagination
-  const indexOfLastTrip = currentPage * tripsPerPage;
-  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
-  const currentTrips = filteredTrips.slice(indexOfFirstTrip, indexOfLastTrip);
-  const totalPages = Math.ceil(filteredTrips.length / tripsPerPage);
-  
-  // Go to a specific page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+    const sorted = [...baseFiltered];
+    switch (sortMode) {
+      case 'distance':
+        sorted.sort((a, b) => {
+          const distA = (a.end_km || 0) - (a.start_km || 0);
+          const distB = (b.end_km || 0) - (b.start_km || 0);
+          return distB - distA;
+        });
+        break;
+      case 'expense':
+        sorted.sort((a, b) => {
+          const expenseA =
+            (a.total_fuel_cost || 0) +
+            (a.total_road_expenses || 0) +
+            (a.unloading_expense || 0) +
+            (a.driver_expense || 0) +
+            (a.road_rto_expense || 0) +
+            (a.breakdown_expense || 0) +
+            (a.miscellaneous_expense || 0);
+          const expenseB =
+            (b.total_fuel_cost || 0) +
+            (b.total_road_expenses || 0) +
+            (b.unloading_expense || 0) +
+            (b.driver_expense || 0) +
+            (b.road_rto_expense || 0) +
+            (b.breakdown_expense || 0) +
+            (b.miscellaneous_expense || 0);
+          return expenseB - expenseA;
+        });
+        break;
+      case 'recent':
+      default:
+        sorted.sort(
+          (a, b) =>
+            new Date(b.trip_start_date).getTime() - new Date(a.trip_start_date).getTime()
+        );
+    }
 
-  // Previous page
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    return sorted;
+  }, [trips, vehiclesMap, driversMap, filters, searchResult, sortMode]);
+
+  const visibleTrips = useMemo(
+    () => filteredTrips.slice(0, visibleTripCount),
+    [filteredTrips, visibleTripCount]
+  );
+  const hasMoreTrips = visibleTripCount < filteredTrips.length;
+  const showingCount = visibleTrips.length;
+  const activeFilterCount = useMemo(
+    () =>
+      [filters.search, filters.vehicleId, filters.driverId, filters.warehouseId, filters.tripType]
+        .filter(Boolean).length,
+    [filters]
+  );
+
+  const loadMoreTrips = useCallback((autoTrigger = false) => {
+    if (!hasMoreTrips) return;
+
+    if (autoTrigger) {
+      if (autoLoadLockRef.current) return;
+      autoLoadLockRef.current = true;
     }
-  };
-  
-  // Next page
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+
+    setIsAutoLoading(true);
+    setVisibleTripCount(prev => Math.min(prev + tripsPerPage, filteredTrips.length));
+  }, [filteredTrips.length, hasMoreTrips, tripsPerPage]);
+
+  const handleManualLoadMore = useCallback(() => loadMoreTrips(false), [loadMoreTrips]);
+
+  useEffect(() => {
+    if (autoLoadLockRef.current) {
+      autoLoadLockRef.current = false;
     }
-  };
+    if (isAutoLoading) {
+      setIsAutoLoading(false);
+    }
+  }, [visibleTripCount, isAutoLoading]);
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          loadMoreTrips(true);
+        }
+      },
+      { root: null, rootMargin: '200px 0px', threshold: 0 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMoreTrips]);
 
   const calculateMetricsLocally = useCallback(() => {
     const filtered = filteredTrips;
@@ -626,8 +746,11 @@ const AdminTripsPage: React.FC = () => {
 
   useEffect(() => {
     fetchSummaryMetrics();
-    setCurrentPage(1);
-  }, [fetchSummaryMetrics, filters]);
+  }, [fetchSummaryMetrics]);
+
+  useEffect(() => {
+    setVisibleTripCount(tripsPerPage);
+  }, [filters, searchResult, trips.length, tripsPerPage, sortMode]);
 
   const handleUpdateTrip = async (tripId: string, updates: Partial<Trip>) => {
     const updatedTrip = await updateTrip(tripId, updates);
@@ -660,11 +783,6 @@ const AdminTripsPage: React.FC = () => {
       
       // Refresh summary metrics
       fetchSummaryMetrics();
-      
-      // If the last trip on the page was deleted, go to previous page
-      if (currentTrips.length === 1 && currentPage > 1) {
-        setCurrentPage(currentPage - 1);
-      }
     } catch (error) {
       logger.error("Error deleting trip:", error);
       toast.error(`Error deleting trip: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -672,9 +790,15 @@ const AdminTripsPage: React.FC = () => {
   };
 
   const handleFiltersChange = (newFilters: Partial<typeof filters>) => {
-    if (newFilters.dateRange && datePreset !== 'custom') {
-      // If manually changing dates, switch to custom preset
-      setDatePreset('custom');
+    // If manually changing dates, switch to custom preset
+    if (newFilters.dateRange) {
+      const hasDates = newFilters.dateRange.start || newFilters.dateRange.end;
+      // If clearing dates (both empty), switch to allTime
+      if (!hasDates && !newFilters.dateRange.start && !newFilters.dateRange.end) {
+        setDatePreset('allTime');
+      } else {
+        setDatePreset('custom');
+      }
     }
     
     setFilters(prev => ({
@@ -686,8 +810,8 @@ const AdminTripsPage: React.FC = () => {
   const clearFilters = () => {
     setFilters({
       dateRange: {
-        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
-        end: format(new Date(), 'yyyy-MM-dd')
+        start: '',
+        end: ''
       },
       vehicleId: '',
       driverId: '',
@@ -695,9 +819,79 @@ const AdminTripsPage: React.FC = () => {
       tripType: '',
       search: ''
     });
-    setDatePreset('last30');
+    setDatePreset('allTime');
     setSearchResult(null); // Clear search results
   };
+
+  const handleSearchInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setFilters(prev => ({
+      ...prev,
+      search: value
+    }));
+
+    if (!value) {
+      setSearchResult(null);
+    }
+  }, []);
+
+  const handleSortChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortMode(event.target.value as 'recent' | 'distance' | 'expense');
+  }, []);
+
+  const openImportTipsModal = useCallback(() => setShowImportTips(true), []);
+  const closeImportTipsModal = useCallback(() => setShowImportTips(false), []);
+  const triggerFilePicker = useCallback(() => {
+    setShowImportTips(false);
+    importInputRef.current?.click();
+  }, [importInputRef]);
+
+  const getFiltersSummary = useCallback(() => {
+    const parts: string[] = [];
+
+    if (filters.dateRange.start && filters.dateRange.end) {
+      parts.push(
+        `Dates: ${format(new Date(filters.dateRange.start), 'dd MMM')} - ${format(
+          new Date(filters.dateRange.end),
+          'dd MMM'
+        )}`
+      );
+    } else {
+      parts.push('Dates: all');
+    }
+
+    if (filters.vehicleId) {
+      const reg = vehiclesMap.get(filters.vehicleId)?.registration_number;
+      parts.push(`Vehicle: ${reg || 'Selected'}`);
+    } else {
+      parts.push('Vehicle: all');
+    }
+
+    if (filters.driverId) {
+      const name = driversMap.get(filters.driverId)?.name;
+      parts.push(`Driver: ${name || 'Selected'}`);
+    } else {
+      parts.push('Driver: all');
+    }
+
+    if (filters.tripType) {
+      parts.push(filters.tripType === 'two_way' ? 'Trip: two-way' : 'Trip: one-way');
+    }
+
+    if (filters.search) {
+      parts.push(`Search: “${filters.search}”`);
+    }
+
+    const sortLabel =
+      sortMode === 'distance'
+        ? 'Sorting: longest distance'
+        : sortMode === 'expense'
+          ? 'Sorting: highest expense'
+          : 'Sorting: newest trips';
+    parts.push(sortLabel);
+
+    return parts.join(' • ');
+  }, [filters, vehiclesMap, driversMap, sortMode]);
 
   const handleExport = async () => {
     try {
@@ -881,30 +1075,6 @@ const AdminTripsPage: React.FC = () => {
     }
   };
 
-  const getActiveFiltersText = () => {
-    const parts = [];
-    
-    if (filters.vehicleId) {
-      const vehicle = vehiclesMap.get(filters.vehicleId);
-      parts.push(`Vehicle: ${vehicle?.registration_number || 'Unknown'}`);
-    } else {
-      parts.push('Vehicle: All');
-    }
-    
-    if (filters.driverId) {
-      const driver = driversMap.get(filters.driverId);
-      parts.push(`Driver: ${driver?.name || 'Unknown'}`);
-    } else {
-      parts.push('Driver: All');
-    }
-    
-    if (filters.dateRange.start && filters.dateRange.end) {
-      parts.push(`Dates: ${format(new Date(filters.dateRange.start), 'dd MMM yyyy')} - ${format(new Date(filters.dateRange.end), 'dd MMM yyyy')}`);
-    }
-    
-    return parts.join(', ');
-  };
-
   return (
     <Layout>
       {/* Page Header */}
@@ -916,358 +1086,333 @@ const AdminTripsPage: React.FC = () => {
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-7">View and manage all trip records</p>
       </div>
 
-      {/* Simplified Filters Section */}
+      {/* Filters + Summary */}
       {!loading && (
-        <div className="bg-white rounded-lg shadow-sm mb-6">
-          <div className="px-4 py-3 border-b border-gray-100">
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              >
-                <Filter className="h-5 w-5" />
-                <span>Filters</span>
-                {showFilters ? 
-                  <ChevronUp className="h-4 w-4" /> : 
-                  <ChevronDown className="h-4 w-4" />
-                }
-              </button>
-              
-              <div className="flex items-center gap-2">
-                {/* Active filter count badge */}
-                {(filters.search || filters.vehicleId || filters.driverId || filters.warehouseId || filters.tripType) && (
-                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-                    {[filters.search, filters.vehicleId, filters.driverId, filters.warehouseId, filters.tripType]
-                      .filter(Boolean).length} active
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+          <div className="p-4 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-blue-300 hover:text-blue-600 transition-colors"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  <span>{showFilters ? 'Hide filters' : 'Filters'}</span>
+                  {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                <p className="text-xs text-gray-500">
+                  {getFiltersSummary()}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {activeFilterCount > 0 && (
+                  <span className="px-2 py-1 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+                    {activeFilterCount} active
                   </span>
                 )}
-                
-                <button
-                  onClick={clearFilters}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1"
-                >
-                  <X className="h-4 w-4" />
-                  Clear
-                </button>
-                
-                <button
-                  onClick={() => refreshData(false)}
-                  disabled={refreshing}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1 disabled:opacity-50"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-                
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept=".csv,.xlsx"
-                  onChange={handleImportInputChange}
-                  className="hidden"
-                  aria-label="Import trips file"
-                />
-                <button
-                  onClick={() => importInputRef.current?.click()}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center gap-1"
-                >
-                  <Upload className="h-4 w-4" />
-                  Import
-                </button>
-                <button
-                  onClick={() => handleExport()}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-1"
-                >
-                  <Download className="h-4 w-4" />
-                  Export
-                </button>
+                <span className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-full">
+                  {filteredTrips.length} matching trips
+                </span>
+                <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1">
+                  <span className="text-[11px] uppercase tracking-wide text-gray-500">Sort by</span>
+                  <div className="relative">
+                    <select
+                      value={sortMode}
+                      onChange={handleSortChange}
+                      className="appearance-none bg-transparent pr-6 text-xs font-semibold text-gray-700 focus:outline-none"
+                    >
+                      {sortOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-500" />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          
-          {showFilters && (
-            <div className="p-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-                {/* Compact Search */}
-                <div className="sm:col-span-2 lg:col-span-2 xl:col-span-2">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Search
-                  </label>
-                  <div className="relative">
-                    <div className="flex items-center bg-white border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
-                      {/* Search Icon */}
-                      <div className="pl-3 pr-2">
-                        {isSearching ? (
-                          <div className="h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-                        ) : (
-                          <Search className="h-4 w-4 text-gray-400" />
-                        )}
-                      </div>
-                      
-                      {/* Input Field */}
+
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={handleImportInputChange}
+              className="hidden"
+              aria-label="Import trips file"
+            />
+
+            <TripsSummary
+              trips={trips}
+              vehicles={vehicles}
+              drivers={drivers}
+              loading={summaryLoading}
+              metrics={summaryMetrics}
+              className="mt-2"
+              actionsSlot={(
+                <>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-gray-900">Quick actions</p>
+                    {refreshing && <span className="text-xs text-blue-600 animate-pulse">Refreshing...</span>}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      onClick={clearFilters}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"
+                      title="Clear filters"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => refreshData(false)}
+                      disabled={refreshing}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600 disabled:opacity-50"
+                      title="Refresh list"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
+                    </button>
+                    <button
+                      onClick={openImportTipsModal}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"
+                      title="Import from Excel"
+                    >
+                      <Upload className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={handleExport}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition hover:border-blue-300"
+                      title="Export current view"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                  </div>
+                </>
+              )}
+            />
+
+            {showFilters && (
+              <div className="pt-4 border-t border-gray-100 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+                  {/* Compact Search */}
+                  <div className="sm:col-span-2 lg:col-span-2 xl:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Quick Search
+                    </label>
+                    <div className="relative">
                       <input
                         type="text"
                         value={filters.search}
-                        onChange={(e) => handleFiltersChange({ search: e.target.value })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && filters.search.length >= 2) {
-                            handleSmartSearch(filters.search);
-                          }
-                        }}
-                        placeholder="Search trips, vehicles, drivers..."
-                        className="flex-1 py-2 px-2 text-sm bg-transparent outline-none placeholder-gray-400"
-                        autoComplete="off"
+                        onChange={handleSearchInputChange}
+                        placeholder="Trip ID, driver, vehicle..."
+                        className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                       />
-                      
-                      {/* Quick Search Button */}
-                      {filters.search.length >= 2 && (
-                        <button
-                          onClick={() => handleSmartSearch(filters.search)}
-                          className="px-3 py-1 mr-2 text-xs font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-                        >
-                          Search
-                        </button>
-                      )}
-                      
-                      {/* Clear Button */}
+                      <Search className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+                  
+                  {/* Date Range Start */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Start Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={filters.dateRange.start}
+                        onChange={(e) => handleFiltersChange({ 
+                          dateRange: { 
+                            ...filters.dateRange, 
+                            start: e.target.value 
+                          } 
+                        })}
+                        className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <Calendar className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+                  
+                  {/* Date Range End */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      End Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={filters.dateRange.end}
+                        onChange={(e) => handleFiltersChange({ 
+                          dateRange: { 
+                            ...filters.dateRange, 
+                            end: e.target.value 
+                          } 
+                        })}
+                        className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <Calendar className="h-4 w-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2" />
+                    </div>
+                  </div>
+                  
+                  {/* Vehicle Select */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Vehicle
+                    </label>
+                    <select
+                      value={filters.vehicleId}
+                      onChange={(e) => handleFiltersChange({ vehicleId: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Vehicles</option>
+                      {vehicles.map(vehicle => (
+                        <option key={vehicle.id} value={vehicle.id}>
+                          {vehicle.registration_number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Driver Select */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Driver
+                    </label>
+                    <select
+                      value={filters.driverId}
+                      onChange={(e) => handleFiltersChange({ driverId: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Drivers</option>
+                      {drivers.map(driver => (
+                        <option key={driver.id} value={driver.id}>
+                          {driver.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Warehouse Select */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Warehouse
+                    </label>
+                    <select
+                      value={filters.warehouseId}
+                      onChange={(e) => handleFiltersChange({ warehouseId: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Warehouses</option>
+                      {warehouses.map(warehouse => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Trip Type Select */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Trip Type
+                    </label>
+                    <select
+                      value={filters.tripType}
+                      onChange={(e) => handleFiltersChange({ tripType: e.target.value })}
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">All Types</option>
+                      <option value="one_way">One Way</option>
+                      <option value="two_way">Two Way</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Active filters summary */}
+                {(filters.search || filters.vehicleId || filters.driverId || filters.warehouseId || filters.tripType) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-gray-500">Active filters:</span>
+                    <div className="flex flex-wrap gap-2">
                       {filters.search && (
-                        <button
-                          onClick={() => {
-                            handleFiltersChange({ search: '' });
-                            setSearchResult(null);
-                          }}
-                          className="p-1 mr-2 text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          Search: {filters.search}
+                        </span>
+                      )}
+                      {filters.vehicleId && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          Vehicle: {vehicles.find(v => v.id === filters.vehicleId)?.registration_number}
+                        </span>
+                      )}
+                      {filters.driverId && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                          Driver: {drivers.find(d => d.id === filters.driverId)?.name}
+                        </span>
                       )}
                     </div>
-                    
-                    {/* Search Results Indicator */}
-                    {searchResult && (
-                      <div className="absolute top-full left-0 right-0 mt-1 px-3 py-1 bg-blue-50 border border-blue-200 rounded-md text-xs text-blue-700">
-                        Found {searchResult.totalCount} results
-                        {searchResult.matchedFields && searchResult.matchedFields.length > 0 && (
-                          <span className="ml-2">in: {searchResult.matchedFields.join(', ')}</span>
-                        )}
-                      </div>
-                    )}
                   </div>
-                </div>
-                
-                {/* Date Range */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    From Date
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.dateRange.start}
-                    onChange={(e) => handleFiltersChange({ 
-                      dateRange: { ...filters.dateRange, start: e.target.value }
-                    })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    To Date
-                  </label>
-                  <input
-                    type="date"
-                    value={filters.dateRange.end}
-                    onChange={(e) => handleFiltersChange({ 
-                      dateRange: { ...filters.dateRange, end: e.target.value }
-                    })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {/* Vehicle Select */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Vehicle
-                  </label>
-                  <select
-                    value={filters.vehicleId}
-                    onChange={(e) => handleFiltersChange({ vehicleId: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Vehicles</option>
-                    {vehicles.map(vehicle => (
-                      <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.registration_number}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* Driver Select */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Driver
-                  </label>
-                  <select
-                    value={filters.driverId}
-                    onChange={(e) => handleFiltersChange({ driverId: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Drivers</option>
-                    {drivers.map(driver => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* Warehouse Select */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Warehouse
-                  </label>
-                  <select
-                    value={filters.warehouseId}
-                    onChange={(e) => handleFiltersChange({ warehouseId: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Warehouses</option>
-                    {warehouses.map(warehouse => (
-                      <option key={warehouse.id} value={warehouse.id}>
-                        {warehouse.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* Trip Type Select */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Trip Type
-                  </label>
-                  <select
-                    value={filters.tripType}
-                    onChange={(e) => handleFiltersChange({ tripType: e.target.value })}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">All Types</option>
-                    <option value="one_way">One Way</option>
-                    <option value="two_way">Two Way</option>
-                  </select>
-                </div>
+                )}
               </div>
-              
-              {/* Active filters summary */}
-              {(filters.search || filters.vehicleId || filters.driverId || filters.warehouseId || filters.tripType) && (
-                <div className="mt-4 flex items-center gap-2 text-sm">
-                  <span className="text-gray-500">Active filters:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {filters.search && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                        Search: {filters.search}
-                      </span>
-                    )}
-                    {filters.vehicleId && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                        Vehicle: {vehicles.find(v => v.id === filters.vehicleId)?.registration_number}
-                      </span>
-                    )}
-                    {filters.driverId && (
-                      <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                        Driver: {drivers.find(d => d.id === filters.driverId)?.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        </section>
       )}
-
-      {/* Summary Metrics */}
-      <TripsSummary
-        trips={trips}
-        vehicles={vehicles}
-        drivers={drivers}
-        loading={summaryLoading}
-        metrics={summaryMetrics}
-      />
 
       {/* Trip Table */}
       <TripsTable
-        trips={currentTrips}
+        trips={visibleTrips}
         vehicles={vehicles}
         drivers={drivers}
         onUpdateTrip={handleUpdateTrip}
         onDeleteTrip={handleDeleteTrip}
       />
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg shadow-sm mt-4">
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing <span className="font-medium">{indexOfFirstTrip + 1}</span> to{' '}
-                <span className="font-medium">
-                  {Math.min(indexOfLastTrip, filteredTrips.length)}
-                </span>{' '}
-                of <span className="font-medium">{filteredTrips.length}</span> results
-              </p>
+      <div className="mt-4 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-600">
+            Showing <span className="font-semibold text-gray-900">{showingCount}</span> of{' '}
+            <span className="font-semibold text-gray-900">{filteredTrips.length}</span> trips
+          </p>
+          {hasMoreTrips ? (
+            <button
+              onClick={handleManualLoadMore}
+              disabled={isAutoLoading}
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-blue-100 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition-colors hover:border-blue-200 disabled:opacity-60"
+            >
+              {isAutoLoading ? 'Loading...' : `Load ${tripsPerPage} more`}
+            </button>
+          ) : (
+            <span className="text-xs font-semibold text-green-600">All trips loaded</span>
+          )}
+        </div>
+        {hasMoreTrips && (
+          <p className="text-xs text-gray-500 mt-1">Scroll down or tap load more to fetch the next batch.</p>
+        )}
+      </div>
+
+      <div ref={loadMoreRef} className="h-2" aria-hidden="true" />
+
+      {showImportTips && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-gray-900/60 px-4 py-8">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-base font-semibold text-gray-900">Import checklist</p>
+                <p className="text-sm text-gray-600">Skim these basics, then continue to choose your Excel file.</p>
+              </div>
+              <button
+                onClick={closeImportTipsModal}
+                className="rounded-full border border-gray-200 p-1 text-gray-500 hover:text-gray-900"
+                aria-label="Close tips"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div>
-              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                <button
-                  onClick={goToPreviousPage}
-                  className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
-                    currentPage === 1 ? 'cursor-not-allowed opacity-50' : ''
-                  }`}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Simple pagination logic that shows 5 pages at most
-                  let pageNum = i + 1;
-                  if (totalPages > 5) {
-                    if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                  }
-                  
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => paginate(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                        currentPage === pageNum
-                          ? 'z-10 bg-primary-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
-                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={goToNextPage}
-                  className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 ${
-                    currentPage === totalPages ? 'cursor-not-allowed opacity-50' : ''
-                  }`}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              </nav>
+            <ExcelFormatTips className="mt-4" headerAction={null} />
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button onClick={triggerFilePicker} className="flex-1 sm:flex-none">
+                Select file
+              </Button>
+              <Button variant="outline" onClick={closeImportTipsModal} className="flex-1 sm:flex-none">
+                Close
+              </Button>
             </div>
           </div>
         </div>
@@ -1287,4 +1432,7 @@ const AdminTripsPage: React.FC = () => {
 };
 
 export default AdminTripsPage;
+
+
+
 

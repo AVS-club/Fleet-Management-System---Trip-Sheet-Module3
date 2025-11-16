@@ -8,13 +8,6 @@ import { createLogger } from '../../utils/logger';
 
 const logger = createLogger('AlertSettings');
 
-const frequencyOptions = [
-  { value: 'always', label: 'Always Show' },
-  { value: 'once_per_session', label: 'Once Per Session' },
-  { value: 'daily', label: 'Once Per Day' },
-  { value: 'never', label: 'Never Show' }
-];
-
 const AlertSettings: React.FC = () => {
   const [settings, setSettings] = useState<AlertSettingsType | null>(null);
   const [saving, setSaving] = useState(false);
@@ -73,19 +66,6 @@ const AlertSettings: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        <div>
-          <label className="block mb-2 font-medium text-gray-700">AI Alert Popup Frequency</label>
-          <Select
-            options={frequencyOptions}
-            value={settings.popup_display_frequency || 'always'}
-            onChange={(e) => handleChange('popup_display_frequency', e.target.value)}
-            className="w-full"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Controls how often AI alert popups appear when you open the dashboard
-          </p>
-        </div>
-
         <Select
           label="Display Type"
           options={[

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useOrganization } from '@/contexts/OrganizationContext';
+import React, { useState, useEffect, useContext } from 'react';
+import { OrganizationContext } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Building2, ChevronDown, X } from 'lucide-react';
 import { cn } from '@/utils/cn';
@@ -19,12 +19,17 @@ const getAdaptiveNameSizeClass = (name: string) => {
 const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({ 
   className 
 }) => {
-  const { 
-    currentOrganizationId, 
-    organizations, 
-    setCurrentOrganization, 
-    loading 
-  } = useOrganization();
+  // Safely get organization context with fallback
+  const organizationContext = useContext(OrganizationContext);
+  
+  // Provide fallback values if context is not available
+  const {
+    currentOrganizationId = null,
+    organizations = [],
+    setCurrentOrganization = async () => {},
+    loading = false
+  } = organizationContext || {};
+  
   const { permissions } = usePermissions();
 
   const [isOpen, setIsOpen] = useState(false);

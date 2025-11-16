@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Eye, MoreVertical } from 'lucide-react';
+import { Edit2, Trash2, Eye, MoreVertical, Plus, Clock } from 'lucide-react';
 import { Tag } from '../../types/tags';
 import Button from '../ui/Button';
 
@@ -8,13 +8,17 @@ interface TagManagementCardProps {
   onEdit: (tag: Tag) => void;
   onDelete: (tag: Tag) => void;
   onViewVehicles: (tag: Tag) => void;
+  onAddVehicles: (tag: Tag) => void;
+  onViewHistory: (tag: Tag) => void;
 }
 
 const TagManagementCard: React.FC<TagManagementCardProps> = ({
   tag,
   onEdit,
   onDelete,
-  onViewVehicles
+  onViewVehicles,
+  onAddVehicles,
+  onViewHistory
 }) => {
   const [showActions, setShowActions] = useState(false);
 
@@ -65,6 +69,16 @@ const TagManagementCard: React.FC<TagManagementCardProps> = ({
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                 <button
                   onClick={() => {
+                    onAddVehicles(tag);
+                    setShowActions(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Vehicles</span>
+                </button>
+                <button
+                  onClick={() => {
                     onViewVehicles(tag);
                     setShowActions(false);
                   }}
@@ -73,6 +87,17 @@ const TagManagementCard: React.FC<TagManagementCardProps> = ({
                   <Eye className="h-4 w-4" />
                   <span>View Vehicles</span>
                 </button>
+                <button
+                  onClick={() => {
+                    onViewHistory(tag);
+                    setShowActions(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                >
+                  <Clock className="h-4 w-4" />
+                  <span>View History</span>
+                </button>
+                <div className="border-t border-gray-200 my-1"></div>
                 <button
                   onClick={() => {
                     onEdit(tag);

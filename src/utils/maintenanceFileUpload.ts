@@ -14,8 +14,11 @@ export type FileUploadCallback = (event: {
 
 export interface ServiceGroupFileData {
   bills?: File[];
-  batteryWarrantyFiles?: File[];
-  tyreWarrantyFiles?: File[];
+  warrantyFiles?: File[]; // Service group level warranty files (if used)
+  parts?: Array<{
+    warrantyDocument?: File;
+    [key: string]: any;
+  }>;
   partsData?: Array<{
     warrantyDocument?: File;
     [key: string]: any;
@@ -25,8 +28,11 @@ export interface ServiceGroupFileData {
 
 export interface ProcessedServiceGroupData {
   bill_url?: string[];
-  battery_warranty_url?: string[];
-  tyre_warranty_url?: string[];
+  part_warranty_url?: string[];
+  parts?: Array<{
+    warrantyDocumentUrl?: string;
+    [key: string]: any;
+  }>;
   partsData?: Array<{
     warrantyDocumentUrl?: string;
     [key: string]: any;
@@ -82,29 +88,23 @@ export const uploadMaintenanceBills = async (
 };
 
 /**
- * Uploads warranty documents (battery, tyre, or parts)
+ * Uploads warranty documents for a service group
+ * NEW: Warranty documents are stored at SERVICE GROUP level, not per-part
  *
  * @param files - Array of warranty files to upload
  * @param taskId - The maintenance task ID
  * @param groupIndex - Index of the service group
- * @param type - Type of warranty document
  * @returns Array of public URLs for uploaded warranty documents
  */
-export const uploadWarrantyDocuments = async (
+export const uploadWarrantyDocumentsForServiceGroup = async (
   files: File[],
   taskId: string,
-  groupIndex: number,
-  type: 'battery' | 'tyre' | 'part',
-  partIndex?: number
+  groupIndex: number
 ): Promise<string[]> => {
   if (!files || files.length === 0) return [];
 
   try {
-    const typeName = type === 'part' && partIndex !== undefined
-      ? `part${partIndex}`
-      : type;
-
-    logger.debug(`📜 Uploading ${files.length} ${type} warranty document(s) for group ${groupIndex}`);
+    logger.debug(`📜 Uploading ${files.length} warranty document(s) for service group ${groupIndex}`);
 
     // Get organization ID for path namespacing
     const userId = await getCurrentUserId();
@@ -119,29 +119,70 @@ export const uploadWarrantyDocuments = async (
     // Compress images before upload
     const compressedFiles = await compressBatch(files);
 
-    // Upload to appropriate bucket
-    const bucketName = type === 'battery'
-      ? 'battery-warranties'
-      : type === 'tyre'
-      ? 'tyre-warranties'
-      : 'part-warranties';
-
-    // Determine the subfolder based on type
-    const typeFolder = type === 'battery' ? 'batteries' : type === 'tyre' ? 'tyres' : 'parts';
-
-    // Upload with organization-based path
-    // Path structure: {org-id}/tasks/{task-id}/{type-folder}/{filename}
+    // Upload to maintenance-bills bucket
+    // Path structure: {org-id}/tasks/{task-id}/warranties/{filename}
+    // Note: Including groupIndex in path to avoid filename conflicts between service groups
     const warrantyUrls = await uploadFilesAndGetPublicUrls(
-      bucketName,
-      `${organizationId}/tasks/${taskId}/group${groupIndex}/${typeFolder}/${typeName}`,
+      'maintenance-bills',
+      `${organizationId}/tasks/${taskId}/warranties/group${groupIndex}`,
       compressedFiles
     );
 
-    logger.debug(`✅ Uploaded ${warrantyUrls.length} ${type} warranty document(s)`);
+    logger.debug(`✅ Uploaded ${warrantyUrls.length} warranty document(s) for service group ${groupIndex}`);
     return warrantyUrls;
   } catch (error) {
-    logger.error(`Failed to upload ${type} warranty documents:`, error);
-    throw new Error(`Failed to upload ${type} warranty documents`);
+    logger.error(`Failed to upload warranty documents for service group ${groupIndex}:`, error);
+    throw new Error(`Failed to upload warranty documents for service group ${groupIndex + 1}`);
+  }
+};
+
+/**
+ * Uploads warranty documents for parts (DEPRECATED - kept for backward compatibility)
+ * NOTE: New code should use uploadWarrantyDocumentsForServiceGroup instead
+ *
+ * @param files - Array of warranty files to upload
+ * @param taskId - The maintenance task ID
+ * @param groupIndex - Index of the service group
+ * @param partIndex - Index of the part
+ * @returns Array of public URLs for uploaded warranty documents
+ */
+export const uploadWarrantyDocuments = async (
+  files: File[],
+  taskId: string,
+  groupIndex: number,
+  partIndex: number
+): Promise<string[]> => {
+  if (!files || files.length === 0) return [];
+
+  try {
+    logger.debug(`📜 Uploading ${files.length} part warranty document(s) for group ${groupIndex}`);
+
+    // Get organization ID for path namespacing
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+    const organizationId = await getUserActiveOrganization(userId);
+    if (!organizationId) {
+      throw new Error('No active organization found');
+    }
+
+    // Compress images before upload
+    const compressedFiles = await compressBatch(files);
+
+    // Upload to part-warranties bucket
+    // Path structure: {org-id}/tasks/{task-id}/parts/part{index}/{filename}
+    const warrantyUrls = await uploadFilesAndGetPublicUrls(
+      'part-warranties',
+      `${organizationId}/tasks/${taskId}/group${groupIndex}/parts/part${partIndex}`,
+      compressedFiles
+    );
+
+    logger.debug(`✅ Uploaded ${warrantyUrls.length} part warranty document(s)`);
+    return warrantyUrls;
+  } catch (error) {
+    logger.error(`Failed to upload part warranty documents:`, error);
+    throw new Error(`Failed to upload part warranty documents`);
   }
 };
 
@@ -181,56 +222,34 @@ export const processServiceGroupFiles = async (
       });
     }
 
-    // Upload battery warranty files
-    if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) {
+    // Upload warranty files at SERVICE GROUP level (NEW)
+    if (group.warrantyFiles && group.warrantyFiles.length > 0) {
       onFileProgress?.({
         type: 'start',
-        operation: `group${groupIndex}_battery_warranty`,
+        operation: `group${groupIndex}_warranties`,
       });
 
-      const batteryWarrantyUrls = await uploadWarrantyDocuments(
-        group.batteryWarrantyFiles,
+      const warrantyUrls = await uploadWarrantyDocumentsForServiceGroup(
+        group.warrantyFiles,
         taskId,
-        groupIndex,
-        'battery'
+        groupIndex
       );
-      processedGroup.battery_warranty_url = batteryWarrantyUrls;
-      delete processedGroup.batteryWarrantyFiles;
+      processedGroup.part_warranty_url = warrantyUrls; // Store as ARRAY
+      delete processedGroup.warrantyFiles;
 
       onFileProgress?.({
         type: 'complete',
-        operation: `group${groupIndex}_battery_warranty`,
-        progress: 100,
-      });
-    }
-
-    // Upload tyre warranty files
-    if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0) {
-      onFileProgress?.({
-        type: 'start',
-        operation: `group${groupIndex}_tyre_warranty`,
-      });
-
-      const tyreWarrantyUrls = await uploadWarrantyDocuments(
-        group.tyreWarrantyFiles,
-        taskId,
-        groupIndex,
-        'tyre'
-      );
-      processedGroup.tyre_warranty_url = tyreWarrantyUrls;
-      delete processedGroup.tyreWarrantyFiles;
-
-      onFileProgress?.({
-        type: 'complete',
-        operation: `group${groupIndex}_tyre_warranty`,
+        operation: `group${groupIndex}_warranties`,
         progress: 100,
       });
     }
 
     // Upload parts warranty files
-    if (group.partsData && group.partsData.length > 0) {
+    // Check both 'parts' and 'partsData' for backward compatibility
+    const partsArray = group.parts || group.partsData;
+    if (partsArray && partsArray.length > 0) {
       const processedPartsData = await Promise.all(
-        group.partsData.map(async (part, partIndex) => {
+        partsArray.map(async (part, partIndex) => {
           if (part.warrantyDocument) {
             onFileProgress?.({
               type: 'start',
@@ -241,7 +260,6 @@ export const processServiceGroupFiles = async (
               [part.warrantyDocument],
               taskId,
               groupIndex,
-              'part',
               partIndex
             );
 
@@ -261,6 +279,8 @@ export const processServiceGroupFiles = async (
         })
       );
 
+      // Store back to both possible field names
+      processedGroup.parts = processedPartsData;
       processedGroup.partsData = processedPartsData;
     }
 
@@ -361,25 +381,16 @@ export const validateServiceGroupFiles = (
       });
     }
 
-    // Validate battery warranty files
-    if (group.batteryWarrantyFiles && group.batteryWarrantyFiles.length > 0) {
-      group.batteryWarrantyFiles.forEach((file, fileIndex) => {
+    // Validate warranty files at service group level
+    if (group.warrantyFiles && group.warrantyFiles.length > 0) {
+      group.warrantyFiles.forEach((file, fileIndex) => {
         if (!(file instanceof File)) {
-          errors.push(`Service group ${index + 1}, battery warranty ${fileIndex + 1}: Invalid file object`);
+          errors.push(`Service group ${index + 1}, warranty file ${fileIndex + 1}: Invalid file object`);
         }
       });
     }
 
-    // Validate tyre warranty files
-    if (group.tyreWarrantyFiles && group.tyreWarrantyFiles.length > 0) {
-      group.tyreWarrantyFiles.forEach((file, fileIndex) => {
-        if (!(file instanceof File)) {
-          errors.push(`Service group ${index + 1}, tyre warranty ${fileIndex + 1}: Invalid file object`);
-        }
-      });
-    }
-
-    // Validate parts warranty files
+    // Validate parts warranty files (DEPRECATED)
     if (group.partsData && group.partsData.length > 0) {
       group.partsData.forEach((part, partIndex) => {
         if (part.warrantyDocument && !(part.warrantyDocument instanceof File)) {

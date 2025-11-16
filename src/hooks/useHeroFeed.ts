@@ -68,8 +68,9 @@ export const useKPICards = () => {
         
         return data as KPICard[];
       } catch (error) {
-        logger.warn('Database not available, using mock KPI data:', error);
-        return getMockKPICards();
+        logger.error('Error fetching KPI cards:', error);
+        // Return empty array instead of mock data
+        return [];
       }
     }
   });
@@ -122,7 +123,7 @@ export const useHeroFeed = (filters?: {
         // Add vehicle_doc only if includeDocuments is true
         if (includeDocuments && !kindsToFetch.includes('vehicle_doc')) {
           kindsToFetch.push('vehicle_doc');
-          console.log('📄 Adding vehicle_doc to query kinds');
+          logger.debug('📄 Adding vehicle_doc to query kinds');
         }
 
         // Remove vehicle_doc if includeDocuments is false
@@ -130,11 +131,11 @@ export const useHeroFeed = (filters?: {
           const hadDocs = kindsToFetch.includes('vehicle_doc');
           kindsToFetch = kindsToFetch.filter(k => k !== 'vehicle_doc');
           if (hadDocs) {
-            console.log('📄 Removing vehicle_doc from query kinds');
+            logger.debug('📄 Removing vehicle_doc from query kinds');
           }
         }
 
-        console.log('📄 Querying events_feed with kinds:', kindsToFetch);
+        logger.debug('📄 Querying events_feed with kinds:', kindsToFetch);
 
         let query = supabase
           .from('events_feed')
@@ -160,14 +161,14 @@ export const useHeroFeed = (filters?: {
         // Log document count from database
         const docCount = data.filter((e: any) => e.kind === 'vehicle_doc').length;
         if (docCount > 0) {
-          console.log('📄 Fetched from database:', docCount, 'document events');
+          logger.debug('📄 Fetched from database:', docCount, 'document events');
         }
 
         return data as FeedEvent[];
       } catch (error) {
-        logger.warn('Database not available, using mock data:', error);
-        // Return mock data when database is not available
-        return getMockFeedEvents(filters, pageParam);
+        logger.error('Error fetching feed events:', error);
+        // Return empty array instead of mock data
+        return [];
       }
     },
     getNextPageParam: (lastPage) => {
@@ -176,174 +177,4 @@ export const useHeroFeed = (filters?: {
     },
     initialPageParam: null,
   });
-};
-
-// Mock data for when database is not available
-const getMockFeedEvents = (filters?: { kinds?: string[]; limit?: number }, pageParam?: string | null): FeedEvent[] => {
-  const mockEvents: FeedEvent[] = [
-    {
-      id: '1',
-      kind: 'ai_alert',
-      event_time: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      priority: 'danger',
-      title: 'High Fuel Consumption Detected',
-      description: 'Vehicle KA-01-AB-1234 is consuming 15% more fuel than usual. Consider maintenance check.',
-      entity_json: { vehicle_id: 'sample-vehicle-id', alert_type: 'fuel_consumption', threshold: 15 },
-      status: 'pending',
-      metadata: {}
-    },
-    {
-      id: '2',
-      kind: 'vehicle_doc',
-      event_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      priority: 'warn',
-      title: 'RC Expiry Reminder',
-      description: 'Registration Certificate for KA-01-AB-1234 expires in 15 days.',
-      entity_json: { vehicle_id: 'sample-vehicle-id', document_type: 'rc', expiry_date: '2024-02-15' },
-      status: 'pending',
-      metadata: {}
-    },
-    {
-      id: '3',
-      kind: 'maintenance',
-      event_time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      priority: 'warn',
-      title: 'Service Due Soon',
-      description: 'KA-01-AB-1234 is due for service in 500km or 7 days.',
-      entity_json: { vehicle_id: 'sample-vehicle-id', service_type: 'regular', due_km: 500, due_days: 7 },
-      status: 'pending',
-      metadata: {}
-    },
-    {
-      id: '4',
-      kind: 'trip',
-      event_time: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-      priority: 'info',
-      title: 'Trip Completed',
-      description: 'Trip from Mumbai to Pune completed successfully. Distance: 150km, Duration: 3h 30m.',
-      entity_json: { trip_id: 'sample-trip-1', from: 'Mumbai', to: 'Pune', distance: 150, duration: '3h 30m' },
-      status: 'completed',
-      metadata: {}
-    },
-    {
-      id: '5',
-      kind: 'kpi',
-      event_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      priority: 'info',
-      title: 'Monthly Distance Covered',
-      description: '2,450 km',
-      entity_json: { theme: 'distance', period: 'January 2024', trend: 'up', change: '+12%' },
-      status: null,
-      metadata: {}
-    },
-    {
-      id: '6',
-      kind: 'kpi',
-      event_time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      priority: 'info',
-      title: 'Average Fuel Efficiency',
-      description: '12.5 km/l',
-      entity_json: { theme: 'fuel', period: 'January 2024', trend: 'up', change: '+5%' },
-      status: null,
-      metadata: {}
-    },
-    {
-      id: '7',
-      kind: 'ai_alert',
-      event_time: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-      priority: 'warn',
-      title: 'Driver Performance Alert',
-      description: 'Driver John Doe has 3 late arrivals this week. Consider performance review.',
-      entity_json: { driver_id: 'sample-driver-id', alert_type: 'performance', metric: 'late_arrivals', count: 3 },
-      status: 'pending',
-      metadata: {}
-    },
-    {
-      id: '8',
-      kind: 'activity',
-      event_time: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      priority: 'info',
-      title: 'New Driver Added',
-      description: 'Driver Sarah Johnson has been added to the fleet.',
-      entity_json: { driver_id: 'sample-driver-id', action: 'created', entity_type: 'driver' },
-      status: null,
-      metadata: {}
-    }
-  ];
-
-  // Filter by kinds if specified
-  let filteredEvents = mockEvents;
-  if (filters?.kinds && filters.kinds.length > 0 && !filters.kinds.includes('all')) {
-    filteredEvents = mockEvents.filter(event => filters.kinds!.includes(event.kind));
-  }
-
-  // Apply pagination
-  if (pageParam) {
-    const pageParamTime = new Date(pageParam);
-    filteredEvents = filteredEvents.filter(event => new Date(event.event_time) < pageParamTime);
-  }
-
-  // Apply limit
-  const limit = filters?.limit || 20;
-  return filteredEvents.slice(0, limit);
-};
-
-// Mock KPI cards for when database is not available
-const getMockKPICards = (): KPICard[] => {
-  return [
-    {
-      id: '1',
-      kpi_key: 'media.youtube.1',
-      kpi_title: 'Fleet Safety Tips',
-      kpi_value_human: 'Training Video',
-      kpi_payload: {
-        type: 'youtube',
-        videoId: 'dQw4w9WgXcQ',
-        thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg',
-        duration: '3:32',
-        views: '2.1B'
-      },
-      theme: 'trips',
-      computed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      organization_id: 'sample-org-id',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '2',
-      kpi_key: 'media.image.1',
-      kpi_title: 'Fleet Update',
-      kpi_value_human: 'New Vehicle Added',
-      kpi_payload: {
-        type: 'image',
-        url: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=800',
-        caption: 'Welcome our new truck to the fleet',
-        alt: 'New truck in fleet'
-      },
-      theme: 'trips',
-      computed_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-      organization_id: 'sample-org-id',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    },
-    {
-      id: '3',
-      kpi_key: 'kpi.monthly_distance',
-      kpi_title: 'Monthly Distance Covered',
-      kpi_value_human: '2,450 km',
-      kpi_payload: {
-        type: 'kpi',
-        value: 2450,
-        unit: 'km',
-        trend: 'up',
-        change: '+12%',
-        period: 'January 2024'
-      },
-      theme: 'distance',
-      computed_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      organization_id: 'sample-org-id',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
-  ];
 };

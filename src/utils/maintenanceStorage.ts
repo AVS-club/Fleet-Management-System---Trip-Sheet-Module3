@@ -13,6 +13,8 @@ import { handleSupabaseError } from "./errors";
 import { clearVehiclePredictionCache } from "./maintenancePredictor";
 import { createLogger } from './logger';
 import { getCurrentUserId, getUserActiveOrganization, withOwner } from './supaHelpers';
+import { toast } from 'react-toastify';
+import { calculateTaskWarranty } from './warrantyCalculations';
 
 const logger = createLogger('maintenanceStorage');
 
@@ -197,57 +199,63 @@ export const createTask = async (
     throw new Error("No organization selected. Please select an organization.");
   }
 
+  // Calculate warranty expiry and status based on parts in service groups
+  const warrantyInfo = calculateTaskWarranty(service_groups || [], taskData.end_date || taskData.start_date);
+  logger.debug('📋 Warranty Info:', warrantyInfo);
+
   // Use withOwner to add both created_by and organization_id
   const payload = withOwner({
     ...taskData,
     bills: taskData.bills || [],
     parts_required: taskData.parts_required || [],
     odometer_image: null, // Will be updated after upload
+    warranty_expiry: warrantyInfo.warranty_expiry,
+    warranty_status: warrantyInfo.warranty_status,
+    warranty_claimed: false, // Default to false on creation
   }, userId, organizationId);
 
   // ========================================
   // 📝 COMPREHENSIVE DEBUG LOGGING - MAIN TASK
   // ========================================
-  console.group('📝 MAINTENANCE TASK DEBUG - CREATE');
+  logger.debug('📝 MAINTENANCE TASK DEBUG - CREATE');
 
-  console.group('1️⃣ MAIN TASK FIELDS');
-  console.log('✅ Vehicle ID:', payload.vehicle_id, typeof payload.vehicle_id);
-  console.log('✅ Task Type:', payload.task_type);
-  console.log('✅ Title:', payload.title, Array.isArray(payload.title) ? `(array of ${payload.title.length})` : typeof payload.title);
-  console.log('✅ Description:', payload.description, `(length: ${payload.description?.length || 0})`);
-  console.log('✅ Status:', payload.status);
-  console.log('✅ Priority:', payload.priority);
-  console.log('✅ Garage ID:', payload.garage_id);
-  console.log('💰 Cost Note: estimated_cost and total_cost excluded (DB auto-calculates total_cost)');
-  console.log('📅 Start Date:', payload.start_date);
-  console.log('📅 End Date:', payload.end_date);
-  console.log('⏱️ Downtime Days:', payload.downtime_days, typeof payload.downtime_days);
-  console.log('⏱️ Downtime Hours:', payload.downtime_hours, typeof payload.downtime_hours);
-  console.log('🚗 Odometer Reading:', payload.odometer_reading, typeof payload.odometer_reading);
-  console.log('📷 Odometer Image:', payload.odometer_image || '(none)');
-  console.log('📋 Complaint:', payload.complaint_description, `(length: ${payload.complaint_description?.length || 0})`);
-  console.log('✔️ Resolution:', payload.resolution_summary, `(length: ${payload.resolution_summary?.length || 0})`);
-  console.log('🏢 Organization ID:', organizationId);
-  console.log('👤 Created By:', userId);
-  console.groupEnd();
+  logger.debug('1️⃣ MAIN TASK FIELDS');
+  logger.debug('✅ Vehicle ID:', payload.vehicle_id, typeof payload.vehicle_id);
+  logger.debug('✅ Task Type:', payload.task_type);
+  logger.debug('✅ Title:', payload.title, Array.isArray(payload.title) ? `(array of ${payload.title.length})` : typeof payload.title);
+  logger.debug('✅ Description:', payload.description, `(length: ${payload.description?.length || 0})`);
+  logger.debug('✅ Status:', payload.status);
+  logger.debug('✅ Priority:', payload.priority);
+  logger.debug('✅ Garage ID:', payload.garage_id);
+  logger.debug('💰 Cost Note: estimated_cost and total_cost excluded (DB auto-calculates total_cost)');
+  logger.debug('📅 Start Date:', payload.start_date);
+  logger.debug('📅 End Date:', payload.end_date);
+  logger.debug('⏱️ Downtime Days:', payload.downtime_days, typeof payload.downtime_days);
+  logger.debug('⏱️ Downtime Hours:', payload.downtime_hours, typeof payload.downtime_hours);
+  logger.debug('🚗 Odometer Reading:', payload.odometer_reading, typeof payload.odometer_reading);
+  logger.debug('📷 Odometer Image:', payload.odometer_image || '(none)');
+  logger.debug('📋 Complaint:', payload.complaint_description, `(length: ${payload.complaint_description?.length || 0})`);
+  logger.debug('✔️ Resolution:', payload.resolution_summary, `(length: ${payload.resolution_summary?.length || 0})`);
+  logger.debug('🏢 Organization ID:', organizationId);
+  logger.debug('👤 Created By:', userId);
 
-  console.group('2️⃣ SERVICE GROUPS (before processing)');
-  console.log('Service Groups Count:', service_groups?.length || 0);
+  logger.debug('2️⃣ SERVICE GROUPS (before processing)');
+  logger.debug('Service Groups Count:', service_groups?.length || 0);
   if (service_groups && service_groups.length > 0) {
     service_groups.forEach((group: any, idx: number) => {
-      console.group(`Group ${idx + 1}`);
-      console.log('🔧 Service Type:', group.serviceType || group.service_type || '(not set)');
-      console.log('👤 Vendor:', group.vendor || group.vendor_id || '(not set)');
-      console.log('📋 Tasks:', group.tasks, Array.isArray(group.tasks) ? `(array of ${group.tasks.length})` : typeof group.tasks);
-      console.log('💰 Cost:', group.cost, typeof group.cost);
-      console.log('📝 Notes:', group.notes, `(length: ${group.notes?.length || 0})`);
-      console.log('📄 Bill Files:', group.bill_file, Array.isArray(group.bill_file) ? `(${group.bill_file.length} files)` : typeof group.bill_file);
+      logger.debug(`Group ${idx + 1}`);
+      logger.debug('🔧 Service Type:', group.serviceType || group.service_type || '(not set)');
+      logger.debug('👤 Vendor:', group.vendor || group.vendor_id || '(not set)');
+      logger.debug('📋 Tasks:', group.tasks, Array.isArray(group.tasks) ? `(array of ${group.tasks.length})` : typeof group.tasks);
+      logger.debug('💰 Cost:', group.cost, typeof group.cost);
+      logger.debug('📝 Notes:', group.notes, `(length: ${group.notes?.length || 0})`);
+      logger.debug('📄 Bill Files:', group.bill_file, Array.isArray(group.bill_file) ? `(${group.bill_file.length} files)` : typeof group.bill_file);
 
       if (group.parts && Array.isArray(group.parts) && group.parts.length > 0) {
-        console.group('🔩 Parts Data');
-        console.log('Parts Count:', group.parts.length);
+        logger.debug('🔩 Parts Data');
+        logger.debug('Parts Count:', group.parts.length);
         group.parts.forEach((part: any, pIdx: number) => {
-          console.log(`Part ${pIdx + 1}:`, {
+          logger.debug(`Part ${pIdx + 1}:`, {
             type: part.partType,
             name: part.partName,
             brand: part.brand,
@@ -256,15 +264,9 @@ export const createTask = async (
             warranty: part.warrantyPeriod || '(none)'
           });
         });
-        console.groupEnd();
       }
-
-      console.groupEnd();
     });
   }
-  console.groupEnd();
-
-  console.groupEnd();
   // ========================================
 
   logger.debug(`Creating maintenance task for organization: ${organizationId}`);
@@ -279,6 +281,20 @@ export const createTask = async (
   if (error) {
     handleSupabaseError('create maintenance task', error);
     throw new Error(`Error creating maintenance task: ${error.message}`);
+  }
+
+  // CRITICAL: Log data structure to debug maintenance_task_id issue
+  if (data) {
+    logger.debug('✅ Main task created successfully', {
+      id: data.id,
+      hasId: !!data.id,
+      dataKeys: Object.keys(data),
+      dataType: typeof data,
+      dataString: JSON.stringify(data).substring(0, 200)
+    });
+  } else {
+    logger.error('❌ CRITICAL: data is null/undefined after task insert!');
+    throw new Error('Task was created but no data returned');
   }
 
   // Add maintenance task to events feed for AI Alerts timeline
@@ -353,203 +369,9 @@ export const createTask = async (
     // Clear prediction cache for this vehicle since maintenance data has changed
     clearVehiclePredictionCache(data.vehicle_id);
 
-    // Insert service groups if any
-    if (service_groups && service_groups.length > 0) {
-      try {
-        const serviceGroupsWithTaskId = await Promise.all(
-          service_groups.map(async (group: any) => {
-            // CRASH-PROOF: Handle file uploads for bills with compression
-            const bill_urls: string[] = [];
-            if (group.bill_file && Array.isArray(group.bill_file)) {
-              for (const file of group.bill_file) {
-                const compressedFile = await compressImageForUpload(file);
-                const url = await uploadServiceBill(compressedFile, data.id, group.id);
-                if (url) bill_urls.push(url);
-              }
-            }
-
-            // CRASH-PROOF: Handle battery warranty file uploads with compression
-            const battery_warranty_urls: string[] = [];
-            if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
-              for (const file of group.battery_warranty_file) {
-                const compressedFile = await compressImageForUpload(file);
-                const url = await uploadServiceBill(compressedFile, data.id, `battery-${group.id}`);
-                if (url) battery_warranty_urls.push(url);
-              }
-            }
-
-            // CRASH-PROOF: Handle tyre warranty file uploads with compression
-            const tyre_warranty_urls: string[] = [];
-            if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
-              for (const file of group.tyre_warranty_file) {
-                const compressedFile = await compressImageForUpload(file);
-                const url = await uploadServiceBill(compressedFile, data.id, `tyre-${group.id}`);
-                if (url) tyre_warranty_urls.push(url);
-              }
-            }
-
-            // Destructure to remove File fields and prepare database object
-            const {
-              id, // Remove 'id' field (UI timestamp, DB auto-generates UUID)
-              bill_file,
-              battery_warranty_file,
-              tyre_warranty_file,
-              batteryData,
-              tyreData,
-              partsData,
-              parts_data, // Remove 'parts_data' field - will be sanitized and re-added below
-              serviceType,
-              bills, // Remove 'bills' field (used in UI, not in DB)
-              batteryWarrantyFiles, // Remove file arrays from UI
-              tyreWarrantyFiles, // Remove file arrays from UI
-              parts, // Remove 'parts' field (legacy, not in DB schema)
-              vendor, // Remove 'vendor' field (UI has name, DB has vendor_id UUID)
-              tasks, // Remove 'tasks' field - will be added after conversion below
-              ...groupWithoutFiles
-            } = group;
-
-            console.log('🔍 DEBUG: groupWithoutFiles keys:', Object.keys(groupWithoutFiles));
-            console.log('🔍 DEBUG: groupWithoutFiles.maintenance_task_id:', groupWithoutFiles.maintenance_task_id);
-            console.log('🔍 DEBUG: data.id (should be maintenance_task_id):', data.id);
-
-            const dbGroup: any = {
-              ...groupWithoutFiles,
-              maintenance_task_id: data.id,
-              organization_id: data.organization_id, // Copy organization_id from parent task
-              service_type: serviceType || 'both', // Add service_type field
-              tasks: group.tasks || [], // Keep tasks array (should already be converted to UUIDs by this point)
-              bill_url: bill_urls,
-              battery_warranty_url: battery_warranty_urls,
-              tyre_warranty_url: tyre_warranty_urls,
-            };
-
-            console.log('🔍 DEBUG: dbGroup.maintenance_task_id after construction:', dbGroup.maintenance_task_id);
-
-            // Map battery data to JSONB if present
-            if (batteryData && batteryData.serialNumber) {
-              dbGroup.battery_data = {
-                serialNumber: batteryData.serialNumber,
-                brand: batteryData.brand || '',
-              };
-            }
-
-            // Map tyre data to JSONB if present
-            if (tyreData && tyreData.positions && tyreData.positions.length > 0) {
-              dbGroup.tyre_data = {
-                positions: tyreData.positions,
-                brand: tyreData.brand || '',
-                serialNumbers: tyreData.serialNumbers || '',
-              };
-            }
-
-            // Map parts data to JSONB if present - SANITIZE UI-only fields
-            // Handle both 'parts_data' (from UI) and 'partsData' (legacy)
-            const rawPartsData = parts_data || partsData;
-            if (rawPartsData && Array.isArray(rawPartsData) && rawPartsData.length > 0) {
-              dbGroup.parts_data = rawPartsData.map(part => ({
-                partType: part.partType,
-                partName: part.partName,
-                brand: part.brand,
-                serialNumber: part.serialNumber,
-                quantity: part.quantity,
-                warrantyPeriod: part.warrantyPeriod,
-                tyrePositions: part.tyrePositions || []
-                // Remove UI-only fields: id, warrantyDocument
-              }));
-            }
-
-            return dbGroup;
-          })
-        );
-
-        // ========================================
-        // 🔍 DETAILED SERVICE GROUP DEBUG LOGGING
-        // ========================================
-        console.group('3️⃣ SERVICE GROUPS (after processing - FINAL DATABASE FORMAT)');
-        console.log('📊 Total groups to insert:', serviceGroupsWithTaskId.length);
-        console.log('📄 Full JSON:', JSON.stringify(serviceGroupsWithTaskId, null, 2));
-
-        serviceGroupsWithTaskId.forEach((group, idx) => {
-          console.group(`🔧 Group ${idx + 1} - Database Format`);
-
-          console.log('👤 vendor_id:', group.vendor_id, typeof group.vendor_id, group.vendor_id ? '✅' : '❌ EMPTY');
-          console.log('📋 tasks:', group.tasks);
-          console.log('   ├─ Type:', Array.isArray(group.tasks) ? '✅ array' : `❌ ${typeof group.tasks} (should be array!)`);
-          console.log('   ├─ Length:', Array.isArray(group.tasks) ? group.tasks.length : 'N/A');
-          console.log('   └─ Values:', Array.isArray(group.tasks) ? group.tasks.map(t => `${t.substring(0, 8)}...`) : 'NOT AN ARRAY');
-
-          console.log('💰 cost:', group.cost, typeof group.cost);
-          console.log('🔧 service_type:', group.service_type, group.service_type ? '✅' : '⚠️ missing');
-          console.log('📝 notes:', group.notes, group.notes ? `(${group.notes.length} chars)` : '(empty)');
-
-          console.log('📄 bill_url:', group.bill_url);
-          console.log('   ├─ Type:', Array.isArray(group.bill_url) ? '✅ array' : `❌ ${typeof group.bill_url} (should be array!)`);
-          console.log('   └─ Count:', Array.isArray(group.bill_url) ? group.bill_url.length : 'NOT AN ARRAY');
-
-          if (group.parts_data && Array.isArray(group.parts_data) && group.parts_data.length > 0) {
-            console.group('🔩 parts_data (JSONB Array)');
-            console.log('Count:', group.parts_data.length);
-            console.log('Type:', Array.isArray(group.parts_data) ? '✅ array' : `❌ ${typeof group.parts_data}`);
-            group.parts_data.forEach((part: any, pIdx: number) => {
-              console.log(`Part ${pIdx + 1}:`, part);
-            });
-            console.groupEnd();
-          } else {
-            console.log('🔩 parts_data: (none)');
-          }
-
-          console.groupEnd();
-        });
-
-        console.groupEnd();
-        // ========================================
-
-        console.log('🔄 DEBUG: Attempting insert with data:', JSON.stringify(serviceGroupsWithTaskId, null, 2));
-
-        // CRITICAL DEBUG: Check each object for maintenance_task_id
-        serviceGroupsWithTaskId.forEach((g, i) => {
-          console.log(`Group ${i} maintenance_task_id:`, g.maintenance_task_id, 'keys:', Object.keys(g));
-        });
-
-        const { data: insertResult, error: insertError} = await supabase
-          .from("maintenance_service_tasks")
-          .insert(serviceGroupsWithTaskId)
-          .select();
-
-        console.log('📤 DEBUG: Insert response - data:', insertResult, 'error:', insertError);
-
-        if (insertError) {
-          console.error('❌ DEBUG: Insert failed with error:', insertError);
-          console.error('❌ DEBUG: Error code:', insertError.code);
-          console.error('❌ DEBUG: Error message:', insertError.message);
-          console.error('❌ DEBUG: Error details:', insertError.details);
-          console.error('❌ DEBUG: Error hint:', insertError.hint);
-          console.error('❌ DEBUG: Full error object:', JSON.stringify(insertError, null, 2));
-          throw insertError;
-        }
-
-        if (!insertResult || insertResult.length === 0) {
-          console.warn('⚠️ DEBUG: Insert returned no data but no error - might be RLS blocking');
-        }
-
-        console.log('✅ DEBUG: Insert successful:', insertResult);
-
-        // Fetch the inserted service groups
-        const { data: insertedGroups } = await supabase
-          .from("maintenance_service_tasks")
-          .select("*")
-          .eq("maintenance_task_id", data.id);
-
-        return {
-          ...data,
-          service_groups: insertedGroups || [],
-        };
-      } catch (error) {
-        handleSupabaseError('create service groups', error);
-        // Return the task even if service groups failed
-        return data;
-      }
-    }
+    // Service groups will be added via updateTask after file uploads
+    // DON'T insert them here - they need proper maintenance_task_id which comes from data.id
+    // and file uploads need to happen first
   }
 
   return data;
@@ -607,14 +429,83 @@ export const updateTask = async (
     odometerImageUrl = await uploadOdometerImage(compressedImage, id);
   }
 
+  // CRASH-PROOF: Handle supporting documents upload
+  let attachmentsUrls: string[] = [];
+
+  // Debug: Check what we received
+  console.log('🔍 Supporting Documents Debug:', {
+    hasAttachments: !!updateData.attachments,
+    isArray: Array.isArray(updateData.attachments),
+    length: updateData.attachments?.length,
+    type: typeof updateData.attachments,
+    firstItemType: updateData.attachments?.[0] ? typeof updateData.attachments[0] : 'none',
+    isFile: updateData.attachments?.[0] instanceof File,
+  });
+
+  if (updateData.attachments && Array.isArray(updateData.attachments) && updateData.attachments.length > 0) {
+    // Check if attachments are File objects (need upload) or URLs (already uploaded)
+    const firstItem = updateData.attachments[0];
+    if (firstItem instanceof File) {
+      // Upload new files
+      logger.debug(`📎 Uploading ${updateData.attachments.length} supporting document(s)`);
+      console.log('📎 Uploading supporting documents:', updateData.attachments.map((f: File) => f.name));
+
+      const uploadPromises = updateData.attachments.map((file: File, index: number) =>
+        uploadSupportingDocument(file, id, index)
+      );
+      const results = await Promise.all(uploadPromises);
+      attachmentsUrls = results.filter((url): url is string => url !== null);
+
+      logger.debug(`✅ Uploaded ${attachmentsUrls.length} supporting document(s)`);
+      console.log('✅ Uploaded supporting documents:', attachmentsUrls);
+    } else if (typeof firstItem === 'string') {
+      // Already URLs, preserve them
+      console.log('ℹ️ Preserving existing supporting document URLs:', updateData.attachments);
+      attachmentsUrls = updateData.attachments as string[];
+    }
+  } else if (updateData.attachments === undefined) {
+    // Preserve existing attachments if not provided
+    console.log('ℹ️ No new attachments, preserving old:', oldTask.attachments);
+    attachmentsUrls = oldTask.attachments || [];
+  } else {
+    console.log('⚠️ Attachments is empty array or null');
+  }
+
+  // Calculate warranty expiry and status if service groups are being updated
+  let warrantyUpdates = {};
+  if (service_groups && service_groups.length > 0) {
+    const warrantyInfo = calculateTaskWarranty(
+      service_groups,
+      updateData.end_date || oldTask.end_date || updateData.start_date || oldTask.start_date
+    );
+    warrantyUpdates = {
+      warranty_expiry: warrantyInfo.warranty_expiry,
+      warranty_status: warrantyInfo.warranty_status,
+    };
+    logger.debug('📋 Updated Warranty Info:', warrantyInfo);
+  }
+
   // Update the task
+  const updatePayload = {
+    ...updateData,
+    ...warrantyUpdates,
+    odometer_image: odometerImageUrl || updateData.odometer_image,
+    attachments: attachmentsUrls,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Remove any fields that don't exist in database
+  delete (updatePayload as any).supporting_documents_urls;
+
+  console.log('📝 Final update payload:', {
+    keys: Object.keys(updatePayload),
+    hasAttachments: !!updatePayload.attachments,
+    attachmentsLength: updatePayload.attachments?.length,
+  });
+
   const { data: updatedTask, error } = await supabase
     .from("maintenance_tasks")
-    .update({
-      ...updateData,
-      odometer_image: odometerImageUrl || updateData.odometer_image,
-      updated_at: new Date().toISOString(),
-    })
+    .update(updatePayload)
     .eq("id", id)
     .select()
     .single();
@@ -683,114 +574,28 @@ export const updateTask = async (
   // Handle service groups update
   if (service_groups && updatedTask) {
     try {
-      // First delete existing service groups
+      // Delete existing service groups for this task
       await supabase
         .from("maintenance_service_tasks")
         .delete()
         .eq("maintenance_task_id", id);
 
-      // Then insert the updated ones
-      if (service_groups.length > 0) {
-        const serviceGroupsWithTaskId = await Promise.all(
-          service_groups.map(async (group: any) => {
-            // Handle file uploads for bills
-            const bill_urls: string[] = [];
-            if (group.bill_file && Array.isArray(group.bill_file)) {
-              for (const file of group.bill_file) {
-                const url = await uploadServiceBill(file, id, group.id);
-                if (url) bill_urls.push(url);
-              }
-            }
+      // ✅ Service groups already have file URLs (uploaded in MaintenanceTaskPage.tsx)
+      // Just add the task ID and organization ID
+      const serviceGroupsWithTaskId = service_groups.map(group => ({
+        ...group,
+        maintenance_task_id: id,
+        organization_id: oldTask.organization_id
+      }));
 
-            // Handle battery warranty file uploads
-            const battery_warranty_urls: string[] = [];
-            if (group.battery_warranty_file && Array.isArray(group.battery_warranty_file)) {
-              for (const file of group.battery_warranty_file) {
-                const url = await uploadServiceBill(file, id, `battery-${group.id}`);
-                if (url) battery_warranty_urls.push(url);
-              }
-            }
+      // Insert the service groups with file URLs
+      const { error: insertError } = await supabase
+        .from("maintenance_service_tasks")
+        .insert(serviceGroupsWithTaskId);
 
-            // Handle tyre warranty file uploads
-            const tyre_warranty_urls: string[] = [];
-            if (group.tyre_warranty_file && Array.isArray(group.tyre_warranty_file)) {
-              for (const file of group.tyre_warranty_file) {
-                const url = await uploadServiceBill(file, id, `tyre-${group.id}`);
-                if (url) tyre_warranty_urls.push(url);
-              }
-            }
-
-            // Destructure to remove File fields and prepare database object
-            const {
-              id, // Remove 'id' field (UI timestamp, DB auto-generates UUID)
-              bill_file,
-              battery_warranty_file,
-              tyre_warranty_file,
-              batteryData,
-              tyreData,
-              partsData,
-              parts_data, // Remove 'parts_data' field - will be sanitized and re-added below
-              serviceType,
-              bills, // Remove 'bills' field (used in UI, not in DB)
-              batteryWarrantyFiles, // Remove file arrays from UI
-              tyreWarrantyFiles, // Remove file arrays from UI
-              parts, // Remove 'parts' field (legacy, not in DB schema)
-              vendor, // Remove 'vendor' field (UI has name, DB has vendor_id UUID)
-              tasks, // Remove 'tasks' field - will be added after conversion below
-              ...groupWithoutFiles
-            } = group;
-
-            const dbGroup: any = {
-              ...groupWithoutFiles,
-              maintenance_task_id: id,
-              organization_id: oldTask.organization_id, // Copy organization_id from parent task
-              service_type: serviceType || 'both', // Add service_type field
-              tasks: group.tasks || [], // Keep tasks array (should already be converted to UUIDs by this point)
-              bill_url: bill_urls,
-              battery_warranty_url: battery_warranty_urls,
-              tyre_warranty_url: tyre_warranty_urls,
-            };
-
-            // Map battery data to JSONB if present
-            if (batteryData && batteryData.serialNumber) {
-              dbGroup.battery_data = {
-                serialNumber: batteryData.serialNumber,
-                brand: batteryData.brand || '',
-              };
-            }
-
-            // Map tyre data to JSONB if present
-            if (tyreData && tyreData.positions && tyreData.positions.length > 0) {
-              dbGroup.tyre_data = {
-                positions: tyreData.positions,
-                brand: tyreData.brand || '',
-                serialNumbers: tyreData.serialNumbers || '',
-              };
-            }
-
-            // Map parts data to JSONB if present - SANITIZE UI-only fields
-            // Handle both 'parts_data' (from UI) and 'partsData' (legacy)
-            const rawPartsData = parts_data || partsData;
-            if (rawPartsData && Array.isArray(rawPartsData) && rawPartsData.length > 0) {
-              dbGroup.parts_data = rawPartsData.map(part => ({
-                partType: part.partType,
-                partName: part.partName,
-                brand: part.brand,
-                serialNumber: part.serialNumber,
-                quantity: part.quantity,
-                warrantyPeriod: part.warrantyPeriod,
-                tyrePositions: part.tyrePositions || []
-                // Remove UI-only fields: id, warrantyDocument
-              }));
-            }
-
-            return dbGroup;
-          })
-        );
-
-        await supabase
-          .from("maintenance_service_tasks")
-          .insert(serviceGroupsWithTaskId);
+      if (insertError) {
+        logger.error('Error inserting service groups:', insertError);
+        throw insertError;
       }
 
       // Fetch the inserted service groups
@@ -799,8 +604,15 @@ export const updateTask = async (
         .select("*")
         .eq("maintenance_task_id", id);
 
+      // Re-fetch the main task to get updated total_cost from database trigger
+      const { data: refreshedTask } = await supabase
+        .from("maintenance_tasks")
+        .select("*")
+        .eq("id", id)
+        .single();
+
       return {
-        ...updatedTask,
+        ...(refreshedTask || updatedTask),
         service_groups: insertedGroups || [],
       };
     } catch (error) {

@@ -14,30 +14,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import {
-  Calendar,
-  TrendingUp,
-  Users,
-  Truck,
-  DollarSign,
-  Package,
-  AlertCircle,
-  Download,
-  Filter,
-  RefreshCw,
-  FileText,
-  Fuel,
-  MapPin,
-  Clock,
-  Wrench,
-  BarChart3,
-  PieChart as PieChartIcon,
-  FileSpreadsheet,
-  Eye,
-  ChevronDown,
-  ChevronUp,
-  Activity
-} from 'lucide-react';
+import { Calendar, TrendingUp, Users, Truck, IndianRupee, Package, AlertCircle, Download, Filter, RefreshCw, FileText, Fuel, MapPin, Clock, Wrench, BarChart3, PieChart as PieChartIcon, FileSpreadsheet, Eye, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subMonths } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -872,7 +849,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
       id: 'expense-report',
       name: 'Expense Report',
       description: 'All expenses',
-      icon: <DollarSign className="h-4 w-4" />,
+      icon: <IndianRupee className="h-4 w-4" />,
       category: 'financial'
     },
     {
@@ -1009,7 +986,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
                   </p>
                 </div>
                 <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  <IndianRupee className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </div>
@@ -1234,7 +1211,7 @@ const CompleteFixedReportingDashboard: React.FC = () => {
             {/* Financial Reports */}
             <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                <IndianRupee className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                 Financial Reports
               </h3>
               <div className="space-y-2">

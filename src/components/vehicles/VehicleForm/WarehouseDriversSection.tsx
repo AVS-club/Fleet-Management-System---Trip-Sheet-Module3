@@ -46,6 +46,7 @@ export const WarehouseDriversSection: React.FC<WarehouseDriversSectionProps> = (
           setWarehouses(warehousesData);
         }
       } catch (error) {
+        // Silently fail - warehouses are optional
       }
 
       // Load drivers
@@ -53,6 +54,7 @@ export const WarehouseDriversSection: React.FC<WarehouseDriversSectionProps> = (
         const drivers = await getDrivers();
         setAvailableDrivers(drivers);
       } catch (error) {
+        // Silently fail - drivers are optional
       }
     };
 

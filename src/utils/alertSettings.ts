@@ -8,8 +8,6 @@ export interface AlertSettings {
   display_type: 'all' | 'critical';
   group_by: 'none' | 'vehicle' | 'type';
   enabled_types: string[];
-  show_popup_modal_on_load?: boolean;
-  popup_display_frequency?: 'always' | 'once_per_session' | 'daily' | 'never';
   user_id?: string;
   created_at?: string;
   updated_at?: string;
@@ -19,9 +17,7 @@ const defaultSettings: AlertSettings = {
   auto_popup: true,
   display_type: 'all',
   group_by: 'none',
-  enabled_types: ['route_deviation', 'maintenance', 'documentation', 'fuel_anomaly'],
-  show_popup_modal_on_load: true,
-  popup_display_frequency: 'always'
+  enabled_types: ['route_deviation', 'maintenance', 'documentation', 'fuel_anomaly']
 };
 
 export const getAlertSettings = async (): Promise<AlertSettings> => {

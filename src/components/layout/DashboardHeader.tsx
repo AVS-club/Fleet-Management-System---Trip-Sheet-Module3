@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { differenceInDays } from 'date-fns';
-import { TrendingUp, Truck, CheckCircle, Award } from 'lucide-react';
+import { TrendingUp, Truck, CheckCircle, Award, Users } from 'lucide-react';
 import { supabase } from '../../utils/supabaseClient';
 import { usePermissions } from '../../hooks/usePermissions';
 import { createLogger } from '../../utils/logger';
@@ -39,6 +39,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
   const [logoError, setLogoError] = useState(false);
   const [metrics, setMetrics] = useState({
     fleetSize: 0,
+    driverCount: 0,
     tripsToday: 0,
     totalTrips: 0,
     onTimeRate: 95,
@@ -90,6 +91,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
         .select('*', { count: 'exact', head: true })
         .eq('organization_id', organizationId);
 
+      const { count: driverCount } = await supabase
+        .from('drivers')
+        .select('*', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+
       // Get trip count using count query (no row limit)
       const { count: totalTrips } = await supabase
         .from('trips')
@@ -126,6 +132,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       setMetrics(prev => ({
         ...prev,
         fleetSize: vehicleCount || 0,
+        driverCount: driverCount || 0,
         totalTrips: totalTrips || 0,
         tripsToday: todayTrips || 0,
         activeDays: activeDays
@@ -193,10 +200,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
           </div>
 
           {/* Motivational metrics */}
-          <div className="hidden md:flex items-center space-x-4 text-sm">
+          <div className="hidden md:flex items-center space-x-3 text-sm">
             <div className="flex items-center space-x-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg px-2 py-1">
               <Truck className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-              <span className="text-gray-600 dark:text-gray-400">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
+              <span className="text-base font-semibold text-gray-800 dark:text-gray-100">{metrics.fleetSize}</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg px-2 py-1">
+              <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <span className="text-base font-semibold text-gray-800 dark:text-gray-100">{metrics.driverCount}</span>
             </div>
             <div className="flex items-center space-x-2 bg-green-50 dark:bg-green-900/30 rounded-lg px-2 py-1">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -215,10 +226,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
       </div>
 
       {/* Mobile metrics */}
-      <div className="md:hidden grid grid-cols-2 gap-2 text-sm">
+      <div className="md:hidden grid grid-cols-2 gap-1.5 text-sm">
         <div className="flex items-center space-x-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg px-2 py-1">
           <Truck className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-          <span className="font-medium text-gray-700 dark:text-gray-300">{t('dashboard.fleetVehicles', { count: metrics.fleetSize })}</span>
+          <span className="font-semibold text-gray-700 dark:text-gray-100">{metrics.fleetSize}</span>
+        </div>
+        <div className="flex items-center space-x-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg px-2 py-1">
+          <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+          <span className="font-semibold text-gray-700 dark:text-gray-100">{metrics.driverCount}</span>
         </div>
         <div className="flex items-center space-x-2 bg-green-50 dark:bg-green-900/30 rounded-lg px-2 py-1">
           <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />

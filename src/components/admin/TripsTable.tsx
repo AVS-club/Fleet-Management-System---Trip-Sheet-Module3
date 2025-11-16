@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Trip, Vehicle, Driver } from '@/types';
 import { ChevronDown, ChevronUp, Trash2, IndianRupee } from 'lucide-react';
-import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { format } from 'date-fns';
@@ -394,10 +393,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
     tripId: string;
     columnId: string;
   } | null>(null);
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
   
   // Add ref for scrollable container
   const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -450,13 +445,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
         : Number(bValue) - Number(aValue);
     });
   }, [trips, sortConfig, columns, vehiclesById, driversById]);
-
-  const paginatedTrips = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage;
-    return sortedTrips.slice(start, start + rowsPerPage);
-  }, [sortedTrips, currentPage]);
-
-  const totalPages = Math.ceil(sortedTrips.length / rowsPerPage) || 1;
 
   const handleSort = (columnId: string) => {
     setSortConfig(current => {
@@ -523,12 +511,12 @@ const TripsTable: React.FC<TripsTableProps> = ({
           }}
         >
           <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '2000px' }}>
-            <thead className="bg-gray-50 sticky top-0 z-10">
+            <thead className="sticky top-0 z-10 bg-slate-100/80 backdrop-blur">
               <tr>
                 {columns.map(column => (
                   <th
                     key={column.id}
-                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-600"
                     onClick={() => column.sortable && handleSort(column.id)}
                     style={{ 
                       cursor: column.sortable ? 'pointer' : 'default',
@@ -555,7 +543,7 @@ const TripsTable: React.FC<TripsTableProps> = ({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {sortedTrips.length > 0 ? (
-                paginatedTrips.map(trip => (
+                sortedTrips.map(trip => (
                   <tr key={trip.id} className="hover:bg-gray-50">
                     {columns.map(column => (
                       <td
@@ -619,29 +607,6 @@ const TripsTable: React.FC<TripsTableProps> = ({
               )}
             </tbody>
           </table>
-        </div>
-        <div className="flex items-center justify-between p-4 border-t">
-          <span className="text-sm text-gray-700">
-            Page {currentPage} of {totalPages}
-          </span>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              inputSize="sm"
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              inputSize="sm"
-              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
         </div>
       </div>
     </div>

@@ -59,8 +59,6 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
           vendor_id: "",
           tasks: [],
           cost: 0,
-          battery_tracking: false,
-          tyre_tracking: false,
         },
       ],
       ...initialData,
@@ -105,8 +103,12 @@ const EnhancedMaintenanceForm: React.FC<EnhancedMaintenanceFormProps> = ({
       // Prepare form data with files
       const formData = {
         ...data,
-        odometer_image: odometerPhoto,
-        attachments: documents,
+        // Only include odometer_image if a new file was uploaded
+        // Otherwise preserve existing value from initialData
+        odometer_image: odometerPhoto.length > 0 ? odometerPhoto : initialData?.odometer_image,
+        // Only include attachments if new files were uploaded
+        // Otherwise preserve existing value from initialData
+        attachments: documents.length > 0 ? documents : initialData?.attachments,
       };
       
       setOverallProgress(10);

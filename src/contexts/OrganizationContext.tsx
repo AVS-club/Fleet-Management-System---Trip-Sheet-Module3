@@ -12,7 +12,7 @@ interface OrganizationContextType {
   loading: boolean;
 }
 
-const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
+export const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(null);
