@@ -45,7 +45,12 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
   
   // Use organization name from permissions if available
-  const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
+  let displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
+  
+  // Temporary demo override: Replace "Shre Durga E.N.T." with "AVS Logistics"
+  if (displayName && (displayName.includes("Shre Durga") || displayName.includes("Shree Durga") || displayName.includes("Shridurga") || displayName.includes("E.N.T.") || displayName.includes("E.N.T"))) {
+    displayName = 'AVS Logistics';
+  }
 
   const sizeLayouts = {
     sm: 'h-8 px-3',
@@ -153,11 +158,18 @@ const OrganizationSelector: React.FC<OrganizationSelectorProps> = ({
           )}
           aria-label="Select organization"
         >
-          {organizations.map((org) => (
-            <option key={org.id} value={org.id}>
-              {org.name}
-            </option>
-          ))}
+          {organizations.map((org) => {
+            // Temporary demo override: Replace "Shre Durga E.N.T." with "AVS Logistics"
+            let orgName = org.name;
+            if (orgName && (orgName.includes("Shre Durga") || orgName.includes("Shree Durga") || orgName.includes("Shridurga") || orgName.includes("E.N.T.") || orgName.includes("E.N.T"))) {
+              orgName = 'AVS Logistics';
+            }
+            return (
+              <option key={org.id} value={org.id}>
+                {orgName}
+              </option>
+            );
+          })}
         </select>
         <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
           <ChevronDown className={cn("text-gray-400", iconSizes[size])} />

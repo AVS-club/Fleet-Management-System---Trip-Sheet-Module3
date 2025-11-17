@@ -251,10 +251,7 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    // Only update active search if 4+ characters or empty
-    if (value.length === 0 || value.length >= 4) {
-      setActiveSearchQuery(value);
-    }
+    setActiveSearchQuery(value);
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -501,14 +498,14 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
 
           {/* Enhanced Search Bar */}
           <div className="flex-1 min-w-[200px] max-w-[400px] relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-blue-500" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-emerald-500 drop-shadow-[0_2px_4px_rgba(16,185,129,0.35)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder="Search by vehicle, vendor, complaint..."
-              className="w-full pl-10 pr-8 py-2 text-sm border-2 border-blue-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-400 transition-all shadow-sm hover:shadow-md"
+              className="w-full pl-11 pr-10 py-2.5 text-sm border-2 border-emerald-100 rounded-full bg-gradient-to-r from-emerald-50 via-cyan-50 to-sky-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-300 focus:bg-white transition-all shadow-[0_10px_30px_rgba(12,74,110,0.12)] hover:shadow-[0_12px_35px_rgba(8,145,178,0.25)] backdrop-blur-sm"
             />
             {searchQuery && (
               <button

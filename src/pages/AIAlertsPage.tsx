@@ -9,7 +9,9 @@ import { getTrips } from '../utils/storage';
 import DriverAIInsights from '../components/ai/DriverAIInsights';
 import MediaCard from '../components/HeroFeed/MediaCard';
 import EnhancedFeedCard from '../components/ai/EnhancedFeedCard';
+import AIDemoAlertCard from '../components/ai/AIDemoAlertCard';
 import TripCard from '../components/trips/TripCard';
+import { demoAIInsights } from '../constants/demoAiInsights';
 import { useHeroFeed } from '../hooks/useHeroFeed';
 import { useKPICards as useKPICardsData, useLatestKPIs } from '@/hooks/useKPICards';
 import KPICard from '../components/kpi/KPICard';
@@ -70,6 +72,10 @@ const AIAlertsPage: React.FC = () => {
   const [showFutureEvents, setShowFutureEvents] = useState(() => {
     const saved = localStorage.getItem('showFutureEvents');
     return saved !== null ? JSON.parse(saved) : false; // Default to false - hide future dates
+  });
+  const [showDemoInsights, setShowDemoInsights] = useState(() => {
+    const saved = localStorage.getItem('showDemoInsights');
+    return saved !== null ? JSON.parse(saved) : true; // Default to true for demo purposes
   });
 
   // Refresh state
@@ -1027,23 +1033,23 @@ const AIAlertsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Compact Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-3">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
-              <div className="text-white/70 text-[10px] sm:text-xs">Active Vehicles</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{vehicles?.length || 0}</div>
+          {/* Compact Stats Row - Mobile Optimized */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2 md:gap-3 mt-2 sm:mt-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[9px] xs:text-[10px] sm:text-xs truncate">Active Vehicles</div>
+              <div className="text-base sm:text-lg md:text-xl font-bold text-white">{vehicles?.length || 0}</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
-              <div className="text-white/70 text-[10px] sm:text-xs">Total Alerts</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{alerts?.length || 0}</div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[9px] xs:text-[10px] sm:text-xs truncate">Total Alerts</div>
+              <div className="text-base sm:text-lg md:text-xl font-bold text-white">{alerts?.length || 0}</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
-              <div className="text-white/70 text-[10px] sm:text-xs">Active Trips</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{activeTripsCount}</div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[9px] xs:text-[10px] sm:text-xs truncate">Active Trips</div>
+              <div className="text-base sm:text-lg md:text-xl font-bold text-white">{activeTripsCount}</div>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 border border-white/20">
-              <div className="text-white/70 text-[10px] sm:text-xs">Maintenance</div>
-              <div className="text-lg sm:text-xl font-bold text-white">{maintenanceTasksData?.length || 0}</div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg px-2 sm:px-2.5 md:px-3 py-1.5 sm:py-2 border border-white/20">
+              <div className="text-white/70 text-[9px] xs:text-[10px] sm:text-xs truncate">Maintenance</div>
+              <div className="text-base sm:text-lg md:text-xl font-bold text-white">{maintenanceTasksData?.length || 0}</div>
             </div>
           </div>
 
@@ -1077,81 +1083,22 @@ const AIAlertsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Enhanced Tab Navigation */}
-      <div className="bg-white rounded-xl shadow-sm mb-4 sticky top-0 z-20 border border-gray-100">
+      {/* Enhanced Tab Navigation - Temporarily Hidden */}
+      {/* <div className="bg-white rounded-xl shadow-sm mb-4 sticky top-0 z-20 border border-gray-100">
         <div className="px-4 py-2">
           <div className="flex items-center justify-between">
-            {/* Tabs */}
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setActiveTab('all-feed')}
-                className={`
-                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
-                  ${activeTab === 'all-feed'
-                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50'
-                  }
-                `}
-              >
-                {activeTab === 'all-feed' && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-teal-500 to-green-500 rounded-lg blur-lg opacity-50"></div>
-                )}
-                <span className="relative flex items-center gap-2">
-                  <Activity className="w-4 h-4" />
-                  All Feed
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('alerts')}
-                className={`
-                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
-                  ${activeTab === 'alerts'
-                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <span className="relative flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  AI Alerts
-                  {alerts?.filter(a => a.status === 'pending').length > 0 && (
-                    <span className={`ml-1 px-2 py-0.5 ${activeTab === 'alerts' ? 'bg-white/20' : 'bg-red-500'} text-white text-xs rounded-full`}>
-                      {alerts?.filter(a => a.status === 'pending').length}
-                    </span>
-                  )}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('driver-insights')}
-                className={`
-                  relative px-5 py-2.5 rounded-lg font-medium text-sm transition-all
-                  ${activeTab === 'driver-insights'
-                    ? 'bg-gradient-to-r from-teal-500 to-green-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <span className="relative flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Driver Insights
-                </span>
-              </button>
+              <button onClick={() => setActiveTab('all-feed')}>All Feed</button>
+              <button onClick={() => setActiveTab('alerts')}>AI Alerts</button>
+              <button onClick={() => setActiveTab('driver-insights')}>Driver Insights</button>
             </div>
-
-            {/* Quick Actions */}
             <div className="flex items-center gap-2">
-              <button className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
-                <Search className="w-5 h-5" />
-              </button>
-              <button className="p-2 text-gray-500 hover:bg-gray-50 rounded-lg transition-colors">
-                <Filter className="w-5 h-5" />
-              </button>
+              <button><Search className="w-5 h-5" /></button>
+              <button><Filter className="w-5 h-5" /></button>
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -1162,14 +1109,15 @@ const AIAlertsPage: React.FC = () => {
         </div>
       ) : (
         <>
-          {activeTab === 'all-feed' ? (
+          {/* Show all-feed content by default since tabs are hidden */}
+          {activeTab === 'all-feed' || true ? (
             <div className="space-y-4">
               {/* Hero Feed Content */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                 {/* Apple-style Filter Section with Muted Colors */}
-                <div className="p-4">
-                  {/* Filter Pills - Subtle Apple-inspired Colors */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                <div className="p-3 sm:p-4">
+                  {/* Filter Pills - Subtle Apple-inspired Colors - Mobile Optimized */}
+                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 sm:-mx-4 px-3 sm:px-0 snap-x snap-mandatory">
                     <button
                       onClick={() => {
                         if (!selectedFilters.includes('ai_alert')) {
@@ -1179,15 +1127,16 @@ const AIAlertsPage: React.FC = () => {
                         }
                       }}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${selectedFilters.includes('ai_alert') || selectedFilters.includes('all')
                           ? 'bg-purple-100 text-purple-700 border-purple-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI Alerts</span>
+                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <span className="hidden xs:inline">AI Alerts</span>
+                      <span className="xs:hidden">AI</span>
                       {events.filter(e => e.kind === 'ai_alert').length > 0 && (
                         <span className={`
                           ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
@@ -1210,14 +1159,14 @@ const AIAlertsPage: React.FC = () => {
                         }
                       }}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${selectedFilters.includes('vehicle_doc') || selectedFilters.includes('all')
                           ? 'bg-blue-100 text-blue-700 border-blue-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >
-                      <FileText className="w-3.5 h-3.5" />
+                      <FileText className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>Documents</span>
                       {events.filter(e => e.kind === 'vehicle_doc').length > 0 && (
                         <span className={`
@@ -1241,14 +1190,14 @@ const AIAlertsPage: React.FC = () => {
                         }
                       }}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${selectedFilters.includes('maintenance') || selectedFilters.includes('all')
                           ? 'bg-orange-100 text-orange-700 border-orange-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >
-                      <Wrench className="w-3.5 h-3.5" />
+                      <Wrench className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>Maintenance</span>
                       {events.filter(e => e.kind === 'maintenance').length > 0 && (
                         <span className={`
@@ -1272,14 +1221,14 @@ const AIAlertsPage: React.FC = () => {
                         }
                       }}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${selectedFilters.includes('trip') || selectedFilters.includes('all')
                           ? 'bg-green-100 text-green-700 border-green-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >
-                      <Route className="w-3.5 h-3.5" />
+                      <Route className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>Trips</span>
                       {events.filter(e => e.kind === 'trip').length > 0 && (
                         <span className={`
@@ -1303,14 +1252,14 @@ const AIAlertsPage: React.FC = () => {
                         }
                       }}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${selectedFilters.includes('kpi') || selectedFilters.includes('all')
                           ? 'bg-indigo-100 text-indigo-700 border-indigo-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                         }
                       `}
                     >
-                      <TrendingUp className="w-3.5 h-3.5" />
+                      <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>KPIs</span>
                       {(kpiCards?.length || 0) > 0 && (
                         <span className={`
@@ -1328,7 +1277,7 @@ const AIAlertsPage: React.FC = () => {
                     <button
                       onClick={toggleVideos}
                       className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap border
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
                         ${showVideos
                           ? 'bg-pink-100 text-pink-700 border-pink-200 shadow-sm'
                           : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
@@ -1336,7 +1285,7 @@ const AIAlertsPage: React.FC = () => {
                       `}
                       title={showVideos ? 'Hide video reels' : 'Show video reels'}
                     >
-                      {showVideos ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+                      {showVideos ? <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <VideoOff className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                       <span>Videos</span>
                       {availableShorts.length > 0 && (
                         <span className={`
@@ -1350,10 +1299,41 @@ const AIAlertsPage: React.FC = () => {
                         </span>
                       )}
                     </button>
+
+                    <button
+                      onClick={() => {
+                        const newValue = !showDemoInsights;
+                        setShowDemoInsights(newValue);
+                        localStorage.setItem('showDemoInsights', JSON.stringify(newValue));
+                      }}
+                      className={`
+                        flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap border snap-start flex-shrink-0
+                        ${showDemoInsights
+                          ? 'bg-teal-100 text-teal-700 border-teal-200 shadow-sm'
+                          : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }
+                      `}
+                      title={showDemoInsights ? 'Hide AI Concepts' : 'Show AI Concepts'}
+                    >
+                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                      <span className="hidden xs:inline">AI Concepts</span>
+                      <span className="xs:hidden">Concepts</span>
+                      {showDemoInsights && (
+                        <span className={`
+                          ml-1 px-1.5 py-0.5 rounded-full text-xs font-semibold
+                          ${showDemoInsights
+                            ? 'bg-white/60 text-teal-700'
+                            : 'bg-white text-gray-500'
+                          }
+                        `}>
+                          {demoAIInsights.length}
+                        </span>
+                      )}
+                    </button>
                   </div>
 
-                  {/* Apple-style Toggle Switches */}
-                  <div className="flex items-center gap-6 mt-3 pt-3 border-t border-gray-100">
+                  {/* Apple-style Toggle Switches - Mobile Optimized */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 mt-3 pt-3 border-t border-gray-100">
                     <label className="flex items-center gap-2.5 cursor-pointer group">
                       <input
                         type="checkbox"
@@ -1370,7 +1350,7 @@ const AIAlertsPage: React.FC = () => {
                           ${includeDocuments ? 'translate-x-5' : 'translate-x-0'}
                         `}></div>
                       </div>
-                      <span className="text-sm text-gray-700">
+                      <span className="text-xs sm:text-sm text-gray-700">
                         Show Doc Reminders
                       </span>
                     </label>
@@ -1395,7 +1375,7 @@ const AIAlertsPage: React.FC = () => {
                           ${showFutureEvents ? 'translate-x-5' : 'translate-x-0'}
                         `}></div>
                       </div>
-                      <span className="text-sm text-gray-700">
+                      <span className="text-xs sm:text-sm text-gray-700">
                         Show Future Events
                       </span>
                     </label>
@@ -1417,6 +1397,18 @@ const AIAlertsPage: React.FC = () => {
                       </div>
                     ) : (
                       <>
+                        {/* AVS AI Insight Cards */}
+                        {showDemoInsights && demoAIInsights.length > 0 && (
+                          <div className="space-y-3 mb-4">
+                            {demoAIInsights.map((insight) => (
+                              <AIDemoAlertCard
+                                key={insight.id}
+                                insight={insight}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        
                         {events.length > 0 ? (
                           <>
                             {events.map((event, index) => {

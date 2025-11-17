@@ -7,7 +7,7 @@ export const shareDocument = async (
   documentData: any,
   vehicleNumber: string,
   documentType: string,
-  orgName: string = 'Shree Durga ENT'
+  orgName: string = 'AVS Logistics'
 ) => {
   try {
     // Check if it's an image or PDF

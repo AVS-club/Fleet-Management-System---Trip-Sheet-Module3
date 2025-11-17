@@ -49,7 +49,12 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
   const currentOrg = organizations.find(org => org.id === currentOrganizationId);
   
   // Use organization name from permissions if available
-  const displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
+  let displayName = permissions?.organizationName || currentOrg?.name || 'Unknown Organization';
+  
+  // Temporary demo override: Replace "Shre Durga E.N.T." with "AVS Logistics"
+  if (displayName && (displayName.includes("Shre Durga") || displayName.includes("Shree Durga") || displayName.includes("Shridurga") || displayName.includes("E.N.T.") || displayName.includes("E.N.T"))) {
+    displayName = 'AVS Logistics';
+  }
 
   if (loading || (!loading && organizations.length === 0 && !showNoOrg)) {
     return (
@@ -80,7 +85,14 @@ const MobileOrganizationSelector: React.FC<MobileOrganizationSelectorProps> = ({
               getAdaptiveNameSizeClass(permissions.organizationName)
             )}
           >
-            {permissions.organizationName}
+            {(() => {
+              const orgName = permissions.organizationName;
+              // Temporary demo override: Replace "Shre Durga E.N.T." with "AVS Logistics"
+              if (orgName && (orgName.includes("Shre Durga") || orgName.includes("Shree Durga") || orgName.includes("Shridurga") || orgName.includes("E.N.T.") || orgName.includes("E.N.T"))) {
+                return 'AVS Logistics';
+              }
+              return orgName;
+            })()}
           </span>
         </div>
       );

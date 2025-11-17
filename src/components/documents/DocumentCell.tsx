@@ -116,7 +116,7 @@ export const DocumentCell: React.FC<DocumentCellProps> = ({
       documentData,
       vehicleNumber,
       docKind.toUpperCase(),
-      'Shree Durga ENT'
+      'AVS Logistics'
     );
   };
 

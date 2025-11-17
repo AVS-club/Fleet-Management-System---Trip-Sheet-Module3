@@ -553,31 +553,35 @@ const MaintenanceTaskPage: React.FC = () => {
           "Are you sure you want to update this maintenance task?"
         );
         if (!confirmUpdate) {
+          setShowDiagnosticsModal(false);
           return;
         }
 
         // CRASH-PROOF: Use requestAnimationFrame to defer heavy file upload processing
         await new Promise(resolve => {
           requestAnimationFrame(async () => {
-            let progressToast: any = null;
-
             try {
-              // Start with a loading toast
-              progressToast = toast.loading('Updating maintenance task...');
+              updateOperationStatus('task_creation', 'in-progress');
 
               // Handle service group file uploads
               let updatedServiceGroups: Array<any> = [];
               if (service_groups && service_groups.length > 0) {
                 logger.debug('📁 Starting file uploads for service groups...');
-
-                // Update toast to show upload progress
-                toast.loading('Uploading files...', { id: progressToast });
+                service_groups.forEach((_, index) => {
+                  updateOperationStatus(`service_group_${index}`, 'in-progress');
+                });
 
                 updatedServiceGroups = await handleFileUploads(service_groups, id);
                 // Map to database format - converts task names to UUIDs
                 updatedServiceGroups = await convertServiceGroupsToDatabase(updatedServiceGroups);
                 logger.debug('✅ File uploads completed and service groups converted to database format');
+
+                service_groups.forEach((_, index) => {
+                  updateOperationStatus(`service_group_${index}`, 'success');
+                });
               }
+
+              updateOperationStatus('task_creation', 'success');
 
               // Remove fields that don't exist in database schema
               // Database only has start_date and end_date columns (date+time combined)
@@ -602,32 +606,28 @@ const MaintenanceTaskPage: React.FC = () => {
                 // attachments already in cleanTaskData from form submission
               };
 
-              try {
-                // Update toast to show saving progress
-                toast.loading('Saving task details...', { id: progressToast });
+              updateOperationStatus('database_save', 'in-progress');
 
-                // Now try our utility function
-                const updatedTask = await updateTask(id, updatePayload);
-                if (updatedTask) {
-                  setTask(updatedTask);
-                  toast.success("Maintenance task updated successfully!", { id: progressToast });
-                  await queryClient.invalidateQueries({ queryKey: ["maintenanceTasks"] });
+              // Now try our utility function
+              const updatedTask = await updateTask(id, updatePayload);
+              if (updatedTask) {
+                setTask(updatedTask);
+                await queryClient.invalidateQueries({ queryKey: ["maintenanceTasks"] });
+                updateOperationStatus('database_save', 'success');
+
+                setTimeout(() => {
+                  setShowDiagnosticsModal(false);
+                  toast.success('Task updated successfully!');
                   navigate("/maintenance");
-                } else {
-                  toast.error("Failed to update task", { id: progressToast });
-                }
-              } catch (error) {
-                logger.error("Error updating task:", error);
-                toast.error(
-                  `Error updating task: ${
-                    error instanceof Error ? error.message : "Unknown error"
-                  }`,
-                  { id: progressToast }
-                );
+                }, 1500);
+              } else {
+                throw new Error("Failed to update task");
               }
             } catch (error) {
-              logger.error("Error in file upload processing:", error);
-              toast.error("Error processing file uploads", { id: progressToast });
+              logger.error("Error updating task:", error);
+              const errorMessage = error instanceof Error ? error.message : "Unknown error";
+              updateOperationStatus('database_save', 'error', undefined, errorMessage);
+              toast.error('Failed to save: ' + errorMessage);
             } finally {
               resolve(undefined);
             }

@@ -185,7 +185,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ className = '' }) => 
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                  {organization?.name || permissions?.organizationName || 'Dashboard'}
+                  {(() => {
+                    const orgName = organization?.name || permissions?.organizationName || 'Dashboard';
+                    // Temporary demo override: Replace "Shre Durga E.N.T." with "AVS Logistics"
+                    if (orgName && (orgName.includes("Shre Durga") || orgName.includes("Shree Durga") || orgName.includes("Shridurga") || orgName.includes("E.N.T."))) {
+                      return 'AVS Logistics';
+                    }
+                    return orgName;
+                  })()}
                 </h1>
                 {/* Subtle "Powered by AVS" indicator */}
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-primary-50 dark:bg-primary-900/30 rounded-full border border-primary-200 dark:border-primary-700">
