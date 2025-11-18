@@ -295,6 +295,18 @@ const LoginPage: React.FC = () => {
                   Register your organization
                 </Link>
               </p>
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  By signing in, you agree to our{' '}
+                  <Link to="/terms-and-conditions" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">
+                    Terms and Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link to="/terms-and-conditions" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">
+                    Privacy Policy
+                  </Link>
+                </p>
+              </div>
             </div>
 
             {/* Security Badge */}

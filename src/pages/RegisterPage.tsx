@@ -35,6 +35,20 @@ const RegisterPage: React.FC = () => {
 
         <RegisterForm showPassword={showPassword} setShowPassword={setShowPassword} />
 
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+            By signing up, you agree to our{' '}
+            <Link to="/terms-and-conditions" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">
+              Terms and Conditions
+            </Link>
+            {' '}and{' '}
+            <Link to="/terms-and-conditions" className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline">
+              Privacy Policy
+            </Link>
+            . You will be required to accept these terms upon first login.
+          </p>
+        </div>
+
         <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
           <Link to="/login" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">

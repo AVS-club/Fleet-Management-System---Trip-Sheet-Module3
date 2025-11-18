@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Building2, Upload, Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { createLogger } from '../../utils/logger';
 
@@ -857,6 +857,18 @@ const CompanySettings: React.FC = () => {
               </button>
             </div>
           )}
+        </div>
+
+        {/* Terms and Conditions Link */}
+        <div className="mt-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <div className="text-center">
+            <Link
+              to="/terms-and-conditions"
+              className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium transition-colors underline"
+            >
+              Terms and Conditions
+            </Link>
+          </div>
         </div>
       </div>
     </div>
