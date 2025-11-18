@@ -20,6 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const [userId, setUserId] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [showTNCModal, setShowTNCModal] = useState(false);
+  const [tncAcceptedRuntime, setTncAcceptedRuntime] = useState(false);
   const { permissions, loading: permissionsLoading } = usePermissions();
   const { hasAccepted, loading: tncLoading } = useTNCAcceptance(userId, organizationId);
 
@@ -51,17 +52,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     // Show TNC modal if user is logged in but hasn't accepted TNC
-    if (!loading && !tncLoading && !permissionsLoading && session && userId && !hasAccepted) {
+    if (!loading && !tncLoading && !permissionsLoading && session && userId && !(hasAccepted || tncAcceptedRuntime)) {
       setShowTNCModal(true);
-    } else if (hasAccepted) {
+    } else if (hasAccepted || tncAcceptedRuntime) {
       setShowTNCModal(false);
     }
-  }, [loading, tncLoading, permissionsLoading, session, userId, hasAccepted]);
+  }, [loading, tncLoading, permissionsLoading, session, userId, hasAccepted, tncAcceptedRuntime]);
 
   const handleTNCAccept = () => {
+    setTncAcceptedRuntime(true);
     setShowTNCModal(false);
-    // Force a refresh to update the acceptance status
-    window.location.reload();
   };
 
   if (loading || tncLoading || permissionsLoading) {

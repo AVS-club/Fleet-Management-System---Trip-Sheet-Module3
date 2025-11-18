@@ -23,6 +23,11 @@ CREATE INDEX IF NOT EXISTS idx_tnc_acceptances_user_org ON public.tnc_acceptance
 ALTER TABLE public.tnc_acceptances ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+-- Drop existing policies if they exist and recreate them
+DROP POLICY IF EXISTS "Users can view own TNC acceptances" ON public.tnc_acceptances;
+DROP POLICY IF EXISTS "Users can insert own TNC acceptances" ON public.tnc_acceptances;
+DROP POLICY IF EXISTS "Users can update own TNC acceptances" ON public.tnc_acceptances;
+
 -- Users can view their own TNC acceptances
 CREATE POLICY "Users can view own TNC acceptances"
   ON public.tnc_acceptances
@@ -49,6 +54,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop existing trigger if it exists and recreate
+DROP TRIGGER IF EXISTS update_tnc_acceptances_updated_at ON public.tnc_acceptances;
 
 CREATE TRIGGER update_tnc_acceptances_updated_at
   BEFORE UPDATE ON public.tnc_acceptances

@@ -55,6 +55,12 @@ const TNCAcceptanceModal: React.FC<TNCAcceptanceModalProps> = ({
         throw insertError;
       }
 
+      // Cache locally to prevent future flashes before server check
+      const cacheKey = `tnc_accept_v1_${userId}`;
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(cacheKey, 'true');
+      }
+
       logger.info('TNC acceptance saved successfully');
       onAccept();
     } catch (err: any) {
