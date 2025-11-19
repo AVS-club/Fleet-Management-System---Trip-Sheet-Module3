@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { usePermissions } from '../hooks/usePermissions';
 import LoadingScreen from '../components/LoadingScreen';
-import { Trip, Vehicle, Driver, Warehouse } from '@/types';
-import { getTrips, getVehicles, getWarehouses } from '../utils/storage';
+import { Trip, Vehicle, Driver } from '@/types';
+import { Warehouse, Destination } from '@/types/trip';
+import { getTrips, getVehicles, getWarehouses, getDestinations } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, BarChart2, Target, Eye, Printer, ArrowUpDown, MoreHorizontal, PieChart, LineChart, Activity, AlertTriangle } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, BarChart2, Target, Eye, Printer, ArrowUpDown, MoreHorizontal, PieChart, LineChart, Activity, AlertTriangle, Users, Building2, Sparkles, TrendingDown as Loss, Zap, FileText, Settings, Package, Truck, DollarSign, AlertCircle, Info, CheckCircle, Map, MoreVertical } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -16,6 +17,11 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { toast } from 'react-toastify';
 import { createLogger } from '../utils/logger';
+import { useKPICards, useLatestKPIs } from '../hooks/useKPICards';
+import { supabase } from '../utils/supabaseClient';
+import { useQuery } from '@tanstack/react-query';
+import ContractRatesManager from '../components/pnl/ContractRatesManager';
+import { FixedSizeList as List } from 'react-window';
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -30,7 +36,10 @@ import {
   BarChart as RechartsBarChart,
   Bar,
   Area,
-  AreaChart
+  AreaChart,
+  Legend,
+  RadialBarChart,
+  RadialBar
 } from 'recharts';
 
 const logger = createLogger('TripPnlReportsPage');
@@ -50,6 +59,43 @@ interface PnLSummary {
   incomeGrowth?: number;
   expenseGrowth?: number;
   profitGrowth?: number;
+}
+
+interface CustomerPnL {
+  customerId: string;
+  customerName: string;
+  totalTrips: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  avgTripValue: number;
+  topRoute: string;
+  lastTripDate: string;
+}
+
+interface RouteAnalysis {
+  route: string;
+  trips: number;
+  revenue: number;
+  expenses: number;
+  profit: number;
+  avgDistance: number;
+  avgDuration: number;
+  profitPerKm: number;
+}
+
+interface ContractRate {
+  id: string;
+  customerId: string;
+  route?: string;
+  vehicleType?: string;
+  rateType: 'per_km' | 'per_ton' | 'per_trip';
+  rate: number;
+  validFrom: string;
+  validTo?: string;
+  minGuarantee?: number;
+  fuelAdjustment?: boolean;
 }
 
 interface ChartData {
@@ -101,10 +147,12 @@ const TripPnlReportsPage: React.FC = () => {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
@@ -113,6 +161,11 @@ const TripPnlReportsPage: React.FC = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedRoute, setSelectedRoute] = useState('');
+  const [showCustomerAnalysis, setShowCustomerAnalysis] = useState(false);
+  const [showAIInsights, setShowAIInsights] = useState(false);
+  const [selectedBillingType, setSelectedBillingType] = useState('');
 
   // Enhanced UI state
   const [showCharts, setShowCharts] = useState(true);
@@ -122,6 +175,9 @@ const TripPnlReportsPage: React.FC = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [showTripModal, setShowTripModal] = useState(false);
+  const [activeView, setActiveView] = useState<'summary' | 'customer' | 'route' | 'insights'>('summary');
+  const [showContractManager, setShowContractManager] = useState(false);
+  const [expandedMetrics, setExpandedMetrics] = useState(false);
 
   // Permission checks will be moved after all hooks
 
@@ -193,6 +249,27 @@ const TripPnlReportsPage: React.FC = () => {
     }
   ], []);
 
+  // Fetch real KPI data
+  const { data: kpiCards, isLoading: kpiLoading } = useKPICards({ period: 'all', limit: 100 });
+  const { data: latestKPIs } = useLatestKPIs();
+
+  // Fetch AI insights from events_feed
+  const { data: aiInsights, isLoading: insightsLoading } = useQuery({
+    queryKey: ['ai-insights', selectedDatePreset],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events_feed')
+        .select('*')
+        .in('kind', ['pnl_alert', 'profit_anomaly', 'expense_spike', 'route_optimization'])
+        .order('event_time', { ascending: false })
+        .limit(10);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -201,24 +278,27 @@ const TripPnlReportsPage: React.FC = () => {
 
       logger.debug('Loading PNL Reports data...');
 
-      const [tripsData, vehiclesData, driversData, warehousesData] = await Promise.all([
+      const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
         getTrips(),
         getVehicles(),
         getDrivers(),
-        getWarehouses()
+        getWarehouses(),
+        getDestinations()
       ]);
 
       logger.debug('Data loaded successfully:', {
         trips: tripsData.length,
         vehicles: vehiclesData.length,
         drivers: driversData.length,
-        warehouses: warehousesData.length
+        warehouses: warehousesData.length,
+        destinations: destinationsData.length
       });
 
       setTrips(tripsData);
       setVehicles(vehiclesData);
       setDrivers(driversData);
       setWarehouses(warehousesData);
+      setDestinations(destinationsData);
     } catch (error) {
       logger.error("Error fetching PNL Reports data:", error);
       setError(error instanceof Error ? error.message : 'Unknown error occurred');
@@ -237,6 +317,15 @@ const TripPnlReportsPage: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Debounce search term for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const tripSummaryMetrics = useMemo((): TripSummaryMetrics => {
     const tripsArray = Array.isArray(trips) ? trips : [];
@@ -330,10 +419,10 @@ const TripPnlReportsPage: React.FC = () => {
         return false;
       }
 
-      // Search filter
+      // Search filter with debounced term
       if (
-        searchTerm &&
-        !(trip.trip_serial_number || "").toLowerCase().includes(searchTerm.toLowerCase())
+        debouncedSearchTerm &&
+        !(trip.trip_serial_number || "").toLowerCase().includes(debouncedSearchTerm.toLowerCase())
       ) {
         return false;
       }
@@ -355,6 +444,21 @@ const TripPnlReportsPage: React.FC = () => {
 
       // Profit status filter
       if (selectedProfitStatus && trip.profit_status !== selectedProfitStatus) {
+        return false;
+      }
+
+      // Customer filter
+      if (selectedCustomer && !trip.destinations?.includes(selectedCustomer)) {
+        return false;
+      }
+
+      // Route filter
+      if (selectedRoute && trip.destination_display !== selectedRoute) {
+        return false;
+      }
+
+      // Billing type filter
+      if (selectedBillingType && trip.billing_type !== selectedBillingType) {
         return false;
       }
 
@@ -413,7 +517,7 @@ const TripPnlReportsPage: React.FC = () => {
       logger.error('Error filtering trips:', error);
       return [];
     }
-  }, [trips, dateRange, searchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus]);
+  }, [trips, dateRange, debouncedSearchTerm, selectedVehicle, selectedDriver, selectedWarehouse, selectedProfitStatus, selectedCustomer, selectedRoute, selectedBillingType]);
 
   // Calculate P&L summary directly from filtered trips
   const pnlSummary = useMemo((): PnLSummary => {
@@ -470,10 +574,90 @@ const TripPnlReportsPage: React.FC = () => {
   const vehicleNameMap = useMemo(() => new Map(vehicles.map(v => [v.id, v.registration_number])), [vehicles]);
   const driverNameMap = useMemo(() => new Map(drivers.map(d => [d.id, d.name])), [drivers]);
   const warehouseNameMap = useMemo(() => new Map(warehouses.map(w => [w.id, w.name])), [warehouses]);
+  const destinationNameMap = useMemo(() => new Map(destinations.map(d => [d.id, d.name])), [destinations]);
 
   const getVehicleName = useCallback((vehicleId: string) => vehicleNameMap.get(vehicleId) || 'N/A', [vehicleNameMap]);
   const getDriverName = useCallback((driverId: string) => driverNameMap.get(driverId) || 'N/A', [driverNameMap]);
   const getWarehouseName = useCallback((warehouseId: string) => warehouseNameMap.get(warehouseId) || 'N/A', [warehouseNameMap]);
+  const getDestinationName = useCallback((destinationId: string) => destinationNameMap.get(destinationId) || 'N/A', [destinationNameMap]);
+
+  // Calculate customer-wise P&L
+  const customerPnL = useMemo((): CustomerPnL[] => {
+    const customerMap = new Map<string, CustomerPnL>();
+    
+    filteredTrips.forEach(trip => {
+      // Use destination as customer proxy
+      const customerId = trip.destinations?.[0] || 'unknown';
+      const customerName = customerId !== 'unknown' ? getDestinationName(customerId) : 'Unknown Customer';
+      
+      if (!customerMap.has(customerId)) {
+        customerMap.set(customerId, {
+          customerId,
+          customerName,
+          totalTrips: 0,
+          totalRevenue: 0,
+          totalExpenses: 0,
+          netProfit: 0,
+          profitMargin: 0,
+          avgTripValue: 0,
+          topRoute: '',
+          lastTripDate: ''
+        });
+      }
+      
+      const customer = customerMap.get(customerId)!;
+      customer.totalTrips++;
+      customer.totalRevenue += trip.income_amount || 0;
+      customer.totalExpenses += trip.total_expense || 0;
+      customer.netProfit = customer.totalRevenue - customer.totalExpenses;
+      customer.avgTripValue = customer.totalRevenue / customer.totalTrips;
+      customer.profitMargin = customer.totalRevenue > 0 ? (customer.netProfit / customer.totalRevenue) * 100 : 0;
+      
+      if (!customer.lastTripDate || new Date(trip.trip_start_date) > new Date(customer.lastTripDate)) {
+        customer.lastTripDate = trip.trip_start_date;
+      }
+    });
+    
+    return Array.from(customerMap.values())
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 20); // Top 20 customers
+  }, [filteredTrips, getDestinationName]);
+
+  // Calculate route analysis
+  const routeAnalysis = useMemo((): RouteAnalysis[] => {
+    const routeMap = new Map<string, RouteAnalysis>();
+    
+    filteredTrips.forEach(trip => {
+      const route = trip.destination_display || 'Unknown Route';
+      
+      if (!routeMap.has(route)) {
+        routeMap.set(route, {
+          route,
+          trips: 0,
+          revenue: 0,
+          expenses: 0,
+          profit: 0,
+          avgDistance: 0,
+          avgDuration: 0,
+          profitPerKm: 0
+        });
+      }
+      
+      const routeData = routeMap.get(route)!;
+      const distance = (trip.end_km || 0) - (trip.start_km || 0);
+      
+      routeData.trips++;
+      routeData.revenue += trip.income_amount || 0;
+      routeData.expenses += trip.total_expense || 0;
+      routeData.profit = routeData.revenue - routeData.expenses;
+      routeData.avgDistance = ((routeData.avgDistance * (routeData.trips - 1)) + distance) / routeData.trips;
+      routeData.profitPerKm = routeData.avgDistance > 0 ? routeData.profit / (routeData.avgDistance * routeData.trips) : 0;
+    });
+    
+    return Array.from(routeMap.values())
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 15); // Top 15 routes
+  }, [filteredTrips]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
@@ -598,6 +782,9 @@ const TripPnlReportsPage: React.FC = () => {
     setSelectedDatePreset('alltime');
     setCustomStartDate('');
     setCustomEndDate('');
+    setSelectedCustomer('');
+    setSelectedRoute('');
+    setSelectedBillingType('');
     setCurrentPage(1);
   };
 
@@ -629,18 +816,27 @@ const TripPnlReportsPage: React.FC = () => {
   };
 
   const exportToExcel = () => {
-    const exportData = filteredTrips.map(trip => {
+    const workbook = XLSX.utils.book_new();
+
+    // Sheet 1: Trip Details
+    const tripData = filteredTrips.map(trip => {
       const vehicle = vehicles.find(v => v.id === trip.vehicle_id);
       const driver = drivers.find(d => d.id === trip.driver_id);
       const warehouse = warehouses.find(w => w.id === trip.warehouse_id);
+      const customerName = trip.destinations?.[0] ? getDestinationName(trip.destinations[0]) : 'N/A';
 
       return {
         'Trip ID': trip.trip_serial_number,
         'Date': format(parseISO(trip.trip_start_date), 'dd/MM/yyyy'),
+        'Customer': customerName,
+        'Route': trip.destination_display || 'N/A',
         'Vehicle': vehicle?.registration_number || 'N/A',
         'Driver': driver?.name || 'N/A',
         'Warehouse': warehouse?.name || 'N/A',
         'Income (₹)': trip.income_amount || 0,
+        'Fuel Cost (₹)': trip.total_fuel_cost || 0,
+        'Driver Expense (₹)': trip.driver_expense || 0,
+        'Other Expenses (₹)': (trip.unloading_expense || 0) + (trip.road_rto_expense || 0) + (trip.miscellaneous_expense || 0),
         'Total Expense (₹)': trip.total_expense || 0,
         'Net Profit (₹)': trip.net_profit || 0,
         'Cost per KM (₹)': trip.cost_per_km || 0,
@@ -650,18 +846,72 @@ const TripPnlReportsPage: React.FC = () => {
         'Distance (KM)': (trip.end_km || 0) - (trip.start_km || 0)
       };
     });
+    const tripSheet = XLSX.utils.json_to_sheet(tripData);
+    XLSX.utils.book_append_sheet(workbook, tripSheet, 'Trip Details');
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Trip P&L Report');
+    // Sheet 2: Customer Summary
+    const customerData = customerPnL.map(customer => ({
+      'Customer Name': customer.customerName,
+      'Total Trips': customer.totalTrips,
+      'Total Revenue (₹)': customer.totalRevenue,
+      'Total Expenses (₹)': customer.totalExpenses,
+      'Net Profit (₹)': customer.netProfit,
+      'Profit Margin (%)': customer.profitMargin.toFixed(2),
+      'Avg Trip Value (₹)': customer.avgTripValue.toFixed(2),
+      'Last Trip Date': format(parseISO(customer.lastTripDate), 'dd/MM/yyyy')
+    }));
+    const customerSheet = XLSX.utils.json_to_sheet(customerData);
+    XLSX.utils.book_append_sheet(workbook, customerSheet, 'Customer Summary');
+
+    // Sheet 3: Route Analysis
+    const routeData = routeAnalysis.map(route => ({
+      'Route': route.route,
+      'Total Trips': route.trips,
+      'Avg Distance (KM)': route.avgDistance.toFixed(0),
+      'Total Revenue (₹)': route.revenue,
+      'Total Expenses (₹)': route.expenses,
+      'Net Profit (₹)': route.profit,
+      'Profit per KM (₹)': route.profitPerKm.toFixed(2)
+    }));
+    const routeSheet = XLSX.utils.json_to_sheet(routeData);
+    XLSX.utils.book_append_sheet(workbook, routeSheet, 'Route Analysis');
+
+    // Sheet 4: Summary
+    const summaryData = [{
+      'Metric': 'Total Trips',
+      'Value': pnlSummary.totalTrips
+    }, {
+      'Metric': 'Total Income',
+      'Value': `₹${pnlSummary.totalIncome.toLocaleString('en-IN')}`
+    }, {
+      'Metric': 'Total Expenses',
+      'Value': `₹${pnlSummary.totalExpense.toLocaleString('en-IN')}`
+    }, {
+      'Metric': 'Net Profit',
+      'Value': `₹${pnlSummary.netProfit.toLocaleString('en-IN')}`
+    }, {
+      'Metric': 'Profit Margin',
+      'Value': `${pnlSummary.profitMargin.toFixed(2)}%`
+    }, {
+      'Metric': 'Average Cost per KM',
+      'Value': `₹${pnlSummary.avgCostPerKm.toFixed(2)}`
+    }, {
+      'Metric': 'Profitable Trips',
+      'Value': pnlSummary.profitableTrips
+    }, {
+      'Metric': 'Loss Making Trips',
+      'Value': pnlSummary.lossTrips
+    }];
+    const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
 
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
-    const fileName = `trip-pnl-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+    const fileName = `advanced-pnl-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
     saveAs(data, fileName);
 
-    toast.success('Report exported successfully');
+    toast.success('Comprehensive report exported successfully');
   };
 
   const getProfitStatusColor = (status: string) => {
@@ -737,10 +987,28 @@ const TripPnlReportsPage: React.FC = () => {
 
   return (
     <Layout
-      title="Trip P&L Report"
-      subtitle="Analyze profitability of trips"
+      title="Advanced P&L Analytics"
+      subtitle="Comprehensive financial insights and profitability analysis"
       actions={
         <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setShowAIInsights(!showAIInsights)}
+            icon={<Sparkles className="h-4 w-4" />}
+            className="relative"
+          >
+            AI Insights
+            {aiInsights && aiInsights.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowContractManager(!showContractManager)}
+            icon={<FileText className="h-4 w-4" />}
+          >
+            Contracts
+          </Button>
           <Button
             variant="outline"
             onClick={() => setShowCharts(!showCharts)}
@@ -769,13 +1037,110 @@ const TripPnlReportsPage: React.FC = () => {
             onClick={() => navigate('/trips')}
             icon={<ChevronLeft className="h-4 w-4" />}
           >
-            Back to Trips
+            Back
           </Button>
         </div>
       }
     >
       <div className="space-y-6">
-        {/* Summary Cards */}
+        {/* AI Insights Panel */}
+        {showAIInsights && aiInsights && aiInsights.length > 0 && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                AI-Powered Insights
+              </h3>
+              <Button
+                variant="outline"
+                inputSize="sm"
+                onClick={() => setShowAIInsights(false)}
+                icon={<X className="h-4 w-4" />}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {aiInsights.slice(0, 6).map((insight: any, idx: number) => (
+                <div key={insight.id || idx} className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center">
+                      {insight.priority === 'high' && <AlertCircle className="h-4 w-4 text-red-500 mr-2" />}
+                      {insight.priority === 'medium' && <Info className="h-4 w-4 text-yellow-500 mr-2" />}
+                      {insight.priority === 'low' && <CheckCircle className="h-4 w-4 text-green-500 mr-2" />}
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {insight.title || 'Insight'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {insight.description || 'No description available'}
+                  </p>
+                  {insight.metadata?.value && (
+                    <div className="mt-2 text-lg font-bold text-gray-900 dark:text-gray-100">
+                      ₹{Number(insight.metadata.value).toLocaleString('en-IN')}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* View Tabs */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-1">
+          <div className="flex flex-wrap gap-1">
+            <button
+              onClick={() => setActiveView('summary')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeView === 'summary'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4 inline mr-2" />
+              Summary
+            </button>
+            <button
+              onClick={() => setActiveView('customer')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeView === 'customer'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Users className="h-4 w-4 inline mr-2" />
+              Customer Analysis
+            </button>
+            <button
+              onClick={() => setActiveView('route')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeView === 'route'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Map className="h-4 w-4 inline mr-2" />
+              Route Analysis
+            </button>
+            <button
+              onClick={() => setActiveView('insights')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all relative ${
+                activeView === 'insights'
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <Zap className="h-4 w-4 inline mr-2" />
+              Live KPIs
+              {kpiCards && kpiCards.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Summary Cards - Enhanced with real KPI data */}
+        {activeView === 'summary' && (
+          <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -786,11 +1151,27 @@ const TripPnlReportsPage: React.FC = () => {
                   {pnlSummary.totalIncome.toLocaleString('en-IN')}
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center text-green-600 dark:text-green-400">
+                      {latestKPIs?.revenue && (
+                        <>
+                          <div className={`flex items-center ${
+                            latestKPIs.revenue.kpi_payload.trend === 'up' 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {latestKPIs.revenue.kpi_payload.trend === 'up' ? (
                     <TrendingUp className="h-4 w-4 mr-1" />
-                    <span className="text-sm font-medium">+12.5%</span>
+                            ) : (
+                              <TrendingDown className="h-4 w-4 mr-1" />
+                            )}
+                            <span className="text-sm font-medium">
+                              {latestKPIs.revenue.kpi_payload.change || '+12.5%'}
+                            </span>
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">vs last month</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {latestKPIs.revenue.kpi_payload.period || 'vs last month'}
+                          </span>
+                        </>
+                      )}
                 </div>
               </div>
               <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
@@ -870,9 +1251,298 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
         </div>
+          </>
+        )}
 
-        {/* Charts Section */}
-        {showCharts && (
+        {/* Customer Analysis View */}
+        {activeView === 'customer' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                Customer-wise P&L Analysis
+              </h3>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trips</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Margin</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Trip Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {customerPnL.map((customer, idx) => (
+                      <tr key={customer.customerId} className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                          onClick={() => setSelectedCustomer(customer.customerId)}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Building2 className="h-5 w-5 text-gray-400 mr-2" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {customer.customerName}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Last trip: {format(parseISO(customer.lastTripDate), 'dd MMM')}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {customer.totalTrips}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
+                          ₹{customer.totalRevenue.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
+                          ₹{customer.totalExpenses.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold">
+                          <span className={customer.netProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            ₹{customer.netProfit.toLocaleString('en-IN')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <span className={`text-sm font-medium ${
+                              customer.profitMargin >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                            }`}>
+                              {customer.profitMargin.toFixed(1)}%
+                            </span>
+                            <div className="ml-2 w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full ${
+                                  customer.profitMargin >= 0 ? 'bg-green-500' : 'bg-red-500'
+                                }`}
+                                style={{ width: `${Math.abs(Math.min(customer.profitMargin, 100))}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          ₹{customer.avgTripValue.toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Customer Revenue Distribution Chart */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Revenue Distribution by Customer</h3>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart
+                    data={customerPnL.slice(0, 10)}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="customerName" angle={-45} textAnchor="end" />
+                    <YAxis />
+                    <Tooltip formatter={(value: number) => `₹${value.toLocaleString('en-IN')}`} />
+                    <Legend />
+                    <Bar dataKey="totalRevenue" fill="#10b981" name="Revenue" />
+                    <Bar dataKey="netProfit" fill="#3b82f6" name="Profit" />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Route Analysis View */}
+        {activeView === 'route' && (
+          <div className="space-y-6">
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <Map className="h-5 w-5 mr-2 text-purple-600 dark:text-purple-400" />
+                Route Profitability Analysis
+              </h3>
+              
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Route</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trips</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg Distance</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit/KM</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                    {routeAnalysis.map((route) => (
+                      <tr key={route.route} className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                          onClick={() => setSelectedRoute(route.route)}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Map className="h-5 w-5 text-gray-400 mr-2" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {route.route}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {route.trips}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          {route.avgDistance.toFixed(0)} km
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">
+                          ₹{route.revenue.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-red-600 dark:text-red-400">
+                          ₹{route.expenses.toLocaleString('en-IN')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold">
+                          <span className={route.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            ₹{route.profit.toLocaleString('en-IN')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          ₹{route.profitPerKm.toFixed(2)}/km
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Route Performance Heatmap */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Route Performance Comparison</h3>
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsLineChart
+                    data={routeAnalysis}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 100 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="route" 
+                      angle={-45}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value: any, name: string) => {
+                        if (name === 'Profit per KM') return `₹${Number(value).toFixed(2)}`;
+                        if (name === 'Total Trips') return value;
+                        return value;
+                      }}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="profitPerKm" 
+                      stroke="#10b981" 
+                      name="Profit per KM"
+                      strokeWidth={2}
+                      dot={{ fill: '#10b981' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="trips" 
+                      stroke="#3b82f6" 
+                      name="Total Trips"
+                      strokeWidth={2}
+                      yAxisId="right"
+                      dot={{ fill: '#3b82f6' }}
+                    />
+                    <YAxis yAxisId="right" orientation="right" />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Live KPIs View */}
+        {activeView === 'insights' && (
+          <div className="space-y-6">
+            {/* Real-time KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {kpiCards && kpiCards
+                .filter(kpi => ['pnl', 'revenue', 'expenses', 'trips', 'fuel', 'mileage', 'utilization'].includes(kpi.theme))
+                .slice(0, 12)
+                .map((kpi) => (
+                  <div key={kpi.id} className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        {kpi.kpi_title}
+                      </span>
+                      {kpi.kpi_payload.trend && (
+                        <div className={`flex items-center ${
+                          kpi.kpi_payload.trend === 'up' ? 'text-green-500' : 'text-red-500'
+                        }`}>
+                          {kpi.kpi_payload.trend === 'up' ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      {kpi.kpi_value_human}
+                    </div>
+                    {kpi.kpi_payload.change && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {kpi.kpi_payload.change} {kpi.kpi_payload.period}
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+
+            {/* Anomaly Detection */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600 dark:text-yellow-400" />
+                Anomaly Detection & Alerts
+              </h3>
+              <div className="space-y-3">
+                {aiInsights && aiInsights
+                  .filter((insight: any) => insight.priority === 'high' || insight.priority === 'medium')
+                  .slice(0, 5)
+                  .map((alert: any) => (
+                    <div key={alert.id} className="flex items-start p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {alert.title}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {alert.description}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        inputSize="sm"
+                        className="ml-3"
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Charts Section - Enhanced */}
+        {showCharts && activeView === 'summary' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Monthly Trend Chart */}
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -1183,11 +1853,45 @@ const TripPnlReportsPage: React.FC = () => {
                   ]}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Customer
+                </label>
+                <Select
+                  value={selectedCustomer}
+                  onChange={(e) => setSelectedCustomer(e.target.value)}
+                  options={[
+                    { value: '', label: 'All Customers' },
+                    ...destinations.map(dest => ({
+                      value: dest.id,
+                      label: dest.name
+                    }))
+                  ]}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Billing Type
+                </label>
+                <Select
+                  value={selectedBillingType}
+                  onChange={(e) => setSelectedBillingType(e.target.value)}
+                  options={[
+                    { value: '', label: 'All Types' },
+                    { value: 'per_km', label: 'Per KM' },
+                    { value: 'per_ton', label: 'Per Ton' },
+                    { value: 'manual', label: 'Manual' }
+                  ]}
+                />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Trips Table */}
+        {/* Trips Table - Enhanced */}
+        {activeView === 'summary' && (
         <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -1223,49 +1927,52 @@ const TripPnlReportsPage: React.FC = () => {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+            <div className="overflow-hidden">
+              {/* Table Header */}
+              <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                <div className="grid grid-cols-5 gap-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <div
+                    className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
                       onClick={() => handleSort('trip_serial_number')}
                     >
-                      <div className="flex items-center gap-1">
                         Trip Details
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                  <div
+                    className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
                       onClick={() => handleSort('vehicle_id')}
                     >
-                      <div className="flex items-center gap-1">
                         Vehicle & Driver
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
-                    </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                  <div
+                    className="cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"
                       onClick={() => handleSort('income_amount')}
                     >
-                      <div className="flex items-center gap-1">
                         Financial Summary
                         <ArrowUpDown className="h-3 w-3" />
                       </div>
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {sortedTrips.map((trip) => (
-                    <tr key={trip.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onClick={() => handleTripClick(trip)}>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                  <div>Status</div>
+                  <div>Actions</div>
+                </div>
+              </div>
+
+              {/* Virtual List */}
+              <List
+                height={600}
+                itemCount={sortedTrips.length}
+                itemSize={120}
+                width="100%"
+                className="scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
+              >
+                {({ index, style }) => {
+                  const trip = sortedTrips[index];
+                  return (
+                    <div
+                      style={style}
+                      className="grid grid-cols-5 gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                      onClick={() => handleTripClick(trip)}
+                    >
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {trip.trip_serial_number}
@@ -1277,8 +1984,6 @@ const TripPnlReportsPage: React.FC = () => {
                             {((trip.end_km || 0) - (trip.start_km || 0))} km
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {getVehicleName(trip.vehicle_id)}
@@ -1290,8 +1995,6 @@ const TripPnlReportsPage: React.FC = () => {
                             {getWarehouseName(trip.warehouse_id)}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="space-y-1">
                           <div className="flex justify-between text-sm">
                             <span className="text-gray-600 dark:text-gray-400">Income:</span>
@@ -1314,8 +2017,7 @@ const TripPnlReportsPage: React.FC = () => {
                             </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           getProfitStatusColor(trip.profit_status || '')
                         }`}>
@@ -1326,9 +2028,8 @@ const TripPnlReportsPage: React.FC = () => {
                             {trip.billing_type}
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
+                      </div>
+                      <div>
                           <Button
                             variant="outline"
                             inputSize="sm"
@@ -1341,11 +2042,10 @@ const TripPnlReportsPage: React.FC = () => {
                             View
                           </Button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </div>
+                  );
+                }}
+              </List>
             </div>
           )}
 
@@ -1405,11 +2105,23 @@ const TripPnlReportsPage: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
       </div>
 
-      {/* Trip Detail Modal */}
-      {showTripModal && selectedTrip && (
+      {/* Modals temporarily disabled for debugging */}
+      {/* Contract Rates Manager Modal
+        <ContractRatesManager
+          isOpen={showContractManager}
+          onClose={() => setShowContractManager(false)}
+          customers={destinations.map(d => ({ id: d.id, name: d.name }))}
+          onRateCreated={(rate) => {
+            toast.success('Contract rate created successfully');
+            // Could refresh data or update local state here
+          }}
+        />
+        */}
+
+        {/* Trip Detail Modal
+        {showTripModal && selectedTrip && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
@@ -1530,7 +2242,8 @@ const TripPnlReportsPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        )}
+        */}
     </Layout>
   );
 };

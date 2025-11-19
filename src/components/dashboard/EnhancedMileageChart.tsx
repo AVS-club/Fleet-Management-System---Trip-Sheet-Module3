@@ -1199,30 +1199,36 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
       </div>
 
 
-      {/* Anomalies Section - Grouped by Vehicle */}
+      {/* Anomalies Section */}
       {anomalies.length > 0 && (
-        <div className="border-t dark:border-gray-700 pt-4 sm:pt-6">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Mileage Anomalies ({anomalies.length})
-              </h3>
+        <div className="mt-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      Mileage Anomalies
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {anomalies.length} issues found • Click any entry to review
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={exportAnomalies}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
             </div>
-            <button
-              onClick={exportAnomalies}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Export CSV</span>
-            </button>
-          </div>
 
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
-            Click any entry to review trip data
-          </div>
-
-          <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
             {(() => {
               // Group anomalies by type first
               const groupedByType = anomalies.reduce((acc, anomaly) => {
@@ -1279,75 +1285,87 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
                 };
 
                 return (
-                  <div key={type} className="border dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className={`${config.bgColor} px-3 py-2 border-b dark:border-gray-700`}>
-                      <h4 className={`text-sm font-semibold ${config.color} flex items-center gap-2`}>
-                        <span className="text-base">{config.icon}</span>
-                        {config.label} ({typeAnomalies.length})
-                      </h4>
-                    </div>
-                    <div className="space-y-1">
+                <div key={type} className="">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{config.icon}</span>
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      {config.label}
+                    </h4>
+                    <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full">
+                      {typeAnomalies.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
                       {typeAnomalies.map((anomaly, index) => (
-                        <div
-                          key={index}
-                          className="p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors border-b dark:border-gray-700 last:border-b-0"
-                          onClick={() => handleAnomalyClick(anomaly.trip_id)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <span className="font-mono text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                  {anomaly.trip_serial_number}
-                                </span>
-                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  {anomaly.vehicle_registration}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-500">{anomaly.date}</span>
-                                <ExternalLink className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm mb-1">
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Mileage:</span>{' '}
-                                  <span className="font-semibold">{anomaly.mileage.toFixed(2)} km/L</span>
+                      <div
+                        key={index}
+                        className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer transition-all hover:shadow-md"
+                        onClick={() => handleAnomalyClick(anomaly.trip_id)}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-mono text-sm font-bold text-blue-600 dark:text-blue-400">
+                                {anomaly.trip_serial_number}
+                              </span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">
+                                {anomaly.vehicle_registration}
+                              </span>
+                              <span className="text-xs text-gray-500 dark:text-gray-500">
+                                {anomaly.date}
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 mb-2">
+                              <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Mileage</div>
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {anomaly.mileage.toFixed(2)} km/L
                                 </div>
-                                <div>
-                                  <span className="font-medium text-gray-600 dark:text-gray-400">Distance:</span>{' '}
-                                  <span className="font-semibold">{anomaly.distance.toFixed(0)} km</span>
+                              </div>
+                              <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Distance</div>
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {anomaly.distance.toFixed(0)} km
                                 </div>
                               </div>
-                              <div className="flex flex-wrap gap-1">
-                                {anomaly.issues.map((issue, idx) => (
-                                  <span
-                                    key={idx}
-                                    className={`px-1.5 py-0.5 text-xs rounded-full ${issue.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                        issue.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                      }`}
-                                  >
-                                    {issue.message}
-                                  </span>
-                                ))}
+                              <div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">Fuel</div>
+                                <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {anomaly.fuel.toFixed(1)} L
+                                </div>
                               </div>
                             </div>
-                            <div className="ml-2 flex-shrink-0">
-                              <span className={`px-2 py-1 text-xs font-semibold rounded-full ${anomaly.issues.some(i => i.severity === 'critical')
-                                  ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                  : anomaly.issues.some(i => i.severity === 'high')
-                                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                }`}>
-                                {anomaly.issues.some(i => i.severity === 'critical') ? 'Critical' :
-                                  anomaly.issues.some(i => i.severity === 'high') ? 'High' : 'Medium'}
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                                {anomaly.issues[0]?.message}
                               </span>
                             </div>
                           </div>
+                          
+                          <div className="flex flex-col items-end gap-2">
+                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                              anomaly.issues.some(i => i.severity === 'critical')
+                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                : anomaly.issues.some(i => i.severity === 'high')
+                                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                            }`}>
+                              {anomaly.issues.some(i => i.severity === 'critical') ? 'Critical' :
+                                anomaly.issues.some(i => i.severity === 'high') ? 'High' : 'Medium'}
+                            </span>
+                            <ExternalLink className="w-4 h-4 text-gray-400" />
+                          </div>
                         </div>
+                      </div>
                       ))}
                     </div>
                   </div>
                 );
               });
             })()}
+            </div>
           </div>
         </div>
       )}
