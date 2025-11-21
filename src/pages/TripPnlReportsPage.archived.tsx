@@ -7,7 +7,7 @@ import { Trip, Vehicle, Driver } from '@/types';
 import { Warehouse, Destination } from '@/types/trip';
 import { getTrips, getVehicles, getWarehouses, getDestinations } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';
-import { Calendar, Filter, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, Sparkles, Building2, Map, Truck } from 'lucide-react';
+import { Calendar, Filter, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, Sparkles, Building2, Map, Truck, Calculator, RefreshCw } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -17,6 +17,7 @@ import { saveAs } from 'file-saver';
 import { toast } from 'react-toastify';
 import { supabase } from '../utils/supabaseClient';
 import { useKPICards } from '../hooks/useKPICards';
+import TripPnlModal from '../components/trips/TripPnlModal';
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -65,36 +66,38 @@ const TripPnlReportsPageFixed: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedRoute, setSelectedRoute] = useState('');
   const [activeView, setActiveView] = useState<'summary' | 'customer' | 'route' | 'insights'>('summary');
+  const [selectedTripForPnl, setSelectedTripForPnl] = useState<Trip | null>(null);
 
   // Fetch KPI data
   const { data: kpiCards } = useKPICards();
 
-  // Load data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
-          getTrips(),
-          getVehicles(),
-          getDrivers(),
-          getWarehouses(),
-          getDestinations()
-        ]);
-        
-        setTrips(tripsData || []);
-        setVehicles(vehiclesData || []);
-        setDrivers(driversData || []);
-        setWarehouses(warehousesData || []);
-        setDestinations(destinationsData || []);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Load data function
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [tripsData, vehiclesData, driversData, warehousesData, destinationsData] = await Promise.all([
+        getTrips(),
+        getVehicles(),
+        getDrivers(),
+        getWarehouses(),
+        getDestinations()
+      ]);
+      
+      setTrips(tripsData || []);
+      setVehicles(vehiclesData || []);
+      setDrivers(driversData || []);
+      setWarehouses(warehousesData || []);
+      setDestinations(destinationsData || []);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Load data on mount
+  useEffect(() => {
     loadData();
   }, []);
 
@@ -283,6 +286,37 @@ const TripPnlReportsPageFixed: React.FC = () => {
       actions={
         <div className="flex gap-3">
           <Button
+            variant="primary"
+            onClick={() => {
+              // Open modal with first trip that has no income
+              const tripWithoutIncome = filteredTrips.find(t => !t.income_amount || t.income_amount === 0);
+              if (tripWithoutIncome) {
+                setSelectedTripForPnl(tripWithoutIncome);
+              } else {
+                toast.info('All trips have income recorded');
+              }
+            }}
+            icon={<Calculator className="h-4 w-4" />}
+          >
+            Add Income
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              toast.info('Refreshing KPIs...');
+              const { error } = await supabase.rpc('generate_kpi_cards');
+              if (error) {
+                toast.error('Failed to refresh KPIs');
+              } else {
+                toast.success('KPIs refreshed successfully');
+                window.location.reload();
+              }
+            }}
+            icon={<RefreshCw className="h-4 w-4" />}
+          >
+            Refresh KPIs
+          </Button>
+          <Button
             variant="outline"
             onClick={() => setShowAIInsights(!showAIInsights)}
             icon={<Sparkles className="h-4 w-4" />}
@@ -294,14 +328,14 @@ const TripPnlReportsPageFixed: React.FC = () => {
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             icon={<Filter className="h-4 w-4" />}
           >
-            Advanced Filters
+            Filters
           </Button>
           <Button
             variant="primary"
             onClick={exportToExcel}
             icon={<Download className="h-4 w-4" />}
           >
-            Export Report
+            Export
           </Button>
         </div>
       }
@@ -516,6 +550,7 @@ const TripPnlReportsPageFixed: React.FC = () => {
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Income</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expense</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Profit</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -542,6 +577,15 @@ const TripPnlReportsPageFixed: React.FC = () => {
                               <span className={`${(trip.net_profit || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} font-medium`}>
                                 ₹{(trip.net_profit || 0).toLocaleString('en-IN')}
                               </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <button
+                                onClick={() => setSelectedTripForPnl(trip)}
+                                className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                                title="Edit P&L"
+                              >
+                                <Calculator className="h-4 w-4" />
+                              </button>
                             </td>
                           </tr>
                         );
@@ -643,6 +687,27 @@ const TripPnlReportsPageFixed: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* P&L Modal */}
+      {selectedTripForPnl && (
+        <TripPnlModal
+          isOpen={!!selectedTripForPnl}
+          onClose={() => setSelectedTripForPnl(null)}
+          trip={selectedTripForPnl}
+          vehicle={vehicles.find(v => v.id === selectedTripForPnl.vehicle_id)}
+          driver={drivers.find(d => d.id === selectedTripForPnl.driver_id)}
+          onUpdate={(updatedTrip) => {
+            // Update the trip in local state
+            setTrips(prevTrips => 
+              prevTrips.map(t => t.id === updatedTrip.id ? updatedTrip : t)
+            );
+            setSelectedTripForPnl(null);
+            toast.success('Trip P&L updated successfully');
+            // Reload data to refresh calculations
+            loadData();
+          }}
+        />
+      )}
     </Layout>
   );
 };

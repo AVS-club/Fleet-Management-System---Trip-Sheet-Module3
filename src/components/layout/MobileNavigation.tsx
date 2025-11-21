@@ -17,6 +17,7 @@ import {
 import AvsAiButton from '../ui/AvsAiButton';
 import { cn } from '../../utils/cn';
 import { usePermissions } from '../../hooks/usePermissions';
+import MobileNavSkeleton from './MobileNavSkeleton';
 
 interface MobileNavigationProps {
   className?: string;
@@ -91,50 +92,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
 
           {/* Navigation Items */}
           <nav className="flex-1 overflow-y-auto">
+            {loading ? (
+              <MobileNavSkeleton />
+            ) : (
             <div className="py-4">
               {navigationItems.map((item) => {
-                // Check if user has permission to view this nav item
-                // While loading, show all items to prevent flickering
-                if (loading) {
-                  // Special handling for custom components (like AI Alerts Button)
-                  if (item.customComponent) {
-                    const CustomComponent = item.customComponent;
-                    return (
-                      <div key={item.path} className="px-4 py-2">
-                        <CustomComponent
-                          onClick={() => {
-                            navigate(item.path);
-                            setIsOpen(false);
-                          }}
-                          label={item.label}
-                          variant="compact"
-                          isActive={isActive(item.path)}
-                          className="w-full"
-                        />
-                      </div>
-                    );
-                  }
-
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => {
-                        navigate(item.path, { replace: true });
-                        setIsOpen(false);
-                      }}
-                      className={cn(
-                        'w-full flex items-center gap-3 px-4 py-3 transition-colors text-left',
-                        isActive(item.path)
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-r-3 border-blue-600 dark:border-blue-400'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
+                // Hide permission-restricted items by default while loading
+                if (item.requiresPermission && loading) {
+                  return null;
                 }
+                
+                // Check if user has permission to view this nav item after loading
                 if (item.requiresPermission && permissions && !(permissions as any)[item.requiresPermission]) {
                   return null;
                 }
@@ -179,6 +147,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
                 );
               })}
             </div>
+            )}
           </nav>
 
           {/* Footer */}

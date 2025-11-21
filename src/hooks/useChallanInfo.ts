@@ -43,12 +43,23 @@ export const useChallanInfo = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-challan-info', {
-        body: cleanedData
+      // Use proxy server to avoid IP whitelisting issues
+      const proxyUrl = import.meta.env.VITE_CHALLAN_PROXY_URL || 'http://localhost:3001/api/fetch-challan-info';
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanedData),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch challan info');
+      }
+      
       // Debug: Log the actual API response
       logger.debug('Challan API Response:', data);
       

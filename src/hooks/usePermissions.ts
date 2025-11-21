@@ -5,13 +5,40 @@ import { createLogger } from '../utils/logger';
 
 const logger = createLogger('usePermissions');
 
+const PERMISSIONS_CACHE_KEY = 'fleet_user_permissions';
+
+// Clear permissions cache on logout
+export const clearPermissionsCache = () => {
+  try {
+    sessionStorage.removeItem(PERMISSIONS_CACHE_KEY);
+  } catch (error) {
+    logger.error('Failed to clear permissions cache:', error);
+  }
+};
+
 export const usePermissions = (): {
   permissions: Permissions | null;
   loading: boolean;
   refetch: () => Promise<void>;
 } => {
-  const [permissions, setPermissions] = useState<Permissions | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize with cached permissions if available
+  const [permissions, setPermissions] = useState<Permissions | null>(() => {
+    try {
+      const cached = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    // If we have cached permissions, start with loading false
+    try {
+      const cached = sessionStorage.getItem(PERMISSIONS_CACHE_KEY);
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
 
   const fetchUserPermissions = async () => {
     const startTime = performance.now();
@@ -89,6 +116,13 @@ export const usePermissions = (): {
       };
 
       setPermissions(newPermissions);
+      
+      // Cache permissions in sessionStorage
+      try {
+        sessionStorage.setItem(PERMISSIONS_CACHE_KEY, JSON.stringify(newPermissions));
+      } catch (error) {
+        logger.error('Failed to cache permissions:', error);
+      }
       
       const endTime = performance.now();
       const duration = endTime - startTime;

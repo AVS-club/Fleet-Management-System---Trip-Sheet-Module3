@@ -1,4 +1,18 @@
-import { Trip } from '@/types';
+import { Trip, Refueling } from '@/types';
+
+// When a trip has multiple fuel slips, sum their quantities; fall back to the legacy single fuel_quantity field.
+export const getTotalFuelQuantity = (trip: Trip): number => {
+  if (Array.isArray(trip.refuelings) && trip.refuelings.length > 0) {
+    const total = (trip.refuelings as Refueling[]).reduce(
+      (sum, refuel) => sum + (refuel?.fuel_quantity || 0),
+      0
+    );
+    if (total > 0) {
+      return total;
+    }
+  }
+  return trip.fuel_quantity || 0;
+};
 
 /**
  * Recalculates mileage for a refueling trip using the tank-to-tank method
@@ -8,7 +22,9 @@ export function recalculateMileageForRefuelingTrip(
   currentTrip: Trip, 
   allTrips: Trip[]
 ): { updatedTrip: Trip; affectedTrips: Trip[] } {
-  if (!currentTrip.refueling_done || !currentTrip.fuel_quantity || currentTrip.fuel_quantity <= 0) {
+  const fuelQuantity = getTotalFuelQuantity(currentTrip);
+
+  if (!currentTrip.refueling_done || fuelQuantity <= 0) {
     return { updatedTrip: currentTrip, affectedTrips: [] };
   }
 
@@ -27,17 +43,18 @@ export function recalculateMileageForRefuelingTrip(
   if (previousRefuelingTrips.length === 0) {
     // For first refueling, calculate mileage based on just this trip
     const distance = currentTrip.end_km - currentTrip.start_km;
-    calculatedMileage = distance > 0 ? parseFloat((distance / currentTrip.fuel_quantity).toFixed(2)) : undefined;
+    calculatedMileage = distance > 0 ? parseFloat((distance / fuelQuantity).toFixed(2)) : undefined;
   } else {
     // Use tank-to-tank method: distance from previous refueling end to current refueling end
     const lastRefuelingTrip = previousRefuelingTrips[0];
     const totalDistance = currentTrip.end_km - lastRefuelingTrip.end_km;
-    calculatedMileage = totalDistance > 0 ? parseFloat((totalDistance / currentTrip.fuel_quantity).toFixed(2)) : undefined;
+    calculatedMileage = totalDistance > 0 ? parseFloat((totalDistance / fuelQuantity).toFixed(2)) : undefined;
   }
 
   // Update the current trip with the calculated mileage
   const updatedTrip = {
     ...currentTrip,
+    fuel_quantity: fuelQuantity,
     calculated_kmpl: calculatedMileage
   };
 
@@ -79,32 +96,38 @@ export function recalculateAllMileageForVehicle(vehicleId: string, allTrips: Tri
   let lastRefuelingTrip: Trip | null = null;
 
   for (const trip of vehicleTrips) {
-    if (trip.refueling_done && trip.fuel_quantity && trip.fuel_quantity > 0) {
+    const fuelQuantity = getTotalFuelQuantity(trip);
+
+    if (trip.refueling_done && fuelQuantity > 0) {
       // This is a refueling trip
       let calculatedMileage: number | undefined;
 
       if (lastRefuelingTrip) {
         // Use tank-to-tank method
         const totalDistance = trip.end_km - lastRefuelingTrip.end_km;
-        calculatedMileage = totalDistance > 0 ? parseFloat((totalDistance / trip.fuel_quantity).toFixed(2)) : undefined;
+        calculatedMileage = totalDistance > 0 ? parseFloat((totalDistance / fuelQuantity).toFixed(2)) : undefined;
       } else {
         // First refueling trip
         const distance = trip.end_km - trip.start_km;
-        calculatedMileage = distance > 0 ? parseFloat((distance / trip.fuel_quantity).toFixed(2)) : undefined;
+        calculatedMileage = distance > 0 ? parseFloat((distance / fuelQuantity).toFixed(2)) : undefined;
       }
 
-      updatedTrips.push({
+      const updatedTrip = {
         ...trip,
+        fuel_quantity: fuelQuantity,
         calculated_kmpl: calculatedMileage
-      });
+      };
 
-      lastRefuelingTrip = trip;
+      updatedTrips.push(updatedTrip);
+
+      lastRefuelingTrip = updatedTrip;
     } else {
       // This is a non-refueling trip
       // It should share the mileage of the most recent refueling trip
       const mileageToUse = lastRefuelingTrip?.calculated_kmpl;
       updatedTrips.push({
         ...trip,
+        fuel_quantity: fuelQuantity || trip.fuel_quantity,
         calculated_kmpl: mileageToUse
       });
     }

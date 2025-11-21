@@ -120,6 +120,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
       email: "",
       status: "active",
       ...initialData,
+      // Ensure DOB is preserved in edit mode
+      dob: initialData?.dob || "",
       other_documents: initialData.other_documents
         ? initialData.other_documents // ⚠️ Confirm field refactor here
         : [], // ⚠️ Confirm field refactor here
@@ -187,7 +189,9 @@ const DriverForm: React.FC<DriverFormProps> = ({
   // --- Fetch Driver Details Handler ---
   const handleFetchDetails = async () => {
     const licenseNumber = watch("license_number");
-    const dob = watch("dob");
+    // In edit mode, preserve existing DOB if fetch section DOB is empty
+    const dobFromForm = watch("dob");
+    const dob = dobFromForm || initialData?.dob || "";
 
     if (!licenseNumber || !dob) {
       toast.error("Please enter license number and date of birth.");
@@ -203,15 +207,23 @@ const DriverForm: React.FC<DriverFormProps> = ({
 
       logger.info("Fetching driver details:", { licenseNumber, dob: dob_formatted });
 
-      const { data: result, error } = await supabase.functions.invoke(
-        "fetch-driver-details",
-        {
-          body: {
-            licence_number: licenseNumber,
-            dob: dob_formatted,
-          },
-        }
-      );
+      // Use proxy server to avoid IP whitelisting issues
+      // In production, set VITE_DL_PROXY_URL in your environment variables
+      const proxyUrl = import.meta.env.VITE_DL_PROXY_URL || 'http://localhost:3001/api/fetch-dl-details';
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dl_no: licenseNumber,
+          dob: dob_formatted
+        }),
+      });
+      
+      const result = await response.json();
+      const error = !response.ok ? { message: result.message || 'Failed to fetch' } : null;
 
       logger.info("API Response:", { result, error });
 
@@ -222,7 +234,8 @@ const DriverForm: React.FC<DriverFormProps> = ({
         );
       }
 
-      const driver = result.response || result.data?.response || {};
+      // Our proxy returns the data directly in result.data
+      const driver = result.data || {};
       logger.info("Driver data received:", driver);
 
       // Convert base64 image to data URL if present
@@ -239,10 +252,10 @@ const DriverForm: React.FC<DriverFormProps> = ({
         // Start with existing form data
         ...initialData,
 
-        // Override with government API data
+        // Override with government API data (already mapped by proxy)
         id: initialData?.id || undefined,
-        name: driver.holder_name || "",
-        father_or_husband_name: driver.father_or_husband_name || "",
+        name: driver.full_name || "",
+        father_or_husband_name: driver.father_name || "",
         gender:
           (driver.gender &&
             (driver.gender.toUpperCase() === "MALE"
@@ -251,29 +264,17 @@ const DriverForm: React.FC<DriverFormProps> = ({
               ? "FEMALE"
           : "OTHER")) ||
           "MALE",
-        dob: (driver?.dob && driver?.dob.split("-").reverse().join("-")) || dob,
+        dob: driver.date_of_birth || dob,
         blood_group:
           (driver?.blood_group && driver.blood_group.toUpperCase()) || "",
         address: driver?.permanent_address || driver?.temporary_address || "",
         contact_number: driver?.contact_number || "",
         email: driver?.email || "",
         license_number: driver?.license_number || licenseNumber,
-        vehicle_class:
-          (driver?.vehicle_class &&
-            driver?.vehicle_class.map((v: any) => v?.cov)) ||
-          [],
-        valid_from:
-          (driver?.valid_from &&
-            driver?.valid_from.split("-").reverse().join("-")) ||
-          "",
-        license_expiry_date:
-          (driver?.valid_upto &&
-            driver?.valid_upto.split("-").reverse().join("-")) ||
-          "",
-        license_issue_date:
-          (driver?.issue_date &&
-            driver?.issue_date.split("-").reverse().join("-")) ||
-          "",
+        vehicle_class: driver?.vehicle_classes || [],
+        valid_from: driver?.valid_from || "",
+        license_expiry_date: driver?.valid_upto || "",
+        license_issue_date: driver?.issue_date || "",
         rto_code: driver.rto_code || "",
         rto: driver.rto || "",
         state: driver.state || "",

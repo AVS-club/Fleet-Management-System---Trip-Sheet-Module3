@@ -31,11 +31,23 @@ export const getTrips = async (): Promise<Trip[]> => {
       return [];
     }
 
+    // First get the total count
+    const { count } = await supabase
+      .from('trips')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', organizationId);
+    
+    logger.info(`Total trips in database: ${count}`);
+    
+    // Then fetch all trips with explicit range to bypass default 1000 limit
     const { data, error } = await supabase
       .from('trips')
       .select('*')
       .eq('organization_id', organizationId)
-      .order('trip_start_date', { ascending: false });
+      .order('trip_start_date', { ascending: false })
+      .range(0, (count || 10000) - 1);
+    
+    logger.info(`Fetched ${data?.length || 0} trips from database`);
 
     if (error) {
       handleSupabaseError('fetch trips', error);

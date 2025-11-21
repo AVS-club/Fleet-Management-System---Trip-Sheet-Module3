@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { MaintenanceTask, Vehicle } from '@/types';
 import { format, parseISO } from 'date-fns';
 import VehicleTagBadges from '../vehicles/VehicleTagBadges';
@@ -6,6 +6,8 @@ import { getVendors } from '@/utils/vendorStorage';
 import { Eye, Edit, Calendar, Truck, IndianRupee, Clock, Wrench, ChevronUp, ChevronDown, Search, X, Filter, ChevronRight, LayoutGrid, List } from 'lucide-react';
 import Button from '../ui/Button';
 import MaintenanceCard from './MaintenanceCard';
+import { useDebouncedSearch } from '@/hooks/useDebouncedSearch';
+import { useCleanup, useIsMounted } from '@/hooks/useCleanup';
 
 interface MaintenanceTaskListProps {
   tasks: MaintenanceTask[];
@@ -36,8 +38,6 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [vendorsMap, setVendorsMap] = useState<Map<string, string>>(new Map());
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeSearchQuery, setActiveSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterVehicle, setFilterVehicle] = useState<string>('all');
@@ -47,7 +47,22 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
+  // Use debounced search hook for better performance
+  const {
+    searchQuery,
+    debouncedValue: activeSearchQuery,
+    isSearching,
+    handleSearchChange,
+    clearSearch: handleClearSearch,
+    forceSearch
+  } = useDebouncedSearch('', {
+    minLength: 1,
+    delay: 300
+  });
+
   const vehicleMap = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
+  const cleanup = useCleanup();
+  const isMounted = useIsMounted();
 
   // Close filters panel when clicking outside
   useEffect(() => {
@@ -59,29 +74,41 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     };
 
     if (showFilters) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
+      cleanup.addEventListener(document, 'mousedown', handleClickOutside);
     }
-  }, [showFilters]);
+    
+    // Cleanup handled automatically by useCleanup hook
+  }, [showFilters, cleanup]);
 
-  // Load vendors
+  // Load vendors with proper cleanup
   useEffect(() => {
+    let aborted = false;
+    
     const loadVendors = async () => {
       try {
         const vendors = await getVendors();
-        const map = new Map<string, string>();
-        vendors.forEach(vendor => {
-          map.set(vendor.id, vendor.vendor_name || 'Unknown Vendor');
-        });
-        setVendorsMap(map);
+        
+        // Check if component is still mounted before updating state
+        if (!aborted && isMounted.current) {
+          const map = new Map<string, string>();
+          vendors.forEach(vendor => {
+            map.set(vendor.id, vendor.vendor_name || 'Unknown Vendor');
+          });
+          setVendorsMap(map);
+        }
       } catch (error) {
-        console.error('Error loading vendors:', error);
+        if (!aborted && isMounted.current) {
+          console.error('Error loading vendors:', error);
+        }
       }
     };
+    
     loadVendors();
-  }, []);
+    
+    return () => {
+      aborted = true;
+    };
+  }, [isMounted]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -176,9 +203,9 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     return (days * 24) + hours;
   };
 
-  // Search function with prioritization
-  const searchTasks = (query: string, taskList: MaintenanceTask[]): MaintenanceTask[] => {
-    if (!query || query.length < 4) return taskList;
+  // Search function with prioritization - improved with better performance
+  const searchTasks = useCallback((query: string, taskList: MaintenanceTask[]): MaintenanceTask[] => {
+    if (!query || query.length === 0) return taskList;
 
     const lowerQuery = query.toLowerCase();
     const scoredTasks: Array<{ task: MaintenanceTask; score: number }> = [];
@@ -247,23 +274,14 @@ const MaintenanceTaskList: React.FC<MaintenanceTaskListProps> = ({
     return scoredTasks
       .sort((a, b) => b.score - a.score)
       .map(item => item.task);
-  };
+  }, [vehicleMap, vendorsMap]);
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    setActiveSearchQuery(value);
-  };
-
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Handle Enter key to force immediate search
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.length > 0) {
-      setActiveSearchQuery(searchQuery);
+      forceSearch();
     }
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    setActiveSearchQuery('');
-  };
+  }, [searchQuery, forceSearch]);
 
   // Apply all filters
   const applyFilters = (taskList: MaintenanceTask[]): MaintenanceTask[] => {

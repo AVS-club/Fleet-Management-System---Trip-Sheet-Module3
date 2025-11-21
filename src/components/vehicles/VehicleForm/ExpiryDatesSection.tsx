@@ -48,6 +48,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="Registration Date"
           type="date"
           icon={<Calendar className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.registration_date?.message}
           max={new Date().toISOString().split('T')[0]}
           disabled={disabled}
@@ -59,6 +60,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="Insurance Expiry Date"
           type="date"
           icon={<Shield className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.insurance_expiry_date?.message}
           max={maxDate}
           disabled={disabled}
@@ -70,6 +72,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="Fitness Certificate Expiry"
           type="date"
           icon={<FileText className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.fitness_expiry_date?.message}
           max={maxDate}
           disabled={disabled}
@@ -81,6 +84,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="Permit Expiry Date"
           type="date"
           icon={<FileText className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.permit_expiry_date?.message}
           max={maxDate}
           disabled={disabled}
@@ -92,6 +96,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="PUC (Pollution) Expiry Date"
           type="date"
           icon={<FileText className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.pollution_expiry_date?.message}
           max={maxDate}
           disabled={disabled}
@@ -103,6 +108,7 @@ export const ExpiryDatesSection: React.FC<ExpiryDatesSectionProps> = ({
           label="Road Tax Expiry Date"
           type="date"
           icon={<FileText className="h-4 w-4" />}
+          hideIconWhenFocused={true}
           error={errors.tax_expiry_date?.message}
           max={maxDate}
           disabled={disabled}

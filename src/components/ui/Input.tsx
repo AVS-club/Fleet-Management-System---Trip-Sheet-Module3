@@ -51,7 +51,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const shouldShowIcon = icon && type !== 'date';
     
     // Hide icon when focused or has content (if hideIconWhenFocused is true)
-    const shouldHideIcon = hideIconWhenFocused && (isFocused || (value && value.toString().length > 0));
+    const hasValue = value !== undefined && value !== null && value.toString().length > 0;
+    const shouldHideIcon = hideIconWhenFocused && (isFocused || hasValue);
     const finalShouldShowIcon = shouldShowIcon && !shouldHideIcon;
 
     // Add additional padding for inputs with browser controls
@@ -75,8 +76,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         
         <div className={cn("relative", fullWidth && "w-full")}>
-          {finalShouldShowIcon && iconPosition === 'left' && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500">
+          {shouldShowIcon && iconPosition === 'left' && (
+            <div className={cn(
+              "absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-gray-500 transition-opacity duration-200",
+              !finalShouldShowIcon && "opacity-0"
+            )}>
               {React.cloneElement(icon as React.ReactElement, { className: 'h-4 w-4' })}
             </div>
           )}
@@ -91,8 +95,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
                 "block w-full rounded-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-primary-400 dark:focus:border-primary-500 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-800 focus:ring-opacity-50 transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
                 error && "border-error-500 dark:border-error-500 focus:ring-error-200 dark:focus:ring-error-800 focus:border-error-500 dark:focus:border-error-500",
-                finalShouldShowIcon && iconPosition === 'left' && iconSizeClasses[inputSize],
-                finalShouldShowIcon && iconPosition === 'right' && "pr-14",
+                shouldShowIcon && iconPosition === 'left' && iconSizeClasses[inputSize], // Always reserve space if icon exists
+                shouldShowIcon && iconPosition === 'right' && "pr-14",
                 needsRightPadding && "pr-14",
                 sizeClasses[inputSize],
                 className

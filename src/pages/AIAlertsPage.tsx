@@ -15,6 +15,9 @@ import { demoAIInsights } from '../constants/demoAiInsights';
 import { useHeroFeed } from '../hooks/useHeroFeed';
 import { useKPICards as useKPICardsData, useLatestKPIs } from '@/hooks/useKPICards';
 import KPICard from '../components/kpi/KPICard';
+import AnimatedKPICard from '../components/kpi/AnimatedKPICard';
+import CollapsibleHeader from '../components/ai/CollapsibleHeader';
+import CompactFilterBar from '../components/ai/CompactFilterBar';
 import { useYouTubeShorts, YouTubeShort } from '../hooks/useYouTubeShorts';
 import { AlertTriangle, CheckCircle, XCircle, Bell, Search, ChevronRight, BarChart2, Filter, RefreshCw, Truck, Calendar, Fuel, TrendingDown, FileX, FileText, PenTool as Tool, Sparkles, Play, Volume2, VolumeX, Heart, MessageCircle, Share2, Video, VideoOff, Home, Activity, Users, Wrench, Route, TrendingUp } from 'lucide-react';
 import Input from '../components/ui/Input';
@@ -81,6 +84,8 @@ const AIAlertsPage: React.FC = () => {
   // Refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastKPIRefresh, setLastKPIRefresh] = useState<Date | null>(null);
+  const [isNewKPIBatch, setIsNewKPIBatch] = useState(false);
 
   // Fetch drivers map for photo lookup in EnhancedFeedCard
   const { data: driversMap, error: driversError, isLoading: driversLoading, refetch: refetchDrivers } = useQuery({
@@ -173,12 +178,31 @@ const AIAlertsPage: React.FC = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch KPI cards
+  // Fetch KPI cards with batch detection
   const {
     data: kpiCards,
     isLoading: kpiLoading,
-    refetch: refetchKPIs
+    refetch: refetchKPIs,
+    dataUpdatedAt: kpiUpdatedAt
   } = useKPICardsData({ period: 'all', limit: 20 });
+
+  // Detect new KPI batch (when all KPIs refresh at ~15 minute intervals)
+  useEffect(() => {
+    if (kpiCards && kpiCards.length > 0 && lastKPIRefresh) {
+      const latestKPITime = new Date(Math.max(...kpiCards.map(k => new Date(k.computed_at).getTime())));
+      const timeDiff = latestKPITime.getTime() - lastKPIRefresh.getTime();
+      
+      // If more than 14 minutes have passed, it's likely a new batch
+      if (timeDiff > 14 * 60 * 1000) {
+        setIsNewKPIBatch(true);
+        setTimeout(() => setIsNewKPIBatch(false), 3000); // Reset after animations complete
+      }
+    }
+    
+    if (kpiCards && kpiCards.length > 0) {
+      setLastKPIRefresh(new Date(Math.max(...kpiCards.map(k => new Date(k.computed_at).getTime()))));
+    }
+  }, [kpiCards]);
 
   // Fetch latest KPIs by theme for statistics
   const {
@@ -929,8 +953,58 @@ const AIAlertsPage: React.FC = () => {
 
   return (
     <Layout>
-      {/* Hero Header - Compact Design (35% reduced height) */}
-      <div className="relative bg-gradient-to-r from-teal-600 via-teal-500 to-green-500 rounded-xl shadow-sm mb-4 overflow-hidden">
+      {/* Collapsible Header for Mobile */}
+      <CollapsibleHeader
+        activeVehicles={vehicles?.length || 0}
+        totalAlerts={alerts?.length || 0}
+        pendingAlerts={alerts?.filter(a => a.status === 'pending').length || 0}
+        activeTrips={activeTripsCount}
+        maintenanceTasks={maintenanceTasksData?.length || 0}
+        isRefreshing={isRefreshing}
+        lastUpdated={lastUpdated}
+        onNotificationClick={() => setActiveTab('alerts')}
+        onRefreshClick={async () => {
+          setIsRefreshing(true);
+          try {
+            // Clear React Query cache to force fresh fetch
+            queryClient.invalidateQueries({ queryKey: ['drivers-map'] });
+            queryClient.invalidateQueries({ queryKey: ['vehicles-map'] });
+            queryClient.invalidateQueries({ queryKey: ['maintenance-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['kpi-cards'] });
+            queryClient.invalidateQueries({ queryKey: ['youtube-shorts'] });
+
+            // Refetch ALL data including initial state data
+            await Promise.all([
+              fetchInitialData(), // Refetch alerts, trips, vehicles, drivers
+              refetchHeroFeed(),
+              refetchDrivers(),
+              refetchVehicles(),
+              refetchKPIs(),
+              refetchShorts()
+            ]);
+
+            // Update last updated timestamp
+            setLastUpdated(new Date());
+
+            // Show success toast
+            toast.success('Feed refreshed successfully!', {
+              position: 'bottom-right',
+              autoClose: 2000
+            });
+          } catch (error) {
+            logger.error('Error refreshing feed:', error);
+            toast.error('Failed to refresh feed. Please try again.', {
+              position: 'bottom-right',
+              autoClose: 3000
+            });
+          } finally {
+            setIsRefreshing(false);
+          }
+        }}
+      />
+
+      {/* Legacy Hero Header - Hidden on mobile, visible on desktop */}
+      <div className="hidden md:block relative bg-gradient-to-r from-teal-600 via-teal-500 to-green-500 rounded-xl shadow-sm mb-4 overflow-hidden">
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
@@ -1114,8 +1188,33 @@ const AIAlertsPage: React.FC = () => {
             <div className="space-y-4">
               {/* Hero Feed Content */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-                {/* Apple-style Filter Section with Muted Colors */}
-                <div className="p-3 sm:p-4">
+                {/* Mobile-Optimized Compact Filter Bar */}
+                <div className="block sm:hidden">
+                  <CompactFilterBar
+                    selectedFilters={selectedFilters}
+                    setSelectedFilters={setSelectedFilters}
+                    showVideos={showVideos}
+                    toggleVideos={toggleVideos}
+                    showDemoInsights={showDemoInsights}
+                    setShowDemoInsights={setShowDemoInsights}
+                    includeDocuments={includeDocuments}
+                    setIncludeDocuments={setIncludeDocuments}
+                    showFutureEvents={showFutureEvents}
+                    setShowFutureEvents={setShowFutureEvents}
+                    eventCounts={{
+                      ai_alert: events.filter(e => e.kind === 'ai_alert').length,
+                      vehicle_doc: events.filter(e => e.kind === 'vehicle_doc').length,
+                      maintenance: events.filter(e => e.kind === 'maintenance').length,
+                      trip: events.filter(e => e.kind === 'trip').length,
+                      kpi: kpiCards?.length || 0,
+                      videos: availableShorts.length,
+                      concepts: demoAIInsights.length
+                    }}
+                  />
+                </div>
+
+                {/* Desktop Filter Section - Hidden on Mobile */}
+                <div className="hidden sm:block p-3 sm:p-4">
                   {/* Filter Pills - Subtle Apple-inspired Colors - Mobile Optimized */}
                   <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-3 sm:-mx-4 px-3 sm:px-0 snap-x snap-mandatory">
                     <button
@@ -1382,13 +1481,17 @@ const AIAlertsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Social Media Scroller Layout */}
-                <div className="max-w-4xl mx-auto px-3 pb-3">
+                {/* Social Media Scroller Layout - Optimized for Mobile */}
+                <div className="max-w-4xl mx-auto px-2 sm:px-3 pb-3">
 
-                  {/* Social Media Scroller */}
+                  {/* Social Media Scroller with Better Mobile Heights */}
                   <div
                     ref={feedContainerRef}
-                    className="space-y-3 overflow-y-auto max-h-[60vh] sm:max-h-[70vh] md:max-h-[75vh] pr-1"
+                    className="space-y-3 overflow-y-auto scrollbar-hide pr-1"
+                    style={{
+                      maxHeight: 'calc(100vh - 200px)', // Dynamic height based on viewport
+                      minHeight: '400px'
+                    }}
                   >
                     {heroFeedLoading ? (
                       <div className="text-center py-8">
@@ -1629,12 +1732,15 @@ const AIAlertsPage: React.FC = () => {
                                     />
                                   )}
 
-                                  {/* KPI Card - Special handling */}
+                                  {/* KPI Card - Special handling with animations */}
                                   {event.kind === 'kpi' && event.kpi_data ? (
-                                    <KPICard
+                                    <AnimatedKPICard
                                       key={`kpi-${event.id}`}
                                       kpi={event.kpi_data}
                                       variant="full"
+                                      index={events.filter(e => e.kind === 'kpi').findIndex(e => e.id === event.id)}
+                                      isNewBatch={isNewKPIBatch}
+                                      staggerDelay={150}
                                     />
                                   ) : event.kind === 'trip' && event.entity_json ? (
                                     /* Trip Card - Use the same card as trips page */

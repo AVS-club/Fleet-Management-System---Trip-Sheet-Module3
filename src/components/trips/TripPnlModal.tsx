@@ -7,6 +7,7 @@ import Select from '../ui/Select';
 import { updateTrip } from '../../utils/storage';
 import { toast } from 'react-toastify';
 import { createLogger } from '../../utils/logger';
+import { getDefaultBillingType, BillingType } from '../../utils/billingSettings';
 
 const logger = createLogger('TripPnlModal');
 
@@ -27,7 +28,7 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
   driver,
   onUpdate
 }) => {
-  const [billingType, setBillingType] = useState<'per_km' | 'per_ton' | 'manual'>(
+  const [billingType, setBillingType] = useState<BillingType>(
     trip.billing_type || 'per_km'
   );
   const [freightRate, setFreightRate] = useState<number>(trip.freight_rate || 0);
@@ -57,6 +58,14 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
       case 'per_ton':
         baseIncome = trip.gross_weight * freightRate;
         break;
+      case 'per_trip':
+        baseIncome = freightRate; // Flat rate per trip
+        break;
+      case 'per_unit':
+        // For per unit, we use gross_weight as the unit count
+        // This could be customized based on business needs
+        baseIncome = trip.gross_weight * freightRate;
+        break;
       case 'manual':
         baseIncome = manualIncome;
         break;
@@ -82,6 +91,20 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
   useEffect(() => {
     setIsEstimated(billingType !== 'manual');
   }, [billingType]);
+  
+  // Load default billing type if trip doesn't have one
+  useEffect(() => {
+    const loadDefaultBillingType = async () => {
+      if (!trip.billing_type) {
+        const defaultType = await getDefaultBillingType();
+        setBillingType(defaultType);
+      }
+    };
+    
+    if (isOpen) {
+      loadDefaultBillingType();
+    }
+  }, [isOpen, trip.billing_type]);
 
   const handleSave = async () => {
     setIsSubmitting(true);
@@ -173,10 +196,12 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
                 options={[
                   { value: 'per_km', label: 'Per Kilometer' },
                   { value: 'per_ton', label: 'Per Ton' },
+                  { value: 'per_trip', label: 'Per Trip (Flat Rate)' },
+                  { value: 'per_unit', label: 'Per Unit/Pack' },
                   { value: 'manual', label: 'Manual Entry' }
                 ]}
                 value={billingType}
-                onChange={(e) => setBillingType(e.target.value as 'per_km' | 'per_ton' | 'manual')}
+                onChange={(e) => setBillingType(e.target.value as BillingType)}
               />
               
               {billingType === 'per_km' && (
@@ -192,6 +217,26 @@ const TripPnlModal: React.FC<TripPnlModalProps> = ({
               {billingType === 'per_ton' && (
                 <Input
                   label="Rate per Ton (₹)"
+                  type="number"
+                  value={freightRate}
+                  onChange={(e) => setFreightRate(parseFloat(e.target.value) || 0)}
+                  icon={<IndianRupee className="h-4 w-4" />}
+                />
+              )}
+              
+              {billingType === 'per_trip' && (
+                <Input
+                  label="Flat Rate per Trip (₹)"
+                  type="number"
+                  value={freightRate}
+                  onChange={(e) => setFreightRate(parseFloat(e.target.value) || 0)}
+                  icon={<IndianRupee className="h-4 w-4" />}
+                />
+              )}
+              
+              {billingType === 'per_unit' && (
+                <Input
+                  label="Rate per Unit/Pack (₹)"
                   type="number"
                   value={freightRate}
                   onChange={(e) => setFreightRate(parseFloat(e.target.value) || 0)}

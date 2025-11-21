@@ -8,7 +8,7 @@ import MobileOrganizationSelector from "../ui/MobileOrganizationSelector";
 import AppNav from "./AppNav";
 import LanguageSwitcher from "../ui/LanguageSwitcher";
 import { toast } from 'react-toastify';
-import { usePermissions } from '../../hooks/usePermissions';
+import { usePermissions, clearPermissionsCache } from '../../hooks/usePermissions';
 import { LogOut, Truck } from 'lucide-react';
 import { createLogger } from '../../utils/logger';
 
@@ -23,6 +23,7 @@ const Header: React.FC = () => {
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('user');
+      clearPermissionsCache(); // Clear cached permissions
       navigate('/login');
       toast.success('Logged out successfully');
     } catch (error) {
@@ -53,10 +54,18 @@ const Header: React.FC = () => {
                   src="/assets/AVS-LOGO-512x512-new.png"
                   alt="Auto Vital Solution - Dashboard" 
                   className="h-10 w-10 sm:h-11 sm:w-11 object-contain p-0.5 filter drop-shadow-sm"
+                  loading="eager"
                   onError={(e) => {
-                    // Fallback if logo doesn't load
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    // Try alternative logo paths as fallback
+                    const target = e.currentTarget as HTMLImageElement;
+                    if (target.src.includes('AVS-LOGO-512x512-new.png')) {
+                      target.src = '/assets/AVS-LOGO-512x512.png';
+                    } else if (target.src.includes('AVS-LOGO-512x512.png')) {
+                      target.src = '/assets/avs-logo.png';
+                    } else {
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }
                   }}
                 />
                 <Truck className="hidden h-7 w-7 text-primary-600" />

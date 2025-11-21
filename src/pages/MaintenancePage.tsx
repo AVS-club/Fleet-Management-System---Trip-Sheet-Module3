@@ -14,6 +14,7 @@ import Button from "../components/ui/Button";
 import KPIPanel from "../components/maintenance/KPIPanel";
 import MaintenanceCalendar from "../components/maintenance/MaintenanceCalendar";
 import MaintenanceTaskList from "../components/maintenance/MaintenanceTaskList";
+import MaintenanceErrorBoundary from "../components/maintenance/MaintenanceErrorBoundary";
 import { useQuery } from "@tanstack/react-query";
 import { createLogger } from '../utils/logger';
 
@@ -131,17 +132,18 @@ const MaintenancePage = () => {
   const loading = tasksLoading || vehiclesLoading;
   return (
     <Layout>
-      {/* Page Header */}
-      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
-        <div className="flex items-center group">
-          <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
-          <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
-            {t("maintenance.title")}
-          </h1>
-        </div>
-        <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
-          {t("maintenance.description")}
-        </p>
+      <MaintenanceErrorBoundary>
+        {/* Page Header */}
+        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 shadow-sm mb-6">
+          <div className="flex items-center group">
+            <Wrench className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400 group-hover:text-primary-600 transition" />
+            <h1 className="text-2xl font-display font-semibold tracking-tight-plus text-gray-900 dark:text-gray-100">
+              {t("maintenance.title")}
+            </h1>
+          </div>
+          <p className="text-sm font-sans text-gray-500 dark:text-gray-400 mt-1 ml-7">
+            {t("maintenance.description")}
+          </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button
             onClick={() => navigate("/maintenance/new")}
@@ -217,6 +219,7 @@ const MaintenancePage = () => {
           )}
         </div>
       )}
+      </MaintenanceErrorBoundary>
     </Layout>
   );
 };

@@ -1,6 +1,11 @@
 import { supabase } from './supabaseClient';
 import { createLogger } from './logger';
 import { getCurrentUserId, getUserActiveOrganization, withOwner } from './supaHelpers';
+import { 
+  getVendors as getVendorsFromCache,
+  saveVendorsToCache,
+  clearVendorCache 
+} from './vendorSync';
 
 const logger = createLogger('vendorStorage');
 
@@ -22,9 +27,9 @@ export interface Vendor {
 }
 
 /**
- * Fetch all vendors for the current organization
+ * Fetch all vendors for the current organization with caching
  */
-export const getVendors = async (): Promise<Vendor[]> => {
+export const getVendors = async (forceRefresh: boolean = false): Promise<Vendor[]> => {
   try {
     const userId = await getCurrentUserId();
     if (!userId) {
@@ -38,6 +43,32 @@ export const getVendors = async (): Promise<Vendor[]> => {
       return [];
     }
 
+    // Check cache first unless forced refresh
+    if (!forceRefresh) {
+      const cachedVendors = getVendorsFromCache();
+      if (cachedVendors && cachedVendors.length > 0) {
+        logger.debug(`Returning ${cachedVendors.length} vendors from cache`);
+        // Map the cached vendors to the expected format
+        return cachedVendors.map(v => ({
+          id: v.id,
+          vendor_name: v.name || v.vendor_name,
+          vendor_type: v.vendor_type,
+          contact_person: v.contact || v.contact_person,
+          phone: v.phone,
+          email: v.email,
+          address: v.address,
+          gst_number: v.gst_number,
+          specializations: [],
+          rating: 0,
+          active: v.active !== false,
+          organization_id: organizationId,
+          created_at: v.created_at,
+          updated_at: v.updated_at
+        } as Vendor));
+      }
+    }
+
+    // Fetch from database
     const { data, error } = await supabase
       .from('maintenance_vendors')
       .select('*')
@@ -47,10 +78,52 @@ export const getVendors = async (): Promise<Vendor[]> => {
 
     if (error) {
       logger.error('Error fetching vendors:', error);
+      // Try cache as fallback
+      const cachedVendors = getVendorsFromCache();
+      if (cachedVendors) {
+        logger.warn('Using cached vendors due to database error');
+        return cachedVendors.map(v => ({
+          id: v.id,
+          vendor_name: v.name || v.vendor_name,
+          vendor_type: v.vendor_type,
+          contact_person: v.contact || v.contact_person,
+          phone: v.phone,
+          email: v.email,
+          address: v.address,
+          gst_number: v.gst_number,
+          specializations: [],
+          rating: 0,
+          active: v.active !== false,
+          organization_id: organizationId,
+          created_at: v.created_at,
+          updated_at: v.updated_at
+        } as Vendor));
+      }
       return [];
     }
 
     logger.debug(`Fetched ${data?.length || 0} vendors from database`);
+    
+    // Save to cache in compatible format
+    if (data && data.length > 0) {
+      const cacheFormat = data.map(v => ({
+        id: v.id,
+        name: v.vendor_name,
+        contact: v.contact_person,
+        phone: v.phone,
+        email: v.email,
+        address: v.address,
+        gst_number: v.gst_number,
+        vendor_type: v.vendor_type,
+        active: v.active,
+        created_at: v.created_at,
+        updated_at: v.updated_at,
+        organization_id: v.organization_id,
+        created_by: v.created_by
+      }));
+      saveVendorsToCache(cacheFormat);
+    }
+
     return data || [];
   } catch (error) {
     logger.error('Error in getVendors:', error);
@@ -96,6 +169,8 @@ export const createVendor = async (
     }
 
     logger.debug('Vendor created successfully:', data);
+    // Clear cache to force refresh on next fetch
+    clearVendorCache();
     return data;
   } catch (error) {
     logger.error('Error in createVendor:', error);

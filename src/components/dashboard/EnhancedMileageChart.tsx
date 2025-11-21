@@ -1165,28 +1165,28 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
         {/* Compact Info Section */}
         {selectedTags.length > 0 && (
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div>
-                <div className="text-gray-500 dark:text-gray-400">Vehicles</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-xs sm:text-sm leading-tight">
+              <div className="min-w-0">
+                <div className="text-gray-500 dark:text-gray-400 break-words">Vehicles</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100 break-words">
                   {chartVehicles.length} active
                 </div>
               </div>
-              <div>
-                <div className="text-gray-500 dark:text-gray-400">Avg Mileage</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
+              <div className="min-w-0">
+                <div className="text-gray-500 dark:text-gray-400 break-words">Avg Mileage</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100 break-words">
                   {typeof averageMileage === 'number' ? `${averageMileage} km/L` : 'Calculating...'}
                 </div>
               </div>
-              <div>
-                <div className="text-gray-500 dark:text-gray-400">Data Points</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
+              <div className="min-w-0">
+                <div className="text-gray-500 dark:text-gray-400 break-words">Data Points</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100 break-words">
                   {chartTrips.length} trips
                 </div>
               </div>
-              <div>
-                <div className="text-gray-500 dark:text-gray-400">Period</div>
-                <div className="font-semibold text-gray-900 dark:text-gray-100">
+              <div className="min-w-0">
+                <div className="text-gray-500 dark:text-gray-400 break-words">Period</div>
+                <div className="font-semibold text-gray-900 dark:text-gray-100 break-words">
                   {dateRange === 'custom' ? 'Custom' : `Last ${dateRange.replace('days', ' days')}`}
                 </div>
               </div>
@@ -1204,23 +1204,23 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
         <div className="mt-6">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
                     <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                       Mileage Anomalies
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-snug break-words">
                       {anomalies.length} issues found • Click any entry to review
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={exportAnomalies}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-full sm:w-auto justify-center"
                 >
                   <Download className="w-4 h-4" />
                   <span>Export CSV</span>
@@ -1382,4 +1382,3 @@ const EnhancedMileageChart: React.FC<EnhancedMileageChartProps> = ({ trips, vehi
 };
 
 export default EnhancedMileageChart;
-

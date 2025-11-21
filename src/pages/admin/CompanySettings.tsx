@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Building2, Upload, Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Trash2 } from 'lucide-react';
+import { Building2, Upload, Save, Loader2, ArrowLeft, CheckCircle, AlertCircle, Trash2, Calculator } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../utils/supabaseClient';
 import { createLogger } from '../../utils/logger';
+import { getDefaultBillingType, setDefaultBillingType, getAllBillingTypes, BillingType } from '../../utils/billingSettings';
 
 const logger = createLogger('CompanySettings');
 
@@ -56,6 +57,9 @@ const CompanySettings: React.FC = () => {
     contact_email: '',
     contact_phone: '',
   });
+  
+  // Billing settings
+  const [defaultBillingType, setDefaultBillingTypeState] = useState<BillingType>('per_km');
 
   // Validation functions
   const validateGST = (gst: string): boolean => {
@@ -132,6 +136,10 @@ const CompanySettings: React.FC = () => {
           setExistingLogoUrl(companyData.logo_url);
           setPreviewUrl(companyData.logo_url);
         }
+        
+        // Load billing type preference
+        const billingType = await getDefaultBillingType();
+        setDefaultBillingTypeState(billingType);
       } else {
         if (import.meta.env.MODE === 'development') {
           logger.debug('No company data found, setting up new company');
@@ -376,6 +384,12 @@ const CompanySettings: React.FC = () => {
       setIsEditing(false); // Exit edit mode after successful save
       setSuccessMessage('Company information saved successfully!');
 
+      // Save billing type preference
+      const billingSuccess = await setDefaultBillingType(defaultBillingType);
+      if (!billingSuccess) {
+        logger.warn('Failed to save billing type preference');
+      }
+      
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
@@ -816,6 +830,48 @@ const CompanySettings: React.FC = () => {
                   {errors.ifsc && (
                     <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.ifsc}</p>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Billing Settings */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100 flex items-center">
+                <Calculator className="h-5 w-5 mr-2" />
+                Billing Settings
+              </h2>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Default Billing Type
+                  </label>
+                  <select
+                    value={defaultBillingType}
+                    onChange={(e) => setDefaultBillingTypeState(e.target.value as BillingType)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                    disabled={isReadOnlyMode}
+                  >
+                    {getAllBillingTypes().map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    This will be the default billing type for all new trips
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Billing Type Description
+                  </label>
+                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                    {defaultBillingType === 'per_km' && 'Charges calculated based on distance traveled (KM)'}
+                    {defaultBillingType === 'per_ton' && 'Charges calculated based on cargo weight (Tons)'}
+                    {defaultBillingType === 'per_trip' && 'Fixed charge per trip regardless of distance or weight'}
+                    {defaultBillingType === 'per_unit' && 'Charges calculated per unit/pack of cargo'}
+                    {defaultBillingType === 'manual' && 'Manually enter the total amount for each trip'}
+                  </div>
                 </div>
               </div>
             </div>

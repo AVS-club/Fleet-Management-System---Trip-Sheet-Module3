@@ -342,24 +342,47 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     setFieldsDisabled(true);
 
     try {
-      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
-        body: {
-          registration_number: regNumber,
+      logger.info('Fetching RC details for:', regNumber);
+      
+      // Use proxy server to avoid IP whitelisting issues
+      // In production, set VITE_RC_PROXY_URL in your environment variables
+      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          registration_number: regNumber
+        }),
       });
+      
+      const result = await response.json();
+      const error = !response.ok ? { message: result.message || 'Failed to fetch' } : null;
+
+      logger.debug('Supabase function response:', { result, error });
 
       if (error) {
+        logger.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to fetch details');
       }
 
       if (!result?.success) {
-        throw new Error(result?.message || 'Failed to fetch vehicle details');
+        logger.error('API returned unsuccessful response:', result);
+        // Don't fill any data if API fails
+        toast.error(result?.message || 'Failed to fetch vehicle details. Please enter details manually.');
+        setFieldsDisabled(false);
+        setFetchStatus('error');
+        setIsFetching(false);
+        return; // Exit early without filling any data
       }
 
       // Extract the RC data - your API returns it in response field
       const rcData = result.data?.response || result.response || {};
       
-      logger.debug('API Response:', rcData);
+      logger.debug('RC Data received:', rcData);
+      logger.info('Available fields:', Object.keys(rcData).join(', '));
       
       // Helper function to check if date is valid (not 1900-01-01 placeholder)
       const isValidDate = (dateStr: string | undefined): boolean => {
@@ -399,12 +422,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         color: rcData.color || '',
         cubic_capacity: parseFloat(rcData.cubic_capacity) || undefined,
         cylinders: parseInt(rcData.cylinders) || undefined,
-        unladen_weight: parseFloat(rcData.gross_weight) || undefined, // Note: API returns gross_weight
+        unladen_weight: parseFloat(rcData.unladen_weight) || undefined,
+        gvw: parseFloat(rcData.gross_weight) || undefined, // Map gross_weight to GVW
         seating_capacity: parseInt(rcData.seating_capacity) || undefined,
         emission_norms: rcData.norms || '',
+        tyre_size: rcData.tyre_size || '', // Add tyre size mapping
+        number_of_tyres: parseInt(rcData.number_of_tyres) || undefined, // Add number of tyres
         
         // Registration & Ownership
         owner_name: rcData.owner_name || '',
+        father_name: rcData.father_name || '', // Add father's name
         registration_date: isValidDate(rcData.registration_date) ? rcData.registration_date : undefined,
         rc_status: rcData.rc_status || '',
         financer: rcData.financer || '',
@@ -426,6 +453,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         permit_expiry_date: isValidDate(rcData.permit_valid_upto) ? rcData.permit_valid_upto : undefined,
         national_permit_number: rcData.national_permit_number || '',
         national_permit_upto: isValidDate(rcData.national_permit_upto) ? rcData.national_permit_upto : undefined,
+        
+        // Fitness Certificate
+        fitness_expiry_date: isValidDate(rcData.fitness_upto) ? rcData.fitness_upto : undefined,
+        fitness_issue_date: isValidDate(rcData.fitness_valid_from) ? rcData.fitness_valid_from : undefined,
         
         // PUC Details
         puc_certificate_number: rcData.pucc_number || '',
@@ -453,7 +484,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
       setFieldsDisabled(false);
       setFetchStatus('success');
-      toast.success('Vehicle details fetched successfully! Please verify and complete the form.');
+      
+      // Success message based on data source
+      if (result.dataSource === 'api') {
+        toast.success('Vehicle details fetched successfully! Please verify and complete the form.');
+      } else {
+        toast.info('Details loaded. Please verify all information.');
+      }
       
     } catch (err: any) {
       logger.error('RC fetch error:', err);
@@ -810,6 +847,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Make"
             icon={<Truck className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             error={errors.make?.message}
             required
             disabled={fieldsDisabled || isSubmitting}
@@ -819,6 +857,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Model"
             icon={<Car className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             error={errors.model?.message}
             required
             disabled={fieldsDisabled || isSubmitting}
@@ -968,6 +1007,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Chassis Number"
             icon={<Hash className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('chassis_number')}
           />
@@ -975,6 +1015,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Engine Number"
             icon={<Hash className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('engine_number')}
           />
@@ -982,6 +1023,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Vehicle Class"
             icon={<Car className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('vehicle_class')}
           />
@@ -989,6 +1031,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Color"
             icon={<Palette className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('color')}
           />
@@ -1046,6 +1089,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Emission Norms"
             icon={<Database className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('emission_norms')}
           />
@@ -1054,6 +1098,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             label="Tyre Size"
             placeholder="e.g., 295/80 R22.5"
             icon={<Settings className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={isSubmitting}
             {...register('tyre_size')}
           />
@@ -1079,8 +1124,17 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Owner Name"
             icon={<User className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('owner_name')}
+          />
+
+          <Input
+            label="Father's Name"
+            icon={<User className="h-4 w-4" />}
+            hideIconWhenFocused={true}
+            disabled={fieldsDisabled || isSubmitting}
+            {...register('father_name')}
           />
 
           <Input
@@ -1095,6 +1149,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="RC Status"
             icon={<FileText className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('rc_status')}
           />
@@ -1111,6 +1166,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
           <Input
             label="Financer"
             icon={<CreditCard className="h-4 w-4" />}
+            hideIconWhenFocused={true}
             disabled={fieldsDisabled || isSubmitting}
             {...register('financer')}
           />

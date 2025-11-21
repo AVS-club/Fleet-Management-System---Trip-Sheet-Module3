@@ -506,17 +506,22 @@ export const useDocumentSummary = (isOpen: boolean) => {
     try {
       setRefreshProgress(prev => ({ ...prev, [vehicle.id!]: 'processing' }));
 
-      const { data: result, error } = await supabase.functions.invoke('fetch-rc-details', {
-        body: {
-          registration_number: vehicle.registration_number,
+      // Use proxy server to avoid IP whitelisting issues
+      const proxyUrl = import.meta.env.VITE_RC_PROXY_URL || 'http://localhost:3001/api/fetch-rc-details';
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          registration_number: vehicle.registration_number
+        }),
       });
+      
+      const result = await response.json();
 
-      if (error) {
-        throw new Error(error.message || 'Failed to fetch details');
-      }
-
-      if (!result?.success) {
+      if (!response.ok || !result?.success) {
         throw new Error(result?.message || 'Failed to fetch vehicle details');
       }
 

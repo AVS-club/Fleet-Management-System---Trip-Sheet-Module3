@@ -51,6 +51,7 @@ export interface Trip {
   end_km: number;
   gross_weight: number;
   refueling_done: boolean;
+  refuelings?: Refueling[];
   fuel_quantity?: number;
   fuel_cost?: number;
   fuel_rate_per_liter?: number;
@@ -71,7 +72,7 @@ export interface Trip {
 
   // P&L fields
   freight_rate?: number;
-  billing_type?: "per_km" | "per_ton" | "manual";
+  billing_type?: "per_km" | "per_ton" | "per_trip" | "per_unit" | "manual";
   income_amount?: number;
   total_expense?: number;
   net_profit?: number;

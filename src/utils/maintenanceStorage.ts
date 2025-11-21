@@ -15,6 +15,14 @@ import { createLogger } from './logger';
 import { getCurrentUserId, getUserActiveOrganization, withOwner } from './supaHelpers';
 import { toast } from 'react-toastify';
 import { calculateTaskWarranty } from './warrantyCalculations';
+import {
+  normalizeMaintenanceTaskForBackend,
+  normalizeMaintenanceTaskForFrontend,
+  normalizeServiceGroupForBackend,
+  normalizeServiceGroupForFrontend,
+  validateMaintenanceTask
+} from './maintenanceDataNormalizer';
+import { logAuditEvent } from './maintenanceAuditLogger';
 
 const logger = createLogger('maintenanceStorage');
 
@@ -100,7 +108,7 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
     return [];
   }
 
-  // Fetch service groups for each task
+  // Fetch service groups for each task and normalize for frontend
   const tasks = await Promise.all(
     (data || []).map(async (task) => {
       const { data: serviceGroups, error: serviceGroupsError } = await supabase
@@ -110,13 +118,16 @@ export const getTasks = async (): Promise<MaintenanceTask[]> => {
 
       if (serviceGroupsError) {
         handleSupabaseError('fetch service groups', serviceGroupsError);
-        return task;
+        return normalizeMaintenanceTaskForFrontend(task);
       }
 
-      return {
+      // Normalize the entire task including service groups
+      const taskWithGroups = {
         ...task,
         service_groups: serviceGroups || [],
       };
+      
+      return normalizeMaintenanceTaskForFrontend(taskWithGroups);
     })
   );
 
@@ -143,32 +154,34 @@ export const getTask = async (id: string): Promise<MaintenanceTask | null> => {
 
   if (serviceGroupsError) {
     handleSupabaseError('fetch service groups', serviceGroupsError);
-    return data;
+    return normalizeMaintenanceTaskForFrontend(data);
   }
 
-  return {
+  // Normalize the entire task including service groups
+  const taskWithGroups = {
     ...data,
     service_groups: serviceGroups || [],
   };
+  
+  return normalizeMaintenanceTaskForFrontend(taskWithGroups);
 };
 
 export const createTask = async (
   task: Omit<MaintenanceTask, "id" | "created_at" | "updated_at">
 ): Promise<MaintenanceTask | null> => {
+  // Normalize the task data first
+  const normalizedTask = normalizeMaintenanceTaskForBackend(task);
+  
+  // Validate the task
+  const validation = validateMaintenanceTask(normalizedTask);
+  if (!validation.isValid) {
+    const errorMessage = validation.errors.join('; ');
+    logger.error("Task validation failed:", errorMessage);
+    throw new Error(errorMessage);
+  }
+
   // Extract service groups and cost fields to handle separately
-  const { service_groups, estimated_cost, total_cost, ...taskData } = task as any;
-
-  // Make sure start_date is not empty string
-  if (taskData.start_date === "") {
-    logger.error("Empty start_date detected in createTask");
-    throw new Error("Start date cannot be empty");
-  }
-
-  // Make sure end_date is not empty string - if empty, use start_date
-  if (taskData.end_date === "" || !taskData.end_date) {
-    logger.warn("Empty or missing end_date detected, using start_date as fallback");
-    taskData.end_date = taskData.start_date;
-  }
+  const { service_groups, estimated_cost, total_cost, ...taskData } = normalizedTask as any;
 
   // If garage_id is not provided, use vendor_id from the first service group
   if (
@@ -280,6 +293,16 @@ export const createTask = async (
 
   if (error) {
     handleSupabaseError('create maintenance task', error);
+    // Log failed attempt
+    await logAuditEvent(
+      'CREATE_TASK',
+      'maintenance_task',
+      'unknown',
+      { vehicle_id: payload.vehicle_id, task_type: payload.task_type },
+      undefined,
+      false,
+      error.message
+    );
     throw new Error(`Error creating maintenance task: ${error.message}`);
   }
 
@@ -292,6 +315,19 @@ export const createTask = async (
       dataType: typeof data,
       dataString: JSON.stringify(data).substring(0, 200)
     });
+    
+    // Log successful creation
+    await logAuditEvent(
+      'CREATE_TASK',
+      'maintenance_task',
+      data.id,
+      {
+        vehicle_id: data.vehicle_id,
+        task_type: data.task_type,
+        status: data.status,
+        priority: data.priority
+      }
+    );
   } else {
     logger.error('❌ CRITICAL: data is null/undefined after task insert!');
     throw new Error('Task was created but no data returned');

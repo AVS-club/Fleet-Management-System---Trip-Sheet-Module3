@@ -10,7 +10,15 @@ Deno.serve(async (_req) => {
     console.log('🚀 Starting KPI refresh...')
     const startTime = performance.now()
 
-    const { data, error } = await supabase.rpc('generate_kpi_cards')
+    // Try the new function with comparisons, fallback to basic if it doesn't exist
+    let { data, error } = await supabase.rpc('generate_kpi_cards_with_comparisons')
+    
+    // If the new function doesn't exist yet, use the original
+    if (error && error.message.includes('does not exist')) {
+      const result = await supabase.rpc('generate_kpi_cards')
+      data = result.data
+      error = result.error
+    }
 
     if (error) throw error
 

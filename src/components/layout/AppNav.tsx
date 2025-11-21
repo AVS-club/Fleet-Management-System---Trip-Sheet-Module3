@@ -5,6 +5,7 @@ import { navLinks, getMobileNavLinks } from './navLinks';
 import { cn } from '../../utils/cn';
 import { Plus } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
+import NavSkeleton from './NavSkeleton';
 
 const AppNav: React.FC = () => {
   const { pathname } = useLocation();
@@ -27,66 +28,29 @@ const AppNav: React.FC = () => {
   // Use filtered links for mobile
   const displayLinks = isMobile ? getMobileNavLinks() : navLinks;
 
+  // Show skeleton while loading
+  if (loading) {
+    return (
+      <nav className="flex items-center justify-between w-full">
+        <div className="flex items-center overflow-x-auto lg:overflow-x-visible scrollbar-hide">
+          <NavSkeleton isMobile={isMobile} />
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="flex items-center justify-between w-full">
       {/* Navigation - Mobile optimized with icon-first design */}
       <div className="flex items-center overflow-x-auto lg:overflow-x-visible scrollbar-hide">
         <div className="flex items-center justify-center gap-1 sm:gap-2 px-2">
         {displayLinks.map(({ to, label, icon: Icon, customComponent: CustomComponent, hasQuickAdd, requiresPermission }) => {
-          // Check if user has permission to view this nav item
-          // While loading, show all items to prevent flickering
-          if (loading) {
-            const isActive = pathname === to || (to !== '/' && pathname.startsWith(to));
-
-            // Special handling for custom components (like AI Alerts Button)
-            if (CustomComponent) {
-              return (
-                <div key={to} className="relative group">
-                  <CustomComponent
-                    onClick={() => navigate(to)}
-                    label={t(label)}
-                    variant="compact"
-                    isActive={isActive}
-                    className=""
-                  />
-                </div>
-              );
-            }
-
-            return (
-              <div key={to} className="relative group">
-                <button
-                  onClick={() => navigate(to, { replace: true })}
-                  className={cn(
-                    "relative flex flex-col items-center justify-center rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 transition-all w-full",
-                    "text-gray-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30",
-                    isActive ? "bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold" : ""
-                  )}
-                  title={t(label)}
-                >
-                  <div className="relative">
-                    <Icon className="h-5 w-5 sm:h-5 sm:w-5" />
-                    {hasQuickAdd && !isMobile && (
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleQuickAdd(to);
-                        }}
-                        className="absolute -top-1 -right-1 p-0.5 rounded-full bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors"
-                        title={`Add new ${t(label).slice(0, -1)}`}
-                      >
-                        <Plus className="h-2.5 w-2.5" />
-                      </button>
-                    )}
-                  </div>
-                  <span className="mt-0.5 text-[10px] sm:text-xs whitespace-nowrap">
-                    {isMobile ? t(label).split(' ')[0] : t(label)}
-                  </span>
-                </button>
-              </div>
-            );
+          // Hide permission-restricted items by default while loading
+          if (requiresPermission && loading) {
+            return null;
           }
+          
+          // Check if user has permission to view this nav item after loading
           if (requiresPermission && permissions && !(permissions as any)[requiresPermission]) {
             return null;
           }

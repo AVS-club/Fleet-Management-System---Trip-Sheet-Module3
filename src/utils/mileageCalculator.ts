@@ -1,5 +1,6 @@
 import { Trip, Vehicle } from '@/types';
 import { NumberFormatter } from './numberFormatter';
+import { getTotalFuelQuantity } from './mileageRecalculation';
 
 interface TripEntry {
   start_km: number;
@@ -11,8 +12,10 @@ interface TripEntry {
 }
 
 function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefined {
+  const fuelQuantity = getTotalFuelQuantity(currentTrip);
+
   // If the current trip doesn't have refueling or fuel quantity is missing/invalid, we can't calculate
-  if (!currentTrip.refueling_done || !currentTrip.fuel_quantity || currentTrip.fuel_quantity <= 0) {
+  if (!currentTrip.refueling_done || fuelQuantity <= 0) {
     return undefined;
   }
 
@@ -29,7 +32,7 @@ function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefin
   if (previousRefuelingTrips.length === 0) {
     // For first refueling, calculate mileage based on just this trip
     const distance = currentTrip.end_km - currentTrip.start_km;
-    return distance > 0 ? NumberFormatter.roundUp(distance / currentTrip.fuel_quantity, 2) : undefined;
+    return distance > 0 ? NumberFormatter.roundUp(distance / fuelQuantity, 2) : undefined;
   }
 
   const lastRefuelingTrip = previousRefuelingTrips[0];
@@ -48,8 +51,8 @@ function calculateMileage(currentTrip: Trip, allTrips: Trip[]): number | undefin
   const totalDistance = currentTrip.end_km - lastRefuelingTrip.end_km;
 
   // Calculate KMPL only if we have valid distance and fuel quantity
-  if (totalDistance > 0 && currentTrip.fuel_quantity > 0) {
-    return NumberFormatter.roundUp(totalDistance / currentTrip.fuel_quantity, 2);
+  if (totalDistance > 0 && fuelQuantity > 0) {
+    return NumberFormatter.roundUp(totalDistance / fuelQuantity, 2);
   }
 
   return undefined;
@@ -109,7 +112,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
       for (const trip of trips) {
         if (trip.calculated_kmpl) {
           const distance = trip.end_km - trip.start_km;
-          const fuel = trip.fuel_quantity || 0;
+          const fuel = getTotalFuelQuantity(trip);
 
           if (distance > 0 && fuel > 0) {
             totalKm += distance;
@@ -262,7 +265,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
         
         // Process trip data for this segment
         const distance = trip.end_km - trip.start_km;
-        const fuel = trip.fuel_quantity || 0;
+        const fuel = getTotalFuelQuantity(trip);
         
         if (distance > 0 && fuel > 0) {
           const driverId = trip.driver_id;
@@ -346,7 +349,7 @@ export function getMileageInsights(trips: Trip[], vehicles?: Vehicle[]): Mileage
     for (const trip of trips) {
       if (trip.calculated_kmpl) {
         const distance = trip.end_km - trip.start_km;
-        const fuel = trip.fuel_quantity || 0;
+        const fuel = getTotalFuelQuantity(trip);
         
         if (distance > 0 && fuel > 0) {
           totalKm += distance;

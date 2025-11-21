@@ -7,10 +7,11 @@ import { Trip, Vehicle, Driver } from '@/types';
 import { Warehouse, Destination } from '@/types/trip';
 import { getTrips, getVehicles, getWarehouses, getDestinations } from '../utils/storage';
 import { getDrivers } from '../utils/api/drivers';
-import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, BarChart2, Target, Eye, Printer, ArrowUpDown, MoreHorizontal, PieChart, LineChart, Activity, AlertTriangle, Users, Building2, Sparkles, TrendingDown as Loss, Zap, FileText, Settings, Package, Truck, DollarSign, AlertCircle, Info, CheckCircle, Map, MoreVertical } from 'lucide-react';
+import { Calendar, ChevronDown, Filter, ChevronLeft, ChevronRight, X, RefreshCw, Search, Download, IndianRupee, TrendingUp, TrendingDown, BarChart3, BarChart2, Target, Eye, Printer, ArrowUpDown, MoreHorizontal, PieChart, LineChart, Activity, AlertTriangle, Users, Building2, Sparkles, TrendingDown as Loss, Zap, FileText, Settings, Package, Truck, DollarSign, AlertCircle, Info, CheckCircle, Map, MoreVertical, Calculator } from 'lucide-react';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
+import QuickIncomeEntry from '../components/pnl/QuickIncomeEntry';
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
          startOfYear, endOfYear, subWeeks, subMonths, subYears, parseISO } from 'date-fns';
 import * as XLSX from 'xlsx';
@@ -21,7 +22,7 @@ import { useKPICards, useLatestKPIs } from '../hooks/useKPICards';
 import { supabase } from '../utils/supabaseClient';
 import { useQuery } from '@tanstack/react-query';
 import ContractRatesManager from '../components/pnl/ContractRatesManager';
-import { FixedSizeList as List } from 'react-window';
+import { FixedSizeList } from 'react-window';
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -166,6 +167,7 @@ const TripPnlReportsPage: React.FC = () => {
   const [showCustomerAnalysis, setShowCustomerAnalysis] = useState(false);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [selectedBillingType, setSelectedBillingType] = useState('');
+  const [showIncomeEntry, setShowIncomeEntry] = useState(false);
 
   // Enhanced UI state
   const [showCharts, setShowCharts] = useState(true);
@@ -473,8 +475,7 @@ const TripPnlReportsPage: React.FC = () => {
         Number(trip.unloading_expense || 0) +
         Number(trip.driver_expense || 0) +
         Number(trip.road_rto_expense || 0) +
-        Number(trip.miscellaneous_expense || 0) +
-        Number(trip.breakdown_expense || 0)
+        Number(trip.miscellaneous_expense || 0)
       );
 
       // Calculate income (skip if no income data)
@@ -530,8 +531,7 @@ const TripPnlReportsPage: React.FC = () => {
         Number(trip.unloading_expense || 0) +
         Number(trip.driver_expense || 0) +
         Number(trip.road_rto_expense || 0) +
-        Number(trip.miscellaneous_expense || 0) +
-        Number(trip.breakdown_expense || 0)
+        Number(trip.miscellaneous_expense || 0)
       );
 
       // Calculate profit from income minus calculated expenses
@@ -571,27 +571,43 @@ const TripPnlReportsPage: React.FC = () => {
     return summary;
   }, [filteredTrips]);
 
-  const vehicleNameMap = useMemo(() => new Map(vehicles.map(v => [v.id, v.registration_number])), [vehicles]);
-  const driverNameMap = useMemo(() => new Map(drivers.map(d => [d.id, d.name])), [drivers]);
-  const warehouseNameMap = useMemo(() => new Map(warehouses.map(w => [w.id, w.name])), [warehouses]);
-  const destinationNameMap = useMemo(() => new Map(destinations.map(d => [d.id, d.name])), [destinations]);
+  const vehicleNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    vehicles.forEach(v => { map[v.id] = v.registration_number; });
+    return map;
+  }, [vehicles]);
+  const driverNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    drivers.forEach(d => { if (d.id) map[d.id] = d.name || 'Unknown'; });
+    return map;
+  }, [drivers]);
+  const warehouseNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    warehouses.forEach(w => { map[w.id] = w.name; });
+    return map;
+  }, [warehouses]);
+  const destinationNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    destinations.forEach(d => { map[d.id] = d.name; });
+    return map;
+  }, [destinations]);
 
-  const getVehicleName = useCallback((vehicleId: string) => vehicleNameMap.get(vehicleId) || 'N/A', [vehicleNameMap]);
-  const getDriverName = useCallback((driverId: string) => driverNameMap.get(driverId) || 'N/A', [driverNameMap]);
-  const getWarehouseName = useCallback((warehouseId: string) => warehouseNameMap.get(warehouseId) || 'N/A', [warehouseNameMap]);
-  const getDestinationName = useCallback((destinationId: string) => destinationNameMap.get(destinationId) || 'N/A', [destinationNameMap]);
+  const getVehicleName = useCallback((vehicleId: string) => vehicleNameMap[vehicleId] || 'N/A', [vehicleNameMap]);
+  const getDriverName = useCallback((driverId: string) => driverNameMap[driverId] || 'N/A', [driverNameMap]);
+  const getWarehouseName = useCallback((warehouseId: string) => warehouseNameMap[warehouseId] || 'N/A', [warehouseNameMap]);
+  const getDestinationName = useCallback((destinationId: string) => destinationNameMap[destinationId] || 'N/A', [destinationNameMap]);
 
   // Calculate customer-wise P&L
   const customerPnL = useMemo((): CustomerPnL[] => {
-    const customerMap = new Map<string, CustomerPnL>();
+    const customerMap: Record<string, CustomerPnL> = {};
     
     filteredTrips.forEach(trip => {
       // Use destination as customer proxy
       const customerId = trip.destinations?.[0] || 'unknown';
       const customerName = customerId !== 'unknown' ? getDestinationName(customerId) : 'Unknown Customer';
       
-      if (!customerMap.has(customerId)) {
-        customerMap.set(customerId, {
+      if (!customerMap[customerId]) {
+        customerMap[customerId] = {
           customerId,
           customerName,
           totalTrips: 0,
@@ -602,10 +618,10 @@ const TripPnlReportsPage: React.FC = () => {
           avgTripValue: 0,
           topRoute: '',
           lastTripDate: ''
-        });
+        };
       }
       
-      const customer = customerMap.get(customerId)!;
+      const customer = customerMap[customerId];
       customer.totalTrips++;
       customer.totalRevenue += trip.income_amount || 0;
       customer.totalExpenses += trip.total_expense || 0;
@@ -618,20 +634,20 @@ const TripPnlReportsPage: React.FC = () => {
       }
     });
     
-    return Array.from(customerMap.values())
+    return Object.values(customerMap)
       .sort((a, b) => b.totalRevenue - a.totalRevenue)
       .slice(0, 20); // Top 20 customers
   }, [filteredTrips, getDestinationName]);
 
   // Calculate route analysis
   const routeAnalysis = useMemo((): RouteAnalysis[] => {
-    const routeMap = new Map<string, RouteAnalysis>();
+    const routeMap: Record<string, RouteAnalysis> = {};
     
     filteredTrips.forEach(trip => {
       const route = trip.destination_display || 'Unknown Route';
       
-      if (!routeMap.has(route)) {
-        routeMap.set(route, {
+      if (!routeMap[route]) {
+        routeMap[route] = {
           route,
           trips: 0,
           revenue: 0,
@@ -640,10 +656,10 @@ const TripPnlReportsPage: React.FC = () => {
           avgDistance: 0,
           avgDuration: 0,
           profitPerKm: 0
-        });
+        };
       }
       
-      const routeData = routeMap.get(route)!;
+      const routeData = routeMap[route];
       const distance = (trip.end_km || 0) - (trip.start_km || 0);
       
       routeData.trips++;
@@ -654,7 +670,7 @@ const TripPnlReportsPage: React.FC = () => {
       routeData.profitPerKm = routeData.avgDistance > 0 ? routeData.profit / (routeData.avgDistance * routeData.trips) : 0;
     });
     
-    return Array.from(routeMap.values())
+    return Object.values(routeMap)
       .sort((a, b) => b.profit - a.profit)
       .slice(0, 15); // Top 15 routes
   }, [filteredTrips]);
@@ -670,7 +686,7 @@ const TripPnlReportsPage: React.FC = () => {
 
     // Monthly trend data
     const monthlyTrend: TrendData[] = [];
-    const monthlyData = new Map<string, { income: number; expense: number; profit: number; trips: number }>();
+    const monthlyData: Record<string, { income: number; expense: number; profit: number; trips: number }> = {};
 
     filteredTrips.forEach(trip => {
       const month = format(parseISO(trip.trip_start_date), 'MMM yyyy');
@@ -678,18 +694,18 @@ const TripPnlReportsPage: React.FC = () => {
       const expense = Number(trip.total_expense) || 0;
       const profit = income - expense;
 
-      if (!monthlyData.has(month)) {
-        monthlyData.set(month, { income: 0, expense: 0, profit: 0, trips: 0 });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { income: 0, expense: 0, profit: 0, trips: 0 };
       }
 
-      const data = monthlyData.get(month)!;
+      const data = monthlyData[month];
       data.income += income;
       data.expense += expense;
       data.profit += profit;
       data.trips += 1;
     });
 
-    monthlyData.forEach((data, month) => {
+    Object.entries(monthlyData).forEach(([month, data]) => {
       monthlyTrend.push({
         date: month,
         income: data.income,
@@ -701,7 +717,7 @@ const TripPnlReportsPage: React.FC = () => {
 
     // Vehicle performance data
     const vehiclePerformance: ChartData[] = [];
-    const vehicleData = new Map<string, { profit: number; trips: number }>();
+    const vehicleData: Record<string, { profit: number; trips: number }> = {};
 
     filteredTrips.forEach(trip => {
       const vehicleId = trip.vehicle_id;
@@ -710,16 +726,16 @@ const TripPnlReportsPage: React.FC = () => {
       const expense = Number(trip.total_expense) || 0;
       const profit = income - expense;
 
-      if (!vehicleData.has(vehicleId)) {
-        vehicleData.set(vehicleId, { profit: 0, trips: 0 });
+      if (!vehicleData[vehicleId]) {
+        vehicleData[vehicleId] = { profit: 0, trips: 0 };
       }
 
-      const data = vehicleData.get(vehicleId)!;
+      const data = vehicleData[vehicleId];
       data.profit += profit;
       data.trips += 1;
     });
 
-    vehicleData.forEach((data, vehicleId) => {
+    Object.entries(vehicleData).forEach(([vehicleId, data]) => {
       const vehicleName = getVehicleName(vehicleId);
       vehiclePerformance.push({
         name: vehicleName,
@@ -745,6 +761,7 @@ const TripPnlReportsPage: React.FC = () => {
   }, [filteredTrips, pnlSummary, getVehicleName]);
 
   // Pagination
+  const totalPages = Math.ceil(filteredTrips.length / itemsPerPage);
   const paginatedTrips = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -754,8 +771,8 @@ const TripPnlReportsPage: React.FC = () => {
   // Sorting
   const sortedTrips = useMemo(() => {
     return [...paginatedTrips].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
+      const aValue = a[sortField] ?? '';
+      const bValue = b[sortField] ?? '';
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -992,6 +1009,29 @@ const TripPnlReportsPage: React.FC = () => {
       actions={
         <div className="flex gap-3">
           <Button
+            variant="primary"
+            onClick={() => setShowIncomeEntry(true)}
+            icon={<Calculator className="h-4 w-4" />}
+          >
+            Add Income
+          </Button>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              toast.info('Refreshing KPIs...');
+              const { error } = await supabase.rpc('generate_kpi_cards');
+              if (error) {
+                toast.error('Failed to refresh KPIs');
+              } else {
+                toast.success('KPIs refreshed successfully');
+                window.location.reload();
+              }
+            }}
+            icon={<RefreshCw className="h-4 w-4" />}
+          >
+            Refresh KPIs
+          </Button>
+          <Button
             variant="outline"
             onClick={() => setShowAIInsights(!showAIInsights)}
             icon={<Sparkles className="h-4 w-4" />}
@@ -1053,7 +1093,6 @@ const TripPnlReportsPage: React.FC = () => {
               </h3>
               <Button
                 variant="outline"
-                inputSize="sm"
                 onClick={() => setShowAIInsights(false)}
                 icon={<X className="h-4 w-4" />}
               />
@@ -1529,7 +1568,6 @@ const TripPnlReportsPage: React.FC = () => {
                       </div>
                       <Button
                         variant="outline"
-                        inputSize="sm"
                         className="ml-3"
                       >
                         View Details
@@ -1655,7 +1693,6 @@ const TripPnlReportsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                inputSize="sm"
                 onClick={clearFilters}
                 icon={<X className="h-4 w-4" />}
               >
@@ -1663,7 +1700,6 @@ const TripPnlReportsPage: React.FC = () => {
               </Button>
               <Button
                 variant="outline"
-                inputSize="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 icon={<ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />}
               >
@@ -1813,9 +1849,9 @@ const TripPnlReportsPage: React.FC = () => {
                   onChange={(e) => setSelectedDriver(e.target.value)}
                   options={[
                     { value: '', label: 'All Drivers' },
-                    ...drivers.map(driver => ({
-                      value: driver.id,
-                      label: driver.name
+                    ...drivers.filter(driver => driver.id).map(driver => ({
+                      value: driver.id!,
+                      label: driver.name || 'Unknown'
                     }))
                   ]}
                 />
@@ -1910,7 +1946,6 @@ const TripPnlReportsPage: React.FC = () => {
                       { value: '50', label: '50' },
                       { value: '100', label: '100' }
                     ]}
-                    inputSize="sm"
                   />
                 </div>
               </div>
@@ -1958,14 +1993,14 @@ const TripPnlReportsPage: React.FC = () => {
               </div>
 
               {/* Virtual List */}
-              <List
+              <FixedSizeList
                 height={600}
                 itemCount={sortedTrips.length}
                 itemSize={120}
                 width="100%"
                 className="scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600"
               >
-                {({ index, style }) => {
+                {({ index, style }: { index: number; style: React.CSSProperties }) => {
                   const trip = sortedTrips[index];
                   return (
                     <div
@@ -2032,7 +2067,6 @@ const TripPnlReportsPage: React.FC = () => {
                       <div>
                           <Button
                             variant="outline"
-                            inputSize="sm"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleTripClick(trip);
@@ -2045,7 +2079,7 @@ const TripPnlReportsPage: React.FC = () => {
                     </div>
                   );
                 }}
-              </List>
+              </FixedSizeList>
             </div>
           )}
 
@@ -2059,7 +2093,6 @@ const TripPnlReportsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
-                    inputSize="sm"
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
                     icon={<ChevronLeft className="h-4 w-4" />}
@@ -2081,7 +2114,6 @@ const TripPnlReportsPage: React.FC = () => {
                           )}
                           <Button
                             variant={currentPage === page ? "primary" : "outline"}
-                            inputSize="sm"
                             onClick={() => handlePageChange(page)}
                             className="min-w-[40px]"
                           >
@@ -2094,7 +2126,6 @@ const TripPnlReportsPage: React.FC = () => {
 
                   <Button
                     variant="outline"
-                    inputSize="sm"
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === Math.ceil(filteredTrips.length / itemsPerPage)}
                     icon={<ChevronRight className="h-4 w-4" />}
@@ -2105,145 +2136,19 @@ const TripPnlReportsPage: React.FC = () => {
               </div>
             </div>
           )}
-      </div>
+        </div>
 
-      {/* Modals temporarily disabled for debugging */}
-      {/* Contract Rates Manager Modal
-        <ContractRatesManager
-          isOpen={showContractManager}
-          onClose={() => setShowContractManager(false)}
-          customers={destinations.map(d => ({ id: d.id, name: d.name }))}
-          onRateCreated={(rate) => {
-            toast.success('Contract rate created successfully');
-            // Could refresh data or update local state here
+        {/* Quick Income Entry Modal */}
+        <QuickIncomeEntry
+          isOpen={showIncomeEntry}
+          onClose={() => setShowIncomeEntry(false)}
+          trips={filteredTrips}
+          onUpdate={() => {
+            // Reload trips data
+            fetchData();
           }}
         />
-        */}
-
-        {/* Trip Detail Modal
-        {showTripModal && selectedTrip && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Trip Details - {selectedTrip.trip_serial_number}
-                </h3>
-                <Button
-                  variant="outline"
-                  inputSize="sm"
-                  onClick={() => setShowTripModal(false)}
-                  icon={<X className="h-4 w-4" />}
-                >
-                  Close
-                </Button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Trip Information */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 border-b dark:border-gray-700 pb-2">Trip Information</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Trip ID:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedTrip.trip_serial_number}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Date:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{format(parseISO(selectedTrip.trip_start_date), 'dd MMM yyyy')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Distance:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{((selectedTrip.end_km || 0) - (selectedTrip.start_km || 0))} km</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Vehicle:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{getVehicleName(selectedTrip.vehicle_id)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Driver:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{getDriverName(selectedTrip.driver_id)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Warehouse:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{getWarehouseName(selectedTrip.warehouse_id)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Financial Summary */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 border-b dark:border-gray-700 pb-2">Financial Summary</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Income:</span>
-                      <span className="font-medium text-green-600 dark:text-green-400">
-                        ₹{(selectedTrip.income_amount || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Total Expense:</span>
-                      <span className="font-medium text-red-600 dark:text-red-400">
-                        ₹{(selectedTrip.total_expense || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-t dark:border-gray-700 pt-2">
-                      <span className="text-gray-900 dark:text-gray-100 font-medium">Net Profit:</span>
-                      <span className={`font-bold ${
-                        (selectedTrip.net_profit || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        ₹{(selectedTrip.net_profit || 0).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Cost per KM:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
-                        ₹{(selectedTrip.cost_per_km || 0).toFixed(2)}/km
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Billing Type:</span>
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedTrip.billing_type || 'N/A'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Expense Breakdown */}
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 dark:text-gray-100 border-b dark:border-gray-700 pb-2 mb-4">Expense Breakdown</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Fuel Cost</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.total_fuel_cost || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Driver Expense</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.driver_expense || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Unloading</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.unloading_expense || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Road/RTO</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.road_rto_expense || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Miscellaneous</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.miscellaneous_expense || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Breakdown</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">₹{(selectedTrip.breakdown_expense || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
-        */}
+      </div>
     </Layout>
   );
 };

@@ -27,7 +27,7 @@ import DriversPage from "./pages/DriversPage";
 import DriverPage from "./pages/DriverPage";
 import TripsPage from "./pages/TripsPage";
 import TripDetailsPage from "./pages/TripDetailsPage";
-import TripPnlReportsPage from "./pages/TripPnlReportsPageFixed";
+import TripPnlReportsPage from "./pages/TripPnlReportsPage.archived";
 import MobileTripPage from "./pages/MobileTripPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import MaintenanceTaskPage from "./pages/MaintenanceTaskPage";

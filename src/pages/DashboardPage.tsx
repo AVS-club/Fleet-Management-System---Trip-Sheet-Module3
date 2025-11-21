@@ -79,6 +79,7 @@ const DashboardPage: React.FC = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
+    enabled: !permissionsLoading && permissions?.canAccessDashboard === true,
   });
 
   // Get total trip count separately (no row limit)
@@ -101,6 +102,7 @@ const DashboardPage: React.FC = () => {
     staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
     retry: 2,
+    enabled: !permissionsLoading && permissions?.canAccessDashboard === true,
   });
 
   const { data: vehicles = [], isLoading: vehiclesLoading, error: vehiclesError } = useQuery({
@@ -109,6 +111,7 @@ const DashboardPage: React.FC = () => {
     staleTime: 5 * 60 * 1000,
     cacheTime: 10 * 60 * 1000,
     retry: 2,
+    enabled: !permissionsLoading && permissions?.canAccessDashboard === true,
   });
 
   const { data: drivers = [], isLoading: driversLoading, error: driversError } = useQuery({
@@ -478,14 +481,20 @@ const DashboardPage: React.FC = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // THEN PERMISSION CHECKS AFTER ALL HOOKS
+  // Early return for loading state
   if (permissionsLoading) {
     return <LoadingScreen isLoading={true} />;
   }
 
-  // Redirect data entry users to vehicles page - FIXED: use correct permission property
-  if (!permissions?.canAccessDashboard) {
+  // Early redirect for data entry users before any data processing
+  // This prevents flash of unauthorized content
+  if (permissions && !permissions.canAccessDashboard) {
     return <Navigate to="/vehicles" replace />;
+  }
+  
+  // If permissions are loaded but null, something went wrong
+  if (!permissionsLoading && !permissions) {
+    return <Navigate to="/login" replace />;
   }
   
   const handleSelectTrip = (trip: Trip) => {
