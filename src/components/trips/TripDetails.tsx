@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, isValid, parseISO } from 'date-fns';
 import { Trip, Vehicle, Driver, Warehouse, Destination } from '@/types';
 import { MaterialType } from '../../utils/materialTypes';
 import { AIAlert } from '@/types';
 import Button from '../ui/Button';
+import { supabase } from '../../utils/supabaseClient';
 import { 
   Calendar, 
   MapPin, 
@@ -24,7 +25,8 @@ import {
   Download,
   Settings,
   Info,
-  Copy
+  Copy,
+  Image as ImageIcon
 } from 'lucide-react';
 
 interface TripDetailsProps {
@@ -55,8 +57,45 @@ const TripDetails: React.FC<TripDetailsProps> = ({
   onCloneTrip
 }) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [gpsScreenshots, setGpsScreenshots] = useState<Array<{
+    id: string;
+    image_url: string;
+    caption?: string;
+  }>>([]);
+  const [loadingScreenshots, setLoadingScreenshots] = useState(true);
 
   const distance = trip.end_km - trip.start_km;
+
+  // Load GPS screenshots
+  useEffect(() => {
+    const loadGpsScreenshots = async () => {
+      if (!trip.id) return;
+      
+      try {
+        setLoadingScreenshots(true);
+        const { data, error } = await supabase
+          .from('trip_gps_screenshots')
+          .select('*')
+          .eq('trip_id', trip.id)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error loading GPS screenshots:', error);
+          return;
+        }
+
+        if (data) {
+          setGpsScreenshots(data);
+        }
+      } catch (error) {
+        console.error('Error loading GPS screenshots:', error);
+      } finally {
+        setLoadingScreenshots(false);
+      }
+    };
+
+    loadGpsScreenshots();
+  }, [trip.id]);
 
   // Helper function to format dates
   const formatDate = (dateString?: string) => {
@@ -656,6 +695,69 @@ const TripDetails: React.FC<TripDetailsProps> = ({
           </div>
         ) : (
           <p className="text-gray-500 text-sm">No attachment available</p>
+        )}
+      </div>
+
+      {/* GPS Location Screenshots */}
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 border border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center border-l-4 border-green-500 pl-3">
+          <MapPin className="h-5 w-5 mr-2 text-green-500" />
+          GPS Location Screenshots
+          {gpsScreenshots.length > 0 && (
+            <span className="ml-2 text-sm text-gray-500">({gpsScreenshots.length})</span>
+          )}
+        </h3>
+        
+        {loadingScreenshots ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+          </div>
+        ) : gpsScreenshots.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {gpsScreenshots.map((screenshot, index) => (
+              <div
+                key={screenshot.id}
+                className="group relative rounded-lg overflow-hidden border border-gray-200 hover:border-green-500 transition-all cursor-pointer"
+                onClick={() => setSelectedImage(screenshot.image_url)}
+              >
+                {/* Image */}
+                <div className="aspect-square relative bg-gray-100">
+                  <img
+                    src={screenshot.image_url}
+                    alt={screenshot.caption || `GPS Location ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder-image.png';
+                    }}
+                  />
+                  
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                    <Eye className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-all" />
+                  </div>
+                  
+                  {/* GPS Icon Badge */}
+                  <div className="absolute top-2 left-2 p-1.5 bg-green-500 rounded-full shadow-lg">
+                    <MapPin className="h-3 w-3 text-white" />
+                  </div>
+                </div>
+                
+                {/* Caption */}
+                {screenshot.caption && (
+                  <div className="p-2 bg-white">
+                    <p className="text-xs text-gray-700 truncate" title={screenshot.caption}>
+                      {screenshot.caption}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+            <ImageIcon className="h-12 w-12 mb-2 text-gray-300" />
+            <p className="text-sm">No GPS screenshots available</p>
+          </div>
         )}
       </div>
 
