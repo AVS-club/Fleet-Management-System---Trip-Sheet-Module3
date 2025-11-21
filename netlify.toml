@@ -1,15 +1,41 @@
+# Netlify configuration file
+
 [build]
-  publish = "dist"
+  # Directory with the serverless functions
+  functions = "netlify/functions"
+  # Build command (if needed)
   command = "npm run build"
+  # Directory to publish
+  publish = "dist"
 
 [build.environment]
+  # Node version for building
   NODE_VERSION = "18"
 
-# Environment variables for production
-# These will be set in Netlify dashboard under Site settings > Environment variables
-# Add VITE_YOUTUBE_API_KEY=your_actual_api_key_here
+# Headers for security and CORS
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
+
+# Redirects for API calls to Netlify Functions
+[[redirects]]
+  from = "/api/fetch-rc-details"
+  to = "/.netlify/functions/fetch-rc-details"
+  status = 200
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/fetch-dl-details"
+  to = "/.netlify/functions/fetch-dl-details"
   status = 200
+
+[[redirects]]
+  from = "/api/fetch-challan-info"
+  to = "/.netlify/functions/fetch-challan-info"
+  status = 200
+
+# Environment variables (these will be set in Netlify dashboard)
+[context.production.environment]
+  APICLUB_KEY = "Set this in Netlify dashboard for security"
